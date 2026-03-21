@@ -1,0 +1,28 @@
+A. Likely mismatch category  
+- Wrong symbol set / wrong parsing assumptions (player, hole, command names)  
+- Wrong output format  
+- Wrong terminal-condition evaluation due to the above (death-by-block triggered spuriously)
+
+B. What the current specification may be missing or misstating  
+- **Grid symbols are incorrect/underspecified in the spec-derived implementation.** The source uses:
+  - Player start: `'S'` (not `'P'`)
+  - Empty: `'.'`
+  - Goal: `'G'`
+  - Hole: `'B'` (not `'H'`)
+  - Walls/solids: `'#'`
+  - Special blocks: `'C'`, `'I'`, and countdown digits `'3','2','1'`
+  The current spec text is vague (“holes, immovable/solid blocks, special blocks…”) and the generated code guessed different symbols (`P`, `H`) and treated `#` as just another “non-empty” cell without clarifying its role in movement constraints.
+- **Command vocabulary/casing is wrong.** The source accepts exactly `MOVETO`, `PUSH`, `PULL`, `GETDOWN`, `CLIMB` with parameters like `L/R` (or a number for MOVETO). The generated program instead looks for lowercase `"move"`, `"push"`, etc., and `"left/right"`.
+- **Output strings are wrong.** The source prints lines like `Game Over : Gave Up`, while the generated program prints `Gave up`, `Death by block`, etc.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the **input alphabet** (exact characters and their meanings), including that the player start is `S`, holes are `B`, walls are `#`, and which blocks are special (`C`, `I`, `1/2/3`).  
+- Precisely define the **command tokens** (exact spelling/case) and **parameter encoding** (`L/R` vs words).  
+- Precisely define the **required output format**, including the exact fixed phrases.  
+- Clarify that the simulation’s “death by block” check is based on `map[py][px] != '.'` in the source, and therefore any misinterpretation of what cell the player occupies (e.g., failing to locate `S` and clear it) will incorrectly trigger this terminal condition.
+
+D. Why this clarification is supported by the source program  
+- `game_init()` explicitly searches for `'S'` and replaces it with `'.'`; it records `'G'` coordinates. No other start symbol is recognized.  
+- `gameover_hantei()` checks for hole using `'B'` and for “death by block” using `map[py][px] != '.'`. If the start cell isn’t converted to `'.'` (because the spec/code looked for `'P'`), the player remains on a non-`.` cell and will immediately satisfy the death-by-block condition.  
+- `main()` compares command strings with uppercase keywords (`strcmp(command,"MOVETO")==0`, etc.) and uses `command2[0]=='R'` for direction, proving the required command spelling and parameter format.  
+- The final `switch` prints the exact `Game Over : ...` messages, proving the output must match those strings exactly.

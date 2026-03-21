@@ -1,0 +1,35 @@
+1. Functional Description  
+Computes and outputs a shortest binary string that is **not** a subsequence of each of the two given binary input strings (i.e., a shortest binary string that fails to appear as a subsequence in at least one of the inputs). If multiple shortest answers exist, it outputs one deterministically.
+
+2. Inputs  
+- Two non-empty strings over the alphabet `{ '0', '1' }`, provided via standard input.
+
+3. Outputs  
+- A binary string over `{ '0', '1' }` written to standard output, followed by a newline.
+
+4. Preconditions  
+- Each input string length is at most 4000 characters.  
+- Inputs contain only characters `'0'` and `'1'`.  
+- Sufficient memory is available for internal tables sized proportional to the square of the maximum length.
+
+5. Postconditions  
+Let the output be `S`. Then:  
+- `S` is a binary string.  
+- `S` is **not** a subsequence of at least one of the two input strings.  
+- For any binary string `T` with `|T| < |S|`, `T` is a subsequence of **both** input strings. (Minimality of length.)  
+- If there are multiple minimal-length valid strings, the produced `S` is one of them.
+
+6. Invariants  
+- For any pair of positions within the two input strings, the internally computed value associated with that pair equals the minimal length of a binary string that is not a subsequence of at least one suffix starting at those positions.  
+- The reconstruction step outputs a prefix that is consistent with some minimal-length solution for the current suffix positions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, non-binary characters, missing inputs, or lengths exceeding the supported maximum; behavior is unspecified in such cases.  
+- No explicit handling is provided for I/O failures.
+
+8. State Transitions (if applicable)  
+- The program is single-shot and stateless across runs: it reads two inputs, computes the result, outputs it, and terminates. No persistent state is maintained.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for input lengths up to 4000; uses memory proportional to the square of the maximum length.  
+- Execution time is dominated by filling/using tables over pairs of positions, consistent with quadratic scaling in the input lengths.

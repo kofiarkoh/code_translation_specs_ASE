@@ -1,0 +1,111 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXN 1000 /* Fixed-size internal tables; behavior undefined for N > MAXN */
+
+static int64_t dp[MAXN + 1][9][2][2];
+static unsigned char vis[MAXN + 1][9][2][2];
+
+static int64_t fact8(void) {
+    /* 8! = 40320 */
+    return 40320;
+}
+
+/*
+  Count binary strings of length N on a cycle with exactly 8 ones and no adjacent ones (cyclic).
+  Positions are labeled; rotations/reflections are NOT identified.
+*/
+static int64_t count_patterns_cycle(int N) {
+    int first, prev, pos, k, cur;
+
+    /* Reset memoization for this N (spec says reset per input). */
+    for (pos = 0; pos <= N; pos++) {
+        for (k = 0; k <= 8; k++) {
+            for (first = 0; first <= 1; first++) {
+                for (prev = 0; prev <= 1; prev++) {
+                    vis[pos][k][first][prev] = 0;
+                    dp[pos][k][first][prev] = 0;
+                }
+            }
+        }
+    }
+
+    /* Bottom-up DP:
+       dp[pos][k][first][prev] = number of ways to fill positions [pos..N-1]
+       given:
+         - k ones already placed in positions [0..pos-1]
+         - first = value at position 0
+         - prev  = value at position pos-1 (for adjacency with pos)
+       At pos==N, enforce cyclic adjacency between last and first, and k==8.
+    */
+    for (first = 0; first <= 1; first++) {
+        for (prev = 0; prev <= 1; prev++) {
+            for (k = 0; k <= 8; k++) {
+                int64_t ok = 0;
+                if (k == 8) {
+                    /* cyclic adjacency: position N-1 (prev) not adjacent to position 0 (first) */
+                    if (!(prev == 1 && first == 1)) ok = 1;
+                }
+                dp[N][k][first][prev] = ok;
+                vis[N][k][first][prev] = 1;
+            }
+        }
+    }
+
+    for (pos = N - 1; pos >= 1; pos--) {
+        for (k = 0; k <= 8; k++) {
+            for (first = 0; first <= 1; first++) {
+                for (prev = 0; prev <= 1; prev++) {
+                    int64_t ways = 0;
+
+                    /* choose current bit cur at position pos */
+                    for (cur = 0; cur <= 1; cur++) {
+                        if (cur == 1) {
+                            if (k + 1 > 8) continue;
+                            if (prev == 1) continue; /* no adjacent ones */
+                            ways += dp[pos + 1][k + 1][first][1];
+                        } else {
+                            ways += dp[pos + 1][k][first][0];
+                        }
+                    }
+
+                    dp[pos][k][first][prev] = ways;
+                    vis[pos][k][first][prev] = 1;
+                }
+            }
+        }
+    }
+
+    /* Handle position 0 separately to set 'first' and start recursion at pos=1. */
+    {
+        int64_t total = 0;
+        for (first = 0; first <= 1; first++) {
+            int k0 = first;
+            if (k0 > 8) continue;
+            /* prev at pos=0 is first */
+            total += dp[1][k0][first][first];
+        }
+        return total;
+    }
+}
+
+int main(void) {
+    int N;
+    while (scanf("%d", &N) == 1) {
+        if (N == 0) break;
+
+        if (N <= 16) {
+            /* As specified: program outputs 0 for N <= 16. */
+            printf("%lld\n", (long long)0);
+            continue;
+        }
+
+        /* Undefined behavior if N > MAXN per spec; we do not add extra handling. */
+        {
+            int64_t patterns = count_patterns_cycle(N);
+            int64_t result = patterns * fact8(); /* may overflow signed 64-bit as specified */
+            printf("%lld\n", (long long)result);
+        }
+    }
+    return 0;
+}

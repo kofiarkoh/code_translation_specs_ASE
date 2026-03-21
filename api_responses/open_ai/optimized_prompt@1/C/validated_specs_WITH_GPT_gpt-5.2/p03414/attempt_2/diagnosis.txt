@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified implementation constraints (language-level constraints), leading to non-compilable generated code.
+
+B. What the current specification may be missing or misstating  
+- The specification describes only the graph-theoretic behavior (“same” vs “diff”) but does not constrain *how* the program must be expressed in C (e.g., that it must be valid ISO C with all function definitions at file scope).  
+- It also does not capture that the source program is a single translation unit using only file-scope functions; it never defines nested functions. The generated program attempted to define `key_cmp` inside `main`, which is not allowed in standard C (only a GNU extension).  
+- The spec’s “Non-functional constraints” are too vague to prevent code generation choices that violate the compilation model used by the test harness (`-std=c11`).
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the required artifact is **strictly conforming C (C11)** (or at least “portable C”), meaning:  
+  - no nested function definitions,  
+  - `main` must have a standard signature and not be `static`,  
+  - any helper comparator for `qsort` must be declared at file scope (or otherwise in a standard-conforming way).  
+- More generally: specify that the program must compile under the stated compiler flags without relying on compiler-specific extensions.
+
+D. Why this clarification is supported by the source program  
+- The source program is written in conventional, portable C style: all helper routines (`dfs1`…`dfs5`, `link`, `max`) are defined at file scope, and `main` is a normal global function.  
+- There is no use of GNU C extensions such as nested functions. Therefore, a correct specification of the “source behavior” as an implementable C program should include the constraint that the implementation must be valid under standard C compilation, matching the source’s portability assumptions.

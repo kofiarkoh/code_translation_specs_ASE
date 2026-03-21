@@ -1,0 +1,131 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	int n,m;
+	scanf("%d%d",&n,&m);
+	makefact(2010,m);
+	ll ans=0;
+	rep(i,1,n){
+		ll temp=0;
+		rep(j,0,n-i){
+			//赤がi個で、黒n-i個のうちj個が赤と繋がっていない
+			ll aaa=pom(pom(2,(n-i-j),m)-1,i,m)*choose(n-i,j,m)%m;
+			temp+=j%2?-aaa:aaa;
+		}
+		ans+=temp%m*pom(2,i*(i-1)/2,m)%m*pom(2,(n-i)*(n-i-1)/2,m)%m*choose(n,i,m)%m;
+	}
+	printf("%lld\n",(ans%m+m)%m);
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads integers `n` and `m` and computes a modular sum over all splits of an `n`-element set into two nonempty parts of sizes `i` and `n−i` for `i = 1..n−1`. For each `i`, the contribution is the product (modulo `m`) of:  
+- the number of ways to choose which `i` elements form the first part (`C(n,i)`),  
+- a factor `2^{i(i−1)/2}` depending only on `i`,  
+- a factor `2^{(n−i)(n−i−1)/2}` depending only on `n−i`, and  
+- an inclusion–exclusion sum over `j` with alternating signs, where `j` ranges over `0 ≤ j < n−i` and each term is  
+  `(-1)^j * C(n−i, j) * ( (2^{(n−i−j)} − 1)^i )` computed modulo `m`.  
+
+All arithmetic is performed modulo `m`, and the final printed value is normalized to a nonnegative residue modulo `m`.
+
+2. Inputs  
+- `n` (int): size parameter for the summations and binomial coefficients.  
+- `m` (int): modulus for all computations.
+
+3. Outputs  
+- One integer: the computed value reduced modulo `m`, printed as a value in `[0, m−1]`.
+
+4. Preconditions / Assumptions  
+- The program uses modular inverses via exponentiation to `m−2`, so correctness of binomial coefficients as implemented requires that these inverses exist for the factorial values used; in typical intended use this means `m` is prime and `fact[k] ≠ 0 (mod m)` for the needed range.  
+- Factorials and inverse factorials are precomputed up to a fixed bound of `2010` (inclusive). Therefore, for the binomial coefficients used (`C(n,i)` and `C(n−i,j)`), the intended valid range is `0 ≤ n ≤ 2010`.  
+- No validation is performed for invalid or out-of-range inputs; if the above assumptions are violated, the output is not guaranteed to be meaningful.
+
+5. Computation Details (Mathematical Form)  
+Let `C(a,b)` denote the binomial coefficient computed modulo `m` with the convention that it is `0` when `b<0`, `a<0`, or `b>a`. The program computes:  
+
+\[
+\text{ans} \equiv \sum_{i=1}^{n-1} \Bigg( C(n,i)\cdot 2^{\frac{i(i-1)}{2}} \cdot 2^{\frac{(n-i)(n-i-1)}{2}} \cdot \sum_{j=0}^{n-i-1} (-1)^j \, C(n-i,j)\, (2^{(n-i-j)}-1)^i \Bigg) \pmod m.
+\]
+
+The final output is `(ans mod m + m) mod m` to ensure a nonnegative residue.
+
+6. Error Handling / Exceptional Behavior  
+- There is no explicit error handling. If `m` is not suitable for the modular-inverse method used, if `n` exceeds the precomputation bound, or if other assumptions fail, the program may print an incorrect value.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong language/implementation constraint (C standard compliance); specification is missing constraints needed to generate valid C.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the math correctly, but it does not constrain *how* helper routines (like the binomial coefficient function) must be expressed in C.  
+- As a result, the generated code used a nested function (`auto int64_t C(...) { ... }` inside `main`), which is not valid ISO C (and not accepted under `-std=c11`).  
+- The spec also doesn’t explicitly require that the produced program compile under a particular C standard/toolchain configuration, even though the source is plain C intended to compile as such.
+
+C. What general behavior should be clarified in the specification  
+- The implementation constraints: the generated program must be valid ISO C (e.g., C11) and compile with typical flags (like `-std=c11`) without relying on nonstandard extensions (nested functions, `auto` as storage-class in this way, GCC-only constructs, etc.).  
+- Relatedly, helper functions (power mod, factorial precompute, choose/binomial) should be specified as top-level functions or otherwise implemented in a C-standard-compliant way.
+
+D. Why this clarification is supported by the source program  
+- The provided source program is standard C: it defines all functions (`pom`, `makefact`, `choose`) at file scope and uses no nested functions or non-ISO constructs.  
+- Therefore, any faithful code generation from the specification should preserve that “ordinary C” structure; the compilation failure indicates the spec didn’t capture/require this constraint, allowing a non-C11 construct that the original program does not use.
+
+```

@@ -1,0 +1,419 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 3055 Don't Burn Kotatsu Turtle
+// 2019.4.7 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(x) putchar_unlocked(x)
+#else
+#define gc() getchar()
+#define pc(x) putchar(x)
+#endif
+int in()    // 非負整数の入力
+{
+	int n = 0, c = gc();
+	//	while (isspace(c)) c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void ins(char *s)  // 文字列の入力　スペース以下の文字で入力終了
+{
+	do *s = gc();
+	while (*s++ > ' ');
+	*(s - 1) = 0;
+}
+
+
+//// 優先度付きキュー（ダイクストラ法用）
+#define MAX 500000
+typedef struct { long long t; short r, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int r, int c, long long t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].t = t, que[i].r = r, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		i = min;
+	}
+}
+
+
+//// 本問題関連
+#define MAXV 1005
+char vis[MAXV][MAXV];
+char map[MAXV][MAXV]; int H, W;
+char bomb[MAXV][MAXV];
+int A, B;
+int mv[8][2] = { {-1,0},{0,1},{1,0},{0,-1},{-1,-1},{-1,1},{1,1},{1,-1} };
+int tt[8][2];
+
+long long dijkstra(int sr, int sc, int gr, int gc)
+{
+	int i, k, r, c, f, g, rr, cc;
+	long long t;
+
+	enq(sr, sc, 0);
+	while (qsize) {
+		r = que[0].r, c = que[0].c, t = que[0].t, deq();
+		if (r == gr && c == gc) return t;
+		if (vis[r][c]) continue;
+		vis[r][c] = 1;
+
+		f = bomb[r][c], k = (2-f) << 2;
+		for (i = 0; i < k; i++) {
+			rr = r + mv[i][0], cc = c + mv[i][1];
+			if (rr < 1 || rr > H || cc < 1 || cc > W) continue;
+			g = (map[rr][cc] == '#');
+			if (f && g) continue;
+			if ((i < 4 || g) && !vis[rr][cc]) enq(rr, cc, t + tt[i][g]);
+		}
+	}
+	return -1LL;
+}
+
+
+int main()
+{
+	int i, r, c, sr, sc, tr, tc;
+	long long ans;
+
+	H = in(), W = in(), A = in(), B = in();
+	for (r = 1; r <= H; r++) {
+		ins(map[r]+1);
+		for (c = 1; c <= W; c++) {
+			if (map[r][c] == '*') {
+				bomb[r][c] = 1;
+				for (i = 0; i < 8; i++)
+					bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+			}
+			else if (map[r][c] == 's') sr = r, sc = c;
+			else if (map[r][c] == 'g') tr = r, tc = c;
+		}
+	}
+	for (i = 0; i < 4; i++) tt[i][0] = A, tt[i][1] = A + B;
+	A <<= 1;
+	for (; i < 8; i++) tt[i][0] = A, tt[i][1] = A + B;
+
+	ans = dijkstra(sr, sc, tr, tc);
+	if (ans >= 0) printf("%lld\n", ans);
+	else puts("INF");
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Compute the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid using a minimum-cost search. Movement cost depends on whether the move is orthogonal or diagonal and on whether the destination cell is a wall cell. Some cells are “dangerous” due to hazard sources; dangerous cells restrict which moves are allowed. If the goal cannot be reached under these rules, report that no finite-cost path exists.
+
+2. Inputs  
+- Four non-negative integers:  
+  - Grid height `H` and width `W`.  
+  - Cost parameter `A` (base cost component).  
+  - Cost parameter `B` (additional penalty for entering a wall cell).  
+- Then `H` strings of length `W` describing the grid. Characters used by the program:  
+  - `s`: start cell (exactly one).  
+  - `g`: goal cell (exactly one).  
+  - `*`: hazard source cell.  
+  - `#`: wall cell (affects movement cost and some movement permissions).  
+  - Any other character is treated as a normal traversable cell (no special cost/behavior by itself).
+
+3. Derived Hazard (Dangerous) Cells  
+- A cell is marked “dangerous” if it is a hazard source `*` or is one of its 8 neighbors (including diagonals).  
+- This dangerous marking is computed once from the input grid and then used during pathfinding.
+
+4. Movement Rules  
+From a current cell, the set of candidate moves depends on whether the current cell is dangerous:
+
+- If the current cell is **not dangerous**: up to 8-direction moves are considered (4 orthogonal + 4 diagonal), subject to bounds and the additional constraints below.  
+- If the current cell **is dangerous**: only the 4 orthogonal moves are considered, subject to bounds and the additional constraints below.
+
+Additional constraints applied to considered moves:
+- Moves must stay within the grid bounds.  
+- Let the destination cell be a wall if and only if its grid character is `#`.  
+- If the current cell is dangerous **and** the destination cell is a wall, that move is not allowed.  
+- Diagonal moves are only allowed when the destination cell is a wall (i.e., diagonal moves into non-wall cells are not enqueued/used). Orthogonal moves may go to either wall or non-wall cells (unless forbidden by the dangerous-to-wall rule above).
+
+5. Step Cost  
+Each move adds a non-negative cost determined by:
+- Whether the move is orthogonal or diagonal.  
+- Whether the destination cell is a wall (`#`).
+
+Let the input parameters be `A_in` and `B`. The per-step costs are:
+- Orthogonal move into non-wall: `A_in`  
+- Orthogonal move into wall: `A_in + B`  
+- Diagonal move into non-wall: `2 * A_in`  
+- Diagonal move into wall: `2 * A_in + B`  
+
+6. Output  
+- If the goal is reachable: output a single integer equal to the minimum total cost to reach the goal from the start under the rules above.  
+- If unreachable: output the literal string `INF`.
+
+7. Preconditions / Constraints  
+- `H` and `W` must not exceed the program’s fixed internal maximum grid size.  
+- The grid must contain exactly one `s` and exactly one `g`.  
+- Each of the `H` grid rows must contain at least `W` non-whitespace characters (input is read as whitespace-delimited strings).  
+- Cost parameters and the resulting minimum cost must fit within the integer ranges used by the program (accumulated cost is computed in signed 64-bit).  
+- For memory safety in the hazard-marking step, hazard sources must not be placed such that writing to their 8 neighbors would access outside the allocated arrays (i.e., hazard sources must not be on the outermost border cells).
+
+8. Algorithmic/State Semantics  
+- The program performs a Dijkstra-style search over grid cells with non-negative edge weights.  
+- A cell is “finalized” the first time it is removed from the priority frontier with minimum accumulated cost; after finalization it is not reconsidered.  
+- The search terminates when the goal cell is finalized (returning its cost) or when the frontier becomes empty (unreachable).
+
+9. Implementation/Compilation Contract (I/O Types)  
+- The computed minimum cost is represented as a 64-bit signed integer and is printed as a decimal integer. In C, this corresponds to using `long long` and printing with the `%lld` format (as in the source program). No alternative 64-bit format-macro approach is required by this specification.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAXH 1005
+#define MAXW 1005
+
+typedef struct {
+    long long d;
+    int v;
+} HeapNode;
+
+typedef struct {
+    HeapNode a[MAXH * MAXW + 5];
+    int n;
+} MinHeap;
+
+static void heap_push(MinHeap *h, long long d, int v) {
+    int i = ++h->n;
+    h->a[i].d = d;
+    h->a[i].v = v;
+    while (i > 1) {
+        int p = i >> 1;
+        if (h->a[p].d <= h->a[i].d) break;
+        HeapNode tmp = h->a[p];
+        h->a[p] = h->a[i];
+        h->a[i] = tmp;
+        i = p;
+    }
+}
+
+static HeapNode heap_pop(MinHeap *h) {
+    HeapNode ret = h->a[1];
+    HeapNode x = h->a[h->n--];
+    int i = 1;
+    while (1) {
+        int l = i << 1;
+        int r = l + 1;
+        if (l > h->n) break;
+        int m = l;
+        if (r <= h->n && h->a[r].d < h->a[l].d) m = r;
+        if (h->a[m].d >= x.d) break;
+        h->a[i] = h->a[m];
+        i = m;
+    }
+    h->a[i] = x;
+    return ret;
+}
+
+static int heap_empty(const MinHeap *h) { return h->n == 0; }
+
+static char grid[MAXH][MAXW + 5];
+static unsigned char danger[MAXH][MAXW];
+static unsigned char used[MAXH][MAXW];
+static long long distv[MAXH][MAXW];
+
+int main(void) {
+    int H, W;
+    long long A_in, B;
+    if (scanf("%d %d %lld %lld", &H, &W, &A_in, &B) != 4) return 0;
+
+    int sy = -1, sx = -1, gy = -1, gx = -1;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", grid[i]) != 1) return 0;
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 's') { sy = i; sx = j; }
+            else if (grid[i][j] == 'g') { gy = i; gx = j; }
+        }
+    }
+
+    /* Derived hazard (dangerous) cells.
+       Per precondition, hazard sources are not on the border, so neighbor writes are safe. */
+    memset(danger, 0, sizeof(danger));
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == '*') {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        danger[i + dy][j + dx] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Dijkstra-style search with finalization on first pop. */
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            used[i][j] = 0;
+            distv[i][j] = LLONG_MAX;
+        }
+    }
+
+    MinHeap pq;
+    pq.n = 0;
+
+    distv[sy][sx] = 0;
+    heap_push(&pq, 0, sy * W + sx);
+
+    const int ody[4] = {-1, 1, 0, 0};
+    const int odx[4] = {0, 0, -1, 1};
+    const int ddy[4] = {-1, -1, 1, 1};
+    const int ddx[4] = {-1, 1, -1, 1};
+
+    while (!heap_empty(&pq)) {
+        HeapNode cur = heap_pop(&pq);
+        int v = cur.v;
+        int y = v / W;
+        int x = v % W;
+
+        if (used[y][x]) continue;
+        used[y][x] = 1;
+
+        if (y == gy && x == gx) {
+            printf("%lld\n", cur.d);
+            return 0;
+        }
+
+        int curDanger = danger[y][x] ? 1 : 0;
+
+        /* Orthogonal moves always considered (subject to constraints). */
+        for (int k = 0; k < 4; k++) {
+            int ny = y + ody[k];
+            int nx = x + odx[k];
+            if (ny < 0 || ny >= H || nx < 0 || nx >= W) continue;
+
+            int destWall = (grid[ny][nx] == '#');
+            if (curDanger && destWall) continue;
+
+            long long step = A_in + (destWall ? B : 0);
+            if (cur.d != LLONG_MAX && cur.d + step < distv[ny][nx]) {
+                distv[ny][nx] = cur.d + step;
+                heap_push(&pq, distv[ny][nx], ny * W + nx);
+            }
+        }
+
+        /* Diagonal moves only if current cell is not dangerous, and only into wall cells. */
+        if (!curDanger) {
+            for (int k = 0; k < 4; k++) {
+                int ny = y + ddy[k];
+                int nx = x + ddx[k];
+                if (ny < 0 || ny >= H || nx < 0 || nx >= W) continue;
+
+                int destWall = (grid[ny][nx] == '#');
+                if (!destWall) continue; /* diagonal moves only allowed when destination is a wall */
+
+                long long step = 2 * A_in + B;
+                if (cur.d != LLONG_MAX && cur.d + step < distv[ny][nx]) {
+                    distv[ny][nx] = cur.d + step;
+                    heap_push(&pq, distv[ny][nx], ny * W + nx);
+                }
+            }
+        }
+    }
+
+    printf("INF\n");
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02153/p02153_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02153/p02153_sample1_output.txt
+Exit code: -11
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+
+```

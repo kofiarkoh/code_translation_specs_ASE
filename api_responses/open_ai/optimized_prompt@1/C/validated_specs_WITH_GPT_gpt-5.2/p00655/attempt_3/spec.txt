@@ -1,0 +1,90 @@
+1. Functional Description  
+Maintains a dynamic multiset of integers stored in two internal parts: **First Half (FH)** and **Second Half (SH)**. The program supports inserting values, deleting one value, and querying values derived from auxiliary min/max tracking structures maintained separately for FH and SH. The halves are continuously rebalanced so that:  
+- `size(FH) >= size(SH)` and  
+- `size(FH) - size(SH) <= 1`.
+
+FH and SH are not kept sorted. Query results are **not** the k-th smallest/largest element. Instead, each half maintains its own min/max tracking sequences with different update rules (FH uses prefix-extrema history; SH uses monotone-queue style structures).
+
+2. Inputs  
+- The input consists of one or more test cases.  
+- Each test case begins with an integer `q` (number of operations).  
+- A value `q = 0` terminates the entire program.  
+- Each of the next `q` operations begins with an integer opcode `op` in the range `0..9`. Some opcodes are followed by one additional integer parameter.
+
+3. Outputs  
+- For every operation **except insertion (opcode 0)**, the program prints one integer on its own line.  
+- After all `q` operations of a test case are processed, the program prints a line containing exactly `end`.
+
+4. Data Model and Invariants  
+- The stored elements are partitioned into two disjoint halves FH and SH whose union is the full multiset of stored elements (duplicates allowed).  
+- Size balance invariant is maintained after every insertion and deletion:  
+  - `size(FH) >= size(SH)`  
+  - `size(FH) - size(SH) <= 1`  
+- Operational behavior of halves:  
+  - **FH behaves like a stack**: deletions remove from the most recently added/moved end of FH.  
+  - **SH behaves like a queue**: rebalancing removals take from the oldest end of SH.  
+- Rebalancing moves elements only from SH to FH, and only when FH becomes smaller than SH.
+
+5. Operation Codes and Semantics  
+
+Let `k` denote a positive integer parameter when required.
+
+### 0: Insert  
+- Format: `0 x`  
+- Effect: Appends value `x` to SH.  
+- Rebalance: If after insertion `size(FH) < size(SH)`, remove one element from the **front/oldest end** of SH and push it onto the **top/newest end** of FH.  
+- Output: none.
+
+### 1: Delete  
+- Format: `1`  
+- Effect: Removes and returns one element from the **top/newest end** of FH.  
+- Rebalance: After removal, if `size(FH) < size(SH)`, remove one element from the **front/oldest end** of SH and push it onto the **top/newest end** of FH.  
+- Output: the removed value.
+
+### 2–9: Queries (do not modify the stored elements)  
+These queries return values from min/max tracking sequences maintained for each half. The meaning of “k-th” depends on the half:
+
+#### FH query sequences (prefix-extrema history over pushes into FH)  
+Consider the sequence of values currently in FH in the order they were pushed onto FH (including values moved from SH during rebalancing). FH maintains:  
+- a **prefix-min history**: whenever a pushed value is strictly smaller than the last stored prefix minimum, it is appended to the history; otherwise nothing is appended.  
+- a **prefix-max history**: whenever a pushed value is strictly larger than the last stored prefix maximum, it is appended to the history; otherwise nothing is appended.  
+When an element is popped from FH, the last entry of the prefix-min history is removed **only if** the popped value equals that last stored prefix minimum; similarly for prefix-max history.
+
+For FH queries with parameter `k`, the program returns the **k-th most recent** entry in the corresponding history (1-based from the end of the history):  
+- `k = 1` returns the current prefix minimum/maximum for FH,  
+- larger `k` returns earlier recorded prefix extrema (in reverse chronological order of when they were recorded).
+
+#### SH query sequences (monotone-queue minima/maxima over SH in queue order)  
+Consider SH in its queue order from **front/oldest** to **back/newest**. SH maintains:  
+- a structure that can return the minimum among the first `t` elements for increasing `t` (maintained by removing dominated larger values from the back when appending), and  
+- a structure that can return the maximum among the first `t` elements for increasing `t` (maintained by removing dominated smaller values from the back when appending).  
+When an element is removed from the front of SH (during rebalancing), the front of these structures is advanced if it equals the removed value.
+
+For SH queries with parameter `k`, the program returns the value corresponding to the **k-th position** (1-based) in these maintained monotone sequences as stored from front to back.
+
+#### Opcode mapping  
+- `2`: FH, prefix-min history, `k = 1`  
+- `3`: SH, monotone-min structure, `k = 1`  
+- `4 k`: FH, prefix-min history, `k`  
+- `5 k`: SH, monotone-min structure, `k`  
+- `6`: FH, prefix-max history, `k = 1`  
+- `7`: SH, monotone-max structure, `k = 1`  
+- `8 k`: FH, prefix-max history, `k`  
+- `9 k`: SH, monotone-max structure, `k`
+
+Output: the queried value.
+
+6. Preconditions / Validity Requirements  
+- The total number of operations and stored elements per test case must not exceed the program’s fixed internal capacity.  
+- Opcode parameters must be present exactly when required (opcodes 0, 4, 5, 8, 9 require one integer argument).  
+- Delete (opcode 1) is only issued when FH is non-empty at that moment.  
+- For query operations with parameter `k`, `k` must be positive and must not exceed the current length of the corresponding tracked sequence being indexed (FH’s prefix-extrema history for that statistic, or SH’s maintained monotone sequence for that statistic).  
+- All integer values fit in the program’s `int` range.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error checking. If any precondition is violated (empty deletion, out-of-range `k`, capacity overflow, malformed input), behavior is undefined.
+
+8. Test Case Lifecycle / Termination  
+- At the start of each test case, the structure is empty.  
+- After processing exactly `q` operations, the program outputs `end`, discards the current state, and begins reading the next test case’s `q`.  
+- When a test case count of `0` is read, the program terminates immediately.

@@ -1,0 +1,51 @@
+1. Functional Description  
+Computes the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid, subject to movement, terrain, and hazard constraints. If the goal is unreachable under these constraints, reports that no finite cost path exists.
+
+2. Inputs  
+- Grid height and width (positive integers).  
+- Two non-negative cost parameters:  
+  - Base movement cost.  
+  - Additional penalty for entering a blocked/rough cell type.  
+- A rectangular grid of characters describing each cell, including:  
+  - A start cell (exactly one).  
+  - A goal cell (exactly one).  
+  - Hazard source cells.  
+  - Blocked/rough cells.  
+  - Other traversable cells.
+
+3. Outputs  
+- If the goal is reachable: a single non-negative integer equal to the minimum total cost to reach the goal from the start.  
+- If the goal is not reachable: the literal string indicating infinity (no finite path).
+
+4. Preconditions  
+- Grid dimensions do not exceed the fixed internal maximum supported size.  
+- The grid contains exactly one start cell and exactly one goal cell.  
+- All grid rows are provided with the declared width.  
+- Cost parameters fit within the integer ranges used by the program such that the resulting minimum cost fits within signed 64-bit range.  
+- Assumption (required for memory safety): hazard sources are not placed on the outermost border cells, so that marking their adjacent cells stays within allocated bounds.
+
+5. Postconditions  
+- If a path exists that respects all movement and hazard rules, the output cost equals the minimum possible sum of step costs over all such paths.  
+- If no such path exists, the program outputs infinity.  
+- The computed result depends only on the provided grid and cost parameters.
+
+6. Invariants  
+- Movement is only between grid cells within bounds.  
+- Each step cost is non-negative and depends only on:  
+  - Whether the move is orthogonal or diagonal.  
+  - Whether the destination cell is blocked/rough.  
+- Hazard influence is derived solely from hazard source cells and their immediate neighbors (8-connected).  
+- A cell, once finalized as visited in the search, is not reconsidered for a lower cost.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery for malformed input. Behavior is undefined if preconditions are violated.  
+- If internal capacity for the search frontier is exceeded, behavior is undefined (no bounds checking on the internal queue).  
+- If the goal is unreachable, this is handled normally by outputting infinity.
+
+8. State Transitions (if applicable)  
+- The system transitions from an unvisited state to a visited state for grid cells as the minimum-cost search progresses.  
+- The search frontier evolves by adding candidate states (cell positions with accumulated cost) and removing the currently lowest-cost candidate until the goal is finalized or the frontier is empty.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for performance on large grids using a minimum-cost search with a priority-based frontier.  
+- Uses fixed-size global storage proportional to the maximum grid size and a fixed maximum frontier capacity.

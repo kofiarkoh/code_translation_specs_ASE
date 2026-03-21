@@ -1,0 +1,26 @@
+A. Likely mismatch category  
+Wrong DP state/transition rule (wrong abstraction of what the DP index represents), leading to missing cost terms in transitions.
+
+B. What the current specification may be missing or misstating  
+The specification’s “DP interpretation” implies that the DP state after processing required location `k` is keyed by the “arrival-side intermediate” into `req[k]`, and then (as in the generated code) it is tempting to reuse that same index as the “departure-side intermediate” for the next step—thereby omitting the explicit cost of traveling by `'L'` from the current required node `de[k]` to the chosen departure intermediate `j`.
+
+However, the source program’s transition clearly *always* includes an `'L'`-only segment from the current required location `de[k]` to an independently chosen node `j` on every step:
+```
+dp[k+1][i] = min(dp[k+1][i],
+                 dp[k][j] + L[de[k]][j] + S[j][i] + L[i][de[k+1]]);
+```
+So `dp[k][j]` in the source is **not** “cost to be at required node `de[k]` having arrived via `j`”; it is a different notion (a free-standing state at node `j` that still requires paying `L[de[k]][j]` to start the next step).
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the DP state meaning used by the source: what does the index `j` in `dp[k][j]` represent at required index `k`?  
+- Clarify that for each step `k -> k+1`, the algorithm chooses **two independent intermediate nodes** `j` and `i`, and the step cost includes **four** components in the general case:  
+  1) previous accumulated cost `dp[k][j]`  
+  2) `'L'`-only cost from current required node `de[k]` to `j`  
+  3) non-`'L'`-only cost from `j` to `i`  
+  4) `'L'`-only cost from `i` to next required node `de[k+1]`  
+- Clarify the role of the “direct `'L'`-only” option: in the source it is an *additional transition* when `i == j`, but it still starts from `dp[k][j]` and does **not** imply that `j` must equal some “arrival-side” node from the previous step.
+
+D. Why this clarification is supported by the source program  
+- The source transition explicitly adds `L[de[k]][j]` every time it uses the three-part route, which contradicts the generated program’s interpretation that this cost is “already accounted for” by the DP state.  
+- The source also initializes `dp[0][de[0]] = 0` and leaves other `dp[0][*]` as INF, indicating the DP index is not “arrival-side intermediate into `de[0]`” in a way that would justify dropping `L[de[k]][j]` later; instead it’s a state-space device that still requires paying from the required node to the chosen `j` at each step.  
+- The observed failure (second dataset too small) is consistent with systematically undercounting costs—exactly what happens if `L[de[k]][j]` is omitted or conflated with the DP state meaning.

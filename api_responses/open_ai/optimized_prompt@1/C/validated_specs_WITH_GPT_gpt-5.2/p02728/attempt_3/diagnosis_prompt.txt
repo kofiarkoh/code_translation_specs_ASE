@@ -1,0 +1,370 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include<stdio.h>
+long long M=1e9+7;
+int mbk(long long a,int n,int m){return n?(mbk((a*a)%m,n/2,m)*(n%2?a:1))%m:1;}
+int inv(int a,int m){return mbk((long long)a,m-2,m);}
+int ta[200010],nt[400010],to[400010],tS[400010];
+long long tu[200010],ANS[200020],tans[200020];
+//sが親でtから帰ってきた時の処理 変えるやつ
+void fc(int s,int t){tans[s]=tans[s]*tans[t]       %M;}
+//fcの逆処理　変えるやつ
+void ic(int s,int t){tans[s]=tans[s]*inv(tans[t],M)%M;}
+//すべての子の処理が終わった時の処理　変えるやつ
+void fp(int s){tans[s]=tans[s]*inv(tS[s],M)%M;}
+//fpの逆処理　変えるやつ
+void ip(int s){tans[s]=tans[s]*tS[s]       %M;}
+//木DPの関数
+void tDP(int s){//printf("!%d\n",s);
+  long long i;
+  tu[s]=1;
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]])continue;
+    tDP(to[i]);
+    fc(s,to[i]);
+    tS[s]+=tS[to[i]];
+  }
+  fp(s);
+}
+//根をsからtにする奴
+void chrt(int s,int t){
+  ip(s);
+  ic(s,t);
+  ip(t);
+  tS[s]-=tS[t];
+  tS[t]+=tS[s];
+  fp(s);
+  fc(t,s);
+  fp(t);
+}
+//全方位やる奴
+void atdp(int s){//printf("!!%d %d\n",s,cc[s]);
+  int i;
+  tu[s]=2;
+  ANS[s]=tans[s];
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]]==2)continue;
+    chrt(s,to[i]);
+    atdp(to[i]);
+    chrt(to[i],s);
+  }
+}
+//呼びだす奴
+void atDP(int v,int *a,int *b){
+  int i,I=1;
+  for(i=0;i<v;i++)ta[i+I]=-1;
+  for(i=0;i<v;i++)tS[i+I]=1;
+  for(i=0;i<v;i++)tans[i+I]=1;
+  for(i=0;i<v-1;i++){
+    nt[i]=ta[to[i+v-1]=a[i]];
+    nt[i+v-1]=ta[to[i]=b[i]];
+    ta[a[i]]=i;
+    ta[b[i]]=i+v-1;
+  }
+  tDP(I);
+  atdp(I);
+}
+int main(){
+  int n,i,a[200010],b[200010];
+  long long p=1;
+  scanf("%d",&n);
+  for(i=0;i<n-1;i++)scanf("%d %d",&a[i],&b[i]);
+  for(i=1;i<=n;i++)p=p*i%M;
+  atDP(n,a,b);
+  for(i=0;i<n;i++)printf("%lld\n",ANS[i+1]*p%M);
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given an undirected tree on \(n\) labeled vertices, the program computes, for every vertex \(v\), a value determined by the sizes of the connected components that would remain if \(v\) were removed. Let these component sizes be \(s_1, s_2, \dots, s_k\) (so \(\sum_i s_i = n-1\)). For each vertex \(v\), the program outputs (modulo a fixed prime \(P\)) the quantity:
+\[
+n!\;\cdot\;\prod_{i=1}^{k}\frac{1}{s_i! \cdot s_i}
+\;\equiv\;
+\frac{n!}{\left(\prod_i s_i!\right)\left(\prod_i s_i\right)}
+\pmod P.
+\]
+Equivalently, since \(\prod_i (s_i!\,s_i)=\prod_i \bigl(s_i\cdot s_i!\bigr)=\prod_i \bigl((s_i+0)\cdot s_i!\bigr)\), the result is a component-size–based expression that includes both factorial terms and an additional multiplicative factor of the component sizes themselves.
+
+2. Inputs  
+- An integer \(n\), the number of vertices.  
+- \(n-1\) undirected edges, each given as a pair of vertex indices.
+
+3. Outputs  
+- Exactly \(n\) lines are printed.  
+- Line \(v\) (for vertex indices in increasing order) contains one integer in \([0, P-1]\) equal to:
+  \[
+  \frac{n!}{\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|!\right)\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|\right)}
+  \bmod P,
+  \]
+  where the products range over the connected components of the graph obtained by removing \(v\).
+
+4. Preconditions / Assumptions  
+- The input graph is a tree: it has exactly \(n\) vertices, exactly \(n-1\) edges, is connected, and has no cycles.  
+- Vertex indices appearing in edges are valid for the program’s 1-based vertex storage (the program prints results for vertices \(1\) through \(n\)).  
+- \(1 \le n\) and \(n\) does not exceed the fixed array capacity used by the implementation.  
+- The modulus \(P = 10^9+7\) is prime. Modular division is performed via multiplicative inverses modulo \(P\). (If a required inverse does not exist modulo \(P\), behavior is unspecified; under the stated constraints with \(n < P\), the needed inverses exist.)
+
+5. Behavioral Notes / Edge Cases  
+- For \(n=1\), there are no components after removing the only vertex; the empty products are treated as 1, so the output is \(1\) modulo \(P\).  
+- The result for a vertex depends only on the multiset of component sizes formed by removing that vertex, not on the order in which edges are provided.
+
+6. Computation Model (High-level)  
+- The program performs a tree DP with rerooting to compute the per-vertex value for all vertices in overall linear time (aside from logarithmic-time modular exponentiation used for inverses).  
+- Internally it maintains, for the current rooting, subtree sizes and a multiplicative DP value that aggregates child contributions and includes a factor of the inverse of the current subtree size; rerooting across an edge updates the two affected subtree sizes and DP values so that the final stored value at each vertex corresponds to the formula in Section 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed. If the input violates the preconditions (not a tree, out-of-range indices, \(n\) too large for the fixed arrays, etc.), the behavior is unspecified.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+
+static int64_t mod_pow(int64_t a, int64_t e) {
+    int64_t r = 1 % MOD;
+    a %= MOD;
+    while (e > 0) {
+        if (e & 1) r = (r * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+static int64_t mod_inv(int64_t a) {
+    /* MOD is prime; inverse exists for a != 0 mod MOD under stated constraints (n < MOD). */
+    a %= MOD;
+    if (a < 0) a += MOD;
+    return mod_pow(a, MOD - 2);
+}
+
+typedef struct {
+    int to;
+    int next;
+} Edge;
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    /* Fixed-capacity arrays are implied by the spec; we allocate dynamically but do not validate. */
+    int m = (n > 0) ? (2 * (n - 1)) : 0;
+    Edge *edges = (Edge *)malloc((size_t)(m > 0 ? m : 1) * sizeof(Edge));
+    int *head = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int *parent = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int *order = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int *sub = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int *parEdge = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int64_t *dp = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+    int64_t *ans = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+    int64_t *fact = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+    int64_t *invfact = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+
+    for (int i = 1; i <= n; i++) head[i] = -1;
+
+    int ec = 0;
+    for (int i = 0; i < n - 1; i++) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        edges[ec].to = v; edges[ec].next = head[u]; head[u] = ec++;
+        edges[ec].to = u; edges[ec].next = head[v]; head[v] = ec++;
+    }
+
+    /* Precompute factorials and inverse factorials up to n. */
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) fact[i] = (fact[i - 1] * (int64_t)i) % MOD;
+    invfact[n] = mod_inv(fact[n]);
+    for (int i = n; i >= 1; i--) invfact[i - 1] = (invfact[i] * (int64_t)i) % MOD;
+
+    if (n == 1) {
+        /* Empty products are 1; output 1 mod MOD. */
+        printf("1\n");
+        free(edges); free(head); free(parent); free(order); free(sub); free(parEdge);
+        free(dp); free(ans); free(fact); free(invfact);
+        return 0;
+    }
+
+    /* Build parent array and traversal order with an explicit stack (root at 1). */
+    int *stack = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int top = 0, ordsz = 0;
+    stack[top++] = 1;
+    parent[1] = 0;
+    parEdge[1] = -1;
+
+    while (top) {
+        int v = stack[--top];
+        order[ordsz++] = v;
+        for (int e = head[v]; e != -1; e = edges[e].next) {
+            int u = edges[e].to;
+            if (u == parent[v]) continue;
+            parent[u] = v;
+            parEdge[u] = e;
+            stack[top++] = u;
+        }
+    }
+
+    /* Post-order DP to compute subtree sizes and dp[v] for rooted tree at 1.
+       dp[v] = inv(sub[v]) * prod_{child c} ( dp[c] * invfact[sub[c]] )  (mod MOD)
+       This dp is an internal rerooting-friendly aggregate; final answer uses dp[v] and fact[n]. */
+    for (int i = ordsz - 1; i >= 0; i--) {
+        int v = order[i];
+        int sz = 1;
+        int64_t prod = 1;
+        for (int e = head[v]; e != -1; e = edges[e].next) {
+            int u = edges[e].to;
+            if (u == parent[v]) continue;
+            sz += sub[u];
+            int64_t term = dp[u];
+            term = (term * invfact[sub[u]]) % MOD;
+            prod = (prod * term) % MOD;
+        }
+        sub[v] = sz;
+        dp[v] = (prod * mod_inv((int64_t)sz)) % MOD;
+    }
+
+    /* Rerooting DFS using stack; when moving root across edge v-u, update dp/sub for v and u.
+       After rerooting, dp[x] corresponds to the rooted-at-x aggregate over all neighbors. */
+    int *st_v = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int *st_p = (int *)malloc((size_t)(n + 1) * sizeof(int));
+    int stn = 0;
+    st_v[stn] = 1; st_p[stn] = 0; stn++;
+
+    while (stn) {
+        int v = st_v[--stn];
+        int p = st_p[stn];
+
+        /* Compute final answer for v:
+           ans[v] = fact[n] * dp[v] * invfact[n-1]  (mod MOD)
+           This matches: n! / (prod s_i! * prod s_i) where s_i are component sizes after removing v.
+           Reason: dp[v] = inv(n-1) * prod_i ( inv(s_i) * inv(s_i!) ) when rooted at v,
+           and multiplying by n! / (n-1)! = n gives the required expression. */
+        ans[v] = fact[n];
+        ans[v] = (ans[v] * dp[v]) % MOD;
+        ans[v] = (ans[v] * invfact[n - 1]) % MOD;
+
+        for (int e = head[v]; e != -1; e = edges[e].next) {
+            int u = edges[e].to;
+            if (u == p) continue;
+
+            /* Save current state to restore after processing child. */
+            int sub_v = sub[v], sub_u = sub[u];
+            int64_t dp_v = dp[v], dp_u = dp[u];
+
+            /* Remove u's contribution from v. */
+            int64_t contrib_u = dp[u];
+            contrib_u = (contrib_u * invfact[sub[u]]) % MOD;
+            int64_t inv_contrib_u = mod_inv(contrib_u);
+
+            int64_t prod_v = (dp[v] * (int64_t)sub[v]) % MOD; /* dp[v] = prod_v * inv(sub[v]) */
+            prod_v = (prod_v * inv_contrib_u) % MOD;
+
+            sub[v] -= sub[u];
+            dp[v] = (prod_v * mod_inv((int64_t)sub[v])) % MOD;
+
+            /* Add v's (now as child) contribution into u. */
+            int64_t contrib_v = dp[v];
+            contrib_v = (contrib_v * invfact[sub[v]]) % MOD;
+
+            int64_t prod_u = (dp[u] * (int64_t)sub[u]) % MOD;
+            prod_u = (prod_u * contrib_v) % MOD;
+
+            sub[u] = sub_u + sub[v];
+            dp[u] = (prod_u * mod_inv((int64_t)sub[u])) % MOD;
+
+            st_v[stn] = u; st_p[stn] = v; stn++;
+
+            /* Restore state for next neighbor. */
+            sub[v] = sub_v; sub[u] = sub_u;
+            dp[v] = dp_v; dp[u] = dp_u;
+        }
+    }
+
+    for (int v = 1; v <= n; v++) {
+        int64_t out = ans[v] % MOD;
+        if (out < 0) out += MOD;
+        printf("%lld\n", (long long)out);
+    }
+
+    free(st_v); free(st_p); free(stack);
+    free(edges); free(head); free(parent); free(order); free(sub); free(parEdge);
+    free(dp); free(ans); free(fact); free(invfact);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_output.txt
+Input:
+5
+1 2
+1 3
+3 4
+3 5
+Expected:
+8
+2
+12
+3
+3
+Actual:
+55555556
+5
+666666673
+5
+5
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

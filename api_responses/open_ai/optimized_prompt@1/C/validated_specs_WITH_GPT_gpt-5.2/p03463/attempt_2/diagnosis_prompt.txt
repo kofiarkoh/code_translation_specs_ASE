@@ -1,0 +1,137 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	int N, A, B;
+	scanf("%d %d %d", &N, &A, &B);
+	if ((B - A) % 2 == 0) printf("Alice\n");
+	else printf("Borys\n");
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines the winner between two players based solely on whether the difference between two provided integers is even or odd, and outputs the corresponding winner name.
+
+2. Inputs  
+- Three integers:
+  - A count/value (used only as an input but not affecting the decision).
+  - Two integers representing positions/values whose difference determines the result.
+
+3. Outputs  
+- Exactly one line containing one of two winner names:
+  - The first player’s name if the difference between the two relevant integers is even.
+  - The second player’s name if the difference is odd.
+
+4. Preconditions  
+- The input stream provides three integers in a readable form.
+- The arithmetic difference between the two relevant integers is representable within the integer range of the execution environment.
+
+5. Postconditions  
+- If the parity (evenness) of the difference between the third and second input integers is even, the program outputs the first player’s name.
+- Otherwise, the program outputs the second player’s name.
+- No other output is produced.
+
+6. Invariants  
+- The decision depends only on the parity of the difference between the two relevant input integers; the first input integer does not influence the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input; behavior is unspecified if the required integers cannot be read.
+- If integer overflow occurs during the difference computation, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from reading input and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+int main(void) {
+    int unused;
+    int second;
+    int third;
+
+    /* Input: three integers; behavior unspecified if they cannot be read. */
+    if (scanf("%d %d %d", &unused, &second, &third) != 3) {
+        return 0;
+    }
+
+    /* Difference computation; overflow behavior is unspecified by the spec. */
+    int diff = third - second;
+
+    /* Output exactly one line with the winner name based on parity of diff. */
+    if ((diff % 2) == 0) {
+        puts("First");
+    } else {
+        puts("Second");
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p03463/p03463_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p03463/p03463_sample1_output.txt
+Input:
+10 2 4
+Expected:
+Alice
+Actual:
+First
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

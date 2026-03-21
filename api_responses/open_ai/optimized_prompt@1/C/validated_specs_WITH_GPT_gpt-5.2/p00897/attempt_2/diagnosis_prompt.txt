@@ -1,0 +1,469 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hash table for string
+#define HASHSIZ   29989
+typedef struct { char *s; short id; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;
+
+int insert(char *s, int id)
+{
+	unsigned long long i;
+	char *p;
+	HASH *tp;
+
+	i = 0, p = s; while (*p) i = (i<<6) + *p++;
+	tp = hash + (int)(i % HASHSIZ);
+	while (tp->s != NULL) {
+		if (!strcmp(tp->s, s)) return tp->id;
+		if (++tp == hashend) tp = hash;
+	}
+	tp->s = s, tp->id = id;
+	return -1;
+}
+
+#define QMAX 1200000
+typedef struct { int t; short s, c; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(short s, int t, short c)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void ins(char *buf)
+{
+	while ((*buf = getchar_unlocked()) > ' ') buf++;
+	*buf = 0;
+}
+
+#define MAX 6002
+short memo[3002*3];
+short hi[MAX], *to[MAX], *dd[MAX];
+char city[MAX][17]; int sz;
+char LPG[MAX];
+int dist[MAX][2002];
+
+int dijkstra(int n, int cap, int start, int goal)
+{
+	int i, s, e, c, nc, d, nd;
+
+	memset(dist, 0x10, sizeof(dist));
+	qsize = 0;
+	enq(start, 0, cap); dist[start][cap] = 0;
+	while (qsize) {
+		s = que[0].s, d = que[0].t, c = que[0].c, deq();
+		if (s == goal) return d;
+
+		if (dist[s][c] < d) continue;
+
+		if (LPG[s]) c = cap;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i], nd = d + dd[s][i], nc = c - dd[s][i];
+			if (nc < 0) continue;
+			if (dist[e][nc] > nd) dist[e][nc] = nd, enq(e, nd, nc);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int N, M, cap, i, j, a, b, c;
+	char buf[20];
+
+	while (N = in()) {
+		M = in(), cap = 10*in();
+		memset(hash, 0, sizeof(hash));
+
+		ins(city[0]), ins(city[1]);
+		insert(city[0], 0), insert(city[1], 1);
+
+		memset(hi, 0, sizeof(hi));
+		sz = 2;
+		j = 0, i = N; while (i--) {
+			ins(city[sz]), a = insert(city[sz], sz);
+			if (a < 0) a = sz++;
+			memo[j++] = a, hi[a]++;
+			ins(city[sz]), b = insert(city[sz], sz);
+			if (b < 0) b = sz++;
+			memo[j++] = b, hi[b]++;
+			memo[j++] = in();
+		}
+		for (a = 0; a < sz; a++) if (hi[a]) {
+			to[a] = malloc(hi[a] << 1);
+			dd[a] = malloc(hi[a] << 1);
+		}
+		memset(hi, 0, sizeof(hi));
+		j = 0; while (N--) {
+			a = memo[j++], b = memo[j++], c = memo[j++];
+			i = hi[a]++, to[a][i] = b, dd[a][i] = c;
+			i = hi[b]++, to[b][i] = a, dd[b][i] = c;
+		}
+		memset(LPG, 0, sz);
+		for (i = 0; i < M; i++) {
+			ins(buf), a = insert(buf, -1);
+			if (a >= 0) LPG[a] = 1;
+		}
+
+		printf("%d\n", dijkstra(sz, cap, 0, 1));
+
+		for (a = 0; a < sz; a++) {
+			if (hi[a]) free(to[a]), free(dd[a]);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total travel distance between a designated origin city and a designated destination city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”) that can be fully restored at designated refueling cities. If no feasible route exists under the refueling/range constraints, reports that no route is possible.
+
+2. Inputs  
+For each dataset (repeated until termination):  
+- An integer specifying the number of roads.  
+- An integer specifying the number of refueling cities.  
+- An integer specifying the base capacity unit, which is scaled by a factor of 10 to obtain the maximum travel range.  
+- Two city names: the origin city and the destination city.  
+- For each road: two city names (endpoints) and a nonnegative integer distance.  
+- For each refueling city: a city name.
+
+3. Outputs  
+For each dataset, outputs a single integer:  
+- The minimum total distance from origin to destination achievable while never traversing a road that would exceed the remaining range since the last refuel, with automatic refuel to full capacity upon arriving at a refueling city; or  
+- `-1` if the destination is unreachable under these constraints.
+
+4. Preconditions  
+- The dataset is well-formed and provides exactly the required number of road and refueling entries.  
+- City names are non-empty and fit within the supported maximum name length.  
+- The number of distinct cities, the scaled capacity, and the road distances are within internal fixed limits such that all required states can be represented.  
+- Road distances are treated as range consumption units and are assumed not to exceed the maximum representable range state.
+
+5. Postconditions  
+- If a feasible constrained route exists, the output equals the minimum possible sum of road distances among all feasible routes from origin to destination.  
+- If no feasible constrained route exists, the output is `-1`.  
+- Each dataset is processed independently; no results or state carry over between datasets.
+
+6. Invariants  
+- Travel along a road is permitted only if the remaining range before traversal is at least the road’s distance; remaining range decreases by that distance after traversal.  
+- Upon being at a refueling city, the remaining range is considered restored to full capacity for subsequent travel decisions.  
+- The computed best-known total distance for any (city, remaining-range) state never increases during computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery or diagnostic output is provided for malformed input, out-of-range sizes, allocation failures, or internal limit violations; behavior in such cases is unspecified.  
+- If a refueling city name does not correspond to any city present in the road network or the designated endpoints, it has no effect.
+
+8. State Transitions (if applicable)  
+- State is modeled as (current city, remaining range).  
+- Transition along a road from city A to city B with distance d is allowed when remaining range ≥ d, producing state (B, remaining range − d) and increasing total distance by d.  
+- If the current city is a refueling city, the effective remaining range for outgoing transitions is full capacity (regardless of the incoming remaining range).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of cities and on the capacity-related state space; inputs exceeding these bounds are not supported.  
+- Memory usage includes storage proportional to the number of roads plus a distance table proportional to (number of cities × capacity).  
+- Produces one line of output per dataset and terminates when the road count input indicates no further datasets.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAX_CITIES 256
+#define MAX_NAME   64
+#define MAX_ROADS  4096
+#define MAX_CAP    1000  /* fixed upper bound on scaled capacity state space */
+
+typedef struct {
+    int to;
+    int w;
+    int next;
+} Edge;
+
+static char city_names[MAX_CITIES][MAX_NAME];
+static int city_count;
+
+static int head[MAX_CITIES];
+static Edge edges[2 * MAX_ROADS];
+static int edge_count;
+
+static int is_refuel[MAX_CITIES];
+
+static int dist_tbl[MAX_CITIES][MAX_CAP + 1];
+static unsigned char inq[MAX_CITIES][MAX_CAP + 1];
+
+static int q_city[MAX_CITIES * (MAX_CAP + 1)];
+static int q_fuel[MAX_CITIES * (MAX_CAP + 1)];
+
+static int get_city_id(const char *name) {
+    for (int i = 0; i < city_count; i++) {
+        if (strcmp(city_names[i], name) == 0) return i;
+    }
+    if (city_count >= MAX_CITIES) {
+        /* unspecified behavior per spec if limits exceeded */
+        return 0;
+    }
+    strncpy(city_names[city_count], name, MAX_NAME - 1);
+    city_names[city_count][MAX_NAME - 1] = '\0';
+    return city_count++;
+}
+
+static void add_undirected_edge(int a, int b, int w) {
+    if (edge_count + 2 > (int)(sizeof(edges) / sizeof(edges[0]))) {
+        /* unspecified behavior per spec if limits exceeded */
+        return;
+    }
+    edges[edge_count].to = b;
+    edges[edge_count].w = w;
+    edges[edge_count].next = head[a];
+    head[a] = edge_count++;
+
+    edges[edge_count].to = a;
+    edges[edge_count].w = w;
+    edges[edge_count].next = head[b];
+    head[b] = edge_count++;
+}
+
+int main(void) {
+    int roads, refuels, basecap;
+
+    while (scanf("%d", &roads) == 1) {
+        if (roads == 0) break;
+
+        if (scanf("%d %d", &refuels, &basecap) != 3) return 0;
+
+        char origin_name[MAX_NAME], dest_name[MAX_NAME];
+        if (scanf("%63s %63s", origin_name, dest_name) != 2) return 0;
+
+        /* reset per dataset */
+        city_count = 0;
+        for (int i = 0; i < MAX_CITIES; i++) {
+            head[i] = -1;
+            is_refuel[i] = 0;
+        }
+        edge_count = 0;
+
+        int origin = get_city_id(origin_name);
+        int dest = get_city_id(dest_name);
+
+        for (int i = 0; i < roads; i++) {
+            char a_name[MAX_NAME], b_name[MAX_NAME];
+            int w;
+            if (scanf("%63s %63s %d", a_name, b_name, &w) != 3) return 0;
+            int a = get_city_id(a_name);
+            int b = get_city_id(b_name);
+            add_undirected_edge(a, b, w);
+        }
+
+        for (int i = 0; i < refuels; i++) {
+            char r_name[MAX_NAME];
+            if (scanf("%63s", r_name) != 1) return 0;
+            /* If refuel city not present in network/endpoints, it has no effect. */
+            for (int j = 0; j < city_count; j++) {
+                if (strcmp(city_names[j], r_name) == 0) {
+                    is_refuel[j] = 1;
+                    break;
+                }
+            }
+        }
+
+        int cap = basecap * 10;
+        if (cap < 0) cap = 0; /* narrow handling; spec doesn't define negatives */
+        if (cap > MAX_CAP) {
+            /* unspecified behavior per spec if limits exceeded; clamp to keep state representable */
+            cap = MAX_CAP;
+        }
+
+        /* initialize distances */
+        for (int c = 0; c < city_count; c++) {
+            for (int f = 0; f <= cap; f++) {
+                dist_tbl[c][f] = INT_MAX;
+                inq[c][f] = 0;
+            }
+        }
+
+        /* start at origin with full capacity */
+        dist_tbl[origin][cap] = 0;
+
+        /* SPFA-like relaxation over (city, fuel) states; weights are nonnegative */
+        int qh = 0, qt = 0;
+        q_city[qt] = origin;
+        q_fuel[qt] = cap;
+        qt++;
+        inq[origin][cap] = 1;
+
+        while (qh != qt) {
+            int u = q_city[qh];
+            int fu_in = q_fuel[qh];
+            qh++;
+            if (qh >= (int)(sizeof(q_city) / sizeof(q_city[0]))) qh = 0;
+
+            inq[u][fu_in] = 0;
+
+            int fu = is_refuel[u] ? cap : fu_in;
+
+            int du = dist_tbl[u][fu_in];
+            if (du == INT_MAX) continue;
+
+            for (int ei = head[u]; ei != -1; ei = edges[ei].next) {
+                int v = edges[ei].to;
+                int w = edges[ei].w;
+                if (w < 0) continue; /* spec says nonnegative; ignore otherwise */
+                if (w > fu) continue;
+
+                int fv = fu - w;
+                int nd = du + w;
+                /* preserve monotone best-known distances */
+                if (nd < dist_tbl[v][fv]) {
+                    dist_tbl[v][fv] = nd;
+                    if (!inq[v][fv]) {
+                        inq[v][fv] = 1;
+                        q_city[qt] = v;
+                        q_fuel[qt] = fv;
+                        qt++;
+                        if (qt >= (int)(sizeof(q_city) / sizeof(q_city[0]))) qt = 0;
+                        /* If queue overflows, behavior is unspecified by spec; we do not guard. */
+                    }
+                }
+            }
+        }
+
+        int best = INT_MAX;
+        for (int f = 0; f <= cap; f++) {
+            if (dist_tbl[dest][f] < best) best = dist_tbl[dest][f];
+        }
+
+        if (best == INT_MAX) {
+            printf("-1\n");
+        } else {
+            printf("%d\n", best);
+        }
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00897/p00897_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00897/p00897_sample1_output.txt
+Input:
+3
+2 5
+A
+B
+A
+B
+10
+B
+C
+20
+C
+A
+15
+1
+C
+0
+Expected:
+10
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

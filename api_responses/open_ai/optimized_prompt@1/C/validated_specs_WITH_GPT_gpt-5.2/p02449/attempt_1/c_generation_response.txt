@@ -1,0 +1,93 @@
+```c
+#include <stdio.h>
+
+#define MAX_N 9
+
+static void print_seq(const int *a, int n) {
+    for (int i = 0; i < n; i++) {
+        if (i) putchar(' ');
+        printf("%d", a[i]);
+    }
+    putchar('\n');
+}
+
+static void reverse_range(int *a, int l, int r) {
+    while (l < r) {
+        int t = a[l];
+        a[l] = a[r];
+        a[r] = t;
+        l++;
+        r--;
+    }
+}
+
+/* Computes lexicographically next permutation in-place.
+   Returns 1 if next permutation exists, 0 if already the largest. */
+static int next_permutation(int *a, int n) {
+    int i = n - 2;
+    while (i >= 0 && a[i] >= a[i + 1]) i--;
+    if (i < 0) return 0;
+
+    int j = n - 1;
+    while (a[j] <= a[i]) j--;
+
+    int t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+
+    reverse_range(a, i + 1, n - 1);
+    return 1;
+}
+
+/* Computes lexicographically previous permutation in-place.
+   Returns 1 if previous permutation exists, 0 if already the smallest. */
+static int prev_permutation(int *a, int n) {
+    int i = n - 2;
+    while (i >= 0 && a[i] <= a[i + 1]) i--;
+    if (i < 0) return 0;
+
+    int j = n - 1;
+    while (a[j] >= a[i]) j--;
+
+    int t = a[i];
+    a[i] = a[j];
+    a[j] = t;
+
+    reverse_range(a, i + 1, n - 1);
+    return 1;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    int a[MAX_N];
+    for (int i = 0; i < n; i++) {
+        (void)scanf("%d", &a[i]);
+    }
+
+    if (n == 1) {
+        puts("1");
+        return 0;
+    }
+
+    int orig[MAX_N];
+    for (int i = 0; i < n; i++) orig[i] = a[i];
+
+    int tmp[MAX_N];
+
+    for (int i = 0; i < n; i++) tmp[i] = orig[i];
+    if (prev_permutation(tmp, n)) {
+        print_seq(tmp, n);
+    }
+
+    print_seq(orig, n);
+
+    for (int i = 0; i < n; i++) tmp[i] = orig[i];
+    if (next_permutation(tmp, n)) {
+        print_seq(tmp, n);
+    }
+
+    return 0;
+}
+```

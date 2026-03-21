@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int T1, T2, R1, R2;
+
+    if (scanf("%d %d %d %d", &T1, &T2, &R1, &R2) != 4) {
+        /* Specification: print nothing and exit with non-zero status */
+        return 1;
+    }
+
+    if (R1 < 0 || R2 < 0) {
+        if (T1 < T2) {
+            puts("Alice");
+        } else if (T1 > T2) {
+            puts("Bob");
+        } else {
+            puts("Draw");
+        }
+    } else {
+        if (R1 > R2) {
+            puts("Alice");
+        } else if (R1 < R2) {
+            puts("Bob");
+        } else {
+            puts("Draw");
+        }
+    }
+
+    return 0;
+}

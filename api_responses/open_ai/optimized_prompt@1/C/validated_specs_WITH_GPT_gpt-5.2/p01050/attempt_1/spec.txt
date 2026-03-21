@@ -1,0 +1,37 @@
+1. Functional Description  
+Reads a single non-empty token of characters and computes an integer score equal to the total number of characters selected when repeatedly taking at most three occurrences from each maximal contiguous run of distinct character values in ascending character-value order, where each run is formed from the multiset of remaining characters at that stage. The final score is the sum over all such runs of the minimum of 3 and the run length.
+
+2. Inputs  
+- One whitespace-delimited string token (sequence of non-whitespace characters).
+
+3. Outputs  
+- One integer value representing the computed score, followed by a line terminator.
+
+4. Preconditions  
+- The input token length does not exceed the available internal storage capacity.  
+- All characters in the input token map to non-negative character values within the range 0–255 (i.e., are safely usable as indices into a 256-sized frequency table).  
+- Input provides at least one token.
+
+5. Postconditions  
+- The output integer equals:  
+  \[
+  \sum_{\text{each run } R} \min(3,\ |R|)
+  \]
+  where each run \(R\) is a maximal sequence of distinct character values encountered in increasing character-value order during a full sweep over all possible character values, considering only those with remaining positive frequency at the time of the sweep; after each sweep, one occurrence is removed from each character value included in that sweep, and sweeps repeat until all occurrences are removed.  
+- All occurrences of the input characters are conceptually consumed by the process (no remaining frequency).
+
+6. Invariants  
+- At all times, the remaining total frequency across all character values equals the number of unconsumed characters.  
+- The score never exceeds the original input length and never becomes negative.  
+- Within any single sweep, each character value contributes at most one consumed occurrence.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, too long, or contains characters outside the assumed indexable range, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- State consists of remaining character frequencies and the accumulated score.  
+- Transition repeats: perform a sweep over character values in ascending order, consuming one occurrence from each value that remains; partition the sweep into maximal runs of consecutive present values; for each run, add its length to the score but cap the contribution at 3 by discarding any excess beyond 3. Continue until no occurrences remain.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage for the input token and for character frequencies; therefore input size is bounded by that storage.  
+- Runtime is proportional to the number of sweeps times the fixed character-value range (256).

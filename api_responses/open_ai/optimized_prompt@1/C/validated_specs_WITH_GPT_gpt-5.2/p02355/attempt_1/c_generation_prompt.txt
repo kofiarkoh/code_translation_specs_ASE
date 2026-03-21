@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum length of a contiguous subsequence (window) of a given integer sequence that contains every integer value from 1 through K at least once. If no such window exists, returns 0.
+
+2. Inputs  
+- An integer N: the number of elements in the sequence.  
+- An integer K: the required set size (values 1..K must all appear).  
+- A sequence of N integers.
+
+3. Outputs  
+- A single integer:  
+  - the minimum window length that contains all values 1..K at least once, or  
+  - 0 if no such window exists.
+
+4. Preconditions  
+- N and K are non-negative integers.  
+- N does not exceed the implementation’s fixed maximum capacity.  
+- All input values are non-negative integers.  
+- K does not exceed the implementation’s fixed maximum capacity minus one.  
+(If these are violated, behavior is unspecified.)
+
+5. Postconditions  
+- If N < K, the output is 0.  
+- Otherwise, if there exists at least one contiguous subsequence that contains every value in {1, 2, …, K} at least once, the output equals the minimum length among all such subsequences.  
+- Otherwise, the output is 0.
+
+6. Invariants  
+- During computation, the maintained candidate window (when one exists) always contains all values 1..K at least once.  
+- The maintained candidate window is minimal with respect to its left boundary: removing its first element would cause at least one value in 1..K to be missing.
+
+7. Error Handling / Exceptional Behavior  
+- If it is impossible to form a window containing all values 1..K (including the case N < K), the program outputs 0.  
+- No explicit handling is provided for malformed input, negative values, or out-of-range N/K; behavior is unspecified in those cases.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once and produces one output. No persistent state is retained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage proportional to N and K, bounded by a compile-time maximum.  
+- Runs in time linear in N under the stated preconditions.
+
+```

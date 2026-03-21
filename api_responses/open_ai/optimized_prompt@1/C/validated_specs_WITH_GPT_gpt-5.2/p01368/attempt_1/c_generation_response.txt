@@ -1,0 +1,119 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 102
+#define MAXT 1000
+#define INF 0x3f3f3f3f
+
+static int distm[MAXN][MAXN];
+
+static int head[MAXT];
+static int to[MAXT * MAXT];
+static int nxt[MAXT * MAXT];
+static int ecnt;
+
+static int matchR[MAXT];
+static int vis[MAXT];
+static int visToken;
+
+static int taskNode[MAXT];
+static int taskTime[MAXT];
+
+static void add_edge(int u, int v) {
+    to[ecnt] = v;
+    nxt[ecnt] = head[u];
+    head[u] = ecnt++;
+}
+
+static int dfs_augment(int u) {
+    for (int e = head[u]; e != -1; e = nxt[e]) {
+        int v = to[e];
+        if (vis[v] == visToken) continue;
+        vis[v] = visToken;
+        if (matchR[v] == -1 || dfs_augment(matchR[v])) {
+            matchR[v] = u;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        int m, t;
+        if (scanf("%d %d", &m, &t) != 2) return 0;
+
+        /* Initialize all-pairs distances */
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) distm[i][j] = (i == j) ? 0 : INF;
+        }
+
+        for (int i = 0; i < m; i++) {
+            int a, b, c;
+            scanf("%d %d %d", &a, &b, &c);
+            /* Node indices are assumed valid per specification; treat as 0-based. */
+            if (c < distm[a][b]) {
+                distm[a][b] = c;
+                distm[b][a] = c;
+            }
+        }
+
+        for (int i = 0; i < t; i++) {
+            scanf("%d %d", &taskNode[i], &taskTime[i]);
+        }
+
+        /* Floyd-Warshall for shortest paths */
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                int dik = distm[i][k];
+                if (dik >= INF) continue;
+                for (int j = 0; j < n; j++) {
+                    int dkj = distm[k][j];
+                    if (dkj >= INF) continue;
+                    int nd = dik + dkj;
+                    if (nd < distm[i][j]) distm[i][j] = nd;
+                }
+            }
+        }
+
+        /* Build bipartite graph of feasible transitions between distinct tasks.
+           Left side: predecessor task i
+           Right side: successor task j
+           Edge i->j exists if shortest travel time <= (time[j] - time[i]).
+           Unreachable pairs (INF) are infeasible. */
+        for (int i = 0; i < t; i++) head[i] = -1;
+        ecnt = 0;
+
+        for (int i = 0; i < t; i++) {
+            for (int j = 0; j < t; j++) {
+                if (i == j) continue;
+                int dt = taskTime[j] - taskTime[i];
+                if (dt < 0) continue; /* cannot go back in time */
+                int d = distm[taskNode[i]][taskNode[j]];
+                if (d >= INF) continue; /* unreachable */
+                if (d <= dt) add_edge(i, j);
+            }
+        }
+
+        /* Maximum bipartite matching (Kuhn) */
+        for (int j = 0; j < t; j++) matchR[j] = -1;
+        memset(vis, 0, sizeof(vis));
+        visToken = 0;
+
+        int matching = 0;
+        for (int i = 0; i < t; i++) {
+            visToken++;
+            if (dfs_augment(i)) matching++;
+        }
+
+        /* Minimum path cover in this task-DAG-like relation is t - maximum matching. */
+        int minChains = t - matching;
+        printf("%d\n", minChains);
+    }
+    return 0;
+}
+```

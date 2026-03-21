@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    int r, c;
+} Node;
+
+int main(void) {
+    int h, w, k;
+    if (scanf("%d %d %d", &h, &w, &k) != 3) return 0;
+
+    int sr, sc, gr, gc;
+    if (scanf("%d %d %d %d", &sr, &sc, &gr, &gc) != 4) return 0;
+
+    /* Convert from 1-based to 0-based as specified */
+    sr--; sc--; gr--; gc--;
+
+    char *grid = (char *)malloc((size_t)h * (size_t)w);
+    if (!grid) return 0;
+
+    /* Read exactly h rows, each containing exactly w cells.
+       Specification says malformed input is undefined; we do minimal scanning. */
+    for (int i = 0; i < h; i++) {
+        char *rowbuf = (char *)malloc((size_t)w + 8);
+        if (!rowbuf) return 0;
+        if (scanf("%s", rowbuf) != 1) {
+            free(rowbuf);
+            free(grid);
+            return 0;
+        }
+        for (int j = 0; j < w; j++) {
+            grid[i * w + j] = rowbuf[j];
+        }
+        free(rowbuf);
+    }
+
+    /* Distance array: -1 means unvisited/unreachable so far */
+    int *dist = (int *)malloc((size_t)h * (size_t)w * sizeof(int));
+    if (!dist) {
+        free(grid);
+        return 0;
+    }
+    for (int i = 0; i < h * w; i++) dist[i] = -1;
+
+    /* Fixed-capacity queue; precondition guarantees it never overflows */
+    size_t cap = (size_t)h * (size_t)w + 1;
+    Node *q = (Node *)malloc(cap * sizeof(Node));
+    if (!q) {
+        free(dist);
+        free(grid);
+        return 0;
+    }
+    size_t head = 0, tail = 0;
+
+    /* Postcondition: distance is 0 when start == goal (within bounds per preconditions) */
+    if (sr == gr && sc == gc) {
+        printf("0\n");
+        free(q);
+        free(dist);
+        free(grid);
+        return 0;
+    }
+
+    /* BFS from start. Specification does not define behavior if start is blocked;
+       we follow the movement invariant: only passable cells are traversable. */
+    if (grid[sr * w + sc] != '#') {
+        dist[sr * w + sc] = 0;
+        q[tail++] = (Node){sr, sc};
+    }
+
+    const int dr[4] = {-1, 1, 0, 0};
+    const int dc[4] = {0, 0, -1, 1};
+
+    while (head != tail) {
+        Node cur = q[head++];
+        int curd = dist[cur.r * w + cur.c];
+
+        for (int dir = 0; dir < 4; dir++) {
+            for (int step = 1; step <= k; step++) {
+                int nr = cur.r + dr[dir] * step;
+                int nc = cur.c + dc[dir] * step;
+
+                if (nr < 0 || nr >= h || nc < 0 || nc >= w) break;
+                if (grid[nr * w + nc] == '#') break;
+
+                int idx = nr * w + nc;
+
+                if (dist[idx] == -1) {
+                    dist[idx] = curd + 1;
+                    q[tail++] = (Node){nr, nc};
+                    if (nr == gr && nc == gc) {
+                        printf("%d\n", dist[idx]);
+                        free(q);
+                        free(dist);
+                        free(grid);
+                        return 0;
+                    }
+                } else {
+                    /* If already reached in <= curd moves, further steps in this direction
+                       cannot improve (would be >= curd+1), so stop scanning this direction. */
+                    if (dist[idx] <= curd) break;
+                    /* Otherwise, keep scanning further cells; they might still be unvisited. */
+                }
+            }
+        }
+    }
+
+    printf("-1\n");
+
+    free(q);
+    free(dist);
+    free(grid);
+    return 0;
+}

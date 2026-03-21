@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description
+- Reads a rectangular grid of height `H` and width `W` containing two possible cell types (one treated as “marked” and the other as “unmarked”), and an integer `K`.
+- Computes and outputs a single integer value equal to a piecewise-defined expression derived from:
+  - the total number of marked cells in the grid,
+  - per-row counts of marked cells and adjacent marked pairs,
+  - whether any row has both its leftmost and rightmost cells marked,
+  - whether any column has both its topmost and bottommost cells marked,
+  - and the number of fully marked rows (or, after an internal normalization step, fully marked rows in the chosen orientation).
+- All arithmetic is performed modulo a fixed prime modulus.
+
+2. Inputs
+- Three integers: `H`, `W`, `K`.
+- Then `H` grid rows, each providing `W` characters representing the grid cells.
+
+3. Outputs
+- One integer in the range `[0, modulus-1]`, followed by a newline.
+
+4. Preconditions
+- `H > 0`, `W > 0`.
+- The grid input provides at least `H` rows and each row provides at least `W` characters.
+- `K >= 0`.
+- To avoid undefined arithmetic in the final formula, it is assumed that when the program reaches the general-case computation, the denominator term used for modular division is nonzero modulo the modulus (equivalently, not divisible by the modulus).
+
+5. Postconditions
+- If `K == 0`, the output is `1`.
+- Otherwise, let:
+  - `x` be the total count of marked cells in the entire grid.
+  - `f_row` be true if there exists a row whose first and last cells are both marked.
+  - `f_col` be true if there exists a column whose first and last cells are both marked.
+- If `f_row` and `f_col` are both true, the output is `1`.
+- If exactly one of `f_row`, `f_col` is true, the program conceptually normalizes the grid orientation so that the “true” condition is treated as the row-based one for subsequent counting; the final output depends only on the resulting counts, not on the original orientation.
+- After normalization, define per-row aggregates:
+  - `c`: number of rows that are fully marked.
+  - For each non-fully-marked row, let `x_sub` be its marked-cell count and `e` be the number of horizontally adjacent marked pairs in that row. Accumulate:
+    - `a += (x_sub - e)`, then if the row’s first and last cells are both marked, additionally apply `a -= 2` and increment `b` by 1.
+- The output is then:
+  - If neither `f_row` nor `f_col` is true: `x^(K-1) (mod modulus)`.
+  - Else if `a == 0` and `b == 0`: `c^(K-1) (mod modulus)`.
+  - Else: a value equal to a specific rational expression in `a`, `b`, `c`, `x`, and `K` evaluated modulo the modulus, where division is interpreted as multiplication by the modular inverse of the denominator.
+
+6. Invariants
+- All reported results are reduced modulo the fixed prime modulus.
+- The computed counts satisfy:
+  - `0 <= x <= H*W`.
+  - `0 <= c <= H`.
+  - `b >= 0`.
+- The normalization step (if applied) preserves the multiset of cell values and thus preserves the total marked-cell count `x`.
+
+7. Error Handling / Exceptional Behavior
+- No explicit handling for invalid input, allocation failure, or malformed grid rows.
+- If the modular-division denominator is congruent to zero modulo the modulus in the general-case formula, the program’s behavior is not mathematically well-defined (it will attempt to compute a modular inverse of zero).
+- If `x == 0` and the program reaches a branch that evaluates `x^(K-1)` with `K > 0`, the result follows the program’s modular exponentiation behavior for base zero (which yields `0` for positive exponents).
+
+8. State Transitions (if applicable)
+- The program is single-shot: it reads input once, computes once, outputs once, and terminates.
+- If a column-based boundary condition is detected (and the row-based one is not simultaneously detected), the program transitions to a normalized state where the grid is treated as transposed and the roles of height and width are swapped for subsequent counting.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is proportional to the number of grid cells plus logarithmic factors for modular exponentiation.
+- Memory usage is proportional to the square of the larger of `H` and `W` due to allocating storage sized to the maximum dimension in both directions.
+
+```

@@ -1,0 +1,123 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+i, t;
+p( n )
+{
+	for ( i = t = 2; i * i <= n; ++i )
+	{
+		n%i?:t++;
+	}
+	return t - 2;
+}
+main( l, s, u )
+{
+	for ( ; scanf("%d", &l ), u = l; )
+	{
+		for( ; p(l); l-- );
+		for( ; p(u); u++ );
+		printf( "%d\n",  u - l );
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of integers. For each integer, finds the nearest prime number less than or equal to it and the nearest prime number greater than or equal to it, then outputs the distance between those two primes (upper minus lower).
+
+2. Inputs  
+- A stream of signed integers provided one at a time until input termination.
+
+3. Outputs  
+- For each successfully read integer, outputs one signed integer representing the difference between:
+  - the smallest prime number greater than or equal to the input, and
+  - the largest prime number less than or equal to the input.
+
+4. Preconditions  
+- Each processed input value is an integer that can be represented in the program’s integer type.  
+- To guarantee termination and meaningful results, each processed input value is at least 2.  
+- To avoid arithmetic overflow during prime testing, the input values and the intermediate candidates searched upward/downward are such that squaring trial divisors does not overflow the integer type.
+
+5. Postconditions  
+For each processed input integer `x` (meeting preconditions):  
+- Let `L` be the greatest prime such that `L ≤ x`.  
+- Let `U` be the least prime such that `U ≥ x`.  
+- The program outputs exactly `U - L` for that input.  
+- If `x` itself is prime, then `L = U = x` and the output is `0`.
+
+6. Invariants  
+- During processing of a given input `x`, the maintained lower candidate never exceeds `x`, and the maintained upper candidate never goes below `x`.  
+- When the program produces an output for `x`, the final lower candidate is prime and is the greatest prime not exceeding `x`, and the final upper candidate is prime and is the least prime not less than `x`.
+
+7. Error Handling / Exceptional Behavior  
+- Input termination (including end-of-input) stops processing; no further output is produced.  
+- If an input value violates the preconditions (e.g., less than 2), behavior is not guaranteed to terminate or produce meaningful output.  
+- If arithmetic overflow occurs in computations used for prime testing, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeats the following per successfully read integer:  
+  - Transition from “awaiting next integer” to “processing integer,” then back to “awaiting next integer” after emitting one output line.  
+- Transitions to “terminated” upon input termination.
+
+9. Non-functional Constraints (if inferable)  
+- For each input value, runtime grows with the distance to the nearest primes around the input and with the cost of primality checks; no fixed upper bound is guaranteed by the code alone.  
+- Uses a small, constant amount of additional memory per input value.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong termination condition / wrong input-handling assumption (sentinel vs EOF).  
+- Missing constraint on which inputs are actually processed.
+
+B. What the current specification may be missing or misstating  
+- It states “reads a sequence of integers … until input termination (EOF)”, and treats values `< 2` as merely “undefined / may not terminate.”  
+- The source program does not rely on EOF to stop; it stops when the read integer is `0` (or any value that makes `u = l` evaluate to 0 in the loop condition). Thus, `0` is not an “invalid input to process”; it is a termination sentinel that must not produce output.
+
+C. What general behavior should be clarified in the specification  
+- The program’s processing loop terminates based on the numeric value read (sentinel-controlled), not solely on end-of-file.  
+- Inputs at or below the sentinel are not processed as normal cases and produce no output; they end the program’s per-integer processing loop.
+
+D. Why this clarification is supported by the source program  
+- The main loop is: `for (; scanf("%d",&l), u = l; ) { ... }`  
+  - The comma operator makes the loop condition equal to `u = l`.  
+  - In C, the loop continues only while that assigned value is nonzero. Therefore, when `l` is `0`, the loop terminates immediately and prints nothing for that `0`.  
+- The generated program instead processes `0` as a normal input, searches downward indefinitely (or until overflow/UB), and prints a bogus large negative number—consistent with the observed failure.
+
+```

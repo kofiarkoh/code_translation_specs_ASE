@@ -1,0 +1,545 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// Aizu Vol-1 0190: Eleven Puzzle
+// 2017.8.23 bal4u@uu
+// ???????????¢?´¢??????????????\??????????????§??¶????????§??????
+// ????????????????????????16?????????????????§??§???OK???
+// 1????????????????????§8??????4??????????????§4096????????¶??????
+
+#include <stdio.h>
+
+#define MAX 500000
+typedef unsigned long long UL;
+
+typedef struct { UL s; char m; } HASH;
+typedef struct { UL s; char b1, b2; } QUE;
+#define HASHSIZ 900001ULL
+HASH hash[HASHSIZ + 5], *hashend = hash + HASHSIZ;
+QUE Q[MAX + 5], *top, *end, *qmax = Q + MAX;
+
+int lookup(UL s)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return p->m;
+		if (++p == hashend) p = hash;
+	}
+	return -1;
+}
+
+int insert(UL s, char m)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return 0;
+		if (++p == hashend) p = hash;
+	}
+	p->s = s, p->m = m;
+	return 1;
+}
+
+int move[13][5] = {
+	/*  0 */{ 2, -1 },
+	/*  1 */{ 2, 5, -1 },
+	/*  2 */{ 0, 1, 3, 6, -1 },
+	/*  3 */{ 2, 7, -1 },
+	/*  4 */{ 5, -1 },
+	/*  5 */{ 1, 4, 6, 9, -1 },
+	/*  6 */{ 2, 5, 7, 10, -1 },
+	/*  7 */{ 3, 6, 8, 11, -1 },
+	/*  8 */{ 7, -1 },
+	/*  9 */{ 5, 10, -1 },
+	/* 10 */{ 6, 9, 11, 12, -1 },
+	/* 11 */{ 7, 10, -1 },
+	/* 12 */{ 10, -1 } };
+
+UL swap(UL s, int p1, int sp)
+{
+	UL n1;
+	p1 = (12 - p1) << 2, sp = (12 - sp) << 2;
+	n1 = (s >> p1) & 0xf;
+	s &= ~(0xfULL << p1);
+	s |= (n1 << sp);
+	return s;
+}
+
+int sach(UL s, int b1, int b2, int mode, int step, int lim)
+{
+	int i, j, x, b[2];
+	UL s2;
+
+	top = end = Q;
+	end->s = s, end->b1 = b1, end->b2 = b2, end++, end->s = 0, end++;
+	while (top < end) {
+		s = top->s, b[0] = top->b1, b[1] = top->b2, top++;
+		if (!s) { step++, end->s = 0, end++; continue; }
+		if (step > lim) break;
+//	printf("%#15llx, b1 %2d, b2 %2d, step %2d\n", s, b[0], b[1], step);
+		for (i = 0; i < 2; i++) {
+			for (j = 0; (x = move[b[i]][j]) >= 0; j++) {
+				if (x == b[0] || x == b[1]) continue;
+				s2 = swap(s, x, b[i]);
+				if (mode) { if (lookup(s2) >= 0) return step; }
+				else if (!insert(s2, step)) continue;
+				end->s = s2;
+				if (i) end->b1 = b[0], end->b2 = x;
+				else   end->b1 = x, end->b2 = b[1];
+				end++;
+			}
+		}
+	}
+	return step;
+}
+
+int main()
+{
+	int i, ans, p, b1, b2;
+	UL s;
+	int lim = 16;
+
+	s = 0x123456789ab0ULL, insert(s, 0);
+	sach(s, 0, 12, 0, 1, lim);
+	while (1) {
+		b1 = -1;
+		for (s = i = 0; i < 13; i++) {
+			scanf("%d", &p);
+			if (i == 0 && p < 0) return 0;
+			if (!p) { if (b1 < 0) b1 = i; else b2 = i; }
+			s = (s << 4) | p;
+		}
+		if ((ans = lookup(s)) < 0) {
+			if ((ans = sach(s, b1, b2, 1, 1, 4)) > 4) ans = -1;
+			else ans += lim;
+		}
+		printf(ans < 0 ? "NA\n" : "%d\n", ans);	
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines the minimum number of moves required to transform a given 13-position sliding puzzle configuration into a fixed target configuration, under the rule that a move swaps a tile adjacent to one of the two empty positions into that empty position. If the minimum required moves exceed a fixed bound, reports that no answer is available within that bound.
+
+2. Inputs  
+- Repeated test cases from standard input.  
+- Each test case consists of 13 integers representing the tile values at positions 0..12.  
+- Exactly two positions must contain the value 0, representing the two empty spaces.  
+- Termination occurs when the first integer of a test case is negative.
+
+3. Outputs  
+- For each non-terminating test case, writes one line to standard output:  
+  - An integer: the minimum number of moves from the given configuration to the target configuration, if that minimum is within the supported bound.  
+  - Otherwise, the string indicating no available answer.
+
+4. Preconditions  
+- Each non-terminating test case provides exactly 13 integers.  
+- The configuration contains exactly two zeros (two empty spaces).  
+- All tile values fit within a 4-bit range (0..15).  
+- The puzzle’s adjacency relation is fixed and matches the 13-position graph implied by the move rules.  
+- The number of reachable states explored during internal searches does not exceed internal capacity limits (otherwise behavior is undefined by this contract).
+
+5. Postconditions  
+For each processed test case:  
+- If the configuration is solvable to the target within 20 moves, the program outputs the exact minimum move count.  
+- If the configuration requires more than 20 moves (or is not solvable), the program outputs the no-answer indicator.
+
+6. Invariants  
+- The target configuration is fixed for the lifetime of the program.  
+- A move always consists of swapping one non-empty tile with one of the two empty positions, and the two empty positions remain distinct after every move.  
+- The reported move count, when provided, is minimal with respect to the allowed move rules.
+
+7. Error Handling / Exceptional Behavior  
+- If the first value of a test case is negative, the program terminates normally without further output.  
+- No explicit handling is provided for malformed input (wrong count, missing values, non-integers) or invalid configurations (not exactly two zeros, out-of-range values); results are unspecified.  
+- If internal storage limits are exceeded during search, results are unspecified.
+
+8. State Transitions (if applicable)  
+- Each puzzle state transitions to another by selecting one of the two empty positions and swapping it with an adjacent non-empty tile.  
+- The program conceptually uses a precomputed set of states within 16 moves of the target and, for queries not in that set, searches outward from the query up to 4 moves to find an intersection; the final answer is the sum of the two distances when such an intersection exists.
+
+9. Non-functional Constraints (if inferable)  
+- Guarantees answers only up to a maximum of 20 moves; beyond that it reports no answer.  
+- Uses fixed-size internal memory for visited-state tracking and search queues, imposing an upper bound on the amount of exploration it can safely perform.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAX_PRE_DEPTH 16
+#define MAX_QUERY_DEPTH 4
+#define MAX_ANSWER 20
+
+/* Fixed-size internal memory (capacity limits). If exceeded, behavior is unspecified by contract. */
+#define PRE_MAX_STATES 2000000
+#define Q_MAX_STATES   200000
+
+/* 13-position fixed adjacency graph (implied by move rules).
+   The specification does not provide the exact graph; we choose the narrowest reasonable
+   interpretation consistent with a common 13-position "cross" sliding puzzle:
+        0  1  2
+        3  4  5
+   6  7  8  9 10 11 12
+   Moves are between orthogonally adjacent positions in this layout. */
+static const uint8_t deg[13] = {
+    2, 3, 2,
+    2, 3, 2,
+    1, 3, 3, 3, 3, 3, 1
+};
+static const uint8_t adj[13][3] = {
+    {1, 3, 0},        /* 0 */
+    {0, 2, 4},        /* 1 */
+    {1, 5, 0},        /* 2 */
+    {0, 4, 0},        /* 3 */
+    {1, 3, 5},        /* 4 */
+    {2, 4, 0},        /* 5 */
+    {7, 0, 0},        /* 6 */
+    {6, 8, 4},        /* 7 */
+    {7, 9, 5},        /* 8 */
+    {8, 10, 0},       /* 9 */
+    {9, 11, 0},       /* 10 */
+    {10, 12, 0},      /* 11 */
+    {11, 0, 0}        /* 12 */
+};
+
+/* Target configuration is fixed for program lifetime.
+   Not specified explicitly; choose a canonical target with two blanks at the end. */
+static const uint8_t target_tiles[13] = { 1,2,3,4,5,6,7,8,9,10,11,0,0 };
+
+/* State encoding: 13 nibbles packed into 64 bits (fits: 13*4=52 bits). */
+static uint64_t pack_state(const uint8_t t[13]) {
+    uint64_t x = 0;
+    for (int i = 0; i < 13; i++) {
+        x |= ((uint64_t)(t[i] & 0xF)) << (4 * i);
+    }
+    return x;
+}
+static uint8_t get_nib(uint64_t s, int i) {
+    return (uint8_t)((s >> (4 * i)) & 0xFULL);
+}
+static uint64_t set_nib(uint64_t s, int i, uint8_t v) {
+    uint64_t mask = 0xFULL << (4 * i);
+    s = (s & ~mask) | (((uint64_t)(v & 0xF)) << (4 * i));
+    return s;
+}
+static uint64_t swap_pos(uint64_t s, int a, int b) {
+    uint8_t va = get_nib(s, a);
+    uint8_t vb = get_nib(s, b);
+    s = set_nib(s, a, vb);
+    s = set_nib(s, b, va);
+    return s;
+}
+
+/* Hash table for precomputed distances (open addressing). */
+typedef struct {
+    uint64_t key;
+    uint8_t dist;
+    uint8_t used;
+} Entry;
+
+static Entry pre_table[PRE_MAX_STATES];
+static uint32_t pre_count = 0;
+
+static uint32_t hash64(uint64_t x) {
+    /* Simple 64->32 mix; deterministic. */
+    x ^= x >> 33;
+    x *= 0xff51afd7ed558ccdULL;
+    x ^= x >> 33;
+    x *= 0xc4ceb9fe1a85ec53ULL;
+    x ^= x >> 33;
+    return (uint32_t)x;
+}
+
+static int pre_insert(uint64_t key, uint8_t dist) {
+    uint32_t m = PRE_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        Entry *e = &pre_table[i];
+        if (!e->used) {
+            e->used = 1;
+            e->key = key;
+            e->dist = dist;
+            pre_count++;
+            return 1;
+        }
+        if (e->key == key) {
+            /* Keep minimal distance (BFS ensures first is minimal). */
+            return 0;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    /* Capacity exceeded: unspecified behavior; return failure. */
+    return 0;
+}
+
+static int pre_lookup(uint64_t key, uint8_t *out_dist) {
+    uint32_t m = PRE_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        Entry *e = &pre_table[i];
+        if (!e->used) return 0;
+        if (e->key == key) {
+            *out_dist = e->dist;
+            return 1;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+
+/* Queue for BFS (fixed-size). */
+typedef struct {
+    uint64_t s;
+    uint8_t z1, z2; /* positions of the two zeros */
+    uint8_t d;
+} Node;
+
+static Node pre_q[PRE_MAX_STATES];
+
+static void find_zeros(uint64_t s, uint8_t *z1, uint8_t *z2) {
+    uint8_t a = 255, b = 255;
+    for (uint8_t i = 0; i < 13; i++) {
+        if (get_nib(s, i) == 0) {
+            if (a == 255) a = i;
+            else { b = i; break; }
+        }
+    }
+    *z1 = a;
+    *z2 = b;
+}
+
+static void precompute(void) {
+    memset(pre_table, 0, sizeof(pre_table));
+    pre_count = 0;
+
+    uint64_t start = pack_state(target_tiles);
+    uint8_t z1, z2;
+    find_zeros(start, &z1, &z2);
+
+    /* BFS from target up to depth 16. */
+    uint32_t head = 0, tail = 0;
+    pre_insert(start, 0);
+    pre_q[tail++] = (Node){ start, z1, z2, 0 };
+
+    while (head < tail) {
+        Node cur = pre_q[head++];
+        if (cur.d >= MAX_PRE_DEPTH) continue;
+
+        /* Expand moves: swap a neighbor tile into either empty position. */
+        for (int which = 0; which < 2; which++) {
+            uint8_t z = (which == 0) ? cur.z1 : cur.z2;
+            for (uint8_t k = 0; k < deg[z]; k++) {
+                uint8_t nb = adj[z][k];
+                if (get_nib(cur.s, nb) == 0) continue; /* must swap non-empty into empty */
+                uint64_t ns = swap_pos(cur.s, z, nb);
+
+                uint8_t nz1 = cur.z1, nz2 = cur.z2;
+                /* After swapping, the empty moves to nb. */
+                if (which == 0) nz1 = nb; else nz2 = nb;
+                /* Maintain distinctness (invariant); if swap would collide, skip. */
+                if (nz1 == nz2) continue;
+
+                uint8_t nd = (uint8_t)(cur.d + 1);
+                if (pre_insert(ns, nd)) {
+                    if (tail >= PRE_MAX_STATES) {
+                        /* Capacity exceeded: unspecified by contract; stop expanding. */
+                        return;
+                    }
+                    pre_q[tail++] = (Node){ ns, nz1, nz2, nd };
+                }
+            }
+        }
+    }
+}
+
+/* Query-side BFS up to depth 4, looking for intersection with precomputed set. */
+static uint8_t q_dist[Q_MAX_STATES];
+static uint64_t q_key[Q_MAX_STATES];
+static uint8_t q_used[Q_MAX_STATES];
+
+static int q_lookup(uint64_t key, uint8_t *out_dist) {
+    /* Very small fixed hash table for query BFS visited. */
+    uint32_t m = Q_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        if (!q_used[i]) return 0;
+        if (q_key[i] == key) {
+            *out_dist = q_dist[i];
+            return 1;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+static int q_insert(uint64_t key, uint8_t dist) {
+    uint32_t m = Q_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        if (!q_used[i]) {
+            q_used[i] = 1;
+            q_key[i] = key;
+            q_dist[i] = dist;
+            return 1;
+        }
+        if (q_key[i] == key) return 0;
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+
+static Node q_q[Q_MAX_STATES];
+
+static int solve(uint64_t start) {
+    uint8_t pre_d;
+    if (pre_lookup(start, &pre_d)) {
+        if (pre_d <= MAX_ANSWER) return (int)pre_d;
+        return -1;
+    }
+
+    memset(q_used, 0, sizeof(q_used));
+
+    uint8_t z1, z2;
+    find_zeros(start, &z1, &z2);
+
+    uint32_t head = 0, tail = 0;
+    q_insert(start, 0);
+    q_q[tail++] = (Node){ start, z1, z2, 0 };
+
+    int best = 1000;
+
+    while (head < tail) {
+        Node cur = q_q[head++];
+        if (cur.d > MAX_QUERY_DEPTH) continue;
+
+        uint8_t pd;
+        if (pre_lookup(cur.s, &pd)) {
+            int total = (int)cur.d + (int)pd;
+            if (total < best) best = total;
+        }
+
+        if (cur.d == MAX_QUERY_DEPTH) continue;
+
+        for (int which = 0; which < 2; which++) {
+            uint8_t z = (which == 0) ? cur.z1 : cur.z2;
+            for (uint8_t k = 0; k < deg[z]; k++) {
+                uint8_t nb = adj[z][k];
+                if (get_nib(cur.s, nb) == 0) continue;
+                uint64_t ns = swap_pos(cur.s, z, nb);
+
+                uint8_t nz1 = cur.z1, nz2 = cur.z2;
+                if (which == 0) nz1 = nb; else nz2 = nb;
+                if (nz1 == nz2) continue;
+
+                uint8_t nd = (uint8_t)(cur.d + 1);
+                if (q_insert(ns, nd)) {
+                    if (tail >= Q_MAX_STATES) {
+                        /* Capacity exceeded: unspecified by contract; stop. */
+                        head = tail; /* break outer loop */
+                        break;
+                    }
+                    q_q[tail++] = (Node){ ns, nz1, nz2, nd };
+                }
+            }
+        }
+    }
+
+    if (best <= MAX_ANSWER) return best;
+    return -1;
+}
+
+int main(void) {
+    precompute();
+
+    for (;;) {
+        int first;
+        if (scanf("%d", &first) != 1) return 0;
+        if (first < 0) return 0;
+
+        uint8_t t[13];
+        t[0] = (uint8_t)(first & 0xF);
+        for (int i = 1; i < 13; i++) {
+            int v;
+            if (scanf("%d", &v) != 1) return 0;
+            t[i] = (uint8_t)(v & 0xF);
+        }
+
+        uint64_t start = pack_state(t);
+        int ans = solve(start);
+        if (ans >= 0) {
+            printf("%d\n", ans);
+        } else {
+            /* No-answer indicator string not specified; choose a minimal conventional token. */
+            printf("No answer\n");
+        }
+    }
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00190/p00190_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00190/p00190_sample1_output.txt
+Input:
+1 2 3 4 5 6 7 8 9 10 11 0 0
+2 5 0 6 7 8 9 10 0 11 3 4 1
+-1
+Expected:
+NA
+NA
+Actual:
+0
+No answer
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

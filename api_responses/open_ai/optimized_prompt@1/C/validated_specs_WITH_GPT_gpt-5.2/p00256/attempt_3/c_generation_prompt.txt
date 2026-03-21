@@ -1,0 +1,103 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+The program repeatedly reads one whitespace-delimited token at a time and stops when it reads a token whose first character is `#`. For each non-sentinel token, it parses the token as a dot-separated sequence of unsigned decimal integers and performs one of two conversions:
+
+- If the token contains exactly 3 components (i.e., exactly two `.` characters), it is interpreted as a Gregorian calendar date `Y.M.D` (year, month, day) and is converted to a 5-component mixed-radix representation `p0.p1.p2.p3.p4`.
+- Otherwise, it is interpreted as a 5-component mixed-radix representation and is converted to a Gregorian date `Y.M.D`.
+
+Each processed token produces exactly one output line containing the converted representation as dot-separated integers. No output is produced for the sentinel token.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens, each read with `%s` into a fixed buffer of size 50 (so tokens longer than 49 characters overflow the buffer; behavior is undefined in that case).  
+- Termination token: any token whose first character is `#`.  
+- Each non-sentinel token is parsed by scanning characters left-to-right, splitting on `.` and interpreting each component as a base-10 non-negative integer (no sign handling).  
+- The program distinguishes only between “exactly 3 components” and “not exactly 3 components”; it does not validate the component count beyond that.
+
+3. Outputs  
+- For each non-sentinel token, one line is printed:
+  - If the input has 3 components, the output has 5 components: `p0.p1.p2.p3.p4`.
+  - Otherwise, the output has 3 components: `Y.M.D`.
+- Output components are printed in decimal with `.` separators and a trailing newline.
+
+4. Calendar Rules and Day Counting  
+- Gregorian month lengths are the standard lengths with February = 28 days, plus one extra day in leap years.  
+- Leap year rule: a year is a leap year if it is divisible by 4 and (not divisible by 100 unless also divisible by 400).  
+- Day-of-month is treated as 1-based in the input and output Gregorian dates. When converting a Gregorian date to an internal day count, the program uses `(D - 1)` as the 0-based offset within the month.
+
+5. Conversion: Gregorian (3 components) → Mixed-radix (5 components)  
+Given a parsed Gregorian date `Y.M.D`, the program computes an internal day count `dt` (an unsigned 64-bit value) as:
+
+- `dt = (days before month M in year Y) + (D - 1)`, where “days before month M” is the sum of standard month lengths for months `1..(M-1)`.  
+- If `M > 2` and `Y` is a leap year, add 1 to `dt`.  
+- Then apply a year-based offset relative to year 2001 using `k = Y - 2001` (integer arithmetic as in C), adding:  
+  `365*k + k/4 - k/100 + k/400`  
+- Finally add a fixed epoch-alignment constant equal to `366 - m12`, where `m12` is defined by the program as:  
+  `m12 = 365*13 + 4 - 11`  
+  (so the added constant is exactly `366 - (365*13 + 4 - 11)`).
+
+The resulting `dt` is decomposed into five mixed-radix digits by repeated modulus/division in this order (least significant first):  
+- `p4 = dt mod 20`, then `dt = dt / 20`  
+- `p3 = dt mod 18`, then `dt = dt / 18`  
+- `p2 = dt mod 20`, then `dt = dt / 20`  
+- `p1 = dt mod 20`, then `dt = dt / 20`  
+- `p0 = dt mod 13`  
+
+The program prints `p0.p1.p2.p3.p4`. For Gregorian inputs, these digits are within the ranges implied by the moduli: `p0∈[0,12]`, `p1∈[0,19]`, `p2∈[0,19]`, `p3∈[0,17]`, `p4∈[0,19]`.
+
+6. Conversion: Mixed-radix (not 3 components) → Gregorian (3 components)  
+The program interprets the first five parsed components as digits in a mixed-radix number with radices (most significant to least significant): 13, 20, 20, 18, 20, combining them as:
+
+`dt = ((((d0)*20 + d1)*20 + d2)*18 + d3)*20 + d4`
+
+It then adds a fixed constant offset of `4738 + 1` to `dt` (i.e., `4739`).
+
+To convert this adjusted `dt` into a Gregorian date, the program:
+- Initializes the year `Y` to 2000.  
+- Repeatedly advances the year while `dt > 365` by doing:
+  - Save the current `dt` into a temporary `t`.
+  - Subtract 365 from `dt`.
+  - If the current year `Y` is a leap year, subtract 1 more from `dt`.
+  - Increment `Y`.
+- If this loop ends with `dt == 0`, it restores `dt` from `t` and decrements `Y` by 1 (so an exact year-boundary remainder is attributed to the previous year rather than producing day 0 of the next year).
+- Determines the month by starting at January and subtracting month lengths until the remaining `dt` fits within the current month. February in leap years is handled by decrementing `dt` once when passing February; if that decrement makes `dt` become 0, the day is set to 29 and the month is February.
+- Prints `Y.M.D`, where `D` is the final remaining `dt` value (which is 1-based after the month-selection logic).
+
+7. Preconditions / Assumptions  
+- Tokens are assumed to contain only digits and `.` separators; other characters lead to unspecified parsing results.  
+- No validation is performed for:
+  - Gregorian date validity (month/day ranges),
+  - mixed-radix digit ranges,
+  - having at least five components in the mixed-radix case.  
+  In the “not 3 components” branch, the program uses the first five parsed integers; if fewer than five are present, behavior is undefined due to use of uninitialized values.
+
+8. Error Handling / Termination  
+- There is no explicit error reporting. Malformed or out-of-range inputs yield unspecified results.  
+- The program terminates when it reads a token starting with `#`. (End-of-input handling is not explicitly checked; behavior on EOF is not defined by the program logic.)
+
+```

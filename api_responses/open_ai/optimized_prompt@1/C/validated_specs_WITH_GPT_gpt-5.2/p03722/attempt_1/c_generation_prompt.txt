@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum achievable total weight along any directed path from node 1 to node N in a directed weighted graph. If the maximum is unbounded due to a reachable positive-weight cycle that can still reach node N, reports that the result is infinite.
+
+2. Inputs  
+- An integer N: number of nodes (nodes are labeled 1 through N).  
+- An integer M: number of directed edges.  
+- M triples (u, w, c): a directed edge from node u to node w with integer weight c.
+
+3. Outputs  
+- If the maximum total weight from node 1 to node N is finite: outputs that maximum as an integer.  
+- If the maximum total weight from node 1 to node N is unbounded (infinite): outputs the literal string `inf`.
+
+4. Preconditions  
+- 1 ≤ N ≤ 1000.  
+- 0 ≤ M ≤ 2000.  
+- All edge endpoints u and w are in [1, N].  
+- The sum of weights along any considered path fits within 64-bit signed integer range (assumption; otherwise behavior is not defined by the code’s contract).
+
+5. Postconditions  
+- If there is no directed path from node 1 to node N, the program outputs a very large negative integer value (effectively representing “no path”), since no explicit “unreachable” output is defined.  
+- If there exists at least one path from node 1 to node N and no reachable positive-weight cycle can be used to increase the path weight without bound while still allowing reachability to N, the program outputs the maximum total weight among all such paths.  
+- If there exists a directed cycle with positive total weight that is reachable from node 1 and from which node N is reachable, the program outputs `inf`.
+
+6. Invariants  
+- Node 1 is treated as having a baseline best-known total weight of 0.  
+- Best-known values for other nodes are monotonically improved only when a strictly better (higher total weight in the original graph) path is discovered.  
+- The reported finite result, when produced, corresponds to some path from node 1 to node N.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range N/M, invalid node indices, or arithmetic overflow. In such cases, output is unspecified.  
+- No explicit handling for the “unreachable N” case beyond emitting a sentinel-like large negative number.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond internal computation; the program has no persistent state across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to N·M.  
+- Memory usage is bounded by storage for up to 2000 edges and up to 1000 node values.
+
+```

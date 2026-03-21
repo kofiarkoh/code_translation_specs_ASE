@@ -1,0 +1,25 @@
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    char s[1000];
+
+    /* No explicit error handling per specification */
+    scanf("%999s", s);
+
+    size_t n = strlen(s);
+    for (size_t i = 0; i < n; ++i) {
+        unsigned char c = (unsigned char)s[i];
+
+        /* Intended behavior for 'A'..'Z': shift backward by 3 with wrap-around */
+        if (c >= 'A' && c <= 'Z') {
+            s[i] = (char)('A' + (int)((c - 'A' + 26 - 3) % 26));
+        } else {
+            /* Unspecified by contract: still apply a fixed arithmetic adjustment */
+            s[i] = (char)(c - 3);
+        }
+    }
+
+    printf("%s\n", s);
+    return 0;
+}

@@ -1,0 +1,82 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAXH 512
+#define MAXW 512
+#define MAXN (MAXH * MAXW)
+
+int main(void) {
+    int H, W;
+    if (scanf("%d %d", &H, &W) != 2) {
+        return 1; /* undefined output per spec */
+    }
+
+    /* Preconditions are assumed; behavior undefined if violated. */
+    static char grid[MAXH][MAXW];
+    static unsigned char visited[MAXH][MAXW];
+
+    /* Read H rows, each with at least W characters. We read a token (no spaces). */
+    char buf[4096];
+    for (int i = 0; i < H; i++) {
+        if (scanf("%4095s", buf) != 1) {
+            return 1; /* undefined output per spec */
+        }
+        /* Spec guarantees at least W characters; if not, behavior undefined. */
+        for (int j = 0; j < W; j++) {
+            grid[i][j] = buf[j];
+        }
+    }
+
+    /* BFS queue over cell indices (r*W + c). */
+    static int q[MAXN];
+
+    uint64_t total = 0;
+
+    for (int sr = 0; sr < H; sr++) {
+        for (int sc = 0; sc < W; sc++) {
+            if (visited[sr][sc]) continue;
+
+            uint64_t dots = 0, nondots = 0;
+
+            int qh = 0, qt = 0;
+            visited[sr][sc] = 1;
+            q[qt++] = sr * W + sc;
+
+            while (qh < qt) {
+                int idx = q[qh++];
+                int r = idx / W;
+                int c = idx % W;
+
+                if (grid[r][c] == '.') dots++;
+                else nondots++;
+
+                /* 4-neighbors; edge exists only if characters differ. */
+                if (r > 0 && !visited[r - 1][c] && grid[r - 1][c] != grid[r][c]) {
+                    visited[r - 1][c] = 1;
+                    q[qt++] = (r - 1) * W + c;
+                }
+                if (r + 1 < H && !visited[r + 1][c] && grid[r + 1][c] != grid[r][c]) {
+                    visited[r + 1][c] = 1;
+                    q[qt++] = (r + 1) * W + c;
+                }
+                if (c > 0 && !visited[r][c - 1] && grid[r][c - 1] != grid[r][c]) {
+                    visited[r][c - 1] = 1;
+                    q[qt++] = r * W + (c - 1);
+                }
+                if (c + 1 < W && !visited[r][c + 1] && grid[r][c + 1] != grid[r][c]) {
+                    visited[r][c + 1] = 1;
+                    q[qt++] = r * W + (c + 1);
+                }
+            }
+
+            total += dots * nondots;
+        }
+    }
+
+    printf("%" PRIu64 "\n", total);
+    return 0;
+}
+```

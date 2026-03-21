@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define P 1000000007LL
+
+static long long mod_norm(long long x) {
+    x %= P;
+    if (x < 0) x += P;
+    return x;
+}
+
+static long long mod_pow(long long a, long long e) {
+    a = mod_norm(a);
+    long long r = 1 % P;
+    while (e > 0) {
+        if (e & 1LL) r = (r * a) % P;
+        a = (a * a) % P;
+        e >>= 1LL;
+    }
+    return r;
+}
+
+static long long mod_inv(long long a) {
+    /* As specified: uses Fermat inverse; if a == 0 (mod P), behavior is still "attempt inverse". */
+    return mod_pow(a, P - 2);
+}
+
+int main(void) {
+    int H, W;
+    long long K;
+    if (scanf("%d %d %lld", &H, &W, &K) != 3) return 0;
+
+    int N = (H > W) ? H : W;
+
+    /* Store in a square buffer of side max(H,W) to support the specified in-place transpose. */
+    char *buf = (char *)malloc((size_t)N * (size_t)N);
+    if (!buf) return 0; /* Spec says no guard; but keep program from UB on null. */
+
+    /* Initialize to unmarked to avoid reading uninitialized cells during transpose. */
+    memset(buf, '.', (size_t)N * (size_t)N);
+
+    char *row = (char *)malloc((size_t)N + 5);
+    if (!row) return 0;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", row) != 1) row[0] = '\0';
+        for (int j = 0; j < W; j++) {
+            buf[(size_t)i * (size_t)N + (size_t)j] = row[j];
+        }
+    }
+
+    /* Boundary flags from the original grid. */
+    int f_row = 0, f_col = 0;
+    for (int i = 0; i < H; i++) {
+        if (buf[(size_t)i * (size_t)N + 0] == '#' &&
+            buf[(size_t)i * (size_t)N + (size_t)(W - 1)] == '#') {
+            f_row = 1;
+            break;
+        }
+    }
+    for (int j = 0; j < W; j++) {
+        if (buf[0 * (size_t)N + (size_t)j] == '#' &&
+            buf[(size_t)(H - 1) * (size_t)N + (size_t)j] == '#') {
+            f_col = 1;
+            break;
+        }
+    }
+
+    if (K == 0) {
+        printf("1\n");
+        free(row);
+        free(buf);
+        return 0;
+    }
+    if (f_row && f_col) {
+        printf("1\n");
+        free(row);
+        free(buf);
+        return 0;
+    }
+
+    /* Orientation normalization: only when f_col is true and f_row is false. */
+    if (f_col && !f_row) {
+        for (int i = 0; i < N; i++) {
+            for (int j = i + 1; j < N; j++) {
+                char tmp = buf[(size_t)i * (size_t)N + (size_t)j];
+                buf[(size_t)i * (size_t)N + (size_t)j] = buf[(size_t)j * (size_t)N + (size_t)i];
+                buf[(size_t)j * (size_t)N + (size_t)i] = tmp;
+            }
+        }
+        int tmpHW = H;
+        H = W;
+        W = tmpHW;
+    }
+
+    /* If neither boundary flag is true, output pow(x, K-1) where x is total marked cells. */
+    if (!f_row && !f_col) {
+        long long x = 0;
+        for (int i = 0; i < H; i++) {
+            for (int j = 0; j < W; j++) {
+                if (buf[(size_t)i * (size_t)N + (size_t)j] == '#') x++;
+            }
+        }
+        printf("%lld\n", mod_pow(x, K - 1));
+        free(row);
+        free(buf);
+        return 0;
+    }
+
+    /* Exactly one boundary flag is true: compute a,b,c,x on the (possibly transposed) grid. */
+    long long a = 0, b = 0, c = 0, x = 0;
+    for (int i = 0; i < H; i++) {
+        long long x_sub = 0;
+        long long e = 0;
+        for (int j = 0; j < W; j++) {
+            char cur = buf[(size_t)i * (size_t)N + (size_t)j];
+            if (cur == '#') {
+                x_sub++;
+                x++;
+            }
+            if (j > 0) {
+                char prev = buf[(size_t)i * (size_t)N + (size_t)(j - 1)];
+                if (prev == '#' && cur == '#') e++;
+            }
+        }
+
+        if (x_sub == (long long)W) {
+            c++;
+        } else {
+            a += (x_sub - e);
+            if (buf[(size_t)i * (size_t)N + 0] == '#' &&
+                buf[(size_t)i * (size_t)N + (size_t)(W - 1)] == '#') {
+                a -= 2;
+                b += 1;
+            }
+        }
+    }
+
+    if (a == 0 && b == 0) {
+        printf("%lld\n", mod_pow(c, K - 1));
+        free(row);
+        free(buf);
+        return 0;
+    }
+
+    /* General modular rational expression. */
+    long long A = a + b;
+    long long B = b + c;
+    long long term1 = (mod_norm(A) * mod_pow(x, K - 1)) % P;
+    long long term2_coeff = x - (a + 2 * b + c);
+    long long term2 = (mod_norm(term2_coeff) * mod_pow(B, K - 1)) % P;
+    long long numer = (term1 + term2) % P;
+    long long denom = x - (b + c);
+    long long ans = (numer * mod_inv(denom)) % P;
+    ans = mod_norm(ans);
+
+    printf("%lld\n", ans);
+
+    free(row);
+    free(buf);
+    return 0;
+}

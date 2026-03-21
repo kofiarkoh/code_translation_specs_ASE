@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers, computes the difference between the first two, then decreases the third integer by up to that difference while not decreasing it past zero. Produces the resulting value of the third integer.
+
+2. Inputs  
+- Three integers provided from standard input:  
+  - First value (initial minuend)  
+  - Second value (subtrahend)  
+  - Third value (counter/value to be reduced)
+
+3. Outputs  
+- One integer written to standard output: the final value of the third input after the described reduction.
+
+4. Preconditions  
+- Exactly three integer values are available on input and are representable in the program’s integer range.  
+- Arithmetic operations performed during execution do not overflow the integer range.
+
+5. Postconditions  
+Let `A0`, `B0`, `C0` be the three input integers. Let `D = A0 - B0`. The output value `Cout` satisfies:  
+- If `D <= 0`, then `Cout = C0`.  
+- If `D > 0` and `C0 <= 0`, then `Cout = C0 - D`.  
+- If `D > 0` and `C0 > 0`, then `Cout = C0 - min(D, C0)`.  
+Equivalently, for `D > 0` and `C0 > 0`, `Cout = max(0, C0 - D)`.
+
+6. Invariants  
+- The difference `A0 - B0` is treated as a fixed nonnegative reduction budget when positive; at most that many unit reductions are applied to the third value.  
+- If the third value is initially positive, it is never reduced below zero.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/invalid or arithmetic overflows occur, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Single-step state change from initial `(A0, B0, C0)` to final `Cout` as defined in Postconditions; no persistent state beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to `max(0, A0 - B0)` in the worst case.  
+- Constant additional memory usage.
+
+```

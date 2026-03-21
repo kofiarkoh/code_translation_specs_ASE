@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (component-level vs segment-level classification), plus a missing constraint about which components are eligible for digit patterns.
+
+B. What the current specification may be missing or misstating  
+- The specification claims “classifies each segment into exactly one digit category … per connected component,” and then describes component patterns as if *all segments in a matching component* are assigned that digit.  
+- The source program does **not** classify every component of size ≤ 5 into some digit by default. It only recognizes a small set of component “templates” (by `(t[i].n, t[i].p)` and extra geometric checks). Anything else is treated as digit **1** (via `ans[1] = n - s`).  
+- The failing case is a single connected component of 5 segments in a chain. The current spec’s 5-segment rule (“5 segments and 8 shared endpoints ⇒ 2/5/6”) is too broad as a general statement about 5-segment components; it doesn’t emphasize that only a very specific endpoint-sharing structure (captured by `t[i].p == 8` and the internal logic of `check256`) qualifies. A 5-segment component with a different `p` value is not 2/5/6 in the source.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that digit recognition is **template-based**: only components whose `(number of segments n, shared-endpoint incidence count p)` match one of the hardcoded cases are classified as digits other than 1.  
+- Clarify the exact meaning of `p`: it is the count, over all segment endpoints in the component, of endpoints that occur at a point used by more than one segment in the entire dataset (i.e., multiplicity > 1), counted with multiplicity per endpoint occurrence.  
+- Clarify that components not matching any template (including many connected components with 3–5 segments) contribute their segments to digit **1**, regardless of being connected.
+
+D. Why this clarification is supported by the source program  
+- In `main`, only components with `t[i].n >= 2` are examined, and only these exact conditions trigger non-1 digits:  
+  - `(2,2)→4`, `(4,6)→9`, `(4,8)→0/8`, `(5,8)→2/5/6`, `(3,4)→3/7`.  
+  Components with other `(n,p)` pairs are ignored in the digit-specific logic.  
+- After processing recognized templates, the program computes `ans[1] = n - s`, where `s` is the number of segments accounted for by recognized templates (plus some adjustments). This makes digit **1** the catch-all for *all remaining segments*, including those in connected components of size >1 that simply don’t match a template.  
+- Therefore, the spec’s broad statement that “classification is based on connectivity pattern … and interior-point tests” is incomplete: the source uses a **restricted set of patterns**, not a general classification of all connected components.

@@ -1,0 +1,72 @@
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates placing a sequence of cubes onto a fixed, bounded 2D grid of size \((2\cdot N\_MAX+1)\times(2\cdot N\_MAX+1)\) with \(N\_MAX=4\) (a 9×9 grid). Each cube starts at the grid center and may move step-by-step to an orthogonally adjacent cell before coming to rest. A move from the current cell to a neighbor is considered only if the neighbor’s current stack height is strictly lower than the current cell’s height. Among the considered moves, the program selects the single move whose associated face value (defined from the cube’s current orientation and the direction) is the largest value strictly greater than 3; if no considered move has an associated value > 3, movement stops. The cube is then placed on the current cell, increasing that cell’s stack height by 1 and recording the cube’s upward-facing value for that cell (overwriting any previous recorded top for that cell). After all cubes are processed, it outputs counts of how many grid cells have recorded top values 1 through 6.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer \(n\) (number of cubes).  
+- If \(n=0\), input terminates and no output is produced for that case.  
+- Otherwise, \(n\) pairs \((t,f)\) follow (read as two integers each): the cube’s initial top value \(t\) and initial front value \(f\).
+
+3. Cube Labeling / Orientation Model (crucial)  
+- Face labels are the integers 1..6 with fixed opposite pairs:  
+  - BOTTOM(top, front) = \(7-\text{top}\)  
+  - BACK(top, front) = \(7-\text{front}\)  
+- The right face is defined by a fixed lookup table RIGHT(top, front) used by the program; the left face is derived as:  
+  - LEFT(top, front) = \(7-\)RIGHT(top, front)  
+- The input pair (top, front) is interpreted with respect to this specific fixed cube geometry; only orientations consistent with this mapping are meaningful.
+
+4. Movement Rules and Orientation Transitions  
+For each cube, initialize position at the center cell and orientation to the input (top, front). Then repeat:
+
+4.1 Candidate move eligibility (height condition)  
+A direction is eligible only if the adjacent cell in that direction has strictly smaller current height than the current cell.
+
+4.2 Direction-associated value (must exceed 3)  
+For each eligible direction, compute an associated value from the current orientation:  
+- North (toward decreasing row index): associated value = current FRONT value (= front).  
+- South (increasing row index): associated value = current BACK value (= BACK(top, front)).  
+- West (decreasing column index): associated value = current LEFT value (= LEFT(top, front)).  
+- East (increasing column index): associated value = current RIGHT value (= RIGHT(top, front)).  
+
+Only directions whose associated value is > 3 are considered for selection.
+
+4.3 Selection / tie behavior  
+If at least one eligible direction has associated value > 3, choose the direction with the maximum associated value. If none do, stop moving. (The program’s selection is based on strict “greater than current best”; it does not define a special tie-break rule beyond that.)
+
+4.4 Exact orientation update on a move  
+When a move is selected, the program updates position and orientation using the following assignments (expressed in terms of the *old* (top, front)):
+
+- Move North:  
+  - newfront = oldtop  
+  - newtop   = BACK(oldtop, oldfront)
+
+- Move South:  
+  - newfront = BOTTOM(oldtop, oldfront)  
+  - newtop   = oldfront
+
+- Move West:  
+  - newfront = oldfront  
+  - newtop   = RIGHT(oldtop, oldfront)
+
+- Move East:  
+  - newfront = oldfront  
+  - newtop   = LEFT(oldtop, oldfront)
+
+Then continue the loop from the new cell with the updated (top, front).
+
+5. Placement and Recorded State  
+- When movement stops, the cube is placed on the current cell: that cell’s height increases by 1.  
+- The cell’s recorded top value becomes the cube’s current top value at rest, overwriting any previous recorded top at that cell.  
+- Cells never used as a final resting place retain recorded top value 0 internally.
+
+6. Outputs  
+For each non-terminating test case, output one line with six integers separated by single spaces: for face values 1,2,3,4,5,6 respectively, the number of grid cells whose recorded top value equals that face value at the end of the test case. (Cells with recorded value 0 are not included in these six counts.)
+
+7. Preconditions / Assumptions  
+- Inputs are well-formed and provide \(n\) (top, front) pairs after each nonzero \(n\).  
+- Each provided top and front value is in 1..6 and corresponds to an orientation for which RIGHT(top, front) is defined by the program’s table.  
+- The movement process is assumed to remain within the fixed 9×9 grid; the program does not perform bounds checks, so out-of-range movement would result in undefined behavior.
+
+8. Reset and Termination Behavior  
+- For each test case, the grid state (heights and recorded tops) is reset to all zeros before processing cubes.  
+- Processing continues until a test case with \(n=0\) is read, at which point the program terminates.

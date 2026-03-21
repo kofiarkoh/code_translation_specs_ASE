@@ -1,0 +1,131 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 205
+#define MAXR 1005
+
+/* Large sentinel for unreachable; must be safe against additions per spec. */
+#define INF 1000000000
+
+static int min_int(int a, int b) { return (a < b) ? a : b; }
+
+int main(void) {
+    int N, M;
+
+    while (scanf("%d %d", &N, &M) == 2) {
+        if (N == 0) break;
+
+        static int distL[MAXN + 1][MAXN + 1];
+        static int distO[MAXN + 1][MAXN + 1]; /* non-'L' category */
+
+        /* Initialize all-pairs distances */
+        for (int i = 1; i <= N; i++) {
+            for (int j = 1; j <= N; j++) {
+                distL[i][j] = (i == j) ? 0 : INF;
+                distO[i][j] = (i == j) ? 0 : INF;
+            }
+        }
+
+        /* Read edges; undirected; keep minimum if multiple edges exist */
+        for (int e = 0; e < M; e++) {
+            int u, v, c;
+            char t;
+            if (scanf("%d %d %d %c", &u, &v, &c, &t) != 4) return 0;
+
+            if (t == 'L') {
+                if (c < distL[u][v]) {
+                    distL[u][v] = distL[v][u] = c;
+                }
+            } else {
+                if (c < distO[u][v]) {
+                    distO[u][v] = distO[v][u] = c;
+                }
+            }
+        }
+
+        /* Floyd-Warshall separately for each category */
+        for (int k = 1; k <= N; k++) {
+            for (int i = 1; i <= N; i++) {
+                int dikL = distL[i][k];
+                int dikO = distO[i][k];
+                for (int j = 1; j <= N; j++) {
+                    if (dikL < INF && distL[k][j] < INF) {
+                        int nd = dikL + distL[k][j];
+                        if (nd < distL[i][j]) distL[i][j] = nd;
+                    }
+                    if (dikO < INF && distO[k][j] < INF) {
+                        int nd = dikO + distO[k][j];
+                        if (nd < distO[i][j]) distO[i][j] = nd;
+                    }
+                }
+            }
+        }
+
+        int R;
+        if (scanf("%d", &R) != 1) return 0;
+
+        static int req[MAXR];
+        for (int i = 0; i < R; i++) {
+            if (scanf("%d", &req[i]) != 1) return 0;
+        }
+
+        /* DP state: after reaching required index k, dp[i] is min total cost
+           with "arrival-side intermediate" i (the i used in last L leg into req[k]). */
+        static int dp_prev[MAXN + 1];
+        static int dp_cur[MAXN + 1];
+
+        /* Start at first required location with cost 0; no prior intermediate choice.
+           Narrow interpretation: arrival-side intermediate equals the required location itself. */
+        for (int i = 1; i <= N; i++) dp_prev[i] = INF;
+        dp_prev[req[0]] = 0;
+
+        for (int k = 0; k < R - 1; k++) {
+            int a = req[k];
+            int b = req[k + 1];
+
+            for (int i = 1; i <= N; i++) dp_cur[i] = INF;
+
+            /* Transition:
+               Choose j (intermediate on departure side from a) and i (arrival-side into b):
+                 cost = dp_prev[j] + O[j][i] + L[i][b]
+               Additionally, allow direct L-only from a to b (special case i==j) as:
+                 dp_prev[j] + L[a][b] when j==i (and dp_prev[j] is the state at a).
+               Since dp_prev is indexed by the previous arrival-side intermediate at a,
+               we interpret that as the j used for departure from a in this step. */
+            for (int j = 1; j <= N; j++) {
+                int base = dp_prev[j];
+                if (base >= INF) continue;
+
+                /* Direct L-only from a to b, only when i==j (special allowance). */
+                if (distL[a][b] < INF) {
+                    int nd = base + distL[a][b];
+                    if (nd < dp_cur[j]) dp_cur[j] = nd;
+                }
+
+                /* Three-part route: L from a to j is not explicitly included here because
+                   dp_prev[j] already represents having arrived at a via L from j in the
+                   previous step. The spec's DP interpretation ties state to the chosen
+                   arrival-side intermediate; thus the departure-side intermediate for
+                   the next step is that same location. */
+                for (int i = 1; i <= N; i++) {
+                    if (distO[j][i] >= INF) continue;
+                    if (distL[i][b] >= INF) continue;
+                    int nd = base + distO[j][i] + distL[i][b];
+                    if (nd < dp_cur[i]) dp_cur[i] = nd;
+                }
+            }
+
+            /* Move to next required location */
+            for (int i = 1; i <= N; i++) dp_prev[i] = dp_cur[i];
+        }
+
+        int ans = INF;
+        for (int i = 1; i <= N; i++) ans = min_int(ans, dp_prev[i]);
+
+        printf("%d\n", ans);
+    }
+
+    return 0;
+}
+```

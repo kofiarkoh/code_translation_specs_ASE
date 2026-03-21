@@ -1,0 +1,31 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    /* Fixed internal buffer capacity (bounded processing as per spec). */
+    unsigned char buf[4096];
+
+    /* Read a sequence of bytes from standard input. No explicit error handling. */
+    size_t L = fread(buf, 1, sizeof(buf), stdin);
+
+    /* Per specification: if L < 2, behavior is not well-defined; we intentionally
+       do not guard against out-of-bounds access to preserve that property. */
+    unsigned char first = buf[0];
+    unsigned char last  = buf[L - 1];
+
+    /* E = 1 if first byte equals last byte, else 0. */
+    unsigned int E = (first == last) ? 1u : 0u;
+
+    /* Output "First" iff parity of (L - 1) + E is odd. */
+    unsigned int parity = (unsigned int)(((L - 1u) + (size_t)E) & 1u);
+
+    if (parity) {
+        puts("First");
+    } else {
+        puts("Second");
+    }
+
+    return 0;
+}
+```

@@ -1,0 +1,105 @@
+```c
+#include <stdio.h>
+#include <math.h>
+
+typedef struct {
+    int x1, y1, x2, y2;
+} Seg;
+
+static int segment_intersection_point(const Seg *a, const Seg *b, double *ix, double *iy) {
+    /* Compute unique intersection of two closed segments.
+       If parallel or collinear (no unique intersection), return 0.
+       If intersection lies outside either segment, return 0.
+       Otherwise store intersection point and return 1.
+
+       Note: Spec allows undefined behavior on integer overflow in geometric computations.
+       We therefore do not add overflow guards; we cast to double for computations.
+    */
+    double x1 = (double)a->x1, y1 = (double)a->y1;
+    double x2 = (double)a->x2, y2 = (double)a->y2;
+    double x3 = (double)b->x1, y3 = (double)b->y1;
+    double x4 = (double)b->x2, y4 = (double)b->y2;
+
+    double r_x = x2 - x1, r_y = y2 - y1;
+    double s_x = x4 - x3, s_y = y4 - y3;
+
+    double denom = r_x * s_y - r_y * s_x; /* cross(r, s) */
+
+    if (denom == 0.0) {
+        /* Parallel or collinear => treated as non-existent (no unique point). */
+        return 0;
+    }
+
+    double q_p_x = x3 - x1, q_p_y = y3 - y1;
+
+    /* t = cross((q - p), s) / cross(r, s)
+       u = cross((q - p), r) / cross(r, s)
+    */
+    double t = (q_p_x * s_y - q_p_y * s_x) / denom;
+    double u = (q_p_x * r_y - q_p_y * r_x) / denom;
+
+    /* Closed segments: require t,u in [0,1]. */
+    if (t < 0.0 || t > 1.0 || u < 0.0 || u > 1.0) return 0;
+
+    *ix = x1 + t * r_x;
+    *iy = y1 + t * r_y;
+    return 1;
+}
+
+static double triangle_area_abs(double x1, double y1,
+                                double x2, double y2,
+                                double x3, double y3) {
+    /* Area = 0.5 * |cross(b-a, c-a)| */
+    double abx = x2 - x1, aby = y2 - y1;
+    double acx = x3 - x1, acy = y3 - y1;
+    double cross = abx * acy - aby * acx;
+    double area = 0.5 * fabs(cross);
+    return area;
+}
+
+int main(void) {
+    Seg segs[3];
+    int count = 0;
+
+    for (;;) {
+        int x1, y1, x2, y2;
+        if (scanf("%d %d %d %d", &x1, &y1, &x2, &y2) != 4) {
+            /* Incomplete trailing data ignored: no output for incomplete group. */
+            break;
+        }
+        segs[count].x1 = x1; segs[count].y1 = y1;
+        segs[count].x2 = x2; segs[count].y2 = y2;
+        count++;
+
+        if (count == 3) {
+            double p12x, p12y, p23x, p23y, p31x, p31y;
+            int ok12 = segment_intersection_point(&segs[0], &segs[1], &p12x, &p12y);
+            int ok23 = segment_intersection_point(&segs[1], &segs[2], &p23x, &p23y);
+            int ok31 = segment_intersection_point(&segs[2], &segs[0], &p31x, &p31y);
+
+            if (!(ok12 && ok23 && ok31)) {
+                puts("kyo");
+            } else {
+                double area = triangle_area_abs(p12x, p12y, p23x, p23y, p31x, p31y);
+                const double eps = 1e-6;
+
+                if (area < eps) {
+                    puts("kyo");
+                } else if (area < 100000.0 - eps) {
+                    puts("syo-kichi");
+                } else if (area < 1000000.0 - eps) {
+                    puts("kichi");
+                } else if (area < 1900000.0 - eps) {
+                    puts("chu-kichi");
+                } else {
+                    puts("dai-kichi");
+                }
+            }
+
+            count = 0;
+        }
+    }
+
+    return 0;
+}
+```

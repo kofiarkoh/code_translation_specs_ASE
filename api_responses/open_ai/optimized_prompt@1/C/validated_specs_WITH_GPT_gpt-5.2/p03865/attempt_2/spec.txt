@@ -1,0 +1,40 @@
+1. Functional Description  
+Reads up to a fixed maximum number of bytes from standard input and outputs exactly one of two fixed words (“First” or “Second”). The choice depends on (a) the number of bytes read and (b) whether the first byte equals the byte immediately preceding the final byte read.
+
+2. Inputs  
+- A raw byte stream from standard input.  
+- The program uses the exact byte count returned by the single `read` call; it does not perform line-based parsing or ignore any particular byte values.
+
+3. Outputs  
+- Writes a single line to standard output containing either the word “First” or the word “Second”.
+
+4. Preconditions / Defined-Behavior Requirements  
+Let `L` be the number of bytes successfully read. The program accesses `buf[0]` and `buf[L-2]` (see decision rule below). Therefore, behavior is only well-defined when:  
+- `L >= 2` (so that index `L-2` is valid), and  
+- the `read` call returns a nonnegative value that fits within the internal buffer capacity.
+
+If `read` fails (negative return) or returns fewer than 2 bytes, the program may perform out-of-bounds access and its behavior is undefined.
+
+5. Decision Rule (Postconditions under the Preconditions)  
+Assuming `L >= 2` bytes are read:  
+- Define `N = L - 1`.  
+- Define `E = 1` if the first byte `buf[0]` equals the byte at index `L - 2` (i.e., the byte immediately before the last byte read), and `E = 0` otherwise.  
+- Compute `S = N + E`.  
+- The program outputs “First” if `S` is odd; otherwise it outputs “Second”.
+
+6. Invariants  
+- The decision depends only on:  
+  - the number of bytes read (`L`), and  
+  - whether `buf[0]` equals `buf[L-2]` (not the final byte `buf[L-1]`).  
+- No persistent state is maintained across executions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If `read` fails or returns fewer than 2 bytes, the program’s behavior is undefined (may crash or print an arbitrary result).
+
+8. State Transitions (if applicable)  
+- Single-step execution: start → read input once → compute the rule above → print one word and a newline → terminate.
+
+9. Non-functional Constraints (if inferable)  
+- Reads at most the fixed internal buffer capacity in one call.  
+- Runs in time proportional to the number of bytes read, using constant additional memory beyond the fixed buffer.

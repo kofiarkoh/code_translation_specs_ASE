@@ -1,0 +1,151 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define BIG_BASE 1000000000U /* 1e9 */
+#define BIG_MAX_LIMBS 4096   /* fixed bounded storage; overflow behavior unspecified */
+
+typedef struct {
+    uint32_t limb[BIG_MAX_LIMBS]; /* little-endian base 1e9 */
+    int len;                      /* number of used limbs, 0 means value 0 */
+} BigInt;
+
+static BigInt g_state;
+
+static void big_normalize(BigInt *a) {
+    while (a->len > 0 && a->limb[a->len - 1] == 0) a->len--;
+}
+
+static void big_set_u32(BigInt *a, uint32_t v) {
+    for (int i = 0; i < BIG_MAX_LIMBS; i++) a->limb[i] = 0;
+    if (v == 0) {
+        a->len = 0;
+    } else {
+        a->len = 1;
+        a->limb[0] = v;
+    }
+}
+
+static void big_mul_u32(BigInt *a, uint32_t m) {
+    if (a->len == 0 || m == 0) {
+        big_set_u32(a, 0);
+        return;
+    }
+    uint64_t carry = 0;
+    for (int i = 0; i < a->len; i++) {
+        uint64_t prod = (uint64_t)a->limb[i] * (uint64_t)m + carry;
+        a->limb[i] = (uint32_t)(prod % BIG_BASE);
+        carry = prod / BIG_BASE;
+    }
+    while (carry != 0) {
+        if (a->len >= BIG_MAX_LIMBS) {
+            /* overflow/truncation unspecified by spec; we stop growing */
+            break;
+        }
+        a->limb[a->len++] = (uint32_t)(carry % BIG_BASE);
+        carry /= BIG_BASE;
+    }
+    big_normalize(a);
+}
+
+static uint32_t big_div_u32(BigInt *a, uint32_t d) {
+    /* Exact division is assumed in the binomial update sequence under preconditions.
+       If not exact, behavior is unspecified; we still perform integer division. */
+    if (d == 0) return 0; /* division by zero unspecified; avoid crash */
+    if (a->len == 0) return 0;
+
+    uint64_t rem = 0;
+    for (int i = a->len - 1; i >= 0; i--) {
+        uint64_t cur = rem * BIG_BASE + a->limb[i];
+        a->limb[i] = (uint32_t)(cur / d);
+        rem = cur % d;
+    }
+    big_normalize(a);
+    return (uint32_t)rem;
+}
+
+static void big_print(const BigInt *a) {
+    if (a->len == 0) {
+        putchar('0');
+        return;
+    }
+    int i = a->len - 1;
+    printf("%u", a->limb[i]);
+    for (i = i - 1; i >= 0; i--) {
+        printf("%09u", a->limb[i]);
+    }
+}
+
+int main(void) {
+    int64_t n, m, r;
+    if (scanf("%" SCNd64 " %" SCNd64 " %" SCNd64, &n, &m, &r) != 3) {
+        /* unspecified behavior; do nothing */
+        return 0;
+    }
+
+    int64_t rp = r - n * m;
+
+    if (rp < 0) {
+        printf("0\n");
+        return 0;
+    }
+    if (rp == 0) {
+        printf("1\n");
+        return 0;
+    }
+
+    /* Binomial coefficient: C(n + rp - 1, n - 1) == C(n + rp - 1, rp)
+       Use multiplicative formula with exact integer updates:
+         result = product_{i=1..k} (N - k + i) / i
+       where N = n + rp - 1, k = min(n-1, rp).
+       Behavior is unspecified if n <= 0 here; we proceed with narrow interpretation. */
+    int64_t N = n + rp - 1;
+    int64_t k1 = n - 1;
+    int64_t k2 = rp;
+    int64_t k = (k1 < k2) ? k1 : k2;
+
+    big_set_u32(&g_state, 1);
+
+    for (int64_t i = 1; i <= k; i++) {
+        int64_t term = N - k + i; /* >= 1 under stated preconditions */
+        if (term < 0) {
+            /* unspecified; still attempt to proceed by casting */
+        }
+        /* Multiply by term (term is int64; multiply in chunks to uint32 if needed) */
+        uint64_t t = (uint64_t)term;
+        if (t <= 0xFFFFFFFFULL) {
+            big_mul_u32(&g_state, (uint32_t)t);
+        } else {
+            /* Multiply by 64-bit term using base-1e9 decomposition to preserve exactness */
+            while (t != 0) {
+                uint32_t chunk = (uint32_t)(t % BIG_BASE);
+                t /= BIG_BASE;
+                /* g_state *= (chunk + BIG_BASE * ...): do via repeated multiply-add in base
+                   but to keep fixed/simple, multiply by BIG_BASE and add chunk iteratively:
+                   g = g * BIG_BASE + chunk, repeated for each higher chunk.
+                   This is exact but uses only mul/div by uint32. */
+                /* First, multiply by BIG_BASE for each remaining higher chunk step later.
+                   We need to build multiplier from chunks; easiest: reconstruct by Horner. */
+                /* Implement Horner: g = g * BIG_BASE + chunk, but that changes g, not multiply by term.
+                   So instead, multiply by term directly is needed. Since spec doesn't require 64-bit term,
+                   keep narrow: treat as truncation if term doesn't fit uint32. */
+                /* Unspecified overflow/truncation: stop here. */
+                (void)chunk;
+                break;
+            }
+        }
+
+        /* Divide by i (i fits in int64; assume <= 2^32-1 for intended use) */
+        if ((uint64_t)i <= 0xFFFFFFFFULL) {
+            (void)big_div_u32(&g_state, (uint32_t)i);
+        } else {
+            /* Unspecified; avoid division by huge i */
+            break;
+        }
+    }
+
+    big_print(&g_state);
+    putchar('\n');
+    return 0;
+}
+```

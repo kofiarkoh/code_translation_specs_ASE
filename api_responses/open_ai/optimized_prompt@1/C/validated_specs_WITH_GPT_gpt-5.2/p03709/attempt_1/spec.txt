@@ -1,0 +1,37 @@
+1. Functional Description  
+Computes and prints a single integer value modulo a fixed prime. The value is a deterministic function of an input size and a list of integer pairs. The computation is invariant under reordering of the input pairs and depends only on the multiset of pairs.
+
+2. Inputs  
+- An integer `n` (count of pairs).  
+- An integer `m` (read but not used to affect the result).  
+- `n` pairs of signed integers `(a_i, b_i)`.
+
+3. Outputs  
+- Writes one line containing a single integer in the range `[0, MOD-1]`, where `MOD` is a fixed prime constant.
+
+4. Preconditions  
+- `n` is within the supported maximum such that all internal fixed-size buffers indexed by `n` are not exceeded (in particular, `n` must not exceed the program’s compiled maximum capacity).  
+- The input provides at least `n` valid integer pairs.  
+- The environment supports sufficient stack/heap/static memory for the program’s global arrays.  
+- To avoid undefined behavior from intermediate arithmetic, the magnitudes of `a_i` and `b_i` should be such that products of certain pairwise combinations used for comparisons do not overflow signed 64-bit arithmetic (assumption, since the code performs unchecked multiplications in some comparison logic).
+
+5. Postconditions  
+- Exactly one integer is printed.  
+- The printed integer equals a value computed modulo `MOD` from the input pairs after conceptually sorting them by the first component and then by the second component, and applying a deterministic recurrence based on derived interval boundaries from the second components.  
+- The printed value is congruent modulo `MOD` to the difference of two accumulated quantities produced by that recurrence.
+
+6. Invariants  
+- All modular arithmetic results maintained by the computation remain within `[0, MOD-1]`.  
+- The result is independent of the original order of the `n` input pairs (permutation-invariant).  
+- The computation uses only the provided `n` pairs; the additional input `m` does not influence the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range `n`, or arithmetic overflow. Behavior is undefined if preconditions are violated (e.g., insufficient input, `n` exceeding capacity, or overflow in intermediate signed arithmetic).  
+- No alternative success/failure textual outputs are reachable under normal execution; only the numeric result is printed.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes, prints, and terminates. No persistent state is stored across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting and linear passes over `n`, plus logarithmic-time modular exponentiation calls; overall expected to be approximately `O(n log n)` for sorting plus additional `O(n log MOD)` for exponentiation.  
+- Memory usage is `O(n)` in large preallocated global arrays, with a fixed upper bound determined at compile time.

@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define SENTINEL_NO_PENDING (-1LL)
+
+typedef long long ll;
+
+static ll *seg = NULL;   /* segment sums */
+static ll *lazy = NULL;  /* pending assignment marker: stores pending segment sum, or SENTINEL_NO_PENDING */
+
+static void build_init(int node, int l, int r) {
+    seg[node] = 0;
+    lazy[node] = SENTINEL_NO_PENDING;
+    if (l == r) return;
+    int mid = l + (r - l) / 2;
+    build_init(node * 2, l, mid);
+    build_init(node * 2 + 1, mid + 1, r);
+}
+
+static void push(int node, int l, int r) {
+    if (lazy[node] == SENTINEL_NO_PENDING) return;
+    if (l != r) {
+        int mid = l + (r - l) / 2;
+        int left = node * 2;
+        int right = node * 2 + 1;
+
+        /* Propagate stored pending segment sums to children */
+        lazy[left] = lazy[node] / (ll)(r - l + 1) * (ll)(mid - l + 1);
+        lazy[right] = lazy[node] / (ll)(r - l + 1) * (ll)(r - (mid + 1) + 1);
+
+        seg[left] = lazy[left];
+        seg[right] = lazy[right];
+    }
+    lazy[node] = SENTINEL_NO_PENDING;
+}
+
+static void range_assign(int node, int l, int r, int ql, int qr, int x) {
+    if (ql <= l && r <= qr) {
+        ll sum = (ll)x * (ll)(r - l + 1);
+        seg[node] = sum;
+        lazy[node] = sum; /* sentinel assumption: sum must not equal SENTINEL_NO_PENDING */
+        return;
+    }
+    push(node, l, r);
+    int mid = l + (r - l) / 2;
+    if (ql <= mid) range_assign(node * 2, l, mid, ql, qr, x);
+    if (qr > mid) range_assign(node * 2 + 1, mid + 1, r, ql, qr, x);
+    seg[node] = seg[node * 2] + seg[node * 2 + 1];
+}
+
+static ll range_sum(int node, int l, int r, int ql, int qr) {
+    if (ql <= l && r <= qr) return seg[node];
+    push(node, l, r);
+    int mid = l + (r - l) / 2;
+    ll res = 0;
+    if (ql <= mid) res += range_sum(node * 2, l, mid, ql, qr);
+    if (qr > mid) res += range_sum(node * 2 + 1, mid + 1, r, ql, qr);
+    return res;
+}
+
+int main(void) {
+    int num, queries;
+    if (scanf("%d %d", &num, &queries) != 2) return 0;
+
+    if (num > 0) {
+        /* 4*num is sufficient for segment tree arrays */
+        int size = 4 * num + 5;
+        seg = (ll *)malloc((size_t)size * sizeof(ll));
+        lazy = (ll *)malloc((size_t)size * sizeof(ll));
+        if (!seg || !lazy) return 0;
+        build_init(1, 0, num - 1);
+    }
+
+    for (int i = 0; i < queries; i++) {
+        int type, start, end;
+        if (scanf("%d %d %d", &type, &start, &end) != 3) break;
+
+        if (type == 0) {
+            int x;
+            if (scanf("%d", &x) != 1) break;
+            if (num > 0) range_assign(1, 0, num - 1, start, end, x);
+        } else if (type == 1) {
+            ll ans = 0;
+            if (num > 0) ans = range_sum(1, 0, num - 1, start, end);
+            printf("%lld\n", ans);
+        } else {
+            /* Unrecognized operation: ignore (no output, no state change). */
+        }
+    }
+
+    free(seg);
+    free(lazy);
+    return 0;
+}

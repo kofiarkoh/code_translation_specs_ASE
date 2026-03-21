@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <limits.h>
+
+#define MAXN 14
+
+static long long compute_cost_for_start(const int *orig_bits, int n,
+                                        const int *runs, int m,
+                                        int start_bit)
+{
+    int bits[MAXN];
+    for (int i = 0; i < n; i++) bits[i] = orig_bits[i];
+
+    long long cost = 0;
+    int pos = 0;
+    int cur = start_bit;
+
+    for (int r = 0; r < m; r++) {
+        int len = runs[r];
+        for (int k = 0; k < len; k++, pos++) {
+            /* Find the first occurrence of required bit at or after pos. */
+            int j = pos;
+            while (j < n && bits[j] != cur) j++;
+
+            /* Preconditions guarantee j < n; otherwise behavior is undefined. */
+            cost += (long long)(j - pos);
+
+            /* Bring bits[j] forward to position pos by shifting left. */
+            int v = bits[j];
+            for (int t = j; t > pos; t--) bits[t] = bits[t - 1];
+            bits[pos] = v;
+        }
+        cur ^= 1; /* alternate bit value between runs */
+    }
+
+    return cost;
+}
+
+static int required_ones_for_start(const int *runs, int m, int start_bit)
+{
+    int ones = 0;
+    int cur = start_bit;
+    for (int i = 0; i < m; i++) {
+        if (cur == 1) ones += runs[i];
+        cur ^= 1;
+    }
+    return ones;
+}
+
+int main(void)
+{
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    int bits[MAXN];
+    int runs[MAXN];
+
+    for (int i = 0; i < n; i++) {
+        int b;
+        if (scanf("%d", &b) != 1) return 0;
+        bits[i] = b;
+    }
+    for (int i = 0; i < m; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) return 0;
+        runs[i] = x;
+    }
+
+    int count1 = 0;
+    for (int i = 0; i < n; i++) if (bits[i] == 1) count1++;
+
+    int req1_start0 = required_ones_for_start(runs, m, 0);
+    int req1_start1 = required_ones_for_start(runs, m, 1);
+
+    long long ans = LLONG_MAX;
+
+    /* Evaluate feasible starting choices; if both feasible, take minimum. */
+    if (req1_start0 == count1) {
+        long long c = compute_cost_for_start(bits, n, runs, m, 0);
+        if (c < ans) ans = c;
+    }
+    if (req1_start1 == count1) {
+        long long c = compute_cost_for_start(bits, n, runs, m, 1);
+        if (c < ans) ans = c;
+    }
+
+    /* Preconditions guarantee at least one feasible start; otherwise undefined. */
+    printf("%lld\n", ans);
+    return 0;
+}

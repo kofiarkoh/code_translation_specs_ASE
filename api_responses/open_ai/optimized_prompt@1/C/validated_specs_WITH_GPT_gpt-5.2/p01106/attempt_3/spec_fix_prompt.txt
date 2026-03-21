@@ -1,0 +1,162 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1621: Folding a Ribbon
+// 2017.12.30 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+char ans[62];
+char low[62];
+
+int main()
+{
+	int n, k;
+	long long i, j;
+
+	while (scanf("%d%lld%lld", &n, &i, &j) && n > 0) {
+		i--, j--;
+		for (k = 1; k <= n; k++) {
+			low[n-k] = (i >> (n-k)) & 1;
+			if (!low[n-k]) i = ~i;
+		}
+		for (k = 1; k <= n; k++) {
+			ans[k] = (((j >> (n-k)) & 1) == low[k-1])? 'L': 'R';
+			if (!low[k-1]) j = ~j;
+		}
+		ans[n+1] = 0;
+		puts(ans+1);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each input case, the program outputs a length‑`n` string over `{L, R}` computed deterministically from `(n, i, j)`. The computation is performed in two phases using mutable working copies of the indices: first an `n`‑step bit sequence is derived from `i`, then that derived sequence drives both the comparison against `j` and the evolution of `j` while producing the output.
+
+2. Inputs  
+- Repeated test cases, each containing three integers read in order:  
+  - `n` (integer)  
+  - `i` (integer)  
+  - `j` (integer)  
+- The input indices `i` and `j` are interpreted as 1‑based; the program converts them to 0‑based working values by subtracting 1.  
+- Input processing stops when either input is exhausted / parsing fails, or a case with `n <= 0` is encountered (that terminating case is not processed).
+
+3. Outputs  
+- For each processed test case, outputs one line containing exactly `n` characters, each either `L` or `R`, followed by a newline.
+
+4. Preconditions / Assumptions  
+- `n` must be positive to be processed.  
+- To avoid out‑of‑bounds writes in the program’s fixed buffers, meaningful operation requires `n <= 60` (the program allocates arrays of size 62 and writes up to index `n+1`).  
+- `i` and `j` must be representable as signed 64‑bit integers as read by the program.  
+- Intended/meaningful behavior assumes `1 <= i <= 2^n` and `1 <= j <= 2^n`, though the program does not validate these ranges.
+
+5. Detailed Semantics (per test case)  
+Let `I = i - 1` and `J = j - 1` be signed 64‑bit working values. Bits are examined from most significant to least significant among the lowest `n` bit positions, i.e., at step `t = 0..n-1` the program inspects bit position `(n-1-t)` via right shift and `& 1`.
+
+Phase A: derive the `low` sequence from `I`  
+- For each step `t = 0..n-1` (corresponding to bit position `p = n-1-t`):  
+  - Set `low[t]` to the current bit of `I` at position `p` (value 0 or 1).  
+  - If `low[t]` is 0, update the entire working value by applying bitwise complement: `I := ~I` (C’s `~` on a signed 64‑bit value).  
+- This phase produces `low[0..n-1]` and may change `I` between steps; later `low` values are taken from the updated `I`, not from the original `(i-1)` alone.
+
+Phase B: produce the output from `J` driven by `low`  
+- For each step `t = 0..n-1` (bit position `p = n-1-t`):  
+  - Read the current bit `b` of `J` at position `p`.  
+  - Output character at position `t` is:  
+    - `L` if `b` equals `low[t]`, otherwise `R`.  
+  - If `low[t]` is 0, update the entire working value by bitwise complement: `J := ~J`.  
+- Notably, whether `J` is complemented depends only on `low[t]` (derived from `i`), not on the bit read from `J`.
+
+6. Postconditions  
+- Exactly one line is produced per processed test case.  
+- The line contains exactly `n` characters from `{L, R}`.  
+- The output is fully determined by the above two‑phase procedure applied to the input triple `(n, i, j)`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced.  
+- If input parsing fails or input ends, the program terminates silently.  
+- If `n` exceeds the safe bound implied by the fixed arrays, behavior is undefined (may overwrite memory).  
+- If `i`/`j` are outside the intended range, the program still applies the same bit extraction and full‑width complement operations on signed 64‑bit values; results are not constrained to any `n`‑bit masking beyond the explicit bit extractions.
+
+8. State / Test Case Independence  
+- Aside from reusing internal buffers, each test case is processed independently; there is no carry‑over of logical state between cases.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong indexing / ordering rule (off‑by‑one in how the derived `low` sequence is stored and then referenced), i.e., a wrong transition rule between Phase A and Phase B.
+
+B. What the current specification may be missing or misstating  
+The specification states Phase A produces `low[0..n-1]` in the same left‑to‑right order that Phase B consumes (`low[t]`). In the source, Phase A stores bits into `low[n-k]` (i.e., reversed index), while Phase B reads `low[k-1]` (forward index). That means Phase B is not using the Phase‑A bits in the same index order described by the spec; it is using a reversed mapping between the bit position being examined and the `low[]` element that controls both the output comparison and whether `j` is complemented.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact correspondence between:
+- the step/bit position being processed (MSB→LSB over the lowest `n` bits),
+- the index in `low[]` written during Phase A, and
+- the index in `low[]` read during Phase B.
+
+In particular, the spec should explicitly state that Phase A writes `low` in reverse index order relative to the loop progression (or equivalently, that `low` is indexed by bit position rather than by step number), and Phase B consumes `low` in forward index order, which effectively pairs Phase‑B step `k` with the Phase‑A value computed for a different step/bit position than “same `t`”.
+
+D. Why this clarification is supported by the source program  
+In the source:
+
+- Phase A:
+  ```c
+  for (k = 1; k <= n; k++) {
+      low[n-k] = (i >> (n-k)) & 1;
+      if (!low[n-k]) i = ~i;
+  }
+  ```
+  The loop variable `k` increases, but the destination index is `n-k`, so the first computed bit is stored at `low[n-1]`, and the last at `low[0]`.
+
+- Phase B:
+  ```c
+  for (k = 1; k <= n; k++) {
+      ans[k] = (((j >> (n-k)) & 1) == low[k-1])? 'L': 'R';
+      if (!low[k-1]) j = ~j;
+  }
+  ```
+  Here the loop reads `low[k-1]` (0,1,2,...) while examining `j`’s bits at positions `(n-k)` (MSB→LSB). So the `low` element used at each step is not the one written at the same `(n-k)` index in Phase A; it is taken from the opposite end of the array.
+
+The generated program follows the spec’s “same index order” (`low[t]` written and then read), so it diverges from the source precisely in cases where this reversed mapping affects when `~J` happens and which `low` bit is compared against `J`’s current bit—matching the kind of multi-character differences seen in the failing outputs.
+
+```

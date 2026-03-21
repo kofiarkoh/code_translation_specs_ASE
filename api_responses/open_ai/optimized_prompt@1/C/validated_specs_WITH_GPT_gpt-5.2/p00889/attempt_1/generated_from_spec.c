@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#define MAXN 100000
+
+/*
+ * Specification does not define the digit generator.
+ * Narrowest faithful interpretation: deterministic generation from (s,w)
+ * with internal state evolution, producing digits in [0,9].
+ *
+ * We implement a simple 32-bit LCG:
+ *   state = state * w + 1   (mod 2^32)
+ *   digit = state % 10
+ *
+ * This preserves determinism, uses only provided parameters, and keeps digits in [0,9].
+ * Any other generator would be equally plausible; spec leaves it undefined.
+ */
+static inline uint32_t next_state(uint32_t state, uint32_t w) {
+    return state * w + 1u; /* wraps mod 2^32 by unsigned overflow */
+}
+
+int main(void) {
+    int n_in;
+    long long s_in, w_in, q_in;
+
+    while (1) {
+        if (scanf("%d %lld %lld %lld", &n_in, &s_in, &w_in, &q_in) != 4) {
+            return 0; /* stop when input cannot be read as a complete case */
+        }
+        if (n_in <= 0) {
+            return 0; /* terminating case not processed */
+        }
+
+        int n = n_in;
+        int q = (int)q_in; /* precondition: q positive; otherwise undefined */
+
+        /* Precondition implies n <= MAXN; otherwise undefined. */
+        static unsigned char digits[MAXN];
+
+        uint32_t state = (uint32_t)s_in;
+        uint32_t w = (uint32_t)w_in;
+
+        for (int i = 0; i < n; i++) {
+            state = next_state(state, w);
+            digits[i] = (unsigned char)(state % 10u);
+        }
+
+        /*
+         * Count contiguous subsequences i..j (non-empty) such that:
+         * - digits[i] != 0 (no leading zero)
+         * - value(digits[i..j]) % q == 0
+         *
+         * Efficient O(n*q) is not feasible for large q; spec mentions fixed internal capacity.
+         * We implement O(n) with an array of size q for remainder counts, requiring q to be
+         * within supported bounds (precondition: capacity not exceeded).
+         *
+         * Approach:
+         * Maintain counts of remainders of all "active" subsequences ending at previous index
+         * that have non-zero leading digit. When adding digit d:
+         *   new_remainder = (old_remainder*10 + d) % q
+         * Also start a new subsequence at i if d != 0 with remainder d%q.
+         * Add count of remainder 0 after update to answer.
+         */
+        long long ans = 0;
+
+        /* Allocate remainder count arrays of size q; precondition: q > 0 and capacity ok. */
+        long long *cnt = (long long *)calloc((size_t)q, sizeof(long long));
+        long long *next = (long long *)calloc((size_t)q, sizeof(long long));
+        if (!cnt || !next) {
+            /* No explicit error handling per spec; undefined if allocation fails. */
+            free(cnt);
+            free(next);
+            return 0;
+        }
+
+        for (int i = 0; i < n; i++) {
+            int d = (int)digits[i];
+
+            /* reset next */
+            for (int r = 0; r < q; r++) next[r] = 0;
+
+            /* extend all existing subsequences */
+            for (int r = 0; r < q; r++) {
+                long long c = cnt[r];
+                if (c) {
+                    int nr = (int)(((long long)r * 10 + d) % q);
+                    next[nr] += c;
+                }
+            }
+
+            /* start new subsequence at i if no leading zero */
+            if (d != 0) {
+                next[d % q] += 1;
+            }
+
+            ans += next[0];
+
+            /* swap cnt and next */
+            long long *tmp = cnt;
+            cnt = next;
+            next = tmp;
+        }
+
+        printf("%lld\n", ans);
+
+        free(cnt);
+        free(next);
+    }
+}

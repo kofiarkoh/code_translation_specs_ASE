@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+int main(void) {
+    int N;
+    static char S1[200005];
+    static char S2[200005];
+    const long long m = 1000000007LL;
+
+    if (scanf("%d", &N) != 1) return 0;
+    if (scanf("%s", S1) != 1) return 0;
+    if (scanf("%s", S2) != 1) return 0;
+
+    long long ans;
+    int t; /* 1 = vertical, 0 = horizontal */
+
+    if (S1[0] == S2[0]) {
+        ans = 3;
+        t = 1;
+    } else {
+        ans = 6;
+        t = 0;
+    }
+
+    for (int i = 1; i <= N - 1; i++) {
+        /* (a) Vertical-at-i check */
+        if (S1[i] == S2[i]) {
+            if (t == 1) ans = (ans * 2) % m;
+            t = 1;
+        }
+
+        /* (b) Horizontal-starting-at-i check */
+        if (S1[i] == S1[i + 1]) {
+            if (t == 1) ans = (ans * 2) % m;
+            else ans = (ans * 3) % m;
+            t = 0;
+        }
+    }
+
+    printf("%lld\n", ans % m);
+    return 0;
+}

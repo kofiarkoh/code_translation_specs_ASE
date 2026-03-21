@@ -1,0 +1,55 @@
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of devices that repeatedly alternate between an **active** phase and a **charging** phase. Each device has its own cyclic list of `(u, c)` pairs, where `u` is the active duration and `c` is the charging duration for that cycle position.  
+During each time unit, if there is at least one device waiting for charging service, exactly one device—the one referenced by the front position of a first-come-first-served queue—receives one unit of charging progress. The program computes a total count of **misses**: for each time unit in which the queue is non-empty, every device that is already in charging (excluding those that *just entered charging in that same time unit*) contributes 1 miss unless it is the queue-front device.
+
+2. Inputs  
+- Repeated test cases. Each test case consists of:  
+  - An integer `n`: number of devices.  
+  - An integer `lim`: number of time units to simulate.  
+  - For each device, a finite sequence of positive integer pairs `(u, c)`. The sequence ends when the next `u` read is non-positive (that terminator is not part of the cycle).  
+- Input ends when `n` is non-positive (the corresponding `lim` is read but ignored for termination purposes).
+
+3. Outputs  
+- For each test case, outputs a single non-negative integer: the total number of misses accumulated during the simulation.
+
+4. Preconditions / Assumptions and Built-in Limits  
+- `n > 0` defines a test case. The program only stores up to 102 devices.  
+- Each device’s cycle stores up to 51 `(u, c)` pairs. At least one pair must be provided for each device, and all `u` and `c` values used are positive integers.  
+- The charging queue is implemented with a fixed-size circular buffer of capacity 102 entries and **no full-queue detection**. If more than 102 enqueue operations occur without enough dequeues to keep the queue from “lapping” itself, older queued entries are silently overwritten due to index wraparound; the simulation then proceeds using the overwritten queue contents (i.e., behavior is defined by this wraparound/overwrite effect rather than by an error or explicit “undefined behavior”).  
+- If `lim <= 0`, the simulation performs zero time steps and the output is zero.
+
+5. Device State and Cycle  
+- Each device is always in exactly one of two states:  
+  - **Active** with a remaining active-time counter.  
+  - **Charging** with a remaining charging-time counter.  
+- Initially, every device starts **Active** at cycle index 0, with remaining active time set to that pair’s `u`.  
+- When a device finishes a charging phase and returns to active, it advances to the next pair in its cycle (wrapping to the first pair after the last), and its remaining active time is set to the new pair’s `u`.
+
+6. Per–Time-Unit Semantics (Ordering and Timing)  
+For each time unit `t = 1..lim`, the following occurs in order:
+
+A) **Advance active devices and enqueue new chargers**  
+- For every device that is **Active** at the start of this time unit:  
+  - Decrease its remaining active time by 1.  
+  - If it becomes 0, the device immediately switches to **Charging**, sets its remaining charging time to the current pair’s `c`, and is appended to the queue (subject to the fixed-size circular-buffer wraparound described above).  
+- Devices that are already **Charging** at the start of this time unit are not advanced in this step.
+
+B) **Count misses among devices that were already charging before step (A)**  
+- If the queue is empty after step (A), no misses are counted and no charging progress occurs in this time unit.  
+- Otherwise, consider devices that are in **Charging** and that did **not** just transition from active to charging during this same time unit. Among those devices:  
+  - The device whose index is currently at the queue front is treated as the **serviced** device for miss-counting purposes.  
+  - Every other such charging device contributes 1 miss for this time unit.  
+- Devices that enter charging during step (A) do not contribute misses during the same time unit, regardless of whether they are serviced.
+
+C) **Apply one unit of charging service to the queue front**  
+- If the queue is non-empty, the queue-front device’s remaining charging time is decreased by 1.  
+- If it becomes 0, the device leaves the queue, switches to **Active**, advances its cycle index (wrapping as needed), and sets its remaining active time to the new pair’s `u`.  
+- If it does not become 0, it remains logically at the front for the next time unit.
+
+7. Miss Count Definition (Postcondition)  
+- The reported value equals the sum, over all simulated time units in which the queue is non-empty, of the number of devices that:  
+  - were already in **Charging** before active devices were advanced for that time unit, and  
+  - were not the queue-front device for that time unit.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. If input is malformed or exceeds the program’s fixed storage limits for devices or per-device cycle length, behavior is not specified by this description.

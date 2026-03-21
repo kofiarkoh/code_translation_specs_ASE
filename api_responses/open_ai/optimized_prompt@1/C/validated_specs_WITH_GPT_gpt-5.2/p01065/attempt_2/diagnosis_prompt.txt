@@ -1,0 +1,269 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOL 1580 Barter
+// 2018.2.18 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define BASE 300
+#define DBASE 600
+int dp[101][BASE+2][DBASE+2];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int n, x, y, a, b, c, d, i, j, k, ans;
+
+	n = in();
+	x = in(), y = in();
+	memset(dp, -1, sizeof(dp));
+    dp[0][0][BASE] = 0;
+
+	for (i = 0; i < n; i++) {
+		a = in(), b = in(), c = in(), d = in();
+		for (j = 0; j <= BASE; j++) for (k = 0; k <= DBASE; k++) {
+			if (dp[i][j][k] < 0) continue;
+			if (dp[i+1][j][k] < dp[i][j][k]) dp[i+1][j][k] = dp[i][j][k];
+			if (x >= j + a && dp[i+1][j+a][k-b] < dp[i][j][k]) dp[i+1][j+a][k-b] = dp[i][j][k]; 
+            if (dp[i+1][j][k+c] < dp[i][j][k]+d) dp[i+1][j][k+c] = dp[i][j][k]+d;
+        }
+    }
+
+    ans = 0;
+	for (j = 0; j <= x; j++) for (k = 0; k <= 600; k++) {
+		if (ans < dp[n][j][k] && y+BASE >= k) ans = dp[n][j][k];
+	}
+    printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the maximum total reward achievable by processing a sequence of items, where for each item the program may choose one of three actions: do nothing, perform an action that consumes some amount of a limited resource and adjusts a balance, or perform an action that increases the balance and yields a reward. The final result is the maximum reward among all choices that respect the resource limit and a final balance constraint.
+
+2. Inputs  
+- An integer count of items.  
+- Two integers representing:  
+  - a maximum available amount of a limited resource, and  
+  - a minimum required final balance (expressed relative to an internal baseline).  
+- For each item, four non-negative integers representing:  
+  - resource consumption for the “consume” action,  
+  - balance decrease for the “consume” action,  
+  - balance increase for the “reward” action,  
+  - reward gained for the “reward” action.
+
+3. Outputs  
+- A single non-negative integer: the maximum total reward achievable while satisfying constraints.
+
+4. Preconditions  
+- The item count does not exceed 100.  
+- The maximum resource value is within a range that allows indexing of internal state (effectively not exceeding 300).  
+- The minimum required final balance is within a range that allows indexing of internal state (effectively between -300 and +300).  
+- For each item, the provided parameters are such that all reachable intermediate balances remain within the representable internal balance range (effectively between -300 and +300).  
+- All input values are non-negative integers and are provided in the expected quantity.
+
+5. Postconditions  
+- The output equals the maximum possible sum of selected rewards over all items, where for each item exactly one of the following is chosen:  
+  - no effect,  
+  - consume: increases used resource by the item’s consumption amount and decreases balance by the item’s balance-decrease amount,  
+  - reward: increases balance by the item’s balance-increase amount and increases total reward by the item’s reward amount.  
+- The total used resource in the chosen plan is less than or equal to the given maximum resource.  
+- The final balance is greater than or equal to the given minimum required final balance.  
+- If no plan satisfying the constraints yields positive reward, the output is 0.
+
+6. Invariants  
+- For any prefix of items, each tracked state corresponds to the best (maximum) reward achievable for some combination of choices over that prefix with a specific used-resource amount and balance value.  
+- Rewards in tracked states never decrease when considering additional items (the best-known reward for a state is monotonically non-decreasing as more options are evaluated).  
+- Used resource never exceeds the provided maximum in any considered feasible state.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., values outside representable ranges), behavior is undefined (may include incorrect results or memory corruption).  
+- If input is missing or malformed, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- State is defined by: number of processed items, used resource amount, and current balance.  
+- From a state at item index *i*, transitions to item index *i+1* are:  
+  - no-op: used resource and balance unchanged; reward unchanged.  
+  - consume action: used resource increases by the item’s consumption amount (must not exceed the maximum); balance decreases by the item’s balance-decrease amount; reward unchanged.  
+  - reward action: used resource unchanged; balance increases by the item’s balance-increase amount; reward increases by the item’s reward amount.  
+- The final answer is the maximum reward among states after all items with used resource within the maximum and balance meeting the minimum requirement.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of items times the product of the bounded resource range and bounded balance range (fixed upper bounds implied by internal limits).  
+- Memory usage is proportional to the number of items times the bounded resource and balance ranges (fixed upper bounds implied by internal limits).
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_N 100
+#define MAX_R 300
+#define BAL_MIN (-300)
+#define BAL_MAX 300
+#define BAL_RANGE (BAL_MAX - BAL_MIN + 1)
+#define BAL_OFF (-BAL_MIN)
+
+/* Use a sentinel for unreachable states. Rewards are non-negative, so -1 works. */
+#define UNREACHABLE (-1)
+
+static int max_int(int a, int b) { return (a > b) ? a : b; }
+
+int main(void) {
+    int n;
+    int Rmax;
+    int Bmin;
+
+    if (scanf("%d", &n) != 1) return 0;
+    if (scanf("%d %d", &Rmax, &Bmin) != 2) return 0;
+
+    /* DP over (used_resource, balance_index). Two layers for item transitions. */
+    static int dp_cur[MAX_R + 1][BAL_RANGE];
+    static int dp_nxt[MAX_R + 1][BAL_RANGE];
+
+    /* Initialize all states unreachable. Start at used=0, balance=0 with reward=0. */
+    for (int r = 0; r <= MAX_R; r++) {
+        for (int b = 0; b < BAL_RANGE; b++) {
+            dp_cur[r][b] = UNREACHABLE;
+        }
+    }
+    dp_cur[0][0 + BAL_OFF] = 0;
+
+    for (int i = 0; i < n; i++) {
+        int cons, dec, inc, rew;
+        if (scanf("%d %d %d %d", &cons, &dec, &inc, &rew) != 4) return 0;
+
+        /* Next layer starts as unreachable. */
+        for (int r = 0; r <= MAX_R; r++) {
+            for (int b = 0; b < BAL_RANGE; b++) {
+                dp_nxt[r][b] = UNREACHABLE;
+            }
+        }
+
+        /* Transition from all reachable states. */
+        for (int r = 0; r <= Rmax; r++) {
+            for (int b = 0; b < BAL_RANGE; b++) {
+                int cur = dp_cur[r][b];
+                if (cur == UNREACHABLE) continue;
+
+                /* no-op */
+                dp_nxt[r][b] = max_int(dp_nxt[r][b], cur);
+
+                /* consume: r' = r + cons, b' = b - dec */
+                {
+                    int r2 = r + cons;
+                    int b2 = b - dec;
+                    if (r2 <= Rmax && b2 >= 0 && b2 < BAL_RANGE) {
+                        dp_nxt[r2][b2] = max_int(dp_nxt[r2][b2], cur);
+                    }
+                }
+
+                /* reward: r unchanged, b' = b + inc, reward += rew */
+                {
+                    int b2 = b + inc;
+                    if (b2 >= 0 && b2 < BAL_RANGE) {
+                        int val = cur + rew;
+                        dp_nxt[r][b2] = max_int(dp_nxt[r][b2], val);
+                    }
+                }
+            }
+        }
+
+        /* Swap layers. */
+        memcpy(dp_cur, dp_nxt, sizeof(dp_cur));
+    }
+
+    /* Compute answer: max reward with used_resource <= Rmax and balance >= Bmin. */
+    int ans = 0;
+    int b_start = Bmin + BAL_OFF;
+    if (b_start < 0) b_start = 0;
+    if (b_start >= BAL_RANGE) b_start = BAL_RANGE; /* makes loop empty */
+
+    for (int r = 0; r <= Rmax; r++) {
+        for (int b = b_start; b < BAL_RANGE; b++) {
+            int v = dp_cur[r][b];
+            if (v > ans) ans = v;
+        }
+    }
+
+    /* If no plan yields positive reward, output 0 (ans already >= 0). */
+    printf("%d\n", ans);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p01065/p01065_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p01065/p01065_sample1_output.txt
+Input:
+3
+10 5
+2 1 3 4
+1 2 2 3
+3 1 1 5
+Expected:
+9
+Actual:
+12
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

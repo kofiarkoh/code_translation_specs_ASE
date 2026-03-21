@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Missing constraint / wrong assumption about bounds (queue capacity and array sizing), leading to memory corruption (runtime error).
+
+B. What the current specification may be missing or misstating  
+- The spec treats the charging queue capacity as an “assumption” (“never exceeds supported queue capacity; otherwise undefined”), but the source program actually has a *fixed, small, concrete* queue size (`QMAX = 102`) and uses a circular buffer without any overflow checks. If more than ~102 devices can be enqueued without being dequeued, the source will overwrite queue entries (still within its fixed array due to modulo), changing behavior but not necessarily crashing.  
+- The generated program instead allocates an extremely large queue (`MAX_QUEUE = 1048576`) on the stack (`int q[MAX_QUEUE];`), which can easily cause a stack overflow and segfault even for modest inputs. This indicates the spec is too vague about required memory model/limits and allows an implementation choice (huge stack allocation) that the source does not make.
+
+C. What general behavior should be clarified in the specification  
+- The implementation-relevant resource limits that are part of the source behavior: maximum number of devices, maximum cycle length per device, and especially the *exact* queue storage strategy/capacity (fixed-size circular queue) and what happens when it “overflows” (in the source: silent wrap/overwrite due to modulo arithmetic, not “undefined” in the sense of stopping).  
+- Whether the intended model requires bounded memory consistent with the source (small fixed arrays) rather than permitting arbitrarily large dynamic/stack allocations.
+
+D. Why this clarification is supported by the source program  
+- The source hardcodes small fixed arrays: `tbl[102]` for devices, `u[51], c[51]` for cycle pairs, and `que[104]` with `QMAX 102` for the queue. It also explicitly wraps indices (`if (++end == QMAX) end = 0;`, similarly for `top`), with no checks for “queue full”. This makes queue capacity and wraparound behavior an intrinsic part of the program’s operational semantics.  
+- Because the source uses small fixed storage, it cannot trigger a stack overflow from queue allocation; the generated program’s crash is consistent with having allowed an implementation that violates the source’s implicit memory constraints.

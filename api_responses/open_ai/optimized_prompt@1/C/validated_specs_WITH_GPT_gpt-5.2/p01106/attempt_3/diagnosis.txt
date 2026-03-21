@@ -1,0 +1,36 @@
+A. Likely mismatch category  
+Wrong indexing / ordering rule (off‑by‑one in how the derived `low` sequence is stored and then referenced), i.e., a wrong transition rule between Phase A and Phase B.
+
+B. What the current specification may be missing or misstating  
+The specification states Phase A produces `low[0..n-1]` in the same left‑to‑right order that Phase B consumes (`low[t]`). In the source, Phase A stores bits into `low[n-k]` (i.e., reversed index), while Phase B reads `low[k-1]` (forward index). That means Phase B is not using the Phase‑A bits in the same index order described by the spec; it is using a reversed mapping between the bit position being examined and the `low[]` element that controls both the output comparison and whether `j` is complemented.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact correspondence between:
+- the step/bit position being processed (MSB→LSB over the lowest `n` bits),
+- the index in `low[]` written during Phase A, and
+- the index in `low[]` read during Phase B.
+
+In particular, the spec should explicitly state that Phase A writes `low` in reverse index order relative to the loop progression (or equivalently, that `low` is indexed by bit position rather than by step number), and Phase B consumes `low` in forward index order, which effectively pairs Phase‑B step `k` with the Phase‑A value computed for a different step/bit position than “same `t`”.
+
+D. Why this clarification is supported by the source program  
+In the source:
+
+- Phase A:
+  ```c
+  for (k = 1; k <= n; k++) {
+      low[n-k] = (i >> (n-k)) & 1;
+      if (!low[n-k]) i = ~i;
+  }
+  ```
+  The loop variable `k` increases, but the destination index is `n-k`, so the first computed bit is stored at `low[n-1]`, and the last at `low[0]`.
+
+- Phase B:
+  ```c
+  for (k = 1; k <= n; k++) {
+      ans[k] = (((j >> (n-k)) & 1) == low[k-1])? 'L': 'R';
+      if (!low[k-1]) j = ~j;
+  }
+  ```
+  Here the loop reads `low[k-1]` (0,1,2,...) while examining `j`’s bits at positions `(n-k)` (MSB→LSB). So the `low` element used at each step is not the one written at the same `(n-k)` index in Phase A; it is taken from the opposite end of the array.
+
+The generated program follows the spec’s “same index order” (`low[t]` written and then read), so it diverges from the source precisely in cases where this reversed mapping affects when `~J` happens and which `low` bit is compared against `J`’s current bit—matching the kind of multi-character differences seen in the failing outputs.

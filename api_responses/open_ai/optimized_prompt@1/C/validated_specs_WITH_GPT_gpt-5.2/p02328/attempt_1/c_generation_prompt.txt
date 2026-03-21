@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum rectangular area that can be formed within a histogram of given bar heights, where a rectangle must span a contiguous range of bars and its height is limited by the minimum bar height in that range. Produces this maximum area as a single integer result.
+
+2. Inputs  
+- An integer count of histogram bars `w`.  
+- A sequence of `w` integer bar heights.
+
+3. Outputs  
+- One integer: the maximum rectangular area achievable within the histogram.
+
+4. Preconditions  
+- `w` is non-negative.  
+- `w` does not exceed the fixed maximum supported number of bars (100001).  
+- Exactly `w` heights are provided as input.  
+- Heights and computed areas fit within the signed 64-bit integer range.  
+- Sufficient memory is available for internal fixed-size storage.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \max_{0 \le l \le r < w} \left( \min_{k \in [l,r]} h_k \right) \cdot (r-l+1)
+  \]
+  where \(h_k\) are the input heights.  
+- If `w == 0`, the output is `0`.
+
+6. Invariants  
+- During computation, the algorithm maintains a set of candidate bars representing increasing heights with associated earliest valid start positions for rectangles of those heights.  
+- The running maximum area is always the maximum area among all rectangles fully determined/closed so far.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/invalid, or if `w` exceeds the supported maximum, or if arithmetic overflows occur, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to repeated runs: reads input once, computes a result, outputs it, and terminates. No persistent state is maintained beyond the execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of bars (`O(w)`).  
+- Memory usage is linear in the number of bars, bounded by the fixed maximum capacity.
+
+```

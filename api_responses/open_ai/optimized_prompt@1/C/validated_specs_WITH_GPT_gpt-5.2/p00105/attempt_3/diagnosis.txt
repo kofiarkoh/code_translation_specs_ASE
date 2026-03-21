@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Test harness / I/O contract mismatch (missing sample-based behavioral evidence), plus a likely wrong assumption about initialization/definedness.
+
+B. What the current specification may be missing or misstating  
+- The failure report contains no concrete failing input/output, which suggests the spec-to-test pipeline expects explicit sample cases or a defined observable behavior, but the current spec leans heavily on “undefined/unpredictable” behavior (uninitialized fields) and thus may not yield stable, checkable outputs.  
+- The spec’s discussion of indeterminate initialization is likely overstated relative to the source: the source declares `index_t idx[MAX];` as a local (automatic) array, so its contents are indeed uninitialized, but the *generated* program uses `static struct Entry entries[]`, which is zero-initialized by C. This indicates the spec is not pinning down the storage duration/initialization model tightly enough to reproduce the source’s nondeterminism characteristics.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the intended storage duration and initialization semantics of the main index table (automatic local array vs static/global), because that directly affects whether `pgnum[]` and `tm` start indeterminate or zero.  
+- Clarify whether the specification is meant to describe the source’s actual (potentially undefined/indeterminate) behavior or to describe a deterministic abstract behavior (e.g., as if arrays/counters were initialized). Without this, it’s hard to produce verifiable sample I/O behavior.  
+- Clarify the expected testing/validation model: if sample I/O pairs are required, the spec needs at least one deterministic scenario (or must explicitly constrain inputs to those that avoid indeterminate effects).
+
+D. Why this clarification is supported by the source program  
+- In the source, `index_t idx[MAX];` is an uninitialized automatic object; neither `idx[*].pgnum[]` nor `idx[*].tm` is set to 0 before being incremented/checked. That makes outputs dependent on indeterminate initial memory contents.  
+- The source’s printing logic relies on `tm` matching the count of `pgnum[j]==1` entries encountered; if `tm` is not a clean count of distinct pages (and it isn’t, because it increments per record), the loop may fail to print a terminating newline. This is a real behavioral consequence that becomes either deterministic (if zero-initialized) or chaotic (if indeterminate).  
+- Because the failing report provides no sample evidence, the most plausible diagnosis is that the current spec does not provide a stable, testable behavioral contract—especially around initialization—so the harness cannot produce/validate sample executions.

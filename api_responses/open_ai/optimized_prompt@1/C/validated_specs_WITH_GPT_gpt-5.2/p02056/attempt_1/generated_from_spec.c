@@ -1,0 +1,172 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <inttypes.h>
+
+typedef struct Edge {
+    int to;
+    int next;
+    int64_t w;
+} Edge;
+
+typedef struct HeapNode {
+    int v;
+    int64_t d;
+} HeapNode;
+
+typedef struct MinHeap {
+    HeapNode *a;
+    int size;
+    int cap;
+} MinHeap;
+
+static void heap_init(MinHeap *h, int cap) {
+    h->a = (HeapNode *)malloc((size_t)cap * sizeof(HeapNode));
+    h->size = 0;
+    h->cap = cap;
+}
+
+static void heap_swap(HeapNode *x, HeapNode *y) {
+    HeapNode t = *x;
+    *x = *y;
+    *y = t;
+}
+
+static void heap_push(MinHeap *h, int v, int64_t d) {
+    if (h->size >= h->cap) {
+        int newcap = (h->cap > 0) ? (h->cap * 2) : 4;
+        HeapNode *na = (HeapNode *)realloc(h->a, (size_t)newcap * sizeof(HeapNode));
+        /* If realloc fails, behavior is undefined per spec; we proceed with NULL deref risk. */
+        h->a = na;
+        h->cap = newcap;
+    }
+    int i = h->size++;
+    h->a[i].v = v;
+    h->a[i].d = d;
+    while (i > 0) {
+        int p = (i - 1) / 2;
+        if (h->a[p].d <= h->a[i].d) break;
+        heap_swap(&h->a[p], &h->a[i]);
+        i = p;
+    }
+}
+
+static int heap_empty(MinHeap *h) {
+    return h->size == 0;
+}
+
+static HeapNode heap_pop(MinHeap *h) {
+    HeapNode ret = h->a[0];
+    h->size--;
+    if (h->size > 0) {
+        h->a[0] = h->a[h->size];
+        int i = 0;
+        for (;;) {
+            int l = 2 * i + 1;
+            int r = 2 * i + 2;
+            int s = i;
+            if (l < h->size && h->a[l].d < h->a[s].d) s = l;
+            if (r < h->size && h->a[r].d < h->a[s].d) s = r;
+            if (s == i) break;
+            heap_swap(&h->a[i], &h->a[s]);
+            i = s;
+        }
+    }
+    return ret;
+}
+
+static void add_edge(int u, int v, int64_t w, int *head, Edge *edges, int *ecnt) {
+    int idx = (*ecnt)++;
+    edges[idx].to = v;
+    edges[idx].w = w;
+    edges[idx].next = head[u];
+    head[u] = idx;
+}
+
+int main(void) {
+    int n, m, k;
+    if (scanf("%d %d %d", &n, &m, &k) != 3) return 0;
+
+    int64_t *p = (int64_t *)malloc((size_t)n * sizeof(int64_t));
+    int *c = (int *)malloc((size_t)n * sizeof(int));
+    int64_t *t = (int64_t *)malloc((size_t)n * sizeof(int64_t));
+
+    for (int i = 0; i < n; i++) scanf("%" SCNd64, &p[i]);
+    for (int i = 0; i < n; i++) scanf("%d", &c[i]);
+    for (int i = 0; i < n; i++) scanf("%" SCNd64, &t[i]);
+
+    int V = 2 * n;
+
+    /* Total directed edges:
+       - base layer: 2*m
+       - paired layer: 2*m
+       - cross edges i -> i+n: n
+       => 4*m + n
+    */
+    int Ecap = 4 * m + n;
+    Edge *edges = (Edge *)malloc((size_t)Ecap * sizeof(Edge));
+    int *head = (int *)malloc((size_t)V * sizeof(int));
+    for (int i = 0; i < V; i++) head[i] = -1;
+    int ecnt = 0;
+
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        int64_t w;
+        scanf("%d %d %" SCNd64, &a, &b, &w);
+        /* Input vertices are 1-based; internal are 0-based. */
+        a--; b--;
+        add_edge(a, b, w, head, edges, &ecnt);
+        add_edge(b, a, w, head, edges, &ecnt);
+        add_edge(a + n, b + n, w, head, edges, &ecnt);
+        add_edge(b + n, a + n, w, head, edges, &ecnt);
+    }
+
+    /* Fixed constant S > 1e9. Narrowest choice: 1000000001. */
+    const int64_t S = 1000000001LL;
+
+    for (int i = 0; i < n; i++) {
+        add_edge(i, i + n, S - p[i], head, edges, &ecnt);
+    }
+
+    /* Dijkstra from source 0 on V vertices. */
+    const int64_t INF = (int64_t)0x3f3f3f3f3f3f3f3fLL;
+    int64_t *dist = (int64_t *)malloc((size_t)V * sizeof(int64_t));
+    for (int i = 0; i < V; i++) dist[i] = INF;
+    dist[0] = 0;
+
+    MinHeap heap;
+    heap_init(&heap, (Ecap > 0 ? Ecap : 4));
+    heap_push(&heap, 0, 0);
+
+    while (!heap_empty(&heap)) {
+        HeapNode cur = heap_pop(&heap);
+        int v = cur.v;
+        int64_t d = cur.d;
+        if (d != dist[v]) continue; /* stale candidate */
+        for (int ei = head[v]; ei != -1; ei = edges[ei].next) {
+            int to = edges[ei].to;
+            int64_t nd = d + edges[ei].w;
+            if (nd < dist[to]) {
+                dist[to] = nd;
+                heap_push(&heap, to, nd);
+            }
+        }
+    }
+
+    /* Sentinel: "a large-magnitude negative 64-bit integer". */
+    const int64_t SENTINEL = (int64_t)0xC0C0C0C0C0C0C0C0LL; /* negative */
+    int64_t *best = (int64_t *)malloc((size_t)(k + 1) * sizeof(int64_t));
+    for (int j = 1; j <= k; j++) best[j] = SENTINEL;
+
+    for (int i = 0; i < n; i++) {
+        int64_t score = (S - dist[i + n]) - dist[i] + t[i];
+        int cat = c[i]; /* per spec, assumed 1..k; otherwise UB */
+        if (score > best[cat]) best[cat] = score;
+    }
+
+    for (int j = 1; j <= k; j++) {
+        printf("%" PRId64 "\n", best[j]);
+    }
+
+    return 0;
+}

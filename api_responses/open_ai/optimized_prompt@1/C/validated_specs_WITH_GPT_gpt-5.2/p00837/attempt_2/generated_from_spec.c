@@ -1,0 +1,182 @@
+#include <stdio.h>
+
+#define MAX_M  11          /* supports auxiliary desks up to 10; desks are 1..m plus holding m+1 */
+#define MAX_ID 101         /* book identifiers assumed 1..100 */
+#define MAX_REQ 6000       /* total request occurrences bound (spec says ~5000) */
+#define MAX_BOOKS 6000     /* distinct books upper bound (<= total occurrences) */
+
+typedef struct {
+    int id;
+    int seq;
+    int stu;
+} Req;
+
+static int desks[MAX_M + 2][MAX_BOOKS]; /* desk index: 1..m+1; store book ids */
+static int dsz[MAX_M + 2];              /* sizes */
+static int locDesk[MAX_ID];             /* current desk for book id (0 if unseen) */
+static int locPos[MAX_ID];              /* current position within that desk */
+
+static void shift_left(int desk, int pos) {
+    /* remove element at pos, shift later forward by 1 */
+    int s = dsz[desk];
+    for (int k = pos; k + 1 < s; k++) {
+        int moved = desks[desk][k + 1];
+        desks[desk][k] = moved;
+        locPos[moved] = k;
+    }
+    dsz[desk] = s - 1;
+}
+
+static void insert_at(int desk, int pos, int id) {
+    /* insert id at position pos (0..size), shift later back by 1 */
+    int s = dsz[desk];
+    for (int k = s; k > pos; k--) {
+        int moved = desks[desk][k - 1];
+        desks[desk][k] = moved;
+        locPos[moved] = k;
+    }
+    desks[desk][pos] = id;
+    dsz[desk] = s + 1;
+    locDesk[id] = desk;
+    locPos[id] = pos;
+}
+
+static void append_back(int desk, int id) {
+    int pos = dsz[desk];
+    desks[desk][pos] = id;
+    dsz[desk] = pos + 1;
+    locDesk[id] = desk;
+    locPos[id] = pos;
+}
+
+static int find_smallest_not_full_aux(int m, int c) {
+    for (int j = 2; j <= m; j++) {
+        if (dsz[j] != c) return j;
+    }
+    return -1; /* undefined by spec if this happens */
+}
+
+static int req_less(const Req *a, const Req *b) {
+    if (a->seq != b->seq) return a->seq < b->seq;
+    return a->stu < b->stu;
+}
+
+static void stable_sort_reqs(Req *r, int n) {
+    /* stable insertion sort; n is small enough per spec bounds */
+    for (int i = 1; i < n; i++) {
+        Req key = r[i];
+        int j = i - 1;
+        while (j >= 0 && req_less(&key, &r[j])) {
+            r[j + 1] = r[j];
+            j--;
+        }
+        r[j + 1] = key;
+    }
+}
+
+int main(void) {
+    int m;
+    while (scanf("%d", &m) == 1) {
+        if (m <= 0) break;
+
+        int c, n;
+        if (scanf("%d %d", &c, &n) != 2) return 0;
+
+        /* reset state */
+        for (int d = 1; d <= m + 1; d++) dsz[d] = 0;
+        for (int id = 0; id < MAX_ID; id++) {
+            locDesk[id] = 0;
+            locPos[id] = 0;
+        }
+
+        Req reqs[MAX_REQ];
+        int reqCount = 0;
+
+        for (int stu = 0; stu < n; stu++) {
+            int t;
+            scanf("%d", &t);
+            for (int seq = 0; seq < t; seq++) {
+                int id;
+                scanf("%d", &id);
+
+                /* introduce book on first sight: place at back of holding desk (m+1) */
+                if (id >= 0 && id < MAX_ID && locDesk[id] == 0) {
+                    append_back(m + 1, id);
+                }
+
+                /* collect request occurrence */
+                if (reqCount < MAX_REQ) {
+                    reqs[reqCount].id = id;
+                    reqs[reqCount].seq = seq;
+                    reqs[reqCount].stu = stu;
+                    reqCount++;
+                } else {
+                    /* out of fixed bounds: undefined by spec; keep reading but ignore */
+                }
+            }
+        }
+
+        /* process in global order: by seq then stu */
+        stable_sort_reqs(reqs, reqCount);
+
+        long long cost = 0;
+
+        for (int r = 0; r < reqCount; r++) {
+            int id = reqs[r].id;
+
+            int from = locDesk[id];
+            int pos = locPos[id];
+
+            /* A) remove requested book from its current desk */
+            shift_left(from, pos);
+            cost += from;
+
+            /* B) overflow procedure if primary is full before inserting id */
+            if (dsz[1] == c) {
+                int tmp = find_smallest_not_full_aux(m, c);
+
+                /* (1) temporary insert id at back of tmp */
+                int tmpPos = dsz[tmp];
+                insert_at(tmp, tmpPos, id);
+                cost += tmp;
+
+                /* (2) evict front book from primary */
+                int id2 = desks[1][0];
+                shift_left(1, 0);
+                cost += 1;
+
+                /* (3) choose smallest not-full aux under current sizes */
+                int j = find_smallest_not_full_aux(m, c);
+
+                /* insert id2: normally at back; if j==tmp, one slot earlier */
+                int insPos = dsz[j];
+                if (j == tmp) insPos = dsz[j] - 1;
+                insert_at(j, insPos, id2);
+
+                /* net effect: cancel temporary insertion of id in tmp */
+                /* id currently at tmp position tmpPos+1 if j==tmp and insPos==tmpPos,
+                   otherwise at tmpPos. In both cases, remove it and close gap. */
+                int idPosNow = locPos[id];
+                int idDeskNow = locDesk[id];
+                if (idDeskNow == tmp) {
+                    shift_left(tmp, idPosNow);
+                } else {
+                    /* Should not happen under the specified procedure */
+                }
+
+                cost += (long long)j + (long long)tmp;
+
+                /* id is now "in hand" (not in any desk) until step C */
+                locDesk[id] = 0;
+                locPos[id] = 0;
+            }
+
+            /* C) insert requested book into primary at back */
+            append_back(1, id);
+            cost += 1;
+        }
+
+        printf("%lld\n", cost);
+    }
+    return 0;
+}

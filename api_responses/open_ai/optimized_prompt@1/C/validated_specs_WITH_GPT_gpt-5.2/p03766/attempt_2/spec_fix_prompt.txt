@@ -1,0 +1,150 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+const int Mod = 1000000007;
+
+void add_BIT(int N, int BIT[], int i, int k)
+{
+	while (i <= N) {
+		BIT[i] = (BIT[i] + k) % Mod;
+		i += (i & -i);
+	}
+}
+
+int sum_BIT(int BIT[], int r)
+{
+	int sum = 0;
+	while (r > 0) {
+		sum = (sum + BIT[r]) % Mod;
+		r -= (r & -r);
+	}
+	return sum;
+}
+
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	if (n == 1) {
+		printf("1\n");
+		fflush(stdout);
+		return 0;
+	}
+
+	int i, BIT[1000001] = {}, tmp = (int)((long long)n * n % Mod);
+	add_BIT(n, BIT, 1, n);
+	add_BIT(n, BIT, 2, tmp);
+	for (i = 3; i <= n; i++) {
+		tmp = (int)((tmp + sum_BIT(BIT, i - 3) + (long long)(i - 3) * (n - 1) + (long long)(n - i + 2) * n) % Mod);
+		add_BIT(n, BIT, i, tmp);
+	}
+	printf("%d\n", tmp);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value defined by a recurrence over the input integer \(n\), with all arithmetic performed modulo \(1{,}000{,}000{,}007\). For \(n=1\), the output is \(1\). For \(n\ge 2\), the output is the \(n\)-th term \(T(n)\) of a sequence \(T\) defined below.
+
+2. Inputs  
+- One integer \(n\) read from standard input.
+
+3. Outputs  
+- One integer written to standard output: the value \(T(n) \bmod 1{,}000{,}000{,}007\).
+
+4. Preconditions  
+- \(n\) is provided and is a valid integer.  
+- \(1 \le n \le 1{,}000{,}000\) (required to stay within fixed internal storage bounds).  
+
+5. Postconditions  
+Let \(M = 1{,}000{,}000{,}007\). The program outputs:  
+- If \(n = 1\): \(1\).  
+- If \(n \ge 2\): \(T(n) \bmod M\), where the sequence \(T\) is defined by:  
+  - \(T(1) = 1\) (only used for the \(n=1\) case)  
+  - \(T(2) = n^2 \bmod M\)  
+  - For all integers \(i\) with \(3 \le i \le n\):  
+    \[
+    T(i) \equiv T(i-1) + \sum_{j=1}^{i-3} T(j) + (i-3)(n-1) + (n-i+2)n \pmod M
+    \]
+  The printed value equals \(T(n)\) under this definition.
+
+6. Invariants  
+- All maintained sequence values and intermediate sums are reduced modulo \(M\).  
+- For \(n \ge 2\), after processing up to index \(i\) (for \(2 \le i \le n\)), the internally stored prefix-sum structure represents the multiset of values \(\{T(1), T(2), \dots, T(i)\}\) modulo \(M\), enabling retrieval of \(\sum_{j=1}^{r} T(j) \bmod M\) for relevant \(r\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as an integer, behavior is unspecified.  
+- If \(n\) is outside the supported range (notably \(n > 1{,}000{,}000\) or \(n < 1\)), behavior is unspecified (may include incorrect results or memory corruption).
+
+8. State Transitions (if applicable)  
+- For \(n=1\): transitions directly from start to output and termination.  
+- For \(n\ge 2\): progresses through a sequence-building phase from index \(2\) up to \(n\), updating the current term \(T(i)\) and the internal prefix-sum state at each step; terminates after outputting \(T(n)\).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(n \log n)\) for \(n \ge 2\).  
+- Memory usage is \(O(n)\) with a fixed upper bound sized for \(n \le 1{,}000{,}000\).  
+- Output is deterministic for a given valid input \(n\).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong transition/initialization rule (base cases / what is stored in the prefix-sum structure), leading to an incorrect recurrence evaluation.
+
+B. What the current specification may be missing or misstating  
+- The spec’s recurrence uses \(\sum_{j=1}^{i-3} T(j)\), and its invariant claims the BIT represents \(\{T(1),T(2),\dots\}\).  
+- But the source program does **not** insert \(T(1)=1\) into the BIT when \(n\ge 2\). Instead, it inserts **\(n\)** at index 1 (`add_BIT(n, BIT, 1, n);`).  
+- Therefore, the “prefix sums” used in the recurrence are not sums of the sequence \(T\) as defined in the spec; they are sums over a different set of values whose first element depends on \(n\), not a constant 1.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the values accumulated in the prefix-sum structure for \(n\ge 2\): what is stored at index 1, index 2, and how those stored values relate (or do not relate) to \(T(1), T(2), \dots\).  
+- Clarify the true base initialization for the iterative process when \(n\ge 2\), including that the first BIT entry is \(n\) (mod \(M\)), not \(T(1)=1\).  
+- Clarify whether the summation term in the recurrence is intended to be over previously computed \(T(j)\) or over the BIT-stored values (which differ at least at \(j=1\)).
+
+D. Why this clarification is supported by the source program  
+- In the source, for \(n\ge 2\):  
+  - `tmp = n*n mod M` is computed and added at index 2.  
+  - Index 1 is updated with `n`, not `1`.  
+  - The recurrence step uses `sum_BIT(BIT, i-3)`, which necessarily includes the index-1 value when \(i-3 \ge 1\) (i.e., from \(i \ge 4\)).  
+- Thus, any specification that models `sum_BIT` as \(\sum T(j)\) with \(T(1)=1\) will diverge from the source behavior for \(n\ge 2\), exactly the kind of discrepancy that would produce a wrong result on \(n=5\).
+
+```

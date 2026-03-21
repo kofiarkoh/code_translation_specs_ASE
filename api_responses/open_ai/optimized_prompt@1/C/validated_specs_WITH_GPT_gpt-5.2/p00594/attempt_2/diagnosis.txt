@@ -1,0 +1,15 @@
+A. Likely mismatch category  
+- Wrong output formatting / wrong fixed message (string literal and exact casing).  
+- Potentially wrong ordering rule (sort direction) and comparator semantics, though not exposed by this test.
+
+B. What the current specification may be missing or misstating  
+- The specification says “a fixed ‘no majority’ message” but does not pin down the *exact* required output text. The source prints exactly `NO COLOR` (uppercase, with a space) followed by newline, while the generated program prints `no majority`.  
+- The spec’s “ordering them” is underspecified: the source sorts in **descending** order using a subtraction-based comparator `(*(int*)b - *(int*)s)`, whereas the generated code sorts ascending (`ia - ib`). This doesn’t change the majority decision, but it can affect which value is chosen in tie situations (max-frequency but not > n/2) and is part of observable behavior if the spec ever relies on “one of them” for non-majority cases.
+
+C. What general behavior should be clarified in the specification  
+- The exact output line when no value occurs more than half the time must be specified verbatim (including capitalization and spacing).  
+- Clarify whether the program’s internal ordering is descending vs ascending and whether that ordering influences which candidate value is tracked/selected (especially if extending beyond strict-majority to “most frequent” behavior, or if any tie-breaking is observable).
+
+D. Why this clarification is supported by the source program  
+- The source has `else puts("NO COLOR");`, which hard-codes the precise required message; therefore output text is part of the ground-truth behavior, not an arbitrary placeholder.  
+- The source comparator `cmp` returns `(*(int *)b)-(*(int *)s)`, which is a descending sort; the subsequent scan updates `k` only when a strictly larger run length is found, meaning the first encountered maximum run (in sorted order) is retained on ties. This makes sort direction a real behavioral detail even if the majority/non-majority decision itself is unaffected.

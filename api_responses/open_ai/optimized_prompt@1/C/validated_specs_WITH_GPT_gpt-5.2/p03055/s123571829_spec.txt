@@ -1,0 +1,42 @@
+1. Functional Description  
+Reads an undirected graph described by a number of vertices and a list of edges, assumes it forms a tree, computes the tree’s diameter length in vertices, and outputs one of two labels based on the diameter length modulo 3.
+
+2. Inputs  
+- An integer representing the number of vertices \(n\).  
+- Exactly \(n-1\) undirected edges, each given as a pair of vertex indices.
+
+3. Outputs  
+- Exactly one line containing either the label “First” or the label “Second”.
+
+4. Preconditions  
+- \(n \ge 1\).  
+- The input provides exactly \(n-1\) edges.  
+- Vertex indices in edges are within the valid range for the \(n\) vertices (assumed to be 1-based in the input and mapped internally to 0-based).  
+- The edges describe a connected, acyclic undirected graph (a tree).  
+- \(n\) is small enough to fit within the fixed internal storage limits (up to about 200,000 vertices).
+
+5. Postconditions  
+- Let \(D\) be the diameter of the input tree measured as the number of vertices on the longest simple path.  
+- The program outputs:  
+  - “Second” iff \(D \bmod 3 = 0\).  
+  - “First” otherwise.
+
+6. Invariants  
+- During each breadth-first traversal, each vertex is assigned a positive depth exactly once, and unvisited vertices remain marked as unvisited.  
+- The traversal explores only along edges present in the input.  
+- The computed farthest vertex from a traversal start is one whose depth is maximal among all vertices.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input violates preconditions (e.g., not a tree, out-of-range indices, insufficient/excess data, or size exceeding internal limits), behavior is unspecified (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Initial state: no graph loaded.  
+- After input: graph is fixed and treated as immutable.  
+- First traversal: computes depths from an arbitrary start vertex and selects a farthest vertex \(s\).  
+- Second traversal: computes depths from \(s\) and derives the diameter length \(D\) as the maximum depth value.  
+- Final state: outputs the winner label determined by \(D \bmod 3\).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory proportional to \(n\); requires sufficient memory for arrays sized for up to ~200,000 vertices and ~400,000 directed edge records.  
+- Intended time complexity is near-linear in the number of vertices/edges (with additional logarithmic factors due to internal ordering of edge records).

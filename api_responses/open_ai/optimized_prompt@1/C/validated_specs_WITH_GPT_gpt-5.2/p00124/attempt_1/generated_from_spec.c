@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_TEAMS 10
+#define NAME_LEN 30
+
+typedef struct {
+    char name[NAME_LEN];
+    int wins;
+    int losses;
+    int draws;
+    int points;
+} Team;
+
+static int cmp_team_desc_points(const void *a, const void *b) {
+    const Team *ta = (const Team *)a;
+    const Team *tb = (const Team *)b;
+
+    /* Non-increasing by points. Relative order for ties is not guaranteed. */
+    if (ta->points < tb->points) return 1;
+    if (ta->points > tb->points) return -1;
+    return 0;
+}
+
+int main(void) {
+    int n;
+    int printed_any = 0;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) {
+            break;
+        }
+
+        Team teams[MAX_TEAMS];
+
+        for (int i = 0; i < n; i++) {
+            scanf("%29s %d %d %d", teams[i].name, &teams[i].wins, &teams[i].losses, &teams[i].draws);
+            teams[i].points = 3 * teams[i].wins + teams[i].draws;
+        }
+
+        /* Sort by descending points */
+        qsort(teams, (size_t)n, sizeof(teams[0]), cmp_team_desc_points);
+
+        if (printed_any) {
+            putchar('\n');
+        }
+        printed_any = 1;
+
+        for (int i = 0; i < n; i++) {
+            printf("%s %d\n", teams[i].name, teams[i].points);
+        }
+    }
+
+    return 0;
+}

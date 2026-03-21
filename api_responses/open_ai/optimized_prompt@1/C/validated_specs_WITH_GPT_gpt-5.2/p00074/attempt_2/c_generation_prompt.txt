@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads successive time values as three integers (hours, minutes, seconds). For each input triple that is successfully read and is not the termination sentinel, the program computes the number of seconds remaining until a fixed mark of 2 hours after 00:00:00, outputs that remaining duration, then outputs three times that remaining duration. Both outputs are rendered as an `HH:MM:SS`-style decomposition.
+
+2. Inputs  
+- A sequence of records, each consisting of three integers in order:  
+  - `h` (hours)  
+  - `m` (minutes)  
+  - `s` (seconds)  
+- Termination conditions:  
+  - End-of-input or inability to read a complete triple (fewer than three integers available).  
+  - A sentinel triple where `h == -1` and `m == -1` and `s == -1`.
+
+3. Outputs  
+For each processed (non-sentinel) input triple, exactly two lines are produced:  
+- Line 1: the value `R = 7200 − (3600·h + 60·m + s)` expressed as hours, minutes, seconds.  
+- Line 2: the value `3·R` expressed as hours, minutes, seconds.  
+
+Each output line is formatted exactly as:  
+- three fields separated by literal colon characters (`:`), followed by a newline;  
+- each field printed as at least two decimal digits with leading zeros if necessary (i.e., using two-digit, zero-padded formatting for each of hours, minutes, and seconds).
+
+4. Preconditions / Assumptions  
+- The program requires three integers per record to process it.  
+- No validation is performed on ranges of `h`, `m`, or `s` beyond checking the sentinel triple. Inputs outside conventional time ranges (including negative values other than the sentinel) are still processed arithmetically.  
+- Inputs are assumed to be such that intermediate integer computations fit within the C `int` type on the target platform.
+
+5. Computation and Decomposition Rules  
+For each processed triple `(h, m, s)`:
+- Compute `T = 3600·h + 60·m + s`.  
+- Compute `R = 7200 − T`.  
+- For printing a value `X` in seconds (first `X = R`, then `X = 3·R`), decompose using integer arithmetic as:  
+  - hours = `X / 3600`  
+  - minutes = `(X % 3600) / 60`  
+  - seconds = `X % 60`  
+These operations follow C integer division and remainder semantics.
+
+6. Termination Behavior  
+- If the sentinel triple `(-1, -1, -1)` is read, the program terminates immediately without producing output for that triple.  
+- If a complete triple cannot be read (input ends or is incomplete), the program terminates without further output.
+
+7. Invariants  
+- Each processed input triple produces exactly two output lines.  
+- The second printed duration corresponds to exactly three times the first in total seconds (prior to decomposition/formatting).  
+- No state is carried across iterations other than reading the next triple.
+
+```

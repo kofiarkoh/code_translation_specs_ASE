@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong I/O format / wrong grid dimension assumption (ordering/size), plus a missing constraint about border handling.
+
+B. What the current specification may be missing or misstating  
+- The spec states the dataset contains an **8×8** grid given as **8 lines of 8 characters**, but the source program actually reads **9 lines**, each line providing **8 characters stored starting at column index 1** (i.e., it effectively uses a **1..8 indexed interior** inside a larger buffer).  
+- The failing test input/output shows **9-character-wide lines** (e.g., `000000000`) and **9 lines** are present in the input per dataset, while the program outputs **8 lines** each of **9 characters**. This indicates the “grid” in the problem’s I/O is not a plain 8×8 text block as described.  
+- The spec’s “valid coordinate range assumed 1 through 8” is consistent with the source, but the spec does not capture that the program’s stored field includes an extra column (and possibly an extra border concept in the textual representation), which affects what gets printed.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact textual grid format** per dataset: how many lines are read, how many characters per line are significant, and which subset is printed.  
+- Clarify that the program operates on an **8×8 interior addressed by coordinates 1..8**, but the **input/output lines include an additional character/column** (a border/padding column) that is preserved/printed, and the program prints **9 characters per row** even though only columns 1..8 participate in the explosion logic.  
+- Clarify that the explosion’s bounds check is against **1..8** (interior only), not against the full printed width.
+
+D. Why this clarification is supported by the source program  
+- Input reading: `for (i = 0; i <= 8; i++) gets(&(field[i][1]));` reads **9 lines** and stores each line starting at `field[i][1]`, meaning the program expects at least **8 meaningful characters** beginning at column 1, and it also implies a layout larger than 8 columns.  
+- Output writing: `for (i = 1; i <= 8; i++) puts(&(field[i][1]));` prints **8 lines**, each starting at `field[i][1]` as a C-string; this will print **all characters up to the terminating `'\0'`**, which (given the sample) includes **9 characters** per line.  
+- Explosion bounds: `if (x < 1 || 8 < x || y < 1 || 8 < y) break;` shows the algorithm only considers coordinates **1..8**, i.e., an interior region, consistent with a representation that includes extra border/padding in the stored/printed strings.

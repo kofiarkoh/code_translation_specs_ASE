@@ -1,0 +1,161 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1212: Mirror Illusion
+// 2018.1.23 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+char mir[9][9][9][9];
+int mv[4][2] = {{50,50},{-50,50},{-50,-50},{50,-50}};
+int tr[2][4] = {{3,2,1,0},{1,0,3,2}};
+
+int main()
+{
+	int n, i, v, x, y, d, wall;
+	char s[5];
+
+	while (scanf("%d", &n) && n >= 0) {
+		memset(mir, 0, sizeof(mir));
+
+		for (i = 0 ; i < n ; i++) {
+			scanf("%s%d%d", s, &x, &y);
+			if (*s == 'x') mir[x][y][x+1][y] = 1;
+			else           mir[x][y][x][y+1] = 1;
+		}
+
+		x = 50, y = 0, d = 0, wall = 1;
+		for (v = 1, i = 0; ; i++, v = !v) {
+			if (i >= 2) {
+				if (x == 100 && y == 50 && d == 0) { x = 75, y = 25; break; }
+				if (wall && (!x || !y || x == 800 || y == 800)) break;
+			}
+
+	        x += mv[d][0], y += mv[d][1], wall = 1;
+
+			if (v) {
+				if (mir[x/100][(y-50)/100][x/100][(y+50)/100]) d = tr[v][d], wall = 0;
+			} else {
+				if (mir[(x-50)/100][y/100][(x+50)/100][y/100]) d = tr[v][d], wall = 0;
+			}
+		}
+		printf("%d %d\n", x, y);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Simulates the path of a ray moving on a bounded square region with axis-aligned mirror segments placed on a coarse grid. Starting from a fixed initial position and direction, the ray advances in equal diagonal steps, optionally reflecting when it crosses a mirror segment. The program outputs the final position where the simulation terminates, either by leaving the bounded region, reaching a specific target state that maps to a fixed reported point, or by immediate termination conditions implied by the simulation rules.
+
+2. Inputs  
+- Repeated test cases.  
+- For each test case:  
+  - An integer specifying the number of mirror segments.  
+  - That many mirror descriptions, each consisting of:  
+    - A type indicating one of two orthogonal orientations.  
+    - Two integer grid coordinates identifying the segment’s placement.
+
+3. Outputs  
+- For each test case, two integers representing the final reported position of the ray in the simulation’s coordinate system.
+
+4. Preconditions  
+- The initial count is provided for each test case; processing stops when the count is negative.  
+- Mirror coordinates are assumed to be within the supported grid index range such that all referenced segment endpoints are valid.  
+- Mirror type is assumed to be one of the two expected orientation markers.  
+- Input is assumed to be well-formed according to the above structure.
+
+5. Postconditions  
+For each non-terminating (non-negative) test case, exactly one line is produced containing the final position, satisfying one of the following:  
+- The ray has reached a boundary condition where it is considered to have exited the bounded region (as defined by the simulation’s boundary checks), and the reported position is the ray’s position at termination.  
+- The ray has reached a specific internal state (a particular position and direction) after at least two steps, in which case the reported position is a fixed mapped point.  
+
+6. Invariants  
+- The ray’s position always lies on the discrete lattice reachable from the initial position by repeated equal diagonal steps.  
+- The ray’s direction is always one of four diagonal directions.  
+- At most one reflection decision is applied per step, based on whether the step crosses a mirror segment of the relevant orientation.  
+- Mirror configuration is constant throughout a test case.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (e.g., out-of-range coordinates or unexpected mirror type), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Initial state per test case: fixed starting position, fixed initial direction, and an internal alternation state controlling which mirror orientation is checked on each step.  
+- Each step transitions the state by:  
+  - Advancing position by one fixed diagonal increment according to current direction.  
+  - Toggling the alternation state.  
+  - Optionally changing direction if a mirror segment is crossed on that step (reflection), otherwise direction remains unchanged.  
+- Termination occurs when either:  
+  - After at least two steps, the ray is at the designated target state (position and direction), causing an immediate transition to a fixed reported terminal position; or  
+  - After at least two steps, the ray is at or beyond the defined boundary and the last step did not reflect (as implied by the boundary termination condition).
+
+9. Non-functional Constraints (if inferable)  
+- Per test case, memory usage is bounded by a fixed-size grid representation of mirror segments.  
+- Runtime per test case is proportional to the number of simulated steps until termination plus the number of mirrors read; termination is assumed to occur for valid problem inputs.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / underspecified transition and termination rules (missing concrete constants and state-update logic).
+
+B. What the current specification may be missing or misstating  
+- It does not pin down the *actual coordinate system* used by the source (scaled integer coordinates with half-cell offsets), so “bounded square region” and “coarse grid” are too vague to implement.  
+- It omits the *exact initial state*: starting position `(50,0)`, initial direction index `d=0`, initial alternation value `v=1`, and the `wall` flag behavior.  
+- It does not specify the *step size and direction set*: the ray moves by `(±50, ±50)` each step (not an arbitrary “equal diagonal step”).  
+- It does not specify how mirror inputs map to stored segments: token `'x'` creates a segment between `(x,y)` and `(x+1,y)` in grid-index space; otherwise (e.g., `'y'`) between `(x,y)` and `(x,y+1)`.  
+- It does not specify the *alternating mirror-check geometry*: on alternating steps, the code checks different segment orientations using different index formulas involving `x/100`, `(y±50)/100`, etc.  
+- It does not specify the *reflection mapping*: direction changes via a fixed table `tr[2][4]` depending on alternation state.  
+- It is vague/incorrect about termination: boundary termination depends on a `wall` flag that is reset each step and cleared only when a reflection occurs; boundary checks are only applied after at least two iterations and only if `wall` is true.  
+- It does not specify the *special target state* precisely: after at least two iterations, if `(x,y,d)==(100,50,0)` then output is forced to `(75,25)` (not just “a particular position and direction” in the abstract).
+
+C. What general behavior should be clarified in the specification  
+- The exact numeric lattice/units (50/100 scaling), region limits (0..800 checks plus special-case `x==100 && y==50 && d==0`), and when those checks are applied (`i>=2`).  
+- The full per-step update order: toggle alternation, move, set `wall=1`, then conditionally reflect and set `wall=0` if a mirror is hit.  
+- The precise mirror-hit tests (which depend on alternation and use half-cell offsets) and the exact direction-transition table for reflections.  
+- The exact interpretation of mirror type tokens (`'x'` vs “not x”) and how they correspond to horizontal/vertical segments in the internal grid.
+
+D. Why this clarification is supported by the source program  
+- The source hard-codes all of these constants and rules: `mv` defines `(±50,±50)` steps; initialization sets `x=50,y=0,d=0,wall=1`; the loop toggles `v` each iteration; mirror checks use the two distinct index expressions gated by `v`; reflections use `tr[v][d]` and clear `wall`; termination explicitly depends on `i>=2`, the special state `(100,50,0)` mapping to `(75,25)`, and boundary checks `(!x || !y || x==800 || y==800)` only when `wall` is true.  
+- Because the current specification leaves these concrete mechanics unspecified, a generated implementation cannot reproduce outputs like `250 0` for the sample; the mismatch is therefore systemic (missing core semantics), not a one-off edge case.
+
+```

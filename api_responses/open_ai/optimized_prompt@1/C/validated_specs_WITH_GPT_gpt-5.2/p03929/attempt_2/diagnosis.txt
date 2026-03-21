@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Non-functional / language-constraint mismatch (wrong assumption about allowed C constructs), not a functional counting-rule mismatch.
+
+B. What the current specification may be missing or misstating  
+- The specification does not constrain the implementation to *strict ISO C* (as compiled with `-std=c11`) and therefore permits an interpretation that uses non-C features (e.g., nested functions / `auto` function definitions inside `main`), which are rejected by the compiler.  
+- The spec’s “Generated C program” implicitly assumes support for local function definitions (a GNU C extension) or C++-like constructs, but the environment is C11.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the required implementation language and compilation model: the program must be valid ISO C (C11) and compile under typical flags like `-std=c11` without relying on compiler extensions (e.g., no nested function definitions, no `auto`-style local functions, no implicit declarations).  
+- If helper routines are needed, they must be expressed in a C11-compatible way (e.g., file-scope `static` functions or inlined logic/macros), but this is a constraint on *how* the algorithm is expressed, not on the math.
+
+D. Why this clarification is supported by the source program  
+- The source program is plain C and uses only standard constructs: a single `main`, loops, conditionals, and `scanf/printf`; it does not rely on nested functions, `auto`, or any nonstandard extension.  
+- The failing report shows compilation errors specifically caused by defining functions inside `main`, which is not allowed in ISO C11. This indicates the spec is currently underspecified about the required C dialect/portability constraints, allowing a generated implementation that cannot compile in the intended environment.

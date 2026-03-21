@@ -1,0 +1,220 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MAXN 100000
+#define SIEVE_LIMIT 100000
+#define THRESHOLD 1000000000000LL /* 1e12 internal magnitude threshold */
+
+typedef long long ll;
+
+typedef struct {
+    ll v;
+    int cnt;
+    unsigned char used;
+} Node;
+
+static int primes[100000];
+static int prime_cnt = 0;
+
+static void sieve_primes(void) {
+    static unsigned char is_comp[SIEVE_LIMIT + 1];
+    for (int i = 2; i <= SIEVE_LIMIT; i++) {
+        if (!is_comp[i]) {
+            primes[prime_cnt++] = i;
+            if ((ll)i * (ll)i <= SIEVE_LIMIT) {
+                for (int j = i * i; j <= SIEVE_LIMIT; j += i) is_comp[j] = 1;
+            }
+        }
+    }
+}
+
+static int cmp_ll(const void *a, const void *b) {
+    ll x = *(const ll *)a, y = *(const ll *)b;
+    return (x < y) ? -1 : (x > y);
+}
+
+static int cmp_node_by_v(const void *a, const void *b) {
+    const Node *x = (const Node *)a, *y = (const Node *)b;
+    return (x->v < y->v) ? -1 : (x->v > y->v);
+}
+
+static int lower_bound_nodes(Node *arr, int m, ll key) {
+    int l = 0, r = m;
+    while (l < r) {
+        int mid = l + (r - l) / 2;
+        if (arr[mid].v < key) l = mid + 1;
+        else r = mid;
+    }
+    return l;
+}
+
+/* Remove all perfect-cube factors: for each prime p, divide by p^3 while divisible. */
+static ll cube_reduce(ll x) {
+    for (int i = 0; i < prime_cnt; i++) {
+        ll p = primes[i];
+        ll p2 = p * p;
+        ll p3 = p2 * p;
+        if (p3 > x) break;
+        while (x % p3 == 0) x /= p3;
+    }
+    return x;
+}
+
+/*
+Complement construction under stated assumptions:
+- Factor v by small primes up to SIEVE_LIMIT.
+- For each prime p with exponent e mod 3 in {1,2}, multiply complement by p^(3-e).
+- After small-prime reduction, remaining factor rem is assumed to be 1, prime, or prime^2.
+- If rem is prime: exponent 1 -> multiply by rem^2.
+- If rem is prime^2: exponent 2 -> multiply by rem.
+- If complement magnitude exceeds THRESHOLD at any point, mark unpairable.
+- If rem violates assumption, behavior is unspecified; we choose narrow handling: mark unpairable.
+*/
+static int build_complement(ll v, ll *out_g) {
+    ll x = v;
+    ll g = 1;
+
+    for (int i = 0; i < prime_cnt; i++) {
+        ll p = primes[i];
+        if (p * p > x) break;
+        int e = 0;
+        while (x % p == 0) {
+            x /= p;
+            e++;
+            if (e == 3) e = 0; /* cube factors already removed in v, but keep mod-3 safe */
+        }
+        e %= 3;
+        if (e == 1) {
+            /* multiply by p^2 */
+            if (g > THRESHOLD / (p * p)) return 0;
+            g *= (p * p);
+        } else if (e == 2) {
+            /* multiply by p */
+            if (g > THRESHOLD / p) return 0;
+            g *= p;
+        }
+    }
+
+    if (x == 1) {
+        *out_g = g;
+        return 1;
+    }
+
+    /* classify remaining factor x as prime or prime^2 */
+    ll r = x;
+    ll s = (ll)(sqrt((double)r) + 0.5);
+    if (s > 1 && s * s == r) {
+        /* treat as prime^2 under assumption */
+        if (g > THRESHOLD / s) return 0;
+        g *= s;
+        *out_g = g;
+        return 1;
+    } else {
+        /* treat as prime under assumption */
+        if (g > THRESHOLD / r) return 0;
+        if (g > THRESHOLD / r) return 0;
+        /* multiply by r^2; check overflow against threshold conservatively */
+        if (r != 0 && r > THRESHOLD / r) return 0;
+        ll r2 = r * r;
+        if (g > THRESHOLD / r2) return 0;
+        g *= r2;
+        *out_g = g;
+        return 1;
+    }
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+    if (n < 0) n = 0;
+    if (n > MAXN) n = MAXN; /* no explicit error handling per spec */
+
+    sieve_primes();
+
+    ll *vals = (ll *)malloc((size_t)n * sizeof(ll));
+    if (!vals) return 0;
+
+    for (int i = 0; i < n; i++) {
+        ll x;
+        if (scanf("%lld", &x) != 1) x = 1;
+        if (x <= 0) x = 1; /* precondition says positive; keep narrow safe behavior */
+        vals[i] = cube_reduce(x);
+    }
+
+    qsort(vals, (size_t)n, sizeof(ll), cmp_ll);
+
+    Node *nodes = (Node *)malloc((size_t)n * sizeof(Node));
+    if (!nodes) {
+        free(vals);
+        return 0;
+    }
+
+    int m = 0;
+    for (int i = 0; i < n; ) {
+        int j = i + 1;
+        while (j < n && vals[j] == vals[i]) j++;
+        nodes[m].v = vals[i];
+        nodes[m].cnt = j - i;
+        nodes[m].used = 0;
+        m++;
+        i = j;
+    }
+    free(vals);
+
+    /* nodes already sorted by v due to vals sort */
+    ll R = 0;
+
+    /* handle v=1: add exactly 1 if present */
+    int idx1 = lower_bound_nodes(nodes, m, 1);
+    if (idx1 < m && nodes[idx1].v == 1) {
+        R += 1;
+        nodes[idx1].used = 1;
+    }
+
+    for (int i = 0; i < m; i++) {
+        if (nodes[i].used) continue;
+        ll v = nodes[i].v;
+        int cv = nodes[i].cnt;
+
+        ll g;
+        if (!build_complement(v, &g)) {
+            /* unpairable: each occurrence contributes 1 */
+            R += (ll)cv;
+            nodes[i].used = 1;
+            continue;
+        }
+
+        int j = lower_bound_nodes(nodes, m, g);
+        if (j >= m || nodes[j].v != g) {
+            /* complement absent: all occurrences contribute */
+            R += (ll)cv;
+            nodes[i].used = 1;
+            continue;
+        }
+
+        if (j == i) {
+            /* v == g: spec does not define special pairing rule; narrow interpretation:
+               treat as unpaired group -> all occurrences contribute. */
+            R += (ll)cv;
+            nodes[i].used = 1;
+            continue;
+        }
+
+        if (nodes[j].used) {
+            /* already processed via its partner */
+            nodes[i].used = 1;
+            continue;
+        }
+
+        int cg = nodes[j].cnt;
+        R += (ll)(cv > cg ? cv : cg);
+        nodes[i].used = 1;
+        nodes[j].used = 1;
+    }
+
+    printf("%lld\n", R);
+
+    free(nodes);
+    return 0;
+}

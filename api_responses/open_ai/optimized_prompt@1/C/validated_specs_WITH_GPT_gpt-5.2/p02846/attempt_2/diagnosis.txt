@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+Wrong transition/derivation rule (incorrect denominator/ratio computation) and a missing constraint about how the “phase-2 catch-up” term participates in the final division.
+
+B. What the current specification may be missing or misstating  
+- The spec (and generated code) treats the final division as using only the *per-unit* phase-2 difference `(a2 - b2)` as the divisor, instead of using the *time-weighted* phase-2 difference and subtracting the phase-1 term as in the source.  
+- The spec’s “divisor used in the final ratio computation” is described vaguely and then implemented as `(a2 - b2)`, but the source program’s divisor is a composite expression involving both phases:  
+  `((A2 - B2) * T2 - (B1 - A1) * T1)`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the derived quantities and the exact formula used for the quotient/remainder test in the non-`infinity` and non-`0` case, including that:
+  - both phase differences are multiplied by their respective durations, and
+  - the denominator is the *difference between* the phase-2 weighted difference and the phase-1 weighted difference (not merely a per-unit difference).  
+- Clarify that the “even vs odd” output depends on divisibility by that composite denominator, not by `(a2 - b2)` or by the raw phase-2 weighted term alone.
+
+D. Why this clarification is supported by the source program  
+- After normalization, the source computes:
+  - `X = (B1 - A1) * T1`
+  - `Y = (A2 - B2) * T2`
+  - If `X > Y` output `0`
+  - Else it computes `X % (Y - X)` and `X / (Y - X)` to decide the final count (`2*(X/(Y-X))` if divisible, else `2*(X/(Y-X))+1`).  
+- This shows the denominator is explicitly `(Y - X) = (A2 - B2)*T2 - (B1 - A1)*T1`, so any specification that allows/encourages dividing by `(a2 - b2)` (or otherwise omits the `T2` factor and the `-X` term) is not describing the source behavior.

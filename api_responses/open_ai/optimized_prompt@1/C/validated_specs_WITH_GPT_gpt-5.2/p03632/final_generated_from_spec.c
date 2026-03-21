@@ -1,0 +1,20 @@
+#include <stdio.h>
+
+int main(void) {
+    int a1, b1, a2, b2;
+    if (scanf("%d %d %d %d", &a1, &b1, &a2, &b2) != 4) {
+        /* Undefined behavior per specification if input is malformed;
+           return without producing defined output. */
+        return 0;
+    }
+
+    /* Closed intervals [a1, b1] and [a2, b2], with precondition a1<=b1, a2<=b2. */
+    int L = (a1 > a2) ? a1 : a2;
+    int R = (b1 < b2) ? b1 : b2;
+
+    /* Overlap length for intersection [L, R] is R - L if overlapping, else 0. */
+    int overlap = (R > L) ? (R - L) : 0;
+
+    printf("%d", overlap);
+    return 0;
+}

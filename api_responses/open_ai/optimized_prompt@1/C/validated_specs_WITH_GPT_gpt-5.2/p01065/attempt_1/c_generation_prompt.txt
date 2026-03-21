@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum total reward achievable by processing a sequence of items, where for each item the program may choose one of three actions: do nothing, perform an action that consumes some amount of a limited resource and adjusts a balance, or perform an action that increases the balance and yields a reward. The final result is the maximum reward among all choices that respect the resource limit and a final balance constraint.
+
+2. Inputs  
+- An integer count of items.  
+- Two integers representing:  
+  - a maximum available amount of a limited resource, and  
+  - a minimum required final balance (expressed relative to an internal baseline).  
+- For each item, four non-negative integers representing:  
+  - resource consumption for the “consume” action,  
+  - balance decrease for the “consume” action,  
+  - balance increase for the “reward” action,  
+  - reward gained for the “reward” action.
+
+3. Outputs  
+- A single non-negative integer: the maximum total reward achievable while satisfying constraints.
+
+4. Preconditions  
+- The item count does not exceed 100.  
+- The maximum resource value is within a range that allows indexing of internal state (effectively not exceeding 300).  
+- The minimum required final balance is within a range that allows indexing of internal state (effectively between -300 and +300).  
+- For each item, the provided parameters are such that all reachable intermediate balances remain within the representable internal balance range (effectively between -300 and +300).  
+- All input values are non-negative integers and are provided in the expected quantity.
+
+5. Postconditions  
+- The output equals the maximum possible sum of selected rewards over all items, where for each item exactly one of the following is chosen:  
+  - no effect,  
+  - consume: increases used resource by the item’s consumption amount and decreases balance by the item’s balance-decrease amount,  
+  - reward: increases balance by the item’s balance-increase amount and increases total reward by the item’s reward amount.  
+- The total used resource in the chosen plan is less than or equal to the given maximum resource.  
+- The final balance is greater than or equal to the given minimum required final balance.  
+- If no plan satisfying the constraints yields positive reward, the output is 0.
+
+6. Invariants  
+- For any prefix of items, each tracked state corresponds to the best (maximum) reward achievable for some combination of choices over that prefix with a specific used-resource amount and balance value.  
+- Rewards in tracked states never decrease when considering additional items (the best-known reward for a state is monotonically non-decreasing as more options are evaluated).  
+- Used resource never exceeds the provided maximum in any considered feasible state.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., values outside representable ranges), behavior is undefined (may include incorrect results or memory corruption).  
+- If input is missing or malformed, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- State is defined by: number of processed items, used resource amount, and current balance.  
+- From a state at item index *i*, transitions to item index *i+1* are:  
+  - no-op: used resource and balance unchanged; reward unchanged.  
+  - consume action: used resource increases by the item’s consumption amount (must not exceed the maximum); balance decreases by the item’s balance-decrease amount; reward unchanged.  
+  - reward action: used resource unchanged; balance increases by the item’s balance-increase amount; reward increases by the item’s reward amount.  
+- The final answer is the maximum reward among states after all items with used resource within the maximum and balance meeting the minimum requirement.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of items times the product of the bounded resource range and bounded balance range (fixed upper bounds implied by internal limits).  
+- Memory usage is proportional to the number of items times the bounded resource and balance ranges (fixed upper bounds implied by internal limits).
+
+```

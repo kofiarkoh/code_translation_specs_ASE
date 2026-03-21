@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each input case, the program outputs a length‑`n` string over `{L, R}` computed deterministically from `(n, i, j)`. The computation is performed in two phases using mutable working copies of the indices: first an `n`‑step bit sequence is derived from `i`, then that derived sequence drives both the comparison against `j` and the evolution of `j` while producing the output.
+
+2. Inputs  
+- Repeated test cases, each containing three integers read in order:  
+  - `n` (integer)  
+  - `i` (integer)  
+  - `j` (integer)  
+- The input indices `i` and `j` are interpreted as 1‑based; the program converts them to 0‑based working values by subtracting 1.  
+- Input processing stops when either input is exhausted / parsing fails, or a case with `n <= 0` is encountered (that terminating case is not processed).
+
+3. Outputs  
+- For each processed test case, outputs one line containing exactly `n` characters, each either `L` or `R`, followed by a newline.
+
+4. Preconditions / Assumptions  
+- `n` must be positive to be processed.  
+- To avoid out‑of‑bounds writes in the program’s fixed buffers, meaningful operation requires `n <= 60` (the program allocates arrays of size 62 and writes up to index `n+1`).  
+- `i` and `j` must be representable as signed 64‑bit integers as read by the program.  
+- Intended/meaningful behavior assumes `1 <= i <= 2^n` and `1 <= j <= 2^n`, though the program does not validate these ranges.
+
+5. Detailed Semantics (per test case)  
+Let `I = i - 1` and `J = j - 1` be signed 64‑bit working values. Bits are examined from most significant to least significant among the lowest `n` bit positions, i.e., at step `t = 0..n-1` the program inspects bit position `(n-1-t)` via right shift and `& 1`.
+
+Phase A: derive the `low` sequence from `I`  
+- For each step `t = 0..n-1` (corresponding to bit position `p = n-1-t`):  
+  - Set `low[t]` to the current bit of `I` at position `p` (value 0 or 1).  
+  - If `low[t]` is 0, update the entire working value by applying bitwise complement: `I := ~I` (C’s `~` on a signed 64‑bit value).  
+- This phase produces `low[0..n-1]` and may change `I` between steps; later `low` values are taken from the updated `I`, not from the original `(i-1)` alone.
+
+Phase B: produce the output from `J` driven by `low`  
+- For each step `t = 0..n-1` (bit position `p = n-1-t`):  
+  - Read the current bit `b` of `J` at position `p`.  
+  - Output character at position `t` is:  
+    - `L` if `b` equals `low[t]`, otherwise `R`.  
+  - If `low[t]` is 0, update the entire working value by bitwise complement: `J := ~J`.  
+- Notably, whether `J` is complemented depends only on `low[t]` (derived from `i`), not on the bit read from `J`.
+
+6. Postconditions  
+- Exactly one line is produced per processed test case.  
+- The line contains exactly `n` characters from `{L, R}`.  
+- The output is fully determined by the above two‑phase procedure applied to the input triple `(n, i, j)`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced.  
+- If input parsing fails or input ends, the program terminates silently.  
+- If `n` exceeds the safe bound implied by the fixed arrays, behavior is undefined (may overwrite memory).  
+- If `i`/`j` are outside the intended range, the program still applies the same bit extraction and full‑width complement operations on signed 64‑bit values; results are not constrained to any `n`‑bit masking beyond the explicit bit extractions.
+
+8. State / Test Case Independence  
+- Aside from reusing internal buffers, each test case is processed independently; there is no carry‑over of logical state between cases.
+
+```

@@ -1,0 +1,32 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong cost accounting in the reordering step (algorithmic abstraction mismatch).
+
+B. What the current specification may be missing or misstating  
+The spec describes the per-step operation as “bring the first required bit forward to the current position” and implies a stable left-rotation/shift of the intervening substring (equivalent to moving that found bit to the front while preserving the relative order of the skipped characters).  
+However, the source program’s `solve()` does **not** actually perform that full bring-forward operation. It only:
+- finds the first occurrence of the needed bit (`strchr`),
+- adds its index `pos` to the cost,
+- then **flips that found character in place** (`*p = opposite_bit`),
+- and advances the pointer (`bit+1`) without shifting the intervening characters.
+
+So the spec’s “string state update” after paying `pos` is likely incorrect: it models a physical move/shift, while the source models a different in-place mutation (a kind of “consume one needed bit somewhere to the right by turning it into the other bit”, then move on).
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact state transition used when the current position does not match the required bit:
+
+- The cost is computed as the index of the first required bit in the current suffix (distance from current position).
+- But instead of moving that bit to the front (shifting/rotating), the algorithm mutates the suffix by **changing that located required bit into the opposite bit**, then discards the current position by recursing on `bit+1`.
+- The character at the current position is not explicitly overwritten; the algorithm’s correctness relies on the pointer-advance plus the mutation elsewhere, not on performing a stable permutation.
+
+In other words: the “reordering” is not implemented as an explicit sequence of adjacent swaps on the array; it’s implemented via a recursive scan with a specific in-place flip that implicitly accounts for the effect of bringing a bit forward.
+
+D. Why this clarification is supported by the source program  
+In `solve()`:
+
+- When `bit[0] != start`, it does:
+  - `p = strchr(bit, start); pos = p - bit;`
+  - `runlen[0]--;`
+  - `*p = (start=='0' ? '1' : '0');`
+  - `return pos + solve(bit+1, ...)`
+
+There is **no code** that shifts `bit[0..pos-1]` right or places the found bit at `bit[0]`. The only mutation is `*p = ...` at the found position, and recursion advances the base pointer by one. Therefore, any specification that describes the operation as an actual bring-forward/rotation of characters is not faithful to the implemented transition, and can systematically produce different totals (as seen in the failing sample).

@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a directed graph over a fixed set of numbered nodes and computes, for each node, a single “trigger” predecessor: the node that causes it to become free of remaining incoming references during an iterative removal process that starts from nodes with no incoming references. Outputs this trigger predecessor for every node.
+
+2. Inputs  
+- Two integers:  
+  - The number of nodes.  
+  - The number of additional edges beyond a baseline count.  
+- A sequence of directed edges, each given as an ordered pair of node numbers, with total count equal to (number of nodes − 1 + additional edges).
+
+3. Outputs  
+- For each node (in increasing node number order), one integer on its own line:  
+  - The recorded trigger predecessor for that node, or 0 if no trigger predecessor was recorded.
+
+4. Preconditions  
+- The number of nodes is positive and does not exceed the fixed internal capacity.  
+- The total number of edges (nodes − 1 + additional edges) is non-negative and does not exceed the fixed internal capacity for buffering.  
+- All edge endpoints are valid node numbers within the declared node range.  
+- Sufficient memory is available to store all outgoing adjacency information.
+
+5. Postconditions  
+For each node `v`:
+- If `v` becomes newly “incoming-free” at some point during the iterative removal process, the output for `v` equals the specific predecessor `u` whose removal caused `v`’s remaining incoming reference count to reach zero at that moment.  
+- If `v` is initially incoming-free, or never becomes incoming-free during the process, the output for `v` is 0.  
+- Each node is processed at most once as newly incoming-free; therefore, each node’s output is assigned at most once.
+
+6. Invariants  
+- The maintained incoming-reference count for each node never increases during processing.  
+- A node is added to the processing frontier exactly when its maintained incoming-reference count becomes zero.  
+- Once a node’s trigger predecessor is recorded, it is never changed.
+
+7. Error Handling / Exceptional Behavior  
+- If the initial input cannot be fully read as required, the program terminates early with a non-zero exit status and produces no further guaranteed output.  
+- If memory allocation for storing edges fails, the program terminates immediately with a specific non-zero exit status.  
+- No validation is performed for out-of-range node numbers; behavior is undefined if preconditions on node ranges are violated.
+
+8. State Transitions (if applicable)  
+- Nodes transition from “unprocessed” to “eligible for processing” when their maintained incoming-reference count reaches zero.  
+- When a node becomes eligible due to processing of a predecessor, it additionally transitions to “trigger recorded” with that predecessor as its trigger.  
+- Eligible nodes transition to “processed” when they are taken from the frontier and their outgoing edges are applied to reduce incoming-reference counts of their targets.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size global storage; maximum supported node and edge-related counts are bounded by that capacity.  
+- Time and memory usage scale with the number of nodes plus the number of edges stored, within the fixed limits.
+
+```

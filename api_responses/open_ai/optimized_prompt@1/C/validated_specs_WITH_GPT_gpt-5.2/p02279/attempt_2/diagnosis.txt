@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+**Wrong output formatting / wrong labeling rule** (string literals and exact phrasing).
+
+B. What the current specification may be missing or misstating  
+The specification describes the node type label generically as “root/leaf/internal”, but the **source program’s output uses an exact, non-uniform set of labels**, specifically including the phrase **`"internal node"`** (two words) rather than `"internal"`. The spec does not constrain the **exact text** that must appear in the output line.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the output format is **exact and must match the source program’s fixed strings**, including:
+- The precise node type tokens: `"root"`, `"leaf"`, and **`"internal node"`** (not `"internal"`).
+- The exact punctuation and spacing around fields (e.g., `node %d: parent = %d, depth = %d, ` followed by the type label, then `, [` … `]`).
+
+D. Why this clarification is supported by the source program  
+In `printtree()` the source prints the classification using fixed string literals:
+- `printf("root, [");`
+- `printf("leaf, [");`
+- `printf("internal node, [");`
+
+So the “internal” case is explicitly **`internal node`**, and the overall line structure is hard-coded. The failing test demonstrates a mismatch solely due to this exact string choice, indicating the specification’s abstraction (“internal”) is too loose for the required output fidelity.

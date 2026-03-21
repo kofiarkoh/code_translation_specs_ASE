@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each input case, computes and outputs a length‑`n` sequence over the alphabet `{L, R}` that represents the relative position of an item at index `j` within a recursively defined left/right partitioning induced by a reference index `i`, both interpreted over `n` binary decisions. The sequence is produced deterministically from `(n, i, j)`.
+
+2. Inputs  
+- Repeated test cases, each containing:  
+  - An integer `n` (> 0 to be processed).  
+  - Two integer indices `i` and `j` (treated as 1-based in the input domain).  
+- Input terminates when a case with `n <= 0` is encountered or when input is exhausted.
+
+3. Outputs  
+- For each processed test case, outputs one line containing exactly `n` characters, each either `L` or `R`.
+
+4. Preconditions  
+- For each processed case:  
+  - `n` is positive and does not exceed 60 (so the produced sequence fits the fixed internal storage).  
+  - `i` and `j` are within the representable range of signed 64-bit integers.  
+  - Intended/meaningful behavior assumes `1 <= i <= 2^n` and `1 <= j <= 2^n` (so the `n`-step binary decision interpretation is well-defined).
+
+5. Postconditions  
+For each processed test case with given `(n, i, j)` (1-based):  
+- Exactly one output line is produced.  
+- The output line length is `n`.  
+- For each position `k` from 1 to `n`, the `k`-th output character is:  
+  - `L` if the `k`-th decision bit of `(j-1)` matches the `k`-th derived decision bit computed from `(i-1)` under the same iterative inversion rule; otherwise `R`.  
+- The output depends only on the input triple `(n, i, j)`.
+
+6. Invariants  
+- Within a processed case, the output alphabet is restricted to `{L, R}`.  
+- The number of output characters per case is invariantly `n`.  
+- The derived decision sequence from `i` has length `n` and is used consistently to classify each corresponding decision of `j`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input parsing fails or input ends, processing stops silently.  
+- If `n > 60` or if `i, j` are outside the assumed meaningful range, behavior is not guaranteed (may produce incorrect output or exhibit memory corruption due to fixed-size storage).
+
+8. State Transitions (if applicable)  
+- The program is stateless across test cases except for reusing internal buffers; each test case fully determines its own output.  
+- Processing transitions: “waiting for next case” → “emit one line for the case” → back to “waiting for next case” until termination condition.
+
+9. Non-functional Constraints (if inferable)  
+- Time per test case is linear in `n`.  
+- Memory usage is constant with respect to input size (bounded by fixed internal buffers).
+
+```

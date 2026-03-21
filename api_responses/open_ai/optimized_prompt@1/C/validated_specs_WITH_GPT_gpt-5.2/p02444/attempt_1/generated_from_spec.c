@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    int *a = NULL;
+    if (n > 0) {
+        a = (int *)malloc((size_t)n * sizeof(int));
+        if (!a) return 0; /* Undefined behavior per spec; just exit on allocation failure */
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &a[i]) != 1) {
+            /* Undefined behavior per spec; terminate */
+            free(a);
+            return 0;
+        }
+    }
+
+    int q;
+    if (scanf("%d", &q) != 1) {
+        free(a);
+        return 0;
+    }
+
+    /* Temporary buffer sized to maximum n, as allowed by constraints. */
+    int *tmp = NULL;
+    if (n > 0) {
+        tmp = (int *)malloc((size_t)n * sizeof(int));
+        if (!tmp) {
+            free(a);
+            return 0;
+        }
+    }
+
+    for (int op = 0; op < q; op++) {
+        int b, m, e;
+        if (scanf("%d %d %d", &b, &m, &e) != 3) {
+            /* Undefined behavior per spec; terminate */
+            free(tmp);
+            free(a);
+            return 0;
+        }
+
+        int L = e - b;
+        int k = m - b; /* 0 <= k <= L per preconditions */
+
+        /* Rotation as specified:
+           new[b+i] = old[b + ((i + k) mod L)] for i in [0, L)
+           This is a left rotation by k within [b,e). */
+        for (int i = 0; i < L; i++) {
+            int src = b + (i + k) % L;
+            tmp[i] = a[src];
+        }
+        for (int i = 0; i < L; i++) {
+            a[b + i] = tmp[i];
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (i) putchar(' ');
+        printf("%d", a[i]);
+    }
+    putchar('\n');
+
+    free(tmp);
+    free(a);
+    return 0;
+}

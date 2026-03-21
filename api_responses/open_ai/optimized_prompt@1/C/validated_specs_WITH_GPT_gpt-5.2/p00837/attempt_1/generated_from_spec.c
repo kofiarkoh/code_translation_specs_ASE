@@ -1,0 +1,153 @@
+#include <stdio.h>
+
+#define MAX_DESKS 32
+#define MAX_CAP   64
+#define MAX_BOOKS 2048
+#define MAX_ID    4096
+
+typedef struct {
+    int a[MAX_CAP];
+    int sz;
+} Desk;
+
+static Desk desks[MAX_DESKS]; /* desk 0 is primary, 1..n are auxiliary */
+static int bookDesk[MAX_ID + 1]; /* 0..n desk index where book currently resides, 0 means primary too */
+static int bookPos[MAX_ID + 1];  /* position within that desk */
+
+static void desk_remove_at(int d, int pos, int cap) {
+    (void)cap;
+    /* remove element at pos, shift left to keep contiguous */
+    for (int i = pos; i < desks[d].sz - 1; i++) {
+        int b = desks[d].a[i + 1];
+        desks[d].a[i] = b;
+        bookPos[b] = i;
+    }
+    desks[d].sz--;
+}
+
+static void desk_push_back(int d, int book, int cap) {
+    /* assumes caller ensures capacity not exceeded */
+    (void)cap;
+    int pos = desks[d].sz;
+    desks[d].a[pos] = book;
+    desks[d].sz++;
+    bookDesk[book] = d;
+    bookPos[book] = pos;
+}
+
+static int first_aux_not_full(int nAux, int cap) {
+    for (int d = 1; d <= nAux; d++) {
+        if (desks[d].sz < cap) return d;
+    }
+    return -1; /* undefined by spec if none exists when needed */
+}
+
+static long long process_request(int nAux, int cap, int book) {
+    long long cost = 0;
+
+    /* Remove requested book from its current desk, cost = that desk index */
+    int curD = bookDesk[book];
+    int curP = bookPos[book];
+    cost += curD;
+    desk_remove_at(curD, curP, cap);
+
+    /* If primary desk full, perform replacement sequence */
+    if (desks[0].sz >= cap) {
+        /* Temporarily place requested book into first non-full auxiliary desk */
+        int tmpD = first_aux_not_full(nAux, cap);
+        cost += tmpD;
+        desk_push_back(tmpD, book, cap);
+
+        /* Evict oldest book at primary (front position 0) */
+        int evicted = desks[0].a[0];
+        cost += 0; /* primary desk index is 0 */
+        desk_remove_at(0, 0, cap);
+
+        /* Place evicted book into first non-full auxiliary desk (after temp placement) */
+        int evD = first_aux_not_full(nAux, cap);
+        cost += evD;
+        desk_push_back(evD, evicted, cap);
+
+        /* Undo temporary placement: remove requested book from tmpD */
+        cost += tmpD;
+        int tmpP = bookPos[book];
+        desk_remove_at(tmpD, tmpP, cap);
+        /* bookDesk/bookPos for 'book' will be set when placed into primary below */
+    }
+
+    /* Place requested book at back of primary desk */
+    cost += 0; /* primary desk index is 0 */
+    desk_push_back(0, book, cap);
+
+    return cost;
+}
+
+int main(void) {
+    int nAux;
+    while (scanf("%d", &nAux) == 1) {
+        if (nAux <= 0) break;
+
+        int cap, nStudents;
+        if (scanf("%d %d", &cap, &nStudents) != 2) return 0;
+
+        int totalReq = 0;
+        static int reqCount[MAX_BOOKS];
+        static int reqs[MAX_BOOKS][MAX_CAP]; /* narrow interpretation: per-student requests bounded small */
+        /* If a student has more than MAX_CAP requests, behavior is undefined per spec bounds. */
+
+        for (int i = 0; i <= nAux; i++) desks[i].sz = 0;
+        for (int i = 0; i <= MAX_ID; i++) {
+            bookDesk[i] = 0;
+            bookPos[i] = 0;
+        }
+
+        for (int s = 0; s < nStudents; s++) {
+            int k;
+            scanf("%d", &k);
+            reqCount[s] = k;
+            totalReq += k;
+            for (int j = 0; j < k; j++) {
+                int b;
+                scanf("%d", &b);
+                reqs[s][j] = b;
+            }
+        }
+
+        /* Initialize: introduce all books into the system exactly once, in the same total order
+           as processing (request index within student, then student index). */
+        static int seen[MAX_ID + 1];
+        for (int i = 0; i <= MAX_ID; i++) seen[i] = 0;
+
+        int maxK = 0;
+        for (int s = 0; s < nStudents; s++) if (reqCount[s] > maxK) maxK = reqCount[s];
+
+        for (int j = 0; j < maxK; j++) {
+            for (int s = 0; s < nStudents; s++) {
+                if (j >= reqCount[s]) continue;
+                int b = reqs[s][j];
+                if (b <= 0 || b > MAX_ID) continue; /* undefined by spec; keep minimal guard */
+                if (!seen[b]) {
+                    seen[b] = 1;
+                    /* Place into first auxiliary desk with space; if none, behavior undefined by spec. */
+                    int d = first_aux_not_full(nAux, cap);
+                    if (d < 0) d = 1; /* minimal fallback; still undefined scenario */
+                    desk_push_back(d, b, cap);
+                }
+            }
+        }
+
+        long long totalCost = 0;
+
+        /* Process occurrences in total order: request index within student, then student index */
+        for (int j = 0; j < maxK; j++) {
+            for (int s = 0; s < nStudents; s++) {
+                if (j >= reqCount[s]) continue;
+                int b = reqs[s][j];
+                totalCost += process_request(nAux, cap, b);
+            }
+        }
+
+        printf("%lld\n", totalCost);
+    }
+    return 0;
+}

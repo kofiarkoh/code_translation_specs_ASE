@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+Wrong transition/ordering rule within each simulated time unit (update order / simultaneity), leading to wrong counting rule for “misses”.
+
+B. What the current specification may be missing or misstating  
+- It treats each time unit as: (1) advance all active devices, enqueue those that enter charging, (2) pick serviced device, (3) count misses for all non-serviced charging devices, (4) advance serviced charging by one.  
+- The source program does **not** model charging devices as all “progressing” each time unit in the same way. Instead, it uses a per-time-step marker (`tp->t = t`) and only considers as “charging and waiting” those devices that were **not processed in the active loop at that same time t** (i.e., devices that were already charging from earlier times).  
+- As a result, devices that *enter charging at time t* are enqueued but are **not counted as waiting/missing during that same time unit** in the source behavior, whereas the generated program counts them immediately (if not serviced).
+
+C. What general behavior should be clarified in the specification  
+- The exact per-time-unit sequencing, specifically whether a device that transitions Active→Charging at time t:
+  - is eligible to be counted as a “charging miss” at time t, and/or
+  - is eligible to receive service at time t, and/or
+  - only starts contributing misses from time t+1 if not serviced.
+- More generally: define whether state changes take effect immediately for counting/service within the same tick, or only from the next tick (i.e., “end-of-tick” vs “immediate” semantics), and how newly enqueued devices interact with the miss counter for that tick.
+
+D. Why this clarification is supported by the source program  
+- In the source, during each time `t`:
+  1) For each device that is currently `use==1` (active), it decrements active remaining time; if it hits zero, it switches to charging (`use=0`), initializes charging remaining time, and enqueues it. It also sets `tp->t = t` for active devices processed in this loop.  
+  2) When counting misses, it iterates devices with condition `tp->t != t && tp->use == 0`. This explicitly **excludes** any device that was processed in step (1) at time `t`—including those that just became charging and were enqueued at time `t`. Therefore, newly charging devices do not contribute to `ans` in the same time unit they enter charging.  
+  3) Only the queue-front device’s charging remaining time is decremented (service), and completion is checked after that.
+- The current specification (and generated code) lacks this “newly entered charging does not count as waiting in the same tick” timing rule, which can systematically inflate misses and explains the observed higher outputs.

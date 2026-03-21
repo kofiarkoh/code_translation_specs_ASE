@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+- Wrong algorithmic assumption / wrong transition rule (traversal/relaxation rule), leading to non-termination (timeout).
+
+B. What the current specification may be missing or misstating  
+- The specification describes the computation as “two traversals” where “each vertex is visited at most once,” which matches an unweighted BFS/DFS on a tree.  
+- However, the source program’s `bfs()` is not a standard BFS over a tree: it performs repeated relaxations (`if (C[to] > C[fr] + co)`) and re-enqueues vertices when a shorter distance is found. This is closer to a queue-based shortest-path relaxation (SPFA-like), not a single-visit BFS.  
+- The generated program assumes that a simple FIFO BFS with a visited array is sufficient to compute farthest distances by summing weights along the first-discovered path. That assumption is only safe if the traversal order guarantees the unique-path distance is established when first visited (which is true for DFS on a tree, but not necessarily for a BFS that marks visited and never revisits when weights exist and vertex numbering may be 0-based).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the exact traversal semantics used to compute distances:  
+  - Distances are computed by propagating/relaxing along edges, not by “first time visited” in a BFS layer order.  
+  - The implementation’s traversal may revisit/re-enqueue vertices (or at least must be correct for weighted edges without relying on BFS discovery order).  
+- Clarify vertex indexing expectations (0-based in the source: it starts from vertex `0` and initializes arrays for `i=0..v-1`). A spec that doesn’t pin this down can lead to generated code starting from vertex `1` and leaving vertex `0` uninitialized/unused, which can break reachability and termination assumptions.
+
+D. Why this clarification is supported by the source program  
+- The source initializes and starts from vertex `0` (`C[0]=0; f[0]=1; max=dfs(...,0,0);`), indicating 0-based vertex IDs are assumed by the implementation.  
+- The source’s `bfs()` (even though unused in `tyokkei`) clearly shows the author’s distance-computation model is “relax until no improvement,” not “visit once.” This contradicts the spec’s invariant “each vertex is visited at most once” as a general statement about the approach.  
+- The actual diameter computation in `tyokkei()` uses `dfs()` with a visited array and accumulates distances along the unique tree path; it does not use the generated program’s “BFS with visited” approach. The mismatch in traversal model (and indexing) is consistent with a timeout: if the generated code starts from a non-existent/isolated node due to indexing mismatch or fails to correctly traverse all nodes, it can end up with incorrect queue growth/behavior on some inputs or get stuck processing unintended memory/graph structure.

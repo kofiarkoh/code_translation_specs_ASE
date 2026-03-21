@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <string.h>
+
+#define BUF_CAP 128
+#define MAX_DIGITS 80
+
+static void strip_leading_zeros(const char *in, char *out) {
+    /* Normalize to no leading zeros, except keep single "0" */
+    while (*in == '0' && in[1] != '\0') in++;
+    strcpy(out, in);
+}
+
+static void add_decimal_strings(const char *a, const char *b, char *out) {
+    /* out must be large enough; produces no leading zeros unless result is zero */
+    size_t la = strlen(a), lb = strlen(b);
+    size_t maxl = (la > lb) ? la : lb;
+
+    /* Temporary buffer for reversed digits (plus possible carry) */
+    char rev[BUF_CAP + 2];
+    size_t i = 0;
+    int carry = 0;
+
+    while (i < maxl || carry) {
+        int da = 0, db = 0;
+        if (i < la) da = a[la - 1 - i] - '0';
+        if (i < lb) db = b[lb - 1 - i] - '0';
+        int s = da + db + carry;
+        rev[i] = (char)('0' + (s % 10));
+        carry = s / 10;
+        i++;
+    }
+
+    /* Reverse into out */
+    size_t outlen = i;
+    for (size_t j = 0; j < outlen; j++) {
+        out[j] = rev[outlen - 1 - j];
+    }
+    out[outlen] = '\0';
+
+    /* Ensure canonical form (though addition won't create leading zeros except "0") */
+    if (out[0] == '0' && out[1] != '\0') {
+        char tmp[BUF_CAP + 2];
+        strip_leading_zeros(out, tmp);
+        strcpy(out, tmp);
+    }
+}
+
+int main(void) {
+    int t;
+    if (scanf("%d", &t) != 1) {
+        return 0;
+    }
+
+    for (int case_idx = 0; case_idx < t; case_idx++) {
+        char s1[BUF_CAP];
+        char s2[BUF_CAP];
+
+        /* Per spec, behavior is not well-defined if tokens are missing; we just attempt to read. */
+        (void)scanf("%127s %127s", s1, s2);
+
+        size_t len1 = strlen(s1);
+        size_t len2 = strlen(s2);
+
+        if (len1 > MAX_DIGITS || len2 > MAX_DIGITS) {
+            puts("overflow");
+            continue;
+        }
+
+        /* Compute sum and check result length constraint */
+        char sum[BUF_CAP + 2];
+        add_decimal_strings(s1, s2, sum);
+
+        if (strlen(sum) > MAX_DIGITS) {
+            puts("overflow");
+        } else {
+            puts(sum);
+        }
+    }
+
+    return 0;
+}

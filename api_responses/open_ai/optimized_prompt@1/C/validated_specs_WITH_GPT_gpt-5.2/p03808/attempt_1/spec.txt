@@ -1,0 +1,41 @@
+1. Functional Description  
+Determines whether a given sequence of integers of length `N` satisfies a specific set of arithmetic consistency constraints derived from its cyclic adjacent differences and the total sum of its elements. Produces an affirmative or negative decision.
+
+2. Inputs  
+- An integer `N`.  
+- A sequence of `N` integers.
+
+3. Outputs  
+- Writes one decision line indicating acceptance or rejection.  
+  - Acceptance is printed as `YES`.  
+  - Rejection is printed as either `NO` or `No` (case varies by the failing condition).
+
+4. Preconditions  
+- `N` is within the supported bound such that storing `N+1` elements in fixed-size internal storage is valid (i.e., `0 ≤ N ≤ 100000`).  
+- Input provides at least `N` integers after `N`.  
+- Arithmetic operations on intermediate values fit within signed 64-bit integer range (otherwise behavior is not defined by this specification).
+
+5. Postconditions  
+- If the program prints `YES`, then there exists an integer value `S` and a sequence of `N` integers `x₁..x_N` such that:  
+  - `S` equals the total sum of the input sequence divided by `N(N+1)/2` (and this division is exact).  
+  - For each position `i` (1..N), the cyclic adjacent difference between element `i` and the previous element (with element 1’s previous being element N) satisfies:  
+    - `x_i = (S - (a_i - a_{i-1})) / N` is an integer, where `a_0` denotes the last element and `a_i` denotes the i-th input element.  
+    - `0 ≤ x_i ≤ S`.  
+  - The sum of `x₁..x_N` equals `S`.  
+  - A final weighted consistency check holds: the last element of the input sequence equals the weighted sum `Σ_{i=1..N} x_i * (N - i + 1)`.  
+- If the program prints `NO` or `No`, at least one of the above required conditions does not hold (or required divisibility/integrality constraints fail).
+
+6. Invariants  
+- The decision is based solely on the provided `N` and the `N` input integers; no external state is consulted.  
+- The cyclic nature of the sequence is assumed for difference computations (the element after the last is treated as the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range `N`, or arithmetic overflow. In such cases, behavior is unspecified.  
+- Rejection output may be `NO` or `No` depending on which check fails; both represent rejection.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is created or modified beyond producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage sized for up to 100001 elements; memory usage is bounded accordingly.  
+- Runs in time proportional to `N` under the stated preconditions.

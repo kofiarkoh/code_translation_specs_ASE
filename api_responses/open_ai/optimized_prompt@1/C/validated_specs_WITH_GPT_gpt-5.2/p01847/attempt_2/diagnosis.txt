@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Wrong abstraction / missing algorithmic constraint (spec describes a geometric set operation, but the source implements a different, more specialized computation). Also indicates missing “implementation-level” constraints (must be expressible in ISO C without nonstandard constructs), though the deeper behavioral mismatch is algorithmic.
+
+B. What the current specification may be missing or misstating  
+- It characterizes the output as the signed area of the polygon region outside the rectangle, i.e., \(2\cdot \text{signedArea}(P\setminus R)\) or \(2\cdot\text{signedArea}(P)-2\cdot\text{signedArea}(P\cap R)\).  
+- The source program does not compute a general polygon-rectangle intersection area via clipping. Instead, it only accumulates contributions from **vertical polygon edges** (`if (x[i] == x[i+1])`) and applies **coordinate clamping** of those edge endpoints to the rectangle bounds before accumulating a “window” term. This is not equivalent to computing \(P\cap R\) for arbitrary polygons.
+
+C. What general behavior should be clarified in the specification  
+- The computation is based on a **scanline/edge-integration formula that only uses vertical edges** of the polygon, and the “window” effect is applied by **clamping** the x of the vertical edge to \([xmin,xmax]\) and clamping each endpoint y to \([ymin,ymax]\).  
+- Consequently, the intended polygon class/representation likely has constraints (e.g., orthogonal polygons with axis-aligned edges, or at least polygons where the area integral can be recovered from vertical edges alone). The spec should state the required polygon properties under which the formula is valid, rather than describing a general set-difference area for any simple polygon.  
+- The output is specifically `win - cur` where `cur` is the vertical-edge contribution for the whole polygon and `win` is the same contribution after clamping to the rectangle; this is a different abstraction than “area outside rectangle” unless additional constraints hold.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly ignores all non-vertical edges: `for (i = 0; i < N; i++) if (x[i] == x[i+1]) { ... }`. Any correct “polygon minus rectangle” area algorithm for general polygons cannot discard most edges.  
+- The “intersection with rectangle” is not computed by geometric clipping; instead it clamps `a` (x) and `b,c` (y endpoints) independently to rectangle bounds before accumulating `win += a * (b-c)`. Independent clamping of endpoints is not how polygon-rectangle intersection is formed in general.  
+- The final result is `printf("%lld\n", win-cur);`, i.e., a difference of two edge-integral sums, not `area(P) - area(P∩R)` computed via polygon intersection. This strongly indicates the current spec’s set-operation description is too general/wrong for what the source actually does.

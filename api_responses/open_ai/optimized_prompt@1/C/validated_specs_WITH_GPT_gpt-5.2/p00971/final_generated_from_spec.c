@@ -1,0 +1,144 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#define INF 0x3f3f3f3f
+
+/* next occurrence definition per spec:
+   next_c(p) = smallest index q > p with s[q]==c, else end index.
+   Indices used here are 0..n-1 for characters, and n is the end sentinel.
+   We allow p in [0..n]. For p==n, next_c(p)=n.
+*/
+static void build_next_tables(const char *s, int n, int *next0, int *next1) {
+    /* We compute for each p in [0..n]:
+       next0[p] = next occurrence index of '0' strictly after p, else n.
+       next1[p] = next occurrence index of '1' strictly after p, else n.
+    */
+    int last0 = n, last1 = n;
+    next0[n] = n;
+    next1[n] = n;
+
+    /* For p from n-1 down to 0, next after p is the nearest occurrence in (p..] */
+    for (int p = n - 1; p >= 0; --p) {
+        next0[p] = last0;
+        next1[p] = last1;
+        if (s[p] == '0') last0 = p;
+        else if (s[p] == '1') last1 = p;
+        /* unspecified for other chars; spec says inputs are binary */
+    }
+}
+
+/* DP over (i,j) with i in [0..nA], j in [0..nB].
+   L(endA,endB)=0, and for all other states:
+   L(i,j)=1+min(L(next0A[i],next0B[j]), L(next1A[i],next1B[j])).
+*/
+int main(void) {
+    char *A = NULL, *B = NULL;
+    size_t capA = 0, capB = 0;
+
+    /* Read two whitespace-delimited tokens. */
+    {
+        /* Use fixed upper bound implied by spec (<=4000), but do not enforce. */
+        char bufA[10000], bufB[10000];
+        if (scanf("%9999s %9999s", bufA, bufB) != 2) return 0;
+        size_t lenA = strlen(bufA), lenB = strlen(bufB);
+        capA = lenA + 1;
+        capB = lenB + 1;
+        A = (char*)malloc(capA);
+        B = (char*)malloc(capB);
+        if (!A || !B) return 0;
+        memcpy(A, bufA, lenA + 1);
+        memcpy(B, bufB, lenB + 1);
+    }
+
+    int nA = (int)strlen(A);
+    int nB = (int)strlen(B);
+    int endA = nA;
+    int endB = nB;
+
+    int *next0A = (int*)malloc((size_t)(nA + 1) * sizeof(int));
+    int *next1A = (int*)malloc((size_t)(nA + 1) * sizeof(int));
+    int *next0B = (int*)malloc((size_t)(nB + 1) * sizeof(int));
+    int *next1B = (int*)malloc((size_t)(nB + 1) * sizeof(int));
+    if (!next0A || !next1A || !next0B || !next1B) return 0;
+
+    build_next_tables(A, nA, next0A, next1A);
+    build_next_tables(B, nB, next0B, next1B);
+
+    /* Allocate DP table: (nA+1)*(nB+1) ints. */
+    size_t W = (size_t)(nB + 1);
+    size_t H = (size_t)(nA + 1);
+    size_t total = W * H;
+
+    int *dp = (int*)malloc(total * sizeof(int));
+    if (!dp) return 0;
+
+    /* Initialize to INF. */
+    for (size_t k = 0; k < total; ++k) dp[k] = INF;
+
+    /* Base condition. */
+    dp[(size_t)endA * W + (size_t)endB] = 0;
+
+    /* Fill DP in reverse order so that next indices (which are > current or end)
+       are already computed. Since next_c(p) is strictly greater than p (or end),
+       iterating i from endA down to 0 and j from endB down to 0 suffices. */
+    for (int i = endA; i >= 0; --i) {
+        for (int j = endB; j >= 0; --j) {
+            if (i == endA && j == endB) continue;
+            int ni0 = (i == endA) ? endA : next0A[i];
+            int nj0 = (j == endB) ? endB : next0B[j];
+            int ni1 = (i == endA) ? endA : next1A[i];
+            int nj1 = (j == endB) ? endB : next1B[j];
+
+            int v0 = dp[(size_t)ni0 * W + (size_t)nj0];
+            int v1 = dp[(size_t)ni1 * W + (size_t)nj1];
+            int best = v0 < v1 ? v0 : v1;
+            if (best >= INF/2) dp[(size_t)i * W + (size_t)j] = INF;
+            else dp[(size_t)i * W + (size_t)j] = best + 1;
+        }
+    }
+
+    /* Reconstruct greedily with tie-breaking: choose '0' if optimal, else '1'. */
+    int i = 0, j = 0;
+    int L00 = dp[0 * W + 0];
+    if (L00 >= INF/2) {
+        /* Under the specified model, this should not happen for finite strings,
+           but behavior is unspecified; print empty line as narrowest output. */
+        putchar('\n');
+    } else {
+        char *out = (char*)malloc((size_t)L00 + 1);
+        if (!out) return 0;
+        int pos = 0;
+
+        while (!(i == endA && j == endB)) {
+            int cur = dp[(size_t)i * W + (size_t)j];
+
+            int ni0 = (i == endA) ? endA : next0A[i];
+            int nj0 = (j == endB) ? endB : next0B[j];
+            int ni1 = (i == endA) ? endA : next1A[i];
+            int nj1 = (j == endB) ? endB : next1B[j];
+
+            int v0 = dp[(size_t)ni0 * W + (size_t)nj0];
+            if (cur == 1 + v0) {
+                out[pos++] = '0';
+                i = ni0; j = nj0;
+                continue;
+            }
+            /* Otherwise choose '1' if optimal (spec implies it will be). */
+            out[pos++] = '1';
+            i = ni1; j = nj1;
+        }
+
+        out[pos] = '\0';
+        fputs(out, stdout);
+        putchar('\n');
+        free(out);
+    }
+
+    free(dp);
+    free(next0A); free(next1A);
+    free(next0B); free(next1B);
+    free(A); free(B);
+    return 0;
+}

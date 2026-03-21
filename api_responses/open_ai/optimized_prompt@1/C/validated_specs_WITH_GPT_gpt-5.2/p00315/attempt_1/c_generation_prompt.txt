@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes an initial square binary grid and a sequence of grid-update batches. After the initial grid and after each batch, it evaluates whether the grid satisfies a symmetry-consistency property: for every cell, its value equals the value at the cell mirrored across the horizontal centerline and also equals the value at the cell mirrored across the vertical centerline. It outputs how many of these evaluated states satisfy the property.
+
+2. Inputs  
+- An integer count of evaluated grid states, including the initial state and subsequent updated states.  
+- An integer grid size defining an N×N grid.  
+- N rows of N binary characters representing the initial grid.  
+- For each of the remaining evaluated states:  
+  - An integer specifying how many cell toggles occur in that batch.  
+  - That many 1-based grid coordinates (row, column) indicating which cells to toggle.
+
+3. Outputs  
+- A single integer: the number of evaluated states (initial plus each batch-applied state) whose grid satisfies the symmetry-consistency property.
+
+4. Preconditions  
+- The provided grid size does not exceed the fixed maximum supported by the program (1000).  
+- The initial grid contains exactly N rows each with at least N binary characters.  
+- Each toggle coordinate refers to a valid cell within the grid (1 through N for both row and column).  
+- The number of evaluated states is at least 1, and the input provides exactly the required number of batches (one fewer than the evaluated state count).
+
+5. Postconditions  
+- The output equals the count of evaluated states for which, for all cells (i, j), the cell value equals the value at (N−1−i, j) and equals the value at (i, N−1−j).  
+- Each batch is applied cumulatively to the grid by toggling the specified cells (binary flip) before evaluating that state.
+
+6. Invariants  
+- At any evaluation point, the grid consists only of binary values.  
+- The symmetry-consistency property holds for the grid if and only if every cell matches both its horizontal-mirror counterpart and its vertical-mirror counterpart.  
+- The internal running count of “cells satisfying the local mirror-equality checks” equals the sum of those checks over all cells and is kept consistent with the current grid state.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (out-of-range sizes, malformed grid rows, invalid coordinates, insufficient data), behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Initial state: grid loaded from input and evaluated once.  
+- For each subsequent state: apply a batch of toggles to the current grid (cumulative), then evaluate the updated grid once.  
+- The final output is produced after all states have been evaluated.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grid sizes up to 1000×1000 due to fixed storage.  
+- Time per toggle is constant with respect to N (updates are localized), while each full evaluation check is effectively constant-time because it relies on maintained aggregate state rather than rescanning the grid.
+
+```

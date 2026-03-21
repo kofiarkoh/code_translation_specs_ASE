@@ -1,0 +1,104 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int X, Y; /* X rows, Y columns */
+
+    while (scanf("%d %d", &X, &Y) == 2) {
+        if (X == 0 && Y == 0) break;
+
+        /* Grid is provided column-by-column: for each column j, read X integers for rows i. */
+        int *grid = (int *)malloc((size_t)X * (size_t)Y * sizeof(int));
+        if (!grid) return 0; /* Undefined by spec; just stop if out of memory. */
+
+        for (int j = 0; j < Y; j++) {
+            for (int i = 0; i < X; i++) {
+                int v;
+                if (scanf("%d", &v) != 1) {
+                    /* Undefined by spec on unexpected EOF; exit. */
+                    free(grid);
+                    return 0;
+                }
+                grid[i * Y + j] = v;
+            }
+        }
+
+        /* Counts for columns 0..Y+1 (two beyond-end columns). */
+        int colsCount = Y + 2;
+        unsigned long long *dp = (unsigned long long *)calloc((size_t)X * (size_t)colsCount, sizeof(unsigned long long));
+        if (!dp) {
+            free(grid);
+            return 0;
+        }
+
+        /* Start positions: any row in column 0 whose cell value is 0 contributes exactly one. */
+        for (int i = 0; i < X; i++) {
+            if (grid[i * Y + 0] == 0) {
+                dp[i * colsCount + 0] = 1ULL;
+            }
+        }
+
+        /* Process transitions from columns 0..Y-1 (no outgoing transitions from beyond-end columns). */
+        for (int j = 0; j < Y; j++) {
+            for (int i = 0; i < X; i++) {
+                unsigned long long ways = dp[i * colsCount + j];
+                if (ways == 0ULL) continue;
+
+                int nj = j + 1;
+                if (nj >= Y) continue; /* From last column, only contributes to total; no further transitions. */
+
+                for (int di = -1; di <= 1; di++) {
+                    int ni = i + di;
+                    if (ni < 0 || ni >= X) continue;
+
+                    int dest = grid[ni * Y + nj];
+
+                    if (dest == 0) {
+                        dp[ni * colsCount + nj] += ways;
+                    } else if (dest == 1) {
+                        /* Blocked: not enterable; contributes zero and clears any previously accumulated count there. */
+                        dp[ni * colsCount + nj] = 0ULL;
+                    } else {
+                        /* Jump cell: only allowed when moving straight (same row). */
+                        if (di != 0) continue;
+
+                        int land = j + 3; /* base landing column */
+                        /* While landing is strictly before last column and landing cell is also a jump cell, advance by 2. */
+                        while (land < (Y - 1)) {
+                            int cell = grid[i * Y + land];
+                            if (cell == 0 || cell == 1) break;
+                            land += 2;
+                        }
+
+                        /* Add to landing column; landing may be Y or Y+1 (beyond-end). */
+                        if (land < 0) {
+                            /* impossible here */
+                        } else if (land >= colsCount) {
+                            /* If it goes even further, behavior is undefined by spec; clamp to last beyond-end. */
+                            dp[i * colsCount + (colsCount - 1)] += ways;
+                        } else {
+                            dp[i * colsCount + land] += ways;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Total is sum at last column (Y-1) and beyond-end columns Y and Y+1. */
+        unsigned long long total = 0ULL;
+        for (int i = 0; i < X; i++) {
+            total += dp[i * colsCount + (Y - 1)];
+            total += dp[i * colsCount + Y];
+            total += dp[i * colsCount + (Y + 1)];
+        }
+
+        printf("%llu\n", total);
+
+        free(dp);
+        free(grid);
+    }
+
+    return 0;
+}
+```

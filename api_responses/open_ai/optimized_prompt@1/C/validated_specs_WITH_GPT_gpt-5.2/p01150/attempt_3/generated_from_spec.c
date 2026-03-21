@@ -1,0 +1,126 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAXN 70
+#define FACT8 40320LL
+
+/* Odd N: count cyclic binary strings length N with exactly 8 ones and no adjacent ones (cyclic). */
+static int64_t memo_odd[MAXN + 1][9][2][2];
+static unsigned char vis_odd[MAXN + 1][9][2][2];
+
+static int64_t dfs_odd(int N, int pos, int ones, int first, int prev)
+{
+    if (ones > 8) return 0;
+    if (pos == N) {
+        /* Enforce cyclic adjacency between last and first. */
+        if (ones == 8 && !(prev == 1 && first == 1)) return 1;
+        return 0;
+    }
+
+    if (vis_odd[pos][ones][first][prev]) return memo_odd[pos][ones][first][prev];
+    vis_odd[pos][ones][first][prev] = 1;
+
+    int64_t res = 0;
+
+    /* Place 0 */
+    res += dfs_odd(N, pos + 1, ones, first, 0);
+
+    /* Place 1 if not adjacent to previous */
+    if (prev == 0) {
+        if (pos == 0) {
+            res += dfs_odd(N, pos + 1, ones + 1, 1, 1);
+        } else {
+            res += dfs_odd(N, pos + 1, ones + 1, first, 1);
+        }
+    }
+
+    memo_odd[pos][ones][first][prev] = res;
+    return res;
+}
+
+static int64_t count_odd(int N)
+{
+    memset(vis_odd, 0, sizeof(vis_odd));
+    return dfs_odd(N, 0, 0, 0, 0);
+}
+
+/*
+Even N: N/2 pairs, each pair state in {A=(1,0), B=(0,1), Z=(0,0)}.
+No consecutive A, no consecutive B, cyclic over pairs.
+Total occupied positions (A or B) must be exactly 8.
+We DP over pair index with state = last type (0=Z,1=A,2=B) and remember first type for cyclic closure.
+*/
+static int64_t memo_even[(MAXN/2) + 1][9][3][3];
+static unsigned char vis_even[(MAXN/2) + 1][9][3][3];
+
+static int64_t dfs_even(int M, int idx, int ones, int firstType, int lastType)
+{
+    if (ones > 8) return 0;
+    if (idx == M) {
+        if (ones != 8) return 0;
+        /* cyclic restriction between last and first: cannot have same occupied-half type consecutively */
+        if (lastType == 1 && firstType == 1) return 0; /* A followed by A */
+        if (lastType == 2 && firstType == 2) return 0; /* B followed by B */
+        return 1;
+    }
+
+    if (vis_even[idx][ones][firstType][lastType]) return memo_even[idx][ones][firstType][lastType];
+    vis_even[idx][ones][firstType][lastType] = 1;
+
+    int64_t res = 0;
+
+    /* Choose Z (0,0): always allowed */
+    {
+        int nt = 0;
+        int nf = (idx == 0) ? nt : firstType;
+        res += dfs_even(M, idx + 1, ones, nf, nt);
+    }
+
+    /* Choose A (1,0): disallowed if last was A */
+    if (lastType != 1) {
+        int nt = 1;
+        int nf = (idx == 0) ? nt : firstType;
+        res += dfs_even(M, idx + 1, ones + 1, nf, nt);
+    }
+
+    /* Choose B (0,1): disallowed if last was B */
+    if (lastType != 2) {
+        int nt = 2;
+        int nf = (idx == 0) ? nt : firstType;
+        res += dfs_even(M, idx + 1, ones + 1, nf, nt);
+    }
+
+    memo_even[idx][ones][firstType][lastType] = res;
+    return res;
+}
+
+static int64_t count_even(int N)
+{
+    int M = N / 2;
+    memset(vis_even, 0, sizeof(vis_even));
+    /* Start with idx=0, ones=0, firstType placeholder 0, lastType=0 (no previous, treated as Z). */
+    return dfs_even(M, 0, 0, 0, 0);
+}
+
+int main(void)
+{
+    int N;
+    while (scanf("%d", &N) == 1) {
+        if (N == 0) break;
+
+        int64_t patterns = 0;
+        if (N <= 16) {
+            patterns = 0;
+        } else if (N & 1) {
+            patterns = count_odd(N);
+        } else {
+            patterns = count_even(N);
+        }
+
+        /* Multiply by 8!; overflow is allowed per specification. */
+        int64_t result = patterns * (int64_t)FACT8;
+        printf("%lld\n", (long long)result);
+    }
+    return 0;
+}

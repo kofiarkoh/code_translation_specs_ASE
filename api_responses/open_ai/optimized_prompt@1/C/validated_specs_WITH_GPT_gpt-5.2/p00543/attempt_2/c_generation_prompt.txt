@@ -1,0 +1,58 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence and applies a series of remainder-based adjacent-swap passes. For each modulus value `k` from 1 through a given limit `m`, the program performs exactly one left-to-right sweep over adjacent pairs in the current sequence. During that sweep, for each adjacent pair, if the left element’s remainder modulo `k` is greater than the right element’s remainder modulo `k`, the two elements are swapped. After completing all passes, the program outputs the resulting sequence.
+
+2. Inputs  
+- An integer `n`: the number of elements.  
+- An integer `m`: the number of passes (and the maximum modulus used).  
+- `n` integers forming the initial sequence.
+
+3. Outputs  
+- The final sequence after all passes, printed as `n` integers, one per line, in their resulting order.
+
+4. Preconditions / Assumptions  
+- `1 <= n <= 1000` (the program stores elements in a fixed-size array).  
+- `m >= 1` (the program performs passes for `k = 1..m`).  
+- Exactly `n` integer values are provided after `n` and `m`.  
+- No explicit validation is performed; if inputs are missing, malformed, or outside these assumptions, behavior is unspecified.
+
+5. Transformation / Pass Semantics  
+- The sequence is 1-indexed conceptually for the purpose of describing the behavior.  
+- For each pass index `k` taking values `1, 2, ..., m`, the program performs exactly `n-1` adjacent comparisons in order on the current sequence: it considers pairs `(1,2)`, then `(2,3)`, ..., then `(n-1,n)`.  
+- For each such pair `(i, i+1)`, it computes `a[i] % k` and `a[i+1] % k` using the language’s integer remainder operation. If `a[i] % k` is strictly greater than `a[i+1] % k`, the two elements are swapped; otherwise they are left as-is.  
+- Each pass consists of this single sweep only; the program does not repeat sweeps for the same `k` until no swaps occur. Therefore, after a pass for a given `k`, the sequence is not guaranteed to be fully ordered by remainder modulo `k` across all adjacent pairs.
+
+6. Postconditions  
+- The multiset of input values is preserved; only the order may change due to swaps.  
+- Exactly `n` integers are printed, each on its own line, corresponding to the sequence obtained after applying the above single-sweep transformation for every `k` from 1 through `m` in increasing order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is implemented; behavior is unspecified if preconditions are violated or input cannot be read as required.
+
+```

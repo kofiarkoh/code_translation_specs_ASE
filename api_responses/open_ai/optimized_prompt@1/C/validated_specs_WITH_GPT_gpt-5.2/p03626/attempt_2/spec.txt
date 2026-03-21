@@ -1,0 +1,52 @@
+1. Functional Description  
+Computes, modulo `1,000,000,007`, a count derived from two length‑`N` character strings that represent a 2×`N` domino tiling and its 3‑colorings under the usual constraint that tiles sharing an edge must have different colors. The program determines whether the tiling uses a vertical domino at a column or a horizontal domino pair spanning two columns, and multiplies an accumulator by fixed factors depending on the current orientation and the immediately preceding orientation.
+
+2. Inputs  
+- An integer `N`.  
+- Two null‑terminated strings `S1` and `S2`, each read as a whitespace-delimited token.
+
+3. Outputs  
+- A single integer: the computed count reduced modulo `1,000,000,007`.
+
+4. Preconditions / Input Assumptions  
+- `N >= 1`.  
+- `S1` and `S2` have length exactly `N`.  
+- The pair `(S1, S2)` encodes a valid 2×`N` domino tiling in the standard way:
+  - A column `i` is vertical iff `S1[i] == S2[i]`.
+  - Otherwise, columns `i` and `i+1` form a horizontal pair, which implies `S1[i] == S1[i+1]` and `S2[i] == S2[i+1]`, and also implies `S1[i+1] != S2[i+1]`.
+- Input is well-formed; no validation is performed. If these assumptions are violated, behavior is undefined.
+
+5. Postconditions / Output Semantics  
+- The output equals the number of valid 3-colorings of the domino tiling implied by `(S1, S2)`, taken modulo `1,000,000,007`, as computed by the program’s recurrence described below.
+
+6. Counting Logic (as implemented)  
+Let `m = 1,000,000,007`. The program maintains:
+- `ans` (a `long long`) as the running product modulo `m`.
+- A state flag `t` indicating the orientation most recently accounted for:
+  - `t = 1` means the most recent tile orientation is vertical.
+  - `t = 0` means the most recent tile orientation is horizontal.
+
+Initialization (based on column 0):
+- If `S1[0] == S2[0]` (vertical at the first column): set `ans = 3` and `t = 1`.
+- Otherwise (horizontal starting at the first column): set `ans = 6` and `t = 0`.
+
+Update loop:
+- For each index `i` from `1` to `N-1` inclusive, the program performs up to two independent checks in this order:
+
+  (a) Vertical-at-`i` check: if `S1[i] == S2[i]` then  
+  - If `t == 1` (previous was vertical), set `ans = (ans * 2) % m`.  
+  - Set `t = 1`.
+
+  (b) Horizontal-starting-at-`i` check: if `S1[i] == S1[i+1]` then  
+  - If `t == 1` (previous was vertical), set `ans = (ans * 2) % m`; else set `ans = (ans * 3) % m`.  
+  - Set `t = 0`.
+
+Notes on interpretation:
+- The program’s detection of a horizontal placement during the loop is driven by the adjacency test `S1[i] == S1[i+1]` (not directly by `S1[i] != S2[i]` at that same `i`), and it iterates by single indices rather than explicitly skipping the second column of a horizontal domino. Under the stated tiling-validity assumptions, these checks correspond to the intended domino orientations.
+
+7. Invariants  
+- `ans` is always maintained modulo `m`.  
+- The only carried state between iterations is `t` (previous orientation) and the current value of `ans`.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling. Out-of-range access (e.g., if the tiling assumptions do not hold) or malformed input leads to undefined behavior.

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of bytes from standard input and outputs exactly one of two fixed words indicating a binary classification (“First” or “Second”) based on the length of the received data and whether the first and last data bytes are equal.
+
+2. Inputs  
+- A byte stream from standard input.  
+- Only the bytes actually read are considered; no other external inputs are used.
+
+3. Outputs  
+- Writes a single line to standard output containing either the word “First” or the word “Second”.
+
+4. Preconditions  
+- Standard input must provide at least 2 bytes; otherwise the program’s behavior is not well-defined due to out-of-bounds access.  
+- The environment must allow reading up to the fixed internal buffer capacity.
+
+5. Postconditions  
+Assuming the preconditions hold and the read succeeds with `L >= 2` bytes:  
+- Let `L` be the number of bytes read.  
+- The program outputs “First” iff the parity (odd/even) of `(L - 1) + E` is odd, where `E` is 1 if the first byte equals the last byte of the read data, and 0 otherwise.  
+- Otherwise, it outputs “Second”.
+
+6. Invariants  
+- The decision depends only on:  
+  - The number of bytes read from standard input, and  
+  - Whether the first and last bytes of the read data are equal.  
+- No persistent state is maintained across executions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the read operation fails or returns fewer than 2 bytes, the program may access invalid memory and may crash or produce undefined output.  
+- If the read returns 0 bytes (end-of-file) or 1 byte, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Single-step execution: initial state → reads input → computes classification → outputs result → terminates.  
+- No externally visible state transitions beyond consuming input and producing one line of output.
+
+9. Non-functional Constraints (if inferable)  
+- Processes at most a fixed maximum number of input bytes (bounded by the internal buffer size).  
+- Runs in time proportional to the amount of data read, with constant additional memory usage beyond the fixed buffer.
+
+```

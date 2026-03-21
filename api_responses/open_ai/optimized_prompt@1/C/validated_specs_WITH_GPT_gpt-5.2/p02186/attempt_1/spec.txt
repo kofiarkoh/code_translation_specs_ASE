@@ -1,0 +1,49 @@
+1. Functional Description  
+Maintains a length-(n+1) sequence of prefix sums derived from an initial array of n values, supports q point updates to the underlying array, and after initialization and after each update outputs the maximum difference between a later prefix sum and an earlier prefix sum over all index pairs within the maintained prefix-sum sequence (equivalently, the maximum subarray sum of the underlying array, allowing the empty subarray with value 0).
+
+2. Inputs  
+- Two integers:  
+  - n: number of elements in the underlying array.  
+  - q: number of update queries.  
+- n integers: initial values of the underlying array.  
+- q queries, each consisting of two integers:  
+  - i: 1-based index of the element to update in the underlying array.  
+  - t: new value to assign to that element.
+
+3. Outputs  
+- Prints (q+1) integers, each on its own line:  
+  - First line: the maximum subarray sum of the initial array (with empty subarray allowed, so the value is at least 0).  
+  - Next q lines: the maximum subarray sum after applying each update in order.
+
+4. Preconditions  
+- 1 ≤ n ≤ 131071 (so that n+1 fits within the fixed internal capacity of 131072+1).  
+- q ≥ 0.  
+- Each query index i satisfies 1 ≤ i ≤ n.  
+- All intermediate prefix sums and computed results fit within signed 64-bit integer range.
+
+5. Postconditions  
+After initialization:  
+- The maintained prefix-sum sequence P has length n+1 with P[0] = 0 and P[k] = sum of the first k array elements for 1 ≤ k ≤ n.  
+- The first output equals max over 0 ≤ a < b ≤ n of (P[b] − P[a]), or 0 if all such differences are negative.
+
+After each update (i, t):  
+- The underlying array element at position i is set to t.  
+- The prefix-sum sequence P is updated consistently with that change.  
+- The printed value equals max over 0 ≤ a < b ≤ n of (P[b] − P[a]), or 0 if all such differences are negative.
+
+6. Invariants  
+- P[0] remains 0 at all times.  
+- For all k in [1, n], P[k] equals the sum of the first k current array elements.  
+- The reported value is always ≥ 0 and equals the maximum subarray sum of the current array when empty subarray is permitted.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Behavior is undefined if input is malformed, indices are out of range, capacity constraints are violated, or arithmetic overflows 64-bit signed integers.
+
+8. State Transitions (if applicable)  
+- State consists of the current array values (implicitly) and the derived prefix sums P[0..n].  
+- Initialization transitions state from “unset” to the prefix sums computed from the initial array.  
+- Each query transitions state by replacing one array element and correspondingly adjusting all prefix sums P[k] for k ≥ i; prefix sums for k < i remain unchanged.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed internal capacity sized for up to 131072 prefix-sum positions (plus internal structure), so memory usage is bounded accordingly.  
+- Each update and each reported computation is intended to run in logarithmic time in the internal capacity.

@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified implementation constraints (language/compilation model), leading to invalid C structure.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* it must be expressed in C (e.g., requiring standard-conforming C without nested function definitions).  
+- The generated program attempted to define a helper function (`dfs_impl`) inside `main`, which is not allowed in ISO C (C11). The source program uses a file-scope `dfs` function and global state, which is a materially different structural constraint than what the spec implies/permits.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the intended implementation is standard C (e.g., C11) and therefore helper routines must be defined at file scope (or otherwise implemented without nonstandard extensions like nested functions).  
+- Clarify that the program’s structure relies on global/static arrays and a separate DFS routine (or, more generally, that the permutation search is implemented via a standalone function with shared state), rather than allowing arbitrary in-function definitions/closures.
+
+D. Why this clarification is supported by the source program  
+- The source code defines `dfs` at file scope and uses global arrays (`d`, `r`, `used`) and globals (`res`, `N`, `M`, `R`) to share state between `main` and `dfs`. This is consistent with standard C compilation rules.  
+- Nothing in the source suggests use of compiler extensions (like GCC nested functions) or local function definitions; the failing generated code’s structure is therefore not aligned with the source’s compilation model even before considering runtime behavior.

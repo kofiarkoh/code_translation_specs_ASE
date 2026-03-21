@@ -1,0 +1,167 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of records, each containing a label and an integer key, sorts the records in nondecreasing order by the key, determines whether the resulting order is stable with respect to the original input order for equal keys, then outputs the stability result followed by the sorted records.
+
+2. Inputs  
+- An integer `n`: the number of records.  
+- `n` records, each consisting of:  
+  - a single-character label  
+  - an integer key
+
+3. Outputs  
+- A single line indicating whether the produced sorted order is stable (“Stable”) or not (“Not stable”).  
+- Then `n` lines, each containing the label and key of a record in the produced sorted order.
+
+4. Preconditions  
+- `n` is nonnegative.  
+- Exactly `n` records are provided after `n`, each with a valid label and integer key.  
+- Sufficient memory is available to store `n` records.
+
+5. Postconditions  
+- The output list is a permutation of the input records (no records are created, lost, or duplicated).  
+- The output list is sorted in nondecreasing order by key.  
+- The reported stability result is consistent with the produced output order:  
+  - “Stable” iff for every pair of input records with equal keys, their relative order in the output matches their relative order in the input.  
+  - Otherwise “Not stable”.
+
+6. Invariants  
+- Each record’s label and key remain associated with each other throughout processing.  
+- The stability check is based on the original input order of records.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, input exhaustion, or allocation failure; behavior is unspecified in such cases.
+
+8. State Transitions (if applicable)  
+- Records transition from “unsorted, with remembered original order” to “sorted, with original order still known for stability evaluation,” then to “reported and printed.”
+
+9. Non-functional Constraints (if inferable)  
+- Sorting is not guaranteed to be stable.  
+- Uses recursion; very large `n` may risk stack exhaustion depending on environment.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / underspecified ordering rule (tie-handling among equal keys) and algorithm-specific behavior not captured.
+
+B. What the current specification may be missing or misstating  
+The specification only constrains the output to be “sorted in nondecreasing order by key” and to print whether that produced order is stable. It does not constrain *which* particular permutation among equal keys must be produced when the sort is not stable. The source program’s behavior is not “any non-stable sort”; it is the specific order produced by its particular quicksort partitioning (Lomuto with `<=` pivot comparison and last-element pivot). The generated program uses a different sorting algorithm (merge sort with an explicit right-first tie rule), which can yield a different (still correctly sorted, still possibly unstable) ordering of equal keys than the source.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the program’s required output order is the exact order produced by the specific quicksort implementation (including its pivot choice and partition rule), not merely any nondecreasing-by-key ordering. In other words, the spec needs to pin down the deterministic tie behavior induced by the algorithm (or otherwise specify a canonical tie-breaker) if exact output matching is required.
+
+D. Why this clarification is supported by the source program  
+- The source uses a fixed quicksort with `partition()` choosing pivot `A[r]` and moving elements with `A[j].val <= x` to the left, then swapping the pivot into position. This deterministically defines the final permutation, including the relative order of equal keys.  
+- The program then prints the sorted records exactly as produced by that quicksort; it does not perform any secondary sorting or canonicalization for equal keys.  
+- Therefore, two different correct “nondecreasing by key” sorts (both possibly unstable) can legitimately disagree on the order of equal keys, yet only the quicksort-induced order matches the source output. The failure (different order of the two `9` records) is consistent with this missing algorithm-specific ordering constraint.
+
+```

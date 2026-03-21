@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum number of cuts needed to partition a binary grid into rectangular blocks such that, in every block, the number of cells containing value `1` is at most a given limit. Cuts may be made only between adjacent rows (horizontal cuts) and between adjacent columns (vertical cuts).
+
+2. Inputs  
+- An integer height (number of rows).  
+- An integer width (number of columns).  
+- An integer limit for the maximum allowed count of `1` per block.  
+- A grid of `height` rows, each consisting of `width` binary characters (`0` or `1`).
+
+3. Outputs  
+- A single integer: the minimum total number of cuts (horizontal + vertical) required to satisfy the per-block limit.
+
+4. Preconditions  
+- Height is between 1 and 11 inclusive.  
+- Width is between 1 and 1001 inclusive.  
+- The grid contains exactly `height` rows and each row contains exactly `width` characters.  
+- Each grid character is either `0` or `1`.  
+- The limit is non-negative.  
+- There exists at least one feasible partition (in particular, no single cell with value `1` violates the limit, i.e., if limit is 0 then the grid must contain no `1`).
+
+5. Postconditions  
+- The output equals the minimum, over all partitions formed by choosing any set of horizontal cut positions and any set of vertical cut positions, of the total number of chosen cut positions, subject to every resulting block containing at most `limit` occurrences of `1`.
+
+6. Invariants  
+- For any fixed choice of horizontal cuts, vertical cuts are chosen minimally (i.e., no extra vertical cuts beyond what is necessary to satisfy the limit for that horizontal partition).  
+- During evaluation of a fixed horizontal partition, at any point between two consecutive vertical cuts, every current block’s accumulated count of `1` does not exceed the limit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range dimensions, non-binary grid data, or infeasible instances. Behavior is undefined under such conditions.  
+- If the instance is infeasible, the program may terminate early with an unspecified result.
+
+8. State Transitions (if applicable)  
+- Iterates over all possible ways to place horizontal cuts between rows (including placing none and placing cuts between every pair of adjacent rows).  
+- For each horizontal-cut configuration, determines the required number of vertical cuts and updates the best (minimum) total cut count found so far.  
+- Terminates after all horizontal-cut configurations have been evaluated.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows exponentially with height (due to enumerating horizontal partitions) and approximately linearly with width for each partition.  
+- Memory usage is bounded by storage of the grid and small auxiliary arrays proportional to height and width limits stated in the preconditions.
+
+```

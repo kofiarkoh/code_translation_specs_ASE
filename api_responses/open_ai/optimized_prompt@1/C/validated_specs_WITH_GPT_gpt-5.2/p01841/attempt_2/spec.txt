@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads two rooted **binary** trees encoded as strings in a fixed concrete format and produces a new tree string representing their recursive “sum”. At each node position where **both** input trees have a non-empty node, the output contains a node whose integer value is the sum of the two input node values, and whose left and right children are obtained by recursively summing the corresponding left and right subtrees. If, at some position, **either** input has an empty subtree, then the output subtree at that position is empty and recursion does not continue below that position.
+
+2. Tree String Representation (Concrete Grammar)  
+- A **non-empty node** is encoded as:  
+  `(<left>)[<value>](<right>)`  
+  where:
+  - `<left>` is the encoding of the left subtree (possibly empty),
+  - `<value>` is a decimal integer in text form (optionally signed),
+  - `<right>` is the encoding of the right subtree (possibly empty).
+- An **empty subtree** is encoded **exactly** as the two-character string:  
+  `()`  
+  (i.e., an opening parenthesis immediately followed by a closing parenthesis, with nothing inside).
+
+3. Inputs  
+- Two whitespace-delimited strings, each being a well-formed tree encoding in the format above.  
+- The program reads exactly two such strings from standard input.
+
+4. Outputs  
+- One line containing a single tree string in the same format, representing the summed tree.  
+- The output is always a well-formed encoding using the same delimiters: each produced node is printed as `(<left>)[<sum>](<right>)`, and empty subtrees appear as `()`.
+
+5. Combination Rules / Semantics  
+- Let `T1` and `T2` be the two input trees.
+- If both `T1` and `T2` are non-empty nodes at a given position, the output node value is `value(T1) + value(T2)`, and the output left (respectively right) subtree is the result of combining the left (respectively right) subtrees of `T1` and `T2`.
+- If either input subtree at a position is empty (`()`), the output subtree at that position is empty (`()`), and no descendants are produced there.
+- Consequently, the output tree’s shape is the structural intersection of the two input trees: nodes exist only where both inputs have nodes.
+
+6. Parsing/Well-Formedness Assumptions  
+- Each input string is assumed to be properly balanced and nested with respect to parentheses `(` `)` and square brackets `[` `]` according to the representation above.  
+- The integer value for a node is taken from the text immediately following the node’s top-level `[` and is interpreted as a C-style decimal integer (as accepted by `atoi`), up to the closing `]`.  
+- No validation is performed beyond this assumed well-formedness.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error reporting or recovery.  
+- If inputs are malformed, contain values outside the range of the platform `int`, exceed internal fixed buffer capacities, or if the constructed output exceeds the output buffer capacity, behavior is undefined.
+
+8. Execution/Termination Behavior  
+- The program reads two tree strings, constructs the combined tree in an internal buffer via recursion, prints the resulting tree followed by a newline, and then terminates.

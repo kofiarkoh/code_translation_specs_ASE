@@ -1,0 +1,57 @@
+1. Functional Description  
+Computes a single real-valued result from a weighted, undirected graph intended to be a tree, using node 1 as the traversal root. Each node contributes the weight of the edge by which it is first reached from node 1 (node 1 contributes 0), scaled by a depth-dependent factor \(P^{\text{depth}}\). The program outputs the product of (a) the sum of these scaled edge-weight contributions over all nodes and (b) a second factor equal to an additional constant 1 plus the sum of the same depth-dependent factors over all nodes.
+
+2. Inputs  
+- A real number \(P\).  
+- A non-negative integer \(N\) denoting the number of nodes.  
+- \(N-1\) undirected edges, each given by:
+  - two node indices \(x, y\) (assumed to be in \([1, N]\)),
+  - an integer edge weight \(c\).
+
+3. Outputs  
+- One real number printed in fixed-point format with 10 digits after the decimal point, equal to:
+  \[
+  \left(\sum_{v=1}^{N} \text{parentEdgeWeight}(v)\cdot P^{\text{depth}(v)}\right)
+  \cdot
+  \left(1 + \sum_{v=1}^{N} P^{\text{depth}(v)}\right)
+  \]
+  where:
+  - \(\text{parentEdgeWeight}(1)=0\),
+  - for \(v\neq 1\), \(\text{parentEdgeWeight}(v)\) is the weight of the edge used when \(v\) is first discovered during traversal from node 1,
+  - \(\text{depth}(v)\) is the number of edges from node 1 to \(v\) along the discovered parent links.
+
+4. Preconditions  
+- The input is intended to describe a tree on nodes \(\{1,\dots,N\}\) (connected and acyclic).  
+- Node indices used in edges are within \([1, N]\).  
+- Node 1 exists and is the intended root.  
+- Sufficient memory is available for internal storage proportional to \(N\).  
+- The computed real-valued result is representable in the implementation’s floating-point type if a meaningful numeric output is expected.
+
+5. Postconditions  
+- Depths and parent-edge weights are determined by a traversal starting at node 1 that assigns each newly reached node a parent (the node it was reached from) and a depth one greater than its parent.  
+- For valid tree inputs, this traversal-derived parent relation corresponds to the unique simple paths from node 1.  
+- The output equals the formula in Section 3 using these depths and parent-edge weights.
+
+6. Invariants  
+- Depth values are non-negative integers for visited nodes.  
+- Exactly one parent edge weight is associated with each visited non-root node, corresponding to the edge by which it was first reached.  
+- The depth-dependent factor for a node depends only on its depth and the input \(P\), specifically \(P^{\text{depth}}\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If the input does not form a tree rooted at 1 (e.g., disconnected or cyclic), the produced value is based on the traversal from node 1 and may not correspond to a well-defined tree-rooted computation for all nodes. Unreached nodes retain default-initialized depth and parent-edge weight values.  
+- If memory allocation fails, behavior is undefined.  
+- If floating-point overflow/invalid operations occur during computation, the output may be non-finite or otherwise unspecified.
+
+8. State Transitions (if applicable)  
+- Builds an internal adjacency representation of the undirected weighted graph from the input.  
+- Traverses from node 1, marking visited nodes and assigning each visited node a depth and (for non-root nodes) a parent edge weight.  
+- Precomputes powers \(P^d\) up to the maximum depth reached.  
+- Accumulates:
+  - \(a = \sum_{v=1}^{N} \text{parentEdgeWeight}(v)\cdot P^{\text{depth}(v)}\)
+  - \(b = 1 + \sum_{v=1}^{N} P^{\text{depth}(v)}\)
+  and outputs \(a \cdot b\).
+
+9. Non-functional Constraints (if inferable)  
+- Intended to run in time linear in \(N\) and memory linear in \(N\) for valid tree inputs.  
+- Uses floating-point arithmetic; results are subject to typical rounding behavior of the underlying floating-point representation.

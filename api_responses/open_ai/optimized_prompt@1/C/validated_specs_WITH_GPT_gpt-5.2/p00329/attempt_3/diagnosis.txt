@@ -1,0 +1,22 @@
+A. Likely mismatch category  
+Wrong input parsing / wrong abstraction of the input format (character consumption and grid interpretation).
+
+B. What the current specification may be missing or misstating  
+- The spec’s “character-oriented” reading rule (“read one character `c` per cell, then discard one separator character”) does not accurately capture how the source program consumes the grid when the grid is provided as ordinary digits separated by spaces/newlines.  
+- In particular, the spec does not state that the source uses a raw `gc()` stream immediately after reading the first integer with a custom integer reader, and that the first `gc()` for the grid will often see whitespace/newline left after the integer. This affects which characters are treated as cell indicators.  
+- The spec also over-commits to the idea that there are exactly `2*N*N` characters for the grid (indicator + separator per cell). The source does not validate this; it just reads two characters per cell regardless of whether they are digits or whitespace, which means the “indicator” character is not necessarily the digit character of the cell unless the input is formatted to match that exact consumption pattern.
+
+C. What general behavior should be clarified in the specification  
+- Precisely how the grid is tokenized/consumed from the byte stream, including the interaction between the initial integer read and the subsequent per-cell `gc()` calls.  
+- Whether the intended input is truly a fixed-width character grid (where every cell is represented by a single non-whitespace character plus a single separator character), or instead a whitespace-separated matrix of `0/1` tokens (in which case the source’s behavior is effectively “take every other byte” rather than “read integers”).  
+- That the program’s edge decision is based on the parity of the raw byte read at that moment, not on the numeric value of a parsed token—so whitespace/newlines can be (incorrectly, from a high-level view) treated as cell indicators if the stream alignment is off.
+
+D. Why this clarification is supported by the source program  
+- The source reads `N = in() - 1` using a custom `in()` that stops when it sees a non-digit, leaving that non-digit (typically `'\n'` or space) already consumed, but not normalizing the stream to the next digit in a tokenized sense.  
+- Then, for each cell, it does:
+  ```c
+  if (gc() & 1) to[j][hi[j]++] = N+i;
+  gc();
+  ```
+  i.e., it unconditionally consumes exactly two bytes per cell and uses the first byte’s least significant bit to decide whether an edge exists. There is no skipping of whitespace, no parsing of `0`/`1` as integers, and no guarantee that the first byte per cell is the digit character unless the input is formatted to match this exact two-bytes-per-cell pattern.  
+- The failing test input is a typical whitespace-separated `0/1` matrix. Under the generated program’s `getchar()`-based “indicator+discard” model (and especially with the leftover newline after `scanf`), the indicator bytes can become whitespace/newline rather than the intended digits, leading to a different graph and thus a different matching result.

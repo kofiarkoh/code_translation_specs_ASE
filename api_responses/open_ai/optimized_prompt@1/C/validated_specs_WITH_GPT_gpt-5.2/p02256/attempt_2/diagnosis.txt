@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+- **Missing non-functional constraint / buildability requirement** (header/format-macro dependency).  
+- Secondarily: **vague/underspecified I/O typing/format requirements** (exact `printf`/`scanf` formats and integer types).
+
+B. What the current specification may be missing or misstating  
+- The specification describes the *mathematical* behavior (compute GCD, range check, exit status) but does not constrain the implementation enough to ensure it **compiles in standard C** under the given toolchain.  
+- In particular, it does not state that if fixed-width integer format macros (e.g., `PRIu64`) are used, the program must include the required header (`<inttypes.h>`), or alternatively must avoid such macros and use a compatible format string for the chosen type.  
+- The spec also doesn’t pin down the **exact integer types** used for I/O and computation (the source uses `unsigned int`/`unsigned char` and `%d`), leaving room for generated code to choose `uint64_t` + `PRIu64`, which introduces extra compilation dependencies.
+
+C. What general behavior should be clarified in the specification  
+- Add an explicit requirement that the produced C program must be **self-contained and compile cleanly** with the target standard (here C11) and typical flags, including all necessary headers for any library macros/types it uses.  
+- Clarify the intended **data model for I/O**: whether the program should use 32-bit unsigned arithmetic (`unsigned int`-like) and corresponding `scanf/printf` formats, or whether wider types are acceptable—*and* if wider types are used, specify the required headers/formatting approach.  
+- Optionally clarify that the observable behavior includes not just runtime output/exit code but also **successful compilation** as part of conformance.
+
+D. Why this clarification is supported by the source program  
+- The source program is a straightforward C file that compiles without special format-macro headers: it uses `U32`/`U08` typedefs and prints with `printf("%d\n", u32_gcd);` (no `PRI*` macros). This indicates the intended solution is **simple, standard, and header-minimal**.  
+- The failing case is a compilation error caused by using `PRIu64` without the proper include; this is not a runtime logic mismatch but a **toolchain/build contract** mismatch that the current spec does not address.

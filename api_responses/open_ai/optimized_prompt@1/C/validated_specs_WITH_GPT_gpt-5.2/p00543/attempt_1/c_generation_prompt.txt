@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers and repeatedly reorders it based on the values’ remainders under a series of moduli. For each modulus from 1 through a given limit, the sequence is adjusted so that, for each adjacent pair, the element with the smaller remainder (under the current modulus) is placed first. After completing all modulus passes, the resulting sequence is output.
+
+2. Inputs  
+- An integer count of elements.  
+- An integer specifying the number of modulus passes to apply.  
+- A sequence of integers of the given count.
+
+3. Outputs  
+- The final reordered sequence, emitted as the same number of integers as provided in the input, in their resulting order.
+
+4. Preconditions  
+- The element count is within the supported fixed capacity (at most 1000).  
+- The number of modulus passes is at least 1.  
+- Sufficient input values are provided and are valid integers.  
+- All modulus operations performed are defined (i.e., no division-by-zero occurs due to invalid modulus pass count).
+
+5. Postconditions  
+- Exactly the input number of integers are produced as output.  
+- Let the sequence after completing pass `k` (for each integer `k` from 1 to the pass limit) be the result of enforcing the following property for that pass: for every adjacent pair in the sequence, the remainder of the left element modulo `k` is less than or equal to the remainder of the right element modulo `k`.  
+- The final output sequence equals the sequence obtained after applying all passes from 1 through the pass limit in order.
+
+6. Invariants  
+- The multiset of values in the sequence is preserved (no values are created, lost, or modified; only their order may change).  
+- After completing each pass `k`, for every adjacent pair, the left remainder modulo `k` is less than or equal to the right remainder modulo `k`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing, malformed, or violate preconditions (e.g., element count exceeds capacity or pass limit is less than 1), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- State consists of the current sequence and the current pass index.  
+- Initial state: sequence equals the input sequence; pass index starts at 1.  
+- Transition: after each pass index `k`, the sequence is updated to satisfy the adjacent remainder ordering property for modulus `k`, then the pass index advances to `k+1`.  
+- Terminal state: after completing the pass limit, the sequence is output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum storage capacity for the sequence (1000 elements).  
+- Runtime grows with the product of the number of elements and the number of passes.
+
+```

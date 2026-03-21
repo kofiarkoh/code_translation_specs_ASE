@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a grid of binary values arranged as `M` rows by `N` columns and computes a single nonnegative integer total. Each row is processed independently using a two-ended, stateful procedure over a working buffer. The procedure repeatedly inspects the current leftmost and rightmost elements of the remaining contiguous segment, may increment the total based on boundary values, shrinks the segment by moving one boundary inward, and **toggles (0↔1) the newly exposed boundary element** after each inward move. For all rows after the first, the row is complemented (0↔1) immediately after reading and before this per-row procedure. The final accumulated total is printed.
+
+2. Inputs  
+- Two integers: number of rows `M` and number of columns `N` (read in that order).  
+- Then `M*N` integers representing the row values, provided row by row, intended to be binary (0 or 1).
+
+3. Outputs  
+- One integer followed by a newline: the total accumulated count over all rows.
+
+4. Preconditions / Assumptions  
+- `N` must not exceed the fixed internal capacity of the row buffer (at most 106).  
+- `M` and `N` are assumed to be nonnegative.  
+- Each cell value is assumed to be either 0 or 1; other values are outside the meaningful contract.  
+- Sufficient input values are provided to fill all `M` rows of length `N`.
+
+5. Per-row Processing Semantics (core behavior)  
+For each row `i` (0-based):  
+- Read `N` values into a working array `A[0..N-1]`.  
+- If `i != 0`, complement each value (`A[j] := A[j] XOR 1`).  
+- Initialize two indices `l = 0` and `r = N-1`, representing the current unprocessed contiguous segment `[l, r]`.  
+- While `l <= r`, perform exactly one of the following actions per iteration, in this priority order:
+
+  1) **If `A[l] == 1`:**  
+     - Increment the global total by 1.  
+     - Move the left boundary inward: `l := l + 1`.  
+     - Toggle the element at the new left boundary: `A[l] := A[l] XOR 1` (this toggle is performed even if `l` has just moved past `r`; it is applied to the array position reached by the increment).
+
+  2) **Else if `A[r] == 1`:**  
+     - Increment the global total by 1.  
+     - Move the right boundary inward: `r := r - 1`.  
+     - Toggle the element at the new right boundary: `A[r] := A[r] XOR 1` (similarly applied to the array position reached by the decrement).
+
+  3) **Else (both boundaries are 0):**  
+     - Move the left boundary inward: `l := l + 1`.  
+     - Toggle the element at the new left boundary: `A[l] := A[l] XOR 1`.
+
+This means the algorithm is inherently stateful: later decisions depend on the toggles performed during earlier iterations, not only on the originally read row values.
+
+6. Postconditions  
+- The printed total equals the sum, over all rows, of the number of iterations in which the algorithm encountered a `1` at the current left boundary (preferred) or, if not, at the current right boundary, causing an increment, under the mutation rules above.  
+- For rows with index greater than 0, the complemented row values are the ones used as the starting state for the per-row procedure.
+
+7. Invariants / Properties  
+- The accumulated total is monotonically nondecreasing and never negative.  
+- During per-row processing, the unprocessed positions always form a contiguous segment `[l, r]` that shrinks by one position per iteration until termination (`l > r`).  
+- Each iteration moves exactly one boundary inward and toggles the newly exposed boundary element as specified.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, out of expected range, or if `N` exceeds capacity, behavior is undefined (may produce incorrect output or fail).
+
+9. Non-functional Constraints (inferable)  
+- Uses a fixed-size buffer for one row; memory usage is bounded and independent of `M`.  
+- Runtime grows proportionally with `M*N` (each row performs `N` iterations of the per-row loop).
+
+```

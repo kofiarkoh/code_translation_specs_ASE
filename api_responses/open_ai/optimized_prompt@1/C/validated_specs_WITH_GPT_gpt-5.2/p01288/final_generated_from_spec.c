@@ -1,0 +1,131 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+typedef struct {
+    int *p;
+    int n;
+} DSU;
+
+/* Disjoint-set "next unmarked ancestor" structure:
+   We maintain a representative for each node that points to the nearest
+   ancestor that is NOT currently marked (i.e., available to be "skipped to").
+   When a node becomes marked (count transitions 0->1), we "remove" it from
+   the unmarked set by unioning it with its parent, so find(x) yields the
+   nearest unmarked ancestor at/above x.
+
+   Then nearest marked ancestor of x is:
+     if x is marked => x
+     else => parent[ find(x) ]  (because find(x) is first unmarked on path,
+                                 so its parent is the last marked before it)
+   This relies on the spec's assumption that an ask always has some marked
+   ancestor (node 1 is always marked), and we ensure node 1 is treated as
+   permanently marked.
+*/
+
+static int dsu_find(DSU *d, int x) {
+    int r = x;
+    while (d->p[r] != r) r = d->p[r];
+    while (d->p[x] != x) {
+        int nx = d->p[x];
+        d->p[x] = r;
+        x = nx;
+    }
+    return r;
+}
+
+static void dsu_union_to(DSU *d, int x, int y) {
+    /* Set representative of x's root to y's root (no rank needed for this use). */
+    int rx = dsu_find(d, x);
+    int ry = dsu_find(d, y);
+    d->p[rx] = ry;
+}
+
+int main(void) {
+    int N, Q;
+    while (scanf("%d", &N) == 1) {
+        if (N == 0) break;
+        if (scanf("%d", &Q) != 1) return 0;
+
+        int *parent = (int*)malloc((size_t)(N + 1) * sizeof(int));
+        int *markcnt = (int*)calloc((size_t)(N + 1), sizeof(int));
+        DSU dsu;
+        dsu.n = N;
+        dsu.p = (int*)malloc((size_t)(N + 1) * sizeof(int));
+
+        if (!parent || !markcnt || !dsu.p) return 0;
+
+        parent[1] = 1;
+        for (int i = 2; i <= N; i++) {
+            scanf("%d", &parent[i]);
+        }
+
+        /* Initialize DSU: each node is initially unmarked except node 1 which is
+           permanently marked. We model "marked" nodes as removed from DSU.
+           So start with all nodes unmarked, then remove node 1. */
+        for (int i = 1; i <= N; i++) dsu.p[i] = i;
+
+        /* Node 1 permanently marked. */
+        markcnt[1] = 1;
+        /* Remove node 1 from unmarked set by linking it to itself (root).
+           We must ensure find(1) does not return an unmarked node; but since
+           1 is marked, queries will return 1 directly when needed.
+           For correctness of parent[find(x)] when find(x)==1, we rely on the
+           spec's guarantee that there is a marked ancestor; with node 1 marked,
+           the first unmarked ancestor above any node cannot be "above" 1.
+           If all nodes on path are marked, find(x) will end at 1; then x is
+           marked somewhere, and we handle x marked directly. */
+        /* Additionally, to make "first unmarked" skip over marked nodes, we
+           need to remove node 1 so that if some node's first unmarked would
+           otherwise be 1, it stays 1; parent[1]=1 so parent[find(x)] is safe. */
+        /* No union needed for 1. */
+
+        int64_t sum = 0;
+
+        for (int qi = 0; qi < Q; qi++) {
+            char type;
+            int x;
+            /* Leading whitespace before %c to skip newlines/spaces. */
+            if (scanf(" %c %d", &type, &x) != 2) {
+                /* Undefined behavior per spec on malformed input; just exit. */
+                free(parent);
+                free(markcnt);
+                free(dsu.p);
+                return 0;
+            }
+
+            if (type == 'M' || type == 'm') {
+                /* Mark operation: increase count; only on 0->1 transition do we
+                   remove from DSU (since DSU cannot support unmark). */
+                if (x != 1) {
+                    if (markcnt[x] == 0) {
+                        /* Remove x from unmarked set: link it to its parent. */
+                        dsu_union_to(&dsu, x, parent[x]);
+                    }
+                    markcnt[x] += 1;
+                } else {
+                    /* Node 1 is permanently marked; still cumulative per spec. */
+                    markcnt[1] += 1;
+                }
+            } else {
+                /* Ask operation (any non-mark type). */
+                int ans;
+                if (markcnt[x] > 0) {
+                    ans = x;
+                } else {
+                    int u = dsu_find(&dsu, x); /* first unmarked ancestor at/above x */
+                    ans = parent[u];
+                    /* With node 1 marked, ans is always defined under spec assumptions. */
+                }
+                sum += (int64_t)ans;
+            }
+        }
+
+        printf("%lld\n", (long long)sum);
+
+        free(parent);
+        free(markcnt);
+        free(dsu.p);
+    }
+    return 0;
+}

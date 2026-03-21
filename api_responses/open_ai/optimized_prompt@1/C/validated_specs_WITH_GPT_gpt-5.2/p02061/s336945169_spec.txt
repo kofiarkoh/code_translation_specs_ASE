@@ -1,0 +1,40 @@
+1. Functional Description  
+For each queried integer \(n\), returns the number of integers \(k\) in the range \([2, n]\) such that the product of all positive divisors of \(k\) other than \(k\) itself is at least \(2k\).
+
+2. Inputs  
+- An integer \(Q\): the number of queries.  
+- A sequence of \(Q\) integers \(N_0, N_1, \dots, N_{Q-1}\): each is a query value \(n\).
+
+3. Outputs  
+- For each query \(n\), one integer on its own line: the count of integers \(k\) with \(2 \le k \le n\) satisfying the property described in Section 1.
+
+4. Preconditions  
+- \(Q \ge 0\).  
+- Each query value \(n\) is an integer with \(0 \le n\) and is within the program’s supported bounds (see Section 9).  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+For each query value \(n\), the program outputs:
+- \(0\) if \(n < 2\).  
+- Otherwise, the number of integers \(k\) in \([2, n]\) for which  
+  \[
+  \prod_{\substack{d \mid k \\ d < k}} d \;\ge\; 2k
+  \]
+  where the product ranges over all positive divisors \(d\) of \(k\) strictly less than \(k\).
+
+6. Invariants  
+- For any computed \(t \ge 2\), the reported cumulative count for \(t\) is non-decreasing with \(t\).  
+- For any \(t \ge 2\), the cumulative count for \(t\) equals the cumulative count for \(t-1\) plus either 0 or 1 depending on whether \(t\) satisfies the property.  
+- The divisor-product used for the decision is treated as capped above by \(2t\) for comparison purposes; values beyond \(2t\) are equivalent with respect to the final decision.
+
+7. Error Handling / Exceptional Behavior  
+- If reading the number of queries fails, the program terminates with a nonzero exit status and produces no defined output.  
+- If reading any query value fails, the program terminates with a nonzero exit status and produces no defined output.  
+- No other error reporting is performed.
+
+8. State Transitions (if applicable)  
+- The program builds a cumulative results table up to the maximum query value, then answers each query by looking up the precomputed cumulative count for that value. No persistent state is maintained beyond program execution.
+
+9. Non-functional Constraints (if inferable)  
+- Supported maximum query value is limited by fixed internal storage; behavior is only defined when the maximum \(n\) across queries does not exceed 114513.  
+- Time and memory usage scale primarily with the maximum query value and the cost of processing each integer up to that maximum.

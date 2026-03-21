@@ -1,0 +1,200 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 2028: Gather on the Clock
+// 2017.11.03 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+int a[102];
+int dp[102][102];
+
+int main()
+{
+	int t, n, i, j, k, v, ans;
+	
+	scanf("%d", &t); while (t--) {
+		scanf("%d", &n);
+		for (i = 0; i < n; i++) scanf("%d", a+i);
+		memset(dp, 0, sizeof(dp));
+
+		for (k = 1; k < n; k++) for (i = 0; i < n; i++) for (j = 0; j < k; j++) {
+			int x = i+j+1;
+			if (x >= n) x -= n;
+			v = a[x] - a[i]; if (v < 0) v = -v;
+			v += dp[x][k-j-1] + dp[i][j];
+			if (v > dp[i][k]) dp[i][k] = v;
+		}
+
+		for (ans = 0, i = 0; i < n; i++) if (dp[i][n-1] > ans) ans = dp[i][n-1];
+		printf("%d\n",ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each test case, computes the maximum achievable total “gathering score” over all ways of successively combining all positions arranged in a circle, where each combination step contributes the absolute difference between the values at the two endpoints of the combined segments. The final result is the maximum total score obtainable when all positions have been combined into one segment.
+
+2. Inputs  
+- An integer number of test cases.  
+- For each test case:  
+  - An integer count of positions on a circle.  
+  - A sequence of integer values, one per position, in circular order.
+
+3. Outputs  
+- For each test case, one integer: the maximum total gathering score as defined above.
+
+4. Preconditions  
+- The number of positions is at least 1.  
+- The number of positions does not exceed 102.  
+- All required integers are present in the input.  
+- Integer arithmetic used for scoring does not overflow the implementation’s integer range (assumption, since no checks are performed).
+
+5. Postconditions  
+For each test case, the program outputs a value equal to:  
+- The maximum, over all choices of a starting position and all binary parenthesizations of combining the circularly contiguous positions into a single segment, of the sum of step scores, where:  
+  - Each step combines two already-formed contiguous segments that together form a larger contiguous segment on the circle.  
+  - The step score is the absolute difference between the values at the two boundary positions where the two segments meet (i.e., the two endpoints being “joined” at that step).  
+- If the number of positions is 1, the output is 0.
+
+6. Invariants  
+- For any test case, the computed maximum score for combining any contiguous circular segment of a given length is non-negative.  
+- Extending the considered segment length never decreases the stored maximum score for that same start position and length (it remains the maximum over all valid combination choices for that segment).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/malformed or constraints are violated (e.g., too many positions, arithmetic overflow), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is carried across test cases beyond producing outputs; each test case is processed independently.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows on the order of the cube of the number of positions per test case.  
+- Memory usage grows on the order of the square of the number of positions per test case.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static long long llabs_ll(long long x) { return x < 0 ? -x : x; }
+
+int main(void) {
+    int T;
+    if (scanf("%d", &T) != 1) return 0;
+
+    while (T--) {
+        int n;
+        if (scanf("%d", &n) != 1) return 0;
+
+        long long a[205];
+        for (int i = 1; i <= n; i++) {
+            long long v;
+            if (scanf("%lld", &v) != 1) return 0;
+            a[i] = v;
+            a[i + n] = v; /* duplicate to linearize the circle */
+        }
+
+        if (n <= 1) {
+            printf("0\n");
+            continue;
+        }
+
+        /* dp[i][len] = maximum score for combining the contiguous segment
+           starting at i (1-based in duplicated array) of length len into one segment.
+           len ranges 1..n, i ranges 1..2n.
+           Base: dp[i][1] = 0 (single position already a segment, no score).
+           Transition:
+             dp[i][len] = max over split k (1..len-1):
+               dp[i][k] + dp[i+k][len-k] + abs(a[i+k-1] - a[i+k])
+           where the join boundary is between positions (i+k-1) and (i+k). */
+        static long long dp[205][205];
+        for (int i = 1; i <= 2 * n; i++) {
+            for (int len = 1; len <= n; len++) dp[i][len] = 0;
+        }
+
+        for (int len = 2; len <= n; len++) {
+            for (int i = 1; i + len - 1 <= 2 * n; i++) {
+                long long best = 0;
+                for (int k = 1; k <= len - 1; k++) {
+                    long long join = llabs_ll(a[i + k - 1] - a[i + k]);
+                    long long cand = dp[i][k] + dp[i + k][len - k] + join;
+                    if (cand > best) best = cand;
+                }
+                dp[i][len] = best;
+            }
+        }
+
+        long long ans = 0;
+        for (int start = 1; start <= n; start++) {
+            if (dp[start][n] > ans) ans = dp[start][n];
+        }
+
+        printf("%lld\n", ans);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p01153/p01153_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p01153/p01153_sample1_output.txt
+Input:
+1
+4
+1 3 5 7
+Expected:
+12
+Actual:
+10
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

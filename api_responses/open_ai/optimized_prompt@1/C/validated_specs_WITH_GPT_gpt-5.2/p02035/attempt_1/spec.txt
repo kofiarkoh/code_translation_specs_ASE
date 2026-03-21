@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes, modulo a given modulus, a combinatorial count derived from partitioning a set of size `n` into two nonempty groups of sizes `i` and `n−i` (for all `i` from 1 to `n−1`), weighting each partition by:  
+- the number of internal configurations within each group,  
+- the number of cross-group configurations satisfying an inclusion–exclusion condition over elements of the second group, and  
+- the number of ways to choose which elements belong to the first group.  
+The final result is the sum of these weighted counts over all valid group sizes, reduced modulo the modulus.
+
+2. Inputs  
+- An integer `n`: the size of the underlying set.  
+- An integer `m`: the modulus used for all arithmetic.
+
+3. Outputs  
+- A single integer in the range `[0, m−1]` representing the computed value modulo `m`.
+
+4. Preconditions  
+- `m > 0`.  
+- `m` is assumed to be prime (or otherwise such that modular multiplicative inverses used by the computation exist for all required factorial values).  
+- `n` is assumed to be within a range such that all required factorials up to at least `max(n, 2010)` are validly representable and indexable by the precomputed tables (in particular, `n ≤ 2010` is required for correctness of combinations that depend on `n`).  
+- Intermediate arithmetic is assumed not to overflow the signed 64-bit integer range before modular reduction (practically, this requires `m` to be small enough and/or the platform to match this assumption).
+
+5. Postconditions  
+- The program outputs the value of the defined modular sum over `i = 1..n−1`, where each term is computed consistently under modulus `m`.  
+- The printed value is congruent modulo `m` to the mathematical expression implemented by the program and is normalized to a nonnegative residue.
+
+6. Invariants  
+- All combinatorial values used in the sum (factorials, inverse factorials, and combinations) are treated as values modulo `m`.  
+- Combination values are defined to be zero when their parameters are outside the valid range (negative or choosing more than available).  
+- Exponentiation results are always interpreted modulo `m`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, non-prime modulus, modulus equal to 1, out-of-range `n`, or arithmetic overflow; behavior in these cases is undefined or may yield incorrect results.  
+- If modular inverses do not exist for required values (e.g., due to non-prime modulus or shared factors), the output is not guaranteed to be meaningful.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and inverse factorials modulo `m` up to a fixed bound.  
+- Accumulates a running modular sum into an internal accumulator and outputs the normalized final residue.  
+- No persistent state is maintained beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is polynomial in `n` (dominated by a double sum over `i` and `j`) with additional logarithmic factors from modular exponentiation.  
+- Memory usage is bounded by fixed-size tables for factorial-related precomputation.

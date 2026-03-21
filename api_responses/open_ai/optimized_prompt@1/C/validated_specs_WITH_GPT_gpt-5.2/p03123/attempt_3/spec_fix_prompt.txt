@@ -1,0 +1,194 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+//AWTF2019-D
+#include<stdio.h>
+#include<stdbool.h>
+#define prime 10000000019
+
+void llswap(long long *a,long long *b){long long c;c=(*a);(*a)=(*b);(*b)=c;}
+long long llsankaku(long long x){return ((1+x)*x)/2;}
+
+long long calcul(long long p,long long q,long long z,long long *r,long long *b){
+  long long f=0,cnt=0,w,i;
+  (*r)=0;(*b)=0;
+  if(p<q){f=1;llswap(&p,&q);}
+  i=0;
+  while(z>=0){
+    w=z/q;
+    cnt+=(w+1);
+    (*r)+=i*(w+1);
+    (*b)+=llsankaku(w);
+    z-=p;
+    i++;
+  }
+  if(f){llswap(r,b);}
+  return cnt;
+}
+
+void calc(long long p,long long q,long long k,long long *r,long long *b){
+  long long st,fi,te,c;
+  st=0;fi=prime*2000;
+  while(st<=fi){
+    te=(st+fi)/2;
+    c=calcul(p,q,te,r,b);
+    if(c==k){break;}
+    if(c<k){st=te+1;}
+    if(c>k){fi=te-1;}
+  }
+}
+
+typedef struct{
+  long long xz;
+  long long yz;
+}point;
+
+point vector_minus(point a,point b){
+  point r;
+  r.xz=a.xz-b.xz;
+  r.yz=a.yz-b.yz;
+  return r;
+}
+
+//gaiseki
+long long crossproduct(point a,point b){
+  return a.xz*b.yz-a.yz*b.xz;
+}
+
+bool ispossible(long long r,long long b,long long k){
+  long long st,fi,te,zr,zb;
+  long long fr,fb,sr,sb;
+  st=1;fi=prime-1;
+  while(st<=fi){
+    te=(st+fi)/2;
+    calc(te,prime-te,k,&zr,&zb);
+    if(zr<=r && zb<=b){return true;}
+    if(zr>r && zb>b){return false;}
+    if(zr>r){st=te+1;sr=zr;sb=zb;}
+    else{fi=te-1;fr=zr;fb=zb;}
+  }
+  //Is (r,b) on above the line{(fr,fb),(sr,sb)}(fr<sr)?
+  point tg,l1,l2;
+  tg.xz=r;tg.yz=b;
+  l1.xz=fr;l1.yz=fb;
+  l2.xz=sr;l2.yz=sb;
+  if(crossproduct(vector_minus(l2,l1),vector_minus(tg,l1))>=0){return true;}
+  return false;
+}
+
+long long solve(long long r,long long b){
+  long long st=0,fi=2222222,te;
+  while(st<=fi){
+    te=(st+fi)/2;
+    if(ispossible(r,b,te)){st=te+1;}
+    else{fi=te-1;}
+  }
+  return fi;
+}
+
+int main(){
+  long long r,b;
+  scanf("%lld%lld",&r,&b);
+  printf("%lld\n",solve(r,b)-1);//-1 : empty box
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given two resource quantities \(R\) and \(B\), the program computes a maximum feasible count \(k\) under an internal arithmetic feasibility predicate derived from the code. It then prints \(k-1\), interpreting the subtraction as excluding one reserved “empty box” from the reported number of non-empty boxes/groups.
+
+2. Inputs  
+- Two integers read from standard input in decimal form, stored as C `long long` values.  
+- The program reads them using `scanf("%lld%lld", &r, &b)`; therefore the input must be compatible with the `%lld` conversion.
+
+3. Outputs  
+- One integer written to standard output in decimal form, printed as a C `long long` using `printf("%lld\n", value)`.
+
+4. Preconditions / Assumptions  
+- The input values must be representable in C `long long`.  
+- The intended domain is \(R \ge 0\) and \(B \ge 0\). No validation is performed; behavior outside this domain is not part of the contract.  
+- The program assumes that all intermediate computations fit within signed 64-bit `long long`; it does not guard against overflow (overflow yields undefined behavior in C).  
+- Input must contain two successfully parseable integers; otherwise behavior is undefined.
+
+5. Computation and Semantics  
+- The program defines a feasibility predicate `ispossible(R,B,k)` that, for a given nonnegative integer parameter \(k\), determines whether \((R,B)\) can satisfy the code’s internal constraints for that \(k\).  
+- The solver performs a binary search over integer \(k\) in the fixed range \([0, 2{,}222{,}222]\) to find the largest \(k\) for which `ispossible(R,B,k)` returns true.  
+- The printed result is that maximum feasible \(k\) minus 1.
+
+6. Postconditions  
+Let \(k^\*\) be the maximum integer in \([0, 2{,}222{,}222]\) such that `ispossible(R,B,k^\*)` is true (as computed by the program’s search). The program prints \(k^\* - 1\).  
+- Consequently, the output is bounded above by \(2{,}222{,}221\) due to the fixed search limit and the final subtraction.  
+- If \(k^\* = 0\), the program prints \(-1\) (because it always subtracts 1 from the found maximum).
+
+7. Monotonicity Requirement Used by the Search  
+- The binary search in `solve` assumes that `ispossible(R,B,k)` is monotone in \(k\) over the searched range: if it is true for some \(k\), it is treated as true for all smaller \(k\); if it is false for some \(k\), it is treated as false for all larger \(k\). The program’s correctness relies on this property of its internal predicate.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, negative values, or overflow.  
+- The program is deterministic and stateless: it performs one computation for the given input and terminates after printing the result.
+
+9. Implementation/Portability Constraint (I/O Interface)  
+- A conforming implementation must use C `long long` for the two inputs and the output and must use `%lld`-compatible I/O (or an exactly equivalent approach that compiles and behaves the same). If an alternative 64-bit type/macro-based I/O is used, all required headers and format specifiers must be provided so the program compiles and reads/writes the same integer values.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Wrong / missing transition rule (core feasibility predicate omitted)**, leading to a **wrong abstraction** of the program’s semantics.
+
+B. What the current specification may be missing or misstating  
+- The specification never defines the actual arithmetic meaning of `ispossible(R,B,k)` beyond “internal constraints,” so a generated implementation can legally choose a trivial always-true predicate.  
+- The spec therefore effectively describes only “binary search for the largest k in a fixed range,” not the **resource-limited combinational counting** that the source actually performs via `calcul`, `calc`, and the geometric check in `ispossible`.  
+- The spec’s “monotonicity requirement” is stated, but the **reason** it holds (and the exact quantities being compared against `R` and `B`) is not captured, so the predicate’s structure is unconstrained.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the feasibility predicate: how, for a given `k`, the program computes required resource pairs `(zr, zb)` as a function of `k` and a parameter `te` in `[1, prime-1]`, including:  
+  - the nested binary searches (`solve` over `k`, `ispossible` over `te`, `calc` over `z`),  
+  - the counting function `calcul(p,q,z, &r,&b)` that accumulates `cnt`, `r`, and `b` using integer division and triangular numbers, and  
+  - the final “on/above a line” decision using a cross product between two bounding points `(fr,fb)` and `(sr,sb)` when no exact `te` satisfies the inequalities.  
+- Clarify that feasibility is **not** “always true” and is constrained by comparing computed `(zr,zb)` against input `(R,B)`; thus the maximum `k` depends on `R,B` and is typically far below the hard upper bound.
+
+D. Why this clarification is supported by the source program  
+- In the source, `solve`’s binary search result depends entirely on `ispossible(r,b,k)`. `ispossible` is nontrivial: it performs a binary search over `te`, repeatedly calling `calc(te, prime-te, k, &zr, &zb)` and checking `zr<=r && zb<=b`.  
+- `calc` itself performs a binary search to find a `z` such that `calcul(p,q,z,...)` yields `cnt == k`, and `calcul` computes `cnt`, `*r`, `*b` through a loop with `w=z/q`, `cnt += (w+1)`, `*r += i*(w+1)`, `*b += triangular(w)`, decrementing `z` by `p` each iteration, plus a swap depending on `p<q`.  
+- If no `te` directly satisfies the inequalities, `ispossible` uses the cross-product test against the segment between the last “too large in r” and “too large in b” points, which is a specific geometric rule absent from the spec.  
+- Because these computations constrain feasibility, the true maximum `k` is input-dependent; the observed failure (always returning the search maximum) is exactly what happens when the predicate is left unspecified and implemented as always true.
+
+```

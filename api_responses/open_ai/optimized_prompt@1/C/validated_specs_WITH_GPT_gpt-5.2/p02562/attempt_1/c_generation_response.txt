@@ -1,0 +1,328 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+typedef long long ll;
+
+typedef struct {
+    int to;
+    int rev;
+    int cap;
+    ll cost;
+} Edge;
+
+typedef struct {
+    int n;
+    int *head;
+    Edge *e;
+    int ec;
+    int ecap;
+} MCMF;
+
+static void mcmf_init(MCMF *g, int n, int ecap_hint) {
+    g->n = n;
+    g->head = (int*)malloc((size_t)n * sizeof(int));
+    if (!g->head) exit(0);
+    for (int i = 0; i < n; i++) g->head[i] = -1;
+    g->ecap = (ecap_hint > 0 ? ecap_hint : 4);
+    g->e = (Edge*)malloc((size_t)g->ecap * sizeof(Edge));
+    if (!g->e) exit(0);
+    g->ec = 0;
+}
+
+static void mcmf_free(MCMF *g) {
+    free(g->head);
+    free(g->e);
+    g->head = NULL;
+    g->e = NULL;
+    g->n = g->ec = g->ecap = 0;
+}
+
+static void mcmf_ensure(MCMF *g, int add) {
+    if (g->ec + add <= g->ecap) return;
+    int newcap = g->ecap;
+    while (newcap < g->ec + add) {
+        newcap = (newcap < 1024 ? newcap * 2 : newcap + newcap / 2);
+        if (newcap < 0) { newcap = g->ec + add; break; }
+    }
+    Edge *ne = (Edge*)realloc(g->e, (size_t)newcap * sizeof(Edge));
+    if (!ne) exit(0);
+    g->e = ne;
+    g->ecap = newcap;
+}
+
+static void mcmf_add_edge(MCMF *g, int u, int v, int cap, ll cost) {
+    mcmf_ensure(g, 2);
+    int ei = g->ec++;
+    int ri = g->ec++;
+    g->e[ei].to = v;
+    g->e[ei].rev = ri;
+    g->e[ei].cap = cap;
+    g->e[ei].cost = cost;
+    g->e[ri].to = u;
+    g->e[ri].rev = ei;
+    g->e[ri].cap = 0;
+    g->e[ri].cost = -cost;
+
+    /* adjacency via head/next encoded in rev field? No: use separate next array? */
+}
+
+/* We need adjacency lists; store next index in a parallel array. */
+typedef struct {
+    MCMF g;
+    int *next;
+} Graph;
+
+static void graph_init(Graph *gr, int n, int ecap_hint) {
+    mcmf_init(&gr->g, n, ecap_hint);
+    gr->next = (int*)malloc((size_t)gr->g.ecap * sizeof(int));
+    if (!gr->next) exit(0);
+}
+
+static void graph_free(Graph *gr) {
+    free(gr->next);
+    gr->next = NULL;
+    mcmf_free(&gr->g);
+}
+
+static void graph_ensure(Graph *gr, int add) {
+    int oldcap = gr->g.ecap;
+    mcmf_ensure(&gr->g, add);
+    if (gr->g.ecap != oldcap) {
+        int *nn = (int*)realloc(gr->next, (size_t)gr->g.ecap * sizeof(int));
+        if (!nn) exit(0);
+        gr->next = nn;
+    }
+}
+
+static void graph_add_edge(Graph *gr, int u, int v, int cap, ll cost) {
+    graph_ensure(gr, 2);
+    int ei = gr->g.ec;
+    int ri = gr->g.ec + 1;
+
+    gr->g.e[ei].to = v;
+    gr->g.e[ei].rev = ri;
+    gr->g.e[ei].cap = cap;
+    gr->g.e[ei].cost = cost;
+
+    gr->g.e[ri].to = u;
+    gr->g.e[ri].rev = ei;
+    gr->g.e[ri].cap = 0;
+    gr->g.e[ri].cost = -cost;
+
+    gr->next[ei] = gr->g.head[u];
+    gr->g.head[u] = ei;
+    gr->next[ri] = gr->g.head[v];
+    gr->g.head[v] = ri;
+
+    gr->g.ec += 2;
+}
+
+static int spfa_min_cost(Graph *gr, int s, int t, ll *dist, int *pv, int *pe) {
+    int n = gr->g.n;
+    char *in = (char*)malloc((size_t)n);
+    int *q = (int*)malloc((size_t)n * sizeof(int));
+    if (!in || !q) exit(0);
+
+    for (int i = 0; i < n; i++) {
+        dist[i] = (ll)LLONG_MAX / 4;
+        pv[i] = -1;
+        pe[i] = -1;
+        in[i] = 0;
+    }
+    int qh = 0, qt = 0;
+    dist[s] = 0;
+    q[qt++] = s;
+    in[s] = 1;
+
+    while (qh != qt) {
+        int u = q[qh++];
+        if (qh == n) qh = 0;
+        in[u] = 0;
+        for (int ei = gr->g.head[u]; ei != -1; ei = gr->next[ei]) {
+            Edge *e = &gr->g.e[ei];
+            if (e->cap <= 0) continue;
+            int v = e->to;
+            ll nd = dist[u] + e->cost;
+            if (nd < dist[v]) {
+                dist[v] = nd;
+                pv[v] = u;
+                pe[v] = ei;
+                if (!in[v]) {
+                    in[v] = 1;
+                    q[qt++] = v;
+                    if (qt == n) qt = 0;
+                    /* If queue overflows due to wrap, behavior is undefined by spec anyway. */
+                }
+            }
+        }
+    }
+
+    int ok = (pv[t] != -1);
+    free(in);
+    free(q);
+    return ok;
+}
+
+/* Computes min-cost flow of exactly F units; returns 1 if achieved, 0 if not.
+   total_cost is set to the min cost for that flow if achieved. */
+static int min_cost_flow_exact(Graph *gr, int s, int t, int F, ll *total_cost) {
+    int n = gr->g.n;
+    ll *dist = (ll*)malloc((size_t)n * sizeof(ll));
+    int *pv = (int*)malloc((size_t)n * sizeof(int));
+    int *pe = (int*)malloc((size_t)n * sizeof(int));
+    if (!dist || !pv || !pe) exit(0);
+
+    ll cost = 0;
+    int flow = 0;
+    while (flow < F) {
+        if (!spfa_min_cost(gr, s, t, dist, pv, pe)) break;
+        int add = F - flow;
+        int v = t;
+        while (v != s) {
+            int ei = pe[v];
+            if (ei < 0) { add = 0; break; }
+            if (gr->g.e[ei].cap < add) add = gr->g.e[ei].cap;
+            v = pv[v];
+        }
+        if (add <= 0) break;
+        v = t;
+        while (v != s) {
+            int ei = pe[v];
+            int ri = gr->g.e[ei].rev;
+            gr->g.e[ei].cap -= add;
+            gr->g.e[ri].cap += add;
+            cost += (ll)add * gr->g.e[ei].cost;
+            v = pv[v];
+        }
+        flow += add;
+    }
+
+    free(dist);
+    free(pv);
+    free(pe);
+
+    if (flow != F) return 0;
+    *total_cost = cost;
+    return 1;
+}
+
+int main(void) {
+    int N, K;
+    if (scanf("%d %d", &N, &K) != 2) return 0;
+
+    ll *a = (ll*)malloc((size_t)N * (size_t)N * sizeof(ll));
+    if (!a) return 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            long long x;
+            if (scanf("%lld", &x) != 1) return 0;
+            a[(size_t)i * (size_t)N + (size_t)j] = x;
+        }
+    }
+
+    int maxT = (K < 0 ? 0 : N * K);
+    ll bestSum = 0;
+    int bestT = 0;
+
+    /* Evaluate candidate totals T = 1..N*K; invalid candidates are ignored. */
+    for (int T = 1; T <= maxT; T++) {
+        int S = 0;
+        int row0 = 1;
+        int col0 = row0 + N;
+        int TT = col0 + N;
+        int V = TT + 1;
+
+        /* Edge count hint: S->rows N, cols->T N, row->col N^2, each with reverse. */
+        int e_hint = 2 * (N + N + N * N);
+        Graph gr;
+        graph_init(&gr, V, e_hint);
+
+        for (int i = 0; i < N; i++) graph_add_edge(&gr, S, row0 + i, K, 0);
+        for (int j = 0; j < N; j++) graph_add_edge(&gr, col0 + j, TT, K, 0);
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                ll w = a[(size_t)i * (size_t)N + (size_t)j];
+                /* Maximize sum => minimize negative sum. */
+                graph_add_edge(&gr, row0 + i, col0 + j, 1, -w);
+            }
+        }
+
+        ll minCost = 0;
+        int ok = min_cost_flow_exact(&gr, S, TT, T, &minCost);
+        if (ok) {
+            ll sum = -minCost;
+            if (sum > bestSum) {
+                bestSum = sum;
+                bestT = T;
+            }
+        }
+        graph_free(&gr);
+    }
+
+    /* Recompute selection for bestT and output marking. If bestT==0, output all '.' */
+    char *mark = (char*)malloc((size_t)N * (size_t)N);
+    if (!mark) return 0;
+    for (int i = 0; i < N * N; i++) mark[i] = '.';
+
+    if (bestT > 0) {
+        int S = 0;
+        int row0 = 1;
+        int col0 = row0 + N;
+        int TT = col0 + N;
+        int V = TT + 1;
+
+        int e_hint = 2 * (N + N + N * N);
+        Graph gr;
+        graph_init(&gr, V, e_hint);
+
+        for (int i = 0; i < N; i++) graph_add_edge(&gr, S, row0 + i, K, 0);
+        for (int j = 0; j < N; j++) graph_add_edge(&gr, col0 + j, TT, K, 0);
+
+        /* Record forward edge indices for row->col edges to decode selection. */
+        int *edge_idx = (int*)malloc((size_t)N * (size_t)N * sizeof(int));
+        if (!edge_idx) return 0;
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                ll w = a[(size_t)i * (size_t)N + (size_t)j];
+                int before = gr.g.ec;
+                graph_add_edge(&gr, row0 + i, col0 + j, 1, -w);
+                edge_idx[(size_t)i * (size_t)N + (size_t)j] = before; /* forward edge */
+            }
+        }
+
+        ll minCost = 0;
+        int ok = min_cost_flow_exact(&gr, S, TT, bestT, &minCost);
+        if (ok) {
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                    int ei = edge_idx[(size_t)i * (size_t)N + (size_t)j];
+                    /* If forward cap is 0, it was used (since initial cap was 1). */
+                    if (gr.g.e[ei].cap == 0) mark[(size_t)i * (size_t)N + (size_t)j] = 'X';
+                }
+            }
+        } else {
+            /* Per spec: if recomputation is ill-posed/infeasible, treat as no selections. */
+            for (int i = 0; i < N * N; i++) mark[i] = '.';
+            bestSum = 0;
+            bestT = 0;
+        }
+
+        free(edge_idx);
+        graph_free(&gr);
+    }
+
+    printf("%lld\n", bestSum);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) putchar(mark[(size_t)i * (size_t)N + (size_t)j]);
+        putchar('\n');
+    }
+
+    free(mark);
+    free(a);
+    return 0;
+}
+```

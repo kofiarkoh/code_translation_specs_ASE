@@ -1,0 +1,60 @@
+#include <stdio.h>
+
+#define MAXN 55  /* fixed maximum size; chosen to be safely small and cubic-memory friendly */
+
+static int a[MAXN][MAXN];
+static int dp[MAXN][MAXN][MAXN];
+
+static int max4(int x, int y, int z, int w) {
+    int m = x;
+    if (y > m) m = y;
+    if (z > m) m = z;
+    if (w > m) m = w;
+    return m;
+}
+
+int main(void) {
+    int h, w;
+    if (scanf("%d %d", &h, &w) != 2) return 0;
+
+    for (int i = 1; i <= h; i++) {
+        for (int j = 1; j <= w; j++) {
+            if (scanf("%d", &a[i][j]) != 1) return 0;
+        }
+    }
+
+    /* dp[i][j][k] corresponds to:
+       - agent1 at (i, j)
+       - agent2 at (k, l)
+       where l is implied by synchronized step count:
+         (i + j) == (k + l)  =>  l = i + j - k
+       Values are non-negative per precondition; dp default 0 is used as "unreachable/unused". */
+    for (int i = 1; i <= h; i++) {
+        for (int j = 1; j <= w; j++) {
+            for (int k = 1; k <= h; k++) {
+                int l = i + j - k;
+                if (l < 1 || l > w) continue;
+
+                int best_prev = 0;
+                if (i == 1 && j == 1 && k == 1 && l == 1) {
+                    best_prev = 0;
+                } else {
+                    /* previous step: each agent came from up or left */
+                    int p1 = (i > 1 && k > 1) ? dp[i - 1][j][k - 1] : 0;
+                    int p2 = (i > 1 && l > 1) ? dp[i - 1][j][k]     : 0;
+                    int p3 = (j > 1 && k > 1) ? dp[i][j - 1][k - 1] : 0;
+                    int p4 = (j > 1 && l > 1) ? dp[i][j - 1][k]     : 0;
+                    best_prev = max4(p1, p2, p3, p4);
+                }
+
+                int add = a[i][j];
+                if (!(i == k && j == l)) add += a[k][l];
+
+                dp[i][j][k] = best_prev + add;
+            }
+        }
+    }
+
+    printf("%d\n", dp[h][w][h]);
+    return 0;
+}

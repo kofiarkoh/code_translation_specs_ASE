@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes and outputs a single real-valued “expected value” for a given integer position and a given probability of “moving closer,” where the expected value is defined by the following recurrence:  
+- For even positions, the value is the half-position divided by the probability.  
+- For odd positions, the value equals 1 plus a probability-weighted combination of the values at the adjacent positions (one step lower and one step higher).
+
+2. Inputs  
+- An integer position.  
+- A real number representing a percentage probability of “moving closer” (interpreted as a probability after dividing by 100).
+
+3. Outputs  
+- One line containing the computed expected value as a decimal real number with fixed precision (7 digits after the decimal point), followed by a newline.
+
+4. Preconditions  
+- The input provides at least two readable lines containing a valid integer position and a valid real-valued percentage.  
+- The probability percentage, after conversion to a probability, is expected to be in the range (0, 1] to avoid division by zero and to match the intended probabilistic meaning.  
+- The position is expected to be non-negative and small enough that the recursive definition terminates without exhausting resources.  
+- The recurrence is assumed to be well-defined for the provided inputs (i.e., it reaches an even position base case without unbounded recursion).
+
+5. Postconditions  
+- Exactly one output line is produced containing the expected value defined by the recurrence for the given position and probability.  
+- The produced value corresponds to the mathematical definition:  
+  - If position is even: value = (position/2) / probability.  
+  - If position is odd: value = 1 + value(position−1)*probability + value(position+1)*(1−probability).
+
+6. Invariants  
+- The probability used in all computations is the input percentage divided by 100 and remains constant for the entire run.  
+- The expected value for any even position depends only on that position and the probability via the closed-form base rule.  
+- The expected value for any odd position is defined solely in terms of the two adjacent positions and the same constant probability.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery is performed for malformed input, missing input, out-of-range probability, or negative/very large positions. Behavior in such cases is unspecified and may include incorrect results, non-termination, division by zero, or runtime failure due to resource exhaustion.  
+- No explicit handling is provided for numeric overflow/underflow or loss of precision.
+
+8. State Transitions (if applicable)  
+- Single-run behavior: reads inputs → computes expected value → outputs result → terminates.  
+- No persistent state is maintained across runs beyond the constant probability used during the computation.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursive evaluation; runtime and stack usage may grow rapidly with the magnitude of the position and may be impractical for large inputs.  
+- Output precision is fixed to 7 digits after the decimal point.

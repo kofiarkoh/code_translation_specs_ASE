@@ -1,0 +1,39 @@
+1. Functional Description  
+For each provided rectangular character grid, computes and outputs the number of connected regions, where a region is a maximal set of grid cells that (a) all contain the same character and (b) are connected via 4-directional adjacency (up, down, left, right). Processing repeats for multiple grids until a terminating size pair is provided.
+
+2. Inputs  
+- A sequence of test cases. Each test case consists of:  
+  - Two integers: grid height and grid width.  
+  - Exactly `height` rows of character data representing the grid contents.  
+- A terminating pair of integers indicating no further test cases.
+
+3. Outputs  
+- For each non-terminating test case, one integer: the number of 4-connected same-character regions in the grid, written as a separate line.
+
+4. Preconditions  
+- For each test case, height and width are non-negative and do not exceed 128.  
+- Each of the `height` input rows contains at least `width` characters of meaningful grid data (extra characters, if any, are ignored by the region definition).  
+- The total number of cells (`height * width`) does not exceed 16384.  
+- Sufficient call stack depth is available to traverse a region whose size may be up to `height * width`.
+
+5. Postconditions  
+For each processed test case (non-terminating):  
+- The output value equals the count of equivalence classes induced by the relation: two cells are equivalent iff they can be connected by a path of 4-adjacent steps through cells all having the same character.  
+- Every cell belongs to exactly one counted region.
+
+6. Invariants  
+- Region membership is determined solely by grid dimensions, cell characters, and 4-directional adjacency.  
+- The computed region count is independent of traversal order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for malformed input, missing rows, rows shorter than the declared width, dimensions exceeding limits, or input read failures; behavior is unspecified in these cases.  
+- If recursion depth exceeds available stack capacity, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats: read a test case → compute region count → output result.  
+- Terminates when the terminating size pair is read.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 128×128.  
+- Uses memory proportional to the maximum grid size.  
+- Runtime is bounded by a constant factor times the number of cells per test case (with additional overhead from recursive traversal).

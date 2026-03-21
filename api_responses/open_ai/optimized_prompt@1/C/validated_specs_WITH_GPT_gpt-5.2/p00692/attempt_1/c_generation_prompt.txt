@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each test case, computes the minimum number of cards that can remain after repeatedly removing pairs of equal-valued cards that are in specific adjacency relationships on an implicit 5×4 layout. The program explores all possible valid removal sequences and reports the smallest achievable remaining count.
+
+2. Inputs  
+- An integer specifying the number of test cases.  
+- For each test case, a sequence of 20 single-digit card values (interpreted as numeric values).
+
+3. Outputs  
+- For each test case, one integer: the minimum number of cards that can remain after performing zero or more valid pair removals.
+
+4. Preconditions  
+- The number of test cases is non-negative.  
+- Each test case provides exactly 20 card values.  
+- Each card value is a single digit representing a numeric value.  
+- The implicit layout is fixed as 5 rows by 4 columns, filled in row-major order.
+
+5. Postconditions  
+For each test case, the printed value equals:  
+- \(20 - 2 \times M\), where \(M\) is the maximum number of valid pair removals achievable in any sequence starting from the given 20-card arrangement.  
+Equivalently, the output is the minimum remaining card count reachable under the allowed moves.
+
+6. Invariants  
+- Each removal operation reduces the current card count by exactly 2.  
+- Only pairs of equal-valued cards are removable.  
+- Removals are only permitted when the two cards occupy positions that are adjacent in the implicit grid by one of these offsets (when both positions exist in the current remaining prefix of the sequence):  
+  - Same column, next row (vertical neighbor).  
+  - Same row, next column (horizontal neighbor).  
+  - Down-right diagonal neighbor.  
+  - Down-left diagonal neighbor.  
+- The relative order of all non-removed cards is preserved after a removal (the remaining cards compact without reordering).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or contains non-digit card values, behavior is unspecified.  
+- The computation assumes recursion completes; resource exhaustion (e.g., stack overflow) is not handled.
+
+8. State Transitions (if applicable)  
+- State per test case consists of the current multiset/sequence of remaining cards (as an ordered list) and the number of pairs removed so far.  
+- A transition removes one valid adjacent equal pair, producing a new state with two fewer cards and an increased removal count by 1.  
+- The reported result corresponds to the best reachable terminal/any state in terms of maximum removal count (not necessarily requiring no further moves).
+
+9. Non-functional Constraints (if inferable)  
+- Uses exhaustive search over possible removal sequences; runtime may grow exponentially with the number of available moves.  
+- Memory usage is bounded by recursion depth up to 10 removals (since 20 cards), plus fixed-size working storage per recursion level.
+
+```

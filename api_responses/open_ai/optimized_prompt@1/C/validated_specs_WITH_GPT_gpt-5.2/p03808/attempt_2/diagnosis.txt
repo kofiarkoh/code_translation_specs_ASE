@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Missing constraint / missing non-functional requirement (build/portability constraint), leading to a compilation failure rather than a behavioral mismatch.
+
+B. What the current specification may be missing or misstating  
+The specification describes only runtime arithmetic/logic behavior and output strings, but it does not constrain the required headers / C dialect / portability details needed to compile a conforming implementation. In particular, it doesn’t state whether the implementation may rely on C99/C11 `<inttypes.h>` format macros (e.g., `SCNd64`) or must use plain `scanf("%lld", ...)`-style formats as the source does.
+
+C. What general behavior should be clarified in the specification  
+Clarify the expected implementation-level I/O contract for 64-bit integers in C:  
+- whether inputs are read as `long long` using `%lld` (as in the source), or  
+- whether fixed-width `int64_t` is required/allowed and, if so, that `<inttypes.h>` must be included and the build standard must support the `SCNd64` macros.  
+More generally: specify compilation assumptions (required headers, C standard version) so that “conforming generated code” is guaranteed to compile under the intended toolchain.
+
+D. Why this clarification is supported by the source program  
+The source program uses `long long` and `scanf("%lld", ...)` without `<inttypes.h>` and without any fixed-width format macros. The failing artifact is a compile-time error caused by using `SCNd64` without the necessary header (and/or without guaranteeing the macro exists). This indicates the spec currently leaves too much freedom in how 64-bit I/O is expressed, even though the ground-truth source implicitly fixes a simple, portable approach (`%lld` with `long long`) under typical C compilers.

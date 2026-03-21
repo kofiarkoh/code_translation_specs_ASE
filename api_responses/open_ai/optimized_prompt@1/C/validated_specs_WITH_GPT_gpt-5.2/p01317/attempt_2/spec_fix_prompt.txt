@@ -1,0 +1,158 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define MN 205
+#define INF 100000000
+#define init(a) memset(a,0x0f,sizeof(a))
+#define min(a,b) (a<b?a:b)
+int N,M,R,de[1005],S[MN][MN],L[MN][MN],i,j,k,x,y,s;
+int dp[1005][205];
+
+int main()
+{
+	for(;scanf("%d%d",&N,&M),N;)
+	{
+		init(S);init(L);init(dp);
+		for(i=0;i<N;i++)L[i][i]=S[i][i]=0;
+		for(i=0;i<M;i++)
+		{
+			char t;
+			scanf("%d%d%d %c",&x,&y,&s,&t);
+			x--;y--;
+			if(t=='L')L[x][y]=L[y][x]=s;
+			else S[x][y]=S[y][x]=s;
+		}
+		for(scanf("%d",&R),i=0;i<R;de[i++]--)scanf("%d",&de[i]);
+		for(k=0;k<N;k++)
+			for(i=0;i<N;i++)
+				for(j=0;j<N;j++)
+				{
+					S[i][j]=min(S[i][j],S[i][k]+S[k][j]);
+					L[i][j]=min(L[i][j],L[i][k]+L[k][j]);
+				}
+		dp[0][de[0]]=0;
+		for(k=0;k<R-1;k++)
+			for(i=0;i<N;i++)
+				for(j=0;j<N;j++)
+				{
+					dp[k+1][i] = min(dp[k+1][i],dp[k][j]+L[de[k]][j]+S[j][i]+L[i][de[k+1]]);
+					if(i == j) dp[k+1][i] = min(dp[k+1][i], dp[k][j] + L[de[k]][de[k+1]]);
+				}
+		for(i=0,s=INF;i<N;i++)s=min(s,dp[R-1][i]);
+		printf("%d\n",s);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes, for each dataset, the minimum total travel cost to visit a given sequence of required locations in order, in a graph where each connection is either of one cost type or the other. Travel between consecutive required locations may include an intermediate “transfer” location, with the constraint that the first and last legs of that segment use the first cost type and the middle leg uses the second cost type; alternatively, a direct first-type-only travel between the two required locations is allowed.
+
+2. Inputs  
+For each dataset (repeated until a terminating dataset is provided):  
+- A pair of integers: number of locations and number of connections.  
+- A list of connections, each providing: two endpoint locations, a nonnegative cost, and a type indicator selecting one of two cost types.  
+- An integer giving the length of the required visit sequence.  
+- A sequence of required locations of that length.
+
+3. Outputs  
+For each dataset:  
+- A single integer: the minimum achievable total cost to traverse the required sequence under the allowed movement rules.
+
+4. Preconditions  
+- The terminating condition is a dataset whose number of locations is zero.  
+- Location indices provided in the input are within the declared number of locations.  
+- The required sequence length is at least 1.  
+- The number of locations does not exceed 205, and the required sequence length does not exceed 1005.  
+- Costs are such that the intended “infinite/unreachable” sentinel arithmetic does not overflow the integer range (assumption).
+
+5. Postconditions  
+- The output value equals the minimum, over all choices of intermediate transfer locations for each consecutive pair in the required sequence, of the sum of segment costs where each segment cost is the minimum of:  
+  - (a) minimum first-type cost from current required location to some transfer location  
+    + minimum second-type cost from that transfer location to the next segment’s chosen transfer location  
+    + minimum first-type cost from that next transfer location to the next required location, or  
+  - (b) minimum first-type cost directly between the two required locations (only applicable when the transfer location is the same on both sides of the segment).  
+- If no valid traversal exists under these rules, the output is a large sentinel value representing “unreachable” (assumption: this is acceptable as a result).
+
+6. Invariants  
+- For each cost type independently, the stored pairwise costs between locations represent the minimum achievable cost using only connections of that type (including zero cost from a location to itself).  
+- During computation over the required sequence, the maintained partial costs represent the minimum total cost to have completed the first k required visits and to be positioned at a specific transfer location for the next segment boundary.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- Malformed input, out-of-range indices, or violations of size limits lead to undefined behavior.  
+- Unreachable paths are represented by a large numeric sentinel and may be printed as such.
+
+8. State Transitions (if applicable)  
+- For each dataset, the computation transitions from:  
+  - initial state with unknown pairwise costs,  
+  - to a state where minimum pairwise costs for each type are established,  
+  - to a dynamic-programming state that advances one required visit at a time, updating the minimum total cost for each possible transfer location,  
+  - to a final state where the minimum over all transfer locations after the last required visit is selected and output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is cubic in the number of locations plus quadratic in the number of locations per step of the required sequence.  
+- Memory usage is bounded by storage for two square cost matrices over locations and a rectangular table over required-sequence length by locations.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input parsing / wrong abstraction of edge “type” and indexing (format/encoding mismatch).  
+- Wrong DP initialization / transition rule (state meaning mismatch).
+
+B. What the current specification may be missing or misstating  
+- **Edge type encoding and input format**: The source reads the edge type as a **character** (`%c`) with values `'L'` or something else (in the sample, `'S'`). The current spec only says “type indicator selecting one of two cost types” without pinning down that it is a **character token** and what the tokens are. This led the generated program to read an **integer** type and thus fail to parse the input correctly (and consequently produce no output).  
+- **1-based location indices in input**: The source decrements endpoints (`x--; y--;`) and also decrements each required location as it is read (`de[i++]--`). The spec does not clearly state that input indices are **1-based** and must be converted to **0-based** internally.  
+- **DP base case/state definition mismatch**: The spec’s invariant suggests “positioned at a transfer location for the next segment boundary,” but the source actually initializes `dp[0][de[0]] = 0` (only at the first required node), not `min L(de0, x)` over all transfer nodes. So the spec’s description of the DP state and/or initialization is not aligned with the source.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the **edge record format**: endpoints, cost, and a **single character** type field; enumerate the two valid type characters and which cost matrix each populates.  
+- Specify that **all location identifiers in input are 1-based**, including the required sequence, and are converted to 0-based for internal arrays.  
+- Clarify the **DP state and initialization** consistent with the source: after “0 segments completed,” the only reachable state is being at the first required location with cost 0; subsequent transitions add `L(required_k, j) + S(j, i) + L(i, required_{k+1})` (plus a special-case relaxation when `i==j`).
+
+D. Why this clarification is supported by the source program  
+- Input parsing in the source is unambiguous: `scanf("%d%d%d %c",&x,&y,&s,&t);` and `if(t=='L') ... else ...`, so the type is a **char** and `'L'` is treated specially while all other chars go to the other matrix.  
+- The explicit `x--; y--;` and `de[i++]--` show the program expects **1-based input indices** for both edges and required nodes.  
+- The DP initialization `dp[0][de[0]]=0;` and the transition formula in the nested loops demonstrate the intended state/transition differs from the spec-derived generated code’s “boundary transfer after first required node” initialization.
+
+```

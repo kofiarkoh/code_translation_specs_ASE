@@ -1,0 +1,53 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int n, m;
+    if (scanf("%d%d", &n, &m) != 2) {
+        return 0; /* Undefined by spec for malformed input; exit quietly. */
+    }
+
+    /* Fixed-size storage implied by spec (at most 999). */
+    int d[1000];
+    int q = 0;
+
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        if (scanf("%d%d", &x, &y) != 2) {
+            return 0; /* Undefined by spec; exit quietly. */
+        }
+        (void)y; /* Only x influences the result. */
+
+        if (x < n) {
+            d[q++] = n - x; /* Precondition: fits in int. */
+        }
+    }
+
+    if (q <= 1) {
+        printf("0");
+        return 0;
+    }
+
+    /* Quadratic-time ordering operation on derived values (selection sort). */
+    for (int i = 0; i < q - 1; i++) {
+        int min_idx = i;
+        for (int j = i + 1; j < q; j++) {
+            if (d[j] < d[min_idx]) min_idx = j;
+        }
+        if (min_idx != i) {
+            int tmp = d[i];
+            d[i] = d[min_idx];
+            d[min_idx] = tmp;
+        }
+    }
+
+    /* Sum of the smallest (q - 1) values. */
+    int sum = 0;
+    for (int i = 0; i < q - 1; i++) {
+        sum += d[i]; /* Precondition: sum fits in int. */
+    }
+
+    printf("%d", sum);
+    return 0;
+}
+```

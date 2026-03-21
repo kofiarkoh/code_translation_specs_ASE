@@ -1,0 +1,76 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+static inline int64_t max64(int64_t a, int64_t b) { return (a > b) ? a : b; }
+
+/* Fenwick tree (BIT) for prefix maximums over indices 1..n */
+typedef struct {
+    int n;
+    int64_t *bit; /* 1-based */
+} FenwickMax;
+
+static void fenwick_init(FenwickMax *fw, int n) {
+    fw->n = n;
+    fw->bit = (int64_t *)calloc((size_t)n + 1u, sizeof(int64_t));
+    /* If allocation fails, behavior is undefined per spec (no explicit handling). */
+}
+
+static void fenwick_update_max(FenwickMax *fw, int idx, int64_t val) {
+    /* Updates position idx with max(current, val) and propagates. */
+    for (int i = idx; i <= fw->n; i += (i & -i)) {
+        if (val > fw->bit[i]) fw->bit[i] = val;
+    }
+}
+
+static int64_t fenwick_query_max(FenwickMax *fw, int idx) {
+    /* Returns max over [1..idx]. For idx <= 0, returns 0. */
+    int64_t res = 0;
+    for (int i = idx; i > 0; i -= (i & -i)) {
+        if (fw->bit[i] > res) res = fw->bit[i];
+    }
+    return res;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        /* Preconditions say input is well-formed; otherwise undefined.
+           We exit quietly to keep behavior minimal. */
+        return 0;
+    }
+
+    if (n <= 0) {
+        /* Per spec: if n=0, M treated as 0 and output is 0. */
+        printf("%lld\n", (long long)0);
+        return 0;
+    }
+
+    FenwickMax fw;
+    fenwick_init(&fw, n);
+
+    int64_t global_max = 0;
+
+    for (int i = 0; i < n; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) {
+            /* Undefined per spec if insufficient/malformed input. */
+            break;
+        }
+
+        /* Preconditions guarantee 1 <= x <= n; otherwise undefined. */
+        int64_t best_before = fenwick_query_max(&fw, x - 1);
+        int64_t best_here = best_before + (int64_t)x;
+
+        fenwick_update_max(&fw, x, best_here);
+        global_max = max64(global_max, best_here);
+    }
+
+    int64_t S = ((int64_t)n * (int64_t)(n + 1)) / 2;
+    int64_t result = S - global_max;
+
+    printf("%lld\n", (long long)result);
+
+    free(fw.bit);
+    return 0;
+}

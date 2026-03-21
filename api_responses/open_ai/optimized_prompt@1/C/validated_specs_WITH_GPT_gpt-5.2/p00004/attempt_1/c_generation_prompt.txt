@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads successive sets of six real numbers representing a 2×2 linear system with two unknowns and outputs the corresponding solution pair (x, y) for each set, assuming the system is solvable.
+
+2. Inputs  
+- A stream of real-number sextuples per case: (a, b, c, d, e, f), interpreted as the coefficients and constants of two linear equations:  
+  - a·x + b·y = c  
+  - d·x + e·y = f  
+- Input continues until end-of-input.
+
+3. Outputs  
+- For each complete input sextuple, outputs one line containing two real numbers: the computed solution (x, y), each rounded to three digits after the decimal point.
+
+4. Preconditions  
+- Each case provides six valid real numbers.  
+- a ≠ 0.  
+- e − (b·d)/a ≠ 0 (equivalently, the system is not singular under the computation’s required divisions).  
+- Values are such that intermediate computations and results are representable as finite real numbers.
+
+5. Postconditions  
+For each processed case, the program outputs values (x, y) that satisfy the given system of equations within the rounding applied to the printed output, provided the preconditions hold.
+
+6. Invariants  
+- Each output line corresponds to exactly one successfully read sextuple of input values.  
+- The program does not retain state between cases that affects subsequent solutions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., division by zero or non-finite arithmetic), the produced output is undefined or may contain non-finite values, and execution may exhibit runtime-dependent behavior.  
+- If end-of-input occurs, processing stops without additional output.
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read one sextuple → compute solution → output solution, until end-of-input is reached, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Processes cases sequentially in a streaming manner with constant memory usage per case.  
+- Output numeric precision is fixed to three digits after the decimal point.
+
+```

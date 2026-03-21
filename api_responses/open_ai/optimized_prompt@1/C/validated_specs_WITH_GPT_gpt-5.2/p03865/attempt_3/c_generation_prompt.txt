@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+The program performs a single unbuffered read from standard input into a fixed-size byte buffer, then prints exactly one of two fixed words (“First” or “Second”) followed by a newline. The choice is determined by (a) the number of bytes returned by that `read` call and (b) whether the first byte read equals the byte located two positions before the end of the read data (i.e., the byte at index `L-2`, where `L` is the `read` return value).
+
+2. Inputs  
+- A raw byte stream from standard input.  
+- The program uses the exact byte count `L` returned by a single `read(0, ..., 114514)` call; it does not perform line-based parsing, trimming, or special handling of newline or other byte values. Any bytes present in the stream (including line terminators, if any) contribute to `L` and to which buffer positions are examined.
+
+3. Outputs  
+- Writes a single line to standard output containing either the word “First” or the word “Second”.
+
+4. Preconditions / Defined-Behavior Requirements  
+Let `L` be the number of bytes successfully read by `read`. The program decrements this value and then accesses `buf[0]` and `buf[L-2]`. Therefore, behavior is only well-defined when:  
+- `L >= 2` (so that both `buf[0]` and `buf[L-2]` are valid), and  
+- `read` returns a nonnegative value not exceeding the internal buffer capacity.
+
+If `read` fails (negative return) or returns fewer than 2 bytes, the program may perform out-of-bounds access and its behavior is undefined.
+
+5. Decision Rule (Postconditions under the Preconditions)  
+Assuming `L >= 2` bytes are read:  
+- Let `n = L - 1` (this is the value after the program’s decrement).  
+- Let `eq` be the result of the comparison `(buf[0] == buf[n-1])`, which is either 0 or 1 in C; note that `n-1` equals `L-2`.  
+- The program computes the condition for choosing the output word as `((n + eq) & 1)` (this reflects C operator precedence: `+` is evaluated before `&`, and the conditional operator `?:` uses the result of that `&` expression as its condition).  
+- If `((n + eq) & 1)` is nonzero, it outputs “First”; otherwise it outputs “Second”.
+
+6. Invariants  
+- The decision depends only on:  
+  - the byte count `L` returned by the single `read`, and  
+  - whether `buf[0]` equals `buf[L-2]` (not the final byte `buf[L-1]`).  
+- No persistent state is maintained across executions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If `read` fails or returns fewer than 2 bytes, behavior is undefined (may crash or print an arbitrary result).
+
+8. State Transitions (if applicable)  
+- Single-step execution: start → read input once → compute the condition above → print one word and a newline → terminate.
+
+9. Non-functional Constraints (if inferable)  
+- Reads at most 114514 bytes in one call.  
+- Runs in time proportional to the number of bytes read, using a fixed-size internal buffer.
+
+```

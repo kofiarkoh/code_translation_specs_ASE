@@ -1,0 +1,35 @@
+1. Functional Description  
+Reads bytes from standard input, skips an initial contiguous run of decimal digits, then repeatedly parses pairs of non-negative decimal integers from the remaining input and, for each pair, computes a derived integer value based on the parity of the first integer. The computed values are written to standard output as decimal text, one per line.
+
+2. Inputs  
+- A byte stream from standard input (up to 10,000 bytes are read into a fixed buffer).  
+- The program first advances past an initial run of bytes whose values are `>= '0'` (treated as “digits” by the program’s comparisons) and stops skipping at the first byte `< '0'`.  
+- After that point, the program processes zero or more records **only while the current byte is `>= '0'`**. If the current byte is `< '0'` at a record boundary, processing terminates and no further input is examined.  
+- Each record is parsed as two integers `(N, D)` as follows:
+  - `N` is formed by consuming consecutive bytes `>= '0'`, interpreting them as decimal digits (`'0'`..`'9'` assumed), and stopping at the first byte `< '0'`. That terminating byte is consumed.
+  - Immediately after consuming `N`’s terminator, `D` is formed the same way: consume consecutive bytes `>= '0'` as decimal digits until the first byte `< '0'`, and consume that terminator byte.
+- There is no step that skips over arbitrary separators to find the next record; record parsing continues only if the next unconsumed byte at the record boundary is `>= '0'`.
+
+3. Outputs  
+- For each successfully processed record, outputs the computed integer in base-10 as a sequence of digits (no leading zeros except for zero), followed by a newline.  
+- Output is accumulated in a fixed buffer (up to 20,000 bytes) and written once at the end.
+
+4. Computation  
+For each parsed pair `(N, D)`, the output value is:
+- If `N` is odd: `127*(N-1) + D`  
+- If `N` is even: `127*N - D`  
+(Equivalently, for odd `N` the program decrements `N` by 1 before multiplying by 127.)
+
+5. Preconditions / Assumptions  
+- The input read must fit in the 10,000-byte input buffer.  
+- Parsed integers and intermediate arithmetic must fit within the C `int` range used by the program.  
+- The computed result is assumed to be non-negative; the program’s digit-generation logic does not define a conventional signed decimal rendering for negative values.  
+- The computed result must fit within the temporary digit buffer used for conversion (up to 10 digits).  
+- Total produced output must fit within the 20,000-byte output buffer.
+
+6. Termination and Record Boundaries  
+- After skipping the initial digit run, processing stops as soon as the current byte at a record boundary is `< '0'`. The program does not resume by searching for later digits.  
+- If the input ends or does not contain the expected terminator bytes for numbers, behavior is not defined by the program (it may read beyond meaningful input in the buffer).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. If any precondition is violated (buffer limits, malformed structure relative to the program’s parsing rules, overflow, negative result, excessive digits), behavior is undefined: output may be incorrect, truncated, or the program may fail.

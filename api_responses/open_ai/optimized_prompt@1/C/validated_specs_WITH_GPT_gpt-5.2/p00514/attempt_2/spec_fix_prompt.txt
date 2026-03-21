@@ -1,0 +1,170 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+/* 20000! has 77338 digits */
+/* 9 digits in one int */
+#define TABAICHO_SIZE 8667
+#define TABAICHO_BLOCK 1000000000
+int tabaicho_main[TABAICHO_SIZE];
+
+void tabaicho_set(int num) {
+	int i;
+	tabaicho_main[0]=num;
+	for(i=1;i<TABAICHO_SIZE;i++)tabaicho_main[i]=0;
+}
+
+void tabaicho_mul(int num) {
+	int kuriagari=0;
+	long long calctemp;
+	int i;
+	for(i=0;i<TABAICHO_SIZE;i++) {
+		calctemp=(long long)tabaicho_main[i]*num;
+		calctemp+=kuriagari;
+		tabaicho_main[i]=calctemp%TABAICHO_BLOCK;
+		kuriagari=calctemp/TABAICHO_BLOCK;
+	}
+}
+
+void tabaicho_div(int num) {
+	long long remainder=0;
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		remainder=remainder*TABAICHO_BLOCK+tabaicho_main[i];
+		tabaicho_main[i]=remainder/num;
+		remainder=remainder%num;
+	}
+}
+
+void tabaicho_print(void) {
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		if(tabaicho_main[i]>0)break;
+	}
+	printf("%d",tabaicho_main[i]);
+	for(i--;i>=0;i--)printf("%09d",tabaicho_main[i]);
+	putchar('\n');
+}
+
+int main(void) {
+	int n,m,r;
+	scanf("%d%d%d",&n,&m,&r);
+	r-=n*m; /* n=3 r=8 m=1 xoo|xoo|xo */
+	if(r<0)puts("0");
+	else if(r==0)puts("1");
+	else {
+		int i,j,n2;
+		/* n=3 r=5 oo|oo|o */
+		/* (n+r-1)C(n-1) */
+		tabaicho_set(1);
+		n2=n-1;
+		if((n+r-1)-(n-1)<n-1)n2=(n+r-1)-(n-1);
+		for(i=0,j=n+r-1;i<n2;i++,j--)tabaicho_mul(j);
+		for(i=1;i<=n2;i++)tabaicho_div(i);
+		tabaicho_print();
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes and outputs a non-negative integer derived from three input integers. After adjusting the third input by subtracting the product of the first two, the program outputs:
+- `0` if the adjusted value is negative,
+- `1` if the adjusted value is zero,
+- otherwise, the binomial coefficient choosing `(n−1)` items from `(n + adjusted_r − 1)` (equivalently, the number of multisets of size `adjusted_r` over `n` categories).
+
+2. Inputs  
+- Three signed integers: `n`, `m`, `r`.
+
+3. Outputs  
+- A single line containing one decimal integer:
+  - `0`, `1`, or a positive integer equal to a binomial coefficient as described above.
+
+4. Preconditions  
+- Input provides three integers.  
+- For the combinatorial (binomial) case to be mathematically well-defined as used, `n` is assumed to be at least 1.  
+- For the computed value to be representable by the program’s internal fixed-precision big-integer storage, the resulting binomial coefficient must fit within the supported maximum magnitude (finite number of decimal digits).
+
+5. Postconditions  
+Let `r' = r − n*m`.
+- If `r' < 0`, the output is exactly `0`.  
+- If `r' = 0`, the output is exactly `1`.  
+- If `r' > 0`, the output equals the exact integer value of the binomial coefficient:  
+  - `C(n + r' − 1, n − 1)` (equivalently `C(n + r' − 1, r')`).  
+The output is followed by a newline.
+
+6. Invariants  
+- In the binomial-coefficient case, the maintained numeric value is always an integer and remains non-negative throughout the computation.  
+- The printed value is the exact value represented internally at the time of printing (no rounding).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or missing input; behavior is unspecified if three integers are not successfully provided.  
+- If `n <= 0` and `r' > 0`, the combinatorial meaning and internal arithmetic assumptions may be violated; behavior is unspecified.  
+- If the required result exceeds the internal fixed capacity, arithmetic overflow/truncation may occur; behavior is unspecified.  
+- Division by zero does not occur under the stated preconditions; otherwise behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- The program maintains a single global numeric state representing the current big integer.  
+- In the binomial-coefficient case, this state transitions from `1` to the final binomial coefficient through a sequence of exact integer updates, and is then output.  
+- In the `0` and `1` cases, the global numeric state is not required to be used.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed, bounded memory for the internal big-integer representation; maximum representable magnitude is capped.  
+- Time cost grows roughly linearly with the fixed internal precision and with the smaller of `(n−1)` and `r'` in the binomial-coefficient case.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Missing constraint / underspecified I/O and types**, leading to **non-compilable generated code** (a tooling-level mismatch rather than a numeric/algorithmic one).
+
+B. What the current specification may be missing or misstating  
+- The spec says “three signed integers” but does not constrain **C type/format** choices for reading them. The generated code chose `int64_t` + `SCNd64`, which **requires `<inttypes.h>`**; the generator included only `<stdint.h>`, causing compilation failure.  
+- The spec also doesn’t reflect that the **source uses plain `int` and `scanf("%d%d%d", ...)`**, i.e., no fixed-width integer macros, no dependency on `<inttypes.h>`, and no 64-bit scanning.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **intended C-level input representation** consistent with the source: inputs are read as **32-bit-ish `int` via `%d`**, not as `int64_t` via `SCNd64`.  
+- More generally: specify that the program is a **C program using standard `stdio` scanning with `%d`**, and that behavior is tied to C `int` arithmetic (including potential overflow/UB in `n*m`), rather than implicitly promoting to wider, safer arithmetic.
+
+D. Why this clarification is supported by the source program  
+- The source declares `int n,m,r;` and reads them with `scanf("%d%d%d",&n,&m,&r);`—no `<inttypes.h>`, no `int64_t`, no `SCNd64`.  
+- The failing case arises because the generated program introduced `SCNd64` without the required header; this is a direct consequence of the spec not pinning down the C I/O/type contract that the source clearly fixes.
+
+```

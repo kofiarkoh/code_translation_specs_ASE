@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+- **Missing constraint / underspecified implementation detail (I/O format and headers)** leading to **compilation failure**, not a runtime logic mismatch.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the computation but does **not constrain the concrete C I/O approach** (e.g., whether to use `scanf("%lld", ...)` vs. `scanf("%" SCNd64, ...)`).  
+- As a result, code generated from the spec may choose the `inttypes.h` format macros (`SCNd64`, `PRId64`) without also including the required header, or may otherwise produce non-compiling code.  
+- Additionally, the spec says “fixed prime modulus” but does not pin down the **exact modulus value** used by the source (`998244353`), which is another concrete constant that must be specified to match the source behavior (even though the shown failure is compilation-related).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact modulus constant** used by the program (the source uses `998244353`).  
+- Clarify the **exact integer model and I/O contract** expected in C: the source effectively uses `long long` everywhere (via `#define int long long`) and reads/writes with `"%lld"`. If the spec allows `int64_t` + `SCNd64/PRId64`, it should also require inclusion of the proper headers (or alternatively constrain the implementation to `long long` + `"%lld"`).  
+- More generally: the spec should state that the produced artifact must be **valid C (compilable under the target standard)**, including any required headers implied by chosen format specifiers.
+
+D. Why this clarification is supported by the source program  
+- The source program hard-codes the modulus as `#define p 998244353`, so any “fixed prime modulus” abstraction is incomplete unless it identifies this exact value.  
+- The source uses `scanf("%lld", ...)` / `printf("%lld\n", ...)` and does not rely on `SCNd64`/`PRId64` macros; therefore, a spec that permits those macros without mandating the corresponding header (`<inttypes.h>`) can lead to non-compiling generated code, which diverges from the source’s successful compilation model.

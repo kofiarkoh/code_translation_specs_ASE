@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers. For each integer, finds the nearest prime number less than or equal to it and the nearest prime number greater than or equal to it, then outputs the distance between those two primes (upper minus lower).
+
+2. Inputs  
+- A stream of signed integers provided one at a time until input termination.
+
+3. Outputs  
+- For each successfully read integer, outputs one signed integer representing the difference between:
+  - the smallest prime number greater than or equal to the input, and
+  - the largest prime number less than or equal to the input.
+
+4. Preconditions  
+- Each processed input value is an integer that can be represented in the program’s integer type.  
+- To guarantee termination and meaningful results, each processed input value is at least 2.  
+- To avoid arithmetic overflow during prime testing, the input values and the intermediate candidates searched upward/downward are such that squaring trial divisors does not overflow the integer type.
+
+5. Postconditions  
+For each processed input integer `x` (meeting preconditions):  
+- Let `L` be the greatest prime such that `L ≤ x`.  
+- Let `U` be the least prime such that `U ≥ x`.  
+- The program outputs exactly `U - L` for that input.  
+- If `x` itself is prime, then `L = U = x` and the output is `0`.
+
+6. Invariants  
+- During processing of a given input `x`, the maintained lower candidate never exceeds `x`, and the maintained upper candidate never goes below `x`.  
+- When the program produces an output for `x`, the final lower candidate is prime and is the greatest prime not exceeding `x`, and the final upper candidate is prime and is the least prime not less than `x`.
+
+7. Error Handling / Exceptional Behavior  
+- Input termination (including end-of-input) stops processing; no further output is produced.  
+- If an input value violates the preconditions (e.g., less than 2), behavior is not guaranteed to terminate or produce meaningful output.  
+- If arithmetic overflow occurs in computations used for prime testing, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeats the following per successfully read integer:  
+  - Transition from “awaiting next integer” to “processing integer,” then back to “awaiting next integer” after emitting one output line.  
+- Transitions to “terminated” upon input termination.
+
+9. Non-functional Constraints (if inferable)  
+- For each input value, runtime grows with the distance to the nearest primes around the input and with the cost of primality checks; no fixed upper bound is guaranteed by the code alone.  
+- Uses a small, constant amount of additional memory per input value.
+
+```

@@ -1,0 +1,111 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a single integer `s` and computes an integer `ans` modulo `1,000,000,007`. The computation is a modular sum of several arithmetic counts derived from `s` and from decimal digit-length bounds.  
+
+The program treats a “digit length” `d` as imposing an upper bound on an associated positive integer variable: for `d = 1..8`, the maximum allowed value is `10^d − 1` (i.e., the count of positive `d`-digit base-10 integers). Using these bounds, the program adds contributions that count how many integers fall in certain intervals and arithmetic progressions determined by linear expressions in `s` and the chosen digit lengths.  
+
+For digit lengths greater than 8, the program does not enumerate lengths directly; instead it adds additional contributions by iterating over divisors of `s` and using modular exponentiation to compute `9·10^(d−1)` (the number of `d`-digit positive integers) modulo `1,000,000,007`, combined with linear subtraction terms.
+
+2. Inputs  
+- One signed integer `s` read from standard input.
+
+3. Outputs  
+- One integer printed to standard output: the value `ans` reduced modulo `1,000,000,007` (with a final adjustment to make it non-negative).
+
+4. Preconditions / Assumptions  
+- Input contains exactly one integer and is successfully parsed by `scanf`.  
+- The intended domain is `s > 0`. (If `s <= 0`, the program still executes but the meaning of the computed value is not defined by the specification.)  
+- To avoid undefined behavior, `s` is assumed to be small enough that all intermediate computations performed in C (including products such as `cnt[d] * d` and related subtractions) remain within the range of the used integer types (`int` and `long long`).
+
+5. Detailed Computation Semantics  
+
+5.1 Constants and digit-length table  
+- Let `N = 8` and `MD = 1,000,000,007`.  
+- Define `cnt[d]` for `d = 1..8` as:
+  - `cnt[1] = 9`
+  - `cnt[d] = 10 * cnt[d−1]` for `d >= 2`  
+  Thus `cnt[d] = 10^d − 1`, the number of positive integers with at most `d` digits, and also the maximum value of a positive `d`-digit integer.
+
+5.2 Initialization term  
+- Initialize `ans` to integer division `(s − 1) / 8` (truncating toward zero as in C for positive `s`).
+
+5.3 Contributions for digit lengths up to 8  
+For each `l1` from 1 to 8:
+
+A) Single-length divisibility contribution  
+- If `s` is divisible by `l1` and `s / l1 <= cnt[l1]`, add:
+  - `cnt[l1] − (s / l1) + 1`
+  to `ans` modulo `MD`.  
+This is an interval-size count based on the quotient `s / l1` and the digit-length bound `cnt[l1]`.
+
+B) Two-length mixed contribution with progressive reduction  
+- Set a working value `s_ = s`.  
+- For each `l2` from `l1 + 1` to 8, do the following:
+
+  1) Compute an integer interval `[lower, upper]` for a variable bounded by `cnt[l1]`:
+     - `lower = ceil( max( s_ − cnt[l2]*l2, 1 ) / l1 )`
+     - `upper = min( floor( (s_ − l2) / l1 ), cnt[l1] )`  
+     (All divisions are integer divisions as implemented in C; `ceil(x/l1)` is implemented by `(x + l1 − 1) / l1` for positive `l1`.)
+
+  2) If `lower <= upper`, then for each `r1` from 1 to `l2`:
+     - If `(s_ − r1*l1)` is divisible by `l2`, add to `ans` the number of integers `x` in `[lower, upper]` such that `x ≡ r1 (mod l2)`.  
+       This count is computed using floor-division differences:
+       - `count = floor((upper + l2 − r1)/l2) − floor((lower − 1 + l2 − r1)/l2)`  
+       and `ans = (ans + count) mod MD`.
+
+  3) Early termination / state update for `s_`:
+     - If `floor(s_ / l2) < cnt[l2]`, stop iterating further `l2` for this `l1` (break out of the `l2` loop).  
+     - Otherwise, update `s_ = s_ − cnt[l2]*l2` and continue to the next `l2`.  
+  This makes `s_` a decreasing state variable across increasing `l2`, and the loop may terminate early depending on `s_`.
+
+5.4 Additional contributions for digit lengths greater than 8 via divisors  
+- Iterate `a` over positive integers starting at 1 while `a <= s / a` (i.e., up to `floor(sqrt(s))`).  
+- For each `a` that divides `s`, let `b = s / a`. The program conditionally adds terms when a divisor is greater than 8:
+  - If `a > 8`, add `(9 * 10^(a−1) − b)` modulo `MD`.
+  - If `a != b` and `b > 8`, add `(9 * 10^(b−1) − a)` modulo `MD`.  
+- The power `10^(k)` is computed modulo `MD` using fast exponentiation.
+
+5.5 Modular handling and final normalization  
+- All additions are performed with intermediate reductions modulo `MD`, but intermediate `ans` values may become negative due to subtraction-like terms.  
+- After all contributions, if `ans < 0`, the program adds `MD` once.  
+- The printed result is the final `ans` value as an integer.
+
+6. Postconditions  
+- The program outputs a single line containing the computed value modulo `1,000,000,007`.  
+- The final printed value is intended to be a non-negative representative modulo `1,000,000,007` (the program performs only a single `+MD` correction if negative).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input parsing fails, behavior is unspecified.  
+- If signed integer overflow occurs in intermediate computations, behavior is unspecified (per C rules).
+
+8. State / Termination  
+- The program performs one computation and terminates.  
+- The only nontrivial internal state transition is the per-`l1` variable `s_`, which is updated by subtracting `cnt[l2]*l2` as `l2` increases and can cause early termination of the `l2` loop as described above.
+
+```

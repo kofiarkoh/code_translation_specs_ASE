@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Non-functional requirement mismatch / missing constraint (C language conformance and compilation model).
+
+B. What the current specification may be missing or misstating  
+The specification says the implementation must be “standard-conforming ISO C (compatible with C11)” and “must not rely on compiler-specific extensions (e.g., no nested function definitions).”  
+The failing build shows the generated program used nested function definitions (comparators defined inside other functions), which is not allowed in standard C and is rejected by the compiler. This indicates the spec’s “no extensions / file-scope helpers” constraint is either not stated strongly enough, not operationalized (e.g., doesn’t explicitly cover qsort comparators), or is being treated as optional.
+
+C. What general behavior should be clarified in the specification  
+Clarify, as a hard requirement, that:
+- All functions (including small helper callbacks such as `qsort` comparators) must be defined at file scope (no nested functions), and
+- The program must compile cleanly under `-std=c11` with a typical compiler (e.g., gcc/clang) without relying on GNU C extensions.
+
+D. Why this clarification is supported by the source program  
+The source program is strictly standard C in this respect: every helper (`max`, `link`, `dfs1`…`dfs5`) is defined at file scope; there are no nested functions or other nonstandard constructs. The presence of an explicit “standard-conforming” constraint in the current spec aligns with the source, and the compilation failure demonstrates that this constraint needs to be made unambiguous and enforceable in the specification.

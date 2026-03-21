@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+static int cmp_int_sub(const void *a, const void *b) {
+    /* Specification notes subtraction-based comparison; assumes no overflow. */
+    int ia = *(const int *)a;
+    int ib = *(const int *)b;
+    return ia - ib;
+}
+
+int main(void) {
+    int n;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        /* Memory proportional to dataset size, up to 1,000,000 integers. */
+        int *arr = (int *)malloc((size_t)n * sizeof(int));
+        if (!arr) {
+            /* Unspecified by spec; exit on allocation failure. */
+            return 1;
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (scanf("%d", &arr[i]) != 1) {
+                /* Unspecified by spec; terminate on malformed input. */
+                free(arr);
+                return 0;
+            }
+        }
+
+        qsort(arr, (size_t)n, sizeof(int), cmp_int_sub);
+
+        int best_val = arr[0];
+        int best_count = 1;
+
+        int cur_val = arr[0];
+        int cur_count = 1;
+
+        for (int i = 1; i < n; i++) {
+            if (arr[i] == cur_val) {
+                cur_count++;
+            } else {
+                if (cur_count > best_count) {
+                    best_count = cur_count;
+                    best_val = cur_val;
+                }
+                cur_val = arr[i];
+                cur_count = 1;
+            }
+        }
+        if (cur_count > best_count) {
+            best_count = cur_count;
+            best_val = cur_val;
+        }
+
+        if (best_count > n / 2) {
+            printf("%d\n", best_val);
+        } else {
+            /* Fixed “no majority” message. */
+            printf("no majority\n");
+        }
+
+        free(arr);
+    }
+
+    return 0;
+}

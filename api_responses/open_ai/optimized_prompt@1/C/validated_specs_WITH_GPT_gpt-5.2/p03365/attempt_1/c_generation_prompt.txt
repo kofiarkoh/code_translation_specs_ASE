@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value modulo a fixed prime modulus, derived from an input integer \(n\) via a summation over \(k = 1 \ldots n-1\). The computation uses factorial-based binomial coefficients modulo the modulus and combines them into an intermediate sequence, then forms a weighted sum of successive differences of that sequence.
+
+2. Inputs  
+- One signed integer \(n\).
+
+3. Outputs  
+- One integer in the range \([0, \text{modulus}-1]\), representing the computed value modulo the fixed modulus.
+
+4. Preconditions  
+- \(0 \le n \le 1{,}000{,}000\) (required to stay within precomputed table bounds).  
+- The input is present and parseable as an integer.  
+- The modulus is prime, and factorial values up to \(1{,}000{,}000\) are invertible modulo it (implied by the chosen modulus and range).
+
+5. Postconditions  
+- If the preconditions hold, the program outputs  
+  \[
+  \text{ans} \equiv \sum_{k=1}^{n-1} k \cdot \left(T(k) - T(k-1)\right) \pmod{\text{modulus}}
+  \]
+  where  
+  \[
+  T(k) \equiv \binom{k-1}{\,n-1-k\,}\cdot k!\cdot (n-1-k)! \pmod{\text{modulus}}
+  \]
+  and \(\binom{a}{b}=0\) when \(a<0\), \(b<0\), or \(b>a\).  
+- The printed value is the canonical non-negative residue modulo the modulus.
+
+6. Invariants  
+- All intermediate arithmetic is interpreted modulo the fixed modulus.  
+- For all \(i\) within the precomputed range, factorial and inverse-factorial tables represent multiplicative inverses consistently modulo the modulus (i.e., factorial\((i)\) · invfactorial\((i)\) ≡ 1 mod modulus).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If \(n\) is outside the supported range or input parsing fails, behavior is undefined (may read/write out of bounds or produce an arbitrary result).  
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and inverse factorials up to a fixed maximum.  
+- Computes an intermediate sequence \(T(k)\) for \(k = 0 \ldots n-1\).  
+- Accumulates the final modular answer and outputs it.  
+- Terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity: \(O(N)\) preprocessing for the fixed maximum plus \(O(n)\) per run.  
+- Space complexity: \(O(N)\) for the precomputed tables, where \(N \approx 1{,}000{,}000\).
+
+```

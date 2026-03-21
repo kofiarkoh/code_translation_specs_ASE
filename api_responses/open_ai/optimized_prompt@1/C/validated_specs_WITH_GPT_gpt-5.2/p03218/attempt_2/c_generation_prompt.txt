@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers, sorts it in nondecreasing order, then computes a modular product. For each index `i` in the sorted sequence (using **0-based indexing**), it multiplies an accumulator by `gcd(value_at_i, i)` and reduces the accumulator modulo a fixed modulus after each multiplication. It outputs the final accumulator.
+
+2. Inputs  
+- An integer `N`: the number of elements.  
+- A sequence of exactly `N` integers.
+
+Input is read from standard input using signed 64-bit integer text format (as in C `long long` with `scanf("%lld", ...)`).
+
+3. Outputs  
+- A single integer written to standard output: the computed product reduced modulo the fixed modulus, followed by a newline (as in C `printf("%lld\n", ...)`).
+
+4. Fixed Constants  
+- The modulus is the constant **998244353**.
+
+5. Preconditions / Assumptions  
+- `N` is interpreted as a signed 64-bit integer but is used as an array length; it is therefore assumed that `N >= 0` and that allocating storage for `N` elements succeeds.  
+- Exactly `N` subsequent integers are present in the input.  
+- Values are treated as signed 64-bit integers.  
+- No guarantees are made if integer overflow occurs in intermediate operations (notably in the sort comparator’s subtraction and in the multiplication before the modulo reduction).  
+- The program does not normalize signs for the gcd computation; if negative values are provided, the gcd routine follows the language’s `%` behavior on negatives and may yield negative results, which then affect the modular product accordingly.
+
+6. Computation Details  
+- Let `B` be the input sequence sorted in nondecreasing order (ties may appear; only nondecreasing order is required).  
+- Define `gcd(a, b)` by the recursive Euclidean algorithm used by the program:  
+  - `gcd(a, 0) = a`  
+  - `gcd(a, b) = gcd(b, a % b)` otherwise  
+- The accumulator `ans` starts at `1`.  
+- For each `i` from `0` to `N-1` (inclusive), update:  
+  - `ans = (ans * gcd(B[i], i)) mod 998244353`  
+- The program outputs `ans` as computed above.
+
+7. Edge Cases  
+- If `N = 0`, no elements are processed and the output is `1` modulo 998244353 (i.e., `1`).  
+- For `i = 0`, the factor is `gcd(B[0], 0)`, which equals `B[0]` under the program’s gcd definition (including its sign behavior).
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, allocation failure, or arithmetic overflow; behavior in such cases is undefined or may result in abnormal termination or incorrect output.
+
+9. Non-functional Characteristics  
+- Time complexity is dominated by sorting: \(O(N \log N)\), plus \(O(N)\) gcd computations.  
+- Memory usage is \(O(N)\) for storing the sequence.
+
+```

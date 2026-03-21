@@ -1,0 +1,27 @@
+A. Likely mismatch category  
+- **Missing/underspecified transition rule / missing formula (wrong abstraction due to incompleteness)**
+
+B. What the current specification may be missing or misstating  
+- The specification explicitly says the final “general-case” output is “a specific rational expression in `a`, `b`, `c`, `x`, and `K`”, but it **does not state what that expression is**.  
+- In the source program, that general-case branch is not optional: it is a **fully defined computation** that will be taken for many inputs (including the failing sample). The current spec leaves this branch effectively undefined, which led the generated program to output a placeholder value (`0`).
+
+C. What general behavior should be clarified in the specification  
+- The specification must precisely define the **entire piecewise output function**, including the **exact modular rational expression** used when:
+  - at least one of the boundary flags is true (after normalization), and
+  - not both `a==0` and `b==0`.
+- Additionally, the spec should clarify that the “normalization” is not merely conceptual: the source actually **transposes the stored grid in-place over a square buffer of size `max(H,W)`**, then swaps `H` and `W`, and subsequent counting uses the transposed data.
+
+D. Why this clarification is supported by the source program  
+- The source has three output branches after computing `a,b,c,x` (post-normalization):  
+  1) `power(x, K-1)` when `f_yoko==0 && f_tate==0`  
+  2) `power(c, K-1)` when `a==0 && b==0` (in the boundary-true regime)  
+  3) Otherwise, it prints a **fully specified modular expression**:
+     ```c
+     MOD(
+       MOD((a + b) * power(x, K - 1)
+         + (x - (a + 2 * b + c)) * power(b + c, K - 1))
+       * inverse(x - (b + c))
+     )
+     ```
+  This is the behavior the current specification omits (it only says “a specific rational expression” without giving it).  
+- The failing test reaching output `0` in the generated program is consistent with the fact that the input likely falls into this third branch in the source, demonstrating that the missing formula is not an edge case but a **core part of the algorithm**.

@@ -1,0 +1,146 @@
+#include <stdio.h>
+#include <string.h>
+
+#define N 4000
+#define MOD 998244353
+
+static unsigned char A_bits[N];
+static unsigned char D_bits[N];
+static unsigned char B_bits[N];
+static unsigned char R_bits[N];
+static int pow2mod[N];
+
+static void clear_poly(unsigned char p[N]) {
+    memset(p, 0, N);
+}
+
+static int highest_set_bit(const unsigned char p[N]) {
+    for (int i = N - 1; i >= 0; --i) {
+        if (p[i]) return i;
+    }
+    return -1;
+}
+
+static int is_zero_poly(const unsigned char p[N]) {
+    return highest_set_bit(p) < 0;
+}
+
+static void parse_binary_string_to_poly(const char *s, unsigned char p[N]) {
+    /* s[0] is highest-degree coefficient; p[k] is coefficient of x^k */
+    clear_poly(p);
+    int t = (int)strlen(s);
+    if (t > N) t = N; /* per spec, longer may be UB; we clamp to stay in-bounds */
+    for (int idx = 0; idx < t; ++idx) {
+        char c = s[t - 1 - idx];
+        p[idx] = (unsigned char)(c == '1');
+    }
+}
+
+static void xor_shifted(unsigned char dst[N], const unsigned char src[N], int sh) {
+    /* dst ^= (src << sh) within [0, N-1] */
+    if (sh < 0) return; /* should not happen under intended usage */
+    for (int k = N - 1; k >= sh; --k) {
+        dst[k] ^= src[k - sh];
+    }
+    /* bits below sh are unaffected (shifted-in zeros) */
+}
+
+int main(void) {
+    int m;
+    static char buf[N + 5];
+
+    if (scanf("%d", &m) != 1) return 0;
+    if (scanf("%4004s", buf) != 1) return 0;
+
+    int A_len = (int)strlen(buf);
+    if (A_len > N) A_len = N; /* per spec, longer may be UB; clamp to fixed storage */
+    parse_binary_string_to_poly(buf, A_bits);
+
+    /* Reduction phase: D starts as zero, A is not used here */
+    clear_poly(D_bits);
+
+    for (int t = 0; t < m; ++t) {
+        if (scanf("%4004s", buf) != 1) return 0;
+        parse_binary_string_to_poly(buf, B_bits);
+
+        while (!is_zero_poly(B_bits)) {
+            int i = highest_set_bit(D_bits);
+            int j = highest_set_bit(B_bits);
+            if (j < 0) break;
+
+            if (i < j) {
+                /* swap roles of D and B */
+                for (int k = 0; k < N; ++k) {
+                    unsigned char tmp = D_bits[k];
+                    D_bits[k] = B_bits[k];
+                    B_bits[k] = tmp;
+                }
+                i = j;
+                j = highest_set_bit(B_bits);
+                if (j < 0) break;
+            }
+
+            /* D := D XOR (B << (i-j)) */
+            xor_shifted(D_bits, B_bits, i - j);
+        }
+    }
+
+    /* Determine L */
+    int hd = highest_set_bit(D_bits);
+    int L = (hd < 0) ? 0 : (hd + 1);
+
+    /* Precompute powers of 2 mod MOD up to |A|-1 */
+    if (A_len > 0) {
+        pow2mod[0] = 1;
+        for (int i = 1; i < A_len; ++i) {
+            pow2mod[i] = (int)((2LL * pow2mod[i - 1]) % MOD);
+        }
+    }
+
+    /* Counting phase */
+    clear_poly(R_bits);
+    int ans = 0;
+    int completed = 1;
+
+    int Lm1 = L - 1; /* may be -1 when L==0 */
+
+    for (int i = A_len - 1; i >= 0; --i) {
+        int x = (int)A_bits[i];
+        int y = (int)R_bits[i];
+
+        if (i >= Lm1 && x == 1) {
+            int e = i - Lm1; /* when Lm1==-1, e=i+1 */
+            if (e >= 0 && e < A_len) {
+                ans += pow2mod[e];
+                if (ans >= MOD) ans -= MOD;
+            } else {
+                /* e can be A_len when L==0 and i==A_len-1; pow2 not precomputed then.
+                   Spec bounds storage by N and precomputes up to |A|-1; keep behavior narrow:
+                   do nothing if out of precomputed range. */
+            }
+        }
+
+        if (x != y) {
+            if (i >= Lm1) {
+                int sh = i - Lm1;
+                xor_shifted(R_bits, D_bits, sh);
+                continue;
+            } else {
+                if (x > y) {
+                    ans += 1;
+                    if (ans >= MOD) ans -= MOD;
+                }
+                completed = 0;
+                break;
+            }
+        }
+    }
+
+    if (completed) {
+        ans += 1;
+        if (ans >= MOD) ans -= MOD;
+    }
+
+    printf("%d\n", ans % MOD);
+    return 0;
+}

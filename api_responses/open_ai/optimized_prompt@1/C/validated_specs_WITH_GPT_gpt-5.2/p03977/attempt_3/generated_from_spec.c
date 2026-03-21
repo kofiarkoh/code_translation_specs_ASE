@@ -1,0 +1,69 @@
+#include <unistd.h>
+
+int main(void) {
+    static unsigned char inbuf[10000];
+    static unsigned char outbuf[20000];
+
+    /* Read up to 10,000 bytes; per spec, do not use returned count. */
+    (void)read(0, inbuf, sizeof(inbuf));
+
+    unsigned char *p = inbuf;
+    unsigned char *outp = outbuf;
+
+    /* Initial skip: consume run of bytes >= '0', then consume one byte < '0'. */
+    while (*p >= (unsigned char)'0') p++;
+    p++; /* consume the terminator byte (< '0') */
+
+    /* Process records only while current byte is digit-like (>= '0'). */
+    while (*p >= (unsigned char)'0') {
+        int N = 0;
+        int D = 0;
+
+        /* Parse N: consume digit-like bytes, accumulate N = N*10 + (byte - '0'). */
+        while (*p >= (unsigned char)'0') {
+            N = N * 10 + ((int)(*p) - (int)'0');
+            p++;
+        }
+        p++; /* consume N terminator byte (< '0') */
+
+        /* Parse D similarly. */
+        while (*p >= (unsigned char)'0') {
+            D = D * 10 + ((int)(*p) - (int)'0');
+            p++;
+        }
+        p++; /* consume D terminator byte (< '0') */
+
+        /* Compute ans based on parity of N. */
+        int ans;
+        if (N & 1) {
+            N -= 1;
+            ans = 127 * N + D;
+        } else {
+            ans = 127 * N - D;
+        }
+
+        /* Render ans in base-10 without sign; repeated %10 and /=10. */
+        unsigned char tmp[10];
+        int tlen = 0;
+
+        if (ans == 0) {
+            tmp[tlen++] = (unsigned char)'0';
+        } else {
+            while (ans != 0) {
+                int digit = ans % 10;
+                tmp[tlen++] = (unsigned char)('0' + digit);
+                ans /= 10;
+            }
+        }
+
+        /* Emit digits in correct order, then newline. */
+        while (tlen > 0) {
+            *outp++ = tmp[--tlen];
+        }
+        *outp++ = (unsigned char)'\n';
+    }
+
+    /* Write accumulated output once at end. */
+    (void)write(1, outbuf, (size_t)(outp - outbuf));
+    return 0;
+}

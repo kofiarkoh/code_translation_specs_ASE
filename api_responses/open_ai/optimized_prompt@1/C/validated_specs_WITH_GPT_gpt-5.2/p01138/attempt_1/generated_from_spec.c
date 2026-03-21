@@ -1,0 +1,47 @@
+#include <stdio.h>
+
+#define SECONDS_PER_DAY 86400
+
+static int to_seconds(int h, int m, int s) {
+    return h * 3600 + m * 60 + s;
+}
+
+int main(void) {
+    int n;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) {
+            break;
+        }
+
+        /* Difference array over seconds in a day.
+           Intervals are [start, end) in whole seconds. */
+        static int diff[SECONDS_PER_DAY + 1];
+        for (int i = 0; i <= SECONDS_PER_DAY; i++) diff[i] = 0;
+
+        for (int i = 0; i < n; i++) {
+            int sh, sm, ss, eh, em, es;
+            scanf("%d %d %d %d %d %d", &sh, &sm, &ss, &eh, &em, &es);
+
+            int start = to_seconds(sh, sm, ss);
+            int end   = to_seconds(eh, em, es);
+
+            /* Preconditions guarantee 0 <= start <= end <= 86400 and no wrap. */
+            if (start >= 0 && start <= SECONDS_PER_DAY) diff[start] += 1;
+            if (end   >= 0 && end   <= SECONDS_PER_DAY) diff[end]   -= 1;
+        }
+
+        int cur = 0;
+        int max = 0;
+
+        /* Scan all seconds in the day: 0..86399 */
+        for (int t = 0; t < SECONDS_PER_DAY; t++) {
+            cur += diff[t];
+            if (cur > max) max = cur;
+        }
+
+        printf("%d\n", max);
+    }
+
+    return 0;
+}

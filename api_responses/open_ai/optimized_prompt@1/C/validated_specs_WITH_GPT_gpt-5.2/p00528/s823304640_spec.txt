@@ -1,0 +1,51 @@
+1. Functional Description  
+Computes the minimum total travel cost from the top-left grid cell \((1,1)\) to the bottom-right grid cell \((m,n)\) on an \(m \times n\) grid, where movement is only possible through a weighted undirected graph constructed from a set of “special” grid cells. The two corner cells are guaranteed to be present in this graph (added if missing from the input). The program outputs the minimum path cost in this constructed graph; if the goal is unreachable, it outputs \(-1\).
+
+2. Inputs  
+- Integer \(m\): number of grid rows.  
+- Integer \(n\): number of grid columns.  
+- Integer \(k\): number of provided special cells.  
+- \(k\) pairs of integers \((x_i, y_i)\): coordinates of each special cell.
+
+3. Outputs  
+- A single signed integer (printed as a decimal) equal to the minimum total cost to reach \((m,n)\) from \((1,1)\) using the graph defined below.  
+- If no path exists, outputs \(-1\).
+
+4. Preconditions / Assumptions  
+- Inputs are non-negative integers readable by the program’s integer parser.  
+- Coordinates are intended to lie within \([1..m] \times [1..n]\); the program does not validate bounds.  
+- The number of special cells (including any added corners) must fit within the program’s fixed internal storage limits for nodes, edges, and priority queue; exceeding these limits yields undefined behavior.  
+- The program assumes the constructed adjacency list per internal node fits within its fixed per-node capacity; otherwise behavior is undefined.  
+- If the input contains duplicate coordinates, they are treated as distinct special cells (separate graph entities).
+
+5. Graph Construction (Core Semantics)  
+Let \(S\) be the multiset of special cells from input, plus \((1,1)\) if not already present, plus \((m,n)\) if not already present.
+
+Each special cell \(p \in S\) is represented by **two internal graph nodes**, denoted \(p^{(0)}\) and \(p^{(1)}\). The graph is undirected and weighted, with non-negative edge costs, constructed as follows:
+
+5.1. Intra-cell edge (always present)  
+For every special cell \(p\), add an undirected edge between \(p^{(0)}\) and \(p^{(1)}\) with cost \(1\).
+
+5.2. Same-row connections (between \(^{(0)}\) nodes only)  
+Consider all special cells sorted by increasing \(x\) (row), and for equal \(x\), by increasing \(y\) (column). For each pair of **consecutive** cells in this sorted order that share the same row \(x\), say \(p=(x,y_1)\) and \(q=(x,y_2)\), add an undirected edge between \(p^{(0)}\) and \(q^{(0)}\) with cost \(|y_1 - y_2|\).  
+No edges are added between non-consecutive cells in the same row by this rule; connectivity along a row is only via the chain of consecutive neighbors in that row’s sorted order.
+
+5.3. Same-column connections (between \(^{(1)}\) nodes only)  
+Consider all special cells sorted by increasing \(y\) (column), and for equal \(y\), by increasing \(x\) (row). For each pair of **consecutive** cells in this sorted order that share the same column \(y\), say \(p=(x_1,y)\) and \(q=(x_2,y)\), add an undirected edge between \(p^{(1)}\) and \(q^{(1)}\) with cost \(|x_1 - x_2|\).  
+As with rows, only consecutive neighbors in the column’s sorted order are directly connected by this rule.
+
+5.4. No other edges  
+No edges are created between special cells that do not share the same row (for rule 5.2) or the same column (for rule 5.3). In particular, being adjacent in global sort order without matching row/column does not create an edge.
+
+6. Start/Goal and Path Cost  
+- The start is the internal node corresponding to \((1,1)^{(0)}\).  
+- The goal is considered reached when either \((m,n)^{(0)}\) **or** \((m,n)^{(1)}\) is reached; the reported cost is the minimum distance to either of these two internal nodes.  
+- The path cost is the sum of edge costs along the path in the constructed graph.
+
+7. Algorithmic Behavior / Termination  
+- The program runs a Dijkstra-style shortest-path search on the constructed graph with a min-priority queue and non-negative edge weights.  
+- It may terminate early as soon as the goal condition (reaching either goal internal node) is extracted for processing with the smallest tentative distance.  
+- If the search exhausts all reachable nodes without reaching the goal, the program outputs \(-1\).
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error messages or recovery are provided. Invalid inputs, out-of-range values, or exceeding internal fixed-size limits may cause incorrect results or undefined behavior.

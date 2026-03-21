@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each test case, classifies the spatial relationship between two circles in a plane and emits an integer code indicating whether they are disjoint, intersect in two points, are tangent, or one strictly contains the other.
+
+2. Inputs  
+- An integer count of test cases.  
+- For each test case: six real numbers representing two circles: first circle center coordinates and radius, then second circle center coordinates and radius.
+
+3. Outputs  
+For each test case, outputs one integer code on its own line:  
+- `0`: circles are externally disjoint (no common points).  
+- `1`: circles have at least one common point but neither strictly contains the other (this includes both two-point intersection and tangency cases).  
+- `2`: the first circle strictly contains the second (no common points).  
+- `-2`: the second circle strictly contains the first (no common points).
+
+4. Preconditions  
+- The test case count is provided and is non-negative.  
+- Each test case provides six finite real values.  
+- Radii are assumed to be non-negative.  
+- Input is assumed to be well-formed; behavior is unspecified if values are missing or non-numeric.
+
+5. Postconditions  
+- Exactly one classification code is produced per test case.  
+- The classification is determined solely by comparing the squared distance between centers with the squared sum and squared difference of radii.
+
+6. Invariants  
+- The number of output lines equals the number of processed test cases.  
+- For any test case, exactly one of the output codes `{0, 1, 2, -2}` is produced.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input parsing fails or values violate preconditions (e.g., negative radii, non-finite numbers), the resulting behavior/output is unspecified.
+
+8. State Transitions (if applicable)  
+- The program maintains no persistent state across test cases beyond consuming the remaining test count; each test case is processed independently.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to the number of test cases with constant work per case.  
+- Uses constant additional memory.
+
+```

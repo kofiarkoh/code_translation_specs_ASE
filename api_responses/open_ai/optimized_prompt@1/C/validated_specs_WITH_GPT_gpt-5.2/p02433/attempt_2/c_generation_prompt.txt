@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Maintains an ordered, mutable sequence of integers with a movable cursor. The sequence is implemented conceptually as a doubly linked list that always contains a distinguished internal end-marker element. The program processes a finite list of commands to insert integers immediately before the cursor, move the cursor left or right by a signed offset, and erase the element at the cursor (except the end marker). After all commands, it outputs the remaining non-marker integers in order from front to back, one per line.
+
+2. Inputs  
+- First line: a decimal integer `q` giving the number of subsequent command lines.  
+- Next `q` lines: each line is interpreted by its first character (at position 0) as a command code:
+  - Insert command: first character is `'0'`. The integer argument is parsed starting at character position 2 of the same line (i.e., the program ignores the character at position 1 and applies `atoi` to the substring beginning at index 2).  
+  - Move command: first character is `'1'`. The signed integer offset is parsed starting at character position 2 of the line in the same way.  
+  - Erase command: first character is `'2'`. Any remaining characters on the line are ignored.
+- Command lines are read line-by-line; only the first character and (for insert/move) the substring starting at index 2 affect behavior.
+
+3. Outputs  
+- On normal completion: prints each stored integer in the sequence (excluding the internal end marker), one per line, in front-to-back order.  
+- On certain invalid cursor moves: prints a specific error message (see section 7) and terminates immediately without printing the final sequence.
+
+4. Preconditions / Assumptions  
+- The first line exists and contains a value that `atoi` can convert; `q` is intended to be non-negative.  
+- Exactly `q` subsequent lines are intended to be present.  
+- Each command line is intended to follow the concrete encoding described in section 2 (not word-based commands). In particular, insert/move arguments are intended to begin at index 2 of the line.  
+- Inserted values and move offsets are within the range representable by C `int`.  
+- Sufficient memory is available for insertions (no allocation-failure handling is performed).
+
+5. Command Semantics / Postconditions  
+State consists of the ordered sequence and the current cursor position (a pointer to a node in the sequence). Initially, the sequence contains only the internal end-marker node, and the cursor points to that end-marker node.
+
+For each command, processed in input order:
+- Insert (`'0'`):  
+  - Creates a new node containing the parsed integer value.  
+  - Inserts it immediately before the current cursor node (at the front if the cursor is currently at the front).  
+  - Sets the cursor to the newly inserted node.
+- Move (`'1'`):  
+  - If the parsed offset is 0, the cursor is unchanged.  
+  - If the offset is negative, moves the cursor left (toward the front) one node per step for `-offset` steps.  
+  - If the offset is positive, moves the cursor right (toward the back) one node per step for `offset` steps.  
+  - If a step would move left from the front node or move right when there is no next node, the program terminates with an error (section 7).
+- Erase (`'2'`):  
+  - If the cursor is at the internal end-marker node, no change occurs.  
+  - Otherwise, removes the cursor node from the sequence and frees it; the cursor becomes the removed node’s successor (the next node toward the back). (This successor exists because the end marker is never removed.)
+
+6. Invariants  
+- The sequence always contains exactly one distinguished internal end-marker node, which is never removed.  
+- During normal operation, the cursor always points to a node in the sequence (never becomes null).  
+- The sequence remains a well-formed doubly linked order: the front node has no predecessor; adjacent `prev`/`next` links are consistent.
+
+7. Error Handling / Exceptional Behavior  
+- If a move command attempts to move left when the cursor is already at the front node, the program prints `Cursor is already front.` followed by a newline and terminates immediately with a non-zero exit status.  
+- If a move command attempts to move right when the cursor’s `next` pointer is null (i.e., there is no next node), the program prints `Cursor has no next.` followed by a newline and terminates immediately with a non-zero exit status.  
+- Allocation failure, malformed input, missing lines, or command lines not matching the expected encoding are not explicitly handled; behavior is unspecified.
+
+8. Termination Behavior  
+- If no invalid move occurs, the program processes exactly `q` command lines and then prints the final sequence contents (excluding the end marker) and exits normally.  
+- If an invalid move occurs, the program terminates immediately at that point and does not print the final sequence.
+
+9. Non-functional Constraints (informative)  
+- Time is proportional to the total number of move steps performed, plus the number of commands and the number of elements printed.  
+- Memory usage grows with the number of inserted nodes minus erased nodes (excluding the end marker).
+
+```

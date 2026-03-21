@@ -1,0 +1,25 @@
+1. Functional Description  
+Given an input that defines a bipartite relation between two equally sized sets, the program determines whether a perfect matching (a one-to-one pairing covering all elements) exists. If no perfect matching exists, it reports failure. If a perfect matching exists, it reports success and then outputs, for each left-side element in increasing order, a right-side partner index (1-based) such that all left-side elements are paired and no right-side element is used more than once.
+
+2. Inputs  
+- A non-negative integer `K`. The program uses an internal size `N = K - 1`. All subsequent processing is based on this `N`.  
+- Then an `N × N` grid of relation indicators, read in a character-oriented way: for each of the `N*N` cells, the program reads one character `c` and treats the relation as “allowed” if `(c & 1) != 0` (i.e., the character code is odd). Immediately after that, it unconditionally reads and discards one additional character (intended as a separator such as a space or newline).  
+  - The allowed relations are interpreted as edges from left element `j` (column index) to right element `i` (row index).
+
+3. Outputs  
+- If no perfect matching exists: prints exactly the line `no`.  
+- If a perfect matching exists:  
+  - Prints exactly the line `yes`.  
+  - Then prints exactly `N` lines. On the `i`-th of these lines (for left element `i` in increasing order, 0-based internally), it prints a positive integer in the range `1..N` giving the chosen right-side partner’s index in 1-based form.
+
+4. Preconditions / Assumptions  
+- The first integer `K` is such that `N = K - 1` is non-negative and fits within the program’s fixed internal capacity (maximum supported `N` is bounded by the compiled array sizes).  
+- The input provides at least `2 * N * N` characters following `K` so that each cell has one indicator character plus one discardable separator character.  
+- Behavior is unspecified if the input format does not match the character consumption described above or if capacities are exceeded.
+
+5. Postconditions  
+- If `no` is printed, the program did not find a perfect matching for the relation as interpreted from the input characters.  
+- If `yes` is printed, the subsequent `N` printed indices define a bijection between the left set `{1..N}` and the right set `{1..N}`, and each printed pairing corresponds to an allowed relation according to the program’s `(c & 1)` rule.
+
+6. Additional Notes on Matching Construction  
+- The program first checks existence of a perfect matching. If one exists, it then produces the final per-left-element outputs by iterating left elements in increasing order and, for each one, recomputing a matching with that left element forced to be matched (while maintaining a perfect matching overall). The resulting printed partner for each left element is the one obtained by this process.

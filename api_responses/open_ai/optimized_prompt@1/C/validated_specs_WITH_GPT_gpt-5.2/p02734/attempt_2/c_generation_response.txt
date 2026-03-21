@@ -1,0 +1,84 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 998244353u
+
+static inline uint32_t addmod(uint32_t a, uint32_t b) {
+    uint32_t r = a + b;
+    if (r >= MOD) r -= MOD;
+    return r;
+}
+
+int main(void) {
+    int n;
+    int s;
+    if (scanf("%d %d", &n, &s) != 2) {
+        /* Undefined behavior per spec if inputs are missing/invalid; just exit. */
+        return 0;
+    }
+
+    int *A = (int *)malloc((size_t)n * sizeof(int));
+    if (!A) return 0; /* Undefined per spec if insufficient memory. */
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &A[i]) != 1) {
+            free(A);
+            return 0;
+        }
+    }
+
+    /* dp[j] = number of pairs (T,t) considering processed prefix,
+       where the currently "active" suffix sum equals j.
+       This matches counting suffixes of subsequences: when we start a new suffix at
+       current element, we add 1 to sum=A[i]; when we extend, we add A[i] to sum. */
+    uint32_t *dp = (uint32_t *)calloc((size_t)(s + 1), sizeof(uint32_t));
+    uint32_t *ndp = (uint32_t *)calloc((size_t)(s + 1), sizeof(uint32_t));
+    if (!dp || !ndp) {
+        free(A);
+        free(dp);
+        free(ndp);
+        return 0; /* Undefined per spec if insufficient memory. */
+    }
+
+    for (int i = 0; i < n; i++) {
+        int a = A[i]; /* Assumed non-negative per spec; otherwise undefined. */
+
+        /* Start with "skip A[i]" transitions: keep existing counts unchanged. */
+        for (int j = 0; j <= s; j++) ndp[j] = dp[j];
+
+        /* "Take A[i]" transitions:
+           1) Extend existing active suffixes: dp[j] -> ndp[j+a] if within [0,s].
+           2) Start a new suffix at this element: contributes 1 to sum=a (if a<=s).
+           Additionally, for each existing active suffix, choosing to include A[i]
+           in the subsequence but not in the suffix corresponds to "skip" already
+           handled by ndp[j]=dp[j] (since subsequence can include elements before
+           the suffix start; those do not affect active suffix sum). */
+        if (a <= s) {
+            /* Start new suffix at i */
+            ndp[a] = addmod(ndp[a], 1u);
+
+            /* Extend existing suffixes */
+            for (int j = 0; j + a <= s; j++) {
+                if (dp[j]) {
+                    ndp[j + a] = addmod(ndp[j + a], dp[j]);
+                }
+            }
+        }
+        /* If a > s, any transition that includes a in the active suffix would exceed s
+           and is ignored per spec; only "skip" remains, already copied. */
+
+        /* Swap dp and ndp */
+        uint32_t *tmp = dp;
+        dp = ndp;
+        ndp = tmp;
+    }
+
+    printf("%u\n", dp[s] % MOD);
+
+    free(A);
+    free(dp);
+    free(ndp);
+    return 0;
+}
+```

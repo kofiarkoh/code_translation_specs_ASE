@@ -1,0 +1,173 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+int d[201][201];
+int r[9];
+int res;
+bool used[9];
+int N, M, R;
+
+void dfs(int c, int las, int dist){
+    if(c == R + 1){
+        if(res > dist){
+            res = dist;
+        }
+        return;
+    }
+
+    for(int i = 1; i <= R; i++){
+        if(!used[i]){
+            used[i] = true;
+            if(las == -1){
+                dfs(c+1, i, 0);
+            }else{
+                dfs(c+1, i, dist + d[r[las]][r[i]]);
+            }
+            used[i] = false;
+        }
+    }
+}
+
+int main(void){
+
+    scanf("%d%d%d", &N, &M, &R);
+
+    for(int i = 1; i <= N; i++){
+        for(int j = 1; j <= N; j++){
+            if(i != j){
+                d[i][j] = 1000000000;
+            }
+        }
+    }
+
+    for(int i = 1; i <= R; i++){
+        scanf("%d", &r[i]);
+    }
+
+    for(int i = 1; i <= M; i++){
+        int A, B, C;
+        scanf("%d%d%d", &A, &B, &C);
+        if(d[A][B] > C){
+            d[A][B] = d[B][A] = C;
+        }
+    }
+
+    for(int k = 1; k <= N; k++){
+        for(int i = 1; i <= N; i++){
+            for(int j = 1; j <= N; j++){
+                if(d[i][j] > d[i][k] + d[k][j]){
+                    d[i][j] = d[i][k] + d[k][j];
+                }
+            }
+        }
+    }
+
+    res = 1000000000;
+
+    dfs(1, -1, 0);
+
+    printf("%d\n", res);
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total travel cost required to visit a given set of specified vertices exactly once in some order, where travel cost between two specified vertices is the length of the shortest path between them in an undirected weighted graph. The route may start at any of the specified vertices and ends at the last visited specified vertex (no requirement to return to the start).
+
+2. Inputs  
+- An integer number of vertices.  
+- An integer number of undirected weighted edges.  
+- An integer count of “required” vertices to be visited.  
+- A list of the required vertices (by vertex index).  
+- A list of edges, each given by two endpoint vertex indices and a non-negative or arbitrary integer weight (assumption noted below).
+
+3. Outputs  
+- A single integer: the minimum possible sum of shortest-path distances between consecutive required vertices along an order that visits all required vertices exactly once.
+
+4. Preconditions  
+- Vertex indices provided in the required-vertex list and in edges refer to valid vertices within the declared vertex count.  
+- The count of required vertices is within the supported fixed limit (at most 8).  
+- The graph size is within the supported fixed limit (at most 200 vertices).  
+- Assumption: edge weights are such that shortest paths are well-defined and do not rely on negative cycles (typically non-negative weights).
+
+5. Postconditions  
+- The output equals the minimum, over all permutations of the required vertices, of the sum of shortest-path distances between each consecutive pair in that permutation.  
+- If two required vertices are disconnected (no path exists), the corresponding shortest-path distance is treated as a very large sentinel value, which can cause the reported minimum to also be that sentinel value.
+
+6. Invariants  
+- The computed pairwise distances used for evaluation represent shortest-path distances between all vertex pairs under the given edge weights, subject to the assumptions in Preconditions.  
+- During evaluation, each required vertex is selected at most once in any candidate visiting order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range indices, oversized parameters, or arithmetic overflow. Behavior is undefined in such cases.  
+- If negative cycles exist and are reachable in relevant paths, the notion of “shortest path” is not well-defined; the produced result is not guaranteed to be meaningful.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond internal computation; the program is a single-run batch computation with no externally observable state changes other than producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows cubically with the number of vertices for all-pairs shortest paths, plus factorial growth with the number of required vertices due to permutation search.  
+- Memory usage is dominated by storage for an all-pairs distance table sized by the square of the vertex count.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / underspecified implementation constraints (language/compilation model), leading to invalid C structure.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* it must be expressed in C (e.g., requiring standard-conforming C without nested function definitions).  
+- The generated program attempted to define a helper function (`dfs_impl`) inside `main`, which is not allowed in ISO C (C11). The source program uses a file-scope `dfs` function and global state, which is a materially different structural constraint than what the spec implies/permits.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the intended implementation is standard C (e.g., C11) and therefore helper routines must be defined at file scope (or otherwise implemented without nonstandard extensions like nested functions).  
+- Clarify that the program’s structure relies on global/static arrays and a separate DFS routine (or, more generally, that the permutation search is implemented via a standalone function with shared state), rather than allowing arbitrary in-function definitions/closures.
+
+D. Why this clarification is supported by the source program  
+- The source code defines `dfs` at file scope and uses global arrays (`d`, `r`, `used`) and globals (`res`, `N`, `M`, `R`) to share state between `main` and `dfs`. This is consistent with standard C compilation rules.  
+- Nothing in the source suggests use of compiler extensions (like GCC nested functions) or local function definitions; the failing generated code’s structure is therefore not aligned with the source’s compilation model even before considering runtime behavior.
+
+```

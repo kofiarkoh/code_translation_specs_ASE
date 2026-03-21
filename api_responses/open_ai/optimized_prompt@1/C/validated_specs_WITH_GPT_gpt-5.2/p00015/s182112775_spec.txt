@@ -1,0 +1,41 @@
+1. Functional Description  
+Processes a declared number of test cases. For each case, reads two non-negative integer values expressed as decimal digit strings, computes their decimal sum, and outputs either the exact sum or an overflow indication based on fixed maximum operand/result length constraints.
+
+2. Inputs  
+- An initial integer specifying the number of test cases to process.  
+- For each test case: two whitespace-delimited strings intended to represent non-negative integers in base 10.
+
+3. Outputs  
+For each test case, exactly one line containing either:  
+- The decimal representation of the computed sum (no leading zeros unless the sum is zero), or  
+- The word indicating overflow.
+
+4. Preconditions  
+- The initial test-case count is present in the input.  
+- For each test case, two tokens are available to be read.  
+- Each numeric token is at most 127 characters long (to fit the fixed internal storage).  
+- Each character of the numeric tokens is assumed to be a decimal digit (‘0’–‘9’). (If not, the numeric meaning is unspecified.)
+
+5. Postconditions  
+For each test case:  
+- If either input token length exceeds 80 characters, the program outputs overflow for that test case.  
+- Otherwise, the program computes the arithmetic sum of the two input integers and:  
+  - Outputs overflow if the sum requires more than 80 decimal digits.  
+  - Else outputs the exact sum in decimal without leading zeros (except that zero is printed as “0”).
+
+6. Invariants  
+- Each test case produces exactly one output line.  
+- When not overflowing, the printed value equals the mathematical sum of the two provided non-negative integers (under the digit-only assumption).  
+- The overflow decision depends solely on the digit-length constraints (operands > 80 digits, or result > 80 digits).
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than the required input tokens are available (e.g., premature end of input), behavior is not well-defined by the code’s observable contract (it may reuse prior data or produce arbitrary results).  
+- If a numeric token contains non-digit characters, the computed result is not defined as a valid decimal sum.  
+- If a token exceeds the fixed internal buffer capacity, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- The program advances through test cases sequentially from 1 to the declared count, producing one line of output per case, with no persistent state carried between cases other than progressing the case index.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 80-digit operands and at most 80-digit results; larger values are reported as overflow.  
+- Uses fixed-size internal storage, implying bounded memory usage independent of input size (within the stated limits).

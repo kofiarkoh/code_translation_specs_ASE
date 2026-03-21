@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a maximum total value under a single capacity constraint using a fractional-knapsack greedy strategy on value density. Each item is given by an integer weight and integer value; items may have negative weight and/or negative value. Certain sign combinations are handled as special cases that immediately adjust the running total value and/or the effective remaining capacity, and the remaining items are then considered for fractional selection to maximize total value.
+
+2. Inputs  
+- An integer `N`: the number of items.  
+- An integer `W`: the initial capacity (internally treated as a floating-point value during computation).  
+- Then `N` pairs of integers `(w, v)`: weight and value for each item.
+
+3. Outputs  
+- Prints the computed maximum total value as a floating-point number followed by a newline, using C `printf` with the format string `"%lf\n"` (i.e., default fixed-point formatting for a `double`, typically showing 6 digits after the decimal point).
+
+4. Item Handling Rules / Semantics  
+For each input item `(w, v)`, the program applies the following rules in order:
+
+- If `w >= 0` and `v <= 0`: the item is ignored (it contributes nothing and is never selected).  
+- If `w < 0` and `v > 0`: the item is always taken fully; the total value increases by `v`, and the effective capacity increases by `-w` (because the program updates `W -= w`).  
+- Otherwise (the remaining sign combinations): the item becomes a candidate for fractional selection, but it may be normalized first:  
+  - If `w < 0` (which in this branch implies `v <= 0`), the program flips signs to make the stored candidate have positive weight and positive value density: it replaces `(w, v)` by `(|w|, |v|)`, decreases the total value by `|v|`, and decreases the effective capacity by `|w|` (because the program updates `ans -= |v|` and `W += w` where `w` is negative).  
+  - If `w > 0` (which in this branch implies `v > 0`), it is stored as-is.  
+  - Each stored candidate has a computed ratio `r = v / w` (double).
+
+5. Fractional Optimization Step  
+- All stored candidates are sorted in non-increasing order of ratio `r` (ties are not further ordered in a defined way).  
+- The program then iterates through the sorted candidates, taking a fraction `x` of each item where `x = min(1, W / w)` using the current remaining capacity `W` and the item’s stored positive weight `w`.  
+- After taking fraction `x`, it updates `W := W - x*w` and `ans := ans + x*v`.  
+- The loop stops when all candidates are processed or when the remaining capacity is treated as zero, where “zero” is determined by `fabs(W) < 1e-7`.
+
+6. Preconditions / Assumptions  
+- `N` must not exceed the internal storage limit of 100002 candidate items (items ignored or taken as special cases do not consume candidate storage).  
+- Input is well-formed and contains all required integers.  
+- For any item that becomes a candidate, its effective stored weight must be non-zero to avoid division by zero when computing `v / w`.  
+- The algorithm’s behavior is defined by the program even if the effective capacity becomes negative; however, the intended interpretation is a fractional knapsack process driven by the program’s arithmetic and stopping rule.
+
+7. Postconditions  
+- The printed value equals the program’s accumulated `ans` after:  
+  - fully including all items with negative weight and positive value,  
+  - applying the normalization adjustments for items with negative weight and non-positive value that are converted into candidates, and  
+  - greedily taking fractions of the remaining candidates in descending value-density order until capacity is exhausted (within tolerance) or candidates run out.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the preconditions are violated (e.g., too many candidates, zero candidate weight, malformed input), behavior is undefined.
+
+9. Non-functional Constraints  
+- Time is dominated by sorting the candidate list (`O(M log M)` for `M` candidates).  
+- Uses double-precision floating-point arithmetic; comparisons to zero use a tolerance of `1e-7` for remaining capacity.
+
+```

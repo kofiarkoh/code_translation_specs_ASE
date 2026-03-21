@@ -1,0 +1,83 @@
+#include <stdio.h>
+
+#define MAX_RECORDS 300
+#define MAX_GROUP_ID 1000
+#define MAX_SELECT 26
+
+typedef struct {
+    int id;
+    int group;
+    int primary;
+    int secondary;
+} Record;
+
+static int record_cmp(const void *a, const void *b) {
+    const Record *ra = (const Record *)a;
+    const Record *rb = (const Record *)b;
+
+    /* Order by:
+       1) higher primary first
+       2) lower secondary first
+       3) lower id first
+    */
+    if (ra->primary != rb->primary) {
+        return (ra->primary > rb->primary) ? -1 : 1;
+    }
+    if (ra->secondary != rb->secondary) {
+        return (ra->secondary < rb->secondary) ? -1 : 1;
+    }
+    if (ra->id != rb->id) {
+        return (ra->id < rb->id) ? -1 : 1;
+    }
+    return 0;
+}
+
+static int tier_limit_for_position(int selection_pos_1based) {
+    /* Tiered per-group limits based on selection position (1-based):
+       1-10: max 3 per group
+       11-20: max 2 per group
+       21-26: max 1 per group
+    */
+    if (selection_pos_1based <= 10) return 3;
+    if (selection_pos_1based <= 20) return 2;
+    return 1; /* 21-26 */
+}
+
+int main(void) {
+    int n;
+    Record recs[MAX_RECORDS];
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        for (int i = 0; i < n; i++) {
+            /* No explicit error handling per specification */
+            scanf("%d %d %d %d", &recs[i].id, &recs[i].group, &recs[i].primary, &recs[i].secondary);
+        }
+
+        /* Rank records */
+        qsort(recs, (size_t)n, sizeof(recs[0]), record_cmp);
+
+        /* Reset per-dataset state */
+        int group_count[MAX_GROUP_ID + 1];
+        for (int i = 0; i <= MAX_GROUP_ID; i++) group_count[i] = 0;
+
+        int selected = 0;
+
+        /* Select in ranked order */
+        for (int i = 0; i < n && selected < MAX_SELECT; i++) {
+            int pos = selected + 1; /* 1-based selection position if we select this record */
+            int limit = tier_limit_for_position(pos);
+
+            int g = recs[i].group;
+            /* Preconditions guarantee group id is within range; behavior unspecified otherwise */
+            if (group_count[g] < limit) {
+                group_count[g]++;
+                selected++;
+                printf("%d\n", recs[i].id);
+            }
+        }
+    }
+
+    return 0;
+}

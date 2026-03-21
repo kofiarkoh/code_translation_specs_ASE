@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer size and an \(N \times N\) grid of alphabetic characters, then selects exactly one character from each row and exactly one character from each column (a perfect matching). Among all such selections, it chooses one that minimizes the multiset of chosen characters under lexicographic order by character (all uppercase letters ordered before all lowercase letters, each group ordered alphabetically). It outputs the resulting multiset as a string consisting of the chosen characters sorted in that same order.
+
+2. Inputs  
+- An integer \(N\).  
+- \(N\) subsequent lines representing an \(N \times N\) character grid.  
+- Each grid entry is assumed to be a single alphabetic character in the set {A–Z, a–z}.
+
+3. Outputs  
+- A single line containing exactly \(N\) characters: the characters selected by the optimal row/column assignment, sorted as: all ‘A’..‘Z’ in increasing order, then all ‘a’..‘z’ in increasing order.
+
+4. Preconditions  
+- \(1 \le N \le 52\) (so the grid fits the fixed storage and the internal graph size bounds).  
+- Each of the \(N\) grid lines contains at least \(N\) valid alphabetic characters.  
+- A perfect matching exists (guaranteed by the complete bipartite structure implied by the grid: every row can be matched to every column).  
+- The total internal storage for intermediate cost objects is sufficient for the constructed instance (assumed true for the stated bounds).
+
+5. Postconditions  
+- The output contains exactly \(N\) characters.  
+- There exists a bijection between rows and columns such that the output multiset equals the characters at the chosen \(N\) row/column positions.  
+- For any other bijection between rows and columns, when comparing the sorted multisets character-by-character using the order ‘A’..‘Z’, then ‘a’..‘z’, the produced output is lexicographically minimal.
+
+6. Invariants  
+- Exactly one selection is made per row and per column in the final solution.  
+- The output is always sorted in the fixed order: uppercase ascending, then lowercase ascending.  
+- The solution corresponds to a feasible assignment of size \(N\) (no partial assignment is output).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (e.g., \(N\) too large, non-alphabetic characters, insufficient line lengths, or resource limits exceeded), behavior is unspecified (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: consumes one problem instance from input and produces one output line, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small \(N\) (bounded by fixed-size arrays); not intended for arbitrary large grids.  
+- Deterministic: for the same input, always produces the same output.
+
+```

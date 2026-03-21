@@ -1,0 +1,243 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1634 Balance Scale
+// bal4u 2019.8.12
+
+#include <stdio.h>
+#include <string.h>
+
+//// 入出力関係
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in() {   // 非負整数の入力
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf); while ((c = gc()) >= '0');
+	return n;
+}
+
+void out(int n) { // 整数の表示（出力）
+	int i;
+	char b[20];
+
+	if (!n) pc('0');
+	else {
+		if (n < 0) pc('-'), n = -n;
+		i = 0; while (n) b[i++] = n % 10 + '0', n /= 10;
+		while (i--) pc(b[i]);
+		
+	}
+	pc('\n');
+}
+
+//// ハッシュ関数
+#define HASHSIZ 1000003
+typedef struct { int n, b; } HA;
+int ha1[HASHSIZ+5], *hae1 = ha1 + HASHSIZ;
+HA  ha2[HASHSIZ+5], *hae2 = ha2 + HASHSIZ;
+
+int lookup1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return 1;
+		if (++p == hae1) p = ha1;
+	}
+	return 0;
+}
+
+void insert1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return;
+		if (++p == hae1) p = ha1;
+	}
+	*p = n;
+}
+
+int lookup2(int n, int b) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) {
+			if (p->b == b-1) { p->b = b; return 1; }
+			return 0;
+		}
+		if (++p == ha2) p = ha2;
+	}
+	return 0;
+}
+
+void insert2(int n) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) return;
+		if (++p == ha2) p = ha2;
+	}
+	p->n = n, p->b = 1;
+}
+
+//// 本問題関連
+#define INF 0x7fffffff
+#define ABS(x)  ((x)>=0?(x):-(x))
+int q[60000];   // 3^10
+int a[102];
+int w[12];
+		
+int main()
+{
+	int n, m, i, j, end, x, ans;
+	
+	while (n = in()) {
+		m = in();
+		for (i = 0; i < n; i++) a[i] = in();
+		for (i = 0; i < m; i++) w[i] = in();
+		q[0] = 0, end = 1;
+		for (i = 0; i < m; i++) {
+			int e = end;
+			for (j = 0; j < e; j++) {
+				q[end++] = q[j] + w[i];
+				q[end++] = q[j] - w[i];
+			}
+		}
+		memset(ha1, 0, sizeof(ha1));
+		for (i = 0; i < end; i++) if (q[i] > 0) insert1(q[i]);
+		x = 0, ans = 0; for (i = 0; i < n; i++) if (!lookup1(a[i])) {
+			if (x == 0) {
+				int t; ans = INF;
+				memset(ha2, 0, sizeof(ha2));
+				for (j = 0; j < end; j++) {
+					if ((t = ABS(a[i]-q[j])) < ans) ans = t;
+					insert2(t);
+				}
+				x = 1;
+			} else {
+				int t, r = 0; x++, ans = INF;
+				for (j = 0; j < end; j++) {
+					t = ABS(a[i]-q[j]);
+					if (lookup2(t, x)) {
+						if (t < ans) ans = t;
+						r = 1;
+					}
+				}
+				if (r == 0) { ans = -1; break; }
+			}
+		}
+		out(ans);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each dataset, determines whether all requested target weights can be exactly balanced using a given set of available weights on a two-pan balance (allowing each available weight to be placed on either pan or not used).  
+- If every target is exactly balanceable, outputs `0`.  
+- Otherwise, outputs the smallest non-negative integer adjustment value `d` such that adding the same adjustment `d` to each unbalanceable target makes all of them balanceable with the given available weights.  
+- If no single adjustment value can make all unbalanceable targets balanceable, outputs `-1`.
+
+2. Inputs  
+For each dataset (repeated until termination):  
+- An integer `n`: number of target weights.  
+- An integer `m`: number of available weights.  
+- A sequence of `n` non-negative integers: the target weights.  
+- A sequence of `m` non-negative integers: the available weights.  
+Termination occurs when `n` is zero.
+
+3. Outputs  
+For each dataset, outputs a single integer on its own line:  
+- `0`, or a positive adjustment value `d`, or `-1` as described above.
+
+4. Preconditions  
+- `n` and `m` are non-negative, and the dataset is well-formed with exactly `n + m` subsequent non-negative integers.  
+- The number of available weights satisfies `m ≤ 10` (implied by internal capacity for enumerating all placements).  
+- The number of targets satisfies `n ≤ 100` (implied by internal storage).  
+- The magnitudes of computed intermediate values fit within signed 32-bit integer range (assumption required to avoid overflow).
+
+5. Postconditions  
+For each dataset:  
+- Let `S` be the set of all strictly positive net weight differences achievable by placing each available weight on the left pan, right pan, or not used.  
+- If every target weight is in `S`, the output is `0`.  
+- Otherwise, let `U` be the subset of targets not in `S`. The output is:  
+  - the minimum `d ≥ 0` such that for every `u ∈ U`, `u + d ∈ S`, if such a `d` exists;  
+  - `-1` if no such `d` exists.
+
+6. Invariants  
+- The set `S` of achievable strictly positive differences is derived solely from the available weights and is the same for all targets within the dataset.  
+- The reported adjustment value (if non-negative) is common to all initially unbalanceable targets and is minimal among all common adjustments that would make them balanceable.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range values, or arithmetic overflow; behavior is unspecified under such conditions.  
+- If internal capacity assumptions (e.g., `m > 10`) are violated, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Processes multiple independent datasets sequentially.  
+- For each dataset, internal state is reset before computing the result; no state is carried across datasets.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage scale primarily with `3^m` due to enumeration of all placements of available weights; practical only for small `m` (up to 10 as implied).  
+- Uses fixed-size internal storage; does not allocate memory dynamically.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for the “adjustment” computation (and related counting/feasibility condition).
+
+B. What the current specification may be missing or misstating  
+- It treats the adjustment as **adding the same nonnegative value `d` to each unbalanceable target** (i.e., requiring `u + d ∈ S`).  
+- The source program instead computes candidates using **absolute differences** `t = |u − q|` over all achievable signed net sums `q` (including negative and zero), and then looks for a **common `t`** across all unbalanceable targets. This is not equivalent to “add `d` to the target”.  
+- The spec’s definition of `S` as “strictly positive net differences” and then using membership `target ∈ S` is incomplete for the later phase: the algorithm’s adjustment search is based on the full set of signed outcomes `q` (positive/negative/zero), not just `S`.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that when some targets are not directly measurable, the program searches for the **minimum nonnegative value `d` such that every unmeasurable target can be made measurable by allowing an adjustment of magnitude `d` in either direction**, i.e., for each such target `u` there exists some achievable signed balance outcome `q` with `|u − q| = d`.  
+- Clarify that the adjustment is a **common absolute deviation** from some achievable balance result per target (the achievable result may differ per target), rather than a uniform additive offset applied to all targets.  
+- Clarify that the search space for this is derived from **all signed sums** obtainable by placing weights on either pan (the `q` values), not only the strictly positive differences set.
+
+D. Why this clarification is supported by the source program  
+- The program enumerates all signed sums `q[j]` via `q[end++] = q[j] + w[i]` and `q[end++] = q[j] - w[i]`, starting from `0`, so `q` includes negative and zero outcomes.  
+- For the first unmeasurable target, it computes `t = ABS(a[i] - q[j])` for all `j` and records all such `t` values; `ans` is the minimum such `t`. This directly indicates the “adjustment” is an **absolute difference to some achievable `q`**, not “add to target to reach a positive difference”.  
+- For subsequent unmeasurable targets, it again computes `t = ABS(a[i] - q[j])` and intersects with previously seen `t` values (via `lookup2(t, x)`), meaning it is finding a **single common `t`** that works for all unmeasurable targets.  
+- The algorithm never checks `u + d ∈ S`; it checks existence of `q` such that `|u − q| = d`, which is a different condition and explains why a case can yield a positive answer in the source but `-1` under the current spec.
+
+```

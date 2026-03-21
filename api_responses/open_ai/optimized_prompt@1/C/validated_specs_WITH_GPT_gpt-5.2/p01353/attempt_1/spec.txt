@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes a single nonnegative integer value representing the minimum required accumulated amount to satisfy a set of constraints derived from one distinguished entity (index 0) and up to `n` other entities (indices 1..n). If the constraints are unsatisfiable or would force the accumulated amount to reach or exceed a specified limit for the distinguished entity, the program reports failure.
+
+2. Inputs  
+- An integer `n` (number of non-distinguished entities).  
+- For each index `i` from `0` to `n`, four nonnegative integers representing that entity’s parameters (interpreted as: a threshold-like value, an increase-like value, a decrease-like value, and a score-like value).  
+Assumption: All input values fit within 32-bit signed integer range, and intermediate computed totals fit within 64-bit signed integer range.
+
+3. Outputs  
+- Either a single line containing `-1` indicating failure/unsatisfiable conditions, or  
+- A single line containing a nonnegative integer (the computed minimum required accumulated amount).
+
+4. Preconditions  
+- Exactly `n+1` entities’ parameter quadruples are provided.  
+- `n` is within the supported bound such that `n+1` does not exceed the fixed internal capacity (assumed `n ≤ 40001`).  
+- The distinguished entity is the one at index 0.
+
+5. Postconditions  
+If the program outputs a nonnegative integer `ans`, then all of the following hold:  
+- `ans` is the value produced by the program’s defined computation from the given inputs.  
+- `ans` is strictly less than the distinguished entity’s limit parameter (its first parameter).  
+- For every non-distinguished entity `i` that is considered relevant (i.e., whose increase-like parameter exceeds the distinguished entity’s decrease-like parameter), the computation accounts for that entity’s contribution to the final `ans` according to the program’s rules, and the final `ans` is consistent with the ordering constraint implied by those entities’ derived ratios.
+
+If the program outputs `-1`, then at least one of the following is true:  
+- There exists a relevant entity `i` such that the distinguished entity’s increase-like parameter is less than or equal to entity `i`’s decrease-like parameter (making the instance unsatisfiable).  
+- During the computation, the accumulated amount reaches or exceeds the distinguished entity’s limit parameter.
+
+6. Invariants  
+- The accumulated amount (`ans`) is monotonically nondecreasing throughout the computation.  
+- The running total of remaining “turn” weight (an aggregate derived from relevant entities) is nonnegative and decreases only by removing contributions of processed relevant entities.  
+- Only entities with positive derived “turn” contribution (increase-like minus distinguished decrease-like) affect the result; all others are ignored.
+
+7. Error Handling / Exceptional Behavior  
+- On detected unsatisfiable conditions (as described in Postconditions), the program terminates early and outputs `-1`.  
+- No explicit handling is provided for malformed input, out-of-range values, arithmetic overflow, or exceeding internal capacity; behavior is undefined in those cases.
+
+8. State Transitions (if applicable)  
+- The program transitions from an initial state (no entities processed) to an accumulation state where it aggregates contributions from relevant entities and builds a set of derived pairs.  
+- It then transitions to an ordering-and-accumulation state where it processes the derived pairs in a specific order and updates the accumulated amount and remaining aggregate.  
+- It terminates either in a success state (outputs `ans`) or a failure state (outputs `-1`).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting the relevant entities: approximately proportional to `m log m`, where `m` is the number of relevant entities (`m ≤ n`).  
+- Memory usage is linear in `n` within a fixed upper bound determined by the internal arrays.

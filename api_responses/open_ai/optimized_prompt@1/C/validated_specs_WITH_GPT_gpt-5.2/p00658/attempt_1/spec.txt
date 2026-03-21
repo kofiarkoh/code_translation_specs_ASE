@@ -1,0 +1,74 @@
+1. Functional Description
+- Simulates a single-player, grid-based puzzle for each provided scenario.
+- Initializes a player start position and a goal position from the input grid, then processes a fixed sequence of player commands unless a terminal condition (“game over”) is reached.
+- After each successfully accepted player command (and only if the game is not already over), applies automatic world updates repeatedly until the world reaches a stable state.
+- At the end of the scenario, reports exactly one terminal outcome: cleared, death by hole, death by block, death by goal moved, or gave up (no terminal condition reached during the command sequence).
+
+2. Inputs
+For each scenario:
+- Two positive integers: grid height and grid width; a pair of zeros terminates all input.
+- A rectangular grid of the given dimensions, consisting of characters representing empty space, player start, goal, holes, immovable/solid blocks, and special blocks (including a countdown-type block and an “ice-like” block). (Assumption: the grid uses only the symbols the simulation recognizes.)
+- A non-negative integer: number of commands to read.
+- That many commands, each consisting of:
+  - An action name from a fixed set (move to column, push, pull, climb, get down).
+  - A parameter: either a direction (left/right) or a target column index (1-based).
+
+3. Outputs
+For each scenario:
+- Exactly one line indicating the final outcome category:
+  - Cleared
+  - Death by hole
+  - Death by block
+  - Death by walking goal
+  - Gave up
+
+4. Preconditions
+- Height and width are within the fixed maximum supported grid size (at most 50 each).
+- Each grid row provided has exactly the declared width.
+- The grid contains exactly one player start cell and exactly one goal cell. (If multiple exist, behavior is determined by the last one encountered during initialization.)
+- Commands are well-formed: action name is one of the supported actions; the parameter is present and meaningful for that action.
+- The outer boundary below the last row is treated as solid support by the simulation (the simulation relies on this to avoid falling beyond the grid).
+
+5. Postconditions
+For each scenario, after reading and processing up to the declared number of commands:
+- The program outputs one final outcome line determined by the first applicable terminal condition in this priority order (once any terminal condition is reached, it persists):
+  1) Player is standing directly above the goal cell (cleared).
+  2) Player is standing directly above a hole cell (death by hole).
+  3) Player’s current cell is not empty (death by block).
+  4) The original goal cell no longer contains the goal symbol (death by walking goal).
+  5) Otherwise, gave up.
+- If a terminal condition is reached before all commands are consumed, remaining commands are still read but do not affect the world state.
+
+6. Invariants
+- The player position is always within the horizontal bounds of the grid.
+- The player is conceptually located at a grid cell that is expected to be empty during normal play; if it becomes non-empty, the “death by block” terminal condition applies.
+- The goal’s original coordinates are fixed after initialization; the simulation checks whether the goal symbol remains at that original location.
+- Automatic world updates are applied to completion (until no further changes occur) after each accepted player command, provided the game is not already over.
+
+7. Error Handling / Exceptional Behavior
+- If an unrecognized action name is encountered, the program terminates immediately with a non-success exit status (no further scenarios are processed).
+- Invalid or out-of-range command parameters generally cause the corresponding command to have no effect (e.g., moving to an invalid column, or actions blocked by surrounding cells).
+- No explicit recovery is performed for malformed input beyond the above; behavior is undefined if preconditions are violated.
+
+8. State Transitions (if applicable)
+- Scenario lifecycle:
+  - Initialized: player start is converted to empty; goal coordinates recorded; a solid-support boundary is established below the grid; terminal state cleared.
+  - Command processing:
+    - Before each command’s effect, if terminal state is already set, the command has no effect.
+    - Otherwise, the command may update player position and/or move blocks, subject to local constraints:
+      - Move-to-column: may relocate the player horizontally to a specified column only if the destination cell is empty and the entire horizontal path is supported from below (no empty cell directly beneath any traversed position).
+      - Push: may shift a contiguous run of non-empty cells adjacent to the player one step or more in the push direction, but is disallowed if the run contains an unpushable block type; individual blocks may slide further depending on support/ice-like rules and available space.
+      - Pull: may move the player one step sideways into empty space while pulling a single adjacent movable block into the player’s previous cell (unpullable block types are not pulled).
+      - Climb: may move the player diagonally up onto/over an adjacent non-empty cell if the two required upper cells are empty.
+      - Get-down: may move the player diagonally down into empty space if both the side cell and the lower-diagonal cell are empty.
+    - After a successful player movement (move-to, pull, climb, get-down), a countdown-type cell directly beneath the player’s previous position is decremented by one step, eventually becoming empty after three decrements.
+    - If not terminal after the command, automatic updates run to stability:
+      - Any non-empty cell directly above a hole is removed.
+      - The player falls vertically until supported from below by a non-empty cell.
+      - Other non-empty cells may fall vertically as long as the three cells below (down-left, down, down-right within bounds) are all empty; this repeats until stable.
+  - Terminal: once any terminal condition is detected, it remains fixed and determines the final reported outcome.
+
+9. Non-functional Constraints (if inferable)
+- Supports grids up to 50×50.
+- Per scenario runtime is bounded by the number of commands times the cost of reaching stability in the automatic update; stability is reached by repeated monotonic changes (falling/removal), so it terminates for finite grids.
+- Memory usage is bounded by the fixed grid storage and small auxiliary buffers.

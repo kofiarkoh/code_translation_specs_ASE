@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum total number of “turn operations” required to move from a designated start cell to a designated goal cell on a rectangular grid with obstacles, under a bounded budget of two turn types. Movement is constrained by an orientation (direction of travel) and by which direction changes are permitted. If the goal is unreachable under these constraints, or if the minimum required turns exceeds a fixed acceptability threshold, reports failure.
+
+2. Inputs  
+- Grid height and width.  
+- A nonnegative integer turn budget limit (applied equally to two distinct turn types).  
+- A grid of characters of the given dimensions containing:  
+  - exactly one start cell,  
+  - exactly one goal cell,  
+  - obstacle cells,  
+  - and traversable non-obstacle cells.
+
+3. Outputs  
+- A single integer:  
+  - the minimum total number of turns (sum of both turn types) needed to reach the goal, if reachable within constraints and the minimum total is not greater than 20; otherwise  
+  - `-1`.
+
+4. Preconditions  
+- The provided dimensions do not exceed the fixed internal capacity (height and width each at most 102).  
+- The turn budget limit does not exceed the fixed internal capacity (at most 10).  
+- The grid contains one start and one goal.  
+- The input grid lines provide at least the required number of columns per row.
+
+5. Postconditions  
+- If the cell immediately below the start is outside the grid or is an obstacle, the program outputs `-1`.  
+- Otherwise, the program outputs:  
+  - the smallest achievable value of (turn-type-1 count + turn-type-2 count) among all valid paths from start to goal that:  
+    - begin by moving one step downward from the start (initial orientation is downward),  
+    - never enter obstacle cells or leave the grid,  
+    - respect the per-type turn budgets (each type count ≤ given limit),  
+    - and never perform a turn operation while located on the start cell;  
+  - or `-1` if no such path exists or if the smallest achievable total exceeds 20.
+
+6. Invariants  
+- Every explored state is defined by: current cell position, current orientation, and the two accumulated turn counts.  
+- Turn counts are always within `[0, budget]` for each type for all considered states.  
+- A state, once marked as visited, is not processed again.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input beyond the stated preconditions. Behavior is unspecified if preconditions are violated (e.g., missing start/goal, oversized dimensions/budget, inconsistent row lengths).  
+- If internal queue capacity is exceeded due to extreme state explosion, behavior is unspecified (the code does not guard against overflow beyond its fixed-size storage).
+
+8. State Transitions (if applicable)  
+- State: `(row, col, orientation, t1, t2)`.  
+- Initial state: the cell one step below the start, with orientation “downward” and `(t1, t2) = (0, 0)`, provided that cell is inside the grid and not an obstacle.  
+- From any state, transitions attempt to move one step to an adjacent cell in any of the four directions, subject to:  
+  - the move staying within bounds and not entering an obstacle, and  
+  - the direction change from current orientation to next orientation being either:  
+    - disallowed (no transition),  
+    - allowed with no turn cost, or  
+    - allowed with an increment of exactly one of the two turn-type counters (depending on the specific direction change).  
+- Any transition that would exceed the corresponding turn budget is invalid.  
+- Any transition that would apply a turn cost while currently on the start cell is invalid.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum memory sized for: grid up to 102×102, two turn counters up to 10 each, and four orientations.  
+- Runtime is bounded by exploration of at most `H*W*4*(A+1)*(A+1)` distinct states under the stated capacity limits.
+
+```

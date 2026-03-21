@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes the minimum non-negative increase required to the first value of exactly one of three given sequences so that, after applying a rank-based scoring rule and summing scores from all three sequences, the first element’s total score is not strictly exceeded by more than seven other elements’ total scores. If no such increase is possible under the considered adjustments, reports that outcome.
+
+2. Inputs  
+- An integer count of elements.  
+- A list of integer score values indexed by a “number of strictly greater elements” count.  
+- Three sequences of integers, each of length equal to the element count.
+
+3. Outputs  
+- Either:
+  - A single non-negative integer representing the minimum required increase to the first element of one chosen sequence to satisfy the condition, or  
+  - A fixed message indicating no qualifying increase was found.
+
+4. Preconditions  
+- The element count is non-negative and does not exceed the fixed internal capacity (assumed ≤ 110).  
+- The score list is defined for all possible “strictly greater count” values from 0 up to element count − 1.  
+- All required integers are present in the input.  
+- Integer arithmetic used for comparisons and differences does not overflow (assumption).
+
+5. Postconditions  
+- If an integer is output, it is the minimum over all considered modifications of:
+  - choosing one of the three sequences, and
+  - increasing only its first element to match either another element in that same sequence or that value plus one (and strictly greater than the original first element),
+  such that in the resulting total-score ranking, at most seven elements have a strictly greater total score than the first element.  
+- If the fixed message is output, then no considered modification satisfies the “at most seven strictly greater” condition.
+
+6. Invariants  
+- For any sequence evaluation, each element’s derived score depends only on how many elements in that same sequence are strictly greater than it, mapped through the provided score list.  
+- Total score per element is the sum of the three derived scores (with one sequence possibly using a modified first element for evaluation).  
+- The first element’s original value in each sequence is restored after evaluating modifications for that sequence.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or incomplete input; behavior is undefined if preconditions are violated.  
+- No explicit handling for arithmetic overflow.
+
+8. State Transitions (if applicable)  
+- Temporarily modifies the first element of one chosen sequence during evaluation of candidate increases, then restores it to its original value before moving to the next choice.  
+- Maintains a running best (minimum) required increase across all evaluated candidates.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small fixed maximum sizes (bounded by internal arrays).  
+- Deterministic: same input yields the same output.

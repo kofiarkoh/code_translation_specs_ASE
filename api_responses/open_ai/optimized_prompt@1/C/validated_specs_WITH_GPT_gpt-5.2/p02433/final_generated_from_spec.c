@@ -1,0 +1,126 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Node {
+    int value;
+    struct Node *prev;
+    struct Node *next;
+    int is_end_marker;
+} Node;
+
+static void die_move_left_front(void) {
+    printf("Cursor is already front.\n");
+    exit(1);
+}
+
+static void die_move_right_no_next(void) {
+    printf("Cursor has no next.\n");
+    exit(1);
+}
+
+int main(void) {
+    char line[4096];
+
+    if (!fgets(line, sizeof(line), stdin)) {
+        return 0; /* unspecified; keep minimal */
+    }
+    int q = atoi(line);
+
+    Node *end = (Node *)malloc(sizeof(Node));
+    /* Allocation failure handling is intentionally omitted per spec. */
+    end->value = 0;
+    end->prev = NULL;
+    end->next = NULL;
+    end->is_end_marker = 1;
+
+    Node *cursor = end;
+
+    for (int i = 0; i < q; i++) {
+        if (!fgets(line, sizeof(line), stdin)) {
+            /* unspecified; stop processing */
+            break;
+        }
+
+        char cmd = line[0];
+        if (cmd == '0') {
+            /* Parse starting at index 2, ignoring index 1. */
+            int v = (int)atoi((strlen(line) >= 2) ? (line + 2) : (line + strlen(line)));
+
+            Node *n = (Node *)malloc(sizeof(Node));
+            n->value = v;
+            n->is_end_marker = 0;
+
+            /* Insert immediately before cursor. */
+            n->next = cursor;
+            n->prev = cursor->prev;
+            if (cursor->prev) {
+                cursor->prev->next = n;
+            }
+            cursor->prev = n;
+
+            cursor = n;
+        } else if (cmd == '1') {
+            int off = (int)atoi((strlen(line) >= 2) ? (line + 2) : (line + strlen(line)));
+
+            if (off < 0) {
+                int steps = -off;
+                while (steps-- > 0) {
+                    if (cursor->prev == NULL) {
+                        die_move_left_front();
+                    }
+                    cursor = cursor->prev;
+                }
+            } else if (off > 0) {
+                int steps = off;
+                while (steps-- > 0) {
+                    if (cursor->next == NULL) {
+                        die_move_right_no_next();
+                    }
+                    cursor = cursor->next;
+                }
+            } else {
+                /* off == 0: no change */
+            }
+        } else if (cmd == '2') {
+            if (!cursor->is_end_marker) {
+                Node *to_free = cursor;
+                Node *succ = cursor->next; /* exists because end marker is never removed */
+
+                if (to_free->prev) {
+                    to_free->prev->next = to_free->next;
+                }
+                if (to_free->next) {
+                    to_free->next->prev = to_free->prev;
+                }
+
+                cursor = succ;
+                free(to_free);
+            }
+        } else {
+            /* unspecified: ignore */
+        }
+    }
+
+    /* Print remaining non-marker integers from front to back. */
+    Node *p = end;
+    while (p->prev) p = p->prev; /* go to front */
+
+    while (p) {
+        if (!p->is_end_marker) {
+            printf("%d\n", p->value);
+        }
+        p = p->next;
+    }
+
+    /* Free all nodes (not required by spec, but safe). */
+    p = end;
+    while (p->prev) p = p->prev;
+    while (p) {
+        Node *next = p->next;
+        free(p);
+        p = next;
+    }
+
+    return 0;
+}

@@ -1,0 +1,174 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1291
+  Title:Search of Concatenated Strings
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+int n,m;
+char e[12][21];
+int  len[12];
+char t[5001];
+char flag[5001][4096];
+void dump_flag(char flag[5001][4096],int len)
+{
+  int i,j;
+  for(i=0;i<len;i++)
+    for(j=0;j<4096;j++)
+      if(flag[i][j])
+	printf("%d %d\n",i,j);
+}
+main()
+{
+  int l,ln,l_s,i,j,k,cnt,loop,mask,pat;
+  char buf[101];
+  while(scanf("%d %d",&n,&m) && (n||m))
+    {
+      memset(flag,0,sizeof(flag));
+      for(i=0;i<n;i++)
+	{
+	  scanf("%s",&e[i][0]); 
+	  len[i]=strlen(&e[i][0]);
+	}
+      t[0]='\0';
+      for(i=0;i<m;i++)
+	{
+	  scanf("%s",buf);
+	  ln=strlen(buf);
+	  if(buf[ln-1]<' ')
+	    buf[ln-1]='\0';
+	  strcat(t,buf);
+	}
+      l_s=strlen(t);
+      loop=1<<n;
+      for(i=0,cnt=0;i<l_s;i++)
+	{
+	  for(j=0;j<loop;j++)
+	    {
+	    if(j && flag[i][j]==0)
+	    continue;
+	    for(k=0,mask=1;k<n;k++,mask<<=1)
+		{
+		  if(j & mask)
+		    continue;
+		  if(0==strncmp(&e[k][0],&t[i],(l=len[k])))
+		    {
+		      pat=j|mask;
+		      flag[i+l][pat]=1;
+		    }
+		}
+	    }
+	}
+      for(i=0,cnt=0;i<=l_s;i++)
+	cnt += flag[i][loop-1];
+      printf("%d\n",cnt);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each dataset, computes how many ways the concatenation of the given text fragments can be partitioned into a sequence of non-overlapping occurrences of the given patterns such that each pattern is used exactly once, in any order, and the sequence covers a contiguous prefix of the concatenated text (possibly the entire text). The result is the total count of such complete “use-all-patterns” matches over all possible ending positions within the concatenated text.
+
+2. Inputs  
+- Repeated datasets, each starting with two integers:  
+  - Number of patterns.  
+  - Number of text fragments to concatenate.  
+- A list of patterns (strings), count equals the number of patterns.  
+- A list of text fragments (strings), count equals the number of fragments; these are concatenated in the given order to form the search text.  
+- A terminating dataset indicated by both integers being zero.
+
+3. Outputs  
+- For each non-terminating dataset, outputs a single integer: the number of complete matches (as defined above).
+
+4. Preconditions  
+- The number of patterns is small enough that all subsets of patterns are representable (i.e., the total number of subsets fits within the program’s internal limits).  
+- Each pattern length and the total concatenated text length fit within the program’s fixed storage limits.  
+- Input strings contain no embedded whitespace (they are read as tokens).  
+- Assumption: Any trailing control character at the end of a text fragment token is intended to be ignored (the program attempts to drop a final character if it is below the space character).
+
+5. Postconditions  
+For each dataset:  
+- The printed count equals the number of pairs (end position, ordering/placement) such that:  
+  - Starting at the beginning of the concatenated text, patterns are placed consecutively without gaps or overlaps.  
+  - Each placed pattern matches the text exactly at its placement position.  
+  - Each pattern is used at most once, and by the end of the placement sequence all patterns have been used exactly once.  
+  - The sequence ends at the reported end position (which may be any position from 0 up to the full text length, depending on whether the patterns collectively match a prefix of that length).
+
+6. Invariants  
+- A “reachable state” corresponds to: a specific position in the concatenated text and a specific subset of patterns already used, such that the text prefix up to that position can be exactly covered by a concatenation of the used patterns (each used at most once).  
+- Reachability is monotonic with respect to extending the covered prefix: states only advance to larger positions by appending an unused pattern that matches at the current position.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input or size violations.  
+- If input sizes exceed internal fixed limits (too many patterns, too-long patterns, or too-long concatenated text), behavior is undefined (may corrupt memory or crash).  
+- If the number of patterns is large enough that the subset space exceeds internal limits, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Initial state: position 0 with no patterns used is reachable.  
+- Transition rule: from any reachable (position P, used-set S), for any pattern not in S that matches the text starting at P, the state (P + pattern-length, S ∪ {pattern}) becomes reachable.  
+- Accepting states: any reachable state whose used-set includes all patterns, at any position within the text bounds.  
+- Output count: the number of accepting states across all positions.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow with the concatenated text length and exponentially with the number of patterns (due to tracking all subsets).  
+- Uses fixed-size storage; maximum supported sizes are bounded by compile-time array capacities.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong counting rule / wrong state representation (boolean reachability vs. counting number of ways).
+
+B. What the current specification may be missing or misstating  
+The specification describes “how many ways” the text can be partitioned (i.e., counts distinct orderings/placements), which implies multiplicities. But the source program does not count ways; it only tracks whether a state (position, used-pattern-subset) is reachable at least once. As a result, multiple different sequences that lead to the same (position, subset) are collapsed into a single reachable state and contribute at most 1 to the final total for that (position, full-set).
+
+C. What general behavior should be clarified in the specification  
+Clarify that the algorithm computes the number of *distinct end positions* (or more precisely, the number of reachable accepting states) rather than the number of distinct concatenation sequences. Acceptance is based on existence: for each end position, it contributes 1 if there exists at least one ordering of patterns that matches consecutively from position 0 to that end position using all patterns exactly once. Multiple orderings leading to the same end position are not counted multiple times.
+
+D. Why this clarification is supported by the source program  
+- The DP table is `char flag[5001][4096]`, i.e., a boolean marker, not an integer counter.  
+- Transitions do `flag[i+l][pat] = 1;` with no accumulation; this overwrites/sets reachability only.  
+- The final result is `cnt += flag[i][loop-1];`, summing boolean reachability of the full-mask at each position, which counts at most 1 per position, not the number of distinct paths/orderings reaching that position.
+
+```

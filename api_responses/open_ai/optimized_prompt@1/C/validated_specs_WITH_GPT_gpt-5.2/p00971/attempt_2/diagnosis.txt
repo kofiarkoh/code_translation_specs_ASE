@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong termination condition (off-by-one in state advancement), leading to an incorrect minimal-length computation and reconstruction.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the problem as finding a shortest binary string that is **not a subsequence of at least one** input, but it does not pin down the **exact DP state semantics and transitions** used by the source.  
+- In particular, the spec does not clarify that the source program’s “next occurrence” transition moves to the **position of the matched character itself** (or a sentinel end position), not to the position *after* it. This distinction affects when the process reaches the terminal state and therefore the computed minimal length.  
+- The spec also does not clarify the source’s base/terminal condition: the source uses a specific sentinel-index setup and a single explicit base `dp[alen][blen]=0`, with all other terminal behavior emerging from transitions to those sentinel indices.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the DP state as operating on **indices that represent the last-consumed position (or current cursor) in each string**, and define `next0/next1` as returning the **index of the next matching character** (or the end index if none).  
+- Clarify that the transition for appending a bit advances the state to `(nextBitPosInA, nextBitPosInB)` **without adding 1**, and that reaching the end indices is handled by the DP base case and recurrence (rather than an explicit “if missing then length 1” rule).  
+- Clarify reconstruction/tie-breaking: the source prefers `'0'` when it yields an optimal step, otherwise `'1'`, and it continues until no rule applies (i.e., until it reaches the base via the recurrence).
+
+D. Why this clarification is supported by the source program  
+- The source computes `res = dfs(next0[0][aloc], next0[1][bloc])` and similarly for `1`, and then returns `ans + 1`. There is **no `+1` applied to the next positions** in either `dfs` or `scns`; the next-state indices are exactly the `next*` values.  
+- The only explicit base is `dp[alen][blen] = 0`, and the `next*` arrays are initialized so that missing-next transitions map to the **end index**. This means termination and length are governed by reaching `(alen, blen)` through these transitions, not by an immediate “missing implies answer length 1” shortcut.  
+- Therefore, any specification that allows (or suggests) advancing to `next+1` or stopping immediately when a character is missing is underspecified/incorrect relative to the source’s actual state machine, and can systematically produce shorter outputs than the source.

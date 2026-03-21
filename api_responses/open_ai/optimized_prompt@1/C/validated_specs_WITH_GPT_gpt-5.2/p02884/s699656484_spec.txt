@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes a numeric value associated with reaching a designated terminal node from a designated start node in a directed graph, under a model where from each node one outgoing edge is chosen uniformly at random among its available outgoing edges. It then considers the effect of removing at most one specific directed edge (chosen from a restricted candidate set) and outputs the minimum achievable value for the start node among: (a) the original graph and (b) each graph with one such candidate edge removed.
+
+2. Inputs  
+- Two integers: the number of nodes and the number of directed edges.  
+- A sequence of directed edges, each given as an ordered pair of node indices.
+
+3. Outputs  
+- One floating-point number: the minimum computed expected-step value for the start node, printed with fixed decimal precision.
+
+4. Preconditions  
+- Nodes are indexed with a distinguished start node (index 1) and a distinguished terminal node (index equal to the number of nodes).  
+- All input edge endpoints are valid node indices within the declared range.  
+- For every non-terminal node considered in the computation, there exists at least one outgoing edge to some node with index greater than or equal to itself (so that the expected value is well-defined and no division by zero occurs).  
+- The graph is such that the expected-step values implied by the model are finite (in particular, the terminal node is reachable in the sense required by the recurrence used).
+
+5. Postconditions  
+- Let \(E_G(1)\) be the expected number of steps to reach the terminal node starting from the start node in graph \(G\), where at each non-terminal node the next edge is chosen uniformly among that node’s outgoing edges (as represented by the input). The program outputs:  
+  \[
+  \min\Big( E_{G}(1),\ \min_{(u,v)\in C} E_{G\setminus (u,v)}(1) \Big)
+  \]
+  where \(C\) is a set containing, for each node \(u\), at most one candidate outgoing edge \((u,v)\): specifically, if \(u\) has more than one outgoing edge, the candidate is the one whose destination has the largest expected-step value under the original graph; otherwise no candidate is chosen for \(u\).  
+- If no candidates exist, the output equals \(E_G(1)\).
+
+6. Invariants  
+- The terminal node’s expected-step value is always treated as 0 in every evaluated graph.  
+- For any evaluated graph (original or with one candidate edge removed), each non-terminal node’s expected-step value equals 1 plus the average of the expected-step values of its available outgoing neighbors in that evaluated graph.  
+- The reported minimum is never greater than the expected-step value computed for the original graph.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, indices are out of range, required outgoing edges are missing (causing an undefined average), or the model’s expectations are not well-defined under the program’s assumptions, behavior is undefined (may include incorrect output or runtime failure).
+
+8. State Transitions (if applicable)  
+- No persistent state beyond the single execution. The program evaluates the original graph, then evaluates a sequence of modified graphs each differing by removal of one candidate edge, updating the running minimum after each evaluation.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, implying an upper bound on supported node count and edge representation capacity.  
+- Time cost grows on the order of the square of the number of nodes per evaluated graph, multiplied by the number of candidate edges considered.

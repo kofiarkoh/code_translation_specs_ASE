@@ -1,0 +1,219 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define N_MAX 4
+
+/*                 front  1  2  3  4  5  6 */
+char right[7][7] = { { 0, 0, 0, 0, 0, 0, 0 },   /* top */
+                     { 0, 0, 3, 5, 2, 4, 0 },   /* 1   */
+                     { 0, 4, 0, 1, 6, 0, 3 },   /* 2   */
+                     { 0, 2, 6, 0, 0, 1, 5 },   /* 3   */
+                     { 0, 5, 1, 0, 0, 6, 2 },   /* 4   */
+                     { 0, 3, 0, 6, 1, 0, 4 },   /* 5   */
+                     { 0, 0, 4, 2, 5, 3, 0 } }; /* 6   */
+
+#define RIGHT(top, front)  (right[(int)(top)][(int)(front)])
+#define BOTTOM(top, front) (7 - top)
+#define BACK(top, front)   (7 - front)
+#define LEFT(top, front)   (7 - RIGHT(top, front))
+
+/* ------ */
+
+char height_map[N_MAX * 2 + 1][N_MAX * 2 + 1],
+    top_map[N_MAX * 2 + 1][N_MAX * 2 + 2];
+
+void init()
+{
+    int x, y;
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            height_map[y][x] = top_map[y][x] = 0;
+}
+
+void put(char top, char front)
+{
+    int x = N_MAX, y = N_MAX, newfront, newtop, newx, newy, max;
+
+    while(1)
+    {
+        max = 0;
+
+        /* front */
+        if(height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max)
+            newfront = top, newtop = BACK(top, front),
+                newx = x, newy = y - 1, max = front;
+
+        if(height_map[y + 1][x] < height_map[y][x]
+           && BACK(top, front) > 3 && BACK(top, front) > max)
+            newfront = BOTTOM(top, front), newtop = front,
+                newx = x, newy = y + 1, max = BACK(top, front);
+
+        if(height_map[y][x - 1] < height_map[y][x]
+           && LEFT(top, front) > 3 && LEFT(top, front) > max)
+            newfront = front, newtop = RIGHT(top, front),
+                newx = x - 1, newy = y, max = LEFT(top, front);
+
+        if(height_map[y][x + 1] < height_map[y][x]
+           && RIGHT(top, front) > 3 && RIGHT(top, front) > max)
+            newfront = front, newtop = LEFT(top, front),
+                newx = x + 1, newy = y, max = RIGHT(top, front);
+
+        if(!max)
+            break;
+        else
+            front = newfront, top = newtop, x = newx, y = newy;
+    }
+
+    height_map[y][x]++, top_map[y][x] = top;
+}
+
+void count_and_print()
+{
+    int x, y, count[7];
+
+    for(x = 1; x <= 6; x++)
+        count[x] = 0;
+
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            count[(int)top_map[y][x]]++;
+
+    for(x = 1; x < 6; x++)
+        printf("%d ", count[x]);
+    printf("%d\n", count[x]);
+}
+
+int main(void)
+{
+    int n;
+
+    while(scanf("%d", &n), n)
+    {
+        int t, f;
+
+        init();
+
+        while(n--)
+        {
+            scanf("%d %d", &t, &f);
+            put(t, f);
+        }
+
+        count_and_print();
+    }
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates dropping a sequence of cubes onto a fixed, bounded 2D grid (size \( (2\cdot N\_MAX+1)\times(2\cdot N\_MAX+1) \), with \(N\_MAX=4\), i.e., 9×9). Each cube starts at the grid center and may “roll” across the grid before coming to rest. A roll is allowed only from a cell to an orthogonally adjacent cell whose current stack height is strictly lower than the current cell’s height. Among all allowed directions, the program chooses the single direction whose associated side-face value (as defined by the cube’s current orientation and the direction of motion) is the largest value strictly greater than 3; if no allowed direction has an associated value > 3, rolling stops. The cube is then placed on the current cell, increasing that cell’s stack height by 1 and recording the cube’s upward-facing value for that cell (overwriting any previous recorded top for that cell). After all cubes are processed, it outputs counts of how many grid cells have recorded top values 1 through 6.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer \(n\) (number of cubes).  
+- If \(n=0\), input terminates and no output is produced for that case.  
+- Otherwise, \(n\) lines follow, each containing two integers \(t\) and \(f\): the cube’s initial top (upward-facing) value and initial front value.
+
+3. Cube Labeling / Orientation Model (crucial)  
+- Face labels are the integers 1..6 with fixed opposite pairs: bottom = \(7-\text{top}\), back = \(7-\text{front}\).  
+- In addition, the cube’s left/right relationship is not arbitrary: it is defined by a fixed, globally agreed cube geometry that determines the right face for each valid (top, front) pair. The program uses an explicit mapping RIGHT(top, front) (a lookup table) and derives:  
+  - RIGHT = RIGHT(top, front)  
+  - LEFT = \(7-\)RIGHT(top, front)  
+  - BACK = \(7-\)front  
+  - BOTTOM = \(7-\)top  
+- Therefore, the input pair (top, front) is interpreted with respect to this specific fixed cube labeling; different valid physical cubes/orientation conventions are not interchangeable.
+
+4. Rolling / Movement Rules  
+For each cube, initialize position at the center cell and orientation to the input (top, front). Then repeat:  
+- Consider up to four candidate moves (north, south, west, east). A candidate move in a direction is eligible only if the adjacent cell in that direction has strictly smaller current height than the current cell.  
+- Each direction has an associated “side value” taken from the cube’s current orientation:  
+  - Moving north (toward decreasing row index): associated value = current FRONT face value.  
+  - Moving south (increasing row index): associated value = current BACK face value.  
+  - Moving west (decreasing column index): associated value = current LEFT face value.  
+  - Moving east (increasing column index): associated value = current RIGHT face value.  
+- Among eligible moves, select the one with the maximum associated value subject to the additional requirement that the associated value must be > 3. If no eligible move has associated value > 3, stop rolling.  
+- If a move is selected, update both position and orientation as if the cube is rolled one cell in that direction (the new top and new front are updated deterministically according to the direction and the cube-geometry rules above), and continue the loop.
+
+5. Placement and Recorded State  
+- When rolling stops, the cube is placed on the current cell: that cell’s height increases by 1.  
+- The cell’s recorded top value becomes the cube’s current top value after the final roll sequence (overwriting any previous recorded top at that cell).  
+- Cells never landed on retain recorded top value 0 internally.
+
+6. Outputs  
+For each non-terminating test case, output one line with six integers separated by single spaces: for face values 1,2,3,4,5,6 respectively, the number of grid cells whose recorded top value equals that face value at the end of the test case. (Cells with recorded value 0 are not reported.)
+
+7. Preconditions / Assumptions  
+- Inputs are well-formed and provide \(n\) pairs after each nonzero \(n\).  
+- Each provided top and front value is in 1..6 and corresponds to a valid orientation under the program’s fixed cube geometry (in particular, top and front are distinct and not opposite, and the pair is one for which the fixed RIGHT(top, front) mapping is defined).  
+- The sequence of rolls for every cube remains within the fixed 9×9 grid; otherwise behavior is undefined (the program does not perform bounds checks).
+
+8. Reset and Termination Behavior  
+- For each test case, the grid state (heights and recorded tops) is reset to all zeros before processing cubes.  
+- Processing continues until a test case with \(n=0\) is read, at which point the program terminates.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition rule (cube orientation update during rolling), leading to wrong recorded top values and thus wrong counts.
+
+B. What the current specification may be missing or misstating  
+The spec’s description of how the cube’s **(top, front)** orientation updates when rolling **west/east** is underspecified/incorrect. The generated code kept `front` unchanged for west/east rolls and updated only `top` using LEFT/RIGHT, but the source program’s `put()` updates both `top` and `front` in a way that depends on the direction:
+
+- North: `newfront = top`, `newtop = BACK(top, front)`
+- South: `newfront = BOTTOM(top, front)`, `newtop = front`
+- West: `newfront = front`, `newtop = RIGHT(top, front)`
+- East: `newfront = front`, `newtop = LEFT(top, front)`
+
+So for west/east, the **new top is the previous RIGHT/LEFT**, not the previous LEFT/RIGHT as the generated code assumed, and the “front stays the same” is true but the top update direction is reversed relative to the physical intuition used in the generated code.
+
+C. What general behavior should be clarified in the specification  
+Clarify the **exact orientation transition function** for each move direction in terms of the program’s macros/lookup table, i.e., explicitly specify the assignments for `(newtop, newfront)` for north/south/west/east exactly as the source does, rather than describing it as “roll the cube” in physical terms. In particular, the spec should pin down that:
+
+- Moving west sets `top := RIGHT(old_top, old_front)` (and `front := old_front`)
+- Moving east sets `top := LEFT(old_top, old_front)` (and `front := old_front`)
+
+(and similarly for north/south as above).
+
+D. Why this clarification is supported by the source program  
+The source program is the ground truth and directly encodes the orientation updates via the `newfront/newtop` assignments inside `put()`. Those assignments are not derived from a generic cube-rolling model; they are tied to the specific `RIGHT(top, front)` table and the program’s chosen coordinate/direction conventions. The failing test’s large discrepancy in final top-face counts is consistent with systematically wrong orientation updates during movement (especially repeated west/east moves), which would change the final `top` recorded in `top_map` and therefore the printed counts.
+
+```

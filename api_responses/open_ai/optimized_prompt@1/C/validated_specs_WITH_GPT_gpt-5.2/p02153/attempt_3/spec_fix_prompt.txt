@@ -1,0 +1,267 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 3055 Don't Burn Kotatsu Turtle
+// 2019.4.7 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(x) putchar_unlocked(x)
+#else
+#define gc() getchar()
+#define pc(x) putchar(x)
+#endif
+int in()    // 非負整数の入力
+{
+	int n = 0, c = gc();
+	//	while (isspace(c)) c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void ins(char *s)  // 文字列の入力　スペース以下の文字で入力終了
+{
+	do *s = gc();
+	while (*s++ > ' ');
+	*(s - 1) = 0;
+}
+
+
+//// 優先度付きキュー（ダイクストラ法用）
+#define MAX 500000
+typedef struct { long long t; short r, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int r, int c, long long t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].t = t, que[i].r = r, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		i = min;
+	}
+}
+
+
+//// 本問題関連
+#define MAXV 1005
+char vis[MAXV][MAXV];
+char map[MAXV][MAXV]; int H, W;
+char bomb[MAXV][MAXV];
+int A, B;
+int mv[8][2] = { {-1,0},{0,1},{1,0},{0,-1},{-1,-1},{-1,1},{1,1},{1,-1} };
+int tt[8][2];
+
+long long dijkstra(int sr, int sc, int gr, int gc)
+{
+	int i, k, r, c, f, g, rr, cc;
+	long long t;
+
+	enq(sr, sc, 0);
+	while (qsize) {
+		r = que[0].r, c = que[0].c, t = que[0].t, deq();
+		if (r == gr && c == gc) return t;
+		if (vis[r][c]) continue;
+		vis[r][c] = 1;
+
+		f = bomb[r][c], k = (2-f) << 2;
+		for (i = 0; i < k; i++) {
+			rr = r + mv[i][0], cc = c + mv[i][1];
+			if (rr < 1 || rr > H || cc < 1 || cc > W) continue;
+			g = (map[rr][cc] == '#');
+			if (f && g) continue;
+			if ((i < 4 || g) && !vis[rr][cc]) enq(rr, cc, t + tt[i][g]);
+		}
+	}
+	return -1LL;
+}
+
+
+int main()
+{
+	int i, r, c, sr, sc, tr, tc;
+	long long ans;
+
+	H = in(), W = in(), A = in(), B = in();
+	for (r = 1; r <= H; r++) {
+		ins(map[r]+1);
+		for (c = 1; c <= W; c++) {
+			if (map[r][c] == '*') {
+				bomb[r][c] = 1;
+				for (i = 0; i < 8; i++)
+					bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+			}
+			else if (map[r][c] == 's') sr = r, sc = c;
+			else if (map[r][c] == 'g') tr = r, tc = c;
+		}
+	}
+	for (i = 0; i < 4; i++) tt[i][0] = A, tt[i][1] = A + B;
+	A <<= 1;
+	for (; i < 8; i++) tt[i][0] = A, tt[i][1] = A + B;
+
+	ans = dijkstra(sr, sc, tr, tc);
+	if (ans >= 0) printf("%lld\n", ans);
+	else puts("INF");
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Compute the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid using a minimum-cost search. Movement cost depends on whether the move is orthogonal or diagonal and on whether the destination cell is a wall cell. Some cells are “dangerous” due to hazard sources; dangerous cells restrict which moves are allowed. If the goal cannot be reached under these rules, report that no finite-cost path exists.
+
+2. Inputs  
+- Four non-negative integers:  
+  - Grid height `H` and width `W`.  
+  - Cost parameter `A` (base cost component).  
+  - Cost parameter `B` (additional penalty for entering a wall cell).  
+- Then `H` strings of length `W` describing the grid. Characters used by the program:  
+  - `s`: start cell (exactly one).  
+  - `g`: goal cell (exactly one).  
+  - `*`: hazard source cell.  
+  - `#`: wall cell (affects movement cost and some movement permissions).  
+  - Any other character is treated as a normal traversable cell (no special cost/behavior by itself).
+
+3. Derived Hazard (Dangerous) Cells  
+- A cell is marked “dangerous” if it is a hazard source `*` or is one of its 8 neighbors (including diagonals).  
+- This dangerous marking is computed once from the input grid and then used during pathfinding.
+
+4. Movement Rules  
+From a current cell, the set of candidate moves depends on whether the current cell is dangerous:
+
+- If the current cell is **not dangerous**: up to 8-direction moves are considered (4 orthogonal + 4 diagonal), subject to bounds and the additional constraints below.  
+- If the current cell **is dangerous**: only the 4 orthogonal moves are considered, subject to bounds and the additional constraints below.
+
+Additional constraints applied to considered moves:
+- Moves must stay within the grid bounds.  
+- Let the destination cell be a wall if and only if its grid character is `#`.  
+- If the current cell is dangerous **and** the destination cell is a wall, that move is not allowed.  
+- Diagonal moves are only allowed when the destination cell is a wall (i.e., diagonal moves into non-wall cells are not enqueued/used). Orthogonal moves may go to either wall or non-wall cells (unless forbidden by the dangerous-to-wall rule above).
+
+5. Step Cost  
+Each move adds a non-negative cost determined by:
+- Whether the move is orthogonal or diagonal.  
+- Whether the destination cell is a wall (`#`).
+
+Let the input parameters be `A_in` and `B`. The per-step costs are:
+- Orthogonal move into non-wall: `A_in`  
+- Orthogonal move into wall: `A_in + B`  
+- Diagonal move into non-wall: `2 * A_in`  
+- Diagonal move into wall: `2 * A_in + B`  
+
+6. Output  
+- If the goal is reachable: output a single integer equal to the minimum total cost to reach the goal from the start under the rules above.  
+- If unreachable: output the literal string `INF`.
+
+7. Preconditions / Constraints  
+- `H` and `W` must not exceed the program’s fixed internal maximum grid size.  
+- The grid must contain exactly one `s` and exactly one `g`.  
+- Each of the `H` grid rows must contain at least `W` non-whitespace characters (input is read as whitespace-delimited strings).  
+- Cost parameters and the resulting minimum cost must fit within the integer ranges used by the program (accumulated cost is computed in signed 64-bit).  
+- For memory safety in the hazard-marking step, hazard sources must not be placed such that writing to their 8 neighbors would access outside the allocated arrays (i.e., hazard sources must not be on the outermost border cells).
+
+8. Algorithmic/State Semantics  
+- The program performs a Dijkstra-style search over grid cells with non-negative edge weights.  
+- A cell is “finalized” the first time it is removed from the priority frontier with minimum accumulated cost; after finalization it is not reconsidered.  
+- The search terminates when the goal cell is finalized (returning its cost) or when the frontier becomes empty (unreachable).
+
+9. Implementation/Compilation Contract (I/O Types)  
+- The computed minimum cost is represented as a 64-bit signed integer and is printed as a decimal integer. In C, this corresponds to using `long long` and printing with the `%lld` format (as in the source program). No alternative 64-bit format-macro approach is required by this specification.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / wrong assumption about input safety (memory-safety / bounds), leading to a wrong abstraction of the hazard-marking step.
+
+B. What the current specification may be missing or misstating  
+- The specification introduces a **precondition** that hazard sources `*` are not on the border (“for memory safety … must not be on the outermost border cells”).  
+- The source program does **not** enforce such a precondition at the input level; instead, it relies on its own array layout/indexing scheme to make neighbor-marking safe (or at least to avoid immediate crashes under typical constraints).  
+- The generated program *implements* the precondition as an assumption and then performs neighbor writes like `danger[i+dy][j+dx]` on a 0-based `H x W` array, which will segfault if `*` appears on an edge. This indicates the spec’s model of how safety is achieved is incorrect/incomplete.
+
+C. What general behavior should be clarified in the specification  
+- Clarify **how the original program handles hazard expansion at grid boundaries**: whether it is guaranteed safe by construction (e.g., via padding/sentinels/1-based indexing with extra margin), or whether the input constraints truly forbid border hazards.  
+- More generally: specify the **indexing/padding strategy** (the source uses 1..H and 1..W and writes to neighbors without explicit bounds checks), and what that implies for valid inputs and memory safety.  
+- If the intent is to describe source behavior rather than impose extra constraints, the spec should not add an input restriction unless it is actually required by the source’s correctness model.
+
+D. Why this clarification is supported by the source program  
+- In `main`, when a `*` is found at `(r,c)`, the source does:
+  ```c
+  bomb[r][c] = 1;
+  for (i = 0; i < 8; i++)
+      bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+  ```
+  with **no bounds checks**.  
+- The arrays are declared as `char bomb[MAXV][MAXV];` with `MAXV=1005`, and the grid is read into `map[r]+1` for `r=1..H`, i.e., **1-based indexing** with implicit extra space around the used region. This differs materially from the generated program’s 0-based `danger[H][W]` approach.  
+- The runtime error (-11) is consistent with the generated program writing outside `danger` when a hazard is on/near the border—an issue that arises because the spec’s “precondition” and the generated implementation’s memory model do not match the source program’s effective handling of neighbor marking.
+
+```

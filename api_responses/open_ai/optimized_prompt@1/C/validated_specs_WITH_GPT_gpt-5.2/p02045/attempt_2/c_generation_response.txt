@@ -1,0 +1,72 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static int iabs_int(int v) { return v < 0 ? -v : v; }
+
+static int manhattan(int x1, int y1, int x2, int y2) {
+    return iabs_int(x1 - x2) + iabs_int(y1 - y2);
+}
+
+/* Rectangle-distance per spec: comparisons are done directly against A,C,B,D
+   even if bounds are "reversed". */
+static int rect_dist(int x, int y, int A, int B, int C, int D) {
+    int dx = 0, dy = 0;
+
+    if (x < A) dx += (A - x);
+    else if (x > C) dx += (x - C);
+
+    if (y < B) dy += (B - y);
+    else if (y > D) dy += (y - D);
+
+    return dx + dy;
+}
+
+int main(void) {
+    int N;
+    for (;;) {
+        int r = scanf("%d", &N);
+        if (r != 1) {
+            /* EOF before reading N => normal termination, no further output */
+            return 0;
+        }
+        if (N <= 0) {
+            /* Non-positive N => stop processing, normal termination */
+            return 0;
+        }
+
+        int A, B, C, D;
+        if (scanf("%d %d %d %d", &A, &B, &C, &D) != 4) {
+            /* Dataset started but rectangle not fully readable => error */
+            return 1;
+        }
+
+        /* Fixed internal arrays; behavior undefined if N > 127 per spec.
+           We still allocate fixed size and proceed. */
+        int x[128], y[128];
+
+        for (int i = 0; i <= N; i++) {
+            if (scanf("%d %d", &x[i], &y[i]) != 2) {
+                /* Dataset started but point list incomplete => error */
+                return 1;
+            }
+        }
+
+        long long total = 0; /* sum may exceed int; spec allows environment limits */
+
+        for (int i = 0; i < N; i++) {
+            int direct = manhattan(x[i], y[i], x[i + 1], y[i + 1]);
+
+            int d1 = rect_dist(x[i], y[i], A, B, C, D);
+            if (d1 > 0) d1 -= 1; /* escape discount, never below 0 */
+            int d2 = rect_dist(x[i + 1], y[i + 1], A, B, C, D);
+
+            int via = d1 + d2;
+
+            total += (direct < via) ? direct : via;
+        }
+
+        printf("%lld\n", total);
+    }
+}
+```

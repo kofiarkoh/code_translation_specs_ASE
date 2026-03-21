@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a 2D arrangement of occupied cells is “STABLE” under a specific stacking model. Occupied cells with the same character that are orthogonally connected (4-neighborhood) are grouped into rigid components. Each component has a mass (number of its cells) and a horizontal moment (sum of column indices of its cells). A rooted parent/child structure is then constructed by scanning the grid from bottom row to top row and left to right within each row, using only vertical adjacency (a cell directly below) to establish a single supporting parent. Stability is evaluated bottom-up on this constructed structure: each component is stable only if the horizontal center of mass of the component together with all of its already-validated descendants lies strictly within that component’s computed support footprint. If the recursive check starting from the chosen root succeeds, the program prints “STABLE”; otherwise it prints “UNSTABLE”.
+
+2. Inputs  
+- Repeated test cases.  
+- For each test case:  
+  - Two integers `w` (width) and `h` (height).  
+  - Then `h` strings, each representing a row of the grid.  
+- Cells containing `'.'` are empty; any other character is occupied and participates in component formation.  
+- Termination occurs when a test case is read with `w <= 0` (the value of `h` is read but not used for termination).
+
+3. Outputs  
+- For each processed test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Constraints / Assumptions  
+- Dimensions must fit the program’s fixed internal storage: `h <= 60` and `w <= 10` (and thus `w*h <= 600`).  
+- Each input row must be a whitespace-delimited string readable by `%s` and must contain at least `w` characters. No explicit validation is performed.  
+- **Non-empty occupied content is required:** each processed test case is assumed to contain at least one occupied cell (i.e., at least one character other than `'.'`). The program unconditionally performs a stability check starting from internal node ID `1` and does not handle the case where no component exists; behavior is undefined if the grid has no occupied cells.
+
+5. Component Formation  
+- Two occupied cells belong to the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- For each component, the program computes:  
+  - `m`: total mass = number of occupied cells in the component.  
+  - `mx`: total horizontal moment = sum of the column indices (0-based) of all occupied cells in the component.
+
+6. Support Footprint (per component)  
+- Each component accumulates a horizontal support interval `[xl, xr]` (inclusive, 0-based column indices) based on which of its cells are considered “supported” during the bottom-up scan:  
+  - If a component cell is on the bottom row and is occupied, its column contributes to `[xl, xr]`.  
+  - If a component cell is not on the bottom row, its column contributes to `[xl, xr]` only if the cell directly below it is occupied (any character).  
+  - Cells with empty space directly below do not expand `[xl, xr]`.  
+- The interval is tracked as the minimum and maximum contributing column encountered for that component during the scan.
+
+7. Construction of the Parent/Child Relation (Support Structure)  
+- The program builds a directed structure during the same bottom-up scan (rows from `h-1` down to `0`, columns from `0` up to `w-1`):  
+  - Each connected component is assigned an internal node ID in the order it is first encountered in this scan.  
+  - For a scanned occupied cell at `(r,c)` that is not on the bottom row, if the cell directly below `(r+1,c)` is occupied, then the component containing `(r,c)` may be attached as a child of the component containing `(r+1,c)`.  
+  - A component’s parent is assigned at most once: after the first time a parent is set, later vertical contacts do not change the parent and do not add additional parents.  
+  - Children of a parent are stored in the order they are attached during the scan (appended to the end of the parent’s child list).  
+- This is not a complete “supported by any component below” relation; it is the single-parent relation induced by scan order and the first-parent-wins rule.
+
+8. Root Selection and Reachability  
+- The stability evaluation is anchored at internal node ID `1` (the first component created by the scan). This node is forcibly set to be its own parent.  
+- Only components reachable from this root via the constructed child links are considered by the recursive evaluation; the program does not search for or evaluate multiple roots or disconnected structures.
+
+9. Stability Check and Aggregation Logic  
+- The check is performed recursively in depth-first order over the child/sibling links.  
+- For each node, after all its descendants are successfully checked, the program computes the horizontal center of mass as:  
+  - `x = 0.5 + (mx / m)` using real division.  
+- The node is considered stable iff `x` lies strictly inside its support footprint interpreted as the open interval `(xl, xr+1)`, i.e., it is unstable if `x <= xl` or `x >= xr + 1`.  
+- If stable, the node’s `m` and `mx` are added into its parent’s `m` and `mx` (aggregating mass and moment upward), and the node is marked as processed so it will not be aggregated twice.
+
+10. Exceptional / Unspecified Aspects  
+- The program does not detect or correct physically unintuitive configurations (e.g., multiple disconnected stacks, components whose “support” is only partially represented by the single-parent rule, or components not reachable from the chosen root). Its output is defined only by the construction and check procedure above, subject to the stated input assumptions.
+
+```

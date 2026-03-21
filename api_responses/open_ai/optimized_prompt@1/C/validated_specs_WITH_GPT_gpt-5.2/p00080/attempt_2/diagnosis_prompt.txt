@@ -1,0 +1,209 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-5
+
+int main (void) {
+    int q;
+    double px, x;
+    while (scanf("%d", &q) != EOF && q != -1) {
+        px = (double)q / 2;
+        do {
+            x = px - (px*px*px - q) / (3*px*px);
+            px = x;
+        } while (fabs(x*x*x - q) >= EPS * q);
+        printf("%.6lf\n", x);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes and outputs an approximation of the real cube root of each provided integer value, processing values sequentially until a designated termination value or end of input is reached.
+
+2. Inputs  
+- A sequence of integer values read from standard input.  
+- A special sentinel integer value indicating termination.
+
+3. Outputs  
+- For each processed input integer (excluding the sentinel), one line to standard output containing a decimal approximation of its real cube root, rounded to a fixed number of digits after the decimal point.
+
+4. Preconditions  
+- Each non-terminating input integer is assumed to be strictly positive.  
+- Input is assumed to be well-formed as a sequence of integers.
+
+5. Postconditions  
+For each processed input integer \( q \) (with \( q > 0 \)):  
+- Exactly one output line is produced.  
+- The printed value \( r \) satisfies the relative cube error criterion:  
+  \[
+  |r^3 - q| < \varepsilon \cdot q
+  \]
+  where \( \varepsilon = 10^{-5} \).  
+- The output value is an approximation of the real cube root of \( q \).
+
+6. Invariants  
+- Each output line corresponds to exactly one input integer processed (excluding the sentinel).  
+- Processing continues input-by-input until termination conditions are met.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If a non-positive integer is provided (including zero), the behavior is not guaranteed by this specification (the computation may fail to terminate or may produce invalid numeric results).  
+- If malformed input occurs, behavior is unspecified beyond potentially terminating input processing.
+
+8. State Transitions (if applicable)  
+- Initial state: ready to read the next integer.  
+- For each read integer:  
+  - If it is the sentinel value, transition to terminated state.  
+  - Otherwise, transition to “compute cube root approximation,” then to “emit result,” then back to ready-to-read.  
+- End-of-input transitions directly to terminated state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed absolute/relative tolerance parameter \( \varepsilon = 10^{-5} \) to determine when the approximation is sufficiently accurate.  
+- Output precision is fixed to a constant number of digits after the decimal point.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
+
+int main(void) {
+    /* Specification does not define the sentinel value; choose the narrowest
+       conventional interpretation: a single designated integer value, -1. */
+    const long long SENTINEL = -1;
+
+    /* Relative cube error tolerance */
+    const double eps = 1e-5;
+
+    /* Fixed number of digits after the decimal point (not specified); choose 5
+       to align with eps = 1e-5 as a narrow, reasonable interpretation. */
+    const int out_digits = 5;
+
+    long long q_ll;
+    while (scanf("%lld", &q_ll) == 1) {
+        if (q_ll == SENTINEL) break;
+
+        /* Preconditions say q > 0; behavior for non-positive is unspecified.
+           We still attempt computation to avoid inventing extra error handling. */
+        double q = (double)q_ll;
+
+        /* Initial guess: use exp/log for scale; fall back to 1.0 if not usable. */
+        double x;
+        if (q > 0.0) {
+            x = exp(log(q) / 3.0);
+            if (!isfinite(x) || x <= 0.0) x = 1.0;
+        } else {
+            x = 1.0;
+        }
+
+        /* Newton-Raphson for cube root: x_{n+1} = (2x + q/x^2)/3
+           Stop when |x^3 - q| < eps * q (relative cube error criterion). */
+        for (int iter = 0; iter < 1000000; iter++) {
+            double x2 = x * x;
+            if (x2 == 0.0) {
+                x = 1.0;
+                continue;
+            }
+
+            double x3 = x2 * x;
+            double err = fabs(x3 - q);
+
+            if (q > 0.0) {
+                if (err < eps * q) break;
+            } else {
+                /* For unspecified q <= 0, use a minimal termination condition
+                   to reduce risk of non-termination without defining behavior. */
+                if (err < eps) break;
+            }
+
+            double next = (2.0 * x + q / x2) / 3.0;
+
+            /* If iteration becomes non-finite, stop to avoid infinite loops. */
+            if (!isfinite(next)) break;
+
+            /* If no progress due to floating-point limits, stop. */
+            if (next == x) break;
+
+            x = next;
+        }
+
+        printf("%.*f\n", out_digits, x);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_output.txt
+Input:
+8
+27
+64
+1000
+-1
+Expected:
+2.000000
+3.000000
+4.000009
+10.000000
+Actual:
+2.00000
+3.00000
+4.00000
+10.00000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

@@ -1,0 +1,42 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    static long long a[100010];
+    for (int i = 0; i < n; i++) {
+        if (scanf("%lld", &a[i]) != 1) return 0;
+    }
+
+    long long ans = 0;
+
+    /* Consider step sizes d with 1 <= d and 2d < n-1 */
+    for (int d = 1; 2 * d < n - 1; d++) {
+        int s = 0;
+        int g = n - 1;
+        long long crr = 0;
+
+        for (;;) {
+            int ns = s + d;
+            int ng = g - d;
+
+            /* Terminate before addition if any stopping condition holds */
+            if (ng <= d) break;
+            if (ns == ng) break;
+            if (ns == g) break;
+
+            s = ns;
+            g = ng;
+
+            crr += a[s] + a[g];
+            if (crr > ans) ans = crr;
+        }
+    }
+
+    /* Output is at least 0 by construction */
+    printf("%lld", ans);
+    return 0;
+}
+```

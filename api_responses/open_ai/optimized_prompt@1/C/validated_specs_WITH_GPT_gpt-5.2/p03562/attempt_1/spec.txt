@@ -1,0 +1,49 @@
+1. Functional Description  
+Computes, modulo a fixed prime, the number of distinct binary polynomials (interpretable as nonnegative integers in binary) that are strictly less than a given initial binary value and are divisible by the greatest common divisor (over the binary field) of a multiset of input binary polynomials consisting of the initial value and an additional set of polynomials.
+
+2. Inputs  
+- An integer count specifying how many additional binary strings follow.  
+- One binary string representing the initial polynomial/value.  
+- That many additional binary strings, each representing a polynomial/value.  
+All binary strings are interpreted as polynomials over the binary field with the leftmost character as the highest-degree term.
+
+3. Outputs  
+- A single integer: the computed count modulo a fixed prime.
+
+4. Preconditions  
+- The count is nonnegative.  
+- Each provided string is nonempty and contains only characters ‘0’ and ‘1’.  
+- The maximum supported bit-length across all strings is bounded by a fixed compile-time limit (otherwise behavior is undefined).  
+- The initial string length does not exceed the fixed limit.  
+- The additional strings’ lengths do not exceed the fixed limit.  
+
+5. Postconditions  
+Let:  
+- \(A\) be the polynomial represented by the initial binary string.  
+- \(B_1, \dots, B_m\) be the polynomials represented by the additional binary strings.  
+- \(G = \gcd(A, B_1, \dots, B_m)\) computed in the polynomial ring over the binary field.  
+- Interpret a binary polynomial as a nonnegative integer by its bit pattern.  
+
+The program outputs:  
+- \(\#\{ X \mid 0 \le X < A,\; G \ne 0,\; X \equiv 0 \pmod{G} \}\) reduced modulo the fixed prime.  
+
+If \(G = 0\) (which occurs only when all inputs represent the zero polynomial), the set “multiples of \(G\)” is not mathematically well-defined; the program’s behavior in that case is not specified by this contract (see assumptions in Section 7).
+
+6. Invariants  
+- All polynomial arithmetic used for divisibility and gcd is over the binary field (coefficients reduced modulo 2).  
+- The computed gcd after processing any prefix of the additional inputs is a divisor (over the binary field) of the initial polynomial and of every processed additional polynomial.  
+- The final reported count is always reduced modulo the fixed prime.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed for malformed input, out-of-range sizes, or I/O failures; behavior is undefined in such cases.  
+- If all input polynomials are zero, the gcd is zero; the subsequent “divisibility by gcd” interpretation is ambiguous. The code does not explicitly define this case; assume at least one input polynomial is nonzero.
+
+8. State Transitions (if applicable)  
+- Maintains an internal “current gcd” state initialized to the initial polynomial.  
+- For each additional polynomial, updates the current gcd to the gcd of the current gcd and that polynomial (over the binary field).  
+- After all updates, transitions to a final counting phase that depends only on the initial polynomial and the final gcd.
+
+9. Non-functional Constraints (if inferable)  
+- Operates within fixed, statically bounded memory proportional to the maximum supported bit-length.  
+- Time cost grows with the maximum bit-length and the number of additional polynomials; intended for inputs up to the fixed bit-length limit.  
+- Output is always computed modulo a fixed prime, preventing integer overflow in the reported result.

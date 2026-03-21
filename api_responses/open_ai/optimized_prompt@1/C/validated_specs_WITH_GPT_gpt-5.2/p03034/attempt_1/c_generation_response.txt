@@ -1,0 +1,58 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define CAP 100010
+
+int main(void) {
+    int n_in;
+    if (scanf("%d", &n_in) != 1) {
+        return 0; /* unspecified behavior on invalid input; exit quietly */
+    }
+
+    int n = n_in;
+    static int64_t a[CAP];
+
+    /* Read up to n values (spec assumes they exist and n within capacity). */
+    for (int i = 0; i < n && i < CAP; i++) {
+        if (scanf("%" SCNd64, &a[i]) != 1) {
+            return 0; /* unspecified; exit quietly */
+        }
+    }
+
+    /* Postcondition: if length < 4, output 0. */
+    if (n < 4) {
+        printf("0");
+        return 0;
+    }
+
+    int64_t best = 0;
+
+    /*
+      Step sizes d such that 1 <= d and 2d < n-1.
+      For each d, generate pair sums:
+        (a[d] + a[n-1-d]), (a[2d] + a[n-1-2d]), ...
+      Stop before sides meet/cross; i.e., for k >= 1, require:
+        left = k*d, right = (n-1) - k*d, and left < right.
+      Track maximum prefix sum over these pair sums; global maximum over d.
+      The reported maximum is never negative (at least 0).
+    */
+    for (int d = 1; 2 * d < (n - 1); d++) {
+        int64_t cur = 0;
+        for (int k = 1;; k++) {
+            int left = k * d;
+            int right = (n - 1) - k * d;
+
+            if (left >= right) break;
+            if (left < 0 || right < 0 || left >= n || right >= n) break; /* defensive */
+
+            cur += a[left] + a[right];
+            if (cur > best) best = cur; /* monotonic non-decreasing best */
+        }
+    }
+
+    if (best < 0) best = 0; /* per spec: never negative */
+    printf("%" PRId64, best);
+    return 0;
+}
+```

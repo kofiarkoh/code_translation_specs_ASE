@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (what is being summed over windows).
+
+B. What the current specification may be missing or misstating  
+The specification models the output as “sum over all window positions of the number of `D`-before-`M`-before-`C` triples fully contained in that window.” The failure suggests that this is not what the source actually computes for a query. In particular, the source’s sliding-window maintenance of `dm` when a `D` leaves the window (`dm -= m`) indicates it is tracking a quantity that depends on how many `M` remain in the window, not recomputing an independent per-window triple count from scratch in the straightforward way the spec describes.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact combinational object being accumulated as the window slides—i.e., precisely what `dm` represents at each step and how `ans` is updated—rather than describing it as a clean “per-window triple count.” The spec should pin down whether the program is truly summing independent per-window `D<M<C` triple counts, or instead summing a related but different quantity induced by the incremental update rules (especially the rule applied when a `D` exits the window).
+
+D. Why this clarification is supported by the source program  
+In the source, when the leftmost character leaving the window is `'D'`, it performs:
+- `dm -= m; d--;`
+
+This update is inconsistent with `dm` being “# of (`D`,`M`) pairs with `D` before `M` within the current window” under a naive interpretation, because removing a `D` should subtract the number of `M` **to its right** in the window, not necessarily the total number of `M` currently in the window unless an invariant guarantees all remaining `M` are to the right of every remaining `D` (which is not generally true). The fact that the program uses `m` (total `M` count) as the decrement strongly suggests the maintained quantity (and thus what gets added to `ans` on `'C'`) is defined by these specific transition rules, and the specification’s “equivalent per-window triple counting” description is therefore too strong/incorrect as a general statement.

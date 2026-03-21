@@ -1,0 +1,373 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+
+#define MAXH 50
+#define MAXW 50
+
+typedef enum {
+    GO_NONE = 0,
+    GO_CLEARED,
+    GO_HOLE,
+    GO_BLOCK,
+    GO_WALKING_GOAL
+} GameOver;
+
+static int H, W;
+static char g[MAXH][MAXW];
+static int px, py;          /* player position: x=col [0..W-1], y=row [0..H-1] */
+static int gx0, gy0;        /* original goal coordinates (last encountered) */
+
+static inline bool in_bounds(int x, int y) {
+    return (0 <= x && x < W && 0 <= y && y < H);
+}
+
+/* Cell access with implicit solid boundary below the grid */
+static inline char cell_at(int x, int y) {
+    if (y == H) return '#';          /* implicit bottom boundary */
+    if (!in_bounds(x, y)) return '#';/* treat out-of-bounds as solid for safety */
+    return g[y][x];
+}
+
+static inline void set_cell(int x, int y, char c) {
+    if (in_bounds(x, y)) g[y][x] = c;
+}
+
+static void dec_countdown_at(int x, int y) {
+    if (!in_bounds(x, y)) return;
+    char c = g[y][x];
+    if (c == '3') g[y][x] = '2';
+    else if (c == '2') g[y][x] = '1';
+    else if (c == '1') g[y][x] = '.';
+}
+
+static GameOver check_game_over(void) {
+    /* Priority order per spec */
+    char below = cell_at(px, py + 1);
+    if (below == 'G') return GO_CLEARED;
+    if (below == 'B') return GO_HOLE;
+    if (cell_at(px, py) != '.') return GO_BLOCK;
+    if (!(in_bounds(gx0, gy0) && g[gy0][gx0] == 'G')) return GO_WALKING_GOAL;
+    return GO_NONE;
+}
+
+static bool apply_hole_removal(void) {
+    bool changed = false;
+    for (int y = 0; y < H; y++) {
+        for (int x = 0; x < W; x++) {
+            if (cell_at(x, y + 1) == 'B' && g[y][x] != '.') {
+                g[y][x] = '.';
+                changed = true;
+            }
+        }
+    }
+    return changed;
+}
+
+static bool apply_player_fall(void) {
+    bool changed = false;
+    while (cell_at(px, py + 1) == '.') {
+        py += 1;
+        changed = true;
+        /* py cannot exceed H-1 because y==H is '#', so loop stops */
+    }
+    return changed;
+}
+
+static bool apply_block_fall(void) {
+    bool changed = false;
+
+    /* Process from bottom-1 upward to avoid moving a block twice in one pass */
+    for (int y = H - 2; y >= 0; y--) {
+        for (int x = 0; x < W; x++) {
+            char c = g[y][x];
+            if (c == '.') continue;
+
+            int ny = y;
+            for (;;) {
+                int ty = ny + 1;
+                if (ty >= H) break; /* cannot fall into implicit boundary */
+
+                bool ok = true;
+
+                /* down-left */
+                if (x - 1 >= 0) {
+                    if (g[ty][x - 1] != '.') ok = false;
+                }
+                /* down */
+                if (g[ty][x] != '.') ok = false;
+                /* down-right */
+                if (x + 1 < W) {
+                    if (g[ty][x + 1] != '.') ok = false;
+                }
+
+                if (!ok) break;
+                ny++;
+                if (ny >= H - 1) break;
+            }
+
+            if (ny != y) {
+                g[ny][x] = c;
+                g[y][x] = '.';
+                changed = true;
+            }
+        }
+    }
+
+    return changed;
+}
+
+static void apply_automatic_updates_to_stability(void) {
+    for (;;) {
+        bool changed = false;
+        changed |= apply_hole_removal();
+        changed |= apply_player_fall();
+        changed |= apply_block_fall();
+        if (!changed) break;
+    }
+}
+
+static void cmd_moveto(int n1based) {
+    if (n1based < 1 || n1based > W) return;
+    int destx = n1based - 1;
+    if (cell_at(destx, py) != '.') return;
+
+    int sx = px;
+    int ex = destx;
+    int step = (ex > sx) ? 1 : -1;
+
+    /* Supported path: for every intermediate position including destination,
+       cell below is not '.' */
+    for (int x = sx + step; ; x += step) {
+        if (cell_at(x, py + 1) == '.') return;
+        if (x == ex) break;
+    }
+
+    int oldx = px, oldy = py;
+    px = destx;
+
+    /* Decrement countdown tile directly below previous position */
+    dec_countdown_at(oldx, oldy + 1);
+}
+
+static void internal_push_block(int x, int y, int dir) {
+    char c = cell_at(x, y);
+    if (c == '.' || c == 'C') return;
+
+    int nx = x + dir;
+    if (nx < 0 || nx >= W) {
+        /* If it would go out of bounds, removed */
+        set_cell(x, y, '.');
+        return;
+    }
+    if (cell_at(nx, y) != '.') {
+        /* immediately blocked */
+        return;
+    }
+
+    /* Move at least one step */
+    set_cell(nx, y, c);
+    set_cell(x, y, '.');
+
+    int cx = nx;
+
+    /* Sliding: continue while next cell is empty and support/ice condition allows */
+    for (;;) {
+        int tx = cx + dir;
+        if (tx < 0 || tx >= W) {
+            /* sliding would go out of bounds: remove */
+            set_cell(cx, y, '.');
+            return;
+        }
+        if (cell_at(tx, y) != '.') break;
+
+        /* Candidate position is (tx, y) */
+        char below = cell_at(tx, y + 1);
+        bool cond_a = (c == 'I') || (below == 'I');
+        bool cond_b = (below != '.');
+        if (!(cond_a && cond_b)) break;
+
+        set_cell(tx, y, c);
+        set_cell(cx, y, '.');
+        cx = tx;
+    }
+}
+
+static void cmd_push(int dir) {
+    int ax = px + dir;
+    if (ax < 0 || ax >= W) return;
+    if (cell_at(ax, py) == '.') return;
+
+    /* Find contiguous run of non-'.' starting at adjacent */
+    int start = ax;
+    int end = start;
+    while (end >= 0 && end < W && cell_at(end, py) != '.') {
+        end += dir;
+    }
+    /* end is first '.' or out of bounds */
+    if (end < 0 || end >= W) return; /* must be followed by a '.' somewhere */
+    if (cell_at(end, py) != '.') return;
+
+    /* Check for 'C' in the run */
+    for (int x = start; x != end; x += dir) {
+        if (cell_at(x, py) == 'C') return;
+    }
+
+    /* Process from farthest to nearest: farthest is end-dir down to start */
+    for (int x = end - dir; ; x -= dir) {
+        internal_push_block(x, py, dir);
+        if (x == start) break;
+    }
+}
+
+static void cmd_pull(int dir) {
+    if (px == 0 || px == W - 1) return;
+
+    int destx = px + dir;
+    int srcx = px - dir;
+
+    if (destx < 0 || destx >= W) return;
+    if (srcx < 0 || srcx >= W) return;
+
+    if (cell_at(destx, py) != '.') return;
+
+    char pulled = cell_at(srcx, py);
+    if (pulled == '.' || pulled == 'C') return;
+
+    int oldx = px, oldy = py;
+
+    /* Move player */
+    px = destx;
+
+    /* Pull block into player's previous cell */
+    set_cell(oldx, oldy, pulled);
+    set_cell(srcx, py, '.');
+
+    /* Decrement countdown tile directly below player's previous position */
+    dec_countdown_at(oldx, oldy + 1);
+}
+
+static void cmd_climb(int dir) {
+    int tx = px + dir;
+    int ty = py - 1;
+
+    if (!in_bounds(tx, py)) return; /* adjacent on current row must exist */
+    if (!in_bounds(px, py - 1) || !in_bounds(tx, ty)) return;
+
+    if (cell_at(tx, py) == '.') return; /* must have something to climb against */
+    if (cell_at(px, py - 1) != '.') return;
+    if (cell_at(tx, ty) != '.') return;
+
+    int oldx = px, oldy = py;
+    px = tx;
+    py = ty;
+
+    /* Decrement countdown tile directly below previous position (two rows below new row) */
+    dec_countdown_at(oldx, oldy + 1);
+}
+
+static void cmd_getdown(int dir) {
+    int sx = px + dir;
+    int dx = px + dir;
+    int dy = py + 1;
+
+    if (!in_bounds(sx, py) || !in_bounds(dx, dy)) return;
+    if (cell_at(sx, py) != '.') return;
+    if (cell_at(dx, dy) != '.') return;
+
+    int oldx = px, oldy = py;
+    px = dx;
+    py = dy;
+
+    /* Decrement countdown tile at player's previous cell */
+    dec_countdown_at(oldx, oldy);
+}
+
+static bool is_valid_action(const char *a) {
+    return strcmp(a, "MOVETO") == 0 ||
+           strcmp(a, "PUSH") == 0 ||
+           strcmp(a, "PULL") == 0 ||
+           strcmp(a, "GETDOWN") == 0 ||
+           strcmp(a, "CLIMB") == 0;
+}
+
+int main(void) {
+    while (scanf("%d %d", &H, &W) == 2) {
+        if (H == 0 && W == 0) break;
+        if (H < 0 || W < 0 || H > MAXH || W > MAXW) return 1;
+
+        px = py = 0;
+        gx0 = gy0 = 0;
+
+        for (int y = 0; y < H; y++) {
+            char buf[256];
+            if (scanf("%255s", buf) != 1) return 1;
+            /* Assume exactly W characters as per spec */
+            for (int x = 0; x < W; x++) {
+                char c = buf[x];
+                g[y][x] = c;
+                if (c == 'S') {
+                    px = x; py = y;
+                    g[y][x] = '.'; /* convert start to empty */
+                }
+                if (c == 'G') {
+                    gx0 = x; gy0 = y; /* last encountered */
+                }
+            }
+        }
+
+        int command_num;
+        if (scanf("%d", &command_num) != 1) return 1;
+
+        GameOver go = GO_NONE;
+
+        for (int i = 0; i < command_num; i++) {
+            char action[32], param[64];
+            if (scanf("%31s %63s", action, param) != 2) return 1;
+
+            if (!is_valid_action(action)) {
+                /* terminate immediately with nonzero exit status, no further outputs */
+                return 1;
+            }
+
+            if (go == GO_NONE) go = check_game_over();
+            if (go != GO_NONE) continue; /* still read commands but no effect */
+
+            /* Execute command */
+            if (strcmp(action, "MOVETO") == 0) {
+                char *endp = NULL;
+                long n = strtol(param, &endp, 10);
+                if (endp == param) {
+                    /* ill-formed per spec; narrow behavior: do nothing */
+                } else {
+                    cmd_moveto((int)n);
+                }
+            } else {
+                int dir = (param[0] == 'R') ? 1 : -1;
+                if (strcmp(action, "PUSH") == 0) cmd_push(dir);
+                else if (strcmp(action, "PULL") == 0) cmd_pull(dir);
+                else if (strcmp(action, "GETDOWN") == 0) cmd_getdown(dir);
+                else if (strcmp(action, "CLIMB") == 0) cmd_climb(dir);
+            }
+
+            if (go == GO_NONE) go = check_game_over();
+            if (go != GO_NONE) continue;
+
+            apply_automatic_updates_to_stability();
+
+            if (go == GO_NONE) go = check_game_over();
+        }
+
+        if (go == GO_NONE) go = check_game_over();
+
+        const char *out = "Game Over : Gave Up";
+        if (go == GO_CLEARED) out = "Game Over : Cleared";
+        else if (go == GO_HOLE) out = "Game Over : Death by Hole";
+        else if (go == GO_BLOCK) out = "Game Over : Death by Block";
+        else if (go == GO_WALKING_GOAL) out = "Game Over : Death by Walking Goal";
+
+        printf("%s\n", out);
+    }
+    return 0;
+}

@@ -1,0 +1,47 @@
+1. Functional Description  
+For each test case, the program computes a maximum total score obtained by repeatedly merging circularly contiguous groups of positions until all positions are merged into one group. Positions are arranged on a circle in the given order. Each merge combines two adjacent (contiguous) subgroups that partition a larger contiguous circular segment, and adds a score determined by specific representative positions of the two subgroups (defined below). The output is the maximum total score over all choices of starting position and all valid merge orders consistent with contiguity.
+
+2. Inputs  
+- An integer `t`: the number of test cases.  
+- For each test case:  
+  - An integer `n`: the number of positions on the circle.  
+  - `n` integers `a[0..n-1]`: values at the positions in circular order.
+
+3. Outputs  
+- For each test case, one integer: the maximum total score achievable under the merge rule described in this specification.
+
+4. Preconditions / Assumptions  
+- `n` is at least 1.  
+- `n` does not exceed 102.  
+- Input contains all required integers in the expected format.  
+- The computed scores fit within the C `int` range (the program performs no overflow checks).
+
+5. Scoring and Merge Semantics (clarified)  
+- Consider any circularly contiguous segment of length `L` (where `1 ≤ L ≤ n`) identified by a starting index `i` (0-based) and consisting of indices:  
+  `i, i+1, ..., i+L-1` taken modulo `n`.  
+- A merge step is defined with respect to such a segment when it is split into two contiguous parts:  
+  - Left part: starts at `i` and has length `L1 ≥ 1`.  
+  - Right part: starts at `x = (i + L1) mod n` and has length `L2 ≥ 1`.  
+  - `L1 + L2 = L`.  
+- The score added by merging these two parts is:  
+  `abs(a[i] - a[x])`, i.e., the absolute difference between the value at the start of the whole segment (`i`) and the value at the start of the right part (`x`).  
+  This is the only per-merge contribution; it is **not** based on the two adjacent boundary elements at the cut unless they coincide with these representative starts.
+
+6. Optimization Objective  
+- The total score of a complete merge process is the sum of the per-merge scores over all merge steps used to reduce the segment to one group.  
+- For each test case, the program outputs the maximum total score achievable when merging all `n` positions into one group, maximizing over:  
+  - the choice of starting index `i` for the full length-`n` segment, and  
+  - all valid recursive split/merge structures (binary parenthesizations) that always split a segment into two contiguous parts as described above.
+
+7. Edge Cases  
+- If `n = 1`, no merges are possible and the output is `0`.
+
+8. State and Independence  
+- Each test case is processed independently. No results or state are carried over between test cases other than producing output.
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate assumptions (e.g., malformed input, `n > 102`, or integer overflow), behavior is unspecified.
+
+10. Complexity (informative)  
+- Time complexity is cubic in `n` per test case.  
+- Memory usage is quadratic in `n` per test case.

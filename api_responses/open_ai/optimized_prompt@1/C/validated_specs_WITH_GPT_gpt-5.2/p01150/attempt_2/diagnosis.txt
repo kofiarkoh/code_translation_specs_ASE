@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (cycle-to-line reduction), plus a missing structural constraint in the model.
+
+B. What the current specification may be missing or misstating  
+- The spec models the problem as “choose 8 non-adjacent seats on an N-cycle, then multiply by 8!,” i.e., a standard independent-set-on-a-cycle counting problem.  
+- The source program’s counting is not equivalent to that simple cycle independent-set count for all N>16 (evidenced by N=20), meaning the spec’s abstraction “non-adjacent on a single cycle” is incomplete or incorrect.  
+- In particular, the source distinguishes **odd N vs even N** and uses a different state space for even N that couples positions separated by N/2, which is not implied by mere cyclic adjacency.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the *actual seating/adjacency constraints* being counted: the source enforces constraints that depend on whether N is odd or even, and for even N it treats seats in paired positions (i and i+N/2) with special handling.  
+- Clarify that the valid configurations are not just “no two adjacent on the circle,” but involve an additional structure/constraint that makes even-N cases differ from the standard cycle independent-set formula.  
+- Clarify the counting method’s symmetry handling: the program fixes certain initial seat states (e.g., seat 0 and possibly seat N/2) and then multiplies by 8!, indicating it counts unlabeled occupancy patterns in a way that is sensitive to this even/odd structure.
+
+D. Why this clarification is supported by the source program  
+- The source branches on parity: `if(N & 1) ... calc_odd(N) else ... calc_even(N)`. A pure “no-adjacent on a cycle” model would not require fundamentally different logic for odd vs even N beyond the same cycle recurrence.  
+- `calc_even_1` explicitly assigns **two positions at once**: `result[pos]` and `result[pos+N/2]`, and tracks a 3-valued `sitdown` state (0/1/2) plus `zero_sitdown` (also 0/1/2). This indicates constraints involving the relationship between opposite seats (distance N/2), not just immediate neighbors.  
+- The even-N base case returns `ret=2` in one branch, reflecting a structural multiplicity specific to the even split, again inconsistent with the simple cycle independent-set counting used in the generated program.  
+- Therefore, the spec’s statement “choose 8 non-adjacent seats on a cycle” is too coarse: it omits the additional parity-dependent structure that the source program actually counts.

@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong ordering rule (alternation toggle timing), leading to incorrect reflection timing and thus wrong trajectory/termination point.
+
+B. What the current specification may be missing or misstating  
+- The spec states that the alternation flag `v` is “toggled for the next move” and that the mirror-crossing test is chosen “by the alternation flag `v` after toggling.” This implies the toggle happens before the move and before the mirror check.  
+- In the source, `v` is updated in the `for` loop header (`v = !v`) at the end of each iteration, meaning the `v` used for the mirror-crossing test corresponds to the *current* iteration’s value (starting with `v=1` on the first move), not a pre-toggled value.  
+- As a result, the generated program uses the opposite parity of `v` on every step compared to the source, swapping which mirror-check formula and which reflection mapping (`tr[0]` vs `tr[1]`) applies on each move.
+
+C. What general behavior should be clarified in the specification  
+- Precisely when `v` toggles relative to: (1) termination checks, (2) movement update, and (3) mirror-crossing/reflection check.  
+- That the first step uses `v=1` (as initialized) for the mirror-crossing test, and only after completing the step does `v` flip for the next iteration.  
+- Equivalently: “`v` alternates per iteration, but the toggle occurs at the end of the iteration (after movement and reflection processing), not at the beginning.”
+
+D. Why this clarification is supported by the source program  
+- The loop is `for (v = 1, i = 0; ; i++, v = !v) { ... }`, so `v` is not modified inside the body before the movement/reflection logic; it is flipped only in the iteration-expression after the body finishes.  
+- The mirror-crossing logic directly branches on `if (v) { ... } else { ... }` using that unmodified `v`. Therefore, the parity of `v` on each step is fixed by the loop structure, and using a pre-toggled `v` (as the generated code/spec do) necessarily changes which mirror segments are tested and when reflections occur, producing different final coordinates (as seen in the failing sample).

@@ -1,0 +1,101 @@
+#include <stdio.h>
+
+#define MAXN 101
+#define INF 0x3f3f3f3f
+
+static char grid[MAXN][MAXN];
+static int distc[MAXN][MAXN];
+
+int main(void) {
+    int w, h;
+    while (scanf("%d %d", &w, &h) == 2) {
+        if (w == 0 && h == 0) break;
+
+        int sx = 0, sy = 0; /* last '&' in row-major order */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                char c;
+                /* Whitespace before each character is skipped by the input routine */
+                if (scanf(" %c", &c) != 1) return 0; /* undefined per spec if malformed; just stop */
+                if (c == '&') {
+                    sx = x;
+                    sy = y;
+                    c = '.'; /* immediately treated as '.' for comparisons */
+                }
+                grid[y][x] = c;
+                distc[y][x] = 0; /* unreached */
+            }
+        }
+
+        /* Start cell initial internal cost is 1 (not 0). */
+        distc[sy][sx] = 1;
+
+        /* Dijkstra over 0/1 edge weights (implemented with O(V^2) selection to avoid extra assumptions). */
+        int total = w * h;
+        for (int iter = 0; iter < total; iter++) {
+            int best = INF;
+            int bx = -1, by = -1;
+
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    int d = distc[y][x];
+                    if (d != 0 && d < best) {
+                        best = d;
+                        bx = x;
+                        by = y;
+                    }
+                }
+            }
+
+            if (bx < 0) break; /* no reached nodes (shouldn't happen with valid input) */
+
+            /* Mark as processed by negating; costs are positive so sign can be used. */
+            distc[by][bx] = -distc[by][bx];
+
+            static const int dx[4] = {1, -1, 0, 0};
+            static const int dy[4] = {0, 0, 1, -1};
+
+            for (int k = 0; k < 4; k++) {
+                int nx = bx + dx[k];
+                int ny = by + dy[k];
+                if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+
+                int du = -distc[by][bx]; /* current finalized cost */
+                int add = (grid[by][bx] == grid[ny][nx]) ? 0 : 1;
+                int nd = du + add;
+
+                int cur = distc[ny][nx];
+                if (cur < 0) {
+                    /* already processed; since we always pick smallest unprocessed, no need to relax */
+                    continue;
+                }
+                /* Update only if unreached (0) or strictly smaller than current nonzero value. */
+                if (cur == 0 || nd < cur) {
+                    distc[ny][nx] = nd;
+                }
+            }
+        }
+
+        /* Restore signs to get final costs. */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (distc[y][x] < 0) distc[y][x] = -distc[y][x];
+            }
+        }
+
+        int ans = INF;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (y == 0 || y == h - 1 || x == 0 || x == w - 1) {
+                    int d = distc[y][x];
+                    /* With full traversability and a start, all cells should be reached. */
+                    int v = d / 2; /* integer division */
+                    if (v < ans) ans = v;
+                }
+            }
+        }
+
+        printf("%d\n", ans);
+    }
+    return 0;
+}

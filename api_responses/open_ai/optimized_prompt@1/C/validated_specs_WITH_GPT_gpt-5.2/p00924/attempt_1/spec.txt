@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes the minimum total movement cost required to reorder a given binary string into a target pattern consisting of alternating runs of identical bits with specified run lengths. The target pattern starts with either bit value depending on the input’s bit counts and the run-length parity constraints, and the program outputs the minimum cost among the feasible starting choices when both are feasible.
+
+2. Inputs  
+- An integer length of the bit string.  
+- An integer count of run lengths.  
+- A sequence of bits of the given length.  
+- A sequence of nonnegative integers representing consecutive run lengths whose total is assumed to match the bit-string length.
+
+3. Outputs  
+- A single nonnegative integer: the computed minimum total movement cost to transform the input bit string into the required run-structured pattern under the selected starting bit (or the minimum over both starting bits when both are admissible).
+
+4. Preconditions  
+- The bit string length is at least 1 and does not exceed the fixed internal capacity (assumed ≤ 14).  
+- The number of run lengths does not exceed the fixed internal capacity (assumed ≤ 14).  
+- Each bit is either 0 or 1.  
+- The sum of all run lengths equals the bit-string length.  
+- The run-length sequence is compatible with the bit counts of the input string for at least one starting bit choice (i.e., the required number of 1s implied by the run lengths and chosen start equals the number of 1s in the input).  
+- When a required bit value must be placed at some position, such a bit exists somewhere at or after that position in the current string state (this is implied by compatibility above).
+
+5. Postconditions  
+- The output equals the minimum possible total movement cost among the evaluated starting-bit options, where:  
+  - The target string is exactly the concatenation of runs with the given lengths, alternating bit values, beginning with the chosen starting bit.  
+  - The movement cost is the sum, over each position from left to right, of the distance from that position to the position of the bit that is brought forward to satisfy the target at that position (equivalently, the number of positions the selected bit is moved left at each step).  
+- If the input has equal numbers of 0s and 1s, the output is the minimum cost over both possible starting bits. Otherwise, the output corresponds to the unique starting bit that matches the required count of 1s implied by the run lengths.
+
+6. Invariants  
+- The multiset of bits in the string is preserved throughout the conceptual transformation (only reordering occurs).  
+- The remaining run lengths always describe the remaining required suffix pattern.  
+- At each step, the already-processed prefix matches the required target prefix for the chosen starting bit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., incompatible run lengths, missing required bits, lengths exceeding capacity), behavior is undefined and may include incorrect results or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: given the same input, produces the same output and does not maintain persistent state across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small fixed maximum sizes (bit string and run-length list bounded by internal fixed arrays).  
+- Execution time is bounded by a small multiple of the square of the bit-string length due to repeated searches during transformation.

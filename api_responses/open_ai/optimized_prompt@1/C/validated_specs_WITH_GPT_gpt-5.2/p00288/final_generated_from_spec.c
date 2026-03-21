@@ -1,0 +1,212 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAXN 101
+#define MAXM 5
+
+static int iabs_int(int x) { return x < 0 ? -x : x; }
+
+/* Min-cost max-flow (successive SPFA) for small graphs, integer costs. */
+typedef struct {
+    int to, rev;
+    int cap;
+    int cost;
+} Edge;
+
+typedef struct {
+    int n;
+    int head[512];
+    Edge edges[20000];
+    int ecnt;
+    int next[20000];
+} Graph;
+
+static void g_init(Graph *g, int n) {
+    g->n = n;
+    for (int i = 0; i < n; i++) g->head[i] = -1;
+    g->ecnt = 0;
+}
+
+static void g_add_edge(Graph *g, int u, int v, int cap, int cost) {
+    int e1 = g->ecnt++;
+    int e2 = g->ecnt++;
+    g->edges[e1].to = v; g->edges[e1].rev = e2; g->edges[e1].cap = cap; g->edges[e1].cost = cost;
+    g->edges[e2].to = u; g->edges[e2].rev = e1; g->edges[e2].cap = 0;   g->edges[e2].cost = -cost;
+    g->next[e1] = g->head[u]; g->head[u] = e1;
+    g->next[e2] = g->head[v]; g->head[v] = e2;
+}
+
+static int min_cost_flow(Graph *g, int s, int t, int need, int *out_cost) {
+    int n = g->n;
+    int flow = 0;
+    int cost = 0;
+
+    int dist[512];
+    int inq[512];
+    int pv_v[512];
+    int pv_e[512];
+
+    while (flow < need) {
+        for (int i = 0; i < n; i++) {
+            dist[i] = INT_MAX / 4;
+            inq[i] = 0;
+            pv_v[i] = -1;
+            pv_e[i] = -1;
+        }
+        dist[s] = 0;
+
+        /* SPFA */
+        int q[2000];
+        int qh = 0, qt = 0;
+        q[qt++] = s;
+        inq[s] = 1;
+
+        while (qh != qt) {
+            int u = q[qh++];
+            if (qh == (int)(sizeof(q)/sizeof(q[0]))) qh = 0;
+            inq[u] = 0;
+            for (int ei = g->head[u]; ei != -1; ei = g->next[ei]) {
+                Edge *e = &g->edges[ei];
+                if (e->cap <= 0) continue;
+                int v = e->to;
+                int nd = dist[u] + e->cost;
+                if (nd < dist[v]) {
+                    dist[v] = nd;
+                    pv_v[v] = u;
+                    pv_e[v] = ei;
+                    if (!inq[v]) {
+                        inq[v] = 1;
+                        q[qt++] = v;
+                        if (qt == (int)(sizeof(q)/sizeof(q[0]))) qt = 0;
+                    }
+                }
+            }
+        }
+
+        if (pv_v[t] == -1) break; /* cannot send more */
+
+        int add = need - flow;
+        for (int v = t; v != s; v = pv_v[v]) {
+            Edge *e = &g->edges[pv_e[v]];
+            if (e->cap < add) add = e->cap;
+        }
+        for (int v = t; v != s; v = pv_v[v]) {
+            int ei = pv_e[v];
+            Edge *e = &g->edges[ei];
+            e->cap -= add;
+            g->edges[e->rev].cap += add;
+            cost += add * e->cost;
+        }
+        flow += add;
+    }
+
+    *out_cost = cost;
+    return flow;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        int m, k;
+        if (scanf("%d %d", &m, &k) != 2) return 0;
+
+        int dx[MAXN], dy[MAXN];
+        for (int i = 0; i < n; i++) {
+            scanf("%d %d", &dx[i], &dy[i]);
+        }
+
+        int fx[MAXM], fy[MAXM], cap[MAXM], open_cost[MAXM];
+        for (int j = 0; j < m; j++) {
+            scanf("%d %d %d %d", &fx[j], &fy[j], &cap[j], &open_cost[j]);
+        }
+
+        /* Precompute Manhattan distances. */
+        int distMF[MAXN][MAXM];
+        int maxD = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                int d = iabs_int(dx[i] - fx[j]) + iabs_int(dy[i] - fy[j]);
+                distMF[i][j] = d;
+                if (d > maxD) maxD = d;
+            }
+        }
+
+        int best = INT_MAX;
+
+        /* Enumerate all non-empty subsets; empty subset cannot be feasible unless n==0 (not allowed here). */
+        int total_masks = 1 << m;
+        for (int mask = 1; mask < total_masks; mask++) {
+            int sum_open = 0;
+            int sum_cap = 0;
+            int cnt_fac = 0;
+            for (int j = 0; j < m; j++) {
+                if (mask & (1 << j)) {
+                    sum_open += open_cost[j];
+                    sum_cap += cap[j];
+                    cnt_fac++;
+                }
+            }
+            if (sum_cap < n) continue; /* infeasible by capacity */
+
+            /* Optimize integer offset parameter p.
+               Total cost for subset and p:
+                 sum_open + k*cnt_fac*p + min_assignment_sum_i max(0, dist(i,assigned)-p)
+               For fixed subset, this is convex piecewise-linear in integer p, with breakpoints at distances.
+               We evaluate p in [0..maxD] (narrowest reasonable: nonnegative offset; costs use nonnegative part).
+            */
+            int best_subset = INT_MAX;
+
+            for (int p = 0; p <= maxD; p++) {
+                /* Build flow network:
+                   source -> demand nodes (cap 1, cost 0)
+                   demand i -> facility j (cap 1, cost max(0, dist-p)) if facility in subset
+                   facility j -> sink (cap cap[j], cost 0)
+                */
+                int S = 0;
+                int demand_base = 1;
+                int fac_base = demand_base + n;
+                int T = fac_base + m;
+                int V = T + 1;
+
+                Graph g;
+                g_init(&g, V);
+
+                for (int i = 0; i < n; i++) {
+                    g_add_edge(&g, S, demand_base + i, 1, 0);
+                }
+                for (int j = 0; j < m; j++) {
+                    if (mask & (1 << j)) {
+                        g_add_edge(&g, fac_base + j, T, cap[j], 0);
+                    } else {
+                        /* Not in subset: no capacity edge to sink, and no incoming edges added below. */
+                    }
+                }
+                for (int i = 0; i < n; i++) {
+                    for (int j = 0; j < m; j++) {
+                        if (!(mask & (1 << j))) continue;
+                        int c = distMF[i][j] - p;
+                        if (c < 0) c = 0;
+                        g_add_edge(&g, demand_base + i, fac_base + j, 1, c);
+                    }
+                }
+
+                int assign_cost = 0;
+                int f = min_cost_flow(&g, S, T, n, &assign_cost);
+                if (f < n) continue; /* should not happen if sum_cap>=n, but keep per spec: skip infeasible */
+
+                int total = sum_open + assign_cost + k * cnt_fac * p;
+                if (total < best_subset) best_subset = total;
+            }
+
+            if (best_subset < best) best = best_subset;
+        }
+
+        /* Per spec: if no subset feasible, output internal initialization-derived value.
+           Here best remains INT_MAX; we still print it as an integer. */
+        printf("%d\n", best);
+    }
+    return 0;
+}

@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a directed graph and outputs a linear ordering of vertices such that for every directed edge from a vertex to another, the source appears earlier than the destination in the output, for all vertices that can be ordered under this rule.
+
+2. Inputs  
+- An integer specifying the number of vertices.  
+- An integer specifying the number of directed edges.  
+- A sequence of directed edges, each given as an ordered pair of vertex indices.
+
+3. Outputs  
+- A sequence of vertex indices, one per line, representing a topological ordering of the graph’s vertices that are emitted by the algorithm.
+
+4. Preconditions  
+- The number of vertices is non-negative and does not exceed a fixed maximum supported by the program.  
+- Each edge endpoint is a valid vertex index within the declared vertex range.  
+- The input contains exactly the declared number of edges.  
+- Sufficient memory is available for internal storage proportional to the number of edges.
+
+5. Postconditions  
+- Every printed vertex index is within the valid vertex range.  
+- No vertex is printed more than once.  
+- For every directed edge whose endpoints are both printed, the source vertex is printed before the destination vertex.  
+- If the graph is acyclic, all vertices are printed exactly once.  
+- If the graph contains a directed cycle, only vertices that become eligible under the ordering rule are printed; at least one vertex in each directed cycle is not printed.
+
+6. Invariants  
+- A vertex is eligible to be printed only when it has no remaining unmet incoming-edge dependencies from vertices not yet printed.  
+- Once a vertex is printed, it is considered permanently processed and will not be printed again.  
+- The internal dependency count for any vertex never increases during processing.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., invalid vertex indices, unsupported sizes, malformed input) or memory allocation fails, behavior is undefined (may crash, produce incorrect output, or terminate abnormally).  
+- For cyclic graphs, the program does not signal the presence of a cycle; it simply outputs a partial ordering as described.
+
+8. State Transitions (if applicable)  
+- Each vertex transitions from “unprocessed” to “processed” at most once, at the moment it is printed.  
+- Vertices may transition from “ineligible” to “eligible” when all their incoming dependencies from unprocessed vertices have been satisfied; eligible vertices may then be processed.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to a fixed maximum number of vertices determined at compile time.  
+- Memory usage is proportional to the number of edges plus the number of vertices.  
+- Runtime is proportional to the number of vertices plus the number of edges.
+
+```

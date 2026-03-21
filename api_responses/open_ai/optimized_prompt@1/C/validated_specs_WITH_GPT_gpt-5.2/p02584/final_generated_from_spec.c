@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <inttypes.h>
+
+int main(void) {
+    int64_t x, k, d;
+    if (scanf("%" SCNd64 " %" SCNd64 " %" SCNd64, &x, &k, &d) != 3) {
+        return 0; /* Undefined by spec if inputs are missing/invalid */
+    }
+
+    /* Preconditions: d > 0, k >= 0, and all intermediate arithmetic fits in int64_t. */
+
+    int64_t a = (x < 0) ? -x : x;          /* a = |x| */
+    int64_t q = a / d;                     /* floor(a/d) */
+    int64_t t = (k < q) ? k : q;           /* t = min(k, floor(a/d)) */
+    int64_t r = a - t * d;                 /* r = a - t*d */
+
+    int64_t result;
+    if (k > q) {
+        int64_t rem = k - q;
+        if ((rem & 1) != 0) {
+            int64_t diff = r - d;
+            result = (diff < 0) ? -diff : diff; /* |r - d| */
+        } else {
+            result = r;
+        }
+    } else {
+        result = r;
+    }
+
+    printf("%" PRId64 "\n", result);
+    return 0;
+}

@@ -1,0 +1,43 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    /* Fixed small bounds as implied by the specification. */
+    enum { BUF_CAP = 256, EXAMINE_MAX = 256 };
+
+    char s[BUF_CAP];
+
+    /* Reads one whitespace-delimited token. If absent, produce no output. */
+    if (scanf("%255s", s) != 1) {
+        return 0;
+    }
+
+    /* Process left-to-right with backspace rule into an output buffer. */
+    char out[BUF_CAP];
+    int out_len = 0;
+
+    /* Examine at most EXAMINE_MAX positions; stop early on terminating end marker. */
+    for (int i = 0; i < EXAMINE_MAX; i++) {
+        char c = s[i];
+        if (c == '\0') {
+            /* Proper termination only guaranteed if we reach the end marker here. */
+            out[out_len] = '\0';
+            break;
+        }
+        if (c == 'B') {
+            if (out_len > 0) {
+                out_len--;
+            }
+        } else {
+            /* Assumes output buffer capacity is sufficient under preconditions. */
+            out[out_len++] = c;
+        }
+        /* If the end marker is not encountered within EXAMINE_MAX, out may be unterminated,
+           matching the specification's exceptional/undefined behavior. */
+    }
+
+    /* Output the processed result (undefined/unintended if unterminated). */
+    printf("%s", out);
+    return 0;
+}
+```

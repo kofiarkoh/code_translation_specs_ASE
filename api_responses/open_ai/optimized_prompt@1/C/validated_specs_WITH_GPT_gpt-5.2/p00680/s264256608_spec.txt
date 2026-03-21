@@ -1,0 +1,56 @@
+1. Functional Description  
+For each test case, the program computes a real-valued label for each node by solving a given linear system. It then builds a directed capacitated network whose edge costs are the absolute differences between the labels of the edge endpoints. Using this network, it determines the minimum total cost required to send a specified amount of flow from a given source node to a given sink node. If the required amount of flow cannot be sent, it reports that the task is impossible.
+
+2. Inputs  
+For each run:  
+- An integer number of test cases.  
+
+For each test case:  
+- An integer node count.  
+- A source node index and a sink node index.  
+- A nonnegative integer required flow amount.  
+- A square integer coefficient matrix and an integer right-hand-side vector defining a linear system with the node count as dimension.  
+- For each node, a list of outgoing neighbor node indices, followed by a nonnegative integer capacity for each listed outgoing edge.
+
+3. Outputs  
+For each test case:  
+- If it is possible to send the required flow from source to sink, outputs the minimum achievable total cost as a real number.  
+- Otherwise, outputs a single line indicating impossibility.
+
+4. Preconditions  
+- Node count does not exceed the fixed internal maximum supported by the program.  
+- Source and sink indices are valid node indices.  
+- The linear system is solvable with a unique solution (i.e., the coefficient matrix is nonsingular).  
+- The total number of nodes and the total number of edges per node fit within the program’s fixed internal limits for graph representation and priority queue usage.  
+- All capacities and the required flow amount are integers that fit within the program’s integer range and are not negative.  
+- The input is well-formed and provides exactly the required values in the expected order.
+
+5. Postconditions  
+For each test case, assuming preconditions hold:  
+- Let the unique solution of the linear system define a real label for each node.  
+- Let each directed edge have the given capacity and a nonnegative cost equal to the absolute difference between the labels of its endpoints.  
+- If there exists a feasible flow of value equal to the required amount from source to sink respecting capacities, the program outputs the minimum possible total cost among all such feasible flows.  
+- If no such feasible flow exists, the program outputs impossibility.
+
+6. Invariants  
+- Edge costs used for optimization are nonnegative and derived solely from the solved node labels.  
+- During optimization, the maintained residual network always represents the current feasible partial shipment and remaining capacity to augment it.  
+- The accumulated reported cost (when feasible) equals the sum over all shipped units of the costs of the edges they traverse, minimized over all feasible shipments of the required value.
+
+7. Error Handling / Exceptional Behavior  
+- If the required flow cannot be routed from source to sink under the given capacities, the program outputs impossibility.  
+- If the linear system does not have a unique solution, the program’s subsequent behavior is not defined by a checked contract (it proceeds without reporting an error).  
+- If internal memory allocation fails or internal fixed-size limits are exceeded, behavior is unspecified (no explicit recovery or diagnostic is guaranteed).
+
+8. State Transitions (if applicable)  
+Per test case:  
+- Initial state: empty network and unset node labels.  
+- After solving the linear system: node labels become defined.  
+- After reading connectivity and capacities: the directed capacitated cost network becomes defined.  
+- During optimization: the residual capacities are updated as flow is augmented until either the required flow is fully sent (success) or no further augmentation is possible (failure).  
+- Final state: either a minimum cost value is produced (success) or impossibility is reported (failure); all per-test-case allocated graph storage is released.
+
+9. Non-functional Constraints (if inferable)  
+- Supports only up to a fixed maximum number of nodes and relies on fixed-size working storage for several arrays.  
+- Uses floating-point arithmetic for costs and linear-system solving; results are subject to floating-point rounding and a small internal tolerance when comparing values.  
+- Time and memory usage scale with the number of nodes, edges, and required flow augmentations; no real-time guarantees are implied.

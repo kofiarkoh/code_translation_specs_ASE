@@ -1,0 +1,177 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ GRL_4_B Path/Cycle - Topological Sort
+// 2018.4.26 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_V 10002
+int V;   // 頂点数
+int *to[MAX_V], hi[MAX_V];
+int q[MAX_V], top, end;
+int count[MAX_V];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void topological_sort()
+{
+    int i, j, k;
+
+//  for (i = 0; i < V; i++) for (j = 0; j < hi[i]; j++) count[to[i][j]]++;
+
+    top = end = 0;
+    for (i = 0; i < V; i++) if (!count[i]) q[end++] = i;
+    while (top < end) {
+		i = q[top++];
+        printf("%d\n", i);
+        for (j = 0; j < hi[i]; j++) {
+            k = to[i][j];
+            if (--count[k] == 0) q[end++] = k;
+        }
+    }
+}
+
+int main()
+{
+	int E, s, t, i, j;
+	int *memo;
+
+	V = in(), E = in();
+	memo = malloc(E<<3);
+	j = 0; for (i = 0; i < E; i++) {
+		memo[j++] = s = in(), memo[j++] = t = in();
+		hi[s]++;
+	}
+	for (i = 0; i < V; i++) if (hi[i]) to[i] = malloc(hi[i]<<2);
+	memset(hi, 0, V<<2);
+	j = 0; while (E--) {
+		s = memo[j++], t = memo[j++];
+		to[s][hi[s]++] = t;
+		count[t]++;
+	}
+
+	topological_sort();
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a directed graph and outputs a linear ordering of vertices such that for every directed edge from a vertex to another, the source appears earlier than the destination in the output, for all vertices that can be ordered under this rule.
+
+2. Inputs  
+- An integer specifying the number of vertices.  
+- An integer specifying the number of directed edges.  
+- A sequence of directed edges, each given as an ordered pair of vertex indices.
+
+3. Outputs  
+- A sequence of vertex indices, one per line, representing a topological ordering of the graph’s vertices that are emitted by the algorithm.
+
+4. Preconditions  
+- The number of vertices is non-negative and does not exceed a fixed maximum supported by the program.  
+- Each edge endpoint is a valid vertex index within the declared vertex range.  
+- The input contains exactly the declared number of edges.  
+- Sufficient memory is available for internal storage proportional to the number of edges.
+
+5. Postconditions  
+- Every printed vertex index is within the valid vertex range.  
+- No vertex is printed more than once.  
+- For every directed edge whose endpoints are both printed, the source vertex is printed before the destination vertex.  
+- If the graph is acyclic, all vertices are printed exactly once.  
+- If the graph contains a directed cycle, only vertices that become eligible under the ordering rule are printed; at least one vertex in each directed cycle is not printed.
+
+6. Invariants  
+- A vertex is eligible to be printed only when it has no remaining unmet incoming-edge dependencies from vertices not yet printed.  
+- Once a vertex is printed, it is considered permanently processed and will not be printed again.  
+- The internal dependency count for any vertex never increases during processing.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., invalid vertex indices, unsupported sizes, malformed input) or memory allocation fails, behavior is undefined (may crash, produce incorrect output, or terminate abnormally).  
+- For cyclic graphs, the program does not signal the presence of a cycle; it simply outputs a partial ordering as described.
+
+8. State Transitions (if applicable)  
+- Each vertex transitions from “unprocessed” to “processed” at most once, at the moment it is printed.  
+- Vertices may transition from “ineligible” to “eligible” when all their incoming dependencies from unprocessed vertices have been satisfied; eligible vertices may then be processed.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to a fixed maximum number of vertices determined at compile time.  
+- Memory usage is proportional to the number of edges plus the number of vertices.  
+- Runtime is proportional to the number of vertices plus the number of edges.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong ordering rule / wrong tie‑breaking policy in the topological sort.
+
+B. What the current specification may be missing or misstating  
+The specification describes only the partial-order constraint (“any topological ordering”), but the source program implements a *specific deterministic* topological ordering based on:
+- the order in which zero‑indegree vertices are enqueued (increasing vertex index scan), and
+- the order in which outgoing edges are processed (the same order as edges appear in the input for each source vertex),
+using a FIFO queue (not a stack/priority queue).
+
+The generated program builds adjacency lists by prepending edges, which reverses per-vertex edge traversal order relative to input, changing the resulting topological order even though it remains valid.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the program’s output is not just any valid topological ordering; it is the one produced by Kahn’s algorithm with:
+- initial queue filled by scanning vertices from 0 to V−1 and enqueuing those with indegree 0 in that scan order,
+- a FIFO queue discipline,
+- for each dequeued vertex, visiting its outgoing neighbors in the same sequence as the edges were given in the input for that vertex, enqueuing newly-zero-indegree vertices as they arise.
+
+This defines a stable, input-order-dependent tie-breaking among multiple valid topological orders.
+
+D. Why this clarification is supported by the source program  
+- `for (i = 0; i < V; i++) if (!count[i]) q[end++] = i;` enqueues initial zero‑indegree vertices in increasing index order.  
+- The queue is FIFO: `i = q[top++]; ... q[end++] = k;`.  
+- Adjacency arrays `to[s][hi[s]++] = t;` are filled in the second pass over `memo` in the original input order, so `for (j = 0; j < hi[i]; j++)` processes outgoing edges in input order.  
+- Therefore, when multiple vertices become eligible, their relative output order depends on (1) when they are enqueued (FIFO) and (2) the per-vertex edge iteration order (input order). The current spec does not constrain these tie-breakers, allowing implementations (like the generated one) that still satisfy “topological ordering” but produce different valid sequences.
+
+```

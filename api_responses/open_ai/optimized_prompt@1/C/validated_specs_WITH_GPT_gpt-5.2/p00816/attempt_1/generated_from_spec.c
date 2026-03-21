@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+#define DIGBUF 128  /* fixed buffer size per specification */
+
+static int is_digit_char(char c) { return (c >= '0' && c <= '9'); }
+
+int main(void) {
+    int target;
+
+    /* Read instances: integer target then digit string; stop when target == 0 */
+    while (scanf("%d", &target) == 1) {
+        char digits[DIGBUF];
+
+        if (scanf("%127s", digits) != 1) {
+            /* Unspecified behavior on malformed input; just stop. */
+            return 0;
+        }
+
+        if (target == 0) {
+            /* Accompanying string ignored */
+            break;
+        }
+
+        size_t n = strlen(digits);
+        /* Preconditions say nonempty and all digits; if not, behavior unspecified.
+           We do not attempt recovery; we proceed as-is. */
+        if (n == 0) {
+            /* Narrowest reasonable behavior: no partitions exist => no valid solution. */
+            puts("error");
+            continue;
+        }
+
+        /* Enumerate all partitions by bitmask over (n-1) separator positions.
+           mask bit i (0-based) indicates a separator after digits[i]. */
+        unsigned long long total_masks = 1ULL;
+        if (n > 1) {
+            /* If shift overflows, behavior is unspecified by spec; we keep C behavior. */
+            total_masks = 1ULL << (n - 1);
+        }
+
+        long long best_sum = LLONG_MIN;
+        int best_count = 0;
+        unsigned long long best_mask = 0;
+
+        for (unsigned long long mask = 0; mask < total_masks; mask++) {
+            long long sum = 0;
+            long long cur = 0;
+
+            /* Build numbers left-to-right; leading zeros permitted. */
+            for (size_t i = 0; i < n; i++) {
+                char c = digits[i];
+                /* Spec says non-digits => unspecified; we still compute with whatever. */
+                int d = is_digit_char(c) ? (c - '0') : 0;
+
+                /* Integer overflow behavior is unspecified by spec; we use native signed overflow
+                   semantics (undefined in C) would be problematic. To keep behavior defined while
+                   still "unspecified" in those cases, we compute in unsigned and cast back. */
+                unsigned long long ucur = (unsigned long long)cur;
+                ucur = ucur * 10ULL + (unsigned long long)d;
+                cur = (long long)ucur;
+
+                if (i == n - 1 || (mask & (1ULL << i)) != 0ULL) {
+                    unsigned long long usum = (unsigned long long)sum;
+                    usum += (unsigned long long)cur;
+                    sum = (long long)usum;
+                    cur = 0;
+                }
+            }
+
+            if (sum <= (long long)target) {
+                if (best_count == 0 || sum > best_sum) {
+                    best_sum = sum;
+                    best_count = 1;
+                    best_mask = mask;
+                } else if (sum == best_sum) {
+                    best_count++;
+                }
+            }
+        }
+
+        if (best_count == 0) {
+            puts("error");
+        } else if (best_count > 1) {
+            puts("rejected");
+        } else {
+            /* Unique best: print sum and expression with separators inserted. */
+            char out[2 * DIGBUF];
+            size_t k = 0;
+
+            for (size_t i = 0; i < n; i++) {
+                if (k + 2 >= sizeof(out)) break; /* avoid overflow; spec says input fits */
+                out[k++] = digits[i];
+                if (i != n - 1 && (best_mask & (1ULL << i)) != 0ULL) {
+                    out[k++] = '+';
+                }
+            }
+            out[k] = '\0';
+
+            printf("%lld %s\n", best_sum, out);
+        }
+    }
+
+    return 0;
+}

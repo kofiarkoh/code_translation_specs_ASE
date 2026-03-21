@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes how many distinct combinations of three nonnegative integer counts (each bounded by a provided maximum) yield a target total value when weighted by fixed denominations.
+
+2. Inputs  
+- Four integers provided via standard input:  
+  - Maximum allowable count for denomination 500  
+  - Maximum allowable count for denomination 100  
+  - Maximum allowable count for denomination 50  
+  - Target total value
+
+3. Outputs  
+- A single integer written to standard output: the number of combinations of counts within the given bounds whose weighted sum equals the target value.
+
+4. Preconditions  
+- All four input values are successfully provided as integers.  
+- The maximum counts are assumed to be nonnegative; if negative, the behavior effectively results in zero combinations being considered.  
+- The computed number of combinations fits within the range of a signed integer.
+
+5. Postconditions  
+- The output equals the cardinality of the set of triples (i, j, k) such that:  
+  - 0 ≤ i ≤ A, 0 ≤ j ≤ B, 0 ≤ k ≤ C  
+  - 500·i + 100·j + 50·k = X
+
+6. Invariants  
+- The reported count is always a nonnegative integer.  
+- Each valid triple within the specified bounds contributes exactly 1 to the count; no triple is counted more than once.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing or not an integer, the program’s behavior is unspecified.  
+- If arithmetic overflows the integer range (during sum computation or counting), the behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained beyond the program’s execution. The program reads inputs, computes the count, outputs it, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to (A+1)·(B+1)·(C+1).  
+- Uses constant additional memory aside from a small fixed set of integer variables.
+
+```

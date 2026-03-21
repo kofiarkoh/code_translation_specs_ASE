@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXN 1000
+
+static unsigned char grid[MAXN][MAXN];
+
+/* We maintain an aggregate count of satisfied local checks:
+   For every cell (i,j), two checks are considered:
+     H(i,j): grid[i][j] == grid[N-1-i][j]
+     V(i,j): grid[i][j] == grid[i][N-1-j]
+   total_ok = sum over all cells of (H(i,j) + V(i,j)).
+   The symmetry-consistency property holds iff total_ok == 2*N*N.
+*/
+static long long total_ok = 0;
+
+static inline int h_ok(int N, int i, int j) {
+    return grid[i][j] == grid[N - 1 - i][j];
+}
+static inline int v_ok(int N, int i, int j) {
+    return grid[i][j] == grid[i][N - 1 - j];
+}
+
+static inline void add_cell_contrib(int N, int i, int j, long long *acc) {
+    *acc += (long long)h_ok(N, i, j);
+    *acc += (long long)v_ok(N, i, j);
+}
+
+static void recompute_total_ok(int N) {
+    long long acc = 0;
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            add_cell_contrib(N, i, j, &acc);
+        }
+    }
+    total_ok = acc;
+}
+
+/* Toggle a cell and update total_ok by only touching affected local checks.
+   A toggle at (r,c) can affect:
+     - H checks for cells (r,c) and (N-1-r,c)
+     - V checks for cells (r,c) and (r,N-1-c)
+   We update by subtracting old contributions for those cells, toggling,
+   then adding new contributions for those cells.
+*/
+static void toggle_and_update(int N, int r, int c) {
+    int cells[3][2];
+    int k = 0;
+
+    cells[k][0] = r; cells[k][1] = c; k++;
+
+    int r2 = N - 1 - r;
+    int c2 = N - 1 - c;
+
+    if (r2 != r) { cells[k][0] = r2; cells[k][1] = c; k++; }
+    if (c2 != c) { cells[k][0] = r;  cells[k][1] = c2; k++; }
+
+    /* Remove old contributions */
+    for (int t = 0; t < k; t++) {
+        int i = cells[t][0], j = cells[t][1];
+        total_ok -= (long long)h_ok(N, i, j);
+        total_ok -= (long long)v_ok(N, i, j);
+    }
+
+    /* Toggle */
+    grid[r][c] ^= 1u;
+
+    /* Add new contributions */
+    for (int t = 0; t < k; t++) {
+        int i = cells[t][0], j = cells[t][1];
+        total_ok += (long long)h_ok(N, i, j);
+        total_ok += (long long)v_ok(N, i, j);
+    }
+}
+
+int main(void) {
+    int states, N;
+    if (scanf("%d %d", &states, &N) != 2) return 0;
+
+    /* Read initial grid: N rows, each with at least N binary characters. */
+    char *row = (char *)malloc((size_t)N + 5);
+    if (!row) return 0;
+
+    for (int i = 0; i < N; i++) {
+        if (scanf("%s", row) != 1) {
+            free(row);
+            return 0;
+        }
+        for (int j = 0; j < N; j++) {
+            /* Specification: binary characters; no explicit error handling. */
+            grid[i][j] = (unsigned char)(row[j] == '1');
+        }
+    }
+    free(row);
+
+    recompute_total_ok(N);
+
+    long long good = 0;
+    if (total_ok == 2LL * N * N) good++;
+
+    for (int s = 1; s < states; s++) {
+        int k;
+        if (scanf("%d", &k) != 1) return 0;
+        for (int t = 0; t < k; t++) {
+            int r, c;
+            if (scanf("%d %d", &r, &c) != 2) return 0;
+            /* Input coordinates are 1-based per specification. */
+            r--; c--;
+            toggle_and_update(N, r, c);
+        }
+        if (total_ok == 2LL * N * N) good++;
+    }
+
+    printf("%lld\n", good);
+    return 0;
+}

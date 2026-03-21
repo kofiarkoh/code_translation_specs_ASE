@@ -1,0 +1,39 @@
+1. Functional Description  
+Maintains a conceptual integer array indexed from `0` and logically of length `num`, supporting two operations over **inclusive** index ranges:  
+- **Range assignment**: set every element in a specified range to a given integer value `x`.  
+- **Range sum query**: return the sum of elements in a specified range.  
+Sum query results are produced in the same order as the corresponding queries appear in the input.
+
+2. Inputs  
+- Two integers:  
+  - `num`: logical length of the array.  
+  - `queries`: number of subsequent operations.  
+- Then `queries` operations, each consisting of:  
+  - `type`, `start`, `end` (three integers).  
+  - If `type` denotes an update, one additional integer `x` follows.  
+Ranges are interpreted as inclusive `[start, end]` in the logical array.
+
+3. Outputs  
+- For each sum query operation, output one line containing the computed range sum as a signed 64-bit value (mathematically), printed in query order.
+
+4. Preconditions / Assumptions  
+- `0 <= num <= 100000`.  
+- `0 <= queries <= 100000`.  
+- For every operation: `0 <= start <= end < num`.  
+- The number of sum queries is at most `100000`.  
+- Input is well-formed and provides all required integers.  
+- Update values `x` are provided as (and fit in) a 32-bit signed `int` as read from input; sums are accumulated using signed 64-bit arithmetic.  
+- Sentinel assumption required by the program’s internal lazy state: no update should cause an internal “pending segment sum” marker to be indistinguishable from the sentinel used for “no pending update”. (Equivalently, avoid update values and segment lengths whose product equals the sentinel constant used internally.)
+
+5. Semantics / State Transitions  
+- **Initial state**: all `num` logical elements are `0`.  
+- **Update (type = 0)** on inclusive range `[start, end]` with value `x`: for all `i` in `[start, end]`, set `A[i] := x`, overwriting any previous values in that range.  
+- **Sum query (type = 1)** on inclusive range `[start, end]`: compute and record `sum_{i=start..end} A[i]`. The array state is unchanged.
+
+6. Edge Cases and Unrecognized Operations  
+- If `type` is neither update nor sum query, the operation is ignored (no output and no state change).  
+- Behavior is unspecified if any precondition is violated (including out-of-range indices, too many queries/results, malformed input, or violating the sentinel assumption).
+
+7. Numeric and I/O Conventions (C-oriented)  
+- Internally, range sums are maintained and returned using signed 64-bit integers; overflow is not checked.  
+- Output formatting corresponds to printing recorded sums as `long long` decimal values with a trailing newline (i.e., using a `%lld`-style format), consistent with a build environment that does not require `<inttypes.h>` formatting macros.

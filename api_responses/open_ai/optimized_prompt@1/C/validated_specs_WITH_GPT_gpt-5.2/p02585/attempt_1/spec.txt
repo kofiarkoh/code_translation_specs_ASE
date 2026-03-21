@@ -1,0 +1,39 @@
+1. Functional Description  
+Computes the maximum achievable total score over at most a given number of moves on a directed graph where each node has exactly one outgoing edge and each node has an associated score gained upon landing on it. A move consists of transitioning from the current node to its designated next node and adding the destination node’s score to the running total. The result is the maximum total score obtainable by choosing an arbitrary starting node and performing between 1 and the move limit moves.
+
+2. Inputs  
+- An integer representing the number of nodes.  
+- An integer representing the maximum number of moves allowed.  
+- A sequence of node-to-node transitions defining, for each node, its unique next node.  
+- A sequence of integer scores, one per node, representing the score gained when landing on that node.
+
+3. Outputs  
+- A single integer value: the maximum total score achievable under the rules described.
+
+4. Preconditions  
+- The number of nodes does not exceed 5000.  
+- The move limit is a positive integer.  
+- Each transition target is a valid node index within the node set.  
+- Input provides exactly the required counts of transitions and scores.  
+- The maximum achievable score fits within a signed 64-bit integer.
+
+5. Postconditions  
+- The output equals the maximum, over all starting nodes, of the maximum prefix sum obtainable along the walk induced by repeatedly following transitions for up to the move limit moves, where the sum includes the scores of visited destination nodes for each move.  
+- At least one move is taken in the evaluated walks (i.e., zero-move score is not considered).
+
+6. Invariants  
+- For any fixed starting node, the considered walk always follows the unique outgoing transition from the current node.  
+- The accumulated score after a given number of moves equals the sum of the scores of the nodes landed on in those moves.  
+- The reported maximum is the maximum over all starting nodes of the best score found for that start within the move limit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for malformed input, out-of-range transitions, non-positive move limits, or arithmetic overflow; behavior is unspecified if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- State is the current node.  
+- Each move deterministically transitions from the current node to its designated next node.  
+- The score state updates by adding the score of the destination node on each transition.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the number of nodes.  
+- Runtime is proportional to the square of the number of nodes in the worst case, with additional dependence on the move limit only through arithmetic (not iteration up to the move limit).

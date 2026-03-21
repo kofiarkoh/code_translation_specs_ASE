@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int64_t k;
+    if (scanf("%" SCNd64, &k) != 1) {
+        return 0; /* unspecified by contract if input missing/malformed */
+    }
+
+    if (k >= 50) {
+        /* Construct n=50 sequence as described.
+           Let q = k / 50, r = k % 50.
+           Base value B = q + 49.
+           Start all elements at B.
+           For each of r steps: pick one distinct element to +50, and all others -1.
+           Net after r steps:
+             - chosen elements: B + 50 - (r-1) = B + 51 - r
+             - unchosen elements: B - r
+           Choose first r elements as the "chosen" ones (deterministic). */
+        int64_t q = k / 50;
+        int64_t r = k % 50;
+        int64_t B = q + 49;
+
+        printf("50\n");
+        for (int i = 0; i < 50; i++) {
+            int64_t val;
+            if (i < r) {
+                val = B + 51 - r;
+            } else {
+                val = B - r;
+            }
+            if (i) putchar(' ');
+            printf("%" PRId64, val);
+        }
+        putchar('\n');
+        return 0;
+    }
+
+    if (k >= 2) {
+        /* n = k, sequence of k copies of k */
+        printf("%" PRId64 "\n", k);
+        for (int64_t i = 0; i < k; i++) {
+            if (i) putchar(' ');
+            printf("%" PRId64, k);
+        }
+        putchar('\n');
+        return 0;
+    }
+
+    if (k == 0) {
+        printf("4\n3 3 3 3\n");
+        return 0;
+    }
+
+    /* k == 1 */
+    printf("3\n1 0 3\n");
+    return 0;
+}

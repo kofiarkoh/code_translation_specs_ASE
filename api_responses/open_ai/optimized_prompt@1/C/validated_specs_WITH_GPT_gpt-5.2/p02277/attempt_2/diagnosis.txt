@@ -1,0 +1,13 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified ordering rule (tie-handling among equal keys) and algorithm-specific behavior not captured.
+
+B. What the current specification may be missing or misstating  
+The specification only constrains the output to be “sorted in nondecreasing order by key” and to print whether that produced order is stable. It does not constrain *which* particular permutation among equal keys must be produced when the sort is not stable. The source program’s behavior is not “any non-stable sort”; it is the specific order produced by its particular quicksort partitioning (Lomuto with `<=` pivot comparison and last-element pivot). The generated program uses a different sorting algorithm (merge sort with an explicit right-first tie rule), which can yield a different (still correctly sorted, still possibly unstable) ordering of equal keys than the source.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the program’s required output order is the exact order produced by the specific quicksort implementation (including its pivot choice and partition rule), not merely any nondecreasing-by-key ordering. In other words, the spec needs to pin down the deterministic tie behavior induced by the algorithm (or otherwise specify a canonical tie-breaker) if exact output matching is required.
+
+D. Why this clarification is supported by the source program  
+- The source uses a fixed quicksort with `partition()` choosing pivot `A[r]` and moving elements with `A[j].val <= x` to the left, then swapping the pivot into position. This deterministically defines the final permutation, including the relative order of equal keys.  
+- The program then prints the sorted records exactly as produced by that quicksort; it does not perform any secondary sorting or canonicalization for equal keys.  
+- Therefore, two different correct “nondecreasing by key” sorts (both possibly unstable) can legitimately disagree on the order of equal keys, yet only the quicksort-induced order matches the source output. The failure (different order of the two `9` records) is consistent with this missing algorithm-specific ordering constraint.

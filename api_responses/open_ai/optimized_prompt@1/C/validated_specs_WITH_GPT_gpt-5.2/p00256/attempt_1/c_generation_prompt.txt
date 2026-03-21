@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Continuously reads a single token per iteration until a sentinel token beginning with `#` is encountered. For each non-sentinel token, interprets it as either:  
+- a Gregorian calendar date (three dot-separated non-negative integers: year, month, day), or  
+- a five-part dot-separated non-negative integer representation of a date in a mixed-radix calendar system.  
+
+It converts the input from one representation to the other and outputs the converted form as dot-separated integers.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens.  
+- Each token is expected to be a dot-separated list of decimal non-negative integers.  
+- Termination token: any token whose first character is `#`.  
+- Two supported token shapes:  
+  - 3 components: interpreted as (year, month, day).  
+  - 5 components: interpreted as a 5-field mixed-radix date value.
+
+3. Outputs  
+- For each valid non-sentinel input token: one line containing the converted date representation as dot-separated integers.  
+  - If input has 3 components, output has 5 components.  
+  - If input has 5 components, output has 3 components (year, month, day).  
+- No output is produced for the sentinel token.
+
+4. Preconditions  
+- Each processed token fits within the implementation’s fixed token buffer size.  
+- Tokens contain only digits and dot separators (no sign, no other characters).  
+- For 3-component inputs:  
+  - Month is in the range 1–12.  
+  - Day is in the valid range for the given month and year under Gregorian leap-year rules.  
+  - Year is such that the internal day-count computation does not overflow the implementation’s arithmetic types.  
+- For 5-component inputs:  
+  - Exactly 5 components are present.  
+  - Each component is within its implied radix range (see Postconditions), and the combined value maps to a representable Gregorian date in the supported year range.
+
+5. Postconditions  
+- If the input token has 3 components (year, month, day):  
+  - The program outputs 5 non-negative integers `p0.p1.p2.p3.p4` such that they encode the same absolute day as the input date, using a mixed-radix decomposition with radices:  
+    - `p0` in [0, 12] (base 13)  
+    - `p1` in [0, 19] (base 20)  
+    - `p2` in [0, 19] (base 20)  
+    - `p3` in [0, 17] (base 18)  
+    - `p4` in [0, 19] (base 20)  
+  - The mapping is consistent with Gregorian leap-year rules (divisible by 4, except centuries not divisible by 400).  
+- If the input token has 5 components:  
+  - The program interprets them as a single non-negative mixed-radix number with radices 13, 20, 20, 18, 20 (in that order), applies a fixed offset, and outputs a Gregorian date `Y.M.D` that corresponds to the resulting absolute day.  
+  - The output month is in 1–12 and the output day is valid for that month/year under Gregorian leap-year rules.  
+- For all processed tokens, the conversion is deterministic: the same input token always yields the same output line.
+
+6. Invariants  
+- Processing is token-by-token; each non-sentinel token produces exactly one output line.  
+- Leap-year determination follows Gregorian rules consistently in both conversion directions.  
+- The mixed-radix representation uses fixed radices (13, 20, 20, 18, 20) and always outputs digits within those ranges when converting from Gregorian input.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery is performed for malformed tokens, out-of-range components, invalid dates, or arithmetic overflow. Behavior in such cases is unspecified (may produce incorrect output or exhibit runtime faults).  
+- If input ends without a sentinel token, processing stops at end-of-input without additional output.
+
+8. State Transitions (if applicable)  
+- Repeats the following states until termination:  
+  - Await next token.  
+  - If token begins with `#`: terminate.  
+  - Else: parse components, choose interpretation based on component count (3 vs. other), perform conversion, emit one output line, then return to awaiting next token.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for the input token and component arrays; therefore maximum token length and component count are bounded.  
+- Runtime per token is bounded by a small constant plus a term proportional to the resulting Gregorian year span when converting from the 5-component form (year is advanced one year at a time).
+
+```

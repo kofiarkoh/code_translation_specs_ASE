@@ -1,0 +1,49 @@
+1. Functional Description  
+Reads a dictionary of words and answers multiple queries. For each query pattern, outputs how many dictionary words match it under these rules:  
+- `?` matches exactly one lowercase letter (`a`–`z`).  
+- `*` (if present) matches any (possibly empty) sequence of characters, but only when it appears at exactly one end of the pattern (prefix or suffix).  
+- If `*` is present at the end, the query matches words having the non-`*` part as a prefix.  
+- If `*` is present at the beginning, the query matches words having the non-`*` part as a suffix.  
+- If `*` is absent, the query matches words equal to the pattern (after expanding `?`).  
+
+2. Inputs  
+- An integer `N`: number of dictionary words.  
+- An integer `M`: number of queries.  
+- `N` whitespace-delimited words (treated as raw byte strings; matching behavior assumes lowercase letters for wildcard expansion).  
+- `M` whitespace-delimited query patterns, each possibly containing `?` and optionally a single `*` at one end.
+
+3. Outputs  
+- For each query, one line containing a single integer: the count of dictionary words that match the query pattern according to the rules above.
+
+4. Preconditions  
+- `N` and `M` are non-negative.  
+- Each dictionary word and query pattern length is within the fixed internal maximum (at most 204 characters).  
+- Query patterns contain at most one `?` that is meaningfully processed; behavior for multiple `?` is not fully supported (see assumptions).  
+- If `*` appears, it is intended to appear only at the first or last character position; other placements are not handled as general globbing.
+
+5. Postconditions  
+For each query pattern:  
+- The printed number equals the number of dictionary words satisfying one of the following, depending on the pattern form:  
+  - No `*`: word equals the pattern after replacing `?` (if present) with some single lowercase letter.  
+  - Trailing `*`: word begins with the pattern prefix (excluding the `*`), after replacing `?` (if present) with some single lowercase letter.  
+  - Leading `*`: word ends with the pattern suffix (excluding the `*`), after replacing `?` (if present) with some single lowercase letter.  
+- If the pattern contains a `?`, the count is the sum over all 26 lowercase substitutions at that position.
+
+6. Invariants  
+- The dictionary is treated as a multiset: duplicate words contribute multiplicity to counts.  
+- Matching is case-sensitive and byte-wise; wildcard expansion only enumerates lowercase letters for `?`.  
+- For suffix matching (leading `*`), comparisons are performed against the reversed dictionary words and reversed query suffix, yielding counts consistent with suffix semantics.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate length limits or expected pattern constraints, behavior is undefined (may produce incorrect results or memory corruption).  
+- Patterns with `*` not at an end, or with multiple `*`, are not supported as general wildcards; results are unspecified.  
+- Patterns containing more than one `?` are not fully processed; only the first `?` position is expanded, and remaining `?` characters are treated literally during matching.
+
+8. State Transitions (if applicable)  
+- After reading the dictionary, an internal sorted representation is established and remains unchanged while processing all queries.  
+- Each query is processed independently; no query affects subsequent query results.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for efficient query answering via pre-sorted data; per-query work is logarithmic in `N`, multiplied by up to 26 when a `?` is present.  
+- Memory usage is bounded by fixed-size storage proportional to `N` and maximum word length.

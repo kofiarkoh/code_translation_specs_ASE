@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads repeated problem instances consisting of a nonzero target integer and a digit string. For each instance, considers all ways of inserting separators between digits to form a sequence of nonnegative integers (preserving digit order) and computes the sum of that sequence. Among all sums that do not exceed the target, selects the maximum achievable sum. If that maximum is achieved by exactly one separator placement, outputs the sum and the uniquely determined separated expression; otherwise reports either that no valid sum exists or that the best sum is not unique.
+
+2. Inputs  
+- A sequence of instances from standard input.  
+- Each instance provides:  
+  - An integer target.  
+  - A nonempty string of decimal digits (length limited by the fixed buffer size).  
+- Processing terminates when an instance has target equal to zero (the accompanying string, if any, is ignored).
+
+3. Outputs  
+For each processed instance (target ≠ 0), writes exactly one line to standard output:  
+- If no separator placement yields a sum ≤ target: outputs the word indicating absence of a valid solution.  
+- If the maximum sum ≤ target is achieved by more than one separator placement: outputs the word indicating non-unique best solution.  
+- If the maximum sum ≤ target is achieved by exactly one separator placement: outputs the best sum followed by the digit string with separators inserted to show the unique partition.
+
+4. Preconditions  
+- Each processed instance provides a target integer and a digit string.  
+- The digit string length fits within the program’s fixed storage (including terminator).  
+- The digit string contains only characters representing decimal digits.  
+- The number of digits is at least 1.  
+- The total number of possible separator placements is representable within the program’s integer range (implicitly requiring the digit count to be small).
+
+5. Postconditions  
+For each processed instance:  
+- All possible partitions of the digit string into contiguous digit groups are considered.  
+- For each partition, the value is the sum of the base-10 integer values of its groups (leading zeros permitted).  
+- Let S be the set of partition sums that are ≤ target.  
+  - If S is empty, the “no valid solution” output is produced.  
+  - If S is nonempty and its maximum value occurs for more than one partition, the “non-unique best solution” output is produced.  
+  - If S is nonempty and its maximum value occurs for exactly one partition, the output includes that maximum and the corresponding unique partition rendering.
+
+6. Invariants  
+- The digit string content is preserved across evaluations of different partitions (no lasting modification).  
+- Every partition evaluated preserves original digit order and uses only separators between digits (no digit removal or reordering).  
+- The reported “best sum” (when reported) is ≤ target and is the maximum among all sums ≤ target.
+
+7. Error Handling / Exceptional Behavior  
+- If input does not conform to the expected instance format, behavior is unspecified (the program does not explicitly validate or recover).  
+- If the digit string contains non-digit characters or if any formed number exceeds the representable range of the integer conversion used, the resulting sums and outputs are unspecified.  
+- If the digit string length exceeds the fixed buffer capacity, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeats a read–solve–print cycle for each instance until a target value of zero is read, after which the program terminates.  
+- No persistent state is carried between instances beyond normal loop progression.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost per instance grows exponentially with the number of digits (all partitions are enumerated).  
+- Memory usage is constant with respect to input size, aside from the fixed-size digit buffer and small local variables.
+
+```

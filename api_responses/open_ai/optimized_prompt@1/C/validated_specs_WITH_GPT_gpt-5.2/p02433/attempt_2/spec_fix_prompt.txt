@@ -1,0 +1,267 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define INSERT '0'
+#define MOVE '1'
+#define ERASE '2'
+#define END 1000000001
+
+typedef struct Cell {
+	int data;
+	struct Cell* prev;
+	struct Cell* next;
+} Cell;
+
+Cell* newCell(int data) {
+    Cell* cell = malloc(sizeof(Cell));
+    cell->data = data;
+    cell->prev = NULL;
+    cell->next = NULL;
+    return cell;
+}
+
+void print(Cell *cell) {
+    // 先頭まで移動する
+	while (cell->prev != NULL) {
+		cell = cell->prev;
+	}
+
+	do {
+	    if (cell->data != END) {
+			printf("%d\n", cell->data);
+			cell = cell->next;
+		}
+	} while (cell->next != NULL);
+}
+
+int isEnd(Cell *cursor) {
+	return (cursor != NULL && cursor->data == END);
+}
+
+int isFront(Cell *cursor) {
+	return (cursor != NULL && cursor->prev == NULL);
+}
+
+Cell* insert(Cell *cursor, int data) {
+	if (isFront(cursor)) {
+		Cell *new = newCell(data);
+		new->next = cursor;
+		cursor->prev = new;
+		return new;
+	}
+
+	Cell *new = newCell(data);
+	Cell *prev = cursor->prev;
+	new->prev = prev;
+	new->next = cursor;
+	prev->next = new;
+	cursor->prev = new;
+	return new;
+}
+
+Cell* move(Cell *cursor, int d) {
+	if (d == 0) {
+		return cursor;
+	}
+
+	if (d < 0) {
+		for (;d < 0; d++) {
+			if (isFront(cursor)) {
+				printf("Cursor is already front.\n");
+				exit(1);
+			}
+
+			cursor = cursor->prev;
+		}
+		return cursor;
+	}
+
+	for (;d > 0; d--) {
+		if (cursor->next == NULL) {
+			printf("Cursor has no next.\n");
+			exit(2);
+		}
+
+		cursor = cursor->next;
+	}
+	
+	return cursor;
+}
+
+Cell* erase(Cell *cursor) {
+	if (isEnd(cursor)) {
+		return cursor;
+	}
+	
+	if (isFront(cursor)) {
+	    Cell *next = cursor->next;
+	    next->prev = NULL;
+	    free(cursor);
+	    return next;
+	}
+
+	Cell *prev = cursor->prev;
+	Cell *next = cursor->next;
+	prev->next = next;
+	next->prev = prev;
+	free(cursor);
+	return next;
+}
+
+
+void answer() {
+	Cell *cursor;
+	int q = 0;
+	char a[15];
+
+	fgets(a, 15, stdin);
+	q = atoi(a);
+	cursor = newCell(END);
+
+	while (q--) {
+	    fgets(a, 15, stdin);
+		if (a[0] == INSERT) {
+            cursor = insert(cursor, atoi(a+2));
+		} else if (a[0] == MOVE) {
+		    cursor = move(cursor, atoi(a+2));
+		} else if (a[0] == ERASE) {
+		    cursor = erase(cursor);
+		}
+
+	}
+
+	print(cursor);
+}
+
+int test() {
+	Cell *cur = newCell(END);
+	cur = insert(cur, 1);
+	cur = insert(cur, 2);
+	cur = insert(cur, 3);
+	cur = move(cur, 1);
+	cur = erase(cur);
+	print(cur);
+	return 0;
+}
+
+int main(void){
+	answer();
+}
+
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Maintains an ordered, mutable sequence of integers with a movable cursor. Processes a finite list of commands to insert integers immediately before the cursor, move the cursor left or right by a signed offset, and erase the element at the cursor. After all commands, outputs the remaining sequence elements in order from front to back, excluding an internal end marker.
+
+2. Inputs  
+- An integer specifying the number of subsequent commands.  
+- A sequence of that many commands, each being one of:  
+  - Insert: includes an integer value to be inserted.  
+  - Move: includes a signed integer offset indicating cursor movement (negative = toward front, positive = toward back, zero = no movement).  
+  - Erase: no additional value.
+
+3. Outputs  
+- On normal completion: each stored integer in the sequence, one per line, in front-to-back order.  
+- On certain invalid cursor moves: an error message is emitted and the program terminates immediately (see section 7).
+
+4. Preconditions  
+- The initial command count is a valid integer and is non-negative.  
+- Each command line is present and conforms to one of the supported command types, with an integer argument where required.  
+- Inserted values and move offsets are representable as integers.  
+- Sufficient memory is available for all required insertions.
+
+5. Postconditions  
+- If the program completes normally, the output is exactly the final sequence contents after applying all commands in order, excluding the internal end marker.  
+- Insert commands add a new element immediately before the current cursor position and set the cursor to the newly inserted element.  
+- Move commands set the cursor to the element reached by applying the offset stepwise from the current cursor position.  
+- Erase commands remove the element at the cursor if it is not the internal end marker; after erasure, the cursor becomes the next element (toward back). If the cursor is at the internal end marker, erase has no effect.
+
+6. Invariants  
+- The sequence always contains a distinguished internal end marker element that is never removed.  
+- The cursor always points to some element in the sequence (never becomes null) during normal operation.  
+- The sequence is a well-formed doubly-linked order: for any adjacent pair, forward and backward links are mutually consistent, and the front element has no predecessor.
+
+7. Error Handling / Exceptional Behavior  
+- If a move command attempts to move left when the cursor is already at the front element, the program emits an error message and terminates with a non-zero exit status.  
+- If a move command attempts to move right when the cursor has no next element, the program emits an error message and terminates with a non-zero exit status.  
+- If memory allocation for a new element fails, behavior is undefined (no explicit handling).  
+- Malformed or missing input lines are not explicitly handled; behavior is undefined.
+
+8. State Transitions (if applicable)  
+State consists of (sequence contents and order, cursor position). For each command:  
+- Insert(value): sequence gains one new element immediately before cursor; cursor transitions to that new element.  
+- Move(offset): cursor transitions to the element offset steps away; if the target would be outside the sequence bounds, transitions to a terminal error state (program termination).  
+- Erase: if cursor is not the end marker, the cursor element is removed and cursor transitions to its successor; otherwise, no state change.
+
+9. Non-functional Constraints (if inferable)  
+- Time is proportional to the total number of move steps plus the number of commands and the final number of elements printed.  
+- Memory usage grows linearly with the number of successful insertions minus erasures (end marker excluded).  
+- On termination due to an invalid move, allocated memory is not reclaimed before exit.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input/command encoding assumption (parsing/lexing mismatch)  
+- Wrong error-handling/termination trigger due to misparsed commands  
+- Wrong abstraction of command symbols (character vs numeric)
+
+B. What the current specification may be missing or misstating  
+- The spec describes commands abstractly as “Insert/Move/Erase” but does not state how they are encoded in the input. The generated program assumed letter commands (`I`, `M`, `E`), while the source program uses numeric character codes: `'0'` for insert, `'1'` for move, `'2'` for erase, with the argument (if any) starting at position 2 of the line (i.e., after a space).  
+- The spec also doesn’t constrain the exact command-line format (e.g., `"0 5"`, `"1 -2"`, `"2"`), so a conforming implementation might choose a different format and still “satisfy” the current text—yet it would not match the source behavior.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the concrete input syntax for each command, including:  
+  - The command identifier is the first character of the line and is one of `'0'`, `'1'`, `'2'` (not words/letters).  
+  - Insert and Move lines contain a space and then a signed decimal integer argument; Erase lines contain only the command (optionally followed by newline).  
+  - Parsing is line-based (the source reads whole lines with `fgets` and inspects `a[0]`, then parses the integer from `a+2`).  
+- Clarify that any deviation from this format is outside the intended behavior (since the source does not robustly handle alternative encodings).
+
+D. Why this clarification is supported by the source program  
+- In `answer()`, the program reads each command line with `fgets(a, 15, stdin);` and dispatches solely on `a[0]` comparing to `INSERT '0'`, `MOVE '1'`, `ERASE '2'`.  
+- For insert/move, it parses the integer with `atoi(a+2)`, which implicitly requires the command line to have the command character, then a separator (typically a space), then the number starting at index 2.  
+- Therefore, the source’s observable behavior depends on this exact numeric command encoding and fixed offset parsing; the current specification’s lack of this detail allows implementations (like the generated one) that read a different command alphabet and consequently perform no operations and print nothing.
+
+```

@@ -1,0 +1,53 @@
+#include <stdio.h>
+#include <string.h>
+
+int main(void) {
+    /* Fixed-size storage as implied by the specification. */
+    char s[100000 + 5];
+
+    if (scanf("%100000s", s) != 1) {
+        /* Undefined behavior per spec if input missing; we simply exit. */
+        return 0;
+    }
+
+    unsigned int freq[256];
+    for (int i = 0; i < 256; i++) freq[i] = 0;
+
+    size_t n = strlen(s);
+    for (size_t i = 0; i < n; i++) {
+        /* Spec assumes characters map to 0..255 safely. */
+        unsigned char c = (unsigned char)s[i];
+        freq[c]++;
+    }
+
+    unsigned long long remaining = (unsigned long long)n;
+    unsigned long long score = 0;
+
+    while (remaining > 0) {
+        int run_len = 0;
+
+        for (int v = 0; v < 256; v++) {
+            if (freq[v] > 0) {
+                /* Consume one occurrence of this character value in this sweep. */
+                freq[v]--;
+                remaining--;
+
+                run_len++;
+            } else {
+                /* End of a maximal contiguous run of present values. */
+                if (run_len > 0) {
+                    score += (run_len > 3) ? 3 : (unsigned long long)run_len;
+                    run_len = 0;
+                }
+            }
+        }
+
+        /* Final run may reach the end of the value range. */
+        if (run_len > 0) {
+            score += (run_len > 3) ? 3 : (unsigned long long)run_len;
+        }
+    }
+
+    printf("%llu\n", score);
+    return 0;
+}

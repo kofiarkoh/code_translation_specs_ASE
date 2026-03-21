@@ -1,0 +1,275 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 0275 Railroad
+// 2018.2.21 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define QMAX 200000
+typedef struct { int t, s; } QUE;
+QUE que[QMAX+2]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int s, int t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+#define INF 0x10101010
+int S; 
+int hi[100002], *to[100002]; short *w[100002];
+int dist[100002];
+char mk[100002];
+int c[40002], d[40002];
+
+int q[100002], top, tail;
+int hi2[100002], *to2[100002];
+int deg[100002];
+int ord[100002], cnt;
+
+unsigned long long dp[100002];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void dijkstra(int start)
+{
+	int i, s, e, d;
+
+	memset(dist, INF, S << 2);
+	qsize = 0;
+	enq(start, 0), dist[start] = 0;
+	while (qsize) {
+		s = que[0].s, deq();
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i];
+			d = dist[s] + w[s][i];
+			if (dist[e] > d) dist[e] = d, enq(e, d);
+		}
+	}
+}
+
+void tsort(int start, int goal)
+{
+    int i, s, e;
+
+	memset(mk, 0, S);
+	q[0] = goal, top = 0, tail = 1;
+	while (top < tail) {
+		s = q[top++];
+		if (mk[s]) continue;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i];
+			if (dist[s] == dist[e] + w[s][i]) {
+				q[tail++] = e;
+				to2[e][hi2[e]++] = s;
+			}
+		}
+		mk[s] = 1;
+	}
+
+	cnt = 0;
+	for (s = 0; s < S; s++) for (i = 0; i < hi2[s]; i++) deg[to2[s][i]]++;
+	q[0] = start, top = 0, tail = 1;
+	while (top < tail) {
+		s = q[top++];
+		ord[cnt++] = s;
+		for (i = 0; i < hi2[s]; i++) {
+			e = to2[s][i];
+			if (--deg[e] == 0) q[tail++] = e;
+		}
+	}
+}
+
+int main()
+{
+	int R, Q, u, v, _w, a, b, i, j, k, ii;
+	int *memo;
+	
+	S = in(), R = in();
+	memo = malloc(R*3*sizeof(int));
+	j = 0, i = R; while (i--) {
+		memo[j++] = u = in()-1, hi[u]++;
+		memo[j++] = v = in()-1, hi[v]++;
+		memo[j++] = in();
+	}
+	for (i = 0; i < S; i++) if (hi[i]) {
+		to [i] = malloc(hi[i] << 2), w[i] = malloc(hi[i] << 1);
+		to2[i] = malloc(hi[i] << 2);
+	}
+	
+	memset(hi, 0, S << 2);
+	j = 0; while (R--) {
+		u = memo[j++], v = memo[j++], _w = memo[j++];
+		k = hi[u]++, to[u][k] = v, w[u][k] = _w;
+		k = hi[v]++, to[v][k] = u, w[v][k] = _w;
+	}
+	free(memo);
+	
+	a = in()-1, b = in()-1, Q = in();
+	for (i = 0; i < Q; i++) c[i] = in()-1, d[i] = in()-1;
+
+	dijkstra(a);
+	tsort(a, b);
+
+	
+    ii = (Q+63)>>6; for (i = 0; i < ii; i++) {
+        memset(dp, 0, sizeof(dp));
+		for (j = 0; j < 64; j++) if ((i<<6)+j < Q) dp[c[(i<<6)+j]] |= 1LL << j;
+		for (j = 0; j < cnt; j++) {
+			u = ord[j];
+			for (k = 0; k < hi2[u]; k++) dp[to2[u][k]] |= dp[u];
+		}
+        for (j = 0; j < 64; j++) if ((i<<6)+j < Q) {
+            puts(dp[d[(i<<6)+j]] & (1LL<<j)? "Yes": "No");
+		}
+    }
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines, for each query, whether there exists at least one shortest path from a given source node to a given destination node that passes through two specified nodes in the given order (first node then second node). The shortest-path notion is with respect to nonnegative edge weights in an undirected weighted graph.
+
+2. Inputs  
+- An integer number of nodes.  
+- An integer number of undirected weighted edges.  
+- For each edge: two node indices and a nonnegative weight.  
+- A source node index and a destination node index.  
+- An integer number of queries.  
+- For each query: two node indices representing an ordered pair (first, second).
+
+3. Outputs  
+For each query, outputs one line indicating whether the ordered pair is feasible on some shortest path from the source to the destination:  
+- “Yes” if there exists a shortest path from source to destination that visits the first query node and later visits the second query node.  
+- “No” otherwise.
+
+4. Preconditions  
+- Node indices provided in the input are within the valid range of the declared node count.  
+- Edge weights are nonnegative.  
+- The number of queries does not exceed the fixed internal capacity (40,002).  
+- The graph size does not exceed the fixed internal capacities for nodes and edges implied by the static arrays.  
+- Sufficient memory is available for internal adjacency storage.
+
+5. Postconditions  
+For each query (x, y):  
+- The program outputs “Yes” iff there exists a sequence of nodes forming a shortest path from the source to the destination such that x appears on the path and y appears on the path at the same position or after x (i.e., x can reach y along edges that preserve shortest-path optimality toward the destination).  
+- If no such shortest path exists, outputs “No”.
+
+6. Invariants  
+- The computed distance value for any node represents the minimum total weight from the source to that node (assuming nonnegative weights).  
+- The derived directed relation between nodes includes exactly those transitions that can occur along some shortest path from the source toward the destination (restricted to nodes that can participate in reaching the destination via shortest-path-consistent steps).  
+- For each query batch processed, the reachability information propagated respects this directed relation: if a node is marked as reachable for a query, all nodes reachable from it via the relation are also marked reachable for that query.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., out-of-range indices, negative weights, excessive sizes, or allocation failure), behavior is unspecified and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- After reading the graph, the program transitions to a state where shortest distances from the source are fixed.  
+- It then transitions to a state where a directed acyclic subgraph representing shortest-path-consistent transitions relevant to reaching the destination is fixed, along with an order suitable for propagating reachability.  
+- For each batch of up to 64 queries, it transitions through: initialization of per-query start markers → propagation of reachability along the fixed directed relation → emission of answers for that batch.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum sizes for internal arrays; inputs must fit within these bounds.  
+- Processes queries in groups of up to 64 using bit-parallel propagation, implying performance optimized for many queries.  
+- Assumes nonnegative weights to ensure correctness of shortest-distance computation.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / underspecified implementation constraints (language-level constraint), leading to non-compilable generated code.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* the “order suitable for propagating reachability” is produced in a way that is compatible with standard C (C11) compilation constraints.  
+- In particular, it leaves room for implementations that rely on non-portable or invalid C constructs (e.g., defining a comparator function inside another function, or relying on `qsort_r` availability/ABI), even though the source program avoids these issues entirely by using a queue-based topological sort and never needs a sort comparator at all.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the program’s propagation order is obtained via an explicit topological sorting procedure over the derived shortest-path subgraph (Kahn-style using indegrees), not by “sorting nodes by distance” or by any approach that requires custom comparator callbacks.  
+- More generally: specify that the implementation must be standard C-compatible (no nested function definitions; no reliance on nonstandard library variants), or specify the exact mechanism used to compute the propagation order (topological sort from the source).
+
+D. Why this clarification is supported by the source program  
+- The source constructs a shortest-path-consistent directed subgraph (`to2/hi2`) and then computes `ord[]` using indegrees (`deg[]`) and a queue (`q[]`) in `tsort()`. This is a true topological sort and is independent of any library sorting/comparator.  
+- The source is strictly C (no nested functions, no `qsort_r`), so the ground-truth behavior implies an implementation strategy that is portable and compilable under standard C toolchains. The failure indicates the current spec doesn’t sufficiently pin down that constraint, allowing a generator to choose an invalid/nonportable ordering implementation.
+
+```

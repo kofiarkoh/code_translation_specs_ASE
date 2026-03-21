@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+The program reads a square bipartite graph between two sets of equal size and determines whether a perfect matching exists (a one-to-one pairing that covers every vertex on the left side). If no perfect matching exists, it reports failure. If a perfect matching exists, it reports success and then outputs, for each left-side vertex in increasing order, a 1-based index of a right-side partner. The reported partners are produced by the program’s matching procedure and are guaranteed to correspond to edges that the program considered present.
+
+2. Inputs  
+- A non-negative decimal integer `K` read from the byte stream as a sequence of digit characters. The program sets `N = K - 1` and uses this `N` as the size of each side of the bipartite graph.  
+- Then, the program consumes exactly `2 * N * N` subsequent bytes from the input stream to define the adjacency relation. For each matrix position with row index `i` (0-based) and column index `j` (0-based), it performs:
+  - Read one byte `c` and treat the edge from left vertex `j` to right vertex `i` as present iff `(c & 1) != 0` (i.e., the least significant bit of the raw byte value is 1).  
+  - Read and discard one additional byte (intended to act as a separator, but not interpreted).  
+  This is purely byte-based: the program does not skip whitespace, does not parse `0/1` tokens as integers, and does not realign to token boundaries. The first byte used for the first cell is simply the next byte available after the integer-reading routine finishes (which stops at the first non-digit and consumes it).
+
+3. Outputs  
+- If the program cannot find a perfect matching of size `N`, it prints exactly one line:
+  - `no`  
+- Otherwise it prints:
+  - A line `yes`  
+  - Followed by exactly `N` lines. On the `i`-th of these lines (for left vertex `i`, 0-based internally), it prints a positive integer in the range `1..N` representing the chosen right-side partner index in 1-based form.
+
+4. Preconditions / Assumptions  
+- `K` must be at least 1 so that `N = K - 1` is non-negative.  
+- `N` must not exceed the program’s fixed internal capacity (bounded by the compiled array sizes).  
+- The input must contain at least `2 * N * N` bytes after the initial integer for the program to consume as described.  
+- If these conditions are not met, behavior is unspecified.
+
+5. Postconditions / Semantics of the Reported Pairing  
+- If `no` is printed, the program did not find a perfect matching in the graph as constructed from the consumed bytes.  
+- If `yes` is printed, the `N` subsequent numbers define a bijection between left indices `1..N` and right indices `1..N`, and each left-to-right pairing corresponds to an edge that was present according to the program’s `(c & 1)` rule on the consumed bytes.
+
+6. Notes on Matching Construction and Ordering  
+- The program first computes whether any perfect matching exists.  
+- If one exists, it then outputs partners for left vertices in increasing order `0..N-1`. For each left vertex `i`, it modifies the current matching state by removing `i` and its currently matched partner (if any), then runs its augmenting-path routine starting from `i` to re-establish a perfect matching, and prints the resulting partner of `i`.  
+- The specific partner chosen for each `i` depends on the internal search order of edges as they were stored from the input; no additional tie-breaking rule is applied beyond that traversal order.
+
+```

@@ -1,0 +1,46 @@
+1. Functional Description  
+For each provided rectangular character grid, the program computes a value derived from the smallest “transition count” needed to reach any boundary cell from a designated start cell. Movement is allowed only to orthogonally adjacent cells (up, right, down, left). Moving from a cell to a neighbor has incremental cost 0 if the two cells contain the same character and incremental cost 1 if they differ. After computing the minimum such cost to each cell, the program outputs the minimum boundary cost divided by 2 using integer division.
+
+2. Inputs  
+- Repeated test cases.  
+- Each test case begins with two integers: grid width `w` and grid height `h`.  
+- If `w == 0` and `h == 0`, processing terminates.  
+- Otherwise, exactly `h * w` characters are read into an `h`-row by `w`-column grid; leading whitespace before each character is skipped by the input routine.  
+- The grid is expected to contain a start marker character `'&'` (see Preconditions).
+
+3. Outputs  
+- For each test case, outputs one line containing a single integer computed as follows:  
+  - Let `C(p)` be the minimum accumulated move cost (as defined above) from the start cell to cell `p`, under the program’s propagation rules.  
+  - Over all boundary cells `p` (cells in the first/last row or first/last column), the program prints the minimum value of `C(p) / 2` using integer division.
+
+4. Preconditions / Assumptions  
+- `w` and `h` are positive and do not exceed the fixed storage limits (at most 101 each).  
+- The grid contains at least one `'&'` start marker. If multiple are present, the program effectively uses the last one encountered in row-major input order as the start.  
+- Input is well-formed and provides enough characters to fill the grid for each test case.
+
+5. Start Marker Handling  
+- When a cell containing `'&'` is read, it is immediately treated as terrain `'.'` for all subsequent movement-cost comparisons (the stored grid character at that location is replaced with `'.'`).  
+- The start cell’s initial internal cost is set to 1 (not 0). All other cells start as “unreached” with stored cost 0.
+
+6. Cost Propagation Semantics (Queue-Based Re-Relaxation)  
+- The program maintains an integer cost array `c` where `c[y][x] == 0` means “unreached” and any positive value is the current best known cost.  
+- It performs a FIFO, queue-driven repeated-relaxation process:
+  - The queue is initialized with the start cell only.  
+  - While the queue is not empty, the program dequeues the next cell `u` and considers its four orthogonal neighbors `v` that lie within the grid.  
+  - It computes a candidate cost for `v`:
+    - If `grid[u] == grid[v]`, candidate = `c[u]`.  
+    - Otherwise, candidate = `c[u] + 1`.  
+  - If `v` is unreached (`c[v] == 0`) or the candidate is strictly smaller than the current stored cost (`candidate < c[v]`), then `c[v]` is updated to the candidate and `v` is enqueued (even if it was enqueued or processed before).  
+- There is no “finalized/settled” state for cells; a cell may be revisited and expanded multiple times whenever its cost improves.  
+- All grid cells are traversable; there are no impassable characters.
+
+7. Boundary Minimum and Division  
+- After propagation completes, the program examines all boundary cells and computes the minimum of `c[cell] / 2` using integer division.  
+- The printed value is this minimum.
+
+8. Error Handling / Undefined Behavior  
+- No explicit error handling is performed. If the preconditions are violated (e.g., missing `'&'`, dimensions exceeding limits, malformed input), behavior is undefined (may produce incorrect output or access invalid memory).
+
+9. State and Termination  
+- Each test case is processed independently; the cost array is reinitialized per test case.  
+- The program terminates only when the pair `0 0` is read for `w h`.

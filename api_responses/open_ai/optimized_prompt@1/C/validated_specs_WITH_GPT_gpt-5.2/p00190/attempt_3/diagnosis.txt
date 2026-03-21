@@ -1,0 +1,22 @@
+A. Likely mismatch category  
+Wrong goal-state definition / wrong state encoding (ordering rule).
+
+B. What the current specification may be missing or misstating  
+The specification states the goal configuration is the literal input sequence `1,2,3,4,5,6,7,8,9,10,11,0,0` in positions 0..12.  
+But the source program’s internal “goal” constant `0x123456789ab0` is not stored/compared in the same positional order as the input list is read. The program builds the state by repeatedly doing `s = (s << 4) | p` while reading positions 0..12, meaning position 0 ends up in the most-significant nibble and position 12 in the least-significant nibble. Therefore, the hex literal `0x123456789ab0` corresponds to a specific arrangement under that MSB-first packing, not necessarily the same as “positions 0..12 are [1..11,0,0]” under an LSB-first interpretation.
+
+The generated code packed position 0 into the least-significant nibble (LSB-first), so it treated the sample input `1 2 3 ... 11 0 0` as exactly equal to the goal and printed `0`, whereas the source program does not consider that input equal to its goal (it outputs `NA` for that case in the sample).
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact mapping between:
+- the 13 input positions (0..12),
+- the internal 64-bit/nibble representation used for hashing/goal comparison,
+- and the goal configuration.
+
+In other words, the spec must unambiguously state which input position corresponds to which nibble significance (or avoid nibble talk and instead define the goal in terms of the program’s actual position ordering as read/encoded). Without this, an implementation can legitimately choose the opposite packing order and silently change which configurations are considered “the goal” and thus all computed distances.
+
+D. Why this clarification is supported by the source program  
+- Input encoding: `for (s = i = 0; i < 13; i++) { ... s = (s << 4) | p; }` makes earlier positions more significant.  
+- Goal constant: `s = 0x123456789ab0ULL` is inserted as the distance-0 state before any input is read, so “goal” is defined by that packed value, not by an abstract list unless the packing order is specified.  
+- Move/swap logic: `swap()` uses `(12 - p) << 2` to locate a position’s nibble, confirming that position indices are mapped to nibbles in a reversed/significance-aware way (position 12 at shift 0, position 0 at shift 48).  
+Together these show the program’s notion of “position i contains value v” depends on this specific MSB-first packing, which the current specification did not pin down tightly enough, leading to the observed discrepancy on the purported goal input.

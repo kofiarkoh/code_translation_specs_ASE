@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each provided triple of integers \((m,a,b)\), the program selects and outputs an **ordered** pair of primes \((p,q)\) drawn from the set of all primes less than 100000, subject to both constraints:
+- \(p \cdot q \le m\)
+- \(a \cdot q \le p \cdot b\)
+
+The program searches only pairs with **\(p \le q\)** (equivalently, \(q\) is chosen from the same-or-later position than \(p\) in the increasing prime list). Among all such eligible ordered pairs, it outputs the one with the **maximum product** \(p\cdot q\). If no eligible pair exists, it outputs `0 0`. Processing continues for multiple triples until a terminating triple is encountered.
+
+2. Inputs  
+- A sequence of records, each containing three integers \(m, a, b\).  
+- Input terminates when a record is read for which the bitwise OR \((m|a|b)\) equals 0 (i.e., all three values are zero).  
+- If the input ends or a record cannot be fully read as three integers, processing stops immediately.
+
+3. Outputs  
+- For each non-terminating input record, output one line containing two integers `p q`:  
+  - Either an ordered prime pair \((p,q)\) with \(p \le q\) and both primes \(< 100000\) that maximizes \(p\cdot q\) under the constraints, or  
+  - `0 0` if no such pair exists.
+
+4. Candidate Domain and Ordering  
+- Only primes strictly less than 100000 are considered.  
+- The output pair is **not** treated as an unordered set: the program only considers candidates with \(q \ge p\). A pair that would satisfy the inequalities only when the primes are swapped is not considered unless it also satisfies them in the \(p \le q\) orientation.
+
+5. Constraint Evaluation and Arithmetic  
+- The constraints \(p\cdot q \le m\) and \(a\cdot q \le p\cdot b\) are evaluated using integer arithmetic with widening to avoid overflow in these comparisons (conceptually 64-bit).  
+- The maximization compares products by their numeric value; the maintained “best” product is updated only when a strictly larger product is found.
+
+6. Maximization and Tie Behavior  
+- The program maximizes \(p\cdot q\) over the restricted domain \(p \le q\).  
+- If multiple eligible pairs have the same maximal product, the program does not update on ties (it updates only on strictly greater products). Therefore, the output is the first pair encountered by its search order that achieves the maximal product within that order; no additional tie-breaking rule (such as minimizing or maximizing \(p\) or \(q\)) is guaranteed beyond this behavior.
+
+7. Termination Behavior  
+- Prime generation is performed once at startup.  
+- Each input record is processed independently; the best pair is reset to `0 0` for each record.  
+- The program terminates when the terminating triple is read or when input can no longer be read as complete triples.
+
+8. Error Handling / Assumptions  
+- No explicit validation is performed for negative values of \(m\), \(a\), or \(b\); the inequalities are applied exactly as written using integer arithmetic, which may result in no eligible pair and thus `0 0`.  
+- The printed `p` and `q` are ordinary integers; the program’s selection logic relies on comparing products, and it assumes those comparisons behave consistently with the integer arithmetic used in the program.
+
+```

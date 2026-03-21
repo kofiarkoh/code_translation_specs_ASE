@@ -1,0 +1,19 @@
+#include <stdio.h>
+
+int main(void) {
+    char s[4]; /* Intended for exactly 3 characters plus '\0'. Longer input may overflow (undefined). */
+    if (scanf("%s", s) != 1) {
+        /* No explicit error handling per specification; missing input => undefined behavior.
+           Return without output to keep behavior minimal. */
+        return 0;
+    }
+
+    int m = 0;
+    if (s[0] == 'o') m++;
+    if (s[1] == 'o') m++;
+    if (s[2] == 'o') m++;
+
+    int score = 700 + 100 * m;
+    printf("%d\n", score);
+    return 0;
+}

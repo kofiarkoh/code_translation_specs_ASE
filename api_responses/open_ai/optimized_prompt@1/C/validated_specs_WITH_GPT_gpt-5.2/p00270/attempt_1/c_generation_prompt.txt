@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines, for each query, whether there exists at least one shortest path from a given source node to a given destination node that passes through two specified nodes in the given order (first node then second node). The shortest-path notion is with respect to nonnegative edge weights in an undirected weighted graph.
+
+2. Inputs  
+- An integer number of nodes.  
+- An integer number of undirected weighted edges.  
+- For each edge: two node indices and a nonnegative weight.  
+- A source node index and a destination node index.  
+- An integer number of queries.  
+- For each query: two node indices representing an ordered pair (first, second).
+
+3. Outputs  
+For each query, outputs one line indicating whether the ordered pair is feasible on some shortest path from the source to the destination:  
+- “Yes” if there exists a shortest path from source to destination that visits the first query node and later visits the second query node.  
+- “No” otherwise.
+
+4. Preconditions  
+- Node indices provided in the input are within the valid range of the declared node count.  
+- Edge weights are nonnegative.  
+- The number of queries does not exceed the fixed internal capacity (40,002).  
+- The graph size does not exceed the fixed internal capacities for nodes and edges implied by the static arrays.  
+- Sufficient memory is available for internal adjacency storage.
+
+5. Postconditions  
+For each query (x, y):  
+- The program outputs “Yes” iff there exists a sequence of nodes forming a shortest path from the source to the destination such that x appears on the path and y appears on the path at the same position or after x (i.e., x can reach y along edges that preserve shortest-path optimality toward the destination).  
+- If no such shortest path exists, outputs “No”.
+
+6. Invariants  
+- The computed distance value for any node represents the minimum total weight from the source to that node (assuming nonnegative weights).  
+- The derived directed relation between nodes includes exactly those transitions that can occur along some shortest path from the source toward the destination (restricted to nodes that can participate in reaching the destination via shortest-path-consistent steps).  
+- For each query batch processed, the reachability information propagated respects this directed relation: if a node is marked as reachable for a query, all nodes reachable from it via the relation are also marked reachable for that query.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., out-of-range indices, negative weights, excessive sizes, or allocation failure), behavior is unspecified and may result in incorrect output or abnormal termination.
+
+8. State Transitions (if applicable)  
+- After reading the graph, the program transitions to a state where shortest distances from the source are fixed.  
+- It then transitions to a state where a directed acyclic subgraph representing shortest-path-consistent transitions relevant to reaching the destination is fixed, along with an order suitable for propagating reachability.  
+- For each batch of up to 64 queries, it transitions through: initialization of per-query start markers → propagation of reachability along the fixed directed relation → emission of answers for that batch.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed maximum sizes for internal arrays; inputs must fit within these bounds.  
+- Processes queries in groups of up to 64 using bit-parallel propagation, implying performance optimized for many queries.  
+- Assumes nonnegative weights to ensure correctness of shortest-distance computation.
+
+```

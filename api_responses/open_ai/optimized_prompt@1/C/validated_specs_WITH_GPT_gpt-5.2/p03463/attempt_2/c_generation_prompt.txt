@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and determines which of two fixed winner names to print based solely on whether the difference between the third and second integers is even or odd.
+
+2. Inputs  
+- Three integers read from standard input in this order: `N`, `A`, `B`.  
+- `N` is read but does not affect the decision.
+
+3. Outputs  
+- Prints exactly one line to standard output consisting of one of the following exact strings (including capitalization), followed by a newline:
+  - `Alice` if `(B - A)` is even.
+  - `Borys` if `(B - A)` is odd.  
+- No other output is produced.
+
+4. Preconditions  
+- The input stream provides three integers in a readable form.  
+- The computation of `B - A` and the subsequent parity check are well-defined for the execution environment’s `int` type; if overflow occurs in `B - A`, behavior is unspecified.
+
+5. Postconditions  
+- If `(B - A) % 2 == 0`, the program outputs `Alice` followed by a newline.  
+- Otherwise, it outputs `Borys` followed by a newline.  
+- The program then terminates normally.
+
+6. Invariants  
+- The output depends only on the parity of `B - A`; `N` has no influence on the result.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input; behavior is unspecified if the required integers cannot be read.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program performs a single read, a single decision, a single write, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+
+```

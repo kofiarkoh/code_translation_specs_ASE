@@ -1,0 +1,72 @@
+#include <stdio.h>
+
+int main(void) {
+    int N, M;
+    if (scanf("%d %d", &N, &M) != 2) return 0;
+
+    /* Digits are stored 1..N (most significant to least significant).
+       -1 means "unconstrained". */
+    int d[4] = {0, -1, -1, -1};
+
+    if (M == 0) {
+        /* Postcondition for intended N in {1,2,3}. */
+        if (N == 1) {
+            printf("0\n");
+        } else if (N == 2) {
+            printf("10\n");
+        } else if (N == 3) {
+            printf("100\n");
+        } else {
+            /* Behavior outside intended range is not well-defined; choose minimal action. */
+            printf("-1\n");
+        }
+        return 0;
+    }
+
+    for (int i = 0; i < M; i++) {
+        int s, c;
+        if (scanf("%d %d", &s, &c) != 2) return 0;
+
+        /* Exceptional behavior: if (and only if) the first provided constraint
+           explicitly sets the most significant digit to 0 while N > 1, output -1. */
+        if (i == 0 && N > 1 && s == 1 && c == 0) {
+            printf("-1\n");
+            return 0;
+        }
+
+        /* Contradiction detection for same position. */
+        if (d[s] == -1) {
+            d[s] = c;
+        } else if (d[s] != c) {
+            printf("-1\n");
+            return 0;
+        }
+    }
+
+    /* Ensure nonzero most significant digit when N > 1. */
+    if (N > 1) {
+        if (d[1] == -1) d[1] = 1;
+        if (d[1] == 0) {
+            /* This can happen if not caught by the "first constraint" rule. */
+            printf("-1\n");
+            return 0;
+        }
+    } else {
+        /* N == 1: unconstrained digit defaults to 0. */
+        if (d[1] == -1) d[1] = 0;
+    }
+
+    /* Fill remaining unconstrained digits with 0 to minimize the number. */
+    for (int pos = 1; pos <= N; pos++) {
+        if (d[pos] == -1) d[pos] = 0;
+    }
+
+    /* Construct and output the N-digit integer (N intended <= 3). */
+    int value = 0;
+    for (int pos = 1; pos <= N; pos++) {
+        value = value * 10 + d[pos];
+    }
+
+    printf("%d\n", value);
+    return 0;
+}

@@ -1,0 +1,36 @@
+1. Functional Description  
+Given two non-negative resource quantities (interpretable as counts of two types), the program computes the maximum number of non-empty “boxes” (or groups) that can be formed under an implicit feasibility model defined by the code’s arithmetic constraints. It outputs one less than the maximum feasible count, treating one unit as a reserved “empty box” that is excluded from the reported result.
+
+2. Inputs  
+- Two signed 64-bit integers representing available quantities of two resources.
+
+3. Outputs  
+- One signed 64-bit integer: the computed maximum number of non-empty boxes/groups that can be formed, according to the program’s feasibility test, minus one.
+
+4. Preconditions  
+- The two input integers fit within signed 64-bit range.  
+- The intended domain is non-negative inputs; behavior for negative inputs is not meaningfully defined by the program’s contract.  
+- Intermediate arithmetic is assumed not to overflow signed 64-bit for the given input domain (the program does not guard against overflow).
+
+5. Postconditions  
+Let the input be (R, B) and the printed value be N. The program guarantees:  
+- N is the largest integer such that the internal feasibility predicate holds for (R, B) with parameter (N+1).  
+- Equivalently, feasibility holds for k = N+1 and does not hold for k = N+2, within the program’s searched range.  
+- The output is at most 2,222,221 (due to the program’s fixed search bound and the final subtraction by one).
+
+6. Invariants  
+- All feasibility decisions are monotonic in the searched parameter: if a given k is deemed feasible for (R, B), then all smaller k are treated as feasible by the solver’s search logic; if a k is infeasible, all larger k are treated as infeasible.  
+- The reported result is derived solely from the input pair (R, B) and deterministic arithmetic; no external state influences the outcome.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as two integers, the program’s behavior is undefined.  
+- Signed integer overflow, if it occurs, yields undefined behavior.  
+- For negative inputs, the feasibility model may produce nonsensical results; no validation is performed.
+
+8. State Transitions (if applicable)  
+- The program is stateless across runs. It performs a single computation from the provided input and terminates after producing one output value.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is bounded by a small number of nested logarithmic searches with fixed upper bounds; runtime is effectively bounded and fast for all valid inputs.  
+- Memory usage is constant (O(1)).

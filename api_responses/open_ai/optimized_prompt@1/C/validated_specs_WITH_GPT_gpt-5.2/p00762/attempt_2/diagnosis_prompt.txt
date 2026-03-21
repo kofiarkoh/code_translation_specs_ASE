@@ -1,0 +1,384 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#define N_MAX 4
+
+/*                 front  1  2  3  4  5  6 */
+char right[7][7] = { { 0, 0, 0, 0, 0, 0, 0 },   /* top */
+                     { 0, 0, 3, 5, 2, 4, 0 },   /* 1   */
+                     { 0, 4, 0, 1, 6, 0, 3 },   /* 2   */
+                     { 0, 2, 6, 0, 0, 1, 5 },   /* 3   */
+                     { 0, 5, 1, 0, 0, 6, 2 },   /* 4   */
+                     { 0, 3, 0, 6, 1, 0, 4 },   /* 5   */
+                     { 0, 0, 4, 2, 5, 3, 0 } }; /* 6   */
+
+#define RIGHT(top, front)  (right[(int)(top)][(int)(front)])
+#define BOTTOM(top, front) (7 - top)
+#define BACK(top, front)   (7 - front)
+#define LEFT(top, front)   (7 - RIGHT(top, front))
+
+/* ------ */
+
+char height_map[N_MAX * 2 + 1][N_MAX * 2 + 1],
+    top_map[N_MAX * 2 + 1][N_MAX * 2 + 2];
+
+void init()
+{
+    int x, y;
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            height_map[y][x] = top_map[y][x] = 0;
+}
+
+void put(char top, char front)
+{
+    int x = N_MAX, y = N_MAX, newfront, newtop, newx, newy, max;
+
+    while(1)
+    {
+        max = 0;
+
+        /* front */
+        if(height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max)
+            newfront = top, newtop = BACK(top, front),
+                newx = x, newy = y - 1, max = front;
+
+        if(height_map[y + 1][x] < height_map[y][x]
+           && BACK(top, front) > 3 && BACK(top, front) > max)
+            newfront = BOTTOM(top, front), newtop = front,
+                newx = x, newy = y + 1, max = BACK(top, front);
+
+        if(height_map[y][x - 1] < height_map[y][x]
+           && LEFT(top, front) > 3 && LEFT(top, front) > max)
+            newfront = front, newtop = RIGHT(top, front),
+                newx = x - 1, newy = y, max = LEFT(top, front);
+
+        if(height_map[y][x + 1] < height_map[y][x]
+           && RIGHT(top, front) > 3 && RIGHT(top, front) > max)
+            newfront = front, newtop = LEFT(top, front),
+                newx = x + 1, newy = y, max = RIGHT(top, front);
+
+        if(!max)
+            break;
+        else
+            front = newfront, top = newtop, x = newx, y = newy;
+    }
+
+    height_map[y][x]++, top_map[y][x] = top;
+}
+
+void count_and_print()
+{
+    int x, y, count[7];
+
+    for(x = 1; x <= 6; x++)
+        count[x] = 0;
+
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            count[(int)top_map[y][x]]++;
+
+    for(x = 1; x < 6; x++)
+        printf("%d ", count[x]);
+    printf("%d\n", count[x]);
+}
+
+int main(void)
+{
+    int n;
+
+    while(scanf("%d", &n), n)
+    {
+        int t, f;
+
+        init();
+
+        while(n--)
+        {
+            scanf("%d %d", &t, &f);
+            put(t, f);
+        }
+
+        count_and_print();
+    }
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates placing a sequence of labeled six-faced cubes onto a bounded 2D grid starting from the grid center. Each cube is placed by repeatedly “rolling” it to an adjacent cell that is strictly lower in stack height, choosing among eligible moves the one associated with the largest visible side value greater than 3. After no such move is possible, the cube is stacked on the current cell and its upward-facing value is recorded for that cell. After all cubes in the test case are placed, it reports how many grid cells have each possible upward-facing value (1 through 6).
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer specifying how many cubes follow.  
+- For each cube: two integers specifying the cube’s initial upward-facing value and initial forward-facing value.  
+- Input terminates when the test-case cube count is zero.
+
+3. Outputs  
+For each non-terminating test case, outputs one line containing six non-negative integers: the number of grid cells whose recorded upward-facing value equals 1, 2, 3, 4, 5, and 6, respectively.
+
+4. Preconditions  
+- Each cube’s provided upward-facing and forward-facing values are valid face labels in the range 1..6 and represent a physically consistent orientation of a standard labeled cube (i.e., not the same face and not opposite faces).  
+- The number of cubes in a test case is such that all simulated movements and placements remain within the fixed grid bounds.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each test case:  
+- Exactly the specified number of cubes have been placed, each increasing the stack height of exactly one grid cell by 1.  
+- Each grid cell stores the upward-facing value of the most recently placed cube at that cell; cells never used remain at value 0.  
+- The reported counts equal the number of grid cells (within the fixed grid) whose stored upward-facing value is 1..6 at the end of the test case.
+
+6. Invariants  
+- Stack heights per grid cell are non-negative integers and only increase by 1 per cube placement at the final resting cell.  
+- The cube’s orientation during movement always remains a valid cube orientation consistent with standard opposite-face relationships.  
+- A cube move, when it occurs, always goes to an orthogonally adjacent cell with strictly smaller current stack height than the source cell.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (invalid orientations, out-of-range values, malformed input, or movements exceeding grid bounds), behavior is undefined (may produce incorrect results or access invalid memory).  
+- If the input ends unexpectedly, results are unspecified.
+
+8. State Transitions (if applicable)  
+Per test case:  
+- State is reset to an empty grid (all heights zero; all recorded upward-facing values zero).  
+- For each cube, the state transitions by: (a) zero or more moves that change the cube’s position and orientation without changing grid heights, followed by (b) a placement that increments the destination cell’s height and overwrites that cell’s recorded upward-facing value.  
+- After processing all cubes, the state is summarized into the six output counts and then discarded when the next test case begins.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed-size square grid of side length 2·N_MAX+1 (here, 9×9), so memory usage is constant.  
+- Runtime per test case is proportional to the number of cubes times the number of moves each cube performs; moves are bounded by the grid size under the stated preconditions.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+#define GRID_NMAX 4
+#define GRID_SIZE (2 * GRID_NMAX + 1)
+
+typedef struct {
+    int top, bottom, north, south, east, west;
+} Cube;
+
+static void cube_init(Cube *c, int up, int forward) {
+    /* Standard opposite pairs: (1,6), (2,5), (3,4) */
+    static const int opp[7] = {0, 6, 5, 4, 3, 2, 1};
+
+    c->top = up;
+    c->bottom = opp[up];
+
+    /* Interpret "forward-facing" as the face on the north side (toward -y). */
+    c->north = forward;
+    c->south = opp[forward];
+
+    /* Determine east/west as the remaining opposite pair not used by top/bottom or north/south. */
+    int used[7] = {0};
+    used[c->top] = used[c->bottom] = 1;
+    used[c->north] = used[c->south] = 1;
+
+    int a = 0, b = 0;
+    for (int v = 1; v <= 6; v++) {
+        if (!used[v]) {
+            if (a == 0) a = v;
+            else b = v;
+        }
+    }
+    /* a and b must be opposites; choose a as east, b as west. */
+    c->east = a;
+    c->west = b;
+}
+
+static void roll_north(Cube *c) {
+    int old_top = c->top;
+    c->top = c->south;
+    c->south = c->bottom;
+    c->bottom = c->north;
+    c->north = old_top;
+}
+
+static void roll_south(Cube *c) {
+    int old_top = c->top;
+    c->top = c->north;
+    c->north = c->bottom;
+    c->bottom = c->south;
+    c->south = old_top;
+}
+
+static void roll_east(Cube *c) {
+    int old_top = c->top;
+    c->top = c->west;
+    c->west = c->bottom;
+    c->bottom = c->east;
+    c->east = old_top;
+}
+
+static void roll_west(Cube *c) {
+    int old_top = c->top;
+    c->top = c->east;
+    c->east = c->bottom;
+    c->bottom = c->west;
+    c->west = old_top;
+}
+
+int main(void) {
+    int m;
+    while (scanf("%d", &m) == 1) {
+        if (m == 0) break;
+
+        int height[GRID_SIZE][GRID_SIZE];
+        int last_top[GRID_SIZE][GRID_SIZE];
+
+        for (int y = 0; y < GRID_SIZE; y++) {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                height[y][x] = 0;
+                last_top[y][x] = 0;
+            }
+        }
+
+        for (int i = 0; i < m; i++) {
+            int up, forward;
+            if (scanf("%d %d", &up, &forward) != 2) return 0;
+
+            Cube c;
+            cube_init(&c, up, forward);
+
+            int x = GRID_NMAX, y = GRID_NMAX;
+
+            for (;;) {
+                int h0 = height[y][x];
+
+                /* Consider eligible moves: orthogonally adjacent with strictly lower height. */
+                int best_dir = -1; /* 0=N,1=E,2=S,3=W */
+                int best_val = -1;
+
+                /* North */
+                if (y - 1 >= 0 && height[y - 1][x] < h0) {
+                    int v = c.north; /* visible side in that direction */
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 0;
+                    }
+                }
+                /* East */
+                if (x + 1 < GRID_SIZE && height[y][x + 1] < h0) {
+                    int v = c.east;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 1;
+                    }
+                }
+                /* South */
+                if (y + 1 < GRID_SIZE && height[y + 1][x] < h0) {
+                    int v = c.south;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 2;
+                    }
+                }
+                /* West */
+                if (x - 1 >= 0 && height[y][x - 1] < h0) {
+                    int v = c.west;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 3;
+                    }
+                }
+
+                if (best_dir < 0) break;
+
+                /* Execute the chosen roll and move. */
+                switch (best_dir) {
+                    case 0: roll_north(&c); y -= 1; break;
+                    case 1: roll_east(&c);  x += 1; break;
+                    case 2: roll_south(&c); y += 1; break;
+                    case 3: roll_west(&c);  x -= 1; break;
+                }
+            }
+
+            height[y][x] += 1;
+            last_top[y][x] = c.top;
+        }
+
+        int cnt[7] = {0,0,0,0,0,0,0};
+        for (int y = 0; y < GRID_SIZE; y++) {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                int v = last_top[y][x];
+                if (v >= 1 && v <= 6) cnt[v]++;
+            }
+        }
+
+        printf("%d %d %d %d %d %d\n", cnt[1], cnt[2], cnt[3], cnt[4], cnt[5], cnt[6]);
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00762/p00762_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00762/p00762_sample1_output.txt
+Input:
+2
+1 2
+3 4
+5
+6 5
+2 3
+4 6
+1 5
+3 2
+0
+Expected:
+1 0 0 0 0 0
+2 1 1 0 0 1
+Actual:
+2 0 0 0 0 0
+3 1 0 0 0 0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

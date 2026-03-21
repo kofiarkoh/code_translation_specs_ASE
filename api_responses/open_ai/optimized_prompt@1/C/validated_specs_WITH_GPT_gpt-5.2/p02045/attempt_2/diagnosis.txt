@@ -1,0 +1,25 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for the “via rectangle” alternative cost (and possibly wrong interpretation of the rectangle input fields).
+
+B. What the current specification may be missing or misstating  
+- The spec describes the alternative as “escape to the rectangle from the first point … then enter from the rectangle to the second point,” and equates that to:  
+  (distance(first→rectangle) with possible −1) + (distance(second→rectangle)).  
+  This matches the helper `nigeru()` only if the rectangle is interpreted with the same coordinate ordering as the source.  
+- The failing result strongly suggests the generated program is computing distance to a *different rectangle* than the source does. In the source, the four integers are read into `A, B, C, D` and used as:  
+  - x is clamped to interval **[A, C]**  
+  - y is clamped to interval **[B, D]**  
+  The current spec calls them “two x-bounds and two y-bounds” but does not clearly bind the *input order* to those roles. The generated code assumes input order is `(xmin, xmax, ymin, ymax)`, while the source uses `(xmin, ymin, xmax, ymax)`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the meaning and order of the four rectangle integers as they appear in input, including which are x-bounds vs y-bounds. Concretely, the spec should state that the rectangle is defined by:  
+  - x-range from the 1st to the 3rd integer  
+  - y-range from the 2nd to the 4th integer  
+  (i.e., input is `A B C D` with x in `[A,C]` and y in `[B,D]`).  
+- Ensure the “distance to rectangle” definition is tied to those exact intervals, not just “two x-bounds and two y-bounds” in an unspecified order.
+
+D. Why this clarification is supported by the source program  
+- The source reads `scanf("%d%d%d%d", &A, &B, &C, &D)` and then computes distance contributions as:  
+  - `if (x < A) ...; if (C < x) ...;` (so A and C are the x bounds)  
+  - `if (y < B) ...; if (D < y) ...;` (so B and D are the y bounds)  
+  This unambiguously fixes the input-field-to-axis mapping and ordering.  
+- The large discrepancy in the failing test is consistent with swapping the roles of the 2nd and 3rd rectangle values (treating `B` as `xmax` and `C` as `ymin`), which would make the computed “distance to rectangle” much larger and thus inflate the total cost.

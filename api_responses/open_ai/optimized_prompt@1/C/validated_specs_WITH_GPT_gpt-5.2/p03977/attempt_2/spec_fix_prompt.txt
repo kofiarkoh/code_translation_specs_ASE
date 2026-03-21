@@ -1,0 +1,141 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of decimal integer pairs from standard input and, for each pair, computes a derived integer value based on the parity of the first integer, then writes the resulting values as decimal text, one per line, to standard output.
+
+2. Inputs  
+- A byte stream from standard input containing:
+  - An initial run of decimal digits that is ignored.
+  - Zero or more records, each consisting of two non-negative decimal integers separated by at least one non-digit character (any character less than `'0'` in the character set ordering is treated as a separator).
+
+3. Outputs  
+- A byte stream to standard output containing one line per successfully processed record:
+  - Each line is the computed integer rendered in base-10 without leading zeros (except that zero is rendered as a single digit), followed by a newline.
+
+4. Preconditions  
+- The input must fit within the fixed input buffer size (up to 10,000 bytes read).  
+- Each record’s two integers must be representable within the implementation’s signed integer range during parsing and computation.  
+- The computed result for each record must be non-negative (otherwise the textual rendering is not well-defined by the program’s behavior).  
+- Each computed result must have at most 10 decimal digits (otherwise output rendering may overflow the fixed temporary digit buffer).  
+- Total produced output must fit within the fixed output buffer size (up to 20,000 bytes).
+
+5. Postconditions  
+- For each complete record encountered after the initial ignored digit run, exactly one output line is produced.  
+- For a record with parsed integers `(N, D)`, the output value equals:
+  - If `N` is odd: `127*(N-1) + D`  
+  - If `N` is even: `127*N - D`
+
+6. Invariants  
+- Records are processed in input order.  
+- Output lines are emitted in one-to-one correspondence with processed records, preserving order.  
+- Parsing treats any character with code less than `'0'` as a delimiter terminating a number.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., insufficient input structure, overflow, negative computed result, excessive digits, or buffer capacity exceeded), behavior is undefined: output may be incorrect, truncated, or the program may fail.
+
+8. State Transitions (if applicable)  
+- Stateless across invocations.  
+- Within a run, transitions from:
+  - Skipping an initial digit run → processing zero or more records → emitting accumulated output and terminating.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on fixed-size in-memory buffers; does not stream output incrementally.  
+- Time and memory usage are bounded by the fixed buffer sizes and linear in the amount of input processed (up to the input buffer limit).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong termination/record-boundary rule (missing edge case about how records start and when parsing stops).
+
+B. What the current specification may be missing or misstating  
+The spec says each record consists of “two non-negative decimal integers separated by at least one non-digit character (< '0')”, and the generated code enforces that by requiring a separator between N and D and by skipping separators before attempting to parse N.  
+But the source program does **not** enforce “at least one separator” between N and D, and it does **not** skip separators before starting a record. Instead, it always attempts to parse N and then D using “read digits until a non-digit (< '0')”, consuming exactly one delimiter after each number, and it continues as long as the next character is a digit.
+
+C. What general behavior should be clarified in the specification  
+- Record parsing is driven by a pointer that, after skipping the initial digit run, processes records only while the current character is a digit (`>= '0'`).  
+- For each record, the program:
+  - Parses N by consuming consecutive digits, then consumes exactly one following non-digit (the first delimiter) as the terminator.
+  - Immediately parses D starting at the next position, again consuming digits until the next non-digit terminator.
+- There is **no requirement** that there be one-or-more delimiters between N and D beyond the single terminator character that ended N; and there is **no general “skip arbitrary separators to find the next record”** behavior. If the current position is not a digit, record processing ends.
+
+D. Why this clarification is supported by the source program  
+- The outer loop condition is `while(buf[sz]>='0')`, so processing stops as soon as the current byte is not a digit; it does not skip forward over separators to find the next record.  
+- N parsing: `char k=buf[sz++]; if(k<'0')break;` consumes digits and stops on the first `< '0'`, leaving `sz` positioned *after* that delimiter.  
+- D parsing is identical and begins immediately after N’s terminator; there is no separate step requiring or skipping “at least one separator” between N and D.  
+- Therefore, a spec that requires explicit separators between N and D and/or allows skipping separators between records can diverge from the source’s actual stop/continue behavior, which is tightly coupled to `buf[sz] >= '0'` at record boundaries.
+
+```

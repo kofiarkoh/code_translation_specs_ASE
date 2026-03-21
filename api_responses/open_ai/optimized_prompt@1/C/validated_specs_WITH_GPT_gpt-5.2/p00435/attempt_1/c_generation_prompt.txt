@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a single whitespace-delimited string and applies a fixed Caesar-style shift to each character, producing a transformed string where uppercase letters are shifted three positions backward within the uppercase Latin alphabet.
+
+2. Inputs  
+- One string token from standard input (terminated by whitespace).  
+- Characters are expected to be uppercase Latin letters for the intended transformation.
+
+3. Outputs  
+- The transformed string written to standard output, followed by a line terminator.
+
+4. Preconditions  
+- The input token length does not exceed the available buffer capacity (at most 999 characters).  
+- For defined, intended behavior: every character in the input token is an uppercase Latin letter ‘A’ through ‘Z’.
+
+5. Postconditions  
+- The output string has the same length as the input token.  
+- For each input character `c` in ‘A’..‘Z’, the corresponding output character is `c` shifted by 3 positions backward with wrap-around (i.e., ‘A’→‘X’, ‘B’→‘Y’, ‘C’→‘Z’, ‘D’→‘A’, …, ‘Z’→‘W’).  
+- The output is a valid null-terminated string.
+
+6. Invariants  
+- Character positions are preserved (no reordering, insertion, or deletion).  
+- Each character is transformed independently of other characters.  
+- The transformation is deterministic for a given input.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing input, input read failure, or oversized input.  
+- If the input exceeds buffer capacity, behavior is undefined.  
+- If the input contains characters outside ‘A’..‘Z’, the produced output is not specified by this contract (it will still apply a fixed arithmetic adjustment, but the resulting characters may be outside the uppercase range).
+
+8. State Transitions (if applicable)  
+- Not applicable (no persistent state beyond the single execution).
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to the input string length.  
+- Uses fixed-size memory for the input buffer.
+
+```

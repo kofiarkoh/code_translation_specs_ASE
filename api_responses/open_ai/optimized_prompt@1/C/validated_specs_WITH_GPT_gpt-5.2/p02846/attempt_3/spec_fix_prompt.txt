@@ -1,0 +1,143 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	long long T[3], A[3], B[3];
+	scanf("%lld %lld", &(T[1]), &(T[2]));
+	scanf("%lld %lld", &(A[1]), &(A[2]));
+	scanf("%lld %lld", &(B[1]), &(B[2]));
+	if (A[1] * T[1] + A[2] * T[2] == B[1] * T[1] + B[2] * T[2]) {
+		printf("infinity\n");
+		fflush(stdout);
+		return 0;
+	}
+	
+	if (A[1] > B[1]) {
+		A[1] += B[1];
+		B[1] = A[1] - B[1];
+		A[1] -= B[1];
+		A[2] += B[2];
+		B[2] = A[2] - B[2];
+		A[2] -= B[2];
+	}
+	if ((B[1] - A[1]) * T[1] > (A[2] - B[2]) * T[2]) printf("0\n");
+	else if ((B[1] - A[1]) * T[1] % ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) == 0) printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2);
+	else printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2 + 1);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+The program reads two phase durations and two pairs of per-unit values for entities A and B (one per phase). It compares the entities’ time-weighted totals over the two phases and outputs either:
+- the literal `infinity` if the two entities’ combined totals over both phases are exactly equal, or
+- otherwise, a nonnegative integer computed from time-weighted per-phase differences after a normalization step that may swap A and B.
+
+2. Inputs  
+Six signed integers (read as 64-bit integers) in this order:
+- `T1`, `T2`: durations of phase 1 and phase 2  
+- `A1`, `A2`: A’s per-unit values in phase 1 and phase 2  
+- `B1`, `B2`: B’s per-unit values in phase 1 and phase 2
+
+3. Outputs  
+Exactly one line:
+- `infinity` followed by a newline, or  
+- a decimal integer followed by a newline.
+
+4. Preconditions / Assumptions  
+- All six values are present in the input and fit in signed 64-bit integers.  
+- All intermediate arithmetic used (products and differences such as `Ai*Ti`, `Bi*Ti`, and derived expressions below) does not overflow signed 64-bit range.  
+- No validation is performed; behavior is unspecified if inputs are missing or if overflow occurs.
+
+5. Computation and Postconditions  
+
+5.1 Total-equality check  
+Compute the two-phase totals:
+- `TotalA = A1*T1 + A2*T2`  
+- `TotalB = B1*T1 + B2*T2`  
+If `TotalA == TotalB`, output `infinity` and terminate.
+
+5.2 Normalization (possible swap)  
+If `A1 > B1`, the program swaps A’s and B’s per-unit values for *both* phases (i.e., swaps `(A1,A2)` with `(B1,B2)`).  
+After this step, `A1 <= B1` holds.
+
+5.3 Derived quantities and integer result  
+Define time-weighted phase-difference quantities (after any swap):
+- `X = (B1 - A1) * T1`  
+- `Y = (A2 - B2) * T2`
+
+Then:
+- If `X > Y`, output `0`.  
+- Otherwise, let `D = Y - X` (so `D >= 0` in this branch). The program computes an integer count using integer division and remainder of `X` by `D`:
+  - If `X % D == 0`, output `2 * (X / D)`.  
+  - Else, output `2 * (X / D) + 1`.  
+
+This uses the language’s integer division and remainder semantics for the involved signed integers.
+
+6. Notes on edge conditions  
+- In the non-`infinity` path, the program may attempt to compute `X / D` and `X % D`. If `D == 0`, this results in division/modulo by zero and the program’s behavior is undefined. (The program does not guard against this case.)  
+- Apart from the `infinity` case, the output is intended to be a nonnegative integer as produced by the above rules.
+
+7. State / Termination  
+- The program is stateless aside from local variables.  
+- It always prints exactly one line and then terminates normally, except in cases of undefined behavior (e.g., overflow or division by zero).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / wrong assumption about the implementation environment (C I/O details), leading to non-compilable generated code.
+
+B. What the current specification may be missing or misstating  
+The specification describes inputs as “six signed integers (read as 64-bit integers)” but does not constrain *how* they must be read/printed in C. A generator chose to use the `SCNd64`/`PRId64` format macros, which require including `<inttypes.h>`. The spec doesn’t mention that requirement (or alternatively that plain `%lld` is used), so code consistent with the spec can still fail to compile.
+
+C. What general behavior should be clarified in the specification  
+Clarify the required C-level I/O contract for 64-bit integers, e.g. one of:
+- Use `long long` and the literal formats `%lld` for both `scanf`/`printf` (matching the source), or
+- Use `int64_t` with `SCNd64`/`PRId64` and explicitly require including `<inttypes.h>`.
+
+More generally: the spec should constrain the representation type and corresponding format strings so that conforming generated C code is guaranteed to compile.
+
+D. Why this clarification is supported by the source program  
+The source program concretely uses `long long` variables and hard-coded `%lld` format specifiers, and includes only `<stdio.h>`. It does not use `<stdint.h>`/`<inttypes.h>` or the `SCNd64`/`PRId64` macros. The observed failure (compiler errors at `SCNd64`/`PRId64`) is exactly what happens when those macros are used without the required header, showing the spec currently leaves an important implementation detail under-specified.
+
+```

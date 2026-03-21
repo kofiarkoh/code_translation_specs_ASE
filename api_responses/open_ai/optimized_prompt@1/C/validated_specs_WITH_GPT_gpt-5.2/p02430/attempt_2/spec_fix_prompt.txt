@@ -1,0 +1,162 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+// size: specify sizeof(str)
+int get_str(char *str, int size) {
+    if(!fgets(str, size, stdin)) return -1;
+    return 0;
+}
+
+int get_int(void) {
+  int num;
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return 0;
+  sscanf(line, "%d", &num);
+#else
+#error
+#endif
+  return num;
+}
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+
+    int pat, i;
+    for(pat = 0; pat < (1<<n); pat++) {
+        if(__builtin_popcount(pat)!=k) continue;
+        printf("%d:", pat);
+        for(i = 0; i < n; i++) {
+            if(!(pat & (1<<i))) continue;
+            printf(" %d", i);
+        }
+        putchar('\n');
+    }
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Generates and outputs all bitmask values representable with `n` bits that contain exactly `k` set bits. For each such bitmask, outputs the bitmask value followed by the list of zero-based bit positions that are set in that bitmask.
+
+2. Inputs  
+- Two integers read from standard input:  
+  - `n`: the number of bit positions considered.  
+  - `k`: the required number of set bits in each generated bitmask.
+
+3. Outputs  
+- To standard output, zero or more lines. Each line corresponds to one bitmask with exactly `k` set bits and contains:  
+  - The integer value of the bitmask, and  
+  - The ordered list (ascending) of indices in `[0, n-1]` whose bits are set in that bitmask.
+
+4. Preconditions  
+- Input provides two integers.  
+- `n` is assumed to be non-negative.  
+- To avoid undefined or non-portable behavior, it is assumed that `n` is small enough that enumerating all `2^n` bitmasks is feasible and that bit operations on `n`-bit masks are valid on the target platform (e.g., `n` does not exceed the effective bit width used for shifting and masking).  
+- `k` is assumed to be within a meaningful range for the problem (typically `0 <= k <= n`), though behavior for other values is still defined by the postconditions below.
+
+5. Postconditions  
+- For every integer bitmask `p` in the range `[0, 2^n - 1]` that has exactly `k` set bits, exactly one output line is produced describing `p` and its set bit positions.  
+- No output lines are produced for bitmasks whose number of set bits is not exactly `k`.  
+- If `k < 0` or `k > n`, no bitmask can satisfy the condition; therefore, no lines are produced (subject to the preconditions about valid enumeration).
+
+6. Invariants  
+- Each produced line lists only indices `i` such that `0 <= i < n`.  
+- Within a line, listed indices are strictly increasing.  
+- For each produced line, the number of listed indices equals `k`.  
+- Across all produced lines, each qualifying bitmask in `[0, 2^n - 1]` appears exactly once.
+
+7. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting.  
+- If input cannot be read or parsed as two integers, the values used for `n` and/or `k` are unspecified, and resulting output is unspecified.  
+- If preconditions regarding valid bit operations or feasible enumeration are violated, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to persistent program state: reads input once, produces output, and terminates. No external state is modified beyond writing to standard output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows proportionally to `2^n * n` due to enumerating all `n`-bit masks and examining up to `n` positions per mask.  
+- Output size can be exponential in `n` in the worst case (maximized near `k ≈ n/2`).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong output formatting / ordering rule (delimiter and punctuation).
+
+B. What the current specification may be missing or misstating  
+The specification describes each line as “the integer value of the bitmask, and the ordered list of indices…”, but it does not specify the exact textual format separating the mask value from the indices. The source program prints the mask value immediately followed by a colon (`:`) before listing indices, whereas the generated program prints the mask value followed by a space (no colon). This indicates the spec is too vague about required punctuation.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact output line format, including:
+- That each line begins with the decimal bitmask value followed immediately by a colon character `:` (no intervening space).
+- That each set-bit index is then printed preceded by a single space.
+- That each line ends with a newline.
+
+D. Why this clarification is supported by the source program  
+In the source, output is produced by:
+- `printf("%d:", pat);` which unconditionally appends `:` directly after the integer mask value.
+- Then for each set bit: `printf(" %d", i);` which ensures a leading space before each index.
+- Finally `putchar('\n');` to terminate the line.  
+This establishes a precise formatting contract that the current specification does not fully capture.
+
+```

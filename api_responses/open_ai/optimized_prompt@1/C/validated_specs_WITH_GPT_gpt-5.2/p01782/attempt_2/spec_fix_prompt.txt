@@ -1,0 +1,224 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2679 Decoding Ancient Messages
+// 2018.3.15 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { signed char a[52]; } T;
+T mx[10000]; int sz;
+#define mx_zero   0
+#define mx_inf    1
+
+int  mx_new() { return sz++; }
+void mx_clear(int a) { memset(mx+a, 0, sizeof(T)); }
+void mx_add1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] += mx[b].a[i]; }
+void mx_add2(int s, int a, int b) { int i; for (i = 0; i < 52; i++) mx[s].a[i] = mx[a].a[i]+mx[b].a[i]; }
+void mx_sub1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] -= mx[b].a[i]; }
+void mx_sub2(int d, int a, int b) { int i; for (i = 0; i < 52; i++) mx[d].a[i] = mx[a].a[i]-mx[b].a[i]; }
+void mx_mul2(int m, int a, int k) { int i; for (i = 0; i < 52; i++) mx[m].a[i] = mx[a].a[i] * k; }
+void mx_cpy(int a, int b) { memcpy(mx+a, mx+b, sizeof(T)); }
+int  mx_cmp(int a, int b) {
+	int k, i; for (i = 0; i < 52; i++) if (k = mx[a].a[i] - mx[b].a[i]) return k; return 0; }
+
+#define MAX 105
+typedef struct { int to, rev; int cap; int cost; } EDGE;
+EDGE edge[MAX][MAX]; int hi[MAX];
+int  V;				// 頂点数
+int  dist[MAX], prevv[MAX], preve[MAX];
+
+void add_edge(int from, int to, int cap, int cost, int rcost)
+{
+	int f, t;
+	EDGE *e;
+
+	f = hi[from]++, t = hi[to]++;
+	e = &edge[from][f], e->to = to, e->cap = cap, e->cost = cost, e->rev = t;
+	e = &edge[to][t], e->to = from, e->cap = 0, e->cost = rcost, e->rev = f;
+}
+
+int minCostFlow(int S, int T, int F)
+{
+	int i, v, nv, d, update;
+	int t = mx_new(), ret;
+	EDGE *e;
+
+	for (i = 0; i < V; i++) dist[i] = mx_new(); 
+	ret = mx_new();
+	while (F > 0) {
+		for (v = 0; v < V; v++) mx_cpy(dist[v], mx_inf);
+		mx_clear(dist[S]);
+		do {
+			update = 0;
+			for (v = 0; v < V; v++) {
+				if (mx_cmp(dist[v], mx_inf) == 0) continue;
+				for (i = 0; i < hi[v]; i++) {
+					e = &edge[v][i];
+					if (e->cap <= 0) continue;
+					nv = e->to;
+					mx_add2(t, dist[v], e->cost);
+					if (mx_cmp(dist[nv], t) > 0) {
+						mx_cpy(dist[nv], t), prevv[nv] = v, preve[e->to] = i;
+						update = 1;
+					}
+				}
+			}
+		} while (update);
+
+		d = F;
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			if (d > e->cap) d = e->cap;
+		}
+		F -= d;
+
+		mx_mul2(t, dist[T], d);
+		mx_add1(ret, t);
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			e->cap -= d;
+			edge[v][e->rev].cap += d;
+		}
+	}
+	return ret;
+}
+
+char map[53][53];
+
+int main()
+{
+	int N, i, j, a, b;
+	int source, sink;
+	char buf[10], c;
+
+	fgets(buf, 10, stdin), N = atoi(buf);
+	for (i = 0; i < N; i++) fgets(map[i], 53, stdin);
+
+	for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;
+	sz = 2,	source = N << 1, sink = source + 1, V = sink + 1;
+
+	for (i = 0; i < N; i++) {
+		add_edge(source, i, 1, mx_new(), mx_new());
+		for (j = 0; j < N; j++) {
+			c = map[i][j], a = mx_new(), b = mx_new();
+			if (c < 'a') mx[a].a[   c-'A'] = -1, mx[b].a[   c-'A'] = 1;
+			else         mx[a].a[26+c-'a'] = -1, mx[b].a[26+c-'a'] = 1;
+			add_edge(i, N+j, 1, a, b);
+		}
+		add_edge(N+i, sink, 1, mx_new(), mx_new());
+	}
+
+	a = minCostFlow(source, sink, N);
+
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i];
+		while (b) putchar('A'+i), b--;
+	}
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i+26];
+		while (b) putchar('a'+i), b--;
+	}
+	putchar('\n');
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads an integer size and an \(N \times N\) grid of alphabetic characters, then selects exactly one character from each row and exactly one character from each column (a perfect matching). Among all such selections, it chooses one that minimizes the multiset of chosen characters under lexicographic order by character (all uppercase letters ordered before all lowercase letters, each group ordered alphabetically). It outputs the resulting multiset as a string consisting of the chosen characters sorted in that same order.
+
+2. Inputs  
+- An integer \(N\).  
+- \(N\) subsequent lines representing an \(N \times N\) character grid.  
+- Each grid entry is assumed to be a single alphabetic character in the set {A–Z, a–z}.
+
+3. Outputs  
+- A single line containing exactly \(N\) characters: the characters selected by the optimal row/column assignment, sorted as: all ‘A’..‘Z’ in increasing order, then all ‘a’..‘z’ in increasing order.
+
+4. Preconditions  
+- \(1 \le N \le 52\) (so the grid fits the fixed storage and the internal graph size bounds).  
+- Each of the \(N\) grid lines contains at least \(N\) valid alphabetic characters.  
+- A perfect matching exists (guaranteed by the complete bipartite structure implied by the grid: every row can be matched to every column).  
+- The total internal storage for intermediate cost objects is sufficient for the constructed instance (assumed true for the stated bounds).
+
+5. Postconditions  
+- The output contains exactly \(N\) characters.  
+- There exists a bijection between rows and columns such that the output multiset equals the characters at the chosen \(N\) row/column positions.  
+- For any other bijection between rows and columns, when comparing the sorted multisets character-by-character using the order ‘A’..‘Z’, then ‘a’..‘z’, the produced output is lexicographically minimal.
+
+6. Invariants  
+- Exactly one selection is made per row and per column in the final solution.  
+- The output is always sorted in the fixed order: uppercase ascending, then lowercase ascending.  
+- The solution corresponds to a feasible assignment of size \(N\) (no partial assignment is output).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (e.g., \(N\) too large, non-alphabetic characters, insufficient line lengths, or resource limits exceeded), behavior is unspecified (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: consumes one problem instance from input and produces one output line, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small \(N\) (bounded by fixed-size arrays); not intended for arbitrary large grids.  
+- Deterministic: for the same input, always produces the same output.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong optimization objective (lexicographic direction), leading to a wrong counting rule for characters.
+
+B. What the current specification may be missing or misstating  
+The specification states the program “minimizes the multiset of chosen characters under lexicographic order” (with output sorted A–Z then a–z). That description is ambiguous about *which direction* of lexicographic comparison is being optimized and how the multiset comparison is induced from counts. The generated code interpreted this as “maximize the number of smallest letters first” (i.e., prefer more ‘A’s, then more ‘B’s, etc.), which produces outputs like `AABB`.  
+However, the source program’s cost construction (negative unit vector for the chosen character) and min-cost flow imply a different lexicographic criterion: it is not “as many small letters as possible”; it is lexicographic minimization of the **count vector** in the opposite direction (equivalently, lexicographically minimizing the sorted output string itself, not maximizing early-letter multiplicities).
+
+C. What general behavior should be clarified in the specification  
+Clarify precisely how two candidate matchings are compared:
+
+- Whether the objective is to minimize the **sorted output string** in standard lexicographic order (compare first character, then second, etc.), or instead to optimize the **frequency vector** by preferring higher counts of smaller letters.  
+- Explicitly define the comparison as a lexicographic comparison of the 52-dimensional count vector (counts of ‘A’, ‘B’, …, ‘Z’, ‘a’, …, ‘z’) and state the direction (minimize counts of ‘A’ first vs maximize, etc.).  
+- State that the algorithm’s optimization corresponds to minimizing a lexicographic cost vector, not a scalar cost, and that the sign/direction matters.
+
+D. Why this clarification is supported by the source program  
+In the source, each edge (row i → column j) has a “cost” that is a 52-component vector with **-1** in the component for the chosen character. The min-cost flow sums these vectors over the N chosen edges and then prints `-mx[a].a[k]` copies of each character. This means the internal objective is to minimize the summed vector in lexicographic order over components (as implemented by `mx_cmp` scanning from index 0 upward). Because chosen characters contribute **negative** counts, “minimizing” the vector does **not** correspond to “maximize small letters” in the way the generated greedy algorithm assumes; it corresponds to a specific lexicographic ordering over the signed count vector induced by those negative contributions. The observed discrepancy (`ABCD` expected vs `AABB` produced) is consistent with the spec being unclear/incorrect about that lexicographic direction and the induced multiset comparison rule.
+
+```

@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, determines a shortest contiguous time interval within a 12-hour period such that, for every provided stopped watch, there exists at least one real clock time within that interval that could produce the watch’s three displayed hand positions under some consistent interpretation (assignment of the three readings to hour/minute/second hands) and some uniform unknown offset applied to all three readings of that watch.
+
+2. Inputs  
+- Repeated datasets.  
+- Each dataset begins with an integer count of watches.  
+- For each watch: three integers representing the observed positions of the three hands, expressed as values in the range of a minute/second scale (assumed 0–59).  
+- Input terminates when the watch count is non-positive.
+
+3. Outputs  
+For each dataset, outputs two times within a 12-hour window:  
+- The start time and end time of the minimum-length interval (inclusive) that contains at least one feasible real time for each watch.  
+- Times are presented as hours, minutes, and seconds in conventional 2-digit fields.
+
+4. Preconditions  
+- The number of watches is positive and does not exceed the supported internal limit (assumed ≤ 10,000).  
+- Each watch provides exactly three integer readings.  
+- Each reading is assumed to be within 0–59; behavior is otherwise not guaranteed.  
+- For every dataset, it is assumed that at least one feasible real time exists for each watch and that a covering interval exists; otherwise the produced output is unspecified.
+
+5. Postconditions  
+For each dataset:  
+- The reported start and end times correspond to feasible real times (within the 12-hour period) for at least one watch each, and the interval between them contains at least one feasible real time for every watch.  
+- The reported interval length (end minus start, measured in seconds) is minimal among all such intervals.  
+- If multiple minimal intervals exist, the chosen one is the earliest by start time among those encountered by the program’s search order (not further specified).
+
+6. Invariants  
+- All candidate feasible times considered are within a single 12-hour cycle, represented as seconds from 00:00:00 up to 11:59:59.  
+- A watch’s feasibility at a time is defined by: some permutation of mapping its three readings to (hour-hand position on a 0–59 scale, minute-hand position, second-hand position) and some integer offset (0–59) added uniformly to all three readings (modulo 60), such that the hour-hand position is consistent with the minute value for that time according to standard analog clock geometry (hour hand advances with minutes).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range values, excessive watch counts, or datasets with no valid covering interval. In such cases, behavior and output are unspecified.
+
+8. State Transitions (if applicable)  
+- For each dataset, the program transitions from an initial empty candidate set to a populated set of feasible times per watch, then to a selected minimal covering interval, then outputs that interval and resets for the next dataset.  
+- No state is preserved across datasets other than termination on non-positive watch count.
+
+9. Non-functional Constraints (if inferable)  
+- Operates within fixed-size internal storage for candidate times and per-watch tracking, implying an upper bound on supported input sizes.  
+- Time domain is limited to a 12-hour period; no wrap-around across the 12-hour boundary is considered when forming intervals.
+
+```

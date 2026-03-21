@@ -1,0 +1,77 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 10
+#define INF  1000000000
+
+static int n;
+static int best;
+
+/* Find leftmost index with non-zero diff; returns n if all zero. */
+static int leftmost_nonzero(const int diff[]) {
+    for (int i = 0; i < n; i++) {
+        if (diff[i] != 0) return i;
+    }
+    return n;
+}
+
+/* Depth-first exhaustive exploration as specified:
+   - At each step, choose p = leftmost non-zero.
+   - Let k = diff[p] (1..9).
+   - Choose any i in [p, n-1], subtract k from diff[p..i] modulo 10.
+   - Count operations; minimize over all terminal states. */
+static void dfs(int diff[], int ops) {
+    if (ops >= best) return;
+
+    int p = leftmost_nonzero(diff);
+    if (p == n) {
+        best = ops;
+        return;
+    }
+
+    int k = diff[p]; /* non-zero by definition */
+    for (int i = p; i < n; i++) {
+        int saved[MAXN];
+        for (int t = 0; t < n; t++) saved[t] = diff[t];
+
+        for (int j = p; j <= i; j++) {
+            int v = diff[j] - k;
+            v %= 10;
+            if (v < 0) v += 10;
+            diff[j] = v;
+        }
+
+        /* Invariant: diff[p] becomes 0 after this operation. */
+        dfs(diff, ops + 1);
+
+        for (int t = 0; t < n; t++) diff[t] = saved[t];
+    }
+}
+
+int main(void) {
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        char a[256], b[256];
+        if (scanf("%255s %255s", a, b) != 2) return 0;
+
+        int diff[MAXN] = {0};
+        for (int i = 0; i < n; i++) {
+            int da = a[i] - '0';
+            int db = b[i] - '0';
+            int d = da - db;
+            d %= 10;
+            if (d < 0) d += 10;
+            diff[i] = d;
+        }
+
+        best = INF;
+        dfs(diff, 0);
+
+        if (best == INF) best = 0; /* Should not happen under preconditions. */
+        printf("%d\n", best);
+    }
+    return 0;
+}
+```

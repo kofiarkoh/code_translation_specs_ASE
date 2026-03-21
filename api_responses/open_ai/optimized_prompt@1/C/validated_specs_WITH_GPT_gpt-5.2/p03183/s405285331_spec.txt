@@ -1,0 +1,37 @@
+1. Functional Description  
+Computes the maximum total value obtainable by selecting a subset of given items and stacking them in some order such that, for every selected item, the total weight of all items placed above it does not exceed that item’s strength. Outputs the maximum achievable total value under this feasibility constraint, considering only stacks whose total weight does not exceed a fixed global limit.
+
+2. Inputs  
+- An integer count of items.  
+- For each item: three integers representing its weight, strength (maximum allowable weight above it), and value.
+
+3. Outputs  
+- A single integer: the maximum total value achievable by a feasible stack under the constraints described.
+
+4. Preconditions  
+- The item count is non-negative.  
+- Each item’s weight, strength, and value fit within the range of a 32-bit signed integer.  
+- Strength is assumed to be non-negative; otherwise, behavior is not meaningfully defined by the program’s contract.  
+- The total weight of any considered stack is implicitly limited to 20,000; items with weight or strength values that would require reasoning beyond this limit may lead to undefined behavior (see Error Handling).
+
+5. Postconditions  
+- The output equals the maximum sum of values over all subsets of items for which there exists an ordering into a stack satisfying: for each item in the stack, the sum of weights of items above it is less than or equal to its strength, and the total stack weight is at most 20,000.  
+- If no item can be included in any feasible stack, the output is 0.
+
+6. Invariants  
+- Feasibility is evaluated solely by the “weight above each item ≤ that item’s strength” rule.  
+- Each item is used at most once in any candidate stack.  
+- Only stacks with total weight within 0..20,000 are represented in the computed result.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling of invalid or malformed input; behavior is undefined if input is missing or not parseable as required integers.  
+- No explicit handling of allocation failure; behavior is undefined if memory cannot be obtained.  
+- If any item has strength greater than 20,000 or if intermediate total weights exceed 20,000 due to item weights, the program may access memory out of bounds; behavior is undefined in such cases.  
+- If the item count is negative, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes a result, and writes output once. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows approximately with (number of items) × 20,001.  
+- Memory usage is proportional to the number of items plus a fixed table sized for weights 0..20,000.

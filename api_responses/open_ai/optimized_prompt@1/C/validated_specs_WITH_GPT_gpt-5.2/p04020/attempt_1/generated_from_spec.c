@@ -1,0 +1,33 @@
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    int64_t total_pairs = 0;
+
+    /* We only need the previous position's remaining parity (0 or 1).
+       Greedy left-to-right:
+       - If previous has 1 leftover unit and current has >=1, form one adjacent pair.
+       - Then form all possible internal pairs in current.
+       - Carry forward current's leftover parity. */
+    int prev_odd = 0;
+
+    for (int i = 0; i < n; i++) {
+        int64_t a;
+        if (scanf("%" SCNd64, &a) != 1) return 0;
+
+        if (prev_odd && a > 0) {
+            total_pairs += 1;
+            a -= 1;
+            prev_odd = 0;
+        }
+
+        total_pairs += a / 2;
+        prev_odd = (int)(a & 1);
+    }
+
+    printf("%" PRId64 "\n", total_pairs);
+    return 0;
+}

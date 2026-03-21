@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo \(998244353\), a weighted count of subsequences based on where they end and how many “start positions” they admit.
+
+Formally, consider any subsequence \(T\) of the input array that is formed by choosing indices \(p_1 < p_2 < \dots < p_m\) (with \(m \ge 1\)). For this fixed \(T\), consider all choices of a start index \(t \in \{1,\dots,m\}\) and take the sum of the suffix \(T_t + T_{t+1} + \dots + T_m\). The program counts, over all subsequences \(T\), the number of start choices \(t\) such that this suffix sum equals the target \(s\). The final result is this total count reduced modulo \(998244353\).
+
+Equivalently: it counts pairs \((T,t)\) where \(T\) is a non-empty subsequence (order preserved) and \(t\) is a position within \(T\) designating the start of a suffix, such that the sum of that suffix is exactly \(s\).
+
+2. Inputs  
+- Integer \(n\): number of elements.  
+- Integer \(s\): target sum.  
+- A sequence \(A[0..n-1]\) of \(n\) integers.
+
+3. Outputs  
+- A single integer: the count described above, reduced modulo \(998244353\).
+
+4. Preconditions / Assumptions  
+- \(n \ge 1\).  
+- \(s \ge 0\).  
+- All input values are valid integers and are present.  
+- To match the program’s array indexing and sum-range handling, each \(A[i]\) is assumed to be non-negative; otherwise behavior is undefined (negative values can lead to invalid indexing).  
+- Sufficient memory is available for storage proportional to \(n \cdot (s+1)\).
+
+5. Postconditions (Mathematical Meaning)  
+Let \(A\) be the input sequence. The program outputs:
+\[
+\left(
+\sum_{\substack{m \ge 1\\ 0 \le p_1 < \dots < p_m < n}}
+\left|\left\{t \in \{1,\dots,m\} : \sum_{k=t}^{m} A[p_k] = s\right\}\right|
+\right)\bmod 998244353.
+\]
+That is, each non-empty subsequence contributes as many counts as it has suffixes summing to \(s\).
+
+6. Counting / Range Rules  
+- Only partial sums in \([0,s]\) are tracked; any extension that would exceed \(s\) is ignored.  
+- All intermediate and final counts are taken modulo \(998244353\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing/invalid, or if preconditions are violated (e.g., \(s<0\), negative elements, or insufficient memory), behavior is undefined.
+
+8. Termination / I/O Behavior  
+- Reads input once, performs the computation, prints exactly one integer followed by a newline, then terminates normally.
+
+```

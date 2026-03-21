@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value modulo a fixed prime modulus based on a sequence of nonnegative integer inputs. The result is derived from counting and weighting subset-sum combinations of the provided integers, and then applying a correction that depends on whether the total sum is even.
+
+2. Inputs  
+- An initial integer value.  
+- A (possibly empty) subsequent sequence of integer values, read until end-of-input.
+
+3. Outputs  
+- One integer in the range \([0, \text{modulus}-1]\), representing the computed value modulo the fixed modulus.
+
+4. Preconditions  
+- All provided integers are assumed to be nonnegative.  
+- The total sum of all subsequent integers (excluding the initial integer) is assumed to be within a fixed maximum such that all intermediate subset-sum indices used by the computation remain in-bounds.  
+- The initial integer is assumed to be present (input is not empty).
+
+5. Postconditions  
+Let:  
+- \(S\) be the sum of all subsequent integers (excluding the initial integer).  
+- For each \(x \in [0, S]\), let \(D[x]\) be the number of subsets of the subsequent integers whose elements sum to \(x\), computed modulo the modulus.  
+- Let \(E[x]\) be the number of such subsets whose sum is \(x\) and that additionally satisfy a distinguished condition tied to the initial integer (the code implies this condition is “subset sum equals the initial integer” at initialization), also computed modulo the modulus.  
+
+The program outputs, modulo the modulus, a value equal to:  
+- \(3^n\) (where \(n\) is the count of subsequent integers)  
+- minus \(3 \cdot \sum_{x=0}^{\lfloor S/2 \rfloor} D[x]\)  
+- minus an additional term \(3 \cdot E[S/2]\) if and only if \(S\) is even,  
+with the final result normalized into \([0, \text{modulus}-1]\).
+
+6. Invariants  
+- All maintained counts and the final result are interpreted modulo the fixed modulus.  
+- At any point after processing some prefix of the subsequent integers, the maintained subset-sum counts correspond to that prefix (i.e., they represent counts of subsets by sum for exactly the values read so far).  
+- The tracked total sum equals the sum of the subsequent integers read so far.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If inputs violate the preconditions (e.g., negative values or total sum exceeding the supported bound), behavior is undefined (may produce incorrect output or access invalid memory).  
+- If the initial integer is missing, the output is unspecified.
+
+8. State Transitions (if applicable)  
+- After reading the initial integer, the internal state is initialized to represent a single distinguished subset-sum count at that value and a neutral baseline for the final modular expression.  
+- Each subsequent integer transitions the state by updating subset-sum counts to incorporate the new value and updating the running total sum and the multiplicative baseline term.  
+- After end-of-input, the state transitions to a finalization phase that aggregates subset-sum counts up to half the total sum and applies the parity-dependent correction before producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage proportional to the maximum supported total sum.  
+- Runtime is proportional to the product of the number of subsequent integers and the total sum (pseudo-polynomial in the input values).
+
+```

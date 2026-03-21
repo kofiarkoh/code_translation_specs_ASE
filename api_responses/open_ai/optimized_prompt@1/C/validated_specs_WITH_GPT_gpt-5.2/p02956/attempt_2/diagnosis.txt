@@ -1,0 +1,29 @@
+A. Likely mismatch category  
+- **Wrong abstraction / underspecified computation rule** (missing concrete formula and transition rules), leading to an arbitrary implementation that cannot match the source.
+
+B. What the current specification may be missing or misstating  
+- It **does not specify the actual mathematical quantity** being computed—only high-level invariances (“depends on equality/ordering relationships”, “two directional passes”, “corrections”).  
+- It **omits the exact contribution terms** used in the accumulator, including:
+  - the **base term** initialized as a function of `N` and `2^N` (mod `Mod`),
+  - the **per-group updates** that add expressions involving **powers of two of Fenwick prefix counts**,
+  - the **subtractions/corrections** of the form `-(2^k) * (group_size)` in multiple phases,
+  - the fact that the algorithm performs **four distinct group-based correction sweeps** (two while grouped by one component, then swap components and do two more).
+- It suggests the result depends only on “relative ordering” and “equality classes”, but the source also depends on **the exact multiplicities and the interleaving structure captured by BIT counts during ordered scans**, not just group sizes in isolation.
+
+C. What general behavior should be clarified in the specification  
+- The specification needs to state the **exact modular formula** computed, at least at the level of:
+  - how inputs are **sorted and grouped** in each phase,
+  - how **ranks/IDs are assigned** (including the two-step relabeling: first compress one component, then sort by the other and compress again),
+  - the **precise accumulator updates** in each forward/backward pass:
+    - which BIT query is used (`sum(id-1)` etc.),
+    - which exponent is used in `2^exponent`,
+    - when and how group-size-based subtraction terms are applied,
+  - the final **swap of fields and regrouping** and the additional correction passes.
+- Also clarify that the algorithm uses **powers of 2 modulo `Mod`** extensively and that the BIT counts drive exponents; this is not optional structure but core semantics.
+
+D. Why this clarification is supported by the source program  
+- The source initializes `ans` as `((2^N - 1) * N) mod Mod`, which is a **specific base value** absent from the spec.  
+- In both main BIT-driven phases, for each element in a group it adds **two power-of-two terms**:
+  - `2^(count of prior IDs < current)` and `2^(count of prior IDs ≥ current)` (and symmetrically in reverse with suffix counts). This is a **very specific counting rule** (Fenwick prefix sums used as exponents), not captured by the current text.  
+- After each grouped scan, it applies a **group-size correction** subtracting `2^i * (group_size)` (or `2^(N-i-1) * (group_size)` in reverse), and then repeats analogous corrections after swapping components—showing the computation is a carefully balanced inclusion/exclusion style formula, not merely “depends on distributions”.  
+- Because the spec lacks these concrete rules, the generated program necessarily “invents” an accumulator; the observed mismatch is consistent with the spec being **too vague to uniquely determine** the source behavior.

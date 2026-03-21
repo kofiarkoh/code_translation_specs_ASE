@@ -1,0 +1,101 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+/* Fixed internal table capacity. Specification does not provide a value.
+   Choose a narrow, reasonable bound typical for factorial precomputation.
+   If inputs exceed this, behavior is unspecified per the Specification. */
+#define MAXN 2000000
+
+static int64_t fact[MAXN + 1];
+static int64_t invfact[MAXN + 1];
+
+static int64_t mod_norm(int64_t a) {
+    a %= MOD;
+    if (a < 0) a += MOD;
+    return a;
+}
+
+static int64_t mod_mul(int64_t a, int64_t b) {
+    /* MOD fits in 32 bits; product fits in signed 128 if needed, but int64 is safe:
+       (MOD-1)^2 < 1e18 < 2^63. */
+    return (a * b) % MOD;
+}
+
+static int64_t mod_pow(int64_t a, int64_t e) {
+    int64_t r = 1 % MOD;
+    a = mod_norm(a);
+    while (e > 0) {
+        if (e & 1) r = mod_mul(r, a);
+        a = mod_mul(a, a);
+        e >>= 1;
+    }
+    return r;
+}
+
+static void precompute_factorials(int n) {
+    /* Precondition: 0 <= n <= MAXN and factorial arguments intended to be < MOD
+       to ensure invertibility, per Specification. */
+    fact[0] = 1;
+    for (int i = 1; i <= n; i++) fact[i] = mod_mul(fact[i - 1], i);
+
+    invfact[n] = mod_pow(fact[n], MOD - 2); /* Fermat inverse; requires fact[n] != 0 mod MOD */
+    for (int i = n; i >= 1; i--) invfact[i - 1] = mod_mul(invfact[i], i);
+}
+
+static int64_t binom(int64_t n, int64_t r) {
+    /* Any invalid parameters yield 0, as specified. */
+    if (n < 0 || r < 0 || r > n) return 0;
+    if (n > MAXN) {
+        /* Out of precomputed range: unspecified behavior per Specification.
+           Return 0 as a narrow, non-inventive fallback. */
+        return 0;
+    }
+    return mod_mul(fact[(int)n], mod_mul(invfact[(int)r], invfact[(int)(n - r)]));
+}
+
+int main(void) {
+    int64_t x, y, k;
+    if (scanf("%lld %lld %lld", (long long *)&x, (long long *)&y, (long long *)&k) != 3) {
+        /* Unspecified behavior on malformed input; do nothing. */
+        return 0;
+    }
+
+    int64_t nmax = x + y + 2 * k;
+    if (nmax < 0 || nmax > MAXN) {
+        /* Preconditions violated => unspecified. Produce no explicit error. */
+        /* Still attempt to proceed minimally without crashing. */
+        if (nmax < 0) {
+            printf("0\n");
+            return 0;
+        }
+        /* If too large, cannot precompute; output unspecified. */
+        printf("0\n");
+        return 0;
+    }
+
+    precompute_factorials((int)nmax);
+
+    int64_t sum = 0;
+    for (int64_t i = 0; i <= k; i++) {
+        int64_t a1 = binom(x + 2 * (k - i), (k - i));
+        int64_t a2 = binom(x + 2 * (k - i), (k - i) - 1);
+        int64_t A = mod_norm(a1 - a2);
+
+        int64_t b1 = binom(y + 2 * i, i);
+        int64_t b2 = binom(y + 2 * i, i - 1);
+        int64_t B = mod_norm(b1 - b2);
+
+        int64_t C = binom(x + y + 2 * k, y + 2 * i);
+
+        int64_t term = mod_mul(mod_mul(A, B), C);
+        sum += term;
+        sum %= MOD;
+    }
+
+    sum = mod_norm(sum);
+    printf("%lld\n", (long long)sum);
+    return 0;
+}
+```

@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each dataset, a maximum-total-length route through an undirected weighted graph such that no edge is used more than once. Outputs the maximum achievable total length and one corresponding vertex sequence describing a route that attains it.
+
+2. Inputs  
+For each dataset:  
+- An integer number of vertices.  
+- An integer number of edges.  
+- A list of edges, each given by two endpoint vertex labels and a nonnegative or arbitrary integer length.  
+Datasets repeat until a dataset with zero vertices is encountered.
+
+3. Outputs  
+For each dataset:  
+- The maximum total length among all routes that traverse edges without repeating any edge.  
+- A sequence of vertex labels representing one route achieving that maximum length, listed in traversal order.
+
+4. Preconditions  
+- Vertex labels in edges are within the declared vertex range.  
+- The number of vertices does not exceed the fixed internal capacity for storing a route (at most 12 vertices in the reported route).  
+- The number of edges does not exceed the fixed internal capacity for storing edges (at most 25 edges).  
+- Input is well-formed according to the described dataset structure.
+
+5. Postconditions  
+- The first output value equals the maximum possible sum of edge lengths over all edge-simple routes (trails) in the graph.  
+- The printed vertex sequence corresponds to a valid route in the input graph whose consecutive vertices are connected by edges, and no edge is used more than once in that route.  
+- The sum of the lengths of the edges traversed by the printed route equals the printed maximum total length.
+
+6. Invariants  
+- During route construction, an edge is either unused or used exactly once in the current partial route; no partial route contains a repeated edge.  
+- The maintained “best” route length is always the greatest length found so far among all explored routes, and the stored best vertex sequence corresponds to that length.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input violates capacity limits or is malformed, behavior is unspecified.  
+- If the graph contains no edges, the program still prints a length of zero; the accompanying vertex sequence is not well-defined by the code’s guarantees.
+
+8. State Transitions (if applicable)  
+- For each dataset, internal state is reset: all edges are marked unused and the best-known route is cleared.  
+- While exploring routes, edges transition between “unused” and “used” within the scope of exploring a candidate route, and are restored to “unused” after that exploration completes.  
+- Upon completion of a dataset, the best-known route becomes the reported result; then the program transitions to reading the next dataset or terminates on zero vertices.
+
+9. Non-functional Constraints (if inferable)  
+- Exploration is exhaustive over edge-simple routes; runtime can grow exponentially with the number of edges.  
+- Memory usage is bounded by fixed-size storage for a limited number of edges and a limited route length.
+
+```

@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a sequence of that many integers, then computes and outputs the sum over all elements of (element value minus 1).
+
+2. Inputs  
+- One integer specifying the number of subsequent integers to read.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single integer equal to the sum of all input integers minus the count.
+
+4. Preconditions  
+- The count is non-negative.  
+- Exactly the specified number of integers are available as input.  
+- The computed result fits within the range of the program’s integer type (no overflow/underflow).
+
+5. Postconditions  
+- The output value equals: (sum of the provided integers) − (count).  
+- No other output is produced.
+
+6. Invariants  
+- After processing any prefix of the sequence of length k (0 ≤ k ≤ count), the running total equals the sum of the first k integers minus k.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing/invalid, behavior is unspecified.  
+- If the count is negative or if arithmetic overflows/underflows, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally visible persistent state).
+
+9. Non-functional Constraints (if inferable)  
+- Time grows linearly with the count of integers.  
+- Memory usage grows linearly with the count (stores the sequence).
+
+```

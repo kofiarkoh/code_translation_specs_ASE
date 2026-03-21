@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each of a given number of queries, computes and outputs a category value in the range 1–3 determined by the smaller of two positions after each position is mapped to its distance from the nearest end of a 1..n line (using 1-based positions).
+
+2. Inputs  
+- An integer `n`: the size of the line (number of positions).  
+- An integer `k`: the number of queries.  
+- `k` pairs of integers `(a, b)`: two 1-based positions per query.
+
+3. Outputs  
+- For each query, one integer per line in `{1, 2, 3}`.
+
+4. Preconditions  
+- `k >= 0`.  
+- For each query, `a` and `b` are intended to be valid 1-based positions within the line: `1 <= a <= n` and `1 <= b <= n`.  
+- `n` is intended to be positive (`n >= 1`) to make the position mapping meaningful.
+
+5. Postconditions  
+For each query with input positions `(a, b)`:
+- Let `da = min(a, n + 1 - a)` and `db = min(b, n + 1 - b)` (distance-to-nearest-end mapping, still 1-based).  
+- Let `m = min(da, db)`.  
+- The program outputs `((m - 1) mod 3) + 1`.  
+- Exactly `k` output lines are produced.
+
+6. Invariants  
+- Each produced output value is always in the set `{1, 2, 3}`.  
+- Each query is processed independently; no query affects the result of any other query.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the provided input is missing, malformed, or violates the intended bounds (e.g., positions outside `1..n` or non-positive `n`), the behavior is unspecified by this program’s contract.
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained across queries beyond reading inputs and producing outputs; the program terminates after processing all queries.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows linearly with the number of queries (`k`), with constant work per query.  
+- Uses a constant amount of additional memory.
+
+```

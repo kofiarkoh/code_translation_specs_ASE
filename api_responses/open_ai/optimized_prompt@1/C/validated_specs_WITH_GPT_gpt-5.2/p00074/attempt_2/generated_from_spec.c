@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+static void print_hms(int X) {
+    int hh = X / 3600;
+    int mm = (X % 3600) / 60;
+    int ss = X % 60;
+    /* Use at least two digits with leading zeros; wider values print in full. */
+    printf("%02d:%02d:%02d\n", hh, mm, ss);
+}
+
+int main(void) {
+    int h, m, s;
+
+    while (1) {
+        if (scanf("%d %d %d", &h, &m, &s) != 3) {
+            /* End-of-input or incomplete triple: terminate with no further output. */
+            break;
+        }
+
+        if (h == -1 && m == -1 && s == -1) {
+            /* Sentinel: terminate immediately without output for this triple. */
+            break;
+        }
+
+        /* All arithmetic is in int as specified; inputs assumed to fit. */
+        int T = 3600 * h + 60 * m + s;
+        int R = 7200 - T;
+
+        print_hms(R);
+        print_hms(3 * R);
+    }
+
+    return 0;
+}

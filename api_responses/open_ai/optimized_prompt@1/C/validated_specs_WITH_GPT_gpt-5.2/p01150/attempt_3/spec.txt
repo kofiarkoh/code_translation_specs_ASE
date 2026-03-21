@@ -1,0 +1,53 @@
+1. Functional Description  
+For each provided nonzero integer \(N\), the program computes a count of seatings of eight distinct individuals into \(N\) labeled positions arranged in a circle. The count is obtained by first counting certain valid 0/1 occupancy patterns of length \(N\) with exactly eight occupied positions, then multiplying by \(8!\) to account for assigning the eight distinct individuals to the occupied positions. One result is printed per input value; processing ends when a terminating zero is read.
+
+2. Inputs  
+- A sequence of integers \(N\).  
+- Input terminates when a value of 0 is encountered.  
+- If an integer cannot be read, processing stops (no output for that unreadable item).
+
+3. Outputs  
+- For each nonzero input \(N\), outputs a single nonnegative integer (printed as a signed 64-bit decimal) equal to the program’s computed number of valid seatings.
+
+4. Preconditions / Assumptions / Defined Range  
+- The program is intended for \(N \ge 0\).  
+- The implementation uses fixed-size internal arrays sized for indices up to 69; behavior is only defined for \(N \le 70\).  
+- The computed total is printed as a signed 64-bit integer; if the true value exceeds that range, overflow may occur.
+
+5. High-Level Counting Semantics  
+For each processed nonzero \(N\):  
+- If \(N \le 16\), the output is 0.  
+- If \(N > 16\), the output equals \(8!\) times the number of valid occupancy patterns counted by the program’s rules below.  
+- Seat positions are labeled by index; different occupied index sets are counted as different even if related by rotation or reflection.  
+- The eight individuals are distinct; different permutations of individuals over the same occupied positions are counted separately via the \(8!\) factor.
+
+6. Valid Occupancy Patterns (Exactly Eight Occupied)  
+The program counts binary strings \(x[0..N-1]\) with exactly eight 1s (“occupied”) subject to constraints that depend on the parity of \(N\):
+
+6.1. Odd \(N\) (cyclic non-adjacency)  
+When \(N\) is odd and \(N>16\), the counted patterns are exactly those with:  
+- Exactly eight occupied positions, and  
+- No two occupied positions adjacent on the circle (i.e., for all \(i\), not both \(x[i]=1\) and \(x[(i+1)\bmod N]=1\)).  
+
+6.2. Even \(N\) (paired-half constraint)  
+When \(N\) is even and \(N>16\), the program does **not** count all cyclic non-adjacent patterns. Instead, it counts patterns based on pairing opposite positions: for each \(i\in[0, N/2-1]\), positions \(i\) and \(i+N/2\) are treated as a pair, and the pattern is constructed by choosing for each pair one of three pair-states:  
+- \((1,0)\): first-half position occupied, opposite empty  
+- \((0,1)\): first-half position empty, opposite occupied  
+- \((0,0)\): both empty  
+The pair-state \((1,1)\) is never allowed.
+
+Additionally, as the program scans pairs in increasing \(i\), it enforces a “no consecutive occupied pairs in the same half” rule:  
+- If pair \(i\) is \((1,0)\), then pair \(i+1\) is not allowed to be \((1,0)\).  
+- If pair \(i\) is \((0,1)\), then pair \(i+1\) is not allowed to be \((0,1)\).  
+- Pair \((0,0)\) does not restrict the next pair.  
+
+Finally, the constraint is cyclic over the \(N/2\) pairs: the restriction between the last pair \((N/2-1)\) and the first pair (index 0) is also enforced in the same “same-half cannot repeat consecutively” sense, taking into account which of the two halves (if any) was occupied in pair 0.
+
+Under these rules, the total number of occupied positions across all pairs must be exactly eight (each \((1,0)\) or \((0,1)\) contributes one occupied position; \((0,0)\) contributes none).
+
+7. Termination and Per-Case State  
+For each nonzero \(N\): the program clears its memoization state, computes the occupancy-pattern count according to the parity-specific rules above (or 0 if \(N \le 16\)), multiplies by \(8!\), prints the result, and continues to the next input. Processing terminates immediately when \(N=0\) is read.
+
+8. Exceptional / Undefined Behavior  
+- If \(N>70\), internal indexing may exceed allocated bounds; behavior is undefined.  
+- If the mathematically correct result does not fit in signed 64-bit range, the printed value may be incorrect due to overflow.

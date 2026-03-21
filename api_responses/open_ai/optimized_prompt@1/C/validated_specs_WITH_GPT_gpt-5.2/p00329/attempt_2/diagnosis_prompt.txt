@@ -1,0 +1,295 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether a perfect one-to-one pairing exists between two equally sized sets derived from an input square relation matrix. If such a pairing exists, it outputs confirmation and then, for each element of the first set in order, outputs an associated element of the second set (as a 1-based index) such that the overall pairing remains perfect.
+
+2. Inputs  
+- An integer specifying the size parameter.  
+- A square matrix of relation indicators defining which pairings between the two sets are allowed.  
+  - The matrix defines allowed edges from each element of the first set (columns) to elements of the second set (rows).
+
+3. Outputs  
+- If no perfect pairing exists: a single line indicating failure.  
+- If a perfect pairing exists:  
+  - A line indicating success.  
+  - Then exactly one integer per line for each element of the first set (in increasing order), giving the selected partner in the second set as a 1-based index.
+
+4. Preconditions  
+- The size parameter implies a positive set size after internal adjustment (assumption: at least 1).  
+- The relation matrix is present and provides exactly the required number of indicators.  
+- The implied set size does not exceed the fixed internal capacity.
+
+5. Postconditions  
+- If failure is reported, then no perfect pairing exists for the given relation matrix.  
+- If success is reported, then:  
+  - The printed sequence defines a bijection between the two sets.  
+  - Every printed pairing corresponds to an allowed relation in the input matrix.  
+  - Each element of the second set is paired with exactly one element of the first set.
+
+6. Invariants  
+- Pairings, when constructed, are mutual: if an element of one set is paired to an element of the other, the reverse association is consistent.  
+- At any time a pairing is considered valid, no element is paired to more than one counterpart.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range sizes, or capacity overflow; behavior is unspecified in such cases.  
+- No explicit handling for I/O failures.
+
+8. State Transitions (if applicable)  
+- Transitions from “undecided” to either:  
+  - “no perfect pairing” (terminal), or  
+  - “perfect pairing exists” followed by producing a concrete pairing assignment (terminal after output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage, limiting the maximum supported set size.  
+- Designed for performance-oriented input/output and matching computation; exact complexity depends on the density of allowed relations.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+/*
+  Translation notes:
+  - The specification describes a bipartite perfect matching problem where:
+      * "first set" elements correspond to matrix columns (indexed 1..n)
+      * "second set" elements correspond to matrix rows (indexed 1..n)
+      * matrix indicator at (row r, col c) means edge c -> r is allowed.
+  - Output requires, for each column in increasing order, the matched row (1-based).
+  - Uses fixed-size internal storage; capacity overflow behavior is unspecified.
+  - The spec mentions "size parameter after internal adjustment"; the narrowest
+    reasonable interpretation without inventing behavior is: use the read integer
+    directly as n (assumed >= 1 by precondition).
+*/
+
+#define MAXN 512
+
+static unsigned char allowed[MAXN + 1][MAXN + 1]; /* allowed[row][col] */
+static int match_row_of_col[MAXN + 1];            /* col -> row, 0 if none */
+static int match_col_of_row[MAXN + 1];            /* row -> col, 0 if none */
+static unsigned char vis_row[MAXN + 1];
+
+static int n;
+
+static int dfs_augment(int col) {
+    int row;
+    for (row = 1; row <= n; row++) {
+        if (!allowed[row][col]) continue;
+        if (vis_row[row]) continue;
+        vis_row[row] = 1;
+
+        if (match_col_of_row[row] == 0 || dfs_augment(match_col_of_row[row])) {
+            match_row_of_col[col] = row;
+            match_col_of_row[row] = col;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int i, j;
+    if (scanf("%d", &n) != 1) {
+        /* Unspecified behavior for malformed input; exit quietly. */
+        return 0;
+    }
+
+    /* Read n*n relation indicators. Treat any nonzero as "allowed". */
+    for (i = 1; i <= n; i++) {
+        for (j = 1; j <= n; j++) {
+            int x;
+            if (scanf("%d", &x) != 1) {
+                /* Unspecified behavior for malformed input; exit quietly. */
+                return 0;
+            }
+            allowed[i][j] = (unsigned char)(x != 0);
+        }
+    }
+
+    memset(match_row_of_col, 0, sizeof(match_row_of_col));
+    memset(match_col_of_row, 0, sizeof(match_col_of_row));
+
+    for (j = 1; j <= n; j++) {
+        memset(vis_row, 0, (size_t)(n + 1) * sizeof(vis_row[0]));
+        if (!dfs_augment(j)) {
+            /* No perfect pairing exists. */
+            puts("NO");
+            return 0;
+        }
+    }
+
+    /* Perfect pairing exists; output assignment for each element of first set (columns). */
+    puts("YES");
+    for (j = 1; j <= n; j++) {
+        printf("%d\n", match_row_of_col[j]);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_output.txt
+Input:
+4
+1 0 1
+0 1 0
+1 0 1
+Expected:
+yes
+1
+2
+3
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

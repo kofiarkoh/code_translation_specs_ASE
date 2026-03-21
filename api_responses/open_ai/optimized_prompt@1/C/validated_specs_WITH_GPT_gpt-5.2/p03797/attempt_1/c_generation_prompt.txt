@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value derived from two input integers. The result is determined by comparing the first input to half of the second input and applying a piecewise rule that yields either zero, half of the second input, the first input, or a value between the first input and half of the second input.
+
+2. Inputs  
+- Two signed integers provided from standard input:
+  - First value: \(n\)
+  - Second value: \(m\)
+
+3. Outputs  
+- One signed integer written to standard output: \(sum\)
+
+4. Preconditions  
+- Two integer values are available on standard input and are representable in the program’s integer range.
+- Integer division by 2 is well-defined as truncation toward zero (as per the execution environment’s integer semantics).
+
+5. Postconditions  
+Let \(h = \text{trunc}(m/2)\). The output \(sum\) satisfies exactly one of the following, in priority order:
+- If \(m = 1\), then \(sum = 0\).
+- Else if \(h < n\), then \(sum = h\).
+- Else if \(0 \le (h - n) < 2\), then \(sum = n\).
+- Else (i.e., \(h - n \ge 2\)), then \(sum = n + \text{trunc}((h - n)/2)\).
+
+6. Invariants  
+- The program produces exactly one integer output if it reaches normal completion.
+- When \(m \ne 1\) and \(h \ge n\), the output is at least \(n\).
+- When \(m \ne 1\) and \(h < n\), the output equals \(h\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input is provided; if input cannot be read as two integers, behavior is unspecified.
+- No explicit overflow checks are performed; if intermediate or final arithmetic exceeds the representable range, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.
+
+```

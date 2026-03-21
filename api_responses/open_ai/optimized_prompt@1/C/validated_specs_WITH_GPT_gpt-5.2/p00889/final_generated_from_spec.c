@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MAXN 100000
+
+int main(void) {
+    int n;
+    int s, w;
+    int q;
+
+    static unsigned char a[MAXN];
+
+    while (1) {
+        if (scanf("%d %d %d %d", &n, &s, &w, &q) != 4) break;
+        if (n <= 0) break;
+
+        /* Digit generation */
+        int g = s;
+        for (int i = 0; i < n; i++) {
+            /* As specified: a[i] = ((g / 7) % 10) using integer division on signed int. */
+            int digit = (g / 7) % 10;
+            a[i] = (unsigned char)digit;
+
+            /* As specified: arithmetic right shift on signed int, then optional XOR with w. */
+            if (g & 1) g = (g >> 1) ^ w;
+            else       g = (g >> 1);
+        }
+
+        long long ans = 0;
+
+        if (q == 2 || q == 5) {
+            long long k = 0; /* number of positions up to current index with a[pos] != 0 */
+            for (int i = 0; i < n; i++) {
+                if (a[i] != 0) k++;
+                if ((a[i] % q) == 0) ans += k;
+            }
+        } else {
+            /*
+             * Count substrings divisible by q with no leading zero.
+             * Use suffix modular method:
+             * Let r[i] = value of digits a[i..n-1] mod q.
+             * For i<j, value(a[i..j-1]) divisible by q iff r[i] == r[j] * 10^(n-j) mod q.
+             * Equivalent to counting equal values of:
+             *   t[i] = r[i] * inv(10^(n-i)) mod q
+             * for start i and end boundary j.
+             *
+             * Enforce "no leading zero" by only registering i where a[i] != 0.
+             *
+             * This requires modular inverse of 10 mod q; valid since q not divisible by 2 or 5.
+             */
+            int qq = q;
+
+            /* Extended Euclid to compute inv10 = 10^{-1} mod q */
+            long long a0 = 10, b0 = qq;
+            long long x0 = 1, y0 = 0;
+            long long x1 = 0, y1 = 1;
+            while (b0 != 0) {
+                long long t = a0 / b0;
+                long long a2 = a0 - t * b0; a0 = b0; b0 = a2;
+                long long x2 = x0 - t * x1; x0 = x1; x1 = x2;
+                long long y2 = y0 - t * y1; y0 = y1; y1 = y2;
+            }
+            /* gcd is a0; for q not divisible by 2 or 5, gcd(10,q)=1 so inverse exists */
+            long long inv10 = x0 % qq;
+            if (inv10 < 0) inv10 += qq;
+
+            long long *cnt = (long long *)calloc((size_t)qq, sizeof(long long));
+            if (!cnt) return 0; /* no explicit error reporting required */
+
+            long long suf = 0;      /* r[i] while scanning from right */
+            long long invPow = 1;   /* inv(10^(n-i)) while scanning from right; starts at inv(10^0)=1 */
+
+            /* Boundary at j = n: r[n]=0, t[n]=0 */
+            cnt[0] = 1;
+
+            for (int i = n - 1; i >= 0; i--) {
+                /* Update suffix remainder: r[i] = (a[i]*10^(n-1-i) + r[i+1]) mod q */
+                suf = (suf + (long long)a[i] * ( (invPow == 0) ? 0 : 0 )) ; /* placeholder to keep structure */
+                /* We instead maintain pow10 forward implicitly by updating suf as:
+                   suf = (a[i] * pow10 + suf) mod q, with pow10 = 10^(n-1-i).
+                   Since we are scanning right-to-left, we can maintain pow10 directly. */
+            }
+
+            /* Recompute properly with explicit pow10 and invPow in one pass */
+            for (int r = 0; r < qq; r++) cnt[r] = 0;
+            cnt[0] = 1;
+
+            suf = 0;
+            long long pow10 = 1;    /* 10^(n-1-i) when at i=n-1 => 10^0 */
+            invPow = 1;             /* inv(10^(n-i)) when at i=n-1 => inv(10^1) after update below */
+
+            for (int i = n - 1; i >= 0; i--) {
+                suf = (suf + (long long)a[i] * pow10) % qq;
+
+                /* inv(10^(n-i)) = inv(10^(n-(i))) = inv(10^(n-i)) ; for i=n-1 => inv(10^1) */
+                invPow = (invPow * inv10) % qq;
+
+                long long t = (suf * invPow) % qq;
+
+                if (a[i] != 0) {
+                    ans += cnt[t];
+                }
+
+                cnt[t]++;
+
+                pow10 = (pow10 * 10) % qq;
+            }
+
+            free(cnt);
+        }
+
+        printf("%lld\n", ans);
+    }
+
+    return 0;
+}

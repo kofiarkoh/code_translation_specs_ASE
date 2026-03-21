@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description
+- Reads a rectangular grid and identifies all marked cells.
+- For each marked cell, considers up to 100 reachable empty cells that are farthest (by shortest-path distance) when movement is restricted to two directions (down and right) through empty cells.
+- Computes a maximum-total-distance assignment that pairs each marked cell with a distinct reachable empty cell, maximizing the sum of chosen shortest-path distances under the above movement and reachability rules.
+- Outputs that maximum sum as an integer.
+
+2. Inputs
+- Two positive integers specifying grid height and width.
+- A grid of characters with those dimensions, where:
+  - Marked cells are denoted by a specific marker character.
+  - Traversable empty cells are denoted by a specific empty character.
+  - Other characters are treated as non-traversable.
+
+3. Outputs
+- A single signed integer value:
+  - The maximum achievable sum of distances over all valid one-to-one pairings between marked cells and empty cells, subject to the reachability and “top 100 farthest candidates per marked cell” restriction.
+
+4. Preconditions
+- Grid dimensions are within the fixed internal storage limits implied by the program (must not exceed the statically allocated bounds).
+- The number of marked cells and the number of grid cells must be within the fixed internal storage limits for the constructed graph.
+- The input grid lines contain at least the required number of characters per row.
+- The marker and empty characters used by the input match those expected by the program.
+- Sufficient memory is available for dynamic allocations performed during optimization.
+
+5. Postconditions
+- If the program terminates normally, the printed value equals the optimal objective value of the constrained assignment problem described in (1), where:
+  - Each marked cell is assigned to at most one empty cell.
+  - Each empty cell is assigned to at most one marked cell.
+  - A marked cell may only be assigned to an empty cell that is reachable from it via a path through empty cells using only down/right moves.
+  - For each marked cell, only up to 100 reachable empty cells with greatest distances (ties resolved by the program’s internal ordering) are eligible for assignment.
+  - The objective maximizes the sum of the selected shortest-path distances.
+
+6. Invariants
+- During optimization, all maintained flows respect edge capacities (never negative and never exceeding capacity).
+- The net supply/demand across all nodes remains balanced (total supply equals total demand).
+- The optimization maintains a feasible flow with respect to the current residual capacities whenever it continues iterating.
+- The objective value tracked corresponds to the cost of the current feasible flow under the constructed network model.
+
+7. Error Handling / Exceptional Behavior
+- If the constructed flow problem is detected to be infeasible, the optimization routine returns a sentinel value; the main program negates and prints it (resulting in a very large negative number).
+- If the optimization cannot find any augmenting path to satisfy remaining deficits, it returns a sentinel value; the main program negates and prints it (resulting in a very large positive number).
+- No explicit handling is provided for malformed input, out-of-bounds dimensions, exceeding internal fixed capacities, or memory allocation failure; behavior in these cases is undefined.
+
+8. State Transitions (if applicable)
+- The program transitions through these conceptual states:
+  1) Input acquisition (dimensions and grid).
+  2) Candidate generation per marked cell (reachability and distance computation; selection of up to 100 farthest reachable empty cells).
+  3) Network construction representing a one-to-one assignment with optional “unassigned” routing.
+  4) Successive improvement of a feasible flow until all deficits are resolved or failure is detected.
+  5) Output of the final objective value (or a sentinel-derived value on failure).
+
+9. Non-functional Constraints (if inferable)
+- Time and memory usage are bounded by fixed-size arrays sized for moderate grids and a capped number of graph edges; exceeding these implicit limits risks undefined behavior.
+- Candidate consideration is explicitly capped at 100 reachable empty cells per marked cell, which constrains both runtime and solution space (the result is optimal only within this restricted candidate set).
+
+```

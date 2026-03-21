@@ -1,0 +1,215 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1345
+  Title:Bit String Reordering
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+#define max(x,y) (((x)>(y))?(x):(y))
+#define min(x,y) (((x)<(y))?(x):(y))
+int M,N;
+char b[15];
+char b1[15];
+int  p[15];
+int  p1[15];
+
+int solve(char bit[],int runlen[],int len,int runlenlen,char start)
+{
+  int pos;
+  char *p;
+
+  if(len==1)
+    return(0);
+  if(runlen[0]==0)
+    return(solve(bit,runlen+1,len,runlenlen-1,start=='1'?'0':'1'));
+  if(len==2)
+    {
+      if(bit[0]==start)
+	return(0);
+      else
+	return(1);
+    }
+  else if(bit[0]==start)
+    {
+      runlen[0]--;
+      return(solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+  else if(start=='0')
+    {
+      p = strchr(bit,'0');
+      pos =  p - bit;
+      runlen[0]--;
+      *p='1';
+      return(pos+solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+  else if(start=='1')
+    {
+      p = strchr(bit,'1');
+      pos =  p - bit;
+      runlen[0]--;
+      *p='0';
+      return(pos+solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+}
+
+main()
+{
+  int i,ret,c1,ce,ret1,ret2;
+  
+  scanf("%d %d ",&N,&M);
+
+  for(i=c1=0;i<N;i++)
+    {  
+      scanf("%c ",&b[i]);
+      if(b[i]=='1')
+	c1++;
+    }
+  for(i=ce=0;i<M;i++)
+    {
+      scanf("%d",&p[i]);
+      if((i & 1)==0)
+	ce += p[i];
+    }
+
+    if(c1*2==N)
+    {
+      memcpy(b1,b,sizeof(b));
+      memcpy(p1,p,sizeof(p));
+      ret1=solve(b,p,N,M,'1');
+      ret2=solve(b1,p1,N,M,'0');
+      ret=min(ret1,ret2);
+    }
+  else if (ce==c1)
+    ret=solve(b,p,N,M,'1');
+  else
+    ret=solve(b,p,N,M,'0');
+  
+
+  printf("%d\n",ret);
+  
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the total “bring-forward” movement cost required to reorder a given binary string into a target pattern defined by a list of run lengths. The target pattern consists of consecutive runs of identical bits whose lengths are given in order, with the bit value alternating between runs. The program chooses the starting bit (`'0'` or `'1'`) according to the input’s number of `'1'` bits and the run-length list, and outputs the resulting cost; when both starting bits are admissible, it outputs the smaller of the two costs.
+
+2. Inputs  
+- `N` and `M` (integers): the length of the bit string and the number of run lengths.  
+- A sequence of `N` bit characters, each being the literal character `'0'` or `'1'`. These characters may be separated by whitespace (spaces/newlines).  
+- A sequence of `M` integers `p[0..M-1]` giving the run lengths in order.
+
+3. Outputs  
+- A single integer: the computed movement cost for the selected starting bit, or the minimum of the two costs when both starting bits are considered.
+
+4. Preconditions / Assumptions  
+- `1 ≤ N ≤ 14` and `1 ≤ M ≤ 14` (bounded by fixed internal arrays).  
+- Each of the `N` bit inputs is exactly the character `'0'` or `'1'`.  
+- Run lengths are integers; the intended use is that they are nonnegative and their sum equals `N`.  
+- The run-length sequence and the multiset of bits in the input are compatible for the starting bit(s) the program evaluates: at each step where a bit of a given value is required, such a bit exists somewhere at or to the right of the current position in the current string state. If this is not true, behavior is undefined.
+
+5. Target Pattern Semantics  
+- The run-length list describes the target string as follows: run `0` has length `p[0]` and uses the chosen starting bit; run `1` has length `p[1]` and uses the opposite bit; and so on, alternating each run.  
+- Runs of length `0` are allowed and are skipped, but they still flip the required bit value for subsequent runs (i.e., a zero-length run advances to the next run and toggles the bit).
+
+6. Starting-Bit Selection  
+Let `c1` be the number of `'1'` characters in the input string. Let `ce` be the sum of run lengths at even indices (`p[0] + p[2] + ...`).  
+- If `c1 * 2 == N` (equal numbers of `'0'` and `'1'`), the program computes the cost for both starting bits (`'1'` and `'0'`) and outputs the smaller cost.  
+- Otherwise, it evaluates exactly one starting bit:
+  - If `ce == c1`, it uses starting bit `'1'`.  
+  - Otherwise, it uses starting bit `'0'`.  
+No additional feasibility checking is performed beyond this selection logic.
+
+7. Movement Cost Definition (as Implemented)  
+The program conceptually constructs the target string from left to right by repeatedly ensuring the next required bit is at the current position:
+- If the current character already matches the required bit, it is kept in place at zero cost.  
+- Otherwise, the program finds the first occurrence (lowest index) of the required bit at or after the current position, and “brings it forward” to the current position. The cost added for this step is the distance from the current position to that found occurrence (i.e., the number of positions it is moved left).  
+- The process then advances to the next position and continues with the remaining run lengths (decrementing the current run length when a position is filled; when a run length reaches zero, it moves to the next run and toggles the required bit).
+
+The reported total cost is the sum of these per-position distances over the entire string.
+
+8. Termination Behavior  
+- For `N == 1`, the cost is `0`.  
+- For `N == 2`, the cost is `0` if the first bit already matches the required starting bit, otherwise `1`.  
+- For larger `N`, the algorithm proceeds position by position until all positions are processed, then prints the accumulated cost.
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input sizes exceed internal capacities, if bits are not `'0'`/`'1'`, if run lengths do not describe a realizable target given the input bits, or if the sum of run lengths does not match `N`, the program’s behavior is undefined (may produce incorrect output or crash).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition rule / wrong cost accounting in the reordering step (algorithmic abstraction mismatch).
+
+B. What the current specification may be missing or misstating  
+The spec describes the per-step operation as “bring the first required bit forward to the current position” and implies a stable left-rotation/shift of the intervening substring (equivalent to moving that found bit to the front while preserving the relative order of the skipped characters).  
+However, the source program’s `solve()` does **not** actually perform that full bring-forward operation. It only:
+- finds the first occurrence of the needed bit (`strchr`),
+- adds its index `pos` to the cost,
+- then **flips that found character in place** (`*p = opposite_bit`),
+- and advances the pointer (`bit+1`) without shifting the intervening characters.
+
+So the spec’s “string state update” after paying `pos` is likely incorrect: it models a physical move/shift, while the source models a different in-place mutation (a kind of “consume one needed bit somewhere to the right by turning it into the other bit”, then move on).
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact state transition used when the current position does not match the required bit:
+
+- The cost is computed as the index of the first required bit in the current suffix (distance from current position).
+- But instead of moving that bit to the front (shifting/rotating), the algorithm mutates the suffix by **changing that located required bit into the opposite bit**, then discards the current position by recursing on `bit+1`.
+- The character at the current position is not explicitly overwritten; the algorithm’s correctness relies on the pointer-advance plus the mutation elsewhere, not on performing a stable permutation.
+
+In other words: the “reordering” is not implemented as an explicit sequence of adjacent swaps on the array; it’s implemented via a recursive scan with a specific in-place flip that implicitly accounts for the effect of bringing a bit forward.
+
+D. Why this clarification is supported by the source program  
+In `solve()`:
+
+- When `bit[0] != start`, it does:
+  - `p = strchr(bit, start); pos = p - bit;`
+  - `runlen[0]--;`
+  - `*p = (start=='0' ? '1' : '0');`
+  - `return pos + solve(bit+1, ...)`
+
+There is **no code** that shifts `bit[0..pos-1]` right or places the found bit at `bit[0]`. The only mutation is `*p = ...` at the found position, and recursion advances the base pointer by one. Therefore, any specification that describes the operation as an actual bring-forward/rotation of characters is not faithful to the implemented transition, and can systematically produce different totals (as seen in the failing sample).
+
+```

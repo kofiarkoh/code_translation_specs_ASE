@@ -1,0 +1,54 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static void print_perm(const int *perm, int n) {
+    if (n <= 0) {
+        /* For N == 0, output exactly one empty line. */
+        putchar('\n');
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        if (i) putchar(' ');
+        printf("%d", perm[i]);
+    }
+    putchar('\n');
+}
+
+static void gen(int pos, int n, int *perm, unsigned char *used) {
+    if (pos == n) {
+        print_perm(perm, n);
+        return;
+    }
+    for (int v = 1; v <= n; v++) {
+        if (!used[v]) {
+            used[v] = 1;
+            perm[pos] = v;
+            gen(pos + 1, n, perm, used);
+            used[v] = 0;
+        }
+    }
+}
+
+int main(void) {
+    int n;
+    /* No explicit error handling: if parsing fails, behavior is undefined per spec. */
+    (void)scanf("%d", &n);
+
+    if (n == 0) {
+        print_perm(NULL, 0);
+        return 0;
+    }
+
+    /* For negative input, behavior is undefined per spec; we do not define it here. */
+    int *perm = (int *)malloc((size_t)n * sizeof(int));
+    unsigned char *used = (unsigned char *)calloc((size_t)(n + 1), sizeof(unsigned char));
+    /* No explicit allocation failure handling: undefined per spec. */
+
+    gen(0, n, perm, used);
+
+    free(used);
+    free(perm);
+    return 0;
+}
+```

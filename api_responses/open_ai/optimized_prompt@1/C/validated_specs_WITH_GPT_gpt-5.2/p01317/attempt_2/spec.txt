@@ -1,0 +1,37 @@
+1. Functional Description  
+For each dataset, computes the minimum total cost to traverse a required sequence of locations in the given order on an undirected graph whose connections belong to one of two cost categories. Between each consecutive pair of required locations, travel is modeled as either:  
+- a three-part route using only the first category from the current required location to a chosen intermediate location, then only the second category between two chosen intermediate locations, then only the first category from the second intermediate location to the next required location; or  
+- a direct route using only the first category between the two required locations (this is treated as a special case of the above when the two intermediate locations are the same).
+
+2. Inputs  
+Each dataset (repeated until termination) consists of:  
+- Two integers `N` and `M`: number of locations and number of connections. Input terminates when `N` is zero (the value of `M` on that line is ignored).  
+- `M` connection records. Each record contains: two endpoint location identifiers, a nonnegative integer cost, and a single character type. The type character `'L'` denotes the first cost category; any other character denotes the second cost category. Connections are undirected.  
+- An integer `R`: the length of the required visit sequence.  
+- `R` location identifiers giving the required sequence in order.
+
+3. Outputs  
+For each dataset, prints one line containing a single integer: the minimum total cost achievable to traverse the required sequence under the movement rules described above.
+
+4. Preconditions / Assumptions  
+- All location identifiers in the input (both in connection records and in the required sequence) are 1-based and lie in `1..N`.  
+- `R >= 1`.  
+- `N <= 205` and `R <= 1005`.  
+- Costs and path sums are assumed not to overflow 32-bit signed integer arithmetic when combined with the program’s internal “large value” sentinel used for unreachable states.
+
+5. Semantics and Edge Cases  
+- The program treats the two cost categories independently: it computes, for every pair of locations `(u,v)`, the minimum cost to travel from `u` to `v` using only `'L'` connections, and separately the minimum cost using only non-`'L'` connections. If no such path exists for a category, that pair remains effectively unreachable for that category.  
+- The total traversal cost is the sum over the `R-1` consecutive required pairs. For each step from required location `a` to next required location `b`, the step cost is the minimum over all choices of intermediate locations `j` and `i` of:  
+  - (minimum `'L'`-only cost from `a` to `j`)  
+  + (minimum non-`'L'`-only cost from `j` to `i`)  
+  + (minimum `'L'`-only cost from `i` to `b`),  
+  with an additional allowance that when `i == j`, the step may instead use the minimum `'L'`-only cost directly from `a` to `b` (i.e., bypassing the middle non-`'L'` portion).  
+- The traversal starts at the first required location with cost 0; there is no initial cost to “choose” an intermediate location before the first required location.  
+- The final answer is the minimum total cost after processing all `R` required locations, regardless of the last chosen intermediate location.  
+- If no valid traversal exists, the program outputs its internal large sentinel value representing “unreachable” (it does not print a special message).
+
+6. State/DP Interpretation (high level)  
+- After completing the transition from required index `k` to `k+1`, the maintained state represents the minimum total cost so far together with the chosen intermediate location on the “arrival side” of required location `k+1` (the location `i` used in the last `'L'` leg into that required location). The algorithm minimizes over all such states at the end.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Malformed input or violations of the stated bounds/assumptions result in undefined behavior.

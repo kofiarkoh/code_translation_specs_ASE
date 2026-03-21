@@ -1,0 +1,43 @@
+1. Functional Description  
+Reads a multiset of integers and computes the minimum number of elements that must be selected so that, after removing all perfect-cube factors from each input value, no two selected elements can be paired such that their product is a perfect cube. Equivalently, it partitions the cube-reduced values into “complement” groups whose pairwise product is a perfect cube, and counts one representative group size per partition according to the rules below.
+
+2. Inputs  
+- An integer `n`: the number of values.  
+- A sequence of `n` integers.
+
+3. Outputs  
+- A single integer: the computed minimum selection count described above.
+
+4. Preconditions  
+- `n` is non-negative and does not exceed the fixed internal capacity (assumed ≤ 100000).  
+- Each input value is a positive integer representable in signed 64-bit range.  
+- The computation assumes that any remaining factor larger than a fixed small-prime sieve limit is either prime or a square of a prime (i.e., inputs are such that this classification is sufficient for correctness).
+
+5. Postconditions  
+Let `f(x)` be `x` with all perfect-cube factors removed (i.e., repeatedly divide by `p^3` for any prime `p` while divisible). Let `S` be the multiset `{ f(x_i) }`. The program outputs a value `R` such that:  
+- For every value `v` in `S` that cannot be reliably classified into the complement-pairing scheme under the program’s assumptions, each occurrence contributes `1` to `R`.  
+- For `v = 1`, exactly `1` is added to `R` if `1` occurs at least once in `S`.  
+- For every other cube-reduced value `v` that is classifiable, define its cube-complement `g(v)` as the unique positive integer such that `v * g(v)` is a perfect cube and `g(v)` is cube-reduced. Then:
+  - If `g(v)` does not occur in `S`, all occurrences of `v` contribute to `R`.  
+  - If both `v` and `g(v)` occur in `S` and `v ≠ g(v)`, then the pair `{v, g(v)}` contributes `max(count(v), count(g(v)))` to `R`, counted once for the pair.  
+
+6. Invariants  
+- Each input value is transformed into a cube-reduced value by removing all prime-cube factors.  
+- The multiset of cube-reduced values is treated only via their occurrence counts.  
+- Each distinct cube-reduced value is processed at most once for contribution to the final count (either alone or paired with its complement).  
+- The complement mapping, when successfully computed, targets a cube-reduced value and is intended to satisfy that the product with the original is a perfect cube.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed for invalid input, overflow, or capacity violations.  
+- If intermediate computations exceed an internal magnitude threshold during complement construction, the value is treated as unpairable and all its occurrences are counted individually.  
+- If the input violates the stated assumptions (e.g., contains values with remaining factors that are neither prime nor prime-square after small-prime reduction), the output is unspecified.
+
+8. State Transitions (if applicable)  
+- Initializes an internal list of small primes once.  
+- Transitions from raw inputs → cube-reduced multiset → grouped counts → paired/unpaired aggregation → final scalar output.  
+- Marks distinct values as “processed” to prevent double-counting when pairing with complements.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to about 100000 input values and uses fixed-size arrays accordingly.  
+- Uses sorting and binary searches over distinct values; expected time is dominated by sorting plus per-distinct-value factor processing using a fixed small-prime set.  
+- Memory usage is linear in the number of inputs (within fixed bounds).

@@ -1,0 +1,36 @@
+1. Functional Description  
+Reads multiple datasets. For each dataset, it computes the maximum number of intervals that overlap at any second within a single 24-hour day, where each interval contributes to all whole seconds from its start time (inclusive) up to its end time (exclusive). Outputs that maximum overlap for each dataset.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer count of intervals.  
+- If the count is nonzero, it is followed by that many pairs of times-of-day (start time and end time), each expressed as hour, minute, and second components.
+
+3. Outputs  
+- For each non-terminating dataset, one line containing a single integer: the maximum number of simultaneously active intervals at any second of the day.
+
+4. Preconditions  
+- The input is well-formed according to the described dataset structure.  
+- Each time-of-day represents a second within a 24-hour day.  
+- For every interval, the end time is not earlier than the start time, and both lie within the same day (no wrap across midnight).  
+- The number of intervals is nonnegative.
+
+5. Postconditions  
+For each dataset with interval count `n > 0`, the program outputs an integer equal to:  
+- the maximum, over all seconds in the day, of the number of intervals whose start time is less than or equal to that second and whose end time is greater than that second (i.e., active during that second under a start-inclusive, end-exclusive convention).
+
+6. Invariants  
+- Each dataset is processed independently; results do not depend on prior datasets.  
+- Interval contributions are counted per second within the fixed 24-hour range.  
+- The reported maximum is at least 0 and at most the number of intervals in the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed or violates preconditions (e.g., times out of range, end earlier than start, intervals crossing midnight), behavior is unspecified.  
+- If an interval’s end time exceeds the day boundary, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats: read dataset → if count is zero, terminate; otherwise compute and output the dataset’s maximum overlap → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed memory proportional to the number of seconds in a day.  
+- Runtime per dataset grows with the total duration (in seconds) summed across all intervals plus a full-day scan.

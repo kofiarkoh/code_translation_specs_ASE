@@ -1,0 +1,254 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+#define PGMAX 1001
+#define WDMAX 31
+
+typedef struct _index {
+	int pgnum[PGMAX];
+	int tm;
+	char str[WDMAX];
+} index_t;
+
+void swap( int i, int j, index_t idx[MAX] )
+{
+	char tmp_str[WDMAX];
+	int tmp_pgnum[PGMAX];
+	int tmp_tm;
+
+	strcpy( tmp_str, idx[i].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		tmp_pgnum[k] = idx[i].pgnum[k];
+	}
+	tmp_tm = idx[i].tm;
+
+	strcpy( idx[i].str, idx[j].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[i].pgnum[k] = idx[j].pgnum[k];
+	}
+	idx[i].tm = idx[j].tm;
+
+	strcpy( idx[j].str, tmp_str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[j].pgnum[k] = tmp_pgnum[k];
+	}
+	idx[j].tm = tmp_tm;
+}
+
+int main()
+{
+	index_t idx[MAX];
+	char tmp_str[WDMAX] = {};
+	int tmp_pgnum = 0, rgnum = 0, i = 0, j = 0, flag = 0, k = 0;
+
+	while ( scanf( "%s %d", tmp_str, &tmp_pgnum ) != EOF ) {
+		flag = 1;
+		i = 0;
+		while ( i < rgnum ) {
+			if ( strcmp( tmp_str, idx[i].str ) == 0 ) {
+				// BEPO?$5$l$?J8;zNs$NCf$+$i, B:#2sF~NO$5$l$?J8;zNs$,EPO?$5$l$F$$$k$+3NG'$9$k
+				idx[i].pgnum[tmp_pgnum] = 1;
+				idx[i].tm++;
+				flag = 0; // BF~NOJ8;zNs$,EPO?:Q$_$N>l9g
+				break;
+			}
+			i++;
+		}
+
+		if ( flag ) {
+			// BF~NOJ8;zNs$,EPO?$5$l$F$$$J$$>l9g
+			idx[rgnum].pgnum[tmp_pgnum] = 1;
+			idx[rgnum].tm++;
+			strcpy( idx[rgnum].str, tmp_str );
+			rgnum++;
+		}
+		
+	}
+
+	// BF~NOJ8;zNs$N@0Ns$r9T$&
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		for ( j = i+1 ; j < rgnum ; j++ ) {
+			if ( strcmp( idx[i].str, idx[j].str ) > 0 ) {
+				swap( i, j, idx );
+			}
+		}
+	}
+
+	// B@0Ns:Q$_$NF~NOJ8;zNs$NG[Ns$KBP$7$F, B=P8=$7$?%Z!<%8HV9f$J$I$r=PNO$9$k
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		printf( "%s\n", idx[i].str );
+		k = 0;
+		for ( j = 0 ; j < PGMAX ; j++ ) {
+			if ( idx[i].pgnum[j] == 1 ) { 
+				if ( k == idx[i].tm-1 ) {
+					printf( "%d\n", j );
+					break;
+				} else {
+					printf( "%d ", j );
+					k++;
+				}
+			}
+		}
+	}
+
+	return 0;	
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Builds an index from a stream of `(word, page-number)` pairs. It maintains, for each stored word, a page-presence table indexed by page number and a per-word counter that is incremented once for every input record read for that word. After all input is consumed, it sorts the stored words in ascending lexicographic order and prints each word followed by a list of page numbers selected from that word’s page-presence table.
+
+2. Inputs  
+- A sequence of zero or more records read until end-of-file, each containing:  
+  - A word token read with `%s` (whitespace-delimited).  
+  - An integer page number read with `%d`.
+
+3. Outputs  
+For each stored word, in ascending lexicographic order:  
+- One line containing the word.  
+- Then page numbers are scanned in increasing numeric order from the lowest representable page index up to the maximum supported page index. For each page index whose presence entry equals 1, that page index is printed. Printing stops after the program has printed a number of page indices equal to the word’s internal counter value (`tm`).  
+- Between printed page numbers, a single space is printed. A newline is printed only when the program prints what it considers the last page number for that word (i.e., when it reaches the `tm`-th printed page number).
+
+4. State and Counting Semantics  
+- Word identity is determined by exact string comparison.  
+- On reading a record `(w, p)`:
+  - If `w` matches an existing stored word, the program sets that word’s page-presence entry for `p` to 1 and increments that word’s counter `tm` by 1.  
+  - If `w` is not found among stored words, a new entry is created, the word string is stored, the page-presence entry for `p` is set to 1, and the counter `tm` is incremented by 1.  
+- The counter `tm` represents the number of input records processed for that word (including repeated occurrences of the same page number), not the number of distinct page numbers.
+
+5. Ordering / Tie-breaking  
+- After input ends, the program sorts the stored entries by ascending lexicographic order of the word strings. No secondary key is used.
+
+6. Assumptions, Constraints, and Undefined/Unspecified Behavior  
+- There is a fixed maximum number of distinct words that can be stored; exceeding it results in undefined behavior.  
+- Word length must fit in the fixed-size storage used for words; longer tokens cause undefined behavior.  
+- Page numbers are used as direct indices into a fixed-size page-presence array; page numbers outside the supported index range cause undefined behavior.  
+- The program does not explicitly initialize the per-entry page-presence array or the per-entry counter before first use. Therefore, unless the execution environment happens to provide zero-initialized storage for these fields, the page-presence contents and initial counter values for newly created entries are indeterminate, and the resulting output may be unpredictable.  
+- Because output termination for a word’s page list depends on `tm` matching the number of page indices encountered with presence value 1, if `tm` is larger than the number of such indices (e.g., due to repeated `(word, page)` records or indeterminate initial state), the program may print fewer page numbers than `tm` and may omit the trailing newline for that word’s page list.
+
+7. Error Handling / Termination  
+- No explicit error messages are produced.  
+- Processing ends at end-of-file; the program then sorts and prints the accumulated index and exits normally.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_WORDS 1000
+#define WORD_LEN  32
+#define MAX_PAGES 1000
+
+struct Entry {
+    char word[WORD_LEN];
+    int page[MAX_PAGES]; /* intentionally not initialized per spec */
+    int tm;              /* intentionally not initialized per spec */
+};
+
+static struct Entry entries[MAX_WORDS]; /* static storage => zero-initialized in C */
+
+static int cmp_entries(const void *a, const void *b) {
+    const struct Entry *ea = (const struct Entry *)a;
+    const struct Entry *eb = (const struct Entry *)b;
+    return strcmp(ea->word, eb->word);
+}
+
+int main(void) {
+    char wbuf[WORD_LEN];
+    int p;
+    int n = 0;
+
+    while (scanf("%31s%d", wbuf, &p) == 2) {
+        int i;
+        int found = -1;
+
+        for (i = 0; i < n; i++) {
+            if (strcmp(entries[i].word, wbuf) == 0) {
+                found = i;
+                break;
+            }
+        }
+
+        if (found >= 0) {
+            /* Undefined behavior if p is out of range; we do not guard it. */
+            entries[found].page[p] = 1;
+            entries[found].tm += 1;
+        } else {
+            /* Undefined behavior if n exceeds MAX_WORDS; we do not guard it. */
+            strcpy(entries[n].word, wbuf); /* undefined if token longer than WORD_LEN-1 */
+            entries[n].page[p] = 1;        /* page[] intentionally not initialized */
+            entries[n].tm += 1;            /* tm intentionally not initialized */
+            n++;
+        }
+    }
+
+    qsort(entries, (size_t)n, sizeof(entries[0]), cmp_entries);
+
+    for (int i = 0; i < n; i++) {
+        printf("%s\n", entries[i].word);
+
+        int printed = 0;
+        for (int pg = 0; pg < MAX_PAGES; pg++) {
+            if (entries[i].page[pg] == 1) {
+                printed++;
+                if (printed == entries[i].tm) {
+                    printf("%d\n", pg);
+                    break;
+                } else {
+                    printf("%d ", pg);
+                }
+            }
+        }
+        /* If tm is larger than the number of pages with presence==1, no newline is printed. */
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+
+```

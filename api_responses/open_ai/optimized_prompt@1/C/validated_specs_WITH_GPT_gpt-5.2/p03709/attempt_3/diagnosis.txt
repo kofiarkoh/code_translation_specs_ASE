@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong initialization in the DP (core computation semantics underspecified).
+
+B. What the current specification may be missing or misstating  
+- The specification describes the DP only structurally (“4 states”, “uses powers of 2 and inv2”, “uses derived intervals”), but it does not pin down the *exact* recurrence. The generated program therefore invented a plausible recurrence that does not match the source.  
+- The base conditions are misstated/underspecified: the source sets `dp[0][0] = ss[0][0] = 2^n mod MOD` and also `dp[0][2] = ss[0][2] = 2^n mod MOD`, whereas the generated code uses `dp[0][0]=1` only. This is a major semantic difference.  
+- The spec’s interval mapping is incomplete: in the source, intervals are not used as per-element `[L_i,R_i]` directly in the DP loop. Instead, the code builds an auxiliary array `e[r]=l` (with 1-based shifted indices) and only updates `dp[i][*]` when `e[i] >= 0`. That “sparse update keyed by right endpoint” behavior is not captured.
+
+C. What general behavior should be clarified in the specification  
+- The exact DP recurrence, including:
+  - the precise formulas for `dp[i][0..3]` in terms of `ss[*][*]`, `inv2^(...)`, and which index ranges are subtracted (e.g., `ss[r-1][...] - ss[l-1][...]`),  
+  - when `dp[i][*]` is updated vs left as zero (conditional on existence of an interval ending at `i` via `e[i]`), and  
+  - the exact initialization at `i=0` (which states are initialized to `2^n` and which are zero).  
+- The transformation from per-element computed bounds to the `e[]` array keyed by the right endpoint, including the 1-based shifts (`l++`, `r++`) and the fact that `e[r]=l` overwrites (so behavior with duplicate `r` values depends on sort order).
+
+D. Why this clarification is supported by the source program  
+- The source explicitly initializes `dp[0][0]` and `dp[0][2]` to `bitpow(2,n,MOD)` and carries those into `ss[0][0]` and `ss[0][2]`; no other base initialization is performed.  
+- In the main DP loop (`for (i=1; i<=n; i++)`), the source computes `dp[i][*]` only inside `if (e[i] >= 0) { ... }`; otherwise `dp[i][*]` remains whatever the global zero-initialization provides. This conditional update is a defining part of the algorithm.  
+- The recurrence in the source uses two additive terms for `dp[i][ki]` involving `ss[l-1][1-ki] * inv2^(r-l+1)` and a difference of prefix sums `(ss[r-1][3-ki] - ss[l-1][3-ki]) * inv2^r`, then defines `dp[i][2+ki] = dp[i][ki] * 2^i`. None of these exact relationships are stated in the current specification, enabling incorrect synthesis.

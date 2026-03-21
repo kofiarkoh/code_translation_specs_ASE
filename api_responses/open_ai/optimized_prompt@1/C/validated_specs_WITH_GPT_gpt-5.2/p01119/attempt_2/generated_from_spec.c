@@ -1,0 +1,146 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAX_N 102
+#define MAX_M 12
+#define MAX_Q 531441 /* 3^12 */
+
+static int cmp_int(const void *a, const void *b) {
+    int x = *(const int *)a;
+    int y = *(const int *)b;
+    return (x > y) - (x < y);
+}
+
+static int lower_bound_int(const int *arr, int n, int key) {
+    int lo = 0, hi = n;
+    while (lo < hi) {
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] < key) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
+static int contains_int_sorted(const int *arr, int n, int key) {
+    int i = lower_bound_int(arr, n, key);
+    return (i < n && arr[i] == key);
+}
+
+int main(void) {
+    int n, m;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+        if (scanf("%d", &m) != 1) break;
+
+        int targets[MAX_N];
+        int weights[MAX_M];
+
+        for (int i = 0; i < n; i++) scanf("%d", &targets[i]);
+        for (int j = 0; j < m; j++) scanf("%d", &weights[j]);
+
+        /* Enumerate all signed outcomes Q via base-3 coefficients in {-1,0,+1}. */
+        int Q[MAX_Q];
+        int qcount = 0;
+
+        int total = 1;
+        for (int i = 0; i < m; i++) total *= 3;
+
+        for (int mask = 0; mask < total; mask++) {
+            int x = mask;
+            int sum = 0;
+            for (int j = 0; j < m; j++) {
+                int trit = x % 3;
+                x /= 3;
+                /* Map 0->-1, 1->0, 2->+1 */
+                int coeff = (trit == 0) ? -1 : (trit == 1) ? 0 : 1;
+                sum += coeff * weights[j];
+            }
+            Q[qcount++] = sum;
+        }
+
+        qsort(Q, qcount, sizeof(Q[0]), cmp_int);
+
+        /* Determine which targets are "exactly balanceable" per spec: q==t and t>0. */
+        int unbal[MAX_N];
+        int unbal_count = 0;
+
+        for (int i = 0; i < n; i++) {
+            int t = targets[i];
+            int exact = 0;
+            if (t > 0) {
+                exact = contains_int_sorted(Q, qcount, t);
+            } else {
+                /* Targets equal to 0 are not treated as exactly balanceable by this check. */
+                exact = 0;
+            }
+            if (!exact) unbal[unbal_count++] = t;
+        }
+
+        if (unbal_count == 0) {
+            printf("0\n");
+            continue;
+        }
+
+        /* For each unbalanceable target t, candidate deviations are {|t-q| : q in Q}.
+           We need the smallest non-negative integer d in the intersection across all such targets. */
+
+        /* Compute global maximum possible deviation to size the boolean table.
+           Since arithmetic is assumed to fit 32-bit signed, we keep computations in int. */
+        int minQ = Q[0];
+        int maxQ = Q[qcount - 1];
+
+        int maxD = 0;
+        for (int i = 0; i < unbal_count; i++) {
+            int t = unbal[i];
+            int d1 = t - minQ; if (d1 < 0) d1 = -d1;
+            int d2 = t - maxQ; if (d2 < 0) d2 = -d2;
+            int d = (d1 > d2) ? d1 : d2;
+            if (d > maxD) maxD = d;
+        }
+
+        /* Intersection table: possible[d] == 1 means d is still in intersection so far. */
+        unsigned char *possible = (unsigned char *)malloc((size_t)maxD + 1);
+        unsigned char *seen = (unsigned char *)malloc((size_t)maxD + 1);
+        if (!possible || !seen) {
+            /* Narrowest reasonable behavior: if allocation fails, terminate. */
+            free(possible);
+            free(seen);
+            return 0;
+        }
+
+        memset(possible, 1, (size_t)maxD + 1);
+
+        for (int i = 0; i < unbal_count; i++) {
+            int t = unbal[i];
+            memset(seen, 0, (size_t)maxD + 1);
+
+            for (int k = 0; k < qcount; k++) {
+                int d = t - Q[k];
+                if (d < 0) d = -d;
+                if (d <= maxD) seen[d] = 1;
+            }
+
+            for (int d = 0; d <= maxD; d++) {
+                if (possible[d] && !seen[d]) possible[d] = 0;
+            }
+        }
+
+        int ans = -1;
+        for (int d = 0; d <= maxD; d++) {
+            if (possible[d]) {
+                ans = d;
+                break;
+            }
+        }
+
+        printf("%d\n", ans);
+
+        free(possible);
+        free(seen);
+    }
+
+    return 0;
+}

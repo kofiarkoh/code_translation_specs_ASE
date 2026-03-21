@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes the minimum possible total absolute deviation from a single chosen integer value after transforming each input element by subtracting its 1-based position index. The result equals the minimum, over all integer targets, of the sum of absolute differences between the transformed values and that target.
+
+2. Inputs  
+- An integer count `n`.  
+- A sequence of `n` integer values.
+
+3. Outputs  
+- A single integer value: the minimum achievable sum of absolute deviations as defined above.
+
+4. Preconditions  
+- The input provides at least one integer count and then at least `n` integer values.  
+- `n` is non-negative and small enough that allocating storage for `n` integers on the stack is feasible.  
+- Arithmetic on the involved integer type does not overflow for the given inputs and intermediate computations.  
+- Assumption (required for defined behavior): `n >= 1`.
+
+5. Postconditions  
+Let the input sequence be `x[1..n]`. Define transformed values `b[i] = x[i] - i` for `i = 1..n`. The program outputs:  
+- `min_{t ∈ Z} Σ_{i=1..n} |b[i] - t|`.  
+Equivalently, it outputs the sum of absolute deviations from a median of the multiset `{b[1], …, b[n]}` (any median yields the same minimum value).
+
+6. Invariants  
+- The multiset of transformed values `{b[i]}` is preserved (only reordered for internal computation).  
+- The reported value is always non-negative.  
+- The reported value corresponds to a minimum over integer targets (not an approximation), assuming no overflow and valid input.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input or failed reads; behavior is undefined if required inputs are missing or invalid.  
+- If `n <= 0`, behavior is undefined.  
+- If integer overflow occurs during transformations or accumulation, the output is undefined.  
+- If memory constraints for the stack allocation are exceeded, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state; it reads input once and produces one output. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting the `n` transformed values: `O(n log n)`.  
+- Additional memory usage is `O(n)` for storing the transformed values (stack-allocated).

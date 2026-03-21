@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes and outputs a single minimum total cost derived from a sequence of position updates on a 1‑dimensional index set of size `n`. The total cost is the sum of:  
+- the cumulative travel distance along the sequence of visited positions, and  
+- an additional optimized adjustment term computed as the minimum over all indices of a value accumulated during processing of the sequence.  
+
+2. Inputs  
+- An integer `n`: number of positions (indexed conceptually from 1 to `n`).  
+- An integer `q`: number of subsequent position updates.  
+- Two integers: an initial current position and a distinguished target position (both within the `n` positions).  
+- A sequence of `q` integers: each is a new current position (within the `n` positions), processed in order.
+
+3. Outputs  
+- One signed integer value representing the computed minimum total cost.
+
+4. Preconditions  
+- `1 ≤ n ≤ 200000`.  
+- `q ≥ 0`.  
+- All provided positions (initial current position, target position, and each queried position) are within `[1, n]`.  
+- The input is well-formed and provides all required integers.
+
+5. Postconditions  
+Let the visited position sequence be `p0, p1, ..., pq`, where `p0` is the initial current position and each `pk` for `k≥1` is the k-th queried position. Let the distinguished target position be `t`. The program outputs:  
+- `D + M`, where `D = Σ_{k=1..q} |pk - p{k-1}|` (total travel distance), and `M` is the minimum, over all indices `r` in `[1, n]`, of an internally accumulated value associated with `r` after processing all `q` updates.  
+Additionally, the accumulated values are computed so that `M` is the minimum achievable under the recurrence implied by the code’s updates and queries; i.e., the output is the minimum total cost consistent with those update/query-derived constraints.
+
+6. Invariants  
+- The cumulative travel distance `D` equals the sum of absolute differences between consecutive visited positions processed so far.  
+- At any time during processing, the internal structures represent prefix-minimum summaries of previously introduced candidate values, ensuring that each query returns the minimum candidate value applicable to the queried index under the program’s cost model.  
+- The per-index accumulated values are monotonically non-increasing over time (they may improve but never worsen).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., out-of-range positions, `n` exceeding capacity, malformed input), behavior is undefined (may produce incorrect output or crash).  
+- If `q = 0`, the output is still produced based on the initial state and target position.
+
+8. State Transitions (if applicable)  
+For each of the `q` updates, the program transitions state as follows:  
+- The current position changes from the previous position to the newly read position.  
+- The cumulative travel distance increases by the absolute difference between the old and new current positions.  
+- Internal candidate minima are updated using a newly computed adjustment value derived from the current internal minima and the movement between the old and new positions.  
+After all updates, the final state is reduced to a single minimum value across all indices, then combined with the cumulative travel distance to form the output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is `O((n + q) log n)` in the worst case due to logarithmic-time updates and queries over `n` positions.  
+- Memory usage is `O(n)` for internal arrays sized proportional to `n`.

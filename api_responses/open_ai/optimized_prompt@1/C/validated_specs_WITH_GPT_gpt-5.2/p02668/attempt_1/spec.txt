@@ -1,0 +1,35 @@
+1. Functional Description  
+Computes a deterministic integer value derived from two input integers and prints it. The value is the result of a two-parameter recurrence evaluated at the provided inputs and reduced modulo a fixed prime modulus.
+
+2. Inputs  
+- Two signed integers:  
+  - first parameter (interpreted as a nonnegative count)  
+  - second parameter (interpreted as a nonnegative count)
+
+3. Outputs  
+- Writes a single signed integer followed by a newline to standard output: the computed value modulo the fixed modulus.
+
+4. Preconditions  
+- The two input integers are successfully provided.  
+- Both inputs are assumed to be within bounds such that all internal table indices used by the recurrence are valid (in particular, the first parameter must be within the supported maximum for the preallocated tables, and the second parameter must be at least 1 and within the supported maximum).  
+- The computation assumes arithmetic is performed modulo a fixed prime and that intermediate products fit within the implementation’s signed integer range (or that overflow does not occur).
+
+5. Postconditions  
+- Exactly one line is printed containing the computed value in the range representable by the chosen signed integer type, corresponding to the recurrence result reduced modulo the fixed modulus.  
+- No other observable output is produced.
+
+6. Invariants  
+- All computed recurrence values are maintained modulo the fixed modulus.  
+- For each fixed first-parameter index processed, the auxiliary accumulated values for increasing second-parameter indices represent a prefix accumulation consistent with the recurrence definition.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate the assumed bounds (e.g., second parameter is 0 or negative, or either parameter exceeds supported table sizes), behavior is undefined (may crash, produce incorrect output, or access invalid memory).  
+- If input reading fails, behavior is undefined (the program may use uninitialized values).
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: reads inputs once, computes once, prints once, then terminates. No persistent state is stored across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the product of the two input parameters (iterating over a 2D table up to those sizes).  
+- Memory usage is dominated by two 2D tables sized to the supported maxima, independent of the specific input values within those maxima.

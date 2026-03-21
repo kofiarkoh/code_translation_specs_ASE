@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
+
+#define MAXN 16
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    /* Preconditions say n <= 16; otherwise behavior is undefined. */
+    int a[MAXN];      /* first attribute (output) */
+    int pos[MAXN];    /* second attribute */
+    int w[MAXN];      /* third attribute */
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d %d %d", &a[i], &pos[i], &w[i]) != 3) return 0;
+    }
+
+    int Nmask = 1 << n;
+
+    /* Precompute sum of third attributes for every subset. */
+    double sumW[1 << MAXN];
+    sumW[0] = 0.0;
+    for (int mask = 1; mask < Nmask; mask++) {
+        int lsb = mask & -mask;
+        int idx = 0;
+        /* find index of lsb */
+        while (((lsb >> idx) & 1) == 0) idx++;
+        sumW[mask] = sumW[mask ^ lsb] + (double)w[idx];
+    }
+
+    /* DP tables: dp[mask][last] = minimal cost to visit 'mask' ending at 'last'. */
+    double *dp = (double *)malloc((size_t)Nmask * (size_t)n * sizeof(double));
+    int *pred = (int *)malloc((size_t)Nmask * (size_t)n * sizeof(int));
+    if (!dp || !pred) {
+        /* No explicit error handling required; exit quietly. */
+        free(dp);
+        free(pred);
+        return 0;
+    }
+
+    for (int mask = 0; mask < Nmask; mask++) {
+        for (int j = 0; j < n; j++) {
+            dp[mask * n + j] = DBL_MAX;
+            pred[mask * n + j] = -1;
+        }
+    }
+
+    /* Initialize singleton starts with zero cost. */
+    for (int i = 0; i < n; i++) {
+        int mask = 1 << i;
+        dp[mask * n + i] = 0.0;
+        pred[mask * n + i] = -1;
+    }
+
+    /* Expand subsets by adding one unvisited item at a time. */
+    for (int mask = 1; mask < Nmask; mask++) {
+        double mult = 70.0 + 20.0 * sumW[mask]; /* S includes current last item */
+        for (int last = 0; last < n; last++) {
+            if (((mask >> last) & 1) == 0) continue;
+            double cur = dp[mask * n + last];
+            if (cur == DBL_MAX) continue;
+
+            int unvis = ((Nmask - 1) ^ mask);
+            for (int k = 0; k < n; k++) {
+                if (((unvis >> k) & 1) == 0) continue;
+                int nmask = mask | (1 << k);
+
+                /* Step cost = (|pos[k]-pos[last]| / 2000) * (70 + 20*sumW[mask]) */
+                double dist = fabs((double)pos[k] - (double)pos[last]) / 2000.0;
+                double step = dist * mult;
+                double cand = cur + step;
+
+                double *cell = &dp[nmask * n + k];
+                if (cand < *cell) {
+                    *cell = cand;
+                    pred[nmask * n + k] = last;
+                }
+            }
+        }
+    }
+
+    /* Select best endpoint for full set. */
+    int full = Nmask - 1;
+    int bestLast = 0;
+    double bestCost = dp[full * n + 0];
+    for (int last = 1; last < n; last++) {
+        double c = dp[full * n + last];
+        if (c < bestCost) {
+            bestCost = c;
+            bestLast = last;
+        }
+    }
+
+    /* Reconstruct path by following predecessors while removing current endpoint. */
+    int order[MAXN];
+    int mask = full;
+    int cur = bestLast;
+    for (int t = n - 1; t >= 0; t--) {
+        order[t] = cur;
+        int p = pred[mask * n + cur];
+        mask ^= (1 << cur);
+        cur = p;
+        if (t == 0) break;
+    }
+
+    /* Output first attributes in visit order. */
+    for (int i = 0; i < n; i++) {
+        if (i) putchar(' ');
+        printf("%d", a[order[i]]);
+    }
+    putchar('\n');
+
+    free(dp);
+    free(pred);
+    return 0;
+}

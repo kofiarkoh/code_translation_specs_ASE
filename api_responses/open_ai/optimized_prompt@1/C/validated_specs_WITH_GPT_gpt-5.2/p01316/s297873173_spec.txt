@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes, for each problem instance, the minimum possible total squared deviation between a given sequence of target integers and a sequence of bounded state values in the range 0..255, where the state starts at 128 and is updated once per target by adding one chosen increment from a provided set and then clamping to 0..255.
+
+2. Inputs  
+For each instance (repeated until termination):  
+- An integer `n`: number of target values in the sequence.  
+- An integer `m`: number of available increments.  
+- A list of `m` integers: the allowed increments.  
+- A list of `n` integers: the target values.
+
+3. Outputs  
+For each instance, outputs a single integer: the minimum achievable total cost, where cost is the sum over all steps of (target − resulting state)².
+
+4. Preconditions  
+- `n` is non-negative; termination is indicated by `n = 0`.  
+- `m` is non-negative and does not exceed 16.  
+- `n` does not exceed 20000.  
+- All required integers for an instance are present in the input.  
+- The minimum total cost fits within the range of a signed 32-bit integer (assumption; otherwise behavior is not defined by the code’s contract).
+
+5. Postconditions  
+For each non-terminating instance (`n > 0`):  
+- The produced output equals the minimum, over all length-`n` choices of increments (one per step), of:  
+  - Let state₀ = 128.  
+  - For step i (1..n): stateᵢ = clamp(stateᵢ₋₁ + chosen_incrementᵢ, 0, 255).  
+  - Total cost = Σᵢ (targetᵢ − stateᵢ)².  
+- Exactly one line/value is produced per instance.
+
+6. Invariants  
+- The state value considered at any step is always within 0..255 due to clamping.  
+- The accumulated cost for any reachable state at any step is non-negative.  
+- For each step and state, the stored cost (if any) represents the minimum cost among all ways to reach that state at that step.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, incomplete, or violates preconditions (including overflow of intermediate or final costs), the behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Initial state before processing targets: 128.  
+- For each target value, the state transitions by selecting one increment from the provided set, adding it to the current state, and clamping the result to the inclusive range 0..255.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity per instance is proportional to `n * 256 * m`.  
+- Memory usage is proportional to `n * 256` stored costs.

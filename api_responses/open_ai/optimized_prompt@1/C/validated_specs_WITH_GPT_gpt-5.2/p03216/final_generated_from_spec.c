@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int n;
+    static char s[1000005];
+    int q;
+    static int karr[102];
+
+    /* No input validation per specification */
+    if (scanf("%d", &n) != 1) return 0;
+    if (scanf("%1000004s", s) != 1) return 0;
+    if (scanf("%d", &q) != 1) return 0;
+
+    for (int i = 0; i < q; i++) {
+        (void)scanf("%d", &karr[i]);
+    }
+
+    for (int qi = 0; qi < q; qi++) {
+        int k = karr[qi];
+
+        int64_t ans = 0;
+        int64_t d = 0;
+        int64_t m = 0;
+        int64_t dm = 0;
+
+        /* Initialization over first window [0, k-1] */
+        for (int i = 0; i < k; i++) {
+            char c = s[i];
+            if (c == 'D') {
+                d = d + 1;
+            }
+            if (c == 'M') {
+                m = m + 1;
+                dm = dm + d;
+            }
+            if (c == 'C') {
+                ans = ans + dm;
+            }
+        }
+
+        /* Slide window: i = k .. n-1 */
+        for (int i = k; i < n; i++) {
+            char outc = s[i - k];
+
+            /* 1) Remove leaving character */
+            if (outc == 'D') {
+                dm = dm - m;
+                d = d - 1;
+            }
+            if (outc == 'M') {
+                m = m - 1;
+            }
+
+            /* 2) Add entering character */
+            char inc = s[i];
+            if (inc == 'D') {
+                d = d + 1;
+            }
+            if (inc == 'M') {
+                m = m + 1;
+                dm = dm + d;
+            }
+            if (inc == 'C') {
+                ans = ans + dm;
+            }
+        }
+
+        printf("%lld\n", (long long)ans);
+    }
+
+    return 0;
+}

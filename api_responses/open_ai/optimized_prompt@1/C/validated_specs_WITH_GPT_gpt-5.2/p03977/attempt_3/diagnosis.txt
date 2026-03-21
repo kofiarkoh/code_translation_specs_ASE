@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Wrong transition/termination rule (record-start condition) and wrong character-classification rule for “digit”.
+
+B. What the current specification may be missing or misstating  
+- It treats “digits” as bytes `>= '0'` and implies record parsing begins only when the current byte is `>= '0'`. In the source, after skipping the initial run, the loop condition is `while (buf[sz] >= '0')`, but `sz` is left positioned on the first separator after the initial run. If that separator is a space/newline (which is `< '0'`), the loop would not run—yet the expected behavior clearly processes subsequent numbers separated by spaces/newlines. This indicates the spec’s model of how the program advances from the initial skip into the first record is inconsistent with the source’s effective behavior on typical whitespace-separated input.  
+- The spec also assumes the program stops at the first byte `< '0'` at a record boundary and does not “search for later digits.” The observed behavior (processing multiple lines of space-separated integers) requires that separators like space/newline be consumed between numbers/records, i.e., the parser must advance past non-digit separators to find the next number. The current spec explicitly denies that.
+
+C. What general behavior should be clarified in the specification  
+- How the program positions itself after the initial “skip initial digit run” step, and what characters are allowed/expected between numbers and between records. In particular, whether the program:
+  - skips over one or more non-digit separator bytes (e.g., spaces/newlines) before attempting to parse the next integer/record, and/or
+  - treats a broader set of characters as “digits” than just `'0'..'9'` (the source uses `>= '0'` comparisons, which also classify `':'`, `';'`, `'A'`, etc. as “digit-like”).
+- The correct record-start condition: whether record processing begins immediately after the initial skip regardless of the current byte, or whether it must first advance to the next digit-like byte.
+
+D. Why this clarification is supported by the source program  
+- The source uses `while(buf[sz++] >= '0');` which consumes the first non-`>= '0'` byte after the initial run and leaves `sz` pointing *after* that separator. The subsequent loop condition checks `buf[sz] >= '0'`. For ordinary inputs like `"123 456\n..."`, this would only work if `sz` ends up on `'4'` (i.e., the separator was consumed and the next byte is a digit), and more generally if separators are handled in a way the current spec does not describe.  
+- The parsing of `N` and `D` each consumes a terminator byte (`k<'0'`) after the digit-run. This implies separators are part of the stream and are consumed as delimiters; for multi-record input, the program must reach the next digit-run after consuming delimiters. The current spec’s “no step that skips over arbitrary separators to find the next record” is too strict/inaccurate relative to the behavior needed to process whitespace-separated pairs across lines.

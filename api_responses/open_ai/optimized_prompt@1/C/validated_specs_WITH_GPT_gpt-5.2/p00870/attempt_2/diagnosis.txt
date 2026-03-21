@@ -1,0 +1,13 @@
+A. Likely mismatch category  
+Wrong counting rule / wrong state representation (boolean reachability vs. counting number of ways).
+
+B. What the current specification may be missing or misstating  
+The specification describes “how many ways” the text can be partitioned (i.e., counts distinct orderings/placements), which implies multiplicities. But the source program does not count ways; it only tracks whether a state (position, used-pattern-subset) is reachable at least once. As a result, multiple different sequences that lead to the same (position, subset) are collapsed into a single reachable state and contribute at most 1 to the final total for that (position, full-set).
+
+C. What general behavior should be clarified in the specification  
+Clarify that the algorithm computes the number of *distinct end positions* (or more precisely, the number of reachable accepting states) rather than the number of distinct concatenation sequences. Acceptance is based on existence: for each end position, it contributes 1 if there exists at least one ordering of patterns that matches consecutively from position 0 to that end position using all patterns exactly once. Multiple orderings leading to the same end position are not counted multiple times.
+
+D. Why this clarification is supported by the source program  
+- The DP table is `char flag[5001][4096]`, i.e., a boolean marker, not an integer counter.  
+- Transitions do `flag[i+l][pat] = 1;` with no accumulation; this overwrites/sets reachability only.  
+- The final result is `cnt += flag[i][loop-1];`, summing boolean reachability of the full-mask at each position, which counts at most 1 per position, not the number of distinct paths/orderings reaching that position.

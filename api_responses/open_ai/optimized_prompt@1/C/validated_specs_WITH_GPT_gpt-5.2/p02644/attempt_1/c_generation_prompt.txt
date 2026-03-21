@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum number of moves required to travel from a given start cell to a given goal cell on a 2D grid with obstacles, where a single move consists of moving 1 to *k* cells in one of the four cardinal directions (up, down, left, right) without passing through blocked cells. If the goal is unreachable under these rules, reports failure.
+
+2. Inputs  
+- Grid height (number of rows), grid width (number of columns), and a positive movement limit *k*.  
+- Start cell coordinates and goal cell coordinates, provided as 1-based row/column positions.  
+- A grid of exactly `height` rows, each containing exactly `width` cells, where each cell is either passable or blocked.
+
+3. Outputs  
+- A single integer:  
+  - The minimum number of moves needed to reach the goal from the start, or  
+  - `-1` if the goal cannot be reached.
+
+4. Preconditions  
+- `height` and `width` are positive.  
+- `k` is positive.  
+- Start and goal coordinates are within the grid bounds (after converting from 1-based to 0-based indexing).  
+- The grid input contains only two kinds of cells: passable and blocked, and each row has the required width.  
+- Assumption (required for defined behavior): the number of enqueued states never exceeds the fixed internal queue capacity.
+
+5. Postconditions  
+- If there exists a sequence of valid moves from start to goal, the output equals the minimum number of moves among all such sequences.  
+- If no such sequence exists, the output is `-1`.  
+- The computed move count is `0` when start and goal are the same cell (regardless of obstacles elsewhere), provided the start cell is within bounds.
+
+6. Invariants  
+- A move is valid only if it stays within grid bounds and traverses only passable cells; movement cannot pass through blocked cells.  
+- Each move changes position by moving along exactly one cardinal direction by an integer distance in `[1, k]`.  
+- The reported distance for any reachable cell is the minimum number of moves required to reach it from the start under the movement rules.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range coordinates, or insufficient queue capacity. Behavior is undefined if preconditions are violated.  
+- If the goal is unreachable, the program outputs `-1` (this is the only handled “exceptional” outcome).
+
+8. State Transitions (if applicable)  
+- The system state is the current position on the grid.  
+- From any state, transitions exist to any passable cell reachable by moving 1 to *k* steps in a single cardinal direction, stopping before leaving the grid or encountering a blocked cell.  
+- Each transition has uniform cost 1 move.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the grid size for storing distances, plus a fixed-capacity queue.  
+- Runtime is bounded by exploring reachable cells and, for each, scanning up to *k* cells in each of four directions (worst-case proportional to `height * width * k`).
+
+```

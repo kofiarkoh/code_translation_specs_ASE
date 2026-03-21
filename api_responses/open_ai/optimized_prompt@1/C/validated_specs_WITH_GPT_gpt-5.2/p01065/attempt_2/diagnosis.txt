@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong constraint/transition rule (resource/balance feasibility conditions), plus a wrong abstraction of the “balance” dimension.
+
+B. What the current specification may be missing or misstating  
+- The specification treats “balance” as a simple signed value in a fixed range (−300..300) and enforces only a final lower bound (balance ≥ Bmin).  
+- The source program instead models balance as an indexed quantity with an internal baseline offset (BASE=300) and a *wider* representable range (k in 0..600), and it applies feasibility checks in a way that is not equivalent to “balance ≥ Bmin” under a signed interpretation.  
+- In particular, the source’s final feasibility test is `y+BASE >= k` (i.e., `k <= BASE + y`), which corresponds to an *upper bound* on the internal balance index, not a lower bound on a signed balance. The current spec has the inequality direction reversed relative to what the code actually checks.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define what the “balance” state variable represents (including the baseline/offset) and whether the final constraint is a minimum or maximum bound in that representation.  
+- Clarify the exact acceptance condition for final states: whether the program requires the final balance index to be **≤ BASE + y** (as in the source) rather than requiring a signed balance to be ≥ some minimum.  
+- Clarify the representable balance range used by the algorithm (0..600 index with BASE offset), not (−300..300) signed, and how transitions map to that index (including that some transitions can decrease the index, so bounds matter).
+
+D. Why this clarification is supported by the source program  
+- The DP is initialized at `dp[0][0][BASE] = 0`, showing the “zero balance” is stored at index `BASE`, not at signed 0 without offset.  
+- Transitions update the third dimension as `k-b` (consume decreases index) and `k+c` (reward increases index), and the array is sized `[DBASE+2]` with `DBASE=600`, indicating the intended balance-index domain is 0..600.  
+- The final selection condition is `if (ans < dp[n][j][k] && y+BASE >= k) ans = dp[n][j][k];`, which is an explicit **upper-bound** filter on `k`. This contradicts the current spec’s “final balance ≥ minimum required” interpretation and can allow/disallow different sets of plans, explaining why the generated program can overestimate the reward.

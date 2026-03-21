@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of records each containing a year and an associated name, along with a query year. Produces as output the name associated with the most recently read record whose year is less than or equal to the query year; if no such record exists, produces a predefined default name.
+
+2. Inputs  
+- An integer count of records.  
+- An integer query year.  
+- For each record:  
+  - An integer year.  
+  - A name token (a non-empty sequence of non-whitespace characters).
+
+3. Outputs  
+- Exactly one name token written to standard output, followed by a line terminator.
+
+4. Preconditions  
+- The input provides at least the required number of integers and name tokens to satisfy the declared record count.  
+- The record count is within a range that fits the program’s fixed storage capacity (at most 49 records).  
+- Each provided name fits within the program’s fixed maximum name length (at most 31 characters, excluding terminator).  
+- The query year and record years are representable as integers.
+
+5. Postconditions  
+- The output name equals:  
+  - The name from the last record in input order whose year is less than or equal to the query year, if at least one such record exists; otherwise  
+  - The default name.
+
+6. Invariants  
+- At any point after processing k records (0 ≤ k ≤ N), the selected output name corresponds to the last among the first k records whose year is less than or equal to the query year; if none among those k records qualifies, the selected output name remains the default name.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input is missing, malformed, exceeds storage limits, or violates name length constraints, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Maintains a single “current selected name” state:  
+  - Initialized to the default name.  
+  - Updated to a record’s name whenever that record’s year is less than or equal to the query year.  
+  - Final state is emitted as output after all records are processed.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed, bounded memory for storing up to 50 names of limited length.  
+- Time cost grows linearly with the number of records processed.
+
+```

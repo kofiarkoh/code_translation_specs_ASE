@@ -1,0 +1,73 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+
+const long long sup = (long long)1 << 60;
+
+typedef struct {
+	int t, h, cost;
+} edge;
+
+int main()
+{
+	int i, u, w, c, N, M;
+	edge e[2001];
+	scanf("%d %d", &N, &M);
+	for (i = 0; i < M; i++) {
+		scanf("%d %d %d", &u, &w, &c);
+		e[i].t = u;
+		e[i].h = w;
+		e[i].cost = -c;
+	}
+
+	int k;
+	long long min[1001], ans;
+	for (i = 2, min[1] = 0; i <= N; i++) min[i] = sup;
+	for (k = 1; k < N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	ans = min[N];
+	for (k = 1; k <= N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	
+	if (min[N] == ans) printf("%lld\n", -ans);
+	else printf("inf\n");
+	fflush(stdout);
+	return 0;
+}
+```

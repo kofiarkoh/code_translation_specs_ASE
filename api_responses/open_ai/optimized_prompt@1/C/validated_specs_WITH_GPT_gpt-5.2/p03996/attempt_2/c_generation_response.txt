@@ -1,0 +1,119 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static int min_int(int a, int b) { return (a < b) ? a : b; }
+
+int main(void) {
+    int n, m, q;
+    if (scanf("%d %d %d", &n, &m, &q) != 3) return 0;
+
+    int *a = NULL;
+    if (q > 0) {
+        a = (int *)malloc((size_t)q * sizeof(int));
+        if (!a) return 0;
+        for (int i = 0; i < q; i++) {
+            if (scanf("%d", &a[i]) != 1) return 0;
+        }
+    }
+
+    /* Arrays sized proportional to m+q as assumed by the spec. */
+    int *count = (int *)calloc((size_t)(m + 1), sizeof(int));
+    int *pred  = (int *)malloc((size_t)(m + 1) * sizeof(int));
+    int *next  = (int *)malloc((size_t)(m + 1) * sizeof(int));
+    unsigned char *in_list = (unsigned char *)calloc((size_t)(m + 1), sizeof(unsigned char));
+    unsigned char *done    = (unsigned char *)calloc((size_t)(m + 1), sizeof(unsigned char));
+    if (!count || !pred || !next || !in_list || !done) return 0;
+
+    /* Initialize linked list with head category 0. */
+    for (int i = 0; i <= m; i++) {
+        pred[i] = -1;
+        next[i] = -1;
+    }
+    count[0] = n;
+    in_list[0] = 1;
+    pred[0] = -1;
+    int tail = 0;
+
+    /* Reverse pass: build list and update counts. */
+    for (int idx = q - 1; idx >= 0; idx--) {
+        int x = a[idx];
+
+        if (count[x] == 0) {
+            /* Append x to end of list headed at 0. */
+            pred[x] = tail;
+            next[tail] = x;
+            next[x] = -1;
+            in_list[x] = 1;
+            tail = x;
+        }
+
+        /* Update count[x] = min(count[x] + 1, count[pred[x]]). */
+        /* pred[x] is defined for any x that reaches here:
+           - if x==0, pred[0] is -1 but count[0] is never 0 initially when n>=0;
+             however x==0 can appear and count[0] may be 0 if n==0; then it would be appended?
+             Spec says head is category 0; we keep 0 in list always. For n==0, count[0]==0,
+             and encountering x==0 would satisfy count[x]==0; appending 0 again would be nonsensical.
+             Narrow interpretation: category 0 is already in the list; treat it as already appended. */
+        if (x == 0) {
+            /* Ensure predecessor for 0 remains -1; update uses count[0] itself as cap effectively. */
+            /* With pred[0]==-1, there is no predecessor count; the spec implies predecessor exists
+               as established when first appended; for 0 it's the head. We cap by itself. */
+            count[0] = min_int(count[0] + 1, count[0]);
+        } else {
+            int p = pred[x];
+            /* p should be >=0 because x!=0 and was appended with predecessor. */
+            int capped = count[p];
+            count[x] = min_int(count[x] + 1, capped);
+        }
+    }
+
+    /* Validation traversal. */
+    int allow = 0;
+
+    /* Helper to advance allow to smallest incomplete id. */
+    auto void advance_allow(void) {
+        while (allow <= m && done[allow]) allow++;
+    }
+
+    int cur = 0;
+
+    /* First, mark consecutive front nodes with count == n. */
+    while (cur != -1 && count[cur] == n) {
+        if (!done[cur]) {
+            done[cur] = 1;
+            advance_allow();
+        }
+        cur = next[cur];
+    }
+
+    /* For remaining nodes, require id == allow, then mark done. */
+    while (cur != -1) {
+        if (cur != allow) {
+            printf("No\n");
+            free(a);
+            free(count);
+            free(pred);
+            free(next);
+            free(in_list);
+            free(done);
+            return 0;
+        }
+        if (!done[cur]) {
+            done[cur] = 1;
+            advance_allow();
+        }
+        cur = next[cur];
+    }
+
+    printf("Yes\n");
+
+    free(a);
+    free(count);
+    free(pred);
+    free(next);
+    free(in_list);
+    free(done);
+    return 0;
+}
+```

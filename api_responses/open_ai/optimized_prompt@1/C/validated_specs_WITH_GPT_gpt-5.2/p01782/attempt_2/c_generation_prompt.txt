@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer \(N\) and an \(N \times N\) grid of alphabetic characters. It chooses exactly one cell in each row and exactly one cell in each column (i.e., a perfect matching between rows and columns). Each chosen cell contributes its character to a multiset of \(N\) characters.
+
+Among all perfect matchings, the program selects one that is optimal under a **lexicographic minimization of a 52-dimensional signed cost vector** defined over the ordered character list:
+\[
+\text{‘A’, ‘B’, …, ‘Z’, ‘a’, ‘b’, …, ‘z’}.
+\]
+For a matching, let \(c_k\) be the number of chosen characters equal to the \(k\)-th character in that list. The program associates the matching with the vector \((-c_0, -c_1, \dots, -c_{51})\) and chooses a matching whose vector is **lexicographically smallest** (compare component 0 first, then 1, etc.).
+
+Finally, it outputs the selected multiset as a string sorted in the same fixed order (all uppercase ‘A’..‘Z’, then all lowercase ‘a’..‘z’), with each character repeated according to its count in the chosen matching.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- \(N\) subsequent lines, each providing at least \(N\) characters forming the grid.  
+- Each grid character used by the program is assumed to be in {‘A’–‘Z’, ‘a’–‘z’}.
+
+3. Outputs  
+- One line containing exactly \(N\) characters: the multiset of characters from the chosen perfect matching, printed in sorted order: ‘A’..‘Z’ then ‘a’..‘z’.
+
+4. Preconditions / Assumptions  
+- \(N\) must be small enough to fit the program’s fixed-size storage for the grid and graph (the program does not validate bounds).  
+- Each of the \(N\) input lines must contain at least \(N\) alphabetic characters; extra trailing characters on a line are ignored.  
+- A perfect matching is always feasible because every row is connected to every column in the constructed assignment graph.
+
+5. Postconditions / Optimality Criterion  
+- Exactly one column is selected for each row and exactly one row for each column.  
+- The output multiset corresponds to the characters at the selected \(N\) row/column positions.  
+- For any other perfect matching with counts \(c'_k\), if \(k\) is the first index where \(c_k \ne c'_k\), then the chosen matching satisfies \(c_k \ge c'_k\). (Equivalently, it lexicographically minimizes \((-c_0,\dots,-c_{51})\).)  
+- The printed output is the chosen multiset sorted by the fixed order ‘A’..‘Z’, then ‘a’..‘z’.
+
+6. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input violates assumptions (non-alphabetic characters, insufficient line length, out-of-range \(N\), etc.), behavior is unspecified.
+
+7. Termination Behavior  
+- Processes exactly one instance from standard input, prints one newline-terminated output line, and exits.
+
+```

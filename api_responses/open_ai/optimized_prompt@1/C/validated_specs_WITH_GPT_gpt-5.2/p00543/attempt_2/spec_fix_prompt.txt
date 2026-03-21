@@ -1,0 +1,128 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+int main(void)
+{
+	int a[1000],k,n,m;
+	int i,j;
+	int temp;
+	scanf("%d %d",&n,&m);
+	for(i=1;i<=n;i++)scanf("%d",&a[i]);
+	k=1;
+	do{
+		for(i=1,j=2;i<n,j<=n;i++,j++){
+			if(a[i]%k>a[j]%k){
+				temp=a[i];
+				a[i]=a[j];
+				a[j]=temp;
+			}
+		}
+		k++;
+	}while(k<=m);
+	for(i=1;i<=n;i++)printf("%d\n",a[i]);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of integers and repeatedly reorders it based on the values’ remainders under a series of moduli. For each modulus from 1 through a given limit, the sequence is adjusted so that, for each adjacent pair, the element with the smaller remainder (under the current modulus) is placed first. After completing all modulus passes, the resulting sequence is output.
+
+2. Inputs  
+- An integer count of elements.  
+- An integer specifying the number of modulus passes to apply.  
+- A sequence of integers of the given count.
+
+3. Outputs  
+- The final reordered sequence, emitted as the same number of integers as provided in the input, in their resulting order.
+
+4. Preconditions  
+- The element count is within the supported fixed capacity (at most 1000).  
+- The number of modulus passes is at least 1.  
+- Sufficient input values are provided and are valid integers.  
+- All modulus operations performed are defined (i.e., no division-by-zero occurs due to invalid modulus pass count).
+
+5. Postconditions  
+- Exactly the input number of integers are produced as output.  
+- Let the sequence after completing pass `k` (for each integer `k` from 1 to the pass limit) be the result of enforcing the following property for that pass: for every adjacent pair in the sequence, the remainder of the left element modulo `k` is less than or equal to the remainder of the right element modulo `k`.  
+- The final output sequence equals the sequence obtained after applying all passes from 1 through the pass limit in order.
+
+6. Invariants  
+- The multiset of values in the sequence is preserved (no values are created, lost, or modified; only their order may change).  
+- After completing each pass `k`, for every adjacent pair, the left remainder modulo `k` is less than or equal to the right remainder modulo `k`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing, malformed, or violate preconditions (e.g., element count exceeds capacity or pass limit is less than 1), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- State consists of the current sequence and the current pass index.  
+- Initial state: sequence equals the input sequence; pass index starts at 1.  
+- Transition: after each pass index `k`, the sequence is updated to satisfy the adjacent remainder ordering property for modulus `k`, then the pass index advances to `k+1`.  
+- Terminal state: after completing the pass limit, the sequence is output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum storage capacity for the sequence (1000 elements).  
+- Runtime grows with the product of the number of elements and the number of passes.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong transition rule / wrong ordering rule (and a minor output-format mismatch).
+
+B. What the current specification may be missing or misstating  
+- It implies that after each modulus pass `k`, the sequence is fully adjusted until **all** adjacent pairs satisfy `(a[i] % k) <= (a[i+1] % k)` (i.e., “enforce the property for every adjacent pair” as a postcondition/invariant).  
+- The source program does **not** do that. For each `k`, it performs only **one left-to-right sweep** of adjacent comparisons/swaps (a single bubble-sort pass), not repeated passes to convergence. Therefore, after a pass `k`, the adjacent remainder ordering property is **not guaranteed** to hold globally.  
+- The spec also doesn’t clearly state the exact number of comparisons/swaps per pass; the source does exactly `n-1` adjacent comparisons per `k`.
+
+C. What general behavior should be clarified in the specification  
+- For each modulus `k = 1..m`, the algorithm performs exactly one iteration over adjacent pairs `(1,2), (2,3), ..., (n-1,n)` and swaps a pair if the left remainder modulo `k` is greater than the right remainder modulo `k`. It does **not** iterate until no swaps occur and does **not** guarantee a fully “sorted by remainder” sequence for that `k`.  
+- The postconditions/invariants should not claim the final array after pass `k` satisfies the adjacent remainder ordering for all pairs; instead, the spec should describe the single-scan swap process as the transformation.  
+- Output formatting: the source prints each integer on its own line, not space-separated on one line.
+
+D. Why this clarification is supported by the source program  
+- The core loop is:
+
+  - `do { for(i=1,j=2; i<n, j<=n; i++, j++) { if(a[i]%k > a[j]%k) swap; } k++; } while(k<=m);`
+
+  This contains only one `for` loop per `k` with no outer repetition based on whether swaps occurred. Hence it cannot “enforce” the adjacent ordering property across the whole array for that modulus; it only applies local swaps once in sequence.  
+- The printing loop is `for(i=1;i<=n;i++) printf("%d\n", a[i]);`, which is newline-delimited output.
+
+```

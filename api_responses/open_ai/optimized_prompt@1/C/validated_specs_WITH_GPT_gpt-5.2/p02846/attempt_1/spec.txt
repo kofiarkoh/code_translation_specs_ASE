@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads two time durations and two pairs of per-time-unit values for two entities. Computes and outputs either:
+- an unbounded result (“infinity”) when the entities’ total over the full two-phase duration is equal, or
+- otherwise, a nonnegative integer count derived from the relative per-phase differences and durations, representing how many boundary events occur under the implied two-phase comparison model.
+
+2. Inputs  
+- Two integers: the durations of phase 1 and phase 2.  
+- Two integers: entity A’s per-unit values in phase 1 and phase 2.  
+- Two integers: entity B’s per-unit values in phase 1 and phase 2.
+
+3. Outputs  
+- Either the literal word `infinity` followed by a newline, or  
+- A decimal integer followed by a newline.
+
+4. Preconditions  
+- All six input values are provided and are representable in the program’s integer range.  
+- Intermediate arithmetic used by the computation (products, differences, and derived expressions) does not overflow the program’s integer range.  
+- For the non-`infinity` case, the divisor used in the final ratio computation is nonzero (i.e., the derived denominator is not zero).
+
+5. Postconditions  
+- If the total combined value of entity A over both phases equals that of entity B over both phases, the program outputs `infinity`.  
+- Otherwise, the program outputs:
+  - `0` if a derived “phase-1 advantage” quantity is strictly greater than a derived “phase-2 catch-up” quantity, and  
+  - else a positive odd or even integer computed from the integer quotient of those derived quantities, where the result is even if an exact divisibility condition holds and odd otherwise.
+
+6. Invariants  
+- After a possible normalization step, entity A’s phase-1 per-unit value is less than or equal to entity B’s phase-1 per-unit value.  
+- The output in the non-`infinity` case is always a nonnegative integer.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input.  
+- If arithmetic overflow occurs or if the derived divisor is zero in the non-`infinity` path, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution. The only state change is internal normalization of the two entities’ per-phase values for computation.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.  
+- Performs a fixed amount of arithmetic and produces exactly one line of output.

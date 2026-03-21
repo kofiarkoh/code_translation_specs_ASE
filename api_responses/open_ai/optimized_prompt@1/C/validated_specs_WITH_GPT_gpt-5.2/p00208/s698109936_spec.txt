@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads a sequence of integers and, for each nonzero integer, outputs a transformed representation of that integer based on its base-8 digits. The transformation maps each base-8 digit to a decimal digit while skipping the decimal digits 4 and 6 (i.e., digits 0–7 are mapped to 0,1,2,3,5,7,8,9 respectively). Processing stops when the input value 0 is encountered.
+
+2. Inputs  
+- A sequence of signed integers provided via standard input.  
+- The value 0 acts as a terminator and is not processed.
+
+3. Outputs  
+- For each nonzero input integer, one line is written to standard output containing the transformed digit sequence (most significant digit first), followed by a newline.
+
+4. Preconditions  
+- Each input token intended for processing is a valid integer.  
+- Each nonzero input integer is non-negative. (If negative values are provided, behavior is not meaningfully defined by the code’s contract.)  
+- The base-8 digit count of each processed integer does not exceed 199 digits (to fit within the fixed internal storage).
+
+5. Postconditions  
+For each processed input integer \(x > 0\):  
+- Let \(x\) be expressed in base 8 as digits \(d_{m-1} \dots d_1 d_0\), where each \(d_i \in \{0,\dots,7\}\) and \(d_{m-1} \neq 0\).  
+- The program outputs a sequence of \(m\) decimal digits \(t_{m-1} \dots t_1 t_0\) such that for each position \(i\):  
+  - \(t_i = d_i\) if \(d_i \le 3\)  
+  - \(t_i = d_i + 1\) if \(d_i \in \{4,5\}\)  
+  - \(t_i = d_i + 2\) if \(d_i \in \{6,7\}\)  
+- The output contains no digit ‘4’ or ‘6’.
+
+6. Invariants  
+- During processing of a nonzero input, the number of output digits equals the number of base-8 digits of the input.  
+- Each output digit is one of {0,1,2,3,5,7,8,9}.  
+- The relative order of digits corresponds to the base-8 representation order (most significant to least significant).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, input exhaustion, or I/O failures; behavior in such cases is unspecified.  
+- If an input value requires more than 199 base-8 digits, memory is overwritten and behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeats: read next integer → if it is 0, terminate; otherwise produce one output line and continue to the next integer.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage limiting the maximum representable input size as described in Preconditions.  
+- Time and space per processed integer are proportional to the number of base-8 digits of the input.

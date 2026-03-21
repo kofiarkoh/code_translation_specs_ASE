@@ -1,0 +1,35 @@
+1. Functional Description  
+Reads a single input token as a character sequence and produces an output character sequence formed by processing the input left-to-right with a “backspace” rule: each occurrence of the character `B` deletes the most recently retained non-`B` character if one exists; otherwise it has no effect. All other characters are retained in order. Processing stops at the end of the input sequence or after a fixed maximum number of examined positions.
+
+2. Inputs  
+- One whitespace-delimited character sequence.
+
+3. Outputs  
+- One character sequence representing the processed result of applying the backspace rule to the input.
+
+4. Preconditions  
+- The input token length must not exceed the available input buffer capacity (including the terminating end marker).  
+- The input must be a valid, properly terminated character sequence.  
+- The produced result must be properly terminated for output as a character sequence; this is guaranteed only if processing reaches the input’s terminating end marker within the examined range (see assumptions in Error Handling / Exceptional Behavior).
+
+5. Postconditions  
+- Let the processed result be defined by scanning the input from start to end and maintaining a sequence initially empty:  
+  - If the current character is `B` and the sequence is non-empty, remove its last character; if empty, do nothing.  
+  - If the current character is not `B`, append it.  
+- The program outputs the processed result, provided the input’s terminating end marker is encountered within the examined range.
+
+6. Invariants  
+- The retained output sequence is always a prefix of the result defined by applying the backspace rule to the portion of input examined so far.  
+- The retained output length is never negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If the input token exceeds buffer capacity, behavior is undefined.  
+- If the input’s terminating end marker is not encountered within the fixed examined range, the output may be unterminated or contain unspecified trailing data, leading to undefined or unintended output.
+
+8. State Transitions (if applicable)  
+- Stateless across runs.  
+- During processing, the only logical state is the current retained output sequence, which changes by either appending a non-`B` character or deleting the last retained character upon `B`.
+
+9. Non-functional Constraints (if inferable)  
+- Processes at most a fixed small number of character positions from the input (bounded work and memory).

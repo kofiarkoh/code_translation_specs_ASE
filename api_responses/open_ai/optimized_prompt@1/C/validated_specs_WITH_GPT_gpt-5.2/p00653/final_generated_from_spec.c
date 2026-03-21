@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <limits.h>
+
+/*
+  2D Range Minimum Query on a static grid.
+
+  The specification implies:
+  - Multiple test cases, terminated by non-positive row count.
+  - Grid is immutable after initialization; only queries.
+  - Many queries efficiently after one-time preprocessing.
+  - Uses a fixed-size global backing store (upper bound on dimensions).
+
+  We implement a 2D Sparse Table for O(1) queries after O(R*C*logR*logC) build.
+  This matches "many queries efficiently" and keeps the grid unchanged.
+
+  No explicit error handling is performed, per specification.
+*/
+
+/* Fixed-size global backing store upper bounds (chosen conservatively). */
+#define MAXR 512
+#define MAXC 512
+#define MAXLOGR 10  /* since 2^9=512 */
+#define MAXLOGC 10
+
+static int st[MAXLOGR][MAXLOGC][MAXR][MAXC];
+static int lg2_tbl[(MAXR > MAXC ? MAXR : MAXC) + 1];
+
+static inline int imin(int a, int b) { return (a < b) ? a : b; }
+
+static void build_logs(void) {
+    /* lg2_tbl[x] = floor(log2(x)) for x>=1; lg2_tbl[0] unused */
+    lg2_tbl[0] = -1;
+    for (int i = 1; i < (int)(sizeof(lg2_tbl) / sizeof(lg2_tbl[0])); i++) {
+        lg2_tbl[i] = lg2_tbl[i >> 1] + 1;
+    }
+}
+
+static void build_sparse_table(int R, int C) {
+    /* Base level (0,0) is the grid itself. */
+    for (int r = 0; r < R; r++) {
+        for (int c = 0; c < C; c++) {
+            st[0][0][r][c] = st[0][0][r][c]; /* already read into st[0][0] */
+        }
+    }
+
+    /* Build along columns for k2 > 0 at k1 = 0 */
+    for (int k2 = 1; (1 << k2) <= C; k2++) {
+        int len = 1 << k2;
+        int half = len >> 1;
+        for (int r = 0; r < R; r++) {
+            for (int c = 0; c + len <= C; c++) {
+                st[0][k2][r][c] = imin(st[0][k2 - 1][r][c],
+                                      st[0][k2 - 1][r][c + half]);
+            }
+        }
+    }
+
+    /* Build along rows for k1 > 0, for all k2 */
+    for (int k1 = 1; (1 << k1) <= R; k1++) {
+        int len1 = 1 << k1;
+        int half1 = len1 >> 1;
+        for (int k2 = 0; (1 << k2) <= C; k2++) {
+            int len2 = 1 << k2;
+            for (int r = 0; r + len1 <= R; r++) {
+                for (int c = 0; c + len2 <= C; c++) {
+                    st[k1][k2][r][c] = imin(st[k1 - 1][k2][r][c],
+                                           st[k1 - 1][k2][r + half1][c]);
+                }
+            }
+        }
+    }
+}
+
+static int query_min(int r1, int c1, int r2, int c2) {
+    int h = r2 - r1 + 1;
+    int w = c2 - c1 + 1;
+    int k1 = lg2_tbl[h];
+    int k2 = lg2_tbl[w];
+    int rr = r2 - (1 << k1) + 1;
+    int cc = c2 - (1 << k2) + 1;
+
+    int a = st[k1][k2][r1][c1];
+    int b = st[k1][k2][rr][c1];
+    int c = st[k1][k2][r1][cc];
+    int d = st[k1][k2][rr][cc];
+    return imin(imin(a, b), imin(c, d));
+}
+
+int main(void) {
+    build_logs();
+
+    for (;;) {
+        int R, C;
+        int Q;
+        if (scanf("%d", &R) != 1) return 0;
+        if (R <= 0) return 0;
+        if (scanf("%d %d", &C, &Q) != 2) return 0;
+
+        /* Read grid into st[0][0]. */
+        for (int r = 0; r < R; r++) {
+            for (int c = 0; c < C; c++) {
+                (void)scanf("%d", &st[0][0][r][c]);
+            }
+        }
+
+        build_sparse_table(R, C);
+
+        for (int i = 0; i < Q; i++) {
+            int topRow, leftCol, bottomRow, rightCol;
+            (void)scanf("%d %d %d %d", &topRow, &leftCol, &bottomRow, &rightCol);
+            int ans = query_min(topRow, leftCol, bottomRow, rightCol);
+            printf("%d\n", ans);
+        }
+    }
+}

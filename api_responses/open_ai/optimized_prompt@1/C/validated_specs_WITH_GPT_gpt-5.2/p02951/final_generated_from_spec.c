@@ -1,0 +1,29 @@
+#include <stdio.h>
+
+int main(void) {
+    int A0, B0, C0;
+
+    /* No explicit error handling per specification. */
+    if (scanf("%d %d %d", &A0, &B0, &C0) != 3) {
+        return 0;
+    }
+
+    int D = A0 - B0;
+    int Cout;
+
+    if (D <= 0) {
+        Cout = C0;
+    } else {
+        if (C0 <= 0) {
+            /* When C0 is non-positive, it is decreased by the full positive D. */
+            Cout = C0 - D;
+        } else {
+            /* When C0 is positive, decrease by up to D but not below zero. */
+            int reduction = (D < C0) ? D : C0;
+            Cout = C0 - reduction;
+        }
+    }
+
+    printf("%d", Cout);
+    return 0;
+}

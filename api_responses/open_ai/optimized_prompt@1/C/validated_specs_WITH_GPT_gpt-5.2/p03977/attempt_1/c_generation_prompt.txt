@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of decimal integer pairs from standard input and, for each pair, computes a derived integer value based on the parity of the first integer, then writes the resulting values as decimal text, one per line, to standard output.
+
+2. Inputs  
+- A byte stream from standard input containing:
+  - An initial run of decimal digits that is ignored.
+  - Zero or more records, each consisting of two non-negative decimal integers separated by at least one non-digit character (any character less than `'0'` in the character set ordering is treated as a separator).
+
+3. Outputs  
+- A byte stream to standard output containing one line per successfully processed record:
+  - Each line is the computed integer rendered in base-10 without leading zeros (except that zero is rendered as a single digit), followed by a newline.
+
+4. Preconditions  
+- The input must fit within the fixed input buffer size (up to 10,000 bytes read).  
+- Each record’s two integers must be representable within the implementation’s signed integer range during parsing and computation.  
+- The computed result for each record must be non-negative (otherwise the textual rendering is not well-defined by the program’s behavior).  
+- Each computed result must have at most 10 decimal digits (otherwise output rendering may overflow the fixed temporary digit buffer).  
+- Total produced output must fit within the fixed output buffer size (up to 20,000 bytes).
+
+5. Postconditions  
+- For each complete record encountered after the initial ignored digit run, exactly one output line is produced.  
+- For a record with parsed integers `(N, D)`, the output value equals:
+  - If `N` is odd: `127*(N-1) + D`  
+  - If `N` is even: `127*N - D`
+
+6. Invariants  
+- Records are processed in input order.  
+- Output lines are emitted in one-to-one correspondence with processed records, preserving order.  
+- Parsing treats any character with code less than `'0'` as a delimiter terminating a number.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., insufficient input structure, overflow, negative computed result, excessive digits, or buffer capacity exceeded), behavior is undefined: output may be incorrect, truncated, or the program may fail.
+
+8. State Transitions (if applicable)  
+- Stateless across invocations.  
+- Within a run, transitions from:
+  - Skipping an initial digit run → processing zero or more records → emitting accumulated output and terminating.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on fixed-size in-memory buffers; does not stream output incrementally.  
+- Time and memory usage are bounded by the fixed buffer sizes and linear in the amount of input processed (up to the input buffer limit).
+
+```

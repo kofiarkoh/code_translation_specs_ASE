@@ -1,0 +1,58 @@
+1. Functional Description  
+Computes, for each provided game instance, the probability of reaching exactly the goal position within a limited number of turns in a one-piece, dice-driven race on a linear board, where certain squares impose special penalties or resets. The result is the probability of being at the goal after consuming up to the available turns under the game’s movement and special-square rules.
+
+2. Inputs  
+For each instance (repeated until a terminating instance is encountered):  
+- A nonnegative integer board length (goal distance).  
+- A nonnegative integer number of available turns.  
+- A nonnegative integer count of “lose-extra-turn” squares.  
+- A nonnegative integer count of “back-to-start” squares.  
+- A list of positions for the “lose-extra-turn” squares.  
+- A list of positions for the “back-to-start” squares.  
+A final instance with all four leading integers equal to zero terminates processing.
+
+3. Outputs  
+For each non-terminating instance, outputs a single real number representing the computed probability of reaching the goal under the rules and constraints.
+
+4. Preconditions  
+- Board length and available turns are within bounds such that internal tables indexed by remaining distance and remaining turns are not exceeded (implied maximums: remaining distance ≤ 100 and remaining turns ≤ 100).  
+- All listed special-square positions are within the representable board index range used by the program (implied: 0..99 for safe access given the board length constraint).  
+- The input provides exactly the declared number of positions for each special-square list.  
+- If a position is listed in both special-square lists, the “back-to-start” effect is assumed to take precedence (as it overwrites the other marking).
+
+5. Postconditions  
+For each instance, the produced probability satisfies:  
+- It is within the range [0.0, 1.0].  
+- If the goal distance is zero, the probability is 1.0 regardless of turns.  
+- If turns are zero or negative while goal distance is positive, the probability is 0.0.  
+- The probability reflects uniform random outcomes of a six-sided die per turn, combined with the special-square effects described below.
+
+6. Invariants  
+- The game state is fully characterized by two values: remaining distance to the goal and remaining turns.  
+- Each die outcome is equally likely (probability 1/6).  
+- Movement rule per die roll: the new remaining distance becomes the absolute difference between the current remaining distance and the die value (i.e., overshooting reflects back).  
+- Special-square effects are applied based on the landing square corresponding to the new remaining distance:
+  - Normal square: consumes 1 turn.  
+  - “Lose-extra-turn” square: consumes 2 turns total for that move.  
+  - “Back-to-start” square: consumes 1 turn and resets remaining distance to the full board length.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate the implied bounds or contain out-of-range positions, behavior is undefined (may include invalid memory access or incorrect results).  
+- Floating-point output is produced as computed; no special handling for rounding or formatting beyond default real-number printing.
+
+8. State Transitions (if applicable)  
+From a state (remaining distance r, remaining turns t), with r > 0 and t > 0:  
+- A die outcome d in {1..6} is chosen uniformly.  
+- Compute r' = |r − d|.  
+- Determine the landing square associated with r' and apply exactly one of:
+  - Normal: transition to (r', t − 1).  
+  - Lose-extra-turn: transition to (r', t − 2).  
+  - Back-to-start: transition to (N, t − 1).  
+Terminal states:  
+- Any state with remaining distance 0 is success (probability 1 from that state).  
+- Any state with remaining turns ≤ 0 and remaining distance > 0 is failure (probability 0 from that state).
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small bounded problem sizes (implied by fixed table sizes up to 101×101 and board array size 100).  
+- Uses deterministic computation with memoization to avoid recomputing probabilities for the same state.

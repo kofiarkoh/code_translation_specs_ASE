@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong state/transition rule (board indexing / landing-square mapping), leading to systematically different probabilities.
+
+B. What the current specification may be missing or misstating  
+The specification (and generated code) treats the “landing square” for special effects as the index `rp` (the new remaining distance). In the source, special squares are stored by *board position* `l` as read from input, but are *queried* using `sq[N - next_pos]`, i.e., the position measured from the start: `pos = N - (new remaining distance)`. This is a different mapping than using `rp` directly.
+
+So the spec’s statement “Special-square effects are applied based on the landing square corresponding to the new remaining distance” is ambiguous/wrong: it does not clarify that the special-square lists are given in absolute board coordinates from the start, and that the program converts from remaining-distance state to board position via `N - r'`.
+
+C. What general behavior should be clarified in the specification  
+Clarify the coordinate system and conversion used to apply square effects:
+
+- The game state uses **remaining distance to goal** `r`.  
+- After rolling, compute `r' = |r - d|`.  
+- The piece’s **board position from the start** is `pos = N - r'`.  
+- Special-square effects are determined by looking up the square at `pos` (not at `r'`).  
+
+Also clarify that the input special-square positions are in that same “position from start” coordinate system.
+
+D. Why this clarification is supported by the source program  
+In `solve()` the source computes `next_pos = abs(rest - i)` (this is the new remaining distance), then checks `sq[N - next_pos]` to decide whether the landing square is normal/`L`/`B`. This directly shows the program applies effects based on `N - r'` (position from start), not on `r'` itself. The generated program instead indexes `board[rp]`, which is inconsistent with the source and explains the probability discrepancies across full test cases (not a one-off edge case).

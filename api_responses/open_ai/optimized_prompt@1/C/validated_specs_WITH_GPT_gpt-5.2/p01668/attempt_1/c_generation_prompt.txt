@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo a fixed large prime, the number of length‑`N` digit sequences representing integers in the inclusive range between a given lower bound and upper bound (after left‑padding the lower bound with leading zeros to match the upper bound’s length) such that the digit sequence contains a given digit pattern as a contiguous substring. The substring match is required to start at or after the first position where the padded lower bound may introduce leading zeros (i.e., it is not allowed to start strictly before that position if it would rely on those padded zeros).
+
+2. Inputs  
+- Three non-empty strings over decimal digits:  
+  - Lower bound value.  
+  - Upper bound value.  
+  - Pattern value to be matched as a contiguous substring.
+
+3. Outputs  
+- A single non-negative integer: the count of valid numbers in the specified range whose digit representation (with length equal to the upper bound’s length) contains the pattern as a contiguous substring, reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- All three inputs consist only of characters ‘0’–‘9’.  
+- The upper bound’s digit length is at most 10,000.  
+- The pattern’s digit length is at most 500.  
+- The lower bound’s digit length is at most the upper bound’s digit length.  
+- The numeric value of the (padded) lower bound is less than or equal to the numeric value of the upper bound (otherwise the result is not meaningfully defined by the code’s contract).  
+
+5. Postconditions  
+- Let `N` be the number of digits in the upper bound. Let the lower bound be left‑padded with leading zeros to length `N`.  
+- The output equals the number of integers `X` such that:  
+  - `X` is representable as an `N`-digit sequence (allowing leading zeros),  
+  - `lower_bound_padded ≤ X ≤ upper_bound`, and  
+  - the `N`-digit sequence of `X` contains the pattern as a contiguous substring starting at some index `s` satisfying `s ≥ (N − original_lower_bound_length)`.  
+- The reported value is the above count modulo 1,000,000,007.
+
+6. Invariants  
+- All counts are maintained and reported modulo 1,000,000,007.  
+- The range constraints are always interpreted with respect to the `N`-digit, leading-zero-allowed representation.
+
+7. Error Handling / Exceptional Behavior  
+- If the three required inputs are not successfully read, the program terminates with a non-zero exit status and produces no defined numeric output.  
+- No other explicit error reporting is performed; behavior is undefined if preconditions are violated (e.g., excessive lengths or non-digit characters).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is proportional to `N * M` with fixed small constant factors due to internal caching; it requires space on the order of `N * M` states.  
+- Intended to run in time proportional to the number of cached states times a small digit-iteration factor, suitable for the stated maximum sizes.
+
+```

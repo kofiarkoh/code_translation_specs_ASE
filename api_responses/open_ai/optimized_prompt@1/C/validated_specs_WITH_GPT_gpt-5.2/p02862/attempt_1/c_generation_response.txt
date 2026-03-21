@@ -1,0 +1,83 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+/* Fixed supported maximum for factorial precomputation.
+   The specification states behavior is undefined if exceeded; we do not guard it. */
+#define MAXN 1000000
+
+static long long mod_pow(long long a, long long e) {
+    long long r = 1 % MOD;
+    a %= MOD;
+    while (e > 0) {
+        if (e & 1) r = (r * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+int main(void) {
+    long long x, y;
+    if (scanf("%lld %lld", &x, &y) != 2) {
+        /* No explicit handling for malformed input per specification. */
+        return 0;
+    }
+
+    /* Reachability checks derived from move constraints:
+       Each move increases (x+y) by 3, and is either (1,2) or (2,1). */
+    long long s = x + y;
+    if (s % 3 != 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    long long n = s / 3;          /* total moves */
+    long long a = 2 * x - y;      /* 3 * (# of (1,2) moves) */
+    long long b = 2 * y - x;      /* 3 * (# of (2,1) moves) */
+
+    if (a < 0 || b < 0 || a % 3 != 0 || b % 3 != 0) {
+        printf("0\n");
+        return 0;
+    }
+
+    long long k = a / 3;          /* number of (1,2) moves */
+    long long n_minus_k = b / 3;  /* number of (2,1) moves */
+
+    if (k + n_minus_k != n) {
+        /* Narrow consistency check; if violated, treat as unreachable. */
+        printf("0\n");
+        return 0;
+    }
+
+    /* Precompute factorials and inverse factorials up to MAXN once. */
+    static long long *fact = NULL;
+    static long long *invfact = NULL;
+
+    fact = (long long *)malloc((MAXN + 1) * sizeof(long long));
+    invfact = (long long *)malloc((MAXN + 1) * sizeof(long long));
+    if (!fact || !invfact) {
+        /* Specification does not define behavior on allocation failure. */
+        return 0;
+    }
+
+    fact[0] = 1;
+    for (int i = 1; i <= MAXN; i++) fact[i] = (fact[i - 1] * i) % MOD;
+
+    invfact[MAXN] = mod_pow(fact[MAXN], MOD - 2);
+    for (int i = MAXN; i >= 1; i--) invfact[i - 1] = (invfact[i] * i) % MOD;
+
+    /* Behavior is undefined if n > MAXN per specification; we do not guard it. */
+    long long ans = fact[n];
+    ans = (ans * invfact[k]) % MOD;
+    ans = (ans * invfact[n - k]) % MOD;
+
+    printf("%lld\n", ans);
+
+    free(fact);
+    free(invfact);
+    return 0;
+}
+```

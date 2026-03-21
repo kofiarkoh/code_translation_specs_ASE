@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a modular product over a sequence of integers after sorting them in nondecreasing order. For each position in the sorted sequence, it multiplies an accumulator by the greatest common divisor of the element at that position and the position index, and reports the final accumulator value reduced modulo a fixed prime modulus.
+
+2. Inputs  
+- An integer `N`: the number of elements.  
+- A sequence of `N` integers.
+
+3. Outputs  
+- A single integer: the computed product reduced modulo the fixed modulus.
+
+4. Preconditions  
+- `N` is nonnegative.  
+- Exactly `N` integers are provided as the sequence.  
+- Sufficient memory is available to store `N` integers.  
+- All arithmetic values fit within the implementation’s signed 64-bit integer range during intermediate computations (notably during sorting comparisons and during multiplication before modular reduction).  
+- For the greatest-common-divisor operation to be well-defined as a nonnegative value, inputs are assumed to be nonnegative; if negative values are provided, the sign of intermediate and final results is implementation-dependent.
+
+5. Postconditions  
+- The output equals:  
+  - Let `B` be the input sequence sorted in nondecreasing order.  
+  - Let `M` be the fixed modulus.  
+  - The program outputs  
+    \[
+    \left(\prod_{i=0}^{N-1} \gcd(B[i], i)\right) \bmod M
+    \]
+  - with the accumulator initialized to 1 before the product.
+
+6. Invariants  
+- After processing the first `k` elements of the sorted sequence (for any `k` from 0 to `N`), the accumulator equals the product of `gcd(B[i], i)` for all processed indices `i` in `[0, k-1]`, reduced modulo the fixed modulus.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input, allocation failure, or arithmetic overflow. In such cases, behavior is undefined or may result in abnormal termination or incorrect output.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external persistent state. The only externally observable state change is producing the single output value.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting: \(O(N \log N)\), plus \(O(N)\) greatest-common-divisor computations.  
+- Memory usage is \(O(N)\) for storing the sequence.
+
+```

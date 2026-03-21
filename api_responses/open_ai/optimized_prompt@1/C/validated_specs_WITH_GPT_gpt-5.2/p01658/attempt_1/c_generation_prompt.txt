@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes a sequence of binary rows and computes a single nonnegative integer count. For each row, it performs a deterministic transformation driven by the row’s values and accumulates how many times a “removal” action is taken when a boundary element is 1. For all rows after the first, the row is logically complemented before processing. The final accumulated count is produced.
+
+2. Inputs  
+- Two integers specifying the number of rows and the number of columns.  
+- Then, for each row, a sequence of column values intended to be binary (0 or 1).
+
+3. Outputs  
+- One integer: the total accumulated count over all rows.
+
+4. Preconditions  
+- The number of columns does not exceed the fixed internal capacity (at most 106).  
+- The number of rows and columns are nonnegative.  
+- Each provided cell value is expected to be either 0 or 1; otherwise, behavior is not meaningfully defined by the program’s intended contract.  
+- Sufficient input values are provided for all rows and columns.
+
+5. Postconditions  
+- The output equals the sum, over all rows, of the number of times during that row’s processing that either current leftmost or rightmost unprocessed element is 1 at the moment it is examined and triggers a “removal” count.  
+- For rows with index greater than 0 (i.e., not the first row), the row’s values are treated as complemented (0↔1) before the per-row processing described above.
+
+6. Invariants  
+- The accumulated count is monotonically nondecreasing and never negative.  
+- During processing of a row, the set of unprocessed positions is always a contiguous segment that shrinks until all positions are processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, out of expected range, or if the column count exceeds capacity, the program’s behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Global state consists of the accumulated count and a working row buffer.  
+- For each row: the working buffer is loaded (and complemented for all but the first row), then the row-processing step consumes the row by shrinking the active segment to empty while possibly increasing the accumulated count.  
+- After the final row, the program transitions to a terminal state after emitting the accumulated count.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for one row; memory usage is bounded and independent of the number of rows.  
+- Time cost grows proportionally with the product of the number of rows and columns.
+
+```

@@ -1,0 +1,56 @@
+1. Functional Description  
+Builds a rooted, ordered tree of up to 100,000 nodes from input describing each node’s children. Determines the unique root (the node with no parent), computes a depth value for each node relative to that root, and outputs for every node: its parent, its depth, its classification (root/leaf/internal), and its ordered list of children.
+
+2. Inputs  
+- An integer specifying the number of nodes.  
+- For each node description:  
+  - A node identifier.  
+  - A nonnegative integer specifying how many children it has.  
+  - That many child node identifiers, in left-to-right order.
+
+3. Outputs  
+For each node identifier in the range `[0, number_of_nodes - 1]`, one line containing:  
+- The node identifier.  
+- Its parent identifier (or a sentinel indicating no parent).  
+- Its depth (nonnegative integer).  
+- A node type label: root, leaf, or internal.  
+- The ordered list of its children (possibly empty).
+
+4. Preconditions  
+- The number of nodes is within the fixed maximum capacity (≤ 100,000).  
+- All referenced node identifiers (parents and children) are within `[0, number_of_nodes - 1]`.  
+- The input describes a rooted tree structure:  
+  - Exactly one node has no parent.  
+  - Every other node has exactly one parent.  
+  - The structure is acyclic and all nodes are reachable from the root.  
+- For each node, the provided child list order is the intended left-to-right order.
+
+5. Postconditions  
+- For every node, the stored parent relation matches the input (root has no parent sentinel).  
+- For every node, the reported children list matches the input order.  
+- Depth values satisfy:  
+  - Root depth is 0.  
+  - Each child’s depth is exactly its parent’s depth plus 1.  
+- Node classification satisfies:  
+  - Root: node with no parent.  
+  - Leaf: node with no children.  
+  - Internal: node with at least one child and a parent (or root with children is still labeled root).
+
+6. Invariants  
+- Each node has at most one parent.  
+- The children of a node form an ordered sequence with no gaps, and the sequence is exactly the one provided in input.  
+- Depth values are consistent with the parent relation for all nodes reachable from the root.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., invalid identifiers, multiple roots, cycles, unreachable nodes, or exceeding capacity), behavior is undefined and output may be incorrect or the program may fail.
+
+8. State Transitions (if applicable)  
+- Initial state: all nodes have no parent and no children; depths are unspecified.  
+- After input processing: parent and child relationships are established for all nodes.  
+- After root detection and depth computation: depth is assigned for nodes reachable from the root.  
+- Final state: the program emits the per-node summary and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum node capacity of 100,000.  
+- Uses recursion proportional to tree height; very deep trees may exceed call stack limits.  
+- Time and memory usage are linear in the number of nodes plus the number of parent-child links.

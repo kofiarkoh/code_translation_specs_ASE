@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) {
+        /* Unspecified behavior per spec if input is missing/invalid. */
+        return 0;
+    }
+
+    int pow3 = 1; /* will become 3^N */
+    int pow2 = 1; /* will become 2^E, where E is count of even inputs */
+
+    for (int i = 0; i < N; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) {
+            /* Unspecified behavior per spec if input is missing/invalid. */
+            return 0;
+        }
+
+        /* Maintain invariant: pow2 == 2^(#evens seen so far). */
+        if ((x % 2) == 0) {
+            pow2 *= 2;
+        }
+
+        /* Build 3^N in the same pass; after loop, pow3 == 3^N. */
+        pow3 *= 3;
+    }
+
+    /* Output: 3^N - 2^E. Overflow behavior is unspecified per spec. */
+    printf("%d", pow3 - pow2);
+    return 0;
+}

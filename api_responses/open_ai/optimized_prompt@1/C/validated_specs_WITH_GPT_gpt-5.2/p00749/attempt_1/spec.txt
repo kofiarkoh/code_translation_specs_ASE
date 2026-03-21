@@ -1,0 +1,49 @@
+1. Functional Description  
+Determines whether a 2D arrangement of non-empty cells forms a globally “stable” stacked structure under gravity. Cells with the same non-empty symbol that are orthogonally connected are treated as a single rigid component. A component is considered supported by the component directly beneath it (if any). The structure is reported stable iff every component’s horizontal center of mass lies strictly within its own horizontal footprint, and this remains true when considering the combined mass of each component together with all components it supports.
+
+2. Inputs  
+- Repeated test cases.  
+- For each test case:  
+  - Two positive integers: grid width and grid height.  
+  - A rectangular grid of the given height, each row containing width characters.  
+  - Cells are either empty (denoted by a specific character) or occupied by a symbol; occupied symbols define component membership by equality and orthogonal connectivity.  
+- Termination occurs when a test case is read with a non-positive width.
+
+3. Outputs  
+- For each test case, outputs exactly one line: either “STABLE” or “UNSTABLE”.
+
+4. Preconditions  
+- Width and height are within the fixed internal capacity limits (implied upper bounds by static storage).  
+- Each grid row provided has exactly the declared width.  
+- The input uses a single designated character to represent empty cells, and all other characters represent occupied material.  
+- The occupied cells form a support relation that is acyclic and has a single effective top-level component (i.e., all components are ultimately connected by vertical support to one root component). If this is not true, the program’s result is not guaranteed to reflect a meaningful physical interpretation.
+
+5. Postconditions  
+- If the program outputs “STABLE”, then for every component in the structure, after aggregating the mass of all components it supports (directly or indirectly) into that component, the resulting horizontal center of mass lies strictly inside that component’s horizontal footprint interval.  
+- If the program outputs “UNSTABLE”, then at least one component violates the above condition (its aggregated center of mass is at or outside its footprint boundary).
+
+6. Invariants  
+- Each occupied cell belongs to exactly one component defined by symbol equality and orthogonal connectivity.  
+- Each component has:  
+  - A positive mass equal to its number of occupied cells.  
+  - A horizontal footprint defined by the minimum and maximum column indices among its occupied cells that participate in the support-relevant scan.  
+  - A horizontal center of mass computed from the average of its occupied cell column indices, using a consistent half-cell offset convention.  
+- During stability evaluation, once a component is successfully validated, its mass and horizontal moment are permanently accumulated into its supporting parent component.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range dimensions, or inconsistent structures.  
+- If the support relation contains cycles, multiple roots, or otherwise violates the stated assumptions, behavior and output are unspecified.  
+- If the grid exceeds internal fixed capacities, memory corruption or incorrect results may occur.
+
+8. State Transitions (if applicable)  
+- For each test case:  
+  - Initial state: empty internal model.  
+  - After parsing: grid state established.  
+  - After component formation: occupied cells partitioned into components.  
+  - After support modeling: a parent/child relation between components is established based on vertical adjacency.  
+  - After evaluation: components transition from “not yet aggregated” to “aggregated into parent” upon successful validation.  
+  - Terminal state: emits stability verdict and resets for the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size static storage; maximum supported grid size and number of components are bounded.  
+- Time complexity is linear in the number of grid cells per test case, up to near-constant factors from neighborhood checks and component operations.

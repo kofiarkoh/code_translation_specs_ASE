@@ -1,0 +1,110 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+typedef struct {
+    int w;
+    int v;
+    double r;
+} Item;
+
+static int cmp_item_desc_ratio(const void *a, const void *b) {
+    const Item *ia = (const Item *)a;
+    const Item *ib = (const Item *)b;
+    /* Sort by non-increasing ratio; ties intentionally left unordered. */
+    if (ia->r < ib->r) return 1;
+    if (ia->r > ib->r) return -1;
+    return 0;
+}
+
+int main(void) {
+    int N;
+    int Wi;
+
+    if (scanf("%d %d", &N, &Wi) != 2) {
+        return 0; /* No explicit error handling specified. */
+    }
+
+    /* Candidate storage limit per specification. */
+    enum { MAXC = 100002 };
+    Item *cand = (Item *)malloc((size_t)MAXC * sizeof(Item));
+    if (!cand) {
+        return 0; /* Unspecified; keep minimal behavior. */
+    }
+
+    double W = (double)Wi;
+    double ans = 0.0;
+    int m = 0;
+
+    for (int i = 0; i < N; i++) {
+        int w, v;
+        if (scanf("%d %d", &w, &v) != 2) {
+            /* Unspecified behavior on malformed input; stop. */
+            free(cand);
+            return 0;
+        }
+
+        if (w >= 0 && v <= 0) {
+            /* Ignored. */
+            continue;
+        }
+
+        if (w < 0 && v > 0) {
+            /* Always taken fully: ans += v; W -= w (w is negative => increases W). */
+            ans += (double)v;
+            W -= (double)w;
+            continue;
+        }
+
+        /* Candidate branch. */
+        if (w < 0) {
+            /* Here v <= 0 per specification; normalize to (|w|, |v|),
+               and apply adjustments: ans -= |v|; W += w (w negative => decreases W). */
+            int aw = (w < 0) ? -w : w;
+            int av = (v < 0) ? -v : v;
+            ans -= (double)av;
+            W += (double)w;
+
+            /* Preconditions say stored weight is non-zero. */
+            if (m < MAXC) {
+                cand[m].w = aw;
+                cand[m].v = av;
+                cand[m].r = (double)av / (double)aw;
+                m++;
+            } else {
+                /* Undefined per spec if exceeded; do nothing special. */
+            }
+        } else {
+            /* Here w > 0 and v > 0; store as-is. */
+            if (m < MAXC) {
+                cand[m].w = w;
+                cand[m].v = v;
+                cand[m].r = (double)v / (double)w;
+                m++;
+            } else {
+                /* Undefined per spec if exceeded; do nothing special. */
+            }
+        }
+    }
+
+    qsort(cand, (size_t)m, sizeof(Item), cmp_item_desc_ratio);
+
+    for (int i = 0; i < m; i++) {
+        if (fabs(W) < 1e-7) break;
+
+        double ww = (double)cand[i].w;
+        double vv = (double)cand[i].v;
+
+        /* x = min(1, W / w) */
+        double x = W / ww;
+        if (x > 1.0) x = 1.0;
+
+        W -= x * ww;
+        ans += x * vv;
+    }
+
+    printf("%lf\n", ans);
+
+    free(cand);
+    return 0;
+}

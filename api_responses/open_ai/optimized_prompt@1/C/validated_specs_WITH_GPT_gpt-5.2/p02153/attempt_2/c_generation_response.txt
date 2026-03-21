@@ -1,0 +1,161 @@
+```c
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAXH 1005
+#define MAXW 1005
+
+typedef struct {
+    long long d;
+    int v;
+} HeapNode;
+
+typedef struct {
+    HeapNode a[MAXH * MAXW + 5];
+    int n;
+} MinHeap;
+
+static void heap_push(MinHeap *h, long long d, int v) {
+    int i = ++h->n;
+    h->a[i].d = d;
+    h->a[i].v = v;
+    while (i > 1) {
+        int p = i >> 1;
+        if (h->a[p].d <= h->a[i].d) break;
+        HeapNode tmp = h->a[p];
+        h->a[p] = h->a[i];
+        h->a[i] = tmp;
+        i = p;
+    }
+}
+
+static HeapNode heap_pop(MinHeap *h) {
+    HeapNode ret = h->a[1];
+    HeapNode x = h->a[h->n--];
+    int i = 1;
+    while (1) {
+        int l = i << 1;
+        int r = l + 1;
+        if (l > h->n) break;
+        int m = l;
+        if (r <= h->n && h->a[r].d < h->a[l].d) m = r;
+        if (h->a[m].d >= x.d) break;
+        h->a[i] = h->a[m];
+        i = m;
+    }
+    h->a[i] = x;
+    return ret;
+}
+
+static int heap_empty(const MinHeap *h) { return h->n == 0; }
+
+static char grid[MAXH][MAXW + 5];
+static unsigned char danger[MAXH][MAXW];
+static unsigned char used[MAXH][MAXW];
+static long long distv[MAXH][MAXW];
+
+int main(void) {
+    int H, W;
+    long long A_in, B;
+    if (scanf("%d %d %lld %lld", &H, &W, &A_in, &B) != 4) return 0;
+
+    int sy = -1, sx = -1, gy = -1, gx = -1;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", grid[i]) != 1) return 0;
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 's') { sy = i; sx = j; }
+            else if (grid[i][j] == 'g') { gy = i; gx = j; }
+        }
+    }
+
+    /* Derived hazard (dangerous) cells.
+       Per precondition, hazard sources are not on the border, so neighbor writes are safe. */
+    memset(danger, 0, sizeof(danger));
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == '*') {
+                for (int dy = -1; dy <= 1; dy++) {
+                    for (int dx = -1; dx <= 1; dx++) {
+                        danger[i + dy][j + dx] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Dijkstra-style search with finalization on first pop. */
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            used[i][j] = 0;
+            distv[i][j] = LLONG_MAX;
+        }
+    }
+
+    MinHeap pq;
+    pq.n = 0;
+
+    distv[sy][sx] = 0;
+    heap_push(&pq, 0, sy * W + sx);
+
+    const int ody[4] = {-1, 1, 0, 0};
+    const int odx[4] = {0, 0, -1, 1};
+    const int ddy[4] = {-1, -1, 1, 1};
+    const int ddx[4] = {-1, 1, -1, 1};
+
+    while (!heap_empty(&pq)) {
+        HeapNode cur = heap_pop(&pq);
+        int v = cur.v;
+        int y = v / W;
+        int x = v % W;
+
+        if (used[y][x]) continue;
+        used[y][x] = 1;
+
+        if (y == gy && x == gx) {
+            printf("%lld\n", cur.d);
+            return 0;
+        }
+
+        int curDanger = danger[y][x] ? 1 : 0;
+
+        /* Orthogonal moves always considered (subject to constraints). */
+        for (int k = 0; k < 4; k++) {
+            int ny = y + ody[k];
+            int nx = x + odx[k];
+            if (ny < 0 || ny >= H || nx < 0 || nx >= W) continue;
+
+            int destWall = (grid[ny][nx] == '#');
+            if (curDanger && destWall) continue;
+
+            long long step = A_in + (destWall ? B : 0);
+            if (cur.d != LLONG_MAX && cur.d + step < distv[ny][nx]) {
+                distv[ny][nx] = cur.d + step;
+                heap_push(&pq, distv[ny][nx], ny * W + nx);
+            }
+        }
+
+        /* Diagonal moves only if current cell is not dangerous, and only into wall cells. */
+        if (!curDanger) {
+            for (int k = 0; k < 4; k++) {
+                int ny = y + ddy[k];
+                int nx = x + ddx[k];
+                if (ny < 0 || ny >= H || nx < 0 || nx >= W) continue;
+
+                int destWall = (grid[ny][nx] == '#');
+                if (!destWall) continue; /* diagonal moves only allowed when destination is a wall */
+
+                long long step = 2 * A_in + B;
+                if (cur.d != LLONG_MAX && cur.d + step < distv[ny][nx]) {
+                    distv[ny][nx] = cur.d + step;
+                    heap_push(&pq, distv[ny][nx], ny * W + nx);
+                }
+            }
+        }
+    }
+
+    printf("INF\n");
+    return 0;
+}
+```

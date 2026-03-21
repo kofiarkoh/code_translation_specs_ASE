@@ -1,0 +1,22 @@
+#include <stdio.h>
+
+int main(void) {
+    long long a, b;
+
+    /* No explicit handling for missing/invalid input per specification. */
+    if (scanf("%lld %lld", &a, &b) != 2) {
+        return 0;
+    }
+
+    /* Preconditions state sum is representable (no overflow). */
+    long long sum = a + b;
+
+    if ((sum & 1LL) == 0) {
+        /* When sum is even, average is exactly half the sum. */
+        printf("%lld", sum / 2);
+    } else {
+        printf("IMPOSSIBLE");
+    }
+
+    return 0;
+}

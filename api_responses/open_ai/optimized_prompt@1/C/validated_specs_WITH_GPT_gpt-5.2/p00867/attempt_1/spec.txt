@@ -1,0 +1,53 @@
+1. Functional Description
+Reads multiple datasets describing a set of straight line segments on an integer grid. For each dataset, classifies each segment into exactly one digit category (0–9) based solely on the connectivity pattern formed by shared endpoints and on whether any segment endpoint lies strictly on the interior of another segment within the same connected component. Outputs the counts of segments classified as each digit.
+
+2. Inputs
+For each dataset:
+- An integer specifying the number of segments.
+- For each segment: four integers giving the coordinates of its two endpoints on a bounded integer grid.
+
+Datasets repeat until a terminating dataset with segment count equal to zero.
+
+3. Outputs
+For each dataset:
+- A single line containing 10 non-negative integers: the number of segments classified as digit 0, then 1, …, 9.
+
+4. Preconditions
+- All endpoint coordinates are integers within a fixed maximum grid range supported by the program.
+- The number of segments does not exceed the program’s fixed maximum capacity.
+- Each connected component formed by “segments sharing an endpoint” contains at most 5 segments; otherwise behavior is not guaranteed (the program only stores up to 5 segments per component).
+- Input is well-formed and provides all required integers for each dataset.
+
+5. Postconditions
+For each dataset:
+- Every input segment contributes to exactly one of the 10 reported counts.
+- The sum of the 10 reported counts equals the number of input segments.
+- Classification is determined as follows (per connected component of segments that are linked by shared endpoints):
+  - Components with exactly 2 segments and exactly 2 endpoints that are shared by more than one segment contribute all their segments to digit 4.
+  - Components with exactly 4 segments and exactly 6 such shared endpoints contribute all their segments to digit 9.
+  - Components with exactly 4 segments and exactly 8 such shared endpoints:
+    - If any segment endpoint in the component lies strictly in the interior of another segment in the same component, all segments in the component are classified as digit 8.
+    - Otherwise, all segments in the component are classified as digit 0.
+  - Components with exactly 5 segments and exactly 8 such shared endpoints contribute all their segments to exactly one of digits 2, 5, or 6, determined by the relative sidedness (orientation) of two specific “branch” points with respect to two “junction” segments implied by the component’s endpoint-sharing structure.
+  - Components with exactly 3 segments and exactly 4 such shared endpoints:
+    - If any segment endpoint in the component lies strictly in the interior of a segment whose both endpoints are shared (degree > 1), all segments in the component are classified as digit 3.
+    - Otherwise, all segments in the component are classified as digit 7.
+  - All remaining segments (including isolated segments and segments in components not matching any of the above patterns) are classified as digit 1.
+
+6. Invariants
+- Endpoint-sharing connectivity is an equivalence relation over segments: each segment belongs to exactly one connected component.
+- “Shared endpoint” status of a point depends only on how many segment endpoints coincide at that point within the dataset.
+- The interior-point test never treats a segment’s own endpoints as lying in the interior of that segment.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting or recovery is performed.
+- If preconditions are violated (e.g., coordinates out of range, too many segments, or a component containing more than 5 segments), results are undefined (may be incorrect or may corrupt memory).
+
+8. State Transitions (if applicable)
+- For each dataset, internal state (counts, connectivity, endpoint multiplicities, and per-component summaries) is reset before processing.
+- Processing transitions from “uninitialized for dataset” → “segments read and connectivity built” → “components analyzed and counts accumulated” → “counts output”.
+- Terminates when the dataset segment count is zero.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage bounded by compile-time limits for number of segments and coordinate range.
+- Per-dataset time is bounded by a small constant factor times the number of segments, plus per-component checks that are bounded due to the assumed maximum of 5 segments per component.

@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong optimality/ordering rule (wrong abstraction of the objective), leading to incorrect tie-breaking among matchings.
+
+B. What the current specification may be missing or misstating  
+The spec models the choice as a lexicographic optimization of the **count vector** \((c_0,\dots,c_{51})\) (equivalently lexicographically minimizing \((-c_0,\dots,-c_{51})\)). That treats all matchings with the same multiset of letters as equivalent and assumes the objective depends only on aggregate counts.
+
+The source program’s objective is implemented via a min-cost flow with a 52-dimensional “cost” that is accumulated per chosen edge, but the way it is encoded (negative unit vector per chosen character, then summed and compared lexicographically) effectively induces a strict preference that can differ from a simple “maximize counts of ‘A’, then ‘B’, …” interpretation when there are tradeoffs across letters and/or when multiple matchings yield the same prefix counts. In other words, the spec’s abstraction “only counts matter” is too coarse: the source’s optimization is a lexicographic minimization over a vector cost, but the resulting chosen multiset is not necessarily the one produced by a greedy “maximize earlier letters” approach, and the tie-breaking behavior is not fully captured.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact** optimization criterion as realized by the min-cost flow: it is a lexicographic shortest-path / min-cost-flow over 52-dimensional vectors with a specific comparison order, not an informal “maximize counts in order” procedure.  
+- Clarify how ties are resolved when multiple perfect matchings yield the same count vector prefix (or even the same full count vector): the source algorithm’s relaxation order and vector comparison can select a particular optimum that a different algorithm (even if aiming for the same high-level goal) might not reproduce.  
+- More generally: specify whether the intended output is uniquely determined solely by the multiset-count lexicographic rule, or whether the program’s behavior depends on additional implicit tie-breaking induced by the flow algorithm/edge construction.
+
+D. Why this clarification is supported by the source program  
+- The source constructs a min-cost flow network and runs a Bellman-Ford–style relaxation using `mx_cmp` over 52 components, accumulating per-edge vector costs (`mx_add2(t, dist[v], e->cost)`) and then augmenting flow along the found shortest path. This is an algorithmic definition of optimality and tie-breaking, not a direct “maximize counts” combinational rule.  
+- The cost vectors are stored in `signed char a[52]` and compared componentwise in fixed order by `mx_cmp`, so the exact notion of “optimal” is “minimum under that comparator of the total summed vector cost over the chosen edges,” with whatever tie behavior arises from the relaxation/augmentation process.  
+- Because the program’s selection is mediated by shortest-path relaxations and augmentations (and not by an explicit canonical selection among all optimal count-vectors), two implementations that both “maximize counts lexicographically” can still diverge unless the spec also pins down the source’s implicit tie-breaking/selection semantics.

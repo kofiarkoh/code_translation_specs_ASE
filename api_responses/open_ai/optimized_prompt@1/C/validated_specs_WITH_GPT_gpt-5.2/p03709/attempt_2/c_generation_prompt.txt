@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and prints a single integer modulo a fixed prime `MOD = 1,000,000,007`. The value is a deterministic function of an input size `n` and a list of `n` integer pairs `(a_i, b_i)`. The computation is invariant under reordering of the input pairs and depends only on the multiset of pairs.
+
+2. Inputs  
+- One unsigned integer `n` is read first.  
+  - Although the code passes two addresses to `scanf` in this first read, the format string contains only one conversion, so only `n` is actually consumed from input at this step; no second header value is read.  
+- Then `n` pairs of signed 64-bit integers `(a_i, b_i)` are read, each pair consisting of two integers.
+
+Notes on tokenization: Any extra integer token placed after `n` in the input is not consumed as a separate header field by the program; it will instead be consumed as part of the subsequent `(a_i, b_i)` pair stream.
+
+3. Outputs  
+- Writes exactly one line containing a single integer in the range `[0, MOD-1]`.
+
+4. Preconditions / Assumptions  
+- `n` must be nonnegative and must not exceed the program’s fixed array capacity (`N_MAX = 1,048,576`), and additionally must be small enough to fit within internal fixed-size DP tables (which are sized for indices up to `n` and use `dp[N_MAX][4]`, `ss[N_MAX][4]`, and other arrays).  
+- The input must provide at least `2*n` additional integers after `n` to fill all pairs.  
+- The program assumes sufficient memory for its large global arrays.  
+- The program sorts pairs and performs comparisons on 64-bit signed values; it does not guard against overflow in non-modular intermediate signed computations used for prefix/suffix extrema and index calculations. Behavior is undefined if such operations overflow.
+
+5. Computation Semantics (High Level)  
+- The program conceptually sorts the `n` pairs by increasing `a`, breaking ties by increasing `b`.  
+- From the sorted sequence of `b` values, it computes:
+  - `c[i]`: the prefix maximum of `b` up to index `i`.  
+  - `d[i]`: the suffix minimum of `b` from index `i` to the end.  
+- For each position `i` in the sorted list, it derives an interval of indices `[L_i, R_i]` (0-based, inclusive) representing the maximal contiguous range around `i` such that:
+  - all `b` values to the left of `i` within the range are `<= b[i]` (equivalently, `L_i` is the first index after the last prefix position where the prefix maximum exceeds `b[i]`), and  
+  - all `b` values to the right of `i` within the range are `>= b[i]` (equivalently, `R_i` is the last index before the first suffix position where the suffix minimum drops below `b[i]`).  
+  These boundaries are found via binary search on the prefix-maximum and suffix-minimum arrays.
+- The program then performs a dynamic programming recurrence over `i = 0..n` using modular arithmetic, with repeated use of powers of 2 and the modular inverse of 2. The recurrence uses the derived interval endpoints (after converting them to 1-based indices) to update four DP states and their prefix sums.
+- The final printed value is computed as the modular difference between two accumulated DP totals at index `n`:
+  - `result = (S0(n) - S1(n)) mod MOD`, where `S0` and `S1` are the prefix-sum accumulators corresponding to two of the DP state components.
+
+6. Postconditions  
+- Exactly one integer is printed followed by a newline.  
+- The printed integer equals the value produced by the above sort/interval-derivation/DP process, reduced modulo `MOD`.
+
+7. Error Handling / Exceptional Behavior  
+- The program does not check `scanf` return values and does not validate `n` against capacity at runtime. If the input is malformed, incomplete, or violates capacity/overflow assumptions, behavior is undefined (including possibly producing no output or crashing).  
+- No alternative “Yes/No” style outputs are produced during normal execution; only the numeric result is printed.
+
+8. State / Termination  
+- The program is single-shot: it reads input once, computes, prints one line, and terminates. No external state is modified beyond standard output.
+
+```

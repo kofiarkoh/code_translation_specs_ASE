@@ -1,0 +1,129 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+- For each scenario, the program simulates a single-player grid world with a player position and a goal location read from the grid.  
+- It processes a fixed number of commands in order. Commands only affect the world while no terminal (“game over”) condition has been reached.  
+- After each command that is executed while the game is not over, the program (if still not over) applies automatic world updates repeatedly until the world reaches a stable state.  
+- After all commands are read (or earlier if a terminal condition is reached), the program prints exactly one final “Game Over : …” line describing the terminal outcome, or “gave up” if no terminal condition occurred.
+
+2. Inputs  
+For each scenario:  
+- Two integers `height` and `width`. A pair `0 0` terminates all input.  
+- `height` strings, each of length `width`, forming the grid. The program recognizes at least the following cell symbols:  
+  - `'.'` empty space  
+  - `'S'` player start (exactly this character is recognized as the start)  
+  - `'G'` goal  
+  - `'B'` hole  
+  - `'#'` wall/solid (also used as an implicit solid boundary below the grid)  
+  - `'C'` a special block that prevents pushing/pulling through it (see command rules)  
+  - `'I'` a special block affecting how blocks slide when pushed (see command rules)  
+  - `'3'`, `'2'`, `'1'` countdown tiles that decrement under certain player moves  
+  Any other non-`.` character is treated as a generic block for collision/occupancy purposes.  
+- An integer `command_num` (number of commands).  
+- `command_num` commands, each given as two whitespace-separated tokens:  
+  - An action name, which must be exactly one of: `MOVETO`, `PUSH`, `PULL`, `GETDOWN`, `CLIMB` (case-sensitive).  
+  - A parameter token: for `MOVETO` it is an integer column index (1-based); for the other actions it is a direction token whose first character is used, and only `'R'` is treated as “right” (anything else is treated as “left”).
+
+3. Outputs  
+For each scenario, output exactly one line, matching one of the following strings exactly:  
+- `Game Over : Cleared`  
+- `Game Over : Death by Hole`  
+- `Game Over : Death by Block`  
+- `Game Over : Death by Walking Goal`  
+- `Game Over : Gave Up`
+
+4. Initialization and Assumptions  
+- The program scans the grid to find `'S'` and sets the player position to that cell; that cell is then converted to `'.'` (empty). If multiple `'S'` exist, the last one encountered in scan order determines the start.  
+- The program records the coordinates of a `'G'` cell as the goal’s original location (again, the last one encountered in scan order if multiple exist). The `'G'` character itself is not removed during initialization.  
+- The program treats the row immediately below the grid as solid `'#'` across the width, preventing falling beyond the bottom.  
+- Height and width must not exceed 50 (the fixed storage limit). Each input row must have exactly `width` characters.
+
+5. Terminal Conditions (Game Over)  
+A terminal condition is checked before executing each command, and again after executing a command (before automatic updates) and after automatic updates. Once set, it persists and no further commands affect the world state. Terminal outcomes are determined by the first applicable condition in this priority order:  
+1) **Cleared**: the cell directly below the player (`(px, py+1)`) contains `'G'`.  
+2) **Death by Hole**: the cell directly below the player contains `'B'`.  
+3) **Death by Block**: the player’s current cell (`(px, py)`) is not `'.'`. (The player is expected to occupy an empty cell; if any block occupies that cell, this condition triggers.)  
+4) **Death by Walking Goal**: the original goal coordinates no longer contain `'G'` (i.e., the `'G'` character has been moved/removed).  
+5) Otherwise, no terminal condition.
+
+If a terminal condition is reached before all commands are consumed, the remaining commands are still read from input but do not change the world.
+
+6. Command Semantics (while not game over)  
+All commands that cannot be applied due to bounds or local constraints have no effect.
+
+6.1 `MOVETO n` (horizontal move to a column)  
+- `n` is 1-based; values outside `1..width` do nothing.  
+- The destination cell on the player’s current row must be `'.'`.  
+- The player can move horizontally from the current column to the destination only if the path is “supported”: for every intermediate column position along the movement (including the destination), the cell directly below is not `'.'`. If any position along the path has `'.'` below, the move is rejected.  
+- If the move succeeds, the player’s column becomes the destination column (row unchanged).  
+- After a successful `MOVETO`, the countdown tile directly below the player’s *previous* position is decremented if it is `'3'`, `'2'`, or `'1'` (changing `'3'→'2'→'1'→'.'`).
+
+6.2 `PUSH dir`  
+- `dir` is right if the parameter token begins with `'R'`, otherwise left.  
+- The player does not move.  
+- The adjacent cell in the push direction must be non-`.` (otherwise nothing happens).  
+- The contiguous run of non-`.` cells starting adjacent to the player and extending in the push direction must be followed (somewhere) by a `'.'` cell; otherwise nothing happens.  
+- If any cell in that contiguous run is `'C'`, the entire push is disallowed and nothing happens.  
+- Otherwise, blocks in the run are processed from farthest to nearest, and each individual block is pushed according to these rules:  
+  - `'C'` and `'.'` are never moved by the internal push step.  
+  - A block attempts to move in the push direction into empty space; if immediately blocked by a non-`.` neighbor, it stays.  
+  - When sliding, a block may continue moving across multiple cells as long as the next cell in the push direction is empty and the “support/ice” condition allows it: sliding continues only while both (a) the block is `'I'` or the cell below the candidate position is `'I'`, and (b) the cell below the candidate position is not `'.'`. Sliding stops when these conditions fail or when the next horizontal cell is blocked.  
+  - If sliding would go out of bounds, the block is effectively removed (it is not placed back on the grid).  
+- `PUSH` does not trigger countdown decrement (because the player position does not change).
+
+6.3 `PULL dir`  
+- `dir` is right if the parameter token begins with `'R'`, otherwise left.  
+- Requires the player not to be on the leftmost or rightmost column (the program rejects pulling at edges).  
+- The player moves one cell sideways into an empty cell in the chosen direction, and simultaneously pulls a single block from the opposite side into the player’s previous cell, but only if:  
+  - The destination cell (in the chosen direction) is `'.'`.  
+  - The opposite adjacent cell contains a non-`.` block that is not `'C'`.  
+- If successful, after the move the countdown tile directly below the player’s previous position is decremented (`'3'→'2'→'1'→'.'`).
+
+6.4 `CLIMB dir`  
+- `dir` is right if the parameter token begins with `'R'`, otherwise left.  
+- The player moves diagonally up by one row and one column in the chosen direction only if:  
+  - The two cells above the current position and above the target column are both `'.'`, and  
+  - The adjacent cell on the current row in the chosen direction is non-`.` (i.e., there is something to climb against).  
+- If successful, the countdown tile directly below the player’s previous position (which is two rows below the new player row) is decremented (`'3'→'2'→'1'→'.'`).
+
+6.5 `GETDOWN dir`  
+- `dir` is right if the parameter token begins with `'R'`, otherwise left.  
+- The player moves diagonally down by one row and one column in the chosen direction only if both the side-adjacent cell and the lower-diagonal destination cell are `'.'`.  
+- If successful, the countdown tile at the player’s previous row and previous column (i.e., the cell the player moved away from) is decremented if it is `'3'`, `'2'`, or `'1'` (`'3'→'2'→'1'→'.'`).
+
+7. Automatic World Updates (applied to stability)  
+After each executed command, if the game is still not over, the program repeatedly applies the following until an iteration makes no changes:  
+- **Hole removal:** For every cell that has a hole `'B'` directly below it, if the cell itself is not `'.'`, that cell becomes `'.'` (the block above a hole disappears).  
+- **Player falling:** While the cell directly below the player is `'.'`, the player’s row increases by 1 (falls straight down).  
+- **Block falling:** For each non-`.` cell (excluding the implicit bottom boundary), the block may fall straight down multiple rows as long as, at each step, the three cells below it (down-left if in bounds, down, and down-right if in bounds) are all `'.'`. The block is moved to the lowest reachable row under this rule.
+
+8. Error Handling / Exceptional Behavior  
+- If an action name is not exactly one of the supported uppercase keywords, the program terminates immediately with a nonzero exit status and produces no further scenario outputs.  
+- Out-of-range or inapplicable commands simply have no effect; input is otherwise assumed to be well-formed per the constraints above.
+
+```

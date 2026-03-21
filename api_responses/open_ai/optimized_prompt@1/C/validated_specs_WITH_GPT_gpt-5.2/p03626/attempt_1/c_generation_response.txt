@@ -1,0 +1,57 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD 1000000007LL
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    char s1[200005], s2[200005];
+    if (scanf("%s", s1) != 1) return 0;
+    if (scanf("%s", s2) != 1) return 0;
+
+    /* Orientation: 0 = vertical, 1 = horizontal */
+    int i = 0;
+    long long ans = 0;
+    int prev = 0;
+
+    /* Determine initial state from the first position */
+    if (s1[0] == s2[0]) {
+        ans = 3;
+        prev = 0; /* previous vertical */
+        i = 1;
+    } else {
+        ans = 6;
+        prev = 1; /* previous horizontal */
+        i = 2;    /* consumes two columns */
+    }
+
+    while (i < N) {
+        int cur;
+        if (s1[i] == s2[i]) {
+            cur = 0; /* vertical */
+            if (prev == 0) {
+                ans = (ans * 2) % MOD; /* V after V */
+            } else {
+                ans = (ans * 1) % MOD; /* V after H */
+            }
+            prev = cur;
+            i += 1;
+        } else {
+            cur = 1; /* horizontal (pair) */
+            if (prev == 0) {
+                ans = (ans * 2) % MOD; /* H after V */
+            } else {
+                ans = (ans * 3) % MOD; /* H after H */
+            }
+            prev = cur;
+            i += 2; /* consumes two columns */
+        }
+    }
+
+    printf("%lld\n", ans % MOD);
+    return 0;
+}
+```

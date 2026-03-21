@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer cost based on three integer inputs. The cost is determined by selecting between two pricing schemes depending on the relationship between the first two inputs, and then applying that scheme to the third input interpreted as a required quantity.
+
+2. Inputs  
+- Three integers:  
+  - A: cost associated with a 1000-unit block  
+  - B: cost associated with a 500-unit block  
+  - X: required quantity in units
+
+3. Outputs  
+- One integer: the computed total cost for covering the required quantity under the rules below.
+
+4. Preconditions  
+- Exactly three integers are provided as input.  
+- X is assumed to be positive (at least 1) to avoid undefined/meaningless rounding behavior implied by the computation.  
+- A and B are assumed to be non-negative.  
+- The computed result is assumed to fit within the range of the integer type used for output.
+
+5. Postconditions  
+Let X be the required quantity.
+
+- If A is at least twice B:  
+  - The output equals B multiplied by the smallest integer n such that n·500 ≥ X (i.e., the cost of covering X using only 500-unit blocks, rounding up).
+
+- Otherwise (A is less than twice B):  
+  - Let q = floor(X / 1000) and r = X mod 1000.  
+  - The output equals q·A plus an additional amount for any remainder r:  
+    - If r = 0: no additional amount is added.  
+    - If 1 ≤ r ≤ 500 and B < A: add B.  
+    - Otherwise (r > 500, or B ≥ A): add A.  
+
+6. Invariants  
+- The output is an integer and is non-negative under the stated assumptions.  
+- The output represents a cost that covers at least X units according to the selected scheme (i.e., it never under-covers the required quantity).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or violates assumptions (e.g., non-positive X, negative costs, or arithmetic overflow), the behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from computing and emitting a single result.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.  
+- Performs a single read of three integers and a single write of one integer.
+
+```

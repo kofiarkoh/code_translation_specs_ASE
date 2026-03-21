@@ -1,0 +1,41 @@
+1. Functional Description  
+Given an undirected tree on \(n\) labeled vertices and the prime modulus \(P=10^9+7\), the program computes, for every vertex \(v\), a value determined solely by the sizes of the connected components that would remain if \(v\) were removed.
+
+Let removing \(v\) split the remaining \(n-1\) vertices into \(k\) connected components with sizes \(s_1, s_2, \dots, s_k\) (so \(\sum_i s_i = n-1\)). For each vertex \(v\), the program outputs (modulo \(P\)) the quantity:
+\[
+n!\;\cdot\;\prod_{i=1}^{k}\frac{1}{s_i}
+\;\equiv\;
+\frac{n!}{\prod_i s_i}
+\pmod P.
+\]
+No factorials of the component sizes appear in the per-vertex factor; the only factorial used is the global \(n!\) multiplier applied uniformly to all vertices.
+
+2. Inputs  
+- An integer \(n\), the number of vertices.  
+- \(n-1\) undirected edges, each given as a pair of vertex indices.
+
+3. Outputs  
+- Exactly \(n\) lines are printed.  
+- The \(i\)-th printed line (for \(i=1,2,\dots,n\)) contains one integer in \([0, P-1]\) equal to:
+  \[
+  n!\cdot \left(\prod_{C \in \text{components}(V\setminus\{i\})} |C|^{-1}\right)\bmod P,
+  \]
+  where \(|C|^{-1}\) denotes the multiplicative inverse of \(|C|\) modulo \(P\), and the product ranges over the connected components of the graph obtained by removing vertex \(i\).  
+  (If there are no components, the empty product is treated as 1.)
+
+4. Preconditions / Assumptions  
+- The input graph is a tree: it has exactly \(n\) vertices, exactly \(n-1\) edges, is connected, and has no cycles.  
+- Vertex indices in the edges are intended to be 1-based and within \(\{1,\dots,n\}\), matching the program’s output order.  
+- \(1 \le n\) and \(n\) does not exceed the fixed array capacities used by the implementation.  
+- The modulus \(P = 10^9+7\) is prime. Modular division is performed via multiplicative inverses modulo \(P\). The computation assumes the needed inverses exist; in particular, it relies on \(|C| \not\equiv 0 \pmod P\) for every component size \(|C|\) that occurs.
+
+5. Behavioral Notes / Edge Cases  
+- For \(n=1\), removing the only vertex leaves no components; the program outputs \(1\) (since \(1! \cdot 1 \equiv 1 \pmod P\)).  
+- The value for a vertex depends only on the multiset of component sizes formed by removing that vertex, not on the order in which edges are provided.
+
+6. Computation Model (High-level)  
+- The program performs a tree DP with rerooting to compute the per-vertex product of inverses of the component sizes induced by removing each vertex, then multiplies by \(n!\) modulo \(P\).  
+- Internally it maintains subtree sizes and a multiplicative DP value that, for a chosen root, corresponds to the product of inverse sizes of the root’s incident-side components; rerooting across edges updates these quantities so that each vertex’s stored value matches the formula in Section 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed. If the input violates the preconditions (not a tree, out-of-range indices, \(n\) too large for the fixed arrays, or component sizes not invertible modulo \(P\)), the behavior is unspecified.

@@ -1,0 +1,49 @@
+1. Functional Description  
+Computes the maximum total amount that can be taken from a sequence of \(N+1\) available quantities by consuming them in order using \(N\) intermediate demands, where each demand can be satisfied using the current and next available quantity. The result is the total amount consumed across all demands.
+
+2. Inputs  
+- An integer \(N\).  
+- A sequence of \(N+1\) non-negative integer quantities (available amounts).  
+- A sequence of \(N\) non-negative integer quantities (demand amounts).
+
+3. Outputs  
+- A single non-negative integer: the total amount consumed.
+
+4. Preconditions  
+- \(1 \le N \le 199999\) (so that \(N+1\) fits within the fixed storage bounds).  
+- All provided quantities fit within signed 64-bit integer range.  
+- Quantities are assumed to be non-negative; behavior for negative values is not meaningfully defined by the intended contract.
+
+5. Postconditions  
+Let available amounts be \(A_1..A_{N+1}\) and demands be \(B_1..B_N\). The output equals:
+\[
+\sum_{i=1}^{N} x_i
+\]
+where each \(x_i\) is the amount satisfied for demand \(i\), and the satisfaction is constrained by:
+- \(0 \le x_i \le B_i\)
+- \(x_i\) is drawn from \(A_i\) and \(A_{i+1}\) only
+- Total drawn from each \(A_k\) across adjacent demands does not exceed \(A_k\)
+
+Additionally, the computed total is maximal among all allocations satisfying the above constraints.
+
+6. Invariants  
+- The accumulated total consumed is never decreased.  
+- At every step, the amount consumed from any available quantity does not exceed what remains available at that point.  
+- At every step, the amount consumed toward any demand does not exceed the remaining unmet portion of that demand.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or missing input; if input is malformed or insufficient, the behavior is unspecified.  
+- If \(N\) exceeds the supported bound, memory is written out of bounds, yielding undefined behavior.  
+- Signed integer overflow is not prevented; if it occurs, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Conceptual state consists of remaining available amounts and remaining unmet demands.  
+- For each demand position \(i\) (from 1 to \(N\)):  
+  - First, consume as much as possible from the current available amount \(A_i\) to satisfy demand \(B_i\).  
+  - Then, consume as much as possible from the next available amount \(A_{i+1}\) to satisfy any remaining portion of \(B_i\).  
+  - Update remaining amounts accordingly and add consumed amounts to the total.  
+- After processing all demands, no further consumption occurs.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time in \(N\).  
+- Uses fixed-size storage proportional to \(N\) (bounded by the fixed maximum).

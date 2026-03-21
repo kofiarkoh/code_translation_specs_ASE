@@ -1,0 +1,28 @@
+A. Likely mismatch category  
+Wrong transition/selection rule (the quantifiers in the outlier criterion are reversed), plus a wrong abstraction of what it means for an index to be “consistent”.
+
+B. What the current specification may be missing or misstating  
+The spec currently says an index `i` is the outlier if **there exists** some `j != i` such that `j` is inconsistent with the degree‑`d` interpolant built from all points except `i` and `j`. That makes “outlier” mean “can cause at least one mismatch somewhere,” which is far too weak.
+
+In the source, the chosen `i` is the first index for which **no** choice of partner `j` can make the remaining points mutually consistent: for a candidate `i`, the program searches for a `j` such that **all** other points (excluding `i` and `j`) predict `v[j]` within tolerance; only if such a `j` exists does it move on to the next `i`. If for a given `i` every `j` fails that “all others agree with `j`” check, then that `i` is reported.
+
+So the spec’s “∃j with mismatch” should instead reflect the source’s “for all j, there exists a mismatch (among the other points)” structure.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact logical condition used to accept/reject a candidate index `i`:
+
+- For each candidate `i` (in increasing order), the program tries to find some index `j != i` that can be “explained” by a degree‑`d` polynomial fitted to the remaining `d+1` points (all indices except `i` and `j`), i.e., the predicted value at `j` matches the actual `v[j]` within tolerance.  
+- If such a `j` exists, then `i` is considered *not* the outlier and the search continues.  
+- The reported outlier is the first `i` for which **no** such `j` exists.
+
+Equivalently, the outlier is the smallest `i` such that for every `j != i`, the interpolation-from-others prediction at `j` differs from `v[j]` by more than `0.1`.
+
+D. Why this clarification is supported by the source program  
+In `main`, for fixed `i`, the inner loop over `j`:
+
+- Computes `t = calc(i, j) - v[j]`, where `calc(i,j)` sums Lagrange terms over all indices except `i` and `j`, i.e., it predicts the value at `j` from the remaining points.  
+- If `|t| <= 0.1`, it does **not** break; it continues trying other `j`.  
+- It breaks out of the `j` loop only when it finds a `j` with `|t| > 0.1` (a failure for that `j`).  
+- If it reaches `j == n` (meaning it never found any failing `j`, i.e., all `j != i` were within tolerance), it `goto done` and outputs that `i`.
+
+Thus, the program’s decision is based on whether there exists a `j` that *fails* (causing a break) versus whether all `j` *pass* (causing `j==n` and termination). This is the opposite of the current spec’s “outlier if there exists a failing `j`,” and it explains why the generated program selects different indices.

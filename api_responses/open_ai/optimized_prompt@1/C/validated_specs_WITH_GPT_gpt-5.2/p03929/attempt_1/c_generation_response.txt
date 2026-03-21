@@ -1,0 +1,72 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int64_t base, target;
+    if (scanf("%lld %lld", (long long *)&base, (long long *)&target) != 2) {
+        /* Undefined behavior per spec if inputs are not successfully read. */
+        return 0;
+    }
+
+    int64_t N = base * 7; /* Precondition: fits in signed 64-bit; no overflow checks. */
+
+    /* Count i in [1..N] with:
+       - i mod 7 not in {0,1}
+       - (9*i) mod 11 == target
+       Then subtract those also in [1..7] and those also in [N-6..N],
+       counting overlap twice if it lies in both windows.
+    */
+
+    /* Period is lcm(7,11)=77 for the combined modular constraints. */
+    const int64_t PERIOD = 77;
+
+    /* Precompute, for residues r=1..77, whether r satisfies the constraints. */
+    int ok[78];
+    for (int r = 1; r <= 77; r++) {
+        int mod7 = r % 7;
+        int mod11 = r % 11;
+        int cond7 = (mod7 != 0 && mod7 != 1);
+
+        /* C's % for negative values is implementation-defined historically, but
+           here r is positive. target may be outside 0..10; then equality is
+           typically unsatisfiable, yielding 0 matches, which is consistent with spec. */
+        int cond11 = ((9 * mod11) % 11) == (int)target;
+
+        ok[r] = (cond7 && cond11) ? 1 : 0;
+    }
+
+    /* Prefix sums over one period for fast counting. */
+    int pref[78];
+    pref[0] = 0;
+    for (int r = 1; r <= 77; r++) {
+        pref[r] = pref[r - 1] + ok[r];
+    }
+    int per_count = pref[77];
+
+    /* Count matches in [1..X] for X>=0. */
+    auto int64_t count_upto(int64_t X) {
+        if (X <= 0) return 0;
+        int64_t q = X / PERIOD;
+        int64_t rem = X % PERIOD;
+        return q * (int64_t)per_count + (int64_t)pref[(int)rem];
+    }
+
+    /* Count matches in [L..R]. */
+    auto int64_t count_range(int64_t L, int64_t R) {
+        if (R < L) return 0;
+        return count_upto(R) - count_upto(L - 1);
+    }
+
+    int64_t total = count_range(1, N);
+
+    /* Subtract boundary windows, each independently. */
+    int64_t sub1 = count_range(1, 7);
+    int64_t sub2 = count_range(N - 6, N);
+
+    int64_t result = total - sub1 - sub2;
+
+    printf("%lld\n", (long long)result);
+    return 0;
+}
+```

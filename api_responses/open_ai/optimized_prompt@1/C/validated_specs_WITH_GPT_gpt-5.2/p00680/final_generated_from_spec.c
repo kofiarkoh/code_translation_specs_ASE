@@ -1,0 +1,322 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+/*
+  Translation notes (kept as C comments per instructions):
+
+  - The specification defines behavior but not an exact input encoding for adjacency lists.
+    Narrowest reasonable interpretation: for each node i, input provides:
+        k_i (integer count of outgoing neighbors),
+        then k_i neighbor indices (integers),
+        then k_i capacities (nonnegative integers).
+    This matches "a list of outgoing neighbor node indices, followed by a nonnegative
+    integer capacity for each listed outgoing edge."
+
+  - Linear system solving: Gaussian elimination with partial pivoting in double.
+    Preconditions say unique solution; if not, behavior is unspecified, so we proceed.
+
+  - Min-cost flow: successive shortest augmenting path on residual network with
+    nonnegative edge costs. We use Dijkstra with potentials (Johnson reweighting)
+    to handle reverse edges that can have negative reduced costs while keeping
+    correctness. Costs are doubles.
+
+  - Required flow and capacities are integers; we store them in long long.
+
+  - Output formatting: specification says "outputs the minimum achievable total cost
+    as a real number" or "a single line indicating impossibility."
+    We print "impossible" on failure; on success we print with "%.10f".
+*/
+
+#define MAXN 205
+#define MAXE 200000  /* fixed internal limit for edges in residual graph (including reverse) */
+#define INFLL ((long long)0x3fffffffffffffffLL)
+#define INFD  (1e300)
+#define EPS   (1e-12)
+
+typedef struct Edge {
+    int to;
+    int next;
+    long long cap;
+    double cost;
+} Edge;
+
+static Edge edges[MAXE];
+static int head[MAXN];
+static int ecnt;
+
+static void graph_init(int n) {
+    (void)n;
+    for (int i = 0; i < MAXN; i++) head[i] = -1;
+    ecnt = 0;
+}
+
+static void add_edge(int u, int v, long long cap, double cost) {
+    /* forward */
+    edges[ecnt].to = v;
+    edges[ecnt].cap = cap;
+    edges[ecnt].cost = cost;
+    edges[ecnt].next = head[u];
+    head[u] = ecnt++;
+    /* reverse */
+    edges[ecnt].to = u;
+    edges[ecnt].cap = 0;
+    edges[ecnt].cost = -cost;
+    edges[ecnt].next = head[v];
+    head[v] = ecnt++;
+}
+
+/* Gaussian elimination with partial pivoting: solves A x = b, A is n x n */
+static void solve_linear_system(int n, double A[MAXN][MAXN], double b[MAXN], double x[MAXN]) {
+    int piv[MAXN];
+    for (int i = 0; i < n; i++) piv[i] = i;
+
+    for (int col = 0; col < n; col++) {
+        int best = col;
+        double bestv = fabs(A[col][col]);
+        for (int r = col + 1; r < n; r++) {
+            double v = fabs(A[r][col]);
+            if (v > bestv) {
+                bestv = v;
+                best = r;
+            }
+        }
+        if (best != col) {
+            for (int c = col; c < n; c++) {
+                double tmp = A[col][c];
+                A[col][c] = A[best][c];
+                A[best][c] = tmp;
+            }
+            double tb = b[col];
+            b[col] = b[best];
+            b[best] = tb;
+        }
+
+        double pivot = A[col][col];
+        /* If pivot is zero, system is singular; spec says behavior unspecified; proceed. */
+        if (fabs(pivot) < EPS) pivot = (pivot >= 0 ? EPS : -EPS);
+
+        for (int r = col + 1; r < n; r++) {
+            double f = A[r][col] / pivot;
+            if (fabs(f) < EPS) continue;
+            A[r][col] = 0.0;
+            for (int c = col + 1; c < n; c++) {
+                A[r][c] -= f * A[col][c];
+            }
+            b[r] -= f * b[col];
+        }
+    }
+
+    for (int i = n - 1; i >= 0; i--) {
+        double sum = b[i];
+        for (int j = i + 1; j < n; j++) sum -= A[i][j] * x[j];
+        double diag = A[i][i];
+        if (fabs(diag) < EPS) diag = (diag >= 0 ? EPS : -EPS);
+        x[i] = sum / diag;
+    }
+}
+
+/* Min-cost flow with potentials, costs are doubles, capacities are long long */
+typedef struct HeapNode {
+    int v;
+    double dist;
+} HeapNode;
+
+static void heap_swap(HeapNode *a, HeapNode *b) {
+    HeapNode t = *a; *a = *b; *b = t;
+}
+
+static void heap_push(HeapNode *heap, int *hsz, HeapNode nd) {
+    int i = (*hsz)++;
+    heap[i] = nd;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (heap[p].dist <= heap[i].dist) break;
+        heap_swap(&heap[p], &heap[i]);
+        i = p;
+    }
+}
+
+static HeapNode heap_pop(HeapNode *heap, int *hsz) {
+    HeapNode ret = heap[0];
+    heap[0] = heap[--(*hsz)];
+    int i = 0;
+    for (;;) {
+        int l = i * 2 + 1, r = l + 1, m = i;
+        if (l < *hsz && heap[l].dist < heap[m].dist) m = l;
+        if (r < *hsz && heap[r].dist < heap[m].dist) m = r;
+        if (m == i) break;
+        heap_swap(&heap[m], &heap[i]);
+        i = m;
+    }
+    return ret;
+}
+
+static int min_cost_flow(int n, int s, int t, long long need, double *out_cost) {
+    static double pot[MAXN], dist[MAXN];
+    static int prevv[MAXN], preve[MAXN];
+    static char used[MAXN];
+
+    for (int i = 0; i < n; i++) pot[i] = 0.0;
+
+    long long flow = 0;
+    double cost = 0.0;
+
+    HeapNode *heap = (HeapNode*)malloc(sizeof(HeapNode) * (size_t)(MAXE + MAXN + 5));
+    if (!heap) {
+        /* unspecified behavior on allocation failure; return failure */
+        return 0;
+    }
+
+    while (flow < need) {
+        for (int i = 0; i < n; i++) {
+            dist[i] = INFD;
+            used[i] = 0;
+            prevv[i] = -1;
+            preve[i] = -1;
+        }
+        dist[s] = 0.0;
+
+        int hsz = 0;
+        heap_push(heap, &hsz, (HeapNode){s, 0.0});
+
+        while (hsz > 0) {
+            HeapNode cur = heap_pop(heap, &hsz);
+            int v = cur.v;
+            if (used[v]) continue;
+            used[v] = 1;
+            if (v == t) break;
+
+            for (int ei = head[v]; ei != -1; ei = edges[ei].next) {
+                if (edges[ei].cap <= 0) continue;
+                int to = edges[ei].to;
+                double rcost = edges[ei].cost + pot[v] - pot[to];
+                /* rcost should be nonnegative with correct potentials; allow tiny negatives due to FP */
+                double nd = dist[v] + rcost;
+                if (nd + 1e-15 < dist[to]) {
+                    dist[to] = nd;
+                    prevv[to] = v;
+                    preve[to] = ei;
+                    heap_push(heap, &hsz, (HeapNode){to, nd});
+                }
+            }
+        }
+
+        if (!used[t]) {
+            free(heap);
+            return 0; /* impossible to send remaining flow */
+        }
+
+        for (int v = 0; v < n; v++) {
+            if (dist[v] < INFD / 2) pot[v] += dist[v];
+        }
+
+        long long add = need - flow;
+        for (int v = t; v != s; v = prevv[v]) {
+            int ei = preve[v];
+            if (ei < 0) break; /* should not happen */
+            if (edges[ei].cap < add) add = edges[ei].cap;
+        }
+
+        for (int v = t; v != s; v = prevv[v]) {
+            int ei = preve[v];
+            edges[ei].cap -= add;
+            edges[ei ^ 1].cap += add;
+            cost += (double)add * edges[ei].cost;
+        }
+        flow += add;
+    }
+
+    free(heap);
+    *out_cost = cost;
+    return 1;
+}
+
+int main(void) {
+    int T;
+    if (scanf("%d", &T) != 1) return 0;
+
+    for (int tc = 0; tc < T; tc++) {
+        int n;
+        int s, t;
+        long long req;
+        if (scanf("%d", &n) != 1) return 0;
+        if (scanf("%d %d", &s, &t) != 2) return 0;
+        if (scanf("%lld", &req) != 1) return 0;
+
+        if (n < 0 || n > MAXN) {
+            /* unspecified; attempt to proceed minimally */
+            n = (n < 0) ? 0 : MAXN;
+        }
+
+        static double A[MAXN][MAXN];
+        static double b[MAXN];
+        static double label[MAXN];
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                long long v;
+                if (scanf("%lld", &v) != 1) return 0;
+                A[i][j] = (double)v;
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            long long v;
+            if (scanf("%lld", &v) != 1) return 0;
+            b[i] = (double)v;
+        }
+
+        for (int i = 0; i < n; i++) label[i] = 0.0;
+        solve_linear_system(n, A, b, label);
+
+        graph_init(n);
+
+        for (int u = 0; u < n; u++) {
+            int k;
+            if (scanf("%d", &k) != 1) return 0;
+            if (k < 0) k = 0;
+
+            int *nbr = NULL;
+            if (k > 0) {
+                nbr = (int*)malloc(sizeof(int) * (size_t)k);
+                if (!nbr) {
+                    /* unspecified on allocation failure; exit */
+                    return 0;
+                }
+            }
+
+            for (int i = 0; i < k; i++) {
+                if (scanf("%d", &nbr[i]) != 1) return 0;
+            }
+            for (int i = 0; i < k; i++) {
+                long long cap;
+                if (scanf("%lld", &cap) != 1) return 0;
+                if (cap < 0) cap = 0; /* precondition says nonnegative */
+                int v = nbr[i];
+                if (v < 0 || v >= n) {
+                    /* precondition says valid; if not, ignore edge narrowly */
+                    continue;
+                }
+                double c = fabs(label[u] - label[v]);
+                if (ecnt + 2 >= MAXE) {
+                    /* unspecified if limits exceeded; stop adding further edges */
+                    continue;
+                }
+                add_edge(u, v, cap, c);
+            }
+
+            free(nbr);
+        }
+
+        double ans = 0.0;
+        int ok = min_cost_flow(n, s, t, req, &ans);
+        if (!ok) {
+            printf("impossible\n");
+        } else {
+            printf("%.10f\n", ans);
+        }
+    }
+
+    return 0;
+}

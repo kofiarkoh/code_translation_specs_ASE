@@ -1,0 +1,197 @@
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+#define NAME_MAX_LEN 16
+
+/* Fixed-size internal tables; behavior unspecified if exceeded (per spec). */
+#define MAX_CITIES 512
+#define MAX_EDGES 4096
+#define MAX_CAP 10000 /* maximum scaled capacity supported for state table */
+
+typedef struct {
+    int to;
+    int d;
+    int next;
+} Edge;
+
+static char city_name[MAX_CITIES][NAME_MAX_LEN + 1];
+static int city_count;
+
+static int head[MAX_CITIES];
+static Edge edges[2 * MAX_EDGES];
+static int edge_count;
+
+static unsigned char is_refuel[MAX_CITIES];
+
+static int get_city_id(const char *name) {
+    for (int i = 0; i < city_count; i++) {
+        if (strcmp(city_name[i], name) == 0) return i;
+    }
+    if (city_count >= MAX_CITIES) {
+        /* Unspecified behavior if exceeded; keep it simple: clamp by reusing last. */
+        return MAX_CITIES - 1;
+    }
+    strncpy(city_name[city_count], name, NAME_MAX_LEN);
+    city_name[city_count][NAME_MAX_LEN] = '\0';
+    return city_count++;
+}
+
+static int find_city_id(const char *name) {
+    for (int i = 0; i < city_count; i++) {
+        if (strcmp(city_name[i], name) == 0) return i;
+    }
+    return -1;
+}
+
+static void add_undirected_edge(int a, int b, int d) {
+    if (edge_count + 2 > (int)(sizeof(edges) / sizeof(edges[0]))) {
+        /* Unspecified if exceeded; ignore extra edges. */
+        return;
+    }
+    edges[edge_count].to = b;
+    edges[edge_count].d = d;
+    edges[edge_count].next = head[a];
+    head[a] = edge_count++;
+
+    edges[edge_count].to = a;
+    edges[edge_count].d = d;
+    edges[edge_count].next = head[b];
+    head[b] = edge_count++;
+}
+
+/* Simple binary min-heap for Dijkstra over (city, remaining_range) states. */
+typedef struct {
+    int dist;
+    int city;
+    int rem;
+} HeapNode;
+
+static HeapNode heap[(MAX_CITIES) * (MAX_CAP + 1) + 5];
+static int heap_sz;
+
+static void heap_push(int dist, int city, int rem) {
+    int i = ++heap_sz;
+    heap[i].dist = dist;
+    heap[i].city = city;
+    heap[i].rem = rem;
+    while (i > 1) {
+        int p = i >> 1;
+        if (heap[p].dist <= heap[i].dist) break;
+        HeapNode tmp = heap[p];
+        heap[p] = heap[i];
+        heap[i] = tmp;
+        i = p;
+    }
+}
+
+static int heap_pop(HeapNode *out) {
+    if (heap_sz == 0) return 0;
+    *out = heap[1];
+    heap[1] = heap[heap_sz--];
+    int i = 1;
+    for (;;) {
+        int l = i << 1, r = l + 1, m = i;
+        if (l <= heap_sz && heap[l].dist < heap[m].dist) m = l;
+        if (r <= heap_sz && heap[r].dist < heap[m].dist) m = r;
+        if (m == i) break;
+        HeapNode tmp = heap[i];
+        heap[i] = heap[m];
+        heap[m] = tmp;
+        i = m;
+    }
+    return 1;
+}
+
+int main(void) {
+    int N;
+    while (scanf("%d", &N) == 1) {
+        if (N == 0) break;
+
+        int M, U;
+        char origin[NAME_MAX_LEN + 1], dest[NAME_MAX_LEN + 1];
+        if (scanf("%d %d %16s %16s", &M, &U, origin, dest) != 4) return 0;
+
+        int cap = 10 * U;
+
+        /* Reset per-dataset structures. */
+        city_count = 0;
+        edge_count = 0;
+        for (int i = 0; i < MAX_CITIES; i++) {
+            head[i] = -1;
+            is_refuel[i] = 0;
+        }
+
+        int origin_id = get_city_id(origin);
+        int dest_id = get_city_id(dest);
+
+        for (int i = 0; i < N; i++) {
+            char a[NAME_MAX_LEN + 1], b[NAME_MAX_LEN + 1];
+            int d;
+            if (scanf("%16s %16s %d", a, b, &d) != 3) return 0;
+            int ai = get_city_id(a);
+            int bi = get_city_id(b);
+            add_undirected_edge(ai, bi, d);
+        }
+
+        for (int i = 0; i < M; i++) {
+            char c[NAME_MAX_LEN + 1];
+            if (scanf("%16s", c) != 1) return 0;
+            int id = find_city_id(c);
+            if (id >= 0) is_refuel[id] = 1; /* ignore unknown refuel cities */
+        }
+
+        if (origin_id == dest_id) {
+            printf("0\n");
+            continue;
+        }
+
+        /* If cap exceeds internal table, behavior unspecified; clamp to MAX_CAP. */
+        if (cap < 0) cap = 0;
+        if (cap > MAX_CAP) cap = MAX_CAP;
+
+        /* dist[city][rem] = min total distance to reach city with rem remaining. */
+        static int dist[MAX_CITIES][MAX_CAP + 1];
+        for (int i = 0; i < city_count; i++) {
+            for (int r = 0; r <= cap; r++) dist[i][r] = INT_MAX;
+        }
+
+        heap_sz = 0;
+        dist[origin_id][cap] = 0;
+        heap_push(0, origin_id, cap);
+
+        int answer = -1;
+        HeapNode cur;
+        while (heap_pop(&cur)) {
+            int cd = cur.dist;
+            int ucity = cur.city;
+            int rem = cur.rem;
+
+            if (cd != dist[ucity][rem]) continue;
+
+            if (ucity == dest_id) {
+                answer = cd;
+                break; /* Dijkstra: first time reaching destination is minimal */
+            }
+
+            int eff_rem = is_refuel[ucity] ? cap : rem;
+
+            for (int ei = head[ucity]; ei != -1; ei = edges[ei].next) {
+                int v = edges[ei].to;
+                int w = edges[ei].d;
+                if (w < 0) continue; /* unspecified; ignore negative distances */
+                if (eff_rem >= w) {
+                    int nrem = eff_rem - w;
+                    int nd = cd + w;
+                    if (nd < dist[v][nrem]) {
+                        dist[v][nrem] = nd;
+                        heap_push(nd, v, nrem);
+                    }
+                }
+            }
+        }
+
+        printf("%d\n", answer);
+    }
+    return 0;
+}

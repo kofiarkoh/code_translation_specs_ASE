@@ -1,0 +1,47 @@
+1. Functional Description  
+For each provided triple of integers, computes and outputs a pair of prime numbers whose product is maximized subject to: (a) the product does not exceed the given limit, and (b) the ratio between the two primes satisfies a given inequality. If no such pair exists, outputs a default pair of zeros. Processing continues for multiple triples until a terminating triple is encountered.
+
+2. Inputs  
+- A sequence of records, each containing three integers:  
+  - A nonnegative product limit.  
+  - Two integers defining a ratio constraint.  
+- Input terminates when a record is read in which all three integers are zero.  
+- If the input ends or a record cannot be fully read, processing stops.
+
+3. Outputs  
+- For each non-terminating input record, outputs two integers on one line:  
+  - The selected prime pair (p, q), where p and q are primes less than 100000, chosen to maximize p·q under the constraints.  
+  - If no valid pair exists, outputs `0 0`.
+
+4. Preconditions  
+- Each processed record provides three integers.  
+- To avoid undefined behavior from integer overflow in the final comparison used for selecting the best pair, it is assumed that the maximum product of any two candidate primes fits within the range of the integer type used for the output pair comparison (i.e., the maximal selected product is representable as an integer).  
+- The ratio constraint is interpreted as a·q ≤ p·b; meaningful results typically assume a and b are nonnegative, though the program does not enforce this.
+
+5. Postconditions  
+For each non-terminating input record (m, a, b), the program outputs a pair (p, q) such that:  
+- p and q are prime numbers less than 100000, or both are zero if no valid pair exists.  
+- If (p, q) ≠ (0, 0), then:  
+  - p·q ≤ m  
+  - a·q ≤ p·b  
+- Among all prime pairs (p’, q’) satisfying the above constraints, the output pair maximizes the product p·q.  
+- If multiple pairs achieve the same maximal product, the program outputs one of them; no further tie-breaking guarantee is provided.
+
+6. Invariants  
+- The set of primes considered is fixed for the entire run: all primes less than 100000.  
+- For each processed record, the maintained “best” pair always satisfies the constraints (unless it remains the default (0, 0)) and has product greater than or equal to any previously considered valid pair’s product.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read as complete triples, the program terminates without further output.  
+- No explicit validation is performed for negative values or inconsistent ratio parameters; results follow directly from the inequality a·q ≤ p·b as evaluated with integer arithmetic.  
+- If the precondition about integer representability of the selected product is violated, behavior is not guaranteed.
+
+8. State Transitions (if applicable)  
+- One-time initialization builds the internal prime set before any records are processed.  
+- For each input record, the program transitions from “no best pair” to “best pair selected” by evaluating candidate prime pairs; the best pair is reset for each new record.  
+- Upon reading a triple of all zeros, the program transitions to termination.
+
+9. Non-functional Constraints (if inferable)  
+- Only primes less than 100000 are considered; constraints are evaluated only within this bounded domain.  
+- Uses finite, fixed-size memory for prime storage and primality flags.  
+- Per record, runtime is bounded by the number of primes under 100000 and associated search operations; intended for repeated processing of multiple records efficiently after one-time initialization.

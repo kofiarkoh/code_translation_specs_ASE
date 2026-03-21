@@ -1,0 +1,35 @@
+1. Functional Description  
+Computes, for an undirected weighted graph, how many of the given edges are **not** part of any shortest path between any source vertex and one of that edge’s endpoints. An edge is considered “used by shortest paths” if there exists at least one source vertex such that traversing the edge from one endpoint to the other can appear as the final step of a shortest path from that source to the destination endpoint.
+
+2. Inputs  
+- An integer number of vertices.  
+- An integer number of edges.  
+- For each edge: two vertex designators (1-based in the input) and a non-negative integer weight.
+
+3. Outputs  
+- A single integer: the count of edges that are not used by any shortest path in the sense defined above.
+
+4. Preconditions  
+- The number of vertices and edges are non-negative and small enough that an all-pairs distance table fits in memory.  
+- Each edge’s endpoint designators refer to valid vertices.  
+- Edge weights are such that all computed shortest-path distances and intermediate sums remain within the range of the integer type used by the program.  
+- The input provides exactly the required number of values.
+
+5. Postconditions  
+- The output equals the number of input edges for which **no** vertex exists such that the shortest-path distance from that vertex to one endpoint plus the edge’s weight equals the shortest-path distance from that vertex to the other endpoint (in the direction from the first endpoint to the second as given by the input edge record).  
+- If multiple edges connect the same pair of vertices, shortest-path distances are computed using the minimum weight among those edges, but the “unused edge” decision is made per original edge record.
+
+6. Invariants  
+- The computed distance from any vertex to itself is zero.  
+- The computed distance between any two vertices is never greater than the weight of any direct edge between them (when such an edge exists).  
+- After shortest-path computation, the distance table represents the minimum total weight among all paths between each pair of vertices, assuming no integer overflow.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, endpoints are out of range, memory limits are exceeded, or arithmetic overflows occur, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run batch computation with no externally visible state beyond its output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is cubic in the number of vertices plus linear in the number of edges.  
+- Memory usage is quadratic in the number of vertices plus linear in the number of edges.

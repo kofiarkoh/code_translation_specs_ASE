@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXN 1000005
+#define MAXQ 102
+
+static char s[MAXN];
+static int kq[MAXQ];
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    /* Specification: token length assumed >= n; otherwise undefined. */
+    if (scanf("%s", s) != 1) return 0;
+
+    int q;
+    if (scanf("%d", &q) != 1) return 0;
+
+    for (int i = 0; i < q; i++) {
+        /* Specification: fixed-size array capacity about 102; overflow is UB. */
+        scanf("%d", &kq[i]);
+    }
+
+    for (int qi = 0; qi < q; qi++) {
+        int k = kq[qi];
+        /* Specification: assumes 1 <= k <= n; otherwise undefined. */
+
+        int64_t total = 0;
+
+        for (int t = 0; t <= n - k; t++) {
+            int64_t d_count = 0;
+            int64_t dm_pairs = 0;
+            int64_t triples = 0;
+
+            /* Left-to-right, order-sensitive counting within the window. */
+            for (int i = t; i < t + k; i++) {
+                char ch = s[i];
+                if (ch == 'D') {
+                    d_count++;
+                } else if (ch == 'M') {
+                    dm_pairs += d_count;
+                } else if (ch == 'C') {
+                    triples += dm_pairs;
+                } else {
+                    /* Other characters do not contribute. */
+                }
+            }
+
+            total += triples;
+        }
+
+        /* Output as signed 64-bit integer, one line per query. */
+        printf("%lld\n", (long long)total);
+    }
+
+    return 0;
+}

@@ -1,0 +1,240 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+typedef long long ll;
+
+typedef struct {
+    int to;
+    int w;
+    int next;
+} UEdge;
+
+typedef struct {
+    int to;
+    int next;
+} DEdge;
+
+typedef struct {
+    ll dist;
+    int v;
+} HeapItem;
+
+static void heap_swap(HeapItem *a, HeapItem *b) {
+    HeapItem t = *a; *a = *b; *b = t;
+}
+
+typedef struct {
+    HeapItem *a;
+    int n;
+    int cap;
+} MinHeap;
+
+static void heap_init(MinHeap *h, int cap) {
+    h->a = (HeapItem*)malloc((size_t)cap * sizeof(HeapItem));
+    h->n = 0;
+    h->cap = cap;
+}
+
+static void heap_push(MinHeap *h, HeapItem it) {
+    if (h->n >= h->cap) {
+        int ncap = h->cap ? (h->cap * 2) : 4;
+        HeapItem *na = (HeapItem*)realloc(h->a, (size_t)ncap * sizeof(HeapItem));
+        if (!na) return; /* unspecified behavior per spec; best-effort */
+        h->a = na;
+        h->cap = ncap;
+    }
+    int i = h->n++;
+    h->a[i] = it;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (h->a[p].dist <= h->a[i].dist) break;
+        heap_swap(&h->a[p], &h->a[i]);
+        i = p;
+    }
+}
+
+static int heap_empty(MinHeap *h) { return h->n == 0; }
+
+static HeapItem heap_pop(MinHeap *h) {
+    HeapItem ret = h->a[0];
+    h->a[0] = h->a[--h->n];
+    int i = 0;
+    for (;;) {
+        int l = i * 2 + 1, r = l + 1, m = i;
+        if (l < h->n && h->a[l].dist < h->a[m].dist) m = l;
+        if (r < h->n && h->a[r].dist < h->a[m].dist) m = r;
+        if (m == i) break;
+        heap_swap(&h->a[m], &h->a[i]);
+        i = m;
+    }
+    return ret;
+}
+
+int main(void) {
+    int S, R;
+    if (scanf("%d %d", &S, &R) != 2) return 0;
+
+    int *uhead = (int*)malloc((size_t)(S + 1) * sizeof(int));
+    UEdge *uedges = (UEdge*)malloc((size_t)(2LL * R) * sizeof(UEdge));
+    if (!uhead || !uedges) return 0;
+    for (int i = 1; i <= S; i++) uhead[i] = -1;
+
+    int uec = 0;
+    for (int i = 0; i < R; i++) {
+        int u, v;
+        int w;
+        scanf("%d %d %d", &u, &v, &w);
+        uedges[uec].to = v; uedges[uec].w = w; uedges[uec].next = uhead[u]; uhead[u] = uec++;
+        uedges[uec].to = u; uedges[uec].w = w; uedges[uec].next = uhead[v]; uhead[v] = uec++;
+    }
+
+    int a, b;
+    scanf("%d %d", &a, &b);
+
+    /* Dijkstra from a */
+    ll INF = (LLONG_MAX / 4);
+    ll *dist = (ll*)malloc((size_t)(S + 1) * sizeof(ll));
+    unsigned char *vis = (unsigned char*)malloc((size_t)(S + 1) * sizeof(unsigned char));
+    if (!dist || !vis) return 0;
+    for (int i = 1; i <= S; i++) { dist[i] = INF; vis[i] = 0; }
+    dist[a] = 0;
+
+    MinHeap h;
+    heap_init(&h, S > 0 ? S : 4);
+    heap_push(&h, (HeapItem){0, a});
+
+    while (!heap_empty(&h)) {
+        HeapItem it = heap_pop(&h);
+        int v = it.v;
+        if (vis[v]) continue;
+        vis[v] = 1;
+        ll dv = it.dist;
+        if (dv != dist[v]) continue;
+        for (int ei = uhead[v]; ei != -1; ei = uedges[ei].next) {
+            int to = uedges[ei].to;
+            int w = uedges[ei].w;
+            ll nd = dv + (ll)w;
+            if (nd < dist[to]) {
+                dist[to] = nd;
+                heap_push(&h, (HeapItem){nd, to});
+            }
+        }
+    }
+
+    /* Build relevant shortest-path-consistent DAG restricted to nodes that can reach b */
+    int *dhead = (int*)malloc((size_t)(S + 1) * sizeof(int));
+    int *indeg = (int*)malloc((size_t)(S + 1) * sizeof(int));
+    unsigned char *rel = (unsigned char*)malloc((size_t)(S + 1) * sizeof(unsigned char));
+    if (!dhead || !indeg || !rel) return 0;
+    for (int i = 1; i <= S; i++) { dhead[i] = -1; indeg[i] = 0; rel[i] = 0; }
+
+    /* Worst-case directed edges: at most 2R (one per undirected direction) */
+    DEdge *dedges = (DEdge*)malloc((size_t)(2LL * R) * sizeof(DEdge));
+    if (!dedges) return 0;
+    int dec = 0;
+
+    int *q = (int*)malloc((size_t)(S + 5) * sizeof(int));
+    if (!q) return 0;
+    int qh = 0, qt = 0;
+
+    rel[b] = 1;
+    q[qt++] = b;
+
+    while (qh < qt) {
+        int s = q[qh++];
+
+        for (int ei = uhead[s]; ei != -1; ei = uedges[ei].next) {
+            int e = uedges[ei].to;
+            int w = uedges[ei].w;
+
+            /* If e -> s is a shortest-path-consistent transition */
+            if (dist[e] != INF && dist[s] == dist[e] + (ll)w) {
+                /* record directed edge e -> s (only within relevant region discovered from b) */
+                dedges[dec].to = s;
+                dedges[dec].next = dhead[e];
+                dhead[e] = dec++;
+                indeg[s]++;
+
+                if (!rel[e]) {
+                    rel[e] = 1;
+                    q[qt++] = e;
+                }
+            }
+        }
+    }
+
+    /* Topological order via Kahn-style queue, starting from a, restricted to relevant nodes */
+    int *topo = (int*)malloc((size_t)(S + 1) * sizeof(int));
+    int *kq = (int*)malloc((size_t)(S + 5) * sizeof(int));
+    if (!topo || !kq) return 0;
+
+    int *indeg2 = (int*)malloc((size_t)(S + 1) * sizeof(int));
+    if (!indeg2) return 0;
+    for (int i = 1; i <= S; i++) indeg2[i] = indeg[i];
+
+    int kqh = 0, kqt = 0, tcnt = 0;
+    if (a >= 1 && a <= S && rel[a] && indeg2[a] == 0) {
+        kq[kqt++] = a;
+    }
+
+    while (kqh < kqt) {
+        int u = kq[kqh++];
+        topo[tcnt++] = u;
+        for (int ei = dhead[u]; ei != -1; ei = dedges[ei].next) {
+            int v = dedges[ei].to;
+            indeg2[v]--;
+            if (indeg2[v] == 0) {
+                /* queue insertion order defines tie handling */
+                kq[kqt++] = v;
+            }
+        }
+    }
+
+    int Q;
+    scanf("%d", &Q);
+    int *cx = (int*)malloc((size_t)Q * sizeof(int));
+    int *dy = (int*)malloc((size_t)Q * sizeof(int));
+    if (!cx || !dy) return 0;
+    for (int i = 0; i < Q; i++) scanf("%d %d", &cx[i], &dy[i]);
+
+    /* Per-node bitset for current batch (64-bit) */
+    unsigned long long *bits = (unsigned long long*)malloc((size_t)(S + 1) * sizeof(unsigned long long));
+    if (!bits) return 0;
+
+    for (int base = 0; base < Q; base += 64) {
+        int batch = Q - base;
+        if (batch > 64) batch = 64;
+
+        for (int i = 1; i <= S; i++) bits[i] = 0ULL;
+
+        for (int j = 0; j < batch; j++) {
+            int x = cx[base + j];
+            if (x >= 1 && x <= S && rel[x]) {
+                bits[x] |= (1ULL << (unsigned)j);
+            }
+        }
+
+        for (int ti = 0; ti < tcnt; ti++) {
+            int u = topo[ti];
+            unsigned long long bu = bits[u];
+            if (!bu) continue;
+            for (int ei = dhead[u]; ei != -1; ei = dedges[ei].next) {
+                int v = dedges[ei].to;
+                bits[v] |= bu;
+            }
+        }
+
+        for (int j = 0; j < batch; j++) {
+            int y = dy[base + j];
+            int ok = 0;
+            if (y >= 1 && y <= S && rel[y]) {
+                ok = ((bits[y] >> (unsigned)j) & 1ULL) ? 1 : 0;
+            }
+            puts(ok ? "Yes" : "No");
+        }
+    }
+
+    return 0;
+}

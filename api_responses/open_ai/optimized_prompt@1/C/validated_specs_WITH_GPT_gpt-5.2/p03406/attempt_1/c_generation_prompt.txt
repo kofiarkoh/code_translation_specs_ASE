@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value modulo a fixed prime modulus, derived from:  
+- two input integers `n` and `m`, and  
+- a list of `m` nonnegative integers, each interpreted as a constraint value after being transformed by subtracting it from `2^n`.  
+
+The computed value is a deterministic function of these inputs and is formed from combinations (binomial coefficients) over integers up to `2^n`, aggregated through a subset-based recurrence and a final inclusion–exclusion–style summation, then scaled by a fixed multiplicative factor depending only on `n`.
+
+2. Inputs  
+- An integer `n`.  
+- An integer `m`.  
+- A sequence of `m` integers.  
+
+3. Outputs  
+- One integer in the range `[0, modulus-1]`, representing the computed result modulo the fixed modulus.
+
+4. Preconditions  
+- `0 ≤ n ≤ 16`.  
+- `0 ≤ m ≤ 16`.  
+- Each of the `m` integers is such that, after transformation to `2^n - value`, all intermediate binomial-coefficient arguments used by the computation are within the supported precomputed range `[0, 2^16]` and are nonnegative where required. (If this is not satisfied, behavior is not guaranteed.)  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+- The program outputs exactly one modular value equal to the computation described in Section 1, reduced into `[0, modulus-1]`.  
+- The output depends only on the provided inputs and the fixed modulus.
+
+6. Invariants  
+- All arithmetic is performed modulo the fixed modulus.  
+- Binomial coefficients used by the computation satisfy:  
+  - they evaluate to zero when the selection size exceeds the available size, and  
+  - otherwise they represent the standard binomial coefficient reduced modulo the modulus, for arguments within the supported range.  
+- The subset-indexed dynamic values and the final accumulated answer remain congruent modulo the modulus to their intended mathematical expressions throughout the computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate the preconditions (including out-of-range `n`/`m`, insufficient input data, or values causing unsupported binomial arguments), the result is unspecified.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and modular inverses up to `2^16`.  
+- Builds a subset-indexed table of intermediate modular counts based on the transformed constraint values.  
+- Reduces the subset table into a single modular result via an alternating-sign aggregation and a final multiplicative scaling dependent only on `n`.  
+- Produces the final output and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow exponentially with `n` (proportional to `2^n`), with fixed upper bounds implied by `n ≤ 16`.  
+- Uses fixed-size preallocated storage sized for the maximum supported `n`.
+
+```

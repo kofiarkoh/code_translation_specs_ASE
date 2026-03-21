@@ -1,0 +1,117 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+#define SENTINEL 1000000000000000000
+
+void merge(long long A[], long long left, long long mid, long long right){
+  long long n1, n2, i, j, k;
+  long long *L,*R;
+  
+  n1 = mid-left;
+  n2 = right-mid;
+  
+  L = (long long*)malloc(sizeof(long long) *(n1 + 1));
+  R = (long long*)malloc(sizeof(long long) *(n2 + 1));
+  
+  for(i = 0; i <= n1 - 1; i++){
+    L[i] = A[left + i];
+  }
+  for(j = 0; j <= n2 - 1; j++){
+    R[j] = A[mid + j];
+  }
+  
+  L[n1] = SENTINEL;
+  R[n2] = SENTINEL;
+  
+  i = 0;
+  j = 0;
+  
+  for(k = left; k <= right - 1; k++){
+   if(L[i] <= R[j]){
+      A[k] = L[i];
+      i++;
+    }
+    else{
+      A[k] = R[j];
+      j++;
+    }
+  }
+  free(L);
+  free(R);
+}
+
+void mergeSort(long long A[], long long left, long long right){
+  long long mid;
+  
+  if(left + 1 < right){
+    mid=(left + right)/2;
+    mergeSort(A, left, mid);
+    mergeSort(A, mid, right);
+    merge(A, left, mid, right);
+  }
+}
+
+int main(void){
+
+    int N, K;
+
+    scanf("%d%d", &N, &K);
+
+    int A[N];
+    long long c[N+1];
+
+    for(int i = 1; i <= N; i++){
+        c[i] = 0;
+    }
+
+    for(int i = 0; i < N; i++){
+        scanf("%d", &A[i]);
+        c[A[i]]++;
+    }
+
+    mergeSort(c, 1, N+1);
+
+    long long ans = 0;
+    int t = 0;
+
+    for(int i = 1; i <= N - K; i++){
+        if(c[i] > 0){
+            ans += c[i];
+            t++;
+        }
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+}
+```

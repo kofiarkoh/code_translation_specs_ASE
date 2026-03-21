@@ -1,0 +1,153 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+static int is_leap(int y) {
+    return (y % 4 == 0) && ((y % 100) != 0 || (y % 400) == 0);
+}
+
+static uint64_t parse_u64_component(const char *s, size_t *i) {
+    /* Unspecified behavior for non-digits per spec; we just accumulate digits. */
+    uint64_t v = 0;
+    while (s[*i] >= '0' && s[*i] <= '9') {
+        v = v * 10u + (uint64_t)(s[*i] - '0');
+        (*i)++;
+    }
+    return v;
+}
+
+int main(void) {
+    /* Fixed-size token buffer as per spec assumption. */
+    char tok[1024];
+
+    /* Month lengths for non-leap years. */
+    static const int mlen[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+
+    /*
+      Fixed epoch alignment constants.
+      The specification requires a fixed constant in both directions but does not
+      provide its numeric value. The narrowest faithful implementation is to
+      include explicit constants (defaulting to 0) without inventing a value.
+    */
+    const int64_t OFFSET_G2M = 0; /* added in Gregorian->mixed */
+    const int64_t OFFSET_M2G = 0; /* added in mixed->Gregorian */
+
+    while (scanf("%1023s", tok) == 1) {
+        if (tok[0] == '#') break;
+
+        /* Parse dot-separated unsigned decimal components. */
+        uint64_t comp[64];
+        int ncomp = 0;
+        size_t i = 0;
+        size_t len = strlen(tok);
+
+        while (i < len && ncomp < (int)(sizeof(comp) / sizeof(comp[0]))) {
+            comp[ncomp++] = parse_u64_component(tok, &i);
+            if (i < len && tok[i] == '.') {
+                i++;
+                continue;
+            }
+            /* If not '.', we stop; unspecified for other chars. */
+            if (i < len) {
+                /* Consume remaining non-dot chars to avoid infinite loop. */
+                i++;
+            }
+        }
+
+        if (ncomp == 3) {
+            /* Gregorian Y.M.D -> mixed p0..p4 */
+            int64_t Y = (int64_t)comp[0];
+            int64_t M = (int64_t)comp[1];
+            int64_t D = (int64_t)comp[2];
+
+            int64_t dt = 0;
+
+            /* Days before month M in year Y (1-based month). */
+            if (M > 1) {
+                int mm;
+                for (mm = 1; mm < M && mm <= 12; mm++) {
+                    dt += mlen[mm - 1];
+                }
+                /* Add leap day if after February in a leap year. */
+                if (M > 2 && is_leap((int)Y)) dt += 1;
+            }
+
+            /* Add (D - 1) for 0-based day index within month/year. */
+            dt += (D - 1);
+
+            /* Year-based offset from (Y - 2001) with floor divisions. */
+            int64_t y = Y - 2001;
+            dt += 365 * y + (y / 4) - (y / 100) + (y / 400);
+
+            /* Add fixed constant offset (unspecified numeric value). */
+            dt += OFFSET_G2M;
+
+            /* Decompose into mixed-radix digits (least significant first). */
+            int64_t p4 = dt % 20; dt /= 20;
+            int64_t p3 = dt % 18; dt /= 18;
+            int64_t p2 = dt % 20; dt /= 20;
+            int64_t p1 = dt % 20; dt /= 20;
+            int64_t p0 = dt % 13;
+
+            printf("%lld.%lld.%lld.%lld.%lld\n",
+                   (long long)p0, (long long)p1, (long long)p2, (long long)p3, (long long)p4);
+        } else {
+            /* Mixed-radix (use first five components) -> Gregorian Y.M.D */
+            uint64_t d0 = (ncomp > 0) ? comp[0] : 0;
+            uint64_t d1 = (ncomp > 1) ? comp[1] : 0;
+            uint64_t d2 = (ncomp > 2) ? comp[2] : 0;
+            uint64_t d3 = (ncomp > 3) ? comp[3] : 0;
+            uint64_t d4 = (ncomp > 4) ? comp[4] : 0;
+
+            int64_t dt = (int64_t)(((((d0 * 20u + d1) * 20u + d2) * 18u + d3) * 20u + d4));
+
+            /* Add fixed positive constant offset (unspecified numeric value). */
+            dt += OFFSET_M2G;
+
+            int y = 2000;
+
+            /*
+              Year advancement loop per spec:
+              - subtract 365, then subtract one more if leap year
+              - while dt is greater than 365
+              - handle exact year boundary by stepping back and restoring remainder
+            */
+            while (dt > 365) {
+                int64_t prev = dt;
+                int prevy = y;
+
+                dt -= 365;
+                if (is_leap(y)) dt -= 1;
+                y++;
+
+                if (dt == 0) {
+                    /* Landed exactly on a year boundary: step back and restore. */
+                    y = prevy;
+                    dt = prev;
+                    break;
+                }
+            }
+
+            /* Determine month by subtracting month lengths starting at January. */
+            int m = 1;
+            while (m <= 12) {
+                int ml = mlen[m - 1];
+                if (m == 2 && is_leap(y)) ml += 1;
+
+                if (dt >= ml) {
+                    dt -= ml;
+                    m++;
+                } else {
+                    break;
+                }
+            }
+
+            /* Remaining dt is 0-based day-of-month; output is 1-based. */
+            int d = (int)dt + 1;
+
+            printf("%d.%d.%d\n", y, m, d);
+        }
+    }
+
+    return 0;
+}

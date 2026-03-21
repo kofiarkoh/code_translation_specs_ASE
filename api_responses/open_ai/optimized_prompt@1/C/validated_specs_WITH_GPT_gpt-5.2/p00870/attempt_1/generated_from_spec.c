@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAX_PATTERNS 20
+#define MAX_PATTERN_LEN 256
+#define MAX_FRAGMENTS 256
+#define MAX_TEXT_LEN 8192
+
+/* Fixed-size DP over (position, subset). Undefined behavior if limits exceeded,
+   per specification. */
+
+static int read_int(int *out) {
+    return scanf("%d", out) == 1;
+}
+
+static int read_token(char *buf, size_t cap) {
+    /* Reads a whitespace-delimited token. */
+    return scanf("%255s", buf) == 1; /* cap is enforced by caller via buffer size */
+}
+
+static void drop_trailing_control_char(char *s) {
+    /* Spec: "attempts to drop a final character if it is below the space character" */
+    size_t n = strlen(s);
+    if (n == 0) return;
+    unsigned char c = (unsigned char)s[n - 1];
+    if (c < (unsigned char)' ') {
+        s[n - 1] = '\0';
+    }
+}
+
+static int matches_at(const char *text, int text_len, int pos, const char *pat, int pat_len) {
+    if (pos < 0) return 0;
+    if (pos + pat_len > text_len) return 0;
+    return memcmp(text + pos, pat, (size_t)pat_len) == 0;
+}
+
+int main(void) {
+    int n_patterns, n_frags;
+
+    while (1) {
+        if (!read_int(&n_patterns)) return 0;
+        if (!read_int(&n_frags)) return 0;
+        if (n_patterns == 0 && n_frags == 0) break;
+
+        char patterns[MAX_PATTERNS][MAX_PATTERN_LEN];
+        int pat_len[MAX_PATTERNS];
+
+        for (int i = 0; i < n_patterns; i++) {
+            /* Read as token; spec says no embedded whitespace. */
+            if (scanf("%255s", patterns[i]) != 1) return 0;
+            /* No control-char stripping specified for patterns. */
+            pat_len[i] = (int)strlen(patterns[i]);
+        }
+
+        char text[MAX_TEXT_LEN + 1];
+        int text_len = 0;
+        text[0] = '\0';
+
+        for (int i = 0; i < n_frags; i++) {
+            char frag[MAX_PATTERN_LEN];
+            if (!read_token(frag, sizeof(frag))) return 0;
+            drop_trailing_control_char(frag);
+
+            int flen = (int)strlen(frag);
+            /* Undefined behavior if exceeds MAX_TEXT_LEN; we just append within array bounds
+               as best effort, but spec allows UB on overflow. */
+            if (text_len + flen > MAX_TEXT_LEN) {
+                /* Force overflow-like behavior is not well-defined in C; keep within bounds. */
+                flen = MAX_TEXT_LEN - text_len;
+                if (flen < 0) flen = 0;
+            }
+            memcpy(text + text_len, frag, (size_t)flen);
+            text_len += flen;
+            text[text_len] = '\0';
+        }
+
+        /* Subset DP: dp[pos][mask] = number of ways to reach (pos, mask). */
+        int subset_count = 1 << n_patterns; /* UB if n_patterns too large; per spec. */
+
+        static uint64_t dp[MAX_TEXT_LEN + 1][1 << MAX_PATTERNS];
+        /* Clear only needed region. */
+        for (int p = 0; p <= text_len; p++) {
+            for (int m = 0; m < subset_count; m++) {
+                dp[p][m] = 0;
+            }
+        }
+
+        dp[0][0] = 1;
+
+        for (int pos = 0; pos <= text_len; pos++) {
+            for (int mask = 0; mask < subset_count; mask++) {
+                uint64_t ways = dp[pos][mask];
+                if (ways == 0) continue;
+
+                for (int i = 0; i < n_patterns; i++) {
+                    int bit = 1 << i;
+                    if (mask & bit) continue;
+                    int plen = pat_len[i];
+                    if (plen == 0) {
+                        /* Empty patterns are not described; narrow handling:
+                           allow matching at current position without advancing,
+                           which would create cycles. To avoid non-termination,
+                           we treat empty patterns as non-matching. */
+                        continue;
+                    }
+                    if (matches_at(text, text_len, pos, patterns[i], plen)) {
+                        int npos = pos + plen;
+                        int nmask = mask | bit;
+                        dp[npos][nmask] += ways; /* wraparound on overflow is intended-ish */
+                    }
+                }
+            }
+        }
+
+        uint64_t total = 0;
+        int full_mask = subset_count - 1;
+        for (int pos = 0; pos <= text_len; pos++) {
+            total += dp[pos][full_mask];
+        }
+
+        /* Output as integer; spec says "single integer". Use unsigned long long. */
+        printf("%llu\n", (unsigned long long)total);
+    }
+
+    return 0;
+}

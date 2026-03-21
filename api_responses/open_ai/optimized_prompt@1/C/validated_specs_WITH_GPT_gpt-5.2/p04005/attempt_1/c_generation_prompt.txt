@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads three integer values. If any of the three values is even, outputs `0`. Otherwise (all three are odd), replaces the largest of the three values with `1` and outputs the product of the resulting three values.
+
+2. Inputs  
+- Three signed integer values provided from standard input.
+
+3. Outputs  
+- A single integer value written to standard output:
+  - `0` if at least one input value is even.
+  - Otherwise, the product after setting the maximum input value to `1`.
+
+4. Preconditions  
+- Exactly three integer values are available as input and are representable in the program’s integer type used for storage.  
+- For the odd-only case, the computed product after modification is representable in the output integer type (to avoid overflow).  
+- Assumption: If multiple inputs share the maximum value, one of them is chosen to be replaced with `1` (the specific one is not externally observable when values are equal).
+
+5. Postconditions  
+- If any input is even: output is exactly `0`.  
+- If all inputs are odd: output equals the product of the two non-maximum original values (since the maximum is replaced by `1`), with the tie behavior as noted in Preconditions.
+
+6. Invariants  
+- The output is always an integer value.  
+- In the all-odd case, exactly one of the three values is treated as replaced by `1` for the purpose of the output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input is provided; behavior is unspecified if fewer than three valid integers are supplied.  
+- No explicit handling for arithmetic overflow; if overflow occurs, the produced output is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless beyond local computation; no persistent state is maintained across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input size (fixed three values).
+
+```

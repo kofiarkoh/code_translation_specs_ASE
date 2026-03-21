@@ -1,0 +1,37 @@
+1. Functional Description  
+Computes the minimum total travel cost required to visit a given set of specified vertices exactly once in some order, where travel cost between two specified vertices is the length of the shortest path between them in an undirected weighted graph. The route may start at any of the specified vertices and ends at the last visited specified vertex (no requirement to return to the start).
+
+2. Inputs  
+- An integer number of vertices.  
+- An integer number of undirected weighted edges.  
+- An integer count of “required” vertices to be visited.  
+- A list of the required vertices (by vertex index).  
+- A list of edges, each given by two endpoint vertex indices and a non-negative or arbitrary integer weight (assumption noted below).
+
+3. Outputs  
+- A single integer: the minimum possible sum of shortest-path distances between consecutive required vertices along an order that visits all required vertices exactly once.
+
+4. Preconditions  
+- Vertex indices provided in the required-vertex list and in edges refer to valid vertices within the declared vertex count.  
+- The count of required vertices is within the supported fixed limit (at most 8).  
+- The graph size is within the supported fixed limit (at most 200 vertices).  
+- Assumption: edge weights are such that shortest paths are well-defined and do not rely on negative cycles (typically non-negative weights).
+
+5. Postconditions  
+- The output equals the minimum, over all permutations of the required vertices, of the sum of shortest-path distances between each consecutive pair in that permutation.  
+- If two required vertices are disconnected (no path exists), the corresponding shortest-path distance is treated as a very large sentinel value, which can cause the reported minimum to also be that sentinel value.
+
+6. Invariants  
+- The computed pairwise distances used for evaluation represent shortest-path distances between all vertex pairs under the given edge weights, subject to the assumptions in Preconditions.  
+- During evaluation, each required vertex is selected at most once in any candidate visiting order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range indices, oversized parameters, or arithmetic overflow. Behavior is undefined in such cases.  
+- If negative cycles exist and are reachable in relevant paths, the notion of “shortest path” is not well-defined; the produced result is not guaranteed to be meaningful.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond internal computation; the program is a single-run batch computation with no externally observable state changes other than producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows cubically with the number of vertices for all-pairs shortest paths, plus factorial growth with the number of required vertices due to permutation search.  
+- Memory usage is dominated by storage for an all-pairs distance table sized by the square of the vertex count.

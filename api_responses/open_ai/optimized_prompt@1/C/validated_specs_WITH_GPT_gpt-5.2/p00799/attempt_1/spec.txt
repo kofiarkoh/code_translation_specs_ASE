@@ -1,0 +1,45 @@
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of independent devices that alternate between an “active” phase and a “charging” phase with device-specific durations. At each time unit, at most one charging device is designated as the currently serviced device (based on a first-come-first-served order of when devices enter charging). The program computes the total number of time-unit “misses” in which a device is in charging but is not the designated serviced device.
+
+2. Inputs  
+- Repeated test cases. Each test case provides:  
+  - An integer count of devices.  
+  - An integer time limit (number of time units to simulate).  
+  - For each device: a finite cyclic sequence of positive integer pairs representing alternating durations: an active duration followed by a charging duration, repeated as a cycle. The sequence is terminated by a non-positive value.
+
+3. Outputs  
+- For each test case, outputs a single non-negative integer: the total number of charging-device time units during the simulation in which the device was not the designated serviced device.
+
+4. Preconditions  
+- The device count is positive to define a test case; a non-positive device count terminates processing.  
+- The time limit is non-negative.  
+- For each device, at least one active/charging duration pair is provided before termination of that device’s sequence.  
+- All provided durations used in the simulation are positive integers.  
+- The number of devices does not exceed the program’s supported maximum, and each device’s duration-pair sequence length does not exceed the supported maximum.  
+- Assumption (required for defined behavior): the number of devices that can be simultaneously waiting for service does not exceed the supported queue capacity.
+
+5. Postconditions  
+For each processed test case:  
+- The reported value equals the sum, over all simulated time units, of the number of devices that are in charging state and not the designated serviced device for that time unit.  
+- Devices follow their own cyclic active/charging durations, advancing to the next pair in their cycle each time they complete a charging phase and return to active.
+
+6. Invariants  
+- Each device is always in exactly one of two states: active or charging.  
+- Each device maintains a remaining-time counter for its current state that is always non-negative and decreases by one per simulated time unit while that device is being progressed in that state.  
+- The designated serviced device (if any) is always the earliest device (by entry time into charging) among those still waiting for service.  
+- The service order for charging devices is first-come-first-served with no reordering.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input is malformed, missing, exceeds supported bounds, or violates the queue-capacity assumption, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+For each device, repeatedly over time:  
+- Active → Charging: occurs when the device’s active remaining time reaches zero; the device is enqueued to await service and its charging remaining time is initialized from its current cycle pair.  
+- Charging (waiting, not serviced) → Charging (waiting): remains charging; contributes one miss per time unit.  
+- Charging (serviced) → Charging (serviced): charging remaining time decreases by one per time unit while it is the designated serviced device.  
+- Charging → Active: occurs when the designated serviced device’s charging remaining time reaches zero; it is dequeued, advances to the next duration pair in its cycle (wrapping to the start), and its active remaining time is initialized accordingly.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to (number of devices × time limit) per test case.  
+- Memory usage is bounded by fixed maximum capacities for devices, per-device cycle length, and the waiting queue.

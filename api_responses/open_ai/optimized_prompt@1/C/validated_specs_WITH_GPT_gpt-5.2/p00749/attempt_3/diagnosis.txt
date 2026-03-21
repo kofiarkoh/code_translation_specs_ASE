@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Missing constraint / wrong termination & root-handling assumption leading to invalid memory access (runtime error), i.e., a structural invariant in the source that the spec/code did not capture.
+
+B. What the current specification may be missing or misstating  
+- The spec implies the algorithm always has a valid “root” node with ID 1 and that stability checking starts from it. In the source, node ID 1 is assumed to exist and is used unconditionally (`tbl[1].par = 1; check(1)`), but the source’s internal construction relies on an implicit precondition: there is at least one occupied cell/component in every processed test case.  
+- The spec does not clearly state what happens (or what is required) when the grid contains no occupied cells. The generated program tried to define behavior for “no components” (`nnode < 1`), but the source program does not guard this case and would access `tbl[1]` regardless. This discrepancy indicates the spec is underspecified about required input validity (non-empty configuration) and/or root existence.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the required precondition on inputs regarding existence of at least one occupied cell/component per test case (so that the scan creates node ID 1).  
+- Alternatively (if the original problem statement allows empty grids), clarify the program’s actual behavior in that case (which, per source, is undefined/unsafe), rather than inventing a defined output.  
+- More generally: specify that the algorithm assumes the constructed node table has a valid entry at index 1 and that the check always starts from it without checking whether any component was found.
+
+D. Why this clarification is supported by the source program  
+- The source sets `sz = 1` and then builds nodes by incrementing `sz` only when encountering occupied cells. If there are no occupied cells, no node is created at index 1 (it remains zero-initialized), yet the program still executes `tbl[1].par = 1; puts(check(1) ? ...)`.  
+- `check(1)` then reads fields like `tbl[1].m` and performs `tbl[par].m += ...` where `par = tbl[this].par`. With an uninitialized/invalid tree structure (possible when no components exist), this can lead to division by zero (`m == 0`) and/or out-of-bounds parent indexing, i.e., undefined behavior and potential crashes.  
+- Therefore, the source behavior depends on an implicit invariant (“at least one component exists and node 1 corresponds to a real component”), which the current specification does not state as a constraint.

@@ -1,0 +1,90 @@
+#include <stdio.h>
+
+#define MAXV 100000
+#define MAXE (2 * (MAXV - 1))
+
+typedef struct {
+    int to;
+    int w;
+    int next;
+} Edge;
+
+static Edge edges[MAXE];
+static int head[MAXV + 1];
+static int edge_cnt;
+
+static int q[MAXV + 1];
+static unsigned char vis[MAXV + 1];
+static int distv[MAXV + 1];
+
+static void add_edge(int u, int v, int w) {
+    edges[edge_cnt].to = v;
+    edges[edge_cnt].w = w;
+    edges[edge_cnt].next = head[u];
+    head[u] = edge_cnt++;
+}
+
+static int bfs_farthest(int start, int n, int *out_maxdist) {
+    int i;
+    for (i = 1; i <= n; i++) {
+        vis[i] = 0;
+        distv[i] = 0;
+    }
+
+    int front = 0, back = 0;
+    q[back++] = start;
+    vis[start] = 1;
+    distv[start] = 0;
+
+    int far = start;
+    int maxd = 0;
+
+    while (front < back) {
+        int u = q[front++];
+
+        /* Track farthest by maximum distance; ties keep earlier far. */
+        if (distv[u] > maxd) {
+            maxd = distv[u];
+            far = u;
+        }
+
+        for (i = head[u]; i != -1; i = edges[i].next) {
+            int v = edges[i].to;
+            if (!vis[v]) {
+                vis[v] = 1;
+                /* Under tree precondition, first time reached is unique path distance. */
+                distv[v] = distv[u] + edges[i].w;
+                q[back++] = v;
+            }
+        }
+    }
+
+    if (out_maxdist) *out_maxdist = maxd;
+    return far;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    /* Fixed-capacity, statically allocated memory; exceeding bounds is unsupported. */
+    int i;
+    for (i = 1; i <= n && i <= MAXV; i++) head[i] = -1;
+    edge_cnt = 0;
+
+    for (i = 0; i < n - 1; i++) {
+        int u, v, w;
+        if (scanf("%d %d %d", &u, &v, &w) != 3) return 0;
+        add_edge(u, v, w);
+        add_edge(v, u, w);
+    }
+
+    /* Two traversals to compute weighted diameter length. */
+    int dummy;
+    int a = bfs_farthest(1, n, &dummy);
+    int diameter = 0;
+    (void)bfs_farthest(a, n, &diameter);
+
+    printf("%d\n", diameter);
+    return 0;
+}

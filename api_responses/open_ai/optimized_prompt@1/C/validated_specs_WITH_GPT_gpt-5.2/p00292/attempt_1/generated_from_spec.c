@@ -1,0 +1,22 @@
+#include <stdio.h>
+
+int main(void) {
+    long long t;
+    if (scanf("%lld", &t) != 1) {
+        return 0; /* Unspecified behavior on invalid input; exit quietly */
+    }
+
+    while (t-- > 0) {
+        long long value, modulus;
+        if (scanf("%lld %lld", &value, &modulus) != 2) {
+            return 0; /* Unspecified behavior on missing/invalid input */
+        }
+
+        /* Preconditions state modulus > 0; if not, behavior is unspecified. */
+        long long r = value % modulus; /* C remainder keeps sign of value */
+        if (r <= 0) r += modulus;      /* Normalize into 1..modulus */
+        printf("%lld\n", r);
+    }
+
+    return 0;
+}

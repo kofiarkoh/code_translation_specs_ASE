@@ -1,0 +1,223 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2679 Decoding Ancient Messages
+// 2018.3.15 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { signed char a[52]; } T;
+T mx[10000]; int sz;
+#define mx_zero   0
+#define mx_inf    1
+
+int  mx_new() { return sz++; }
+void mx_clear(int a) { memset(mx+a, 0, sizeof(T)); }
+void mx_add1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] += mx[b].a[i]; }
+void mx_add2(int s, int a, int b) { int i; for (i = 0; i < 52; i++) mx[s].a[i] = mx[a].a[i]+mx[b].a[i]; }
+void mx_sub1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] -= mx[b].a[i]; }
+void mx_sub2(int d, int a, int b) { int i; for (i = 0; i < 52; i++) mx[d].a[i] = mx[a].a[i]-mx[b].a[i]; }
+void mx_mul2(int m, int a, int k) { int i; for (i = 0; i < 52; i++) mx[m].a[i] = mx[a].a[i] * k; }
+void mx_cpy(int a, int b) { memcpy(mx+a, mx+b, sizeof(T)); }
+int  mx_cmp(int a, int b) {
+	int k, i; for (i = 0; i < 52; i++) if (k = mx[a].a[i] - mx[b].a[i]) return k; return 0; }
+
+#define MAX 105
+typedef struct { int to, rev; int cap; int cost; } EDGE;
+EDGE edge[MAX][MAX]; int hi[MAX];
+int  V;				// 頂点数
+int  dist[MAX], prevv[MAX], preve[MAX];
+
+void add_edge(int from, int to, int cap, int cost, int rcost)
+{
+	int f, t;
+	EDGE *e;
+
+	f = hi[from]++, t = hi[to]++;
+	e = &edge[from][f], e->to = to, e->cap = cap, e->cost = cost, e->rev = t;
+	e = &edge[to][t], e->to = from, e->cap = 0, e->cost = rcost, e->rev = f;
+}
+
+int minCostFlow(int S, int T, int F)
+{
+	int i, v, nv, d, update;
+	int t = mx_new(), ret;
+	EDGE *e;
+
+	for (i = 0; i < V; i++) dist[i] = mx_new(); 
+	ret = mx_new();
+	while (F > 0) {
+		for (v = 0; v < V; v++) mx_cpy(dist[v], mx_inf);
+		mx_clear(dist[S]);
+		do {
+			update = 0;
+			for (v = 0; v < V; v++) {
+				if (mx_cmp(dist[v], mx_inf) == 0) continue;
+				for (i = 0; i < hi[v]; i++) {
+					e = &edge[v][i];
+					if (e->cap <= 0) continue;
+					nv = e->to;
+					mx_add2(t, dist[v], e->cost);
+					if (mx_cmp(dist[nv], t) > 0) {
+						mx_cpy(dist[nv], t), prevv[nv] = v, preve[e->to] = i;
+						update = 1;
+					}
+				}
+			}
+		} while (update);
+
+		d = F;
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			if (d > e->cap) d = e->cap;
+		}
+		F -= d;
+
+		mx_mul2(t, dist[T], d);
+		mx_add1(ret, t);
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			e->cap -= d;
+			edge[v][e->rev].cap += d;
+		}
+	}
+	return ret;
+}
+
+char map[53][53];
+
+int main()
+{
+	int N, i, j, a, b;
+	int source, sink;
+	char buf[10], c;
+
+	fgets(buf, 10, stdin), N = atoi(buf);
+	for (i = 0; i < N; i++) fgets(map[i], 53, stdin);
+
+	for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;
+	sz = 2,	source = N << 1, sink = source + 1, V = sink + 1;
+
+	for (i = 0; i < N; i++) {
+		add_edge(source, i, 1, mx_new(), mx_new());
+		for (j = 0; j < N; j++) {
+			c = map[i][j], a = mx_new(), b = mx_new();
+			if (c < 'a') mx[a].a[   c-'A'] = -1, mx[b].a[   c-'A'] = 1;
+			else         mx[a].a[26+c-'a'] = -1, mx[b].a[26+c-'a'] = 1;
+			add_edge(i, N+j, 1, a, b);
+		}
+		add_edge(N+i, sink, 1, mx_new(), mx_new());
+	}
+
+	a = minCostFlow(source, sink, N);
+
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i];
+		while (b) putchar('A'+i), b--;
+	}
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i+26];
+		while (b) putchar('a'+i), b--;
+	}
+	putchar('\n');
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads an integer \(N\) and an \(N \times N\) grid of alphabetic characters. It chooses exactly one cell in each row and exactly one cell in each column (i.e., a perfect matching between rows and columns). Each chosen cell contributes its character to a multiset of \(N\) characters.
+
+Among all perfect matchings, the program selects one that is optimal under a **lexicographic minimization of a 52-dimensional signed cost vector** defined over the ordered character list:
+\[
+\text{‘A’, ‘B’, …, ‘Z’, ‘a’, ‘b’, …, ‘z’}.
+\]
+For a matching, let \(c_k\) be the number of chosen characters equal to the \(k\)-th character in that list. The program associates the matching with the vector \((-c_0, -c_1, \dots, -c_{51})\) and chooses a matching whose vector is **lexicographically smallest** (compare component 0 first, then 1, etc.).
+
+Finally, it outputs the selected multiset as a string sorted in the same fixed order (all uppercase ‘A’..‘Z’, then all lowercase ‘a’..‘z’), with each character repeated according to its count in the chosen matching.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- \(N\) subsequent lines, each providing at least \(N\) characters forming the grid.  
+- Each grid character used by the program is assumed to be in {‘A’–‘Z’, ‘a’–‘z’}.
+
+3. Outputs  
+- One line containing exactly \(N\) characters: the multiset of characters from the chosen perfect matching, printed in sorted order: ‘A’..‘Z’ then ‘a’..‘z’.
+
+4. Preconditions / Assumptions  
+- \(N\) must be small enough to fit the program’s fixed-size storage for the grid and graph (the program does not validate bounds).  
+- Each of the \(N\) input lines must contain at least \(N\) alphabetic characters; extra trailing characters on a line are ignored.  
+- A perfect matching is always feasible because every row is connected to every column in the constructed assignment graph.
+
+5. Postconditions / Optimality Criterion  
+- Exactly one column is selected for each row and exactly one row for each column.  
+- The output multiset corresponds to the characters at the selected \(N\) row/column positions.  
+- For any other perfect matching with counts \(c'_k\), if \(k\) is the first index where \(c_k \ne c'_k\), then the chosen matching satisfies \(c_k \ge c'_k\). (Equivalently, it lexicographically minimizes \((-c_0,\dots,-c_{51})\).)  
+- The printed output is the chosen multiset sorted by the fixed order ‘A’..‘Z’, then ‘a’..‘z’.
+
+6. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input violates assumptions (non-alphabetic characters, insufficient line length, out-of-range \(N\), etc.), behavior is unspecified.
+
+7. Termination Behavior  
+- Processes exactly one instance from standard input, prints one newline-terminated output line, and exits.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong optimality/ordering rule (wrong abstraction of the objective), leading to incorrect tie-breaking among matchings.
+
+B. What the current specification may be missing or misstating  
+The spec models the choice as a lexicographic optimization of the **count vector** \((c_0,\dots,c_{51})\) (equivalently lexicographically minimizing \((-c_0,\dots,-c_{51})\)). That treats all matchings with the same multiset of letters as equivalent and assumes the objective depends only on aggregate counts.
+
+The source program’s objective is implemented via a min-cost flow with a 52-dimensional “cost” that is accumulated per chosen edge, but the way it is encoded (negative unit vector per chosen character, then summed and compared lexicographically) effectively induces a strict preference that can differ from a simple “maximize counts of ‘A’, then ‘B’, …” interpretation when there are tradeoffs across letters and/or when multiple matchings yield the same prefix counts. In other words, the spec’s abstraction “only counts matter” is too coarse: the source’s optimization is a lexicographic minimization over a vector cost, but the resulting chosen multiset is not necessarily the one produced by a greedy “maximize earlier letters” approach, and the tie-breaking behavior is not fully captured.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact** optimization criterion as realized by the min-cost flow: it is a lexicographic shortest-path / min-cost-flow over 52-dimensional vectors with a specific comparison order, not an informal “maximize counts in order” procedure.  
+- Clarify how ties are resolved when multiple perfect matchings yield the same count vector prefix (or even the same full count vector): the source algorithm’s relaxation order and vector comparison can select a particular optimum that a different algorithm (even if aiming for the same high-level goal) might not reproduce.  
+- More generally: specify whether the intended output is uniquely determined solely by the multiset-count lexicographic rule, or whether the program’s behavior depends on additional implicit tie-breaking induced by the flow algorithm/edge construction.
+
+D. Why this clarification is supported by the source program  
+- The source constructs a min-cost flow network and runs a Bellman-Ford–style relaxation using `mx_cmp` over 52 components, accumulating per-edge vector costs (`mx_add2(t, dist[v], e->cost)`) and then augmenting flow along the found shortest path. This is an algorithmic definition of optimality and tie-breaking, not a direct “maximize counts” combinational rule.  
+- The cost vectors are stored in `signed char a[52]` and compared componentwise in fixed order by `mx_cmp`, so the exact notion of “optimal” is “minimum under that comparator of the total summed vector cost over the chosen edges,” with whatever tie behavior arises from the relaxation/augmentation process.  
+- Because the program’s selection is mediated by shortest-path relaxations and augmentations (and not by an explicit canonical selection among all optimal count-vectors), two implementations that both “maximize counts lexicographically” can still diverge unless the spec also pins down the source’s implicit tie-breaking/selection semantics.
+
+```

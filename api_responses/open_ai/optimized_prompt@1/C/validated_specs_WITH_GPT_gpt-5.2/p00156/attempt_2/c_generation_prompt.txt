@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each provided rectangular character grid, computes a minimum “change count” needed to reach any boundary cell from a designated start cell. Movement is allowed only to orthogonally adjacent cells. Moving from a cell to a neighbor has cost 0 if the two cells contain the same character and cost 1 if they differ. The program outputs the minimum boundary cost divided by 2 using integer division.
+
+2. Inputs  
+- Repeated test cases.  
+- Each test case begins with two integers: grid width `w` and grid height `h`.  
+- If `w == 0` and `h == 0`, processing terminates.  
+- Otherwise, exactly `h * w` non-newline characters are read (whitespace before each character is skipped by the input routine), forming an `h`-row by `w`-column grid.  
+- The grid is expected to contain a start marker character `'&'` (see Preconditions).
+
+3. Outputs  
+- For each test case, outputs one line containing a single integer:  
+  - Let `cost(p)` be the minimum accumulated move cost (as defined above) from the start cell to boundary cell `p`.  
+  - The program prints `min_p floor(cost(p) / 2)` over all boundary cells `p` (cells in the first/last row or first/last column).
+
+4. Preconditions / Assumptions  
+- `w` and `h` are positive and do not exceed the fixed storage limits (at most 101 each).  
+- The grid contains at least one `'&'` start marker. (If multiple are present, the program effectively uses the last one encountered in row-major input order.)  
+- Input is well-formed and provides enough characters to fill the grid for each test case.
+
+5. Start Marker Handling  
+- When a cell containing `'&'` is read, it is immediately treated as terrain `'.'` for all subsequent movement-cost comparisons (the stored grid character at that location is replaced with `'.'`).  
+- The start cell’s initial internal cost is set to 1 (not 0). All other cells start as “unreached” (cost 0) until assigned.
+
+6. Cost Propagation Semantics  
+- The program computes, for every reachable cell, the minimum possible accumulated cost under the following rule for each step from cell `u` to neighbor `v`:  
+  - If `grid[u] == grid[v]`, then `cost(v)` may be updated to `cost(u)`.  
+  - Otherwise, `cost(v)` may be updated to `cost(u) + 1`.  
+- A cell’s stored cost is updated only when the new value is strictly smaller than its current nonzero value, or when it is currently unreached (0).  
+- The grid is treated as fully traversable; there are no impassable cells.
+
+7. Boundary Minimum and Division  
+- After costs are computed, the program considers all boundary cells and takes the minimum of `cost(cell) / 2` using integer division.  
+- The printed value is this minimum.
+
+8. Error Handling / Undefined Behavior  
+- No explicit error handling is performed. If the preconditions are violated (e.g., missing `'&'`, dimensions exceeding limits, malformed input), behavior is undefined (may produce incorrect output or access invalid memory).
+
+9. State and Termination  
+- Each test case is processed independently; internal arrays are reinitialized per test case.  
+- The program terminates only when the pair `0 0` is read for `w h`.
+
+```

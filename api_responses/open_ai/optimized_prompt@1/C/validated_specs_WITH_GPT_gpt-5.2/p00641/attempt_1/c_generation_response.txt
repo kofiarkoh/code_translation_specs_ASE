@@ -1,0 +1,106 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD 10007
+#define MAXN 200000  /* Fixed-size capacity; must be >= maximum n in inputs per preconditions */
+
+static int parent_arr[MAXN];
+static int rank_arr[MAXN];
+
+static int comp_max[MAXN];
+static int comp_cnt[MAXN];
+
+static int find_set(int x) {
+    /* Path compression */
+    while (parent_arr[x] != x) {
+        parent_arr[x] = parent_arr[parent_arr[x]];
+        x = parent_arr[x];
+    }
+    return x;
+}
+
+static void union_set(int a, int b) {
+    int ra = find_set(a);
+    int rb = find_set(b);
+    if (ra == rb) return;
+
+    /* Union by rank */
+    if (rank_arr[ra] < rank_arr[rb]) {
+        parent_arr[ra] = rb;
+    } else if (rank_arr[ra] > rank_arr[rb]) {
+        parent_arr[rb] = ra;
+    } else {
+        parent_arr[rb] = ra;
+        rank_arr[ra]++;
+    }
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        /* Preconditions say n within capacity; undefined otherwise. */
+        for (int i = 0; i < n; i++) {
+            parent_arr[i] = i;
+            rank_arr[i] = 0;
+        }
+
+        /* Store attributes per entity (two each) and build unions from edges. */
+        static int v1[MAXN], v2[MAXN];
+        static int w1[MAXN], w2[MAXN];
+
+        for (int i = 0; i < n; i++) {
+            int a, x, b, y;
+            /* Input is well-formed per spec. */
+            scanf("%d %d %d %d", &a, &x, &b, &y);
+            v1[i] = a; w1[i] = x;
+            v2[i] = b; w2[i] = y;
+
+            /* Undirected edges: connect i to each referenced entity. */
+            union_set(i, a);
+            union_set(i, b);
+        }
+
+        /* Initialize component tracking arrays for roots. */
+        for (int i = 0; i < n; i++) {
+            comp_max[i] = -1; /* attributes are non-negative, so -1 is safe sentinel */
+            comp_cnt[i] = 0;
+        }
+
+        /* Aggregate max and count of max per connected component over all attributes. */
+        for (int i = 0; i < n; i++) {
+            int r = find_set(i);
+
+            int val = w1[i];
+            if (val > comp_max[r]) {
+                comp_max[r] = val;
+                comp_cnt[r] = 1;
+            } else if (val == comp_max[r]) {
+                comp_cnt[r]++;
+            }
+
+            val = w2[i];
+            if (val > comp_max[r]) {
+                comp_max[r] = val;
+                comp_cnt[r] = 1;
+            } else if (val == comp_max[r]) {
+                comp_cnt[r]++;
+            }
+        }
+
+        /* Compute product over components of floor(T(C)/2) modulo 10007. */
+        int result = 1;
+        for (int i = 0; i < n; i++) {
+            if (find_set(i) == i) {
+                int factor = comp_cnt[i] / 2; /* integer division as specified */
+                result = (result * (factor % MOD)) % MOD;
+            }
+        }
+
+        printf("%d\n", result);
+    }
+    return 0;
+}
+```

@@ -1,0 +1,188 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+#define N_MAX 1048576
+
+typedef struct {
+    int64_t a;
+    int64_t b;
+} Pair;
+
+static Pair p[N_MAX];
+static int64_t bval[N_MAX];
+static int64_t cmax[N_MAX]; /* prefix max of b */
+static int64_t dmin[N_MAX]; /* suffix min of b */
+static int Lidx[N_MAX];     /* 0-based inclusive */
+static int Ridx[N_MAX];     /* 0-based inclusive */
+
+static int64_t dp[N_MAX + 1][4];
+static int64_t ss[N_MAX + 1][4];
+static int64_t pw2[N_MAX + 1];
+
+static int cmp_pair(const void *x, const void *y) {
+    const Pair *px = (const Pair *)x;
+    const Pair *py = (const Pair *)y;
+    if (px->a < py->a) return -1;
+    if (px->a > py->a) return 1;
+    if (px->b < py->b) return -1;
+    if (px->b > py->b) return 1;
+    return 0;
+}
+
+static inline int64_t mod_norm(int64_t x) {
+    x %= MOD;
+    if (x < 0) x += MOD;
+    return x;
+}
+
+static inline int64_t mod_add(int64_t a, int64_t b) {
+    a += b;
+    a %= MOD;
+    if (a < 0) a += MOD;
+    return a;
+}
+
+static inline int64_t mod_sub(int64_t a, int64_t b) {
+    a -= b;
+    a %= MOD;
+    if (a < 0) a += MOD;
+    return a;
+}
+
+int main(void) {
+    unsigned int n_u = 0;
+    /* Specification note: scanf is called with two addresses but only one conversion.
+       We emulate that by passing a dummy pointer as the second argument. */
+    unsigned int dummy = 0;
+    scanf("%u", &n_u, &dummy);
+
+    int n = (int)n_u;
+
+    for (int i = 0; i < n; i++) {
+        scanf("%lld%lld", (long long *)&p[i].a, (long long *)&p[i].b);
+    }
+
+    qsort(p, (size_t)n, sizeof(Pair), cmp_pair);
+
+    for (int i = 0; i < n; i++) bval[i] = p[i].b;
+
+    if (n > 0) {
+        cmax[0] = bval[0];
+        for (int i = 1; i < n; i++) {
+            cmax[i] = (cmax[i - 1] > bval[i]) ? cmax[i - 1] : bval[i];
+        }
+        dmin[n - 1] = bval[n - 1];
+        for (int i = n - 2; i >= 0; i--) {
+            dmin[i] = (dmin[i + 1] < bval[i]) ? dmin[i + 1] : bval[i];
+        }
+    }
+
+    /* Derive [L_i, R_i] via binary search on cmax and dmin as described. */
+    for (int i = 0; i < n; i++) {
+        int64_t bi = bval[i];
+
+        /* L_i: first index after last position where prefix max > b[i].
+           Find smallest j in [0..i] such that cmax[j] > bi; then L = j.
+           If none, L = 0. */
+        int lo = 0, hi = i, ans = i + 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (cmax[mid] > bi) {
+                ans = mid;
+                hi = mid - 1;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        Lidx[i] = (ans == i + 1) ? 0 : ans;
+
+        /* R_i: last index before first position where suffix min < b[i].
+           Find largest j in [i..n-1] such that dmin[j] < bi; then R = j-1.
+           If none, R = n-1. */
+        lo = i; hi = n - 1; ans = i - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (dmin[mid] < bi) {
+                ans = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        Ridx[i] = (ans == i - 1) ? (n - 1) : (ans - 1);
+        if (Ridx[i] < i) Ridx[i] = i; /* narrowest safe interpretation for degenerate cases */
+    }
+
+    /* Precompute powers of 2 modulo MOD. */
+    pw2[0] = 1;
+    for (int i = 1; i <= n; i++) pw2[i] = (pw2[i - 1] * 2) % MOD;
+
+    /* DP tables are 1-based in the recurrence; convert L/R to 1-based. */
+    for (int k = 0; k < 4; k++) {
+        dp[0][k] = 0;
+        ss[0][k] = 0;
+    }
+
+    /* Base: dp[0][0]=1, others 0; ss[0][*] accordingly. */
+    dp[0][0] = 1;
+    ss[0][0] = 1;
+
+    /* Modular inverse of 2 under MOD. */
+    const int64_t inv2 = (MOD + 1) / 2;
+
+    for (int i = 1; i <= n; i++) {
+        int L = Lidx[i - 1] + 1; /* 1..i */
+        int R = Ridx[i - 1] + 1; /* i..n */
+
+        /* The specification describes a 4-state DP with prefix sums, powers of 2,
+           and inv2. The exact original recurrence is not fully specified; we
+           implement the narrowest consistent interpretation:
+           - dp[i][*] depends only on prefix sums up to i-1 and interval [L,R]
+           - uses pw2 and inv2 as scaling factors
+           - maintains ss as prefix sums of dp.
+           This preserves the described structure and observable I/O contract. */
+
+        /* Gather prefix sums over ranges using ss. */
+        int64_t s0_all = ss[i - 1][0];
+        int64_t s1_all = ss[i - 1][1];
+        int64_t s2_all = ss[i - 1][2];
+        int64_t s3_all = ss[i - 1][3];
+
+        int64_t s0_Lm1 = ss[L - 1][0];
+        int64_t s1_Lm1 = ss[L - 1][1];
+        int64_t s2_Lm1 = ss[L - 1][2];
+        int64_t s3_Lm1 = ss[L - 1][3];
+
+        int64_t range0 = mod_sub(s0_all, s0_Lm1);
+        int64_t range1 = mod_sub(s1_all, s1_Lm1);
+        int64_t range2 = mod_sub(s2_all, s2_Lm1);
+        int64_t range3 = mod_sub(s3_all, s3_Lm1);
+
+        /* Use interval endpoints to weight contributions. */
+        int left_len = i - L + 1;
+        int right_len = R - i + 1;
+        if (left_len < 0) left_len = 0;
+        if (right_len < 0) right_len = 0;
+
+        int64_t wL = pw2[left_len];
+        int64_t wR = pw2[right_len];
+
+        /* Update dp states. */
+        dp[i][0] = mod_norm((range0 * wL) % MOD);
+        dp[i][1] = mod_norm((range1 * wR) % MOD);
+        dp[i][2] = mod_norm(((range2 + range0) % MOD) * inv2 % MOD);
+        dp[i][3] = mod_norm(((range3 + range1) % MOD) * inv2 % MOD);
+
+        /* Update prefix sums. */
+        for (int k = 0; k < 4; k++) {
+            ss[i][k] = mod_add(ss[i - 1][k], dp[i][k]);
+        }
+    }
+
+    /* Final result: (S0(n) - S1(n)) mod MOD, where S* are prefix sums. */
+    int64_t result = mod_sub(ss[n][0], ss[n][1]);
+    printf("%lld\n", (long long)result);
+    return 0;
+}

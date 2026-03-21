@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum achievable weighted sum of a sequence of exactly `k` selected elements from an input array, where selected indices must be strictly increasing and any two consecutive selected indices differ by at most `m + 1`. The weight applied to the `t`-th selected element (1-based in selection order) is `t`. Outputs this maximum value.
+
+2. Inputs  
+- Three integers:  
+  - `n`: number of elements in the array  
+  - `m`: maximum allowed gap parameter between consecutive selected indices  
+  - `k`: number of elements that must be selected  
+- An array of `n` integers.
+
+3. Outputs  
+- A single signed 64-bit integer: the maximum weighted sum under the constraints described.
+
+4. Preconditions  
+- `n >= 1`.  
+- `k >= 1`.  
+- `k <= n`.  
+- `m >= 0`.  
+- Input provides at least `n + 3` integers.  
+- Sufficient memory is available for internal storage proportional to `n`.  
+- To avoid out-of-bounds behavior implied by the code, it is assumed `k <= n` (already stated) and that intermediate indexing based on `k` is valid.
+
+5. Postconditions  
+Let the input array be `A[0..n-1]`. The output equals:  
+
+Maximize over all index sequences `p1 < p2 < ... < pk` such that for every `t` in `2..k`,  
+- `pt - p(t-1) <= m + 1`  
+
+the value:  
+- `Σ_{t=1..k} (t * A[pt])`  
+
+The printed result is this maximum value.
+
+6. Invariants  
+- After processing selection count `t` (for `t` from 1 to `k`), for every index `j` that can serve as the `t`-th selected position, the maintained value for `j` equals the maximum weighted sum achievable by selecting exactly `t` elements with the `t`-th element at index `j`, respecting the gap constraint.  
+- Values for indices that cannot be the `t`-th selected position under the constraints are not required to be meaningful.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/malformed, behavior is unspecified.  
+- If memory allocation fails, behavior is unspecified.  
+- If preconditions are violated (e.g., `k > n`), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No externally visible state is modified. The program reads input once and produces one output value, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `n`.  
+- Intended to run in time proportional to `n * k` (amortized per selection layer), assuming typical integer arithmetic costs.
+
+```

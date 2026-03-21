@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int main(void) {
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2) {
+        return 0; /* No explicit error handling per spec */
+    }
+
+    int *item = (int *)malloc((size_t)n * sizeof(int));
+    int *elem = (int *)malloc((size_t)m * sizeof(int));
+    if (!item || !elem) {
+        /* Spec does not define behavior on allocation failure; exit quietly. */
+        free(item);
+        free(elem);
+        return 0;
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &item[i]) != 1) {
+            free(item);
+            free(elem);
+            return 0;
+        }
+    }
+    for (int i = 0; i < m; i++) {
+        if (scanf("%d", &elem[i]) != 1) {
+            free(item);
+            free(elem);
+            return 0;
+        }
+    }
+
+    /* DP with O(m*n) time and O(m*n) memory as specified.
+       dp[j][i] = minimum cost to assign first j items using elements up to i,
+       with j-th item assigned exactly to element i (1-based in spec, 0-based here).
+       Transition: dp[j][i] = min_{k < i} dp[j-1][k] + item[j-1]*elem[i]
+       We compute via running prefix minima to keep O(m*n).
+    */
+    const int INF = INT_MAX / 4; /* large sentinel-like value */
+    int rows = n + 1;
+    int cols = m;
+
+    int *dp = (int *)malloc((size_t)rows * (size_t)cols * sizeof(int));
+    if (!dp) {
+        free(item);
+        free(elem);
+        return 0;
+    }
+
+    /* Initialize all to INF */
+    for (int j = 0; j <= n; j++) {
+        for (int i = 0; i < m; i++) {
+            dp[j * cols + i] = INF;
+        }
+    }
+
+    /* Base: assigning 1st item to element i */
+    if (n >= 1) {
+        for (int i = 0; i < m; i++) {
+            /* Overflow behavior is unspecified by spec; use int arithmetic. */
+            dp[1 * cols + i] = item[0] * elem[i];
+        }
+    }
+
+    for (int j = 2; j <= n; j++) {
+        int best_prev = INF;
+        for (int i = 0; i < m; i++) {
+            /* Update best_prev with dp[j-1][i-1] before using i */
+            if (i > 0) {
+                int cand = dp[(j - 1) * cols + (i - 1)];
+                if (cand < best_prev) best_prev = cand;
+            }
+            if (best_prev != INF) {
+                dp[j * cols + i] = best_prev + item[j - 1] * elem[i];
+            } else {
+                dp[j * cols + i] = INF;
+            }
+        }
+    }
+
+    int ans = INF;
+    if (n == 0) {
+        ans = 0;
+    } else if (n >= 1) {
+        for (int i = 0; i < m; i++) {
+            int v = dp[n * cols + i];
+            if (v < ans) ans = v;
+        }
+    }
+
+    /* If m < n, dp[n][*] remains INF, producing sentinel-like output. */
+    printf("%d", ans);
+
+    free(dp);
+    free(item);
+    free(elem);
+    return 0;
+}

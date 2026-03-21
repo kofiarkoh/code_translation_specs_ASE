@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <math.h>
+
+int main(void) {
+    int q;
+
+    while (1) {
+        if (scanf("%d", &q) != 1) {
+            /* End-of-input or input failure: terminate processing */
+            break;
+        }
+        if (q == -1) {
+            /* Sentinel: terminate without output */
+            break;
+        }
+
+        /* Computation is specified for positive q; behavior for q <= 0 is undefined. */
+        const double eps = 1e-5;
+        double p = (double)q / 2.0;
+        double x;
+
+        for (;;) {
+            /* Newton–Raphson step for solving x^3 = q */
+            x = p - ((p * p * p) - (double)q) / (3.0 * p * p);
+
+            /* Stop when |x^3 - q| < eps * q */
+            if (fabs((x * x * x) - (double)q) < eps * (double)q) {
+                break;
+            }
+
+            p = x;
+        }
+
+        printf("%.6f\n", x);
+    }
+
+    return 0;
+}

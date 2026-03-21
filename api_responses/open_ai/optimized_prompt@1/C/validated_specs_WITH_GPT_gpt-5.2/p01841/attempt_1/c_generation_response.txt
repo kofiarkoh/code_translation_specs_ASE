@@ -1,0 +1,118 @@
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+
+/*
+  Tree representation (inferred minimally from spec):
+  - Each subtree is a contiguous slice of the input string.
+  - Empty subtree is represented by a single '.' character.
+  - Non-empty node is represented as: '(' <left> <int> <right> ')'
+    with no whitespace inside the token (inputs are whitespace-delimited).
+  This matches: "a left subtree, an integer node value, and a right subtree,
+  with explicit markers for empty subtrees", and "properly balanced and
+  correctly nested delimiters".
+*/
+
+#define INBUF_CAP  100000
+#define OUTBUF_CAP 200000
+
+static char in1[INBUF_CAP];
+static char in2[INBUF_CAP];
+static char out[OUTBUF_CAP];
+static size_t out_len = 0;
+
+static void out_ch(char c) {
+    /* Undefined behavior if out buffer overflows, per spec. */
+    out[out_len++] = c;
+}
+
+static void out_str(const char *s) {
+    while (*s) out_ch(*s++);
+}
+
+static void out_int(int v) {
+    char tmp[64];
+    /* Node values are within platform int range per preconditions. */
+    snprintf(tmp, sizeof(tmp), "%d", v);
+    out_str(tmp);
+}
+
+static size_t parse_subtree_end(const char *s, size_t i) {
+    /* Returns index one past the end of the subtree starting at s[i]. */
+    if (s[i] == '.') {
+        return i + 1;
+    }
+    /* Non-empty: '(' left int right ')' */
+    if (s[i] != '(') {
+        /* Malformed input => undefined behavior; return something. */
+        return i + 1;
+    }
+    i++; /* skip '(' */
+    i = parse_subtree_end(s, i); /* left */
+    /* parse integer */
+    if (s[i] == '-' || s[i] == '+') i++;
+    while (isdigit((unsigned char)s[i])) i++;
+    i = parse_subtree_end(s, i); /* right */
+    if (s[i] == ')') i++;
+    return i;
+}
+
+static int parse_int_at(const char *s, size_t *pi) {
+    /* Parses decimal int at s[*pi], advances *pi to first char after int. */
+    char *endp = NULL;
+    long v = strtol(s + *pi, &endp, 10);
+    *pi = (size_t)(endp - s);
+    return (int)v; /* within range per preconditions */
+}
+
+static void sum_subtrees(const char *a, size_t ia, const char *b, size_t ib) {
+    /*
+      Emits the summed subtree for the subtrees starting at a[ia] and b[ib].
+      If either is empty '.', emits '.' and does not descend.
+    */
+    if (a[ia] == '.' || b[ib] == '.') {
+        out_ch('.');
+        return;
+    }
+
+    /* Both non-empty nodes. Expect '(' ... ')' structure. */
+    out_ch('(');
+
+    /* Left */
+    size_t a_pos = ia + 1; /* after '(' */
+    size_t b_pos = ib + 1;
+    sum_subtrees(a, a_pos, b, b_pos);
+
+    /* Advance positions to after left subtree */
+    a_pos = parse_subtree_end(a, a_pos);
+    b_pos = parse_subtree_end(b, b_pos);
+
+    /* Value */
+    int va = parse_int_at(a, &a_pos);
+    int vb = parse_int_at(b, &b_pos);
+    out_int(va + vb);
+
+    /* Right */
+    sum_subtrees(a, a_pos, b, b_pos);
+
+    /* Close */
+    out_ch(')');
+}
+
+int main(void) {
+    /* Exactly two whitespace-delimited strings. */
+    if (scanf("%99999s %99999s", in1, in2) != 2) {
+        /* Undefined behavior per spec; do nothing. */
+        return 0;
+    }
+
+    out_len = 0;
+    sum_subtrees(in1, 0, in2, 0);
+    out[out_len] = '\0';
+
+    puts(out);
+    return 0;
+}
+```

@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes the maximum total value collectable by two agents traversing a rectangular grid from the top-left cell to the bottom-right cell in the same number of steps, where each step moves either one cell right or one cell down. The total includes the values of all visited cells, counting a cell only once if both agents occupy it at the same time.
+
+2. Inputs  
+- Two integers specifying the grid height and width.  
+- A height-by-width matrix of integers representing the value in each grid cell.
+
+3. Outputs  
+- A single integer: the maximum achievable total value under the traversal rules.
+
+4. Preconditions  
+- Grid height and width are positive and do not exceed the supported maximum size.  
+- The input provides exactly height × width integer cell values.  
+- The intended problem domain assumes the optimal total fits within the range of a signed integer.  
+- Assumption (required due to implementation): all cell values are non-negative; otherwise, the computed result may be incorrect because unreachable/unused states are indistinguishable from valid zero-valued states.
+
+5. Postconditions  
+- The output equals the maximum possible sum of collected cell values over two valid paths from the top-left to the bottom-right, where:  
+  - Each agent starts at the top-left and ends at the bottom-right.  
+  - Each agent makes exactly (height − 1) down moves and (width − 1) right moves in any order.  
+  - At each time step, both agents move simultaneously (one move each).  
+  - If both agents are in the same cell at the same time, that cell’s value contributes only once for that time step.
+
+6. Invariants  
+- At any time step, each agent’s position remains within the grid.  
+- Each agent’s path length from start to its current position equals the number of elapsed steps.  
+- The accumulated total for any considered pair of partial paths equals the sum of values of visited cells, with no double-counting when both agents coincide at the same time.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range dimensions, or arithmetic overflow. Behavior is undefined or may produce incorrect results in these cases.  
+- If negative cell values are present, the result is not guaranteed to be correct (see Preconditions).
+
+8. State Transitions (if applicable)  
+- The computation progresses in discrete synchronized steps from 0 up to (height + width − 2), updating the best-known achievable totals for pairs of agent positions reachable in that many steps.  
+- Final state corresponds to both agents at the bottom-right after all steps; the reported value is the best total for that final synchronized state.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grid dimensions up to a fixed maximum.  
+- Uses memory proportional to the cube of the maximum dimension (bounded by the fixed maximum).  
+- Runtime grows polynomially with grid size (bounded by the fixed maximum).

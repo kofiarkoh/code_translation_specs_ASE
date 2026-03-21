@@ -1,0 +1,26 @@
+#include <stdio.h>
+
+int main(void) {
+    int a, b;
+
+    /* If input is missing/invalid, behavior is unspecified by the spec.
+       We choose to do nothing (no output) in that case. */
+    if (scanf("%d %d", &a, &b) != 2) {
+        return 0;
+    }
+
+    /* Spec precondition: b != 0. If violated, behavior is undefined.
+       We do not add explicit error handling. */
+
+    /* Search i in [1, b+1], considering candidates a*i in increasing i order. */
+    for (int i = 1; i <= b + 1; i++) {
+        int candidate = a * i; /* Spec precondition: no overflow here. */
+        if (candidate % b == 0) { /* Spec precondition: b != 0. */
+            printf("%d", candidate);
+            return 0;
+        }
+    }
+
+    /* Otherwise, produce no output. */
+    return 0;
+}

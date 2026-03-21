@@ -1,0 +1,52 @@
+#include <stdio.h>
+
+static int holds_predicate(long long i, long long target) {
+    /* Predicate P(i):
+       - i % 7 not in {0,1}
+       - (9*i) % 11 == target
+       Note: Uses C's signed % semantics (remainder has sign of dividend). */
+    long long r7 = i % 7;
+    if (r7 == 0 || r7 == 1) return 0;
+
+    long long v = (9LL * i) % 11;
+    return (v == target) ? 1 : 0;
+}
+
+static long long count_inclusive_range(long long lo, long long hi, long long target) {
+    /* Counts i in [lo, hi] satisfying P(i). If lo > hi, counts 0. */
+    long long c = 0;
+    if (lo > hi) return 0;
+    for (long long i = lo; i <= hi; i++) {
+        c += holds_predicate(i, target);
+    }
+    return c;
+}
+
+int main(void) {
+    long long base, target;
+    if (scanf("%lld %lld", &base, &target) != 2) {
+        /* Undefined behavior per spec if input is missing/invalid; return quietly. */
+        return 0;
+    }
+
+    /* Undefined behavior if 7*base overflows long long; we do not guard it. */
+    long long N = 7LL * base;
+
+    /* Count A over 1..N using blocks of 693 and remainder 1..(N%693). */
+    const long long PERIOD = 693LL;
+
+    long long full_blocks = N / PERIOD;
+    long long rem = N % PERIOD;
+
+    long long per_block = count_inclusive_range(1, PERIOD, target);
+    long long A = full_blocks * per_block + count_inclusive_range(1, rem, target);
+
+    /* Subtract window 1..7 */
+    A -= count_inclusive_range(1, 7, target);
+
+    /* Subtract window (N-6)..N */
+    A -= count_inclusive_range(N - 6, N, target);
+
+    printf("%lld\n", A);
+    return 0;
+}

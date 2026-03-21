@@ -1,0 +1,34 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int n;
+    while (1) {
+        if (scanf("%d", &n) != 1) {
+            /* If the dataset length cannot be read, stop with no further output. */
+            return 0;
+        }
+        if (n == 0) {
+            /* Terminating dataset: stop with no output for this dataset. */
+            return 0;
+        }
+
+        /* Per spec, n is positive and <= 100 for datasets processed. */
+        int a[100];
+        for (int i = 0; i < n; i++) {
+            /* If input is malformed here, behavior is unspecified by spec. */
+            (void)scanf("%d", &a[i]);
+        }
+
+        /* Count inversions (adjacent swaps needed for nondecreasing order). */
+        int swaps = 0; /* Spec states result fits in signed int. */
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (a[i] > a[j]) swaps++;
+            }
+        }
+
+        printf("%d\n", swaps);
+    }
+}
+```

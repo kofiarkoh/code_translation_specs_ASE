@@ -1,0 +1,43 @@
+#include <stdio.h>
+
+int main(void) {
+    int n;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) {
+            break; /* termination marker; no output */
+        }
+
+        /* Fixed memory proportional to seconds in a day */
+        static int counts[24 * 3600];
+        for (int i = 0; i < 24 * 3600; i++) counts[i] = 0;
+
+        for (int i = 0; i < n; i++) {
+            int sh, sm, ss;
+            int eh, em, es;
+
+            /* Input is assumed well-formed: H:M:S H:M:S with literal ':' separators */
+            if (scanf("%d:%d:%d %d:%d:%d", &sh, &sm, &ss, &eh, &em, &es) != 6) {
+                /* Unspecified behavior per spec on malformed input; just stop. */
+                return 0;
+            }
+
+            int start = sh * 3600 + sm * 60 + ss;
+            int end   = eh * 3600 + em * 60 + es;
+
+            /* Counting rule: increment every whole second t with start <= t < end */
+            for (int t = start; t < end; t++) {
+                counts[t]++;
+            }
+        }
+
+        int max_overlap = 0;
+        for (int t = 0; t < 24 * 3600; t++) {
+            if (counts[t] > max_overlap) max_overlap = counts[t];
+        }
+
+        printf("%d\n", max_overlap);
+    }
+
+    return 0;
+}

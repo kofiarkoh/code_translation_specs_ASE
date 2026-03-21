@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each provided rectangular grid, computes the minimum number of “terrain changes” required to reach any boundary cell from a designated start cell, where moving to an orthogonally adjacent cell costs 0 if the destination cell has the same terrain as the current cell and costs 1 if it differs. The reported value is half of that minimum cost using integer division.
+
+2. Inputs  
+- Repeated test cases.  
+- Each test case provides:  
+  - Two integers: grid width and grid height.  
+  - A grid of height rows and width columns of single-character cell values, containing exactly one designated start marker.  
+- Termination occurs when both width and height are zero.
+
+3. Outputs  
+- For each test case, outputs a single integer: the minimum over all boundary cells of (minimum terrain-change cost from the start to that boundary cell) divided by 2 using integer division.
+
+4. Preconditions  
+- Width and height are within the supported fixed maximum (at most 101 each).  
+- The grid contains exactly one start marker.  
+- All grid characters are valid cell values; the start marker is treated as a normal cell of a specific terrain for movement-cost purposes (see assumptions in Postconditions).  
+- The input provides enough characters to fill the grid for each test case.
+
+5. Postconditions  
+- For every cell in the grid, a minimum terrain-change cost from the start to that cell is well-defined and finite (the grid is fully connected under orthogonal moves).  
+- The produced output equals:  
+  - Let cost(p) be the minimum number of times a move crosses between different cell characters along any orthogonal path from the start to boundary cell p, where the start cell’s marker is treated as a normal cell with the same terrain as the “empty” terrain character.  
+  - Output is min over all boundary cells p of ⌊cost(p) / 2⌋.
+
+6. Invariants  
+- Movement is only between orthogonally adjacent in-bounds cells.  
+- The computed cost for any cell never increases once a lower cost has been established.  
+- All costs are non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., missing start marker, dimensions exceeding limits, malformed input), behavior is undefined (may produce incorrect output or access invalid memory).
+
+8. State Transitions (if applicable)  
+- The program processes independent test cases until the terminating dimensions are read.  
+- For each test case, internal state is reinitialized and does not carry over to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 101×101 due to fixed-size storage.  
+- Uses fixed-size work queues sized for up to 200,000 entries; exceeding this through unexpected behavior would be unsafe.
+
+```

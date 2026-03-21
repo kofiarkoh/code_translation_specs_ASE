@@ -1,0 +1,49 @@
+1. Functional Description  
+Maintains a conceptual integer array of length `num` (0-based indexing) supporting two operations over inclusive index ranges:  
+- **Range assignment**: set every element in a specified range to a given integer value.  
+- **Range sum query**: return the sum of elements in a specified range.  
+All sum query results are emitted in the order the queries are received.
+
+2. Inputs  
+- Two integers:  
+  - `num`: logical length of the array.  
+  - `queries`: number of subsequent operations.  
+- Then `queries` operations, each providing:  
+  - `type`: operation kind (update or sum query).  
+  - `start`, `end`: inclusive range endpoints.  
+  - If `type` denotes an update, an additional integer `x` specifying the assigned value.
+
+3. Outputs  
+- For each sum query operation, outputs one signed 64-bit integer equal to the sum of the array elements over the requested inclusive range, printed in query order.
+
+4. Preconditions  
+- `0 <= num <= 100000`.  
+- `0 <= queries <= 100000`.  
+- For every operation: `0 <= start <= end < num`.  
+- The number of sum queries does not exceed 100000.  
+- Input is well-formed and provides all required integers.  
+- Assumption (required for correctness): the update value `x` is such that internal “uninitialized” sentinel state is never confused with a legitimate assigned segment-sum value (i.e., no assigned segment-sum equals the sentinel constant used internally).
+
+5. Postconditions  
+- After processing all operations, the program has produced exactly one output line per sum query.  
+- Each output line equals the mathematical sum of the current array values over the specified range at the time of that query, reflecting all prior updates.  
+- Range assignment updates fully overwrite previous values in the updated range.
+
+6. Invariants  
+- The conceptual array always has length `num` and is indexed from 0.  
+- At any time, each position in the array has a single well-defined integer value determined by the most recent update affecting that position; positions never updated are treated as having value 0.  
+- Sum query results are consistent with these per-position values.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (out-of-range indices, too many queries/results, malformed input, or values conflicting with the internal sentinel assumption), behavior is unspecified (may produce incorrect results or exhibit runtime faults).  
+- Unrecognized operation types are ignored (no state change and no output for that operation).
+
+8. State Transitions (if applicable)  
+- **Initial state**: array of length `num` with all elements equal to 0.  
+- **On update operation (start..end, value x)**: for all indices `i` in `[start, end]`, set `A[i] := x`.  
+- **On sum query operation (start..end)**: compute `S := sum_{i=start..end} A[i]` and append `S` to the output sequence; array state is unchanged.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 100000 elements and 100000 operations within fixed, statically allocated memory bounds.  
+- Uses 64-bit signed arithmetic for stored sums and reported results; overflow behavior is not guarded against if sums exceed the representable range.

@@ -1,0 +1,22 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (misinterpreted combinatorial factors), plus a missing constraint on the summation bounds for the inclusion–exclusion loop.
+
+B. What the current specification may be missing or misstating  
+- It does not state the *actual* mathematical form of the “internal configurations” factors. The generated code interpreted these as `fact[i] * fact[n-i]`, but the source uses powers of 2: `2^{i(i-1)/2}` and `2^{(n-i)(n-i-1)/2}` (counts of undirected graphs inside each group), not factorials.  
+- It does not precisely define the “cross-group inclusion–exclusion” term. The generated code used something like `(-1)^j * C(b,j) * (2^{a(b-j)} - 1)`, but the source uses a nested exponentiation: `((2^{(n-i-j)} - 1)^i) * C(n-i, j)` with alternating signs. That is a fundamentally different counting model (per-element choices raised to `i`, not a single exponent `a(b-j)`).  
+- It is vague about the range of `j`. The source sums `j = 0 .. (n-i-1)` (i.e., `j < n-i`), whereas the generated code sums `j = 0 .. (n-i)` inclusive. Even if the last term sometimes becomes 0, the spec doesn’t constrain it, and the intended inclusion–exclusion domain is underspecified.
+
+C. What general behavior should be clarified in the specification  
+- Explicitly define each multiplicative factor in the per-`i` contribution, including:
+  - the exact “internal configuration” counts as powers of 2 with exponents `k(k-1)/2` for each group size `k`;
+  - the exact inclusion–exclusion formula for cross-group configurations, including the nested power structure and what quantity is being raised to `i`;
+  - the exact bounds of the `j` summation (`0 ≤ j < n-i`), and the sign rule `(-1)^j`.
+- Clarify that the computation is not about permutations/factorials of group elements, but about counts of binary relations/edges (hence powers of 2).
+
+D. Why this clarification is supported by the source program  
+- The source multiplies by `pom(2, i*(i-1)/2, m)` and `pom(2, (n-i)*(n-i-1)/2, m)`, which are graph/edge-subset counts, not factorials.  
+- The source’s inclusion–exclusion term is:
+  - `aaa = pom( pom(2, (n-i-j), m) - 1, i, m ) * choose(n-i, j, m)`
+  - accumulated with alternating sign based on `j%2`
+  This shows the “cross” term is `(2^{(n-i-j)} - 1)^i` times a binomial coefficient, not `2^{i*(n-i-j)} - 1`.  
+- The loop `rep(j,0,n-i)` in the source is strictly `< n-i`, establishing the intended `j` range.

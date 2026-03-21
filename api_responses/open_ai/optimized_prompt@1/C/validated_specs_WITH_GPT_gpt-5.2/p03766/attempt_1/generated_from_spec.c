@@ -1,0 +1,83 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXN 1000000
+#define MOD 1000000007LL
+
+/* Fenwick Tree (BIT) for prefix sums modulo MOD.
+   Supports:
+     - add at index i
+     - sum(1..i)
+   Indices are 1-based. */
+static int64_t bit[MAXN + 5];
+
+static void bit_add(int n, int idx, int64_t val) {
+    val %= MOD;
+    if (val < 0) val += MOD;
+    for (; idx <= n; idx += idx & -idx) {
+        bit[idx] += val;
+        bit[idx] %= MOD;
+    }
+}
+
+static int64_t bit_sum(int idx) {
+    int64_t res = 0;
+    for (; idx > 0; idx -= idx & -idx) {
+        res += bit[idx];
+        res %= MOD;
+    }
+    return res;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        /* Unspecified behavior per spec if input cannot be read. */
+        return 0;
+    }
+
+    if (n == 1) {
+        printf("1");
+        return 0;
+    }
+
+    /* For n >= 2:
+       T(1) is not needed for output when n>=2, but it is needed for sums in recurrence.
+       We maintain BIT over T(1..i) as we build. */
+    int N = n; /* BIT size; spec bounds ensure N <= 1,000,000 */
+
+    /* Initialize T(1)=1 into BIT. */
+    bit_add(N, 1, 1);
+
+    /* T(2) = n^2 mod MOD */
+    int64_t nn = (int64_t)n % MOD;
+    int64_t T_prev = (nn * nn) % MOD; /* T(2) */
+    bit_add(N, 2, T_prev);
+
+    if (n == 2) {
+        printf("%lld", (long long)T_prev);
+        return 0;
+    }
+
+    /* Build T(3..n) */
+    for (int i = 3; i <= n; i++) {
+        /* sum_{j=1}^{i-3} T(j) */
+        int r = i - 3;
+        int64_t sum_part = (r >= 1) ? bit_sum(r) : 0;
+
+        /* (i-3)(n-1) + (n-i+2)n */
+        int64_t term1 = ((int64_t)(i - 3) % MOD) * ((int64_t)(n - 1) % MOD) % MOD;
+        int64_t term2 = ((int64_t)(n - i + 2) % MOD) * ((int64_t)n % MOD) % MOD;
+
+        int64_t Ti = T_prev;
+        Ti += sum_part; Ti %= MOD;
+        Ti += term1;    Ti %= MOD;
+        Ti += term2;    Ti %= MOD;
+
+        bit_add(N, i, Ti);
+        T_prev = Ti;
+    }
+
+    printf("%lld", (long long)(T_prev % MOD));
+    return 0;
+}

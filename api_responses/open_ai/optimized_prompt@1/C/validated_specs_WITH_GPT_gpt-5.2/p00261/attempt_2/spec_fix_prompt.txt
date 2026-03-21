@@ -1,0 +1,161 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+#define A 0
+#define X 1
+#define Y 2
+#define Z 3
+#define W 4
+#define B 5
+#define NA 6
+
+int map[6][2] = {
+    {X, Y},
+    {NA, Z},
+    {X, NA},
+    {W, B},
+    {B, Y},
+    {Y, X}
+};
+
+int main(void)
+{
+    char path[110];
+    int i;
+    int city;
+    
+    while (1){
+        scanf("%s", path);
+        if (path[0] == '#'){
+            break;
+        }
+        
+        city = A;
+        i = 0;
+        while (path[i] != '\0'){
+            if (map[city][path[i] - '0'] == NA){
+                break;
+            }
+            city = map[city][path[i] - '0'];
+            i++;
+        }
+        if (city == B){
+            printf("Yes\n");
+        }
+        else {
+            printf("No\n");
+        }
+    }
+    return (0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes a sequence of input tokens representing paths as strings of binary digits. For each path token (until a termination token is encountered), it simulates a deterministic state transition system starting from a fixed initial state. It outputs whether the final reached state after consuming the path (or after stopping early due to an invalid transition) is an accepting state.
+
+2. Inputs  
+- A sequence of whitespace-delimited text tokens.  
+- Each non-terminating token is intended to be a finite string of characters representing binary choices (assumed to be only `'0'` and `'1'`).  
+- A special termination token whose first character is `'#'`.
+
+3. Outputs  
+- For each non-terminating input token, outputs exactly one line containing either an affirmative or negative response indicating acceptance of the path.
+
+4. Preconditions  
+- Each processed (non-terminating) token length fits within the program’s fixed internal buffer (at most 109 characters, excluding the terminating null).  
+- Each character in a processed path token is either `'0'` or `'1'`.  
+- Input is well-formed such that tokens can be read until the termination token appears.  
+
+5. Postconditions  
+For each non-terminating path token:  
+- The program outputs an affirmative response if and only if the state reached after applying transitions for each digit in the token (starting from the initial state), stopping early if a transition is undefined, is the accepting state.  
+- Otherwise, it outputs a negative response.  
+After the termination token is encountered, the program produces no further output and terminates.
+
+6. Invariants  
+- Each path evaluation starts from the same initial state.  
+- State evolution is deterministic: for any current state and next input digit, there is at most one next state; if no next state exists, evaluation stops for that token.  
+- The accepting condition depends solely on the final state at the end of evaluation (including early termination).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If a path token contains characters other than `'0'` or `'1'`, behavior is undefined (may access invalid transition data).  
+- If a token exceeds the internal buffer capacity, behavior is undefined (may overwrite memory).  
+- If input ends unexpectedly without a termination token, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+A finite-state machine with one initial state and one accepting state. Transitions are defined for input symbols `0` and `1` as follows (states are abstractly named S0–S5; S0 is initial, S5 is accepting):  
+- From S0: on `0` → S1, on `1` → S2  
+- From S1: on `0` → undefined, on `1` → S3  
+- From S2: on `0` → S1, on `1` → undefined  
+- From S3: on `0` → S4, on `1` → S5  
+- From S4: on `0` → S5, on `1` → S2  
+- From S5: on `0` → S2, on `1` → S1  
+If an undefined transition is encountered, processing of the current token stops immediately and the current state is used for acceptance.
+
+9. Non-functional Constraints (if inferable)  
+- Time per token is linear in the token length up to the first undefined transition.  
+- Memory usage is constant aside from the fixed-size buffer for the current token.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong output formatting / wrong ordering of output characters (case-sensitivity).
+
+B. What the current specification may be missing or misstating  
+The specification says the program outputs an “affirmative or negative response,” but it does not constrain the *exact* output lexeme/capitalization. The generated code prints `YES`/`NO`, while the source prints `Yes`/`No`. This indicates the spec is too vague about the required exact output strings.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact output lines, including capitalization and spelling, for acceptance vs rejection (i.e., the precise tokens printed, not just their meaning). Also clarify that output must match exactly (including case) for each processed input token.
+
+D. Why this clarification is supported by the source program  
+The source program uses:
+```c
+if (city == B){
+    printf("Yes\n");
+} else {
+    printf("No\n");
+}
+```
+So the ground-truth behavior is to print exactly `Yes` or `No` (capital Y/N followed by lowercase letters) with a newline. The failing test shows the only discrepancy is `YES/NO` vs `Yes/No`, confirming the mismatch is purely in exact output formatting rather than the transition logic.
+
+```

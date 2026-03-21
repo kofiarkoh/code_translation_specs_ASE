@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, computes how many text positions `P` in the concatenation of the given text fragments are reachable such that the prefix `t[0..P)` can be partitioned into a sequence of the given pattern strings placed consecutively from position 0, with each pattern used **exactly once** (in some order), and each placed pattern matching the text exactly at its placement position.  
+A position `P` contributes **1** if there exists at least one ordering/placement sequence that uses all patterns exactly once and ends exactly at `P`; multiple different orderings that end at the same `P` are not counted multiple times.
+
+2. Inputs  
+- Repeated datasets, each beginning with two integers:  
+  - `n`: number of patterns.  
+  - `m`: number of text fragments to concatenate.  
+- Then `n` pattern strings, each read as a whitespace-delimited token.  
+- Then `m` text-fragment strings, each read as a whitespace-delimited token and concatenated in the given order to form the search text `t`.  
+- Input terminates when a dataset header has `n = 0` and `m = 0`.
+
+3. Outputs  
+- For each non-terminating dataset, outputs a single integer: the number of positions `P` with `0 <= P <= L` (where `L` is the length of the concatenated text) such that there exists a way to place all `n` patterns back-to-back starting at position 0, matching the text exactly, and ending at position `P`.
+
+4. Preconditions / Assumptions (as implied by the program’s fixed storage)  
+- `n` must satisfy `0 <= n <= 12` (the program uses a subset mask table of width 4096 = `2^12`).  
+- Each pattern length must fit in the program’s pattern buffers (up to 20 characters plus terminator).  
+- The total concatenated text length must fit in the program’s text buffer (up to 5000 characters plus terminator).  
+- All strings are read as whitespace-delimited tokens.  
+- For each text fragment token, if its last character has ASCII code less than space (`' '`), that final character is removed before concatenation.
+
+5. Semantics / Matching Rules  
+- Matching is case-sensitive and requires exact character equality.  
+- A valid placement sequence must:  
+  - Start at position 0 of the concatenated text.  
+  - Place patterns contiguously with no gaps and no overlaps.  
+  - Use each pattern at most once, and by the end of the sequence, use all patterns exactly once.  
+  - Only place a pattern at position `P` if the entire pattern matches the text starting at `P` (no partial matches; placements that would run past the end of the text are not considered matches).
+
+6. Reachability State and Forward Propagation  
+- The program maintains boolean reachability states of the form `(P, S)` where:  
+  - `P` is a position in the concatenated text (0..L), and  
+  - `S` is a subset of patterns already used, represented as a bitmask over the `n` patterns.  
+- Initial state: `(0, empty-set)` is reachable.  
+- Propagation is performed by scanning text positions in increasing order `P = 0..L-1`. For each scanned position `P`, and for each subset `S` that is reachable at `P` (with the special case that `S = empty-set` at `P = 0` is treated as reachable), the program attempts to append one unused pattern `k` not in `S`. If pattern `k` matches the text at `P`, then `(P + len(k), S ∪ {k})` becomes reachable.  
+- Reachability is boolean: once a state is marked reachable, additional ways to reach it do not change the stored value.
+
+7. Counting / Output Definition  
+- Let `FULL` be the subset containing all `n` patterns.  
+- The printed result is the count of positions `P` in `0..L` for which `(P, FULL)` is reachable.  
+- Each position contributes at most 1 regardless of how many different pattern orders reach that same position.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If the input violates the fixed limits above (too many patterns, too-long patterns, or too-long concatenated text), behavior is undefined.
+
+```

@@ -1,0 +1,24 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        /* Unspecified behavior per specification if input is missing/invalid. */
+        return 0;
+    }
+
+    int64_t term[100];
+    term[0] = 2;
+    term[1] = 1;
+
+    for (int i = 2; i <= n; ++i) {
+        /* Overflow behavior is unspecified by the specification. */
+        term[i] = term[i - 1] + term[i - 2];
+    }
+
+    printf("%lld\n", (long long)term[n]);
+    return 0;
+}
+```

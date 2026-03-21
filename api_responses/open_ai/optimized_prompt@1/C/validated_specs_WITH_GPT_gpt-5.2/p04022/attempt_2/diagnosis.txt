@@ -1,0 +1,15 @@
+A. Likely mismatch category  
+- **Missing non-functional/implementation constraint** (build/compilation environment requirements), not a logical algorithm mismatch.
+
+B. What the current specification may be missing or misstating  
+- The specification does not constrain the implementation to **avoid floating-point math / math library dependencies**.  
+- It also does not state that the intended behavior relies on an **integer square-root routine** (binary search) rather than `sqrt()` from `<math.h>`.  
+- As a result, code generated from the spec may introduce `sqrt()` (as happened) and fail to compile under strict C99/C11 settings if `<math.h>` is not included (or if linking flags like `-lm` are required in some toolchains).
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the program’s “is remaining factor a perfect square?” check is performed using **pure integer arithmetic** (an integer square root / exact-square test), with **no reliance on floating-point functions**.  
+- More generally, clarify compilation assumptions: required headers and whether the solution must be **self-contained without extra libraries** beyond standard integer/stdio/stdlib facilities.
+
+D. Why this clarification is supported by the source program  
+- The source program defines and uses `llsqr()` which computes an integer square root via **binary search** and then checks `l*l == t` / `l*l == h` to test perfect squares.  
+- The source includes no `<math.h>` and never calls `sqrt()`, indicating the intended implementation avoids floating-point math and associated build/link requirements.

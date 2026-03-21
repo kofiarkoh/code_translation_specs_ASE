@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes the minimum total travel cost between the grid cell at the top-left corner and the grid cell at the bottom-right corner of an \(m \times n\) grid, given a set of special cells. Travel is only possible along a graph induced by these special cells (including the two corners, which are added if missing). The program outputs the minimum cost if a path exists; otherwise it outputs a negative value.
+
+2. Inputs  
+- Integer \(m\): number of grid rows.  
+- Integer \(n\): number of grid columns.  
+- Integer \(k\): number of provided special cells.  
+- \(k\) pairs of integers \((x_i, y_i)\): coordinates of each special cell (grid positions).
+
+3. Outputs  
+- A single integer value representing the minimum total cost to reach the bottom-right corner from the top-left corner using the allowed connections among special cells (including added corners if not provided).  
+- If no such path exists, outputs \(-1\).
+
+4. Preconditions  
+- \(m, n, k\) and all coordinates are non-negative integers representable in the program’s integer ranges.  
+- Coordinates are intended to be within the grid bounds \([1..m] \times [1..n]\).  
+- The number of special cells is small enough to fit within the program’s fixed internal storage limits.  
+- Assumption: the induced graph degree per node does not exceed the program’s fixed per-node adjacency capacity; otherwise behavior is undefined.
+
+5. Postconditions  
+- The output equals the minimum possible sum of edge costs along any path in the induced graph from the start corner to the goal corner, where:  
+  - The start corner is \((1,1)\) and the goal corner is \((m,n)\).  
+  - If either corner is not among the input special cells, it is treated as an additional special cell.  
+- If no path exists in the induced graph between the two corners, the output is \(-1\).
+
+6. Invariants  
+- All edge costs used in path computation are non-negative.  
+- Once a node is finalized during the shortest-path computation, its recorded distance is minimal among all possible paths from the start to that node within the induced graph.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit input validation or recovery is performed. Invalid or out-of-range inputs, exceeding internal storage limits, or exceeding adjacency capacity may lead to incorrect results or undefined behavior.  
+- If the induced graph is disconnected such that the goal is unreachable from the start, the program outputs \(-1\).
+
+8. State Transitions (if applicable)  
+- Builds an internal undirected weighted graph over a set of special cells (including added corners if needed).  
+- Executes a shortest-path computation from the start node, transitioning nodes from “unvisited” to “finalized” exactly once.  
+- Terminates early and outputs the distance as soon as the goal corner is reached (or an equivalent internal representation of it).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal arrays, imposing hard limits on the maximum number of special cells, edges, and priority-queue elements it can handle.  
+- Intended to run efficiently for large \(k\) by using a priority-based shortest-path method and sorting-based graph construction.

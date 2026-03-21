@@ -1,0 +1,306 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 2025
+  Title:Eight Princes
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+#define FACT8 40320
+#define N_OF_PRINCES 8
+
+int N;
+int result[70];
+
+void dump(int f)
+{
+#ifdef DEBUG
+  int i;
+  if(f==0)
+    {
+      for(i=0;i<N;i++)
+	printf("%d|",result[i]);
+      printf("\n");
+    }
+  else if(f==1)
+    {
+      for(i=0;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1:\n");
+    }
+  else if (f==2)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("1:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("0:\n");
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("0:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1+\n");
+    }
+  else if(f==3)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("0:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1;\n");
+    }
+  else if(f==4)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("1:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("0@\n");
+    }
+#endif
+}
+
+unsigned int memo[70][9][3][3];
+
+unsigned int calc_odd_1(int pos,int princes,int sitdown,int zero_sitdown)
+{
+  unsigned int ret;
+
+  if(ret=memo[pos][princes][sitdown][zero_sitdown])
+    return(ret);
+
+  if(princes==0)
+    {
+      dump(0);
+      ret=1;
+    }
+  else if(pos==N-1 && princes>1)
+    ret=0;
+  else if(pos==N-1 && princes==1)
+    if(zero_sitdown==0 && sitdown==0)
+      {
+	dump(1);
+	ret=1;
+      }
+    else
+      ret=0;
+  else
+    {
+      if(sitdown==0)
+	{
+	  result[pos]=1;
+	  ret=calc_odd_1(pos+1,princes-1,1,zero_sitdown);
+	}
+      else
+	ret=0;
+      
+      result[pos]=0;
+      ret+=calc_odd_1(pos+1,princes,0,zero_sitdown);
+    }
+  memo[pos][princes][sitdown][zero_sitdown]=ret;
+  return(ret);
+}
+
+unsigned int calc_odd(int N)
+{
+  unsigned int ret=0;
+  
+  result[0]=1;
+  ret+=calc_odd_1(1,N_OF_PRINCES-1,1,1);
+  result[0]=0;
+  ret+=calc_odd_1(1,N_OF_PRINCES,0,0);
+  return(ret);
+}
+
+unsigned int calc_even_1(int pos,int princes,int sitdown,int zero_sitdown)
+{
+  unsigned int ret;
+
+  //printf("Pos=%d pr=%d\n",pos,princes);
+  if(ret=memo[pos][princes][sitdown][zero_sitdown])
+    return(ret);
+
+  if(princes==0)
+    {
+      dump(0);
+      ret=1;
+    }
+  else if(pos==N/2-1 && princes>1)
+    ret=0;
+  else if(pos==N/2-1 && princes==1)
+    {
+      if(zero_sitdown==0 && sitdown==0)
+	{
+	  dump(2);
+	  ret=2;
+	}
+      else if((zero_sitdown==2||zero_sitdown==0) && (sitdown==1 || sitdown==0))
+	{
+	  dump(3);
+	  ret=1;
+	}
+      else if((zero_sitdown==1||zero_sitdown==0) && (sitdown==2 || sitdown==0))
+	{
+	  dump(4);
+	  ret=1;
+	}
+      else
+	ret=0;
+    }
+  else
+    {
+      ret=0;
+      if(sitdown==0 || sitdown==2)
+	{
+	  result[pos]=1;result[pos+N/2]=0;
+	  ret +=calc_even_1(pos+1,princes-1,1,zero_sitdown);
+	}
+      if(sitdown==0 || sitdown==1)
+	{
+	  result[pos]=0;result[pos+N/2]=1;
+	  ret +=calc_even_1(pos+1,princes-1,2,zero_sitdown);
+	}
+
+      result[pos]=0;result[pos+N/2]=0;
+      ret+=calc_even_1(pos+1,princes,0,zero_sitdown);
+    }
+  memo[pos][princes][sitdown][zero_sitdown]=ret;
+  return(ret);
+}
+
+unsigned int calc_even(int N)
+{
+  unsigned int ret=0;
+  
+  result[0]=1;result[N/2]=0;
+  ret+=calc_even_1(1,N_OF_PRINCES-1,1,1); //zenhan
+  result[0]=0;result[N/2]=1;
+  ret+=calc_even_1(1,N_OF_PRINCES-1,2,2); //kouhan
+  result[0]=  result[N/2]=0;
+  ret+=calc_even_1(1,N_OF_PRINCES  ,0,0); //none
+  return(ret);
+}
+
+
+main()
+{
+  long long ret;
+
+  while(scanf("%d",&N) && N)
+    {
+      memset(memo,0,sizeof(memo));
+      if(N<=16)
+	ret=0;
+      else if(N & 1)
+	ret=(long long)FACT8*calc_odd(N);
+      else
+	ret=(long long)FACT8*calc_even(N);
+      printf("%lld\n",ret);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each provided nonzero integer \(N\), computes the number of distinct ways to seat eight distinct individuals in \(N\) fixed positions arranged on a circle, under the constraint that no two occupied positions are adjacent on the circle (adjacency is cyclic, so position 0 is adjacent to position \(N-1\)). The program counts all valid choices of 8 positions satisfying the constraint and then counts all assignments of the 8 distinct individuals to those positions. One result is printed per input value; processing ends at a terminating zero.
+
+2. Inputs  
+- A sequence of integers \(N\), each denoting the number of seats/positions on the circle.  
+- Input terminates when a value of 0 is encountered.  
+- If input cannot be read as an integer, processing stops (no output for that unreadable item).
+
+3. Outputs  
+- For each nonzero input \(N\), outputs a single nonnegative integer: the number of valid seatings of eight distinct individuals satisfying the non-adjacency constraint on a circle of size \(N\).
+
+4. Preconditions / Assumptions  
+- \(N\) is treated as an integer; the program is intended for \(N \ge 0\).  
+- The implementation uses fixed-size internal tables indexed by position up to \(N-1\); behavior is only defined for values of \(N\) that do not exceed the internal capacity (see Exceptional Behavior).  
+- The computed total is printed as a signed 64-bit integer; if the true value exceeds that range, overflow may occur.
+
+5. Postconditions / Counting Semantics  
+For each processed nonzero \(N\):  
+- If \(N \le 16\), the output is 0 (the program does not count any arrangements in this case).  
+- If \(N > 16\), the output equals:  
+  - \(8!\) multiplied by the number of valid 0/1 occupancy patterns of length \(N\) on a cycle with exactly eight 1s such that no two 1s are adjacent cyclically.  
+- The factor \(8!\) reflects that the eight individuals are distinct and any permutation of them over the chosen occupied seats is counted.
+
+6. Interpretation of “Distinct”  
+- Seat positions are considered labeled/fixed by index; different sets of occupied indices are counted as different even if one is a rotation or reflection of another.  
+- The eight individuals are distinct; swapping two individuals in the same occupied set produces a different seating.
+
+7. Parity Handling (Clarification of Internal Case Split)  
+- The program computes the number of valid occupancy patterns using different internal recurrences depending on whether \(N\) is odd or even.  
+- This parity split is an implementation detail for counting the same cyclic non-adjacency constraint; it does not introduce any additional seating constraint beyond “exactly eight occupied seats” and “no two occupied seats are adjacent on the circle.”
+
+8. State Transitions  
+- Repeats per input value: read \(N\) → if \(N=0\) terminate → reset internal memoization → compute count (0 if \(N \le 16\), otherwise as above) → print result → continue.
+
+9. Exceptional / Undefined Behavior  
+- If \(N\) exceeds the maximum supported by the program’s fixed-size memoization arrays, behavior is undefined (may produce incorrect results or access invalid memory).  
+- If the true count does not fit in signed 64-bit range, the printed value may be incorrect due to overflow.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (the spec models the constraint as simple “no adjacent occupied seats on a cycle,” but the source counts a different constraint for even \(N\)).
+
+B. What the current specification may be missing or misstating  
+- The specification assumes the only restriction is cyclic non-adjacency among the eight occupied seats.  
+- The source program’s even-\(N\) branch (`calc_even`) does not implement the same “cycle adjacency” model as the odd-\(N\) branch. It pairs seats \(i\) and \(i+N/2\) and enforces constraints across these opposite pairs, using a 3-valued state (`sitdown` in {0,1,2}) rather than a simple previous-bit adjacency state.  
+- As a result, for even \(N\) the source is counting a smaller set of configurations than “no adjacent on the circle,” which is why the generated program overcounts at \(N=20\).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the *actual seating constraint* being counted by the source, especially for even \(N\): whether the forbidden condition is truly “adjacent on the circle,” or instead involves additional/alternative restrictions tied to the antipodal pairing of seats (positions separated by \(N/2\)).  
+- Clarify whether the problem’s geometry is a single cycle of \(N\) seats, or something like two coupled halves / a structure where opposite positions interact (which the even-\(N\) DP strongly suggests).  
+- Clarify that the parity split is not merely an implementation detail: for even \(N\) the transition rules indicate a different combinatorial object than the spec’s cycle-independent-set model.
+
+D. Why this clarification is supported by the source program  
+- In `calc_even_1`, the recursion advances `pos` only up to `N/2-1` and simultaneously assigns `result[pos]` and `result[pos+N/2]`, meaning the state space is built from *pairs of opposite seats*, not a linear/cyclic adjacency scan of all \(N\) positions.  
+- The `sitdown` state takes values 0/1/2 and controls which paired patterns are allowed next; this is incompatible with a pure “previous seat occupied?” adjacency constraint (which would be boolean).  
+- The base case at `pos==N/2-1` returns 2 in one case and 1 in others, reflecting symmetry/duplication handling specific to the paired construction, again not something that arises from the spec’s straightforward cycle DP.  
+- The odd-\(N\) branch (`calc_odd_1`) *does* look like a standard adjacency-avoidance scan with a boolean `sitdown`, reinforcing that the even-\(N\) logic is fundamentally different and must be captured explicitly in the specification rather than waved away as an “implementation detail.”
+
+```

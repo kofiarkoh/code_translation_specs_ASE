@@ -1,0 +1,136 @@
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define TOKEN_BUFSZ 256
+#define MAX_PARTS 8
+
+static int is_leap_year(long long y) {
+    /* Gregorian leap-year rules */
+    return ((y % 4LL) == 0LL) && (((y % 100LL) != 0LL) || ((y % 400LL) == 0LL));
+}
+
+static int days_in_month(long long y, int m) {
+    static const int mdays[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+    int d = mdays[m - 1];
+    if (m == 2 && is_leap_year(y)) d = 29;
+    return d;
+}
+
+/* Convert Gregorian Y.M.D to an absolute day count (day 0 = 0.1.1).
+   This uses a simple year-by-year accumulation as allowed by the spec. */
+static long long ymd_to_absday(long long y, int m, int d) {
+    long long days = 0;
+    long long yy;
+    for (yy = 0; yy < y; ++yy) {
+        days += is_leap_year(yy) ? 366LL : 365LL;
+    }
+    for (int mm = 1; mm < m; ++mm) {
+        days += (long long)days_in_month(y, mm);
+    }
+    days += (long long)(d - 1);
+    return days;
+}
+
+/* Convert absolute day count (day 0 = 0.1.1) to Gregorian Y.M.D.
+   Advances year one at a time, per spec's non-functional note. */
+static void absday_to_ymd(long long days, long long *outY, int *outM, int *outD) {
+    long long y = 0;
+    while (1) {
+        long long ylen = is_leap_year(y) ? 366LL : 365LL;
+        if (days < ylen) break;
+        days -= ylen;
+        ++y;
+    }
+
+    int m = 1;
+    while (1) {
+        int mlen = days_in_month(y, m);
+        if (days < (long long)mlen) break;
+        days -= (long long)mlen;
+        ++m;
+    }
+
+    *outY = y;
+    *outM = m;
+    *outD = (int)days + 1;
+}
+
+/* Parse dot-separated non-negative integers from token into parts[].
+   Returns count. No validation beyond what strtoull does; malformed input is unspecified by spec. */
+static int parse_parts(const char *tok, unsigned long long parts[], int max_parts) {
+    char buf[TOKEN_BUFSZ];
+    strncpy(buf, tok, sizeof(buf) - 1);
+    buf[sizeof(buf) - 1] = '\0';
+
+    int n = 0;
+    char *save = NULL;
+    char *p = strtok_r(buf, ".", &save);
+    while (p && n < max_parts) {
+        parts[n++] = strtoull(p, NULL, 10);
+        p = strtok_r(NULL, ".", &save);
+    }
+    return n;
+}
+
+int main(void) {
+    char tok[TOKEN_BUFSZ];
+
+    /* Fixed offset: specification states "applies a fixed offset" but does not define it.
+       Narrowest reasonable interpretation: offset is 0. */
+    const long long OFFSET = 0;
+
+    while (scanf("%255s", tok) == 1) {
+        if (tok[0] == '#') break;
+
+        unsigned long long parts[MAX_PARTS];
+        int n = parse_parts(tok, parts, MAX_PARTS);
+
+        if (n == 3) {
+            long long Y = (long long)parts[0];
+            int M = (int)parts[1];
+            int D = (int)parts[2];
+
+            long long abs = ymd_to_absday(Y, M, D);
+
+            /* Mixed-radix decomposition with radices 13,20,20,18,20 (p0..p4). */
+            const unsigned long long r0 = 13ULL, r1 = 20ULL, r2 = 20ULL, r3 = 18ULL, r4 = 20ULL;
+            unsigned long long v = (unsigned long long)(abs - OFFSET);
+
+            unsigned long long p4 = v % r4; v /= r4;
+            unsigned long long p3 = v % r3; v /= r3;
+            unsigned long long p2 = v % r2; v /= r2;
+            unsigned long long p1 = v % r1; v /= r1;
+            unsigned long long p0 = v % r0;
+
+            printf("%llu.%llu.%llu.%llu.%llu\n", p0, p1, p2, p3, p4);
+        } else {
+            /* Treat as 5-component mixed-radix input (spec says choose based on 3 vs. other). */
+            unsigned long long p0 = (n > 0) ? parts[0] : 0ULL;
+            unsigned long long p1 = (n > 1) ? parts[1] : 0ULL;
+            unsigned long long p2 = (n > 2) ? parts[2] : 0ULL;
+            unsigned long long p3 = (n > 3) ? parts[3] : 0ULL;
+            unsigned long long p4 = (n > 4) ? parts[4] : 0ULL;
+
+            const unsigned long long r0 = 13ULL, r1 = 20ULL, r2 = 20ULL, r3 = 18ULL, r4 = 20ULL;
+
+            /* Interpret as mixed-radix number with radices 13,20,20,18,20 in that order. */
+            unsigned long long v = p0;
+            v = v * r1 + p1;
+            v = v * r2 + p2;
+            v = v * r3 + p3;
+            v = v * r4 + p4;
+
+            long long abs = (long long)v + OFFSET;
+
+            long long Y;
+            int M, D;
+            absday_to_ymd(abs, &Y, &M, &D);
+            printf("%lld.%d.%d\n", Y, M, D);
+        }
+    }
+
+    return 0;
+}
+```

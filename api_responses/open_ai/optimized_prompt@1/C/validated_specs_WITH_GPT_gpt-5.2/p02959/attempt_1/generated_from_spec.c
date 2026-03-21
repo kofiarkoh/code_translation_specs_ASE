@@ -1,0 +1,36 @@
+#include <stdio.h>
+
+int main(void) {
+    long long N;
+    if (scanf("%lld", &N) != 1) return 0;
+
+    /* Fixed-size storage per specification bound (N <= 199999 => N+1 <= 200000). */
+    static long long A[200000];
+    static long long B[200000];
+
+    for (long long i = 0; i < N + 1; i++) {
+        if (scanf("%lld", &A[i]) != 1) return 0;
+    }
+    for (long long i = 0; i < N; i++) {
+        if (scanf("%lld", &B[i]) != 1) return 0;
+    }
+
+    long long total = 0;
+
+    for (long long i = 0; i < N; i++) {
+        /* Consume from A[i] first. */
+        long long take1 = (A[i] < B[i]) ? A[i] : B[i];
+        A[i] -= take1;
+        B[i] -= take1;
+        total += take1;
+
+        /* Then consume remaining demand from A[i+1]. */
+        long long take2 = (A[i + 1] < B[i]) ? A[i + 1] : B[i];
+        A[i + 1] -= take2;
+        B[i] -= take2;
+        total += take2;
+    }
+
+    printf("%lld\n", total);
+    return 0;
+}

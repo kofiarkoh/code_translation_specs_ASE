@@ -1,0 +1,67 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+#define N 1000000
+int A[N];
+int Partition(int p, int r){
+  int x, i, j, tmp;
+  x = A[r];
+  i = p-1;
+  for(j = p; j < r; j++){
+    if(A[j] <= x){
+      i++;
+      tmp = A[i];
+      A[i] = A[j];
+      A[j] = tmp;
+} }
+  tmp = A[i+1];
+  A[i+1] = A[r];
+  A[r] = tmp;
+  return i+1;
+}
+ int main(){
+  int n, i, x;
+  scanf("%d", &n);
+  for(i = 1; i <= n; i++){
+    scanf("%d", &A[i]);
+  }
+  x = Partition(1, n);
+ for(i = 1; i <= n; i++){
+  if(i == x){
+    printf("[%d]",A[i]);
+} else {
+    printf("%d",A[i]);
+  }
+if(i < n) {
+    printf(" ");
+  }
+ }
+  printf("\n");
+  return 0;
+}
+
+```

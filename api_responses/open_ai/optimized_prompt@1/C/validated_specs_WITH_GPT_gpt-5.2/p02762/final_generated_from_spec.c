@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DEPTH 20
+
+typedef struct {
+    int parent;
+    int size;
+} DSU;
+
+static int dsu_find(DSU *dsu, int x) {
+    /* Fixed-size path tracking as per specification; if depth exceeds MAX_DEPTH,
+       behavior is undefined (we do not guard beyond array bounds). */
+    int path[MAX_DEPTH];
+    int depth = 0;
+
+    while (dsu[x].parent != x) {
+        path[depth++] = x; /* UB if depth > MAX_DEPTH-1, per spec */
+        x = dsu[x].parent;
+    }
+    int root = x;
+
+    for (int i = 0; i < depth; i++) {
+        dsu[path[i]].parent = root;
+    }
+    return root;
+}
+
+static void dsu_union(DSU *dsu, int a, int b) {
+    int ra = dsu_find(dsu, a);
+    int rb = dsu_find(dsu, b);
+    if (ra == rb) return;
+
+    /* Union by size (not required by spec, but does not change semantics). */
+    if (dsu[ra].size < dsu[rb].size) {
+        int tmp = ra; ra = rb; rb = tmp;
+    }
+    dsu[rb].parent = ra;
+    dsu[ra].size += dsu[rb].size;
+}
+
+int main(void) {
+    int n, m, k;
+    if (scanf("%d %d %d", &n, &m, &k) != 3) {
+        return 0; /* No explicit error handling required */
+    }
+
+    DSU *dsu = (DSU *)malloc((size_t)(n + 1) * sizeof(DSU));
+    long long *excl = (long long *)malloc((size_t)(n + 1) * sizeof(long long));
+    if (!dsu || !excl) return 0;
+
+    for (int i = 1; i <= n; i++) {
+        dsu[i].parent = i;
+        dsu[i].size = 1;
+        excl[i] = 1; /* exclusion count starts at 1 (exclude itself) */
+    }
+
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        if (scanf("%d %d", &a, &b) != 2) return 0;
+        /* Each connection occurrence increments incident exclusions */
+        excl[a] += 1;
+        excl[b] += 1;
+        dsu_union(dsu, a, b);
+    }
+
+    for (int i = 0; i < k; i++) {
+        int c, d;
+        if (scanf("%d %d", &c, &d) != 2) return 0;
+        /* Only count disallowed pair occurrence if both endpoints are in same component */
+        if (dsu_find(dsu, c) == dsu_find(dsu, d)) {
+            excl[c] += 1;
+            excl[d] += 1;
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        int root = dsu_find(dsu, i);
+        long long comp_size = (long long)dsu[root].size;
+        long long ans = comp_size - excl[i];
+        if (i > 1) putchar(' ');
+        printf("%lld", ans);
+    }
+    putchar('\n');
+
+    free(dsu);
+    free(excl);
+    return 0;
+}

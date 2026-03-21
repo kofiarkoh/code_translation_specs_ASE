@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule (DP state meaning), plus wrong final aggregation/scaling rule.
+
+B. What the current specification may be missing or misstating  
+- **DP is not over subsets of the `m` constraints.** The source DP array is indexed by bitmasks of size `n` (i.e., states `b` range over `0..2^n-1`), not by subsets of the `m` input values. The generated program instead builds a subset DP over `m` items (`0..2^m-1`) and treats the `m` numbers as elements to include/exclude, which is a different problem structure.  
+- **The recurrence uses per-bit growth in `n` dimensions with binomial factors tied to powers of two.** In the source, transitions add one missing bit `i` to `b` and multiply by `choose(aa[h] - b, (1<<i)-1)`. This depends on the numeric value of `b` and on `(1<<i)`; it is not a generic subset-convolution on sums of `a[i]`.  
+- **The role and ordering of the `m` constraints is specific.** The source iterates `h` from `m-1` down to `0` and updates `dp` in-place with `b` descending, which implies a particular sequential processing of constraints (not a symmetric set function over the multiset of constraints). The current spec describes “subset-based recurrence” but not this sequential, order-sensitive update scheme.  
+- **Final inclusion–exclusion is over `2^n` masks with a parity derived from `n + (#missing bits)`, not simply parity of a subset size.** The source computes `cnt` starting at `n` and increments it once per missing bit, then uses `(cnt % 2)` for the sign. That is equivalent to a sign depending on `popcount(b)` (since `cnt = 2n - popcount(b)`), but it is not the same as alternating over subsets of constraints.  
+- **Final scaling factor is not `(2^n)!` alone.** The source multiplies by `ff[1<<i] * 2` for each `i=0..n-1`, i.e. by `2^n * ∏_{i=0}^{n-1} (2^i)!`. The generated code’s scaling by `(2^n)!` is a different factor.
+
+C. What general behavior should be clarified in the specification  
+- The **state space**: DP indices range over all `n`-bit masks (`0..2^n-1`), and the algorithm’s combinatorial terms depend on the **numeric mask value** and on **block sizes `2^i`**.  
+- The **update structure**: constraints are processed one-by-one in a specific loop order, with in-place DP updates over masks in descending order, and transitions add exactly one new bit at a time.  
+- The **exact form of the binomial arguments** in both the DP transitions and the final product step (including that `choose(n,k)=0` for `k>n`, and that negative `n` can occur in intermediate expressions but is handled implicitly by returning 0 via `k>n` in the source’s `choose`).  
+- The **final inclusion–exclusion sign rule** and the **exact multiplicative post-scaling** `2^n * ∏ (2^i)!` (modulo the prime).
+
+D. Why this clarification is supported by the source program  
+- The source declares `dp[N_]` where `N_ = (1<<N)` and `N=16`, and all loops over `b` use `b < (1<<n)`, proving DP is over `2^n` masks, not `2^m`.  
+- The transition `dp[b | 1<<i] += x * choose(aa[h] - b, (1<<i) - 1)` explicitly uses `b` as an integer and uses `(1<<i)`-sized components, which cannot be captured by a DP that only tracks subset sums of the `m` inputs.  
+- The final accumulation iterates `b` over `0..2^n-1`, multiplies by `choose(n_, 1<<i)` for each missing bit, and uses an alternating sign based on `cnt` derived from missing bits—this is a concrete inclusion–exclusion over `n`-bit masks.  
+- The final scaling loop `for (i=0;i<n;i++) ans = ans * ff[1<<i] * 2` demonstrates the scaling is a product of factorials of powers of two times `2^n`, not a single factorial of `2^n`.

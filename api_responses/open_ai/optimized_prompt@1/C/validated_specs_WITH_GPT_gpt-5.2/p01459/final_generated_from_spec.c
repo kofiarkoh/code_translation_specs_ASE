@@ -1,0 +1,136 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 102
+#define MAXA 10
+
+/* Orientation encoding: 0=up, 1=right, 2=down, 3=left */
+static const int dr[4] = {-1, 0, 1, 0};
+static const int dc[4] = {0, 1, 0, -1};
+
+typedef struct {
+    short r, c;
+    unsigned char dir;
+    unsigned char t1, t2;
+} State;
+
+/*
+Specification leaves the exact mapping of direction-change -> (disallowed / free / t1 / t2)
+unspecified. Narrowest reasonable interpretation consistent with "two distinct turn types"
+is:
+- going straight: allowed, free
+- reversing direction (U<->D or L<->R): disallowed
+- 90-degree turn: allowed, costs exactly one turn of a type depending on left vs right:
+    left turn  => t1++
+    right turn => t2++
+This yields two distinct turn types and a clear per-type budget.
+*/
+static int turn_cost_type(int curDir, int nextDir) {
+    if (curDir == nextDir) return 0; /* straight, free */
+    if (((curDir + 2) & 3) == nextDir) return -1; /* reverse, disallowed */
+    /* 90-degree: determine left vs right */
+    if (((curDir + 3) & 3) == nextDir) return 1; /* left => type1 */
+    return 2; /* right => type2 */
+}
+
+int main(void) {
+    int H, W, A;
+    if (scanf("%d %d %d", &H, &W, &A) != 3) return 0;
+
+    static char grid[MAXN][MAXN + 5];
+    int sr = -1, sc = -1, gr = -1, gc = -1;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", grid[i]) != 1) return 0;
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 'S') { sr = i; sc = j; }
+            else if (grid[i][j] == 'G') { gr = i; gc = j; }
+        }
+    }
+
+    /* Postcondition: if cell below start is outside or obstacle => -1 */
+    int ir = sr + 1, ic = sc;
+    if (ir < 0 || ir >= H || ic < 0 || ic >= W) {
+        printf("-1\n");
+        return 0;
+    }
+    if (grid[ir][ic] == '#') {
+        printf("-1\n");
+        return 0;
+    }
+
+    /* visited[r][c][dir][t1][t2] */
+    static unsigned char visited[MAXN][MAXN][4][MAXA + 1][MAXA + 1];
+    memset(visited, 0, sizeof(visited));
+
+    /* Fixed-size queue; per spec, overflow behavior is unspecified, so no guard. */
+    static State q[MAXN * MAXN * 4 * (MAXA + 1) * (MAXA + 1)];
+    int qh = 0, qt = 0;
+
+    State init;
+    init.r = (short)ir;
+    init.c = (short)ic;
+    init.dir = 2; /* downward */
+    init.t1 = 0;
+    init.t2 = 0;
+
+    visited[init.r][init.c][init.dir][0][0] = 1;
+    q[qt++] = init;
+
+    int best = -1;
+
+    while (qh < qt) {
+        State cur = q[qh++];
+
+        /* If reached goal, update best by total turns */
+        if (cur.r == gr && cur.c == gc) {
+            int total = (int)cur.t1 + (int)cur.t2;
+            if (best < 0 || total < best) best = total;
+            continue;
+        }
+
+        for (int nd = 0; nd < 4; nd++) {
+            int nr = (int)cur.r + dr[nd];
+            int nc = (int)cur.c + dc[nd];
+
+            if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+            if (grid[nr][nc] == '#') continue;
+
+            int costType = turn_cost_type((int)cur.dir, nd);
+            if (costType < 0) continue;
+
+            unsigned char nt1 = cur.t1;
+            unsigned char nt2 = cur.t2;
+
+            if (costType == 1) {
+                /* "never perform a turn operation while located on the start cell" */
+                if (cur.r == sr && cur.c == sc) continue;
+                if (nt1 >= (unsigned char)A) continue;
+                nt1++;
+            } else if (costType == 2) {
+                if (cur.r == sr && cur.c == sc) continue;
+                if (nt2 >= (unsigned char)A) continue;
+                nt2++;
+            }
+
+            if (!visited[nr][nc][nd][nt1][nt2]) {
+                visited[nr][nc][nd][nt1][nt2] = 1;
+                State nxt;
+                nxt.r = (short)nr;
+                nxt.c = (short)nc;
+                nxt.dir = (unsigned char)nd;
+                nxt.t1 = nt1;
+                nxt.t2 = nt2;
+                q[qt++] = nxt;
+            }
+        }
+    }
+
+    if (best < 0 || best > 20) {
+        printf("-1\n");
+    } else {
+        printf("%d\n", best);
+    }
+
+    return 0;
+}

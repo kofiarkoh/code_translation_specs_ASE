@@ -1,0 +1,103 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+n,i,a[100009];main(){
+	scanf("%d",&n);for(i=0;i<n;i++)scanf("%d",&a[i]);
+	for(i=n-1;i>=1;i--){
+    	if(a[i]<a[i-1])a[i-1]--;
+    	if(a[i]<a[i-1]){printf("No");return 0;}
+	}
+	printf("Yes");
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether a given integer sequence can be made non-decreasing by applying, at most once per adjacent pair during a single right-to-left pass, a decrement of 1 to the left element when it is greater than the right element. Outputs acceptance if the sequence can be made non-decreasing under this rule; otherwise outputs rejection.
+
+2. Inputs  
+- An integer length value.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single affirmative or negative decision indicating whether the sequence is acceptable under the allowed adjustment rule.
+
+4. Preconditions  
+- The provided length is non-negative and does not exceed the maximum supported capacity (100009).  
+- Exactly that many integers are available as input.
+
+5. Postconditions  
+- If the output is affirmative, then after applying the allowed decrements as needed during the right-to-left pass, the resulting sequence is non-decreasing.  
+- If the output is negative, then there exists at least one adjacent pair for which the left element would still exceed the right element even after applying the single allowed decrement to the left element at that step.
+
+6. Invariants  
+- During processing from right to left, once an index has been processed, the suffix starting at that index is non-decreasing under the adjustments performed so far, unless the program has already rejected.  
+- Each element may be decremented by at most 1, and only when compared against its immediate right neighbor during the pass.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range length, or input exhaustion. Behavior is unspecified if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- Initial state: sequence read.  
+- Processing state: iteratively validates/adjusts adjacent pairs from right to left.  
+- Terminal states:  
+  - Reject: outputs negative decision and terminates immediately upon detecting an unfixable adjacent inversion.  
+  - Accept: outputs affirmative decision after completing the pass without rejection.
+
+9. Non-functional Constraints (if inferable)  
+- Operates in linear time with respect to the sequence length.  
+- Uses memory proportional to the sequence length up to the fixed maximum capacity.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Wrong output formatting / ordering rule (case-sensitivity and exact string match).**
+
+B. What the current specification may be missing or misstating  
+- The specification says “affirmative or negative decision” but does **not** constrain the **exact output tokens** (including capitalization and newline behavior).  
+- The generated program outputs `"YES"`/`"NO"` (uppercase), while the source prints `"Yes"`/`"No"` (capitalized first letter only) and does not print a newline.
+
+C. What general behavior should be clarified in the specification  
+- The specification should explicitly state the **exact required output strings** for acceptance and rejection (including **case**), and whether a trailing newline is required/allowed.
+
+D. Why this clarification is supported by the source program  
+- The source program uses `printf("Yes");` and `printf("No");`, which fixes the exact capitalization as **`Yes`/`No`**.  
+- Since the failing test differs only by output case (`Yes` expected vs `YES` produced), the mismatch is attributable to the specification not pinning down the exact output format that the source implements.
+
+```

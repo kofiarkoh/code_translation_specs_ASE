@@ -1,0 +1,36 @@
+1. Functional Description  
+Reads three integers, computes the difference between the first two, then decreases the third integer by up to that difference while not decreasing it past zero. Produces the resulting value of the third integer.
+
+2. Inputs  
+- Three integers provided from standard input:  
+  - First value (initial minuend)  
+  - Second value (subtrahend)  
+  - Third value (counter/value to be reduced)
+
+3. Outputs  
+- One integer written to standard output: the final value of the third input after the described reduction.
+
+4. Preconditions  
+- Exactly three integer values are available on input and are representable in the program’s integer range.  
+- Arithmetic operations performed during execution do not overflow the integer range.
+
+5. Postconditions  
+Let `A0`, `B0`, `C0` be the three input integers. Let `D = A0 - B0`. The output value `Cout` satisfies:  
+- If `D <= 0`, then `Cout = C0`.  
+- If `D > 0` and `C0 <= 0`, then `Cout = C0 - D`.  
+- If `D > 0` and `C0 > 0`, then `Cout = C0 - min(D, C0)`.  
+Equivalently, for `D > 0` and `C0 > 0`, `Cout = max(0, C0 - D)`.
+
+6. Invariants  
+- The difference `A0 - B0` is treated as a fixed nonnegative reduction budget when positive; at most that many unit reductions are applied to the third value.  
+- If the third value is initially positive, it is never reduced below zero.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/invalid or arithmetic overflows occur, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Single-step state change from initial `(A0, B0, C0)` to final `Cout` as defined in Postconditions; no persistent state beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Time proportional to `max(0, A0 - B0)` in the worst case.  
+- Constant additional memory usage.

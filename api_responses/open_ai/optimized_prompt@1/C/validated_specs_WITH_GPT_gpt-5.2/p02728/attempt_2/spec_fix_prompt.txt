@@ -1,0 +1,184 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+long long M=1e9+7;
+int mbk(long long a,int n,int m){return n?(mbk((a*a)%m,n/2,m)*(n%2?a:1))%m:1;}
+int inv(int a,int m){return mbk((long long)a,m-2,m);}
+int ta[200010],nt[400010],to[400010],tS[400010];
+long long tu[200010],ANS[200020],tans[200020];
+//sが親でtから帰ってきた時の処理 変えるやつ
+void fc(int s,int t){tans[s]=tans[s]*tans[t]       %M;}
+//fcの逆処理　変えるやつ
+void ic(int s,int t){tans[s]=tans[s]*inv(tans[t],M)%M;}
+//すべての子の処理が終わった時の処理　変えるやつ
+void fp(int s){tans[s]=tans[s]*inv(tS[s],M)%M;}
+//fpの逆処理　変えるやつ
+void ip(int s){tans[s]=tans[s]*tS[s]       %M;}
+//木DPの関数
+void tDP(int s){//printf("!%d\n",s);
+  long long i;
+  tu[s]=1;
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]])continue;
+    tDP(to[i]);
+    fc(s,to[i]);
+    tS[s]+=tS[to[i]];
+  }
+  fp(s);
+}
+//根をsからtにする奴
+void chrt(int s,int t){
+  ip(s);
+  ic(s,t);
+  ip(t);
+  tS[s]-=tS[t];
+  tS[t]+=tS[s];
+  fp(s);
+  fc(t,s);
+  fp(t);
+}
+//全方位やる奴
+void atdp(int s){//printf("!!%d %d\n",s,cc[s]);
+  int i;
+  tu[s]=2;
+  ANS[s]=tans[s];
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]]==2)continue;
+    chrt(s,to[i]);
+    atdp(to[i]);
+    chrt(to[i],s);
+  }
+}
+//呼びだす奴
+void atDP(int v,int *a,int *b){
+  int i,I=1;
+  for(i=0;i<v;i++)ta[i+I]=-1;
+  for(i=0;i<v;i++)tS[i+I]=1;
+  for(i=0;i<v;i++)tans[i+I]=1;
+  for(i=0;i<v-1;i++){
+    nt[i]=ta[to[i+v-1]=a[i]];
+    nt[i+v-1]=ta[to[i]=b[i]];
+    ta[a[i]]=i;
+    ta[b[i]]=i+v-1;
+  }
+  tDP(I);
+  atdp(I);
+}
+int main(){
+  int n,i,a[200010],b[200010];
+  long long p=1;
+  scanf("%d",&n);
+  for(i=0;i<n-1;i++)scanf("%d %d",&a[i],&b[i]);
+  for(i=1;i<=n;i++)p=p*i%M;
+  atDP(n,a,b);
+  for(i=0;i<n;i++)printf("%lld\n",ANS[i+1]*p%M);
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes, for each vertex of an undirected tree, a value derived from the sizes of the connected components obtained by removing that vertex. Specifically, for every vertex, it outputs the multinomial coefficient that counts the number of distinct linear orderings of all vertices such that, when the chosen vertex is fixed as the first element, the relative interleavings of the vertex orderings from each incident component are arbitrary (i.e., only the partition of remaining vertices by component matters, not internal constraints). All results are produced modulo a fixed large prime.
+
+2. Inputs  
+- An integer specifying the number of vertices.  
+- A list of undirected edges connecting pairs of vertex indices, forming a tree.
+
+3. Outputs  
+- For each vertex (in increasing vertex index order), one integer modulo the fixed prime:  
+  \[
+  \frac{n!}{\prod_{C \in \text{components}(V \setminus \{v\})} |C|!} \bmod P
+  \]
+  where the product ranges over all connected components after removing vertex \(v\), and \(P\) is the fixed prime modulus.
+
+4. Preconditions  
+- The vertex count is at least 1 and does not exceed the implementation’s fixed capacity.  
+- The edge list contains exactly \(n-1\) edges.  
+- Vertex indices in edges are within the valid range.  
+- The edges form a connected, acyclic undirected graph (a tree).  
+- The modulus is prime, and all factorial values up to \(n!\) are interpreted modulo this prime.
+
+5. Postconditions  
+- Exactly \(n\) output values are produced.  
+- For each vertex \(v\), the printed value equals the formula in Outputs, computed modulo the prime.  
+- The result for each vertex depends only on the tree structure and \(n\), not on edge input order.
+
+6. Invariants  
+- Throughout computation, each vertex maintains a well-defined subtree size with respect to the current chosen root, and these sizes remain consistent with the current rooting.  
+- Intermediate per-vertex values represent products of factorials of component sizes (or their modular inverses) consistent with the current rooting, always interpreted modulo the prime.  
+- Re-rooting between adjacent vertices preserves the global multiset of component sizes for the whole tree and updates only the two endpoints’ associated component partitions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (non-tree, out-of-range indices, oversized \(n\), etc.), behavior is unspecified.  
+- If the modulus assumptions are violated (e.g., non-prime or factorial terms not invertible modulo the modulus), results are unspecified.
+
+8. State Transitions (if applicable)  
+- The computation conceptually transitions through different choices of the tree root to evaluate the per-vertex formula for all vertices.  
+- For each transition across an edge, the “root” moves from one endpoint to the other, and the associated component-size partition for those two vertices is updated accordingly; after exploring a neighbor, the root is restored to the prior vertex.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of vertices (up to logarithmic factors from modular exponentiation used for inverses).  
+- Memory usage is linear in the number of vertices.  
+- Recursion depth is proportional to tree height; on highly skewed trees this may exceed typical call stack limits.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong counting rule / wrong combinatorial abstraction (missing factor in the formula).
+
+B. What the current specification may be missing or misstating  
+The spec claims the output for vertex \(v\) is
+\[
+\frac{n!}{\prod_{C \in \text{components}(V\setminus\{v\})} |C|!}\pmod P,
+\]
+i.e., it divides by factorials of component sizes only.  
+But the source program’s DP structure (multiplying child contributions, tracking subtree sizes, and finally multiplying by \(n!\)) indicates the denominator is not just \(\prod |C|!\). It also includes an additional factor depending on the component sizes themselves (a product of the sizes, or equivalently a factorial ratio that introduces a \(\prod |C|\) term). The generated program therefore systematically overestimates by a multiplicative factor that varies with \(v\).
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact combinatorial quantity being counted for each root \(v\): it is not merely “interleavings of components with no internal constraints.” The source corresponds to a rooted-tree counting where, after choosing \(v\) as root/first, each component contributes not only a “shuffle” factor (multinomial) but also an internal count that depends on the component size (and recursively on its structure). In closed form, the per-vertex result depends on component sizes via both factorials and an extra multiplicative term derived from those sizes (commonly appearing as a product of component sizes, or as \((n-1)!/\prod (|C|-1)!\) rather than \(n!/\prod |C|!\)).
+
+D. Why this clarification is supported by the source program  
+- The source maintains `tS[x]` as a subtree size and updates it during rerooting (`tS[s]-=tS[t]; tS[t]+=tS[s];`), so the final answer for each vertex is a function of the sizes of adjacent components under that vertex.  
+- The DP value `tans[x]` is combined multiplicatively across children (`fc`) and then divided by `tS[x]` at the end of processing a node (`fp` does `tans[s] *= inv(tS[s])`). This “divide by subtree size” step is exactly the kind of extra size-dependent factor that is *not* captured by a pure \(\prod |C|!\) denominator.  
+- Finally, the program multiplies each per-vertex DP result by \(n!\) (`ANS[i+1]*p` where `p = n!`). That means `ANS[v]` itself is some inverse-product expression; because the DP explicitly introduces inverses of sizes (`inv(tS[...])`), the overall denominator must include size terms beyond factorials.
+
+```

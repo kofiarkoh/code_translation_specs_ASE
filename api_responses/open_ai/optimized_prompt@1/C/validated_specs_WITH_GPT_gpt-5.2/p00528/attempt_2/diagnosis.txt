@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong graph-construction / edge-definition rule (wrong abstraction of allowed connections and edge weights).
+
+B. What the current specification may be missing or misstating  
+- It does not precisely define **which pairs of special cells are connected by edges**. The generated program assumed “connect consecutive points in global x-sort and y-sort order” regardless of whether they share the same row/column.  
+- It does not specify the **actual edge cost model** used by the source. The generated program used Manhattan distance between connected neighbors, but the source uses a different scheme (including fixed-cost edges and conditional same-row/same-column edges).
+
+C. What general behavior should be clarified in the specification  
+- The exact induced-graph construction rules, including:
+  1) that each special cell is represented by **two internal nodes** (an “in/out” pair) connected by an edge of cost **1**;  
+  2) additional edges are added **only between special cells that share the same x (row) or the same y (column)**, and only between **adjacent** special cells in the sorted order within that same row/column;  
+  3) the weight of those row/column edges is the **absolute coordinate difference along that axis** (|Δy| for same x, |Δx| for same y), not Manhattan distance;  
+  4) reachability depends on these constraints—points that are merely adjacent in global sort order but not aligned must **not** become connected.
+
+D. Why this clarification is supported by the source program  
+- The source assigns each input point an `id = sz` and then does `sz += 2`, and it always adds an edge between `id` and `id+1` with cost `1` (see initialization and the loop that adds `to[a]=b` / `to[b]=a` with `dt=1`). This “two nodes per cell with cost-1 link” behavior is absent from the current spec.  
+- In the x-sorted pass, the source adds inter-point edges **only when `sw[i-1].x == sw[i].x`**, with weight `ABS(y1-y2)` and between the `id` nodes (not `id+1`).  
+- In the y-sorted pass, it adds inter-point edges **only when `sw[i-1].y == sw[i].y`**, with weight `ABS(x1-x2)` and between the `id+1` nodes.  
+- Therefore, the generated program’s unconditional neighbor connections and Manhattan weights can create paths that the source graph would not allow, explaining outputs like a finite distance where the source returns `-1`.

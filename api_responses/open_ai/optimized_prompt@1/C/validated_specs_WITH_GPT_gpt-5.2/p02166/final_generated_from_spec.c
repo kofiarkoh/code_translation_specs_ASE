@@ -1,0 +1,52 @@
+#include <stdio.h>
+
+#define MAXN 100010
+
+static int a[MAXN];
+
+int main(void) {
+    int n, k;
+    if (scanf("%d %d", &n, &k) != 2) return 0;
+
+    for (int i = 1; i <= n; i++) {
+        if (scanf("%d", &a[i]) != 1) return 0;
+    }
+
+    if (k == n) {
+        /* Check if mapping is a uniform cyclic shift:
+           exists x such that for all i, a[i] - i ≡ x (mod n). */
+        int x = a[1] - 1;
+        for (int i = 2; i <= n; i++) {
+            if (a[i] - i != x) {
+                puts("No");
+                return 0;
+            }
+        }
+        /* Also require x to be a valid shift modulo n (i.e., 0..n-1). */
+        if (x < 0 || x >= n) {
+            puts("No");
+            return 0;
+        }
+        puts("Yes");
+        return 0;
+    }
+
+    /* k != n: treat as functional graph; count number of cycles/components.
+       Mutate a[] by overwriting visited nodes with sentinel -1. */
+    int cnt = 0;
+    for (int i = 1; i <= n; i++) {
+        if (a[i] == -1) continue;
+        cnt++;
+        int x = i;
+        while (a[x] != -1) {
+            int y = a[x];
+            a[x] = -1;
+            x = y;
+        }
+    }
+
+    if (((n - cnt) & 1) && (k & 1)) puts("No");
+    else puts("Yes");
+
+    return 0;
+}

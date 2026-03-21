@@ -1,0 +1,81 @@
+1. Functional Description  
+The program reads an integer `n` and `n` pairs of signed 64-bit integers `(a_i, b_i)`, then computes and prints a single integer modulo the fixed prime `MOD = 1,000,000,007`. The result is a deterministic function of the input pairs and is invariant under reordering of the input, because the program sorts the pairs before further processing.
+
+2. Inputs  
+- The program attempts to read `n` using `scanf("%llu", &n, &m)`. Because the format string contains only one conversion, exactly one unsigned integer token is consumed and stored in `n`; the extra pointer argument is ignored by `scanf`. No second header value is read at this step.  
+- Then exactly `n` pairs `(a_i, b_i)` are read, each as two signed 64-bit integers.
+
+Tokenization note: Any additional integer token placed immediately after `n` in the input is not consumed as a separate header field by the program; it will instead be consumed as part of the subsequent `(a_i, b_i)` stream.
+
+3. Outputs  
+- The program writes exactly one line containing a single integer in the range `[0, MOD-1]`, followed by a newline.
+
+4. Preconditions / Assumptions  
+- `n` must be within the capacity of the program’s fixed global arrays (notably up to `N_MAX = 1,048,576` for `a`, `b`, `dp`, `ss`, etc.).  
+- The input must provide at least `2*n` additional integers after `n` to fill all pairs.  
+- The program assumes sufficient memory for its large global arrays.  
+- The program performs comparisons and prefix/suffix extrema on signed 64-bit values; it does not guard against overflow in non-modular signed computations. If such overflow occurs, behavior is undefined.
+
+5. Computation Semantics  
+All modular arithmetic below is performed modulo `MOD`.
+
+5.1 Sorting  
+- The `n` pairs are sorted by increasing `a`, breaking ties by increasing `b`. The sorted sequence overwrites the original `a[i]`, `b[i]`.
+
+5.2 Prefix/Suffix extrema over `b`  
+On the sorted order, the program computes:
+- `c[i] = max(b[0..i])` (prefix maximum), with `c[0] = b[0]`.  
+- `d[i] = min(b[i..n-1])` (suffix minimum), with `d[n-1] = b[n-1]`.
+
+5.3 Per-position boundary computation and conversion to a right-endpoint map  
+For each index `i` (0-based) in the sorted list, the program computes two indices:
+- A left boundary `L_i` (0-based) defined as:
+  - If `i == 0` or `c[i-1] <= b[i]`, then `L_i = i`.
+  - Otherwise, `L_i` is the smallest index `j` in `[0, i]` such that `c[j] > b[i]` (found by binary search), i.e., the first position where the prefix maximum becomes strictly greater than `b[i]`.
+- A right boundary `R_i` (0-based) defined as:
+  - If `i == n-1` or `d[i+1] >= b[i]`, then `R_i = i`.
+  - Otherwise, `R_i` is the largest index `j` in `[i, n-1]` such that `d[j] < b[i]` (found by binary search), i.e., the last position before the suffix minimum becomes greater than or equal to `b[i]`.
+
+These boundaries are then shifted to 1-based indices:
+- `l_i = L_i + 1`, `r_i = R_i + 1`.
+
+Instead of using all `(l_i, r_i)` directly, the program builds an auxiliary array `e[]` indexed by the right endpoint:
+- `e[x]` is initialized to `-1` for indices up to at least `n+1`.
+- For each `i`, it assigns `e[r_i] = l_i`.  
+  If multiple elements produce the same `r_i`, later assignments overwrite earlier ones; because the assignments are performed in increasing sorted order of `(L_i, R_i)` (the program re-sorts the `(L_i, R_i)` pairs before filling `e`), the final `e[r]` corresponds to the last pair in that sorted order with right endpoint `r`.
+
+5.4 Dynamic programming with conditional updates  
+The program maintains two tables `dp[i][k]` and `ss[i][k]` for `i = 0..n` and `k = 0..3`, where `ss` is a prefix sum accumulator:
+- For `i >= 1`: `ss[i][k] = (ss[i-1][k] + dp[i][k]) mod MOD`.
+
+Initialization:
+- Let `P = 2^n mod MOD` and `inv2 = (MOD+1)/2` (the modular inverse of 2).
+- `dp[0][0] = ss[0][0] = P`
+- `dp[0][2] = ss[0][2] = P`
+- All other `dp[0][k]` and `ss[0][k]` are 0 (by global zero-initialization).
+
+Transition for each `i = 1..n`:
+- If `e[i] < 0`, then `dp[i][0..3]` remain 0 and only `ss[i][k]` are updated via the prefix-sum rule.
+- If `e[i] >= 0`, define `l = e[i]` and `r = i` (both 1-based, with `1 <= l <= r <= n`). Then for `ki` in `{0,1}`:
+  - Compute
+    - `term1 = ss[l-1][1-ki] * (inv2)^(r-l+1) mod MOD`
+    - `term2 = ( (ss[r-1][3-ki] - ss[l-1][3-ki]) mod MOD ) * (inv2)^r mod MOD`
+      (the subtraction is taken modulo `MOD`, i.e., adjusted into `[0, MOD-1]` before multiplication)
+    - `dp[i][ki] = (term1 + term2) mod MOD`
+  - Then set `dp[i][2+ki] = dp[i][ki] * 2^i mod MOD`.
+- After any conditional computation of `dp[i][*]`, update `ss[i][*]` using `ss[i][k] = (ss[i-1][k] + dp[i][k]) mod MOD` for all `k`.
+
+5.5 Final result  
+After finishing the DP up to `i = n`, the program prints:
+- `result = (ss[n][0] - ss[n][1]) mod MOD`, adjusted into `[0, MOD-1]`.
+
+6. Postconditions  
+- Exactly one integer is printed followed by a newline.  
+- The printed integer equals the value produced by the sort → boundary computation → `e[]` mapping → conditional DP process described above, reduced modulo `MOD`.
+
+7. Error Handling / Exceptional Behavior  
+- The program does not check `scanf` return values and does not validate `n` against capacity at runtime. If the input is malformed, incomplete, or violates capacity/overflow assumptions, behavior is undefined (including possibly producing no output or crashing).  
+- No alternative “Yes/No” outputs are produced during normal execution; only the numeric result is printed.
+
+8. State / Termination  
+- The program reads input once, computes, prints one line, and terminates. No external state is modified beyond standard output.

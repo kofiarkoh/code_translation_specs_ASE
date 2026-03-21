@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+- **Wrong / missing transition rule (core feasibility predicate omitted)**, leading to a **wrong abstraction** of the program’s semantics.
+
+B. What the current specification may be missing or misstating  
+- The specification never defines the actual arithmetic meaning of `ispossible(R,B,k)` beyond “internal constraints,” so a generated implementation can legally choose a trivial always-true predicate.  
+- The spec therefore effectively describes only “binary search for the largest k in a fixed range,” not the **resource-limited combinational counting** that the source actually performs via `calcul`, `calc`, and the geometric check in `ispossible`.  
+- The spec’s “monotonicity requirement” is stated, but the **reason** it holds (and the exact quantities being compared against `R` and `B`) is not captured, so the predicate’s structure is unconstrained.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the feasibility predicate: how, for a given `k`, the program computes required resource pairs `(zr, zb)` as a function of `k` and a parameter `te` in `[1, prime-1]`, including:  
+  - the nested binary searches (`solve` over `k`, `ispossible` over `te`, `calc` over `z`),  
+  - the counting function `calcul(p,q,z, &r,&b)` that accumulates `cnt`, `r`, and `b` using integer division and triangular numbers, and  
+  - the final “on/above a line” decision using a cross product between two bounding points `(fr,fb)` and `(sr,sb)` when no exact `te` satisfies the inequalities.  
+- Clarify that feasibility is **not** “always true” and is constrained by comparing computed `(zr,zb)` against input `(R,B)`; thus the maximum `k` depends on `R,B` and is typically far below the hard upper bound.
+
+D. Why this clarification is supported by the source program  
+- In the source, `solve`’s binary search result depends entirely on `ispossible(r,b,k)`. `ispossible` is nontrivial: it performs a binary search over `te`, repeatedly calling `calc(te, prime-te, k, &zr, &zb)` and checking `zr<=r && zb<=b`.  
+- `calc` itself performs a binary search to find a `z` such that `calcul(p,q,z,...)` yields `cnt == k`, and `calcul` computes `cnt`, `*r`, `*b` through a loop with `w=z/q`, `cnt += (w+1)`, `*r += i*(w+1)`, `*b += triangular(w)`, decrementing `z` by `p` each iteration, plus a swap depending on `p<q`.  
+- If no `te` directly satisfies the inequalities, `ispossible` uses the cross-product test against the segment between the last “too large in r” and “too large in b” points, which is a specific geometric rule absent from the spec.  
+- Because these computations constrain feasibility, the true maximum `k` is input-dependent; the observed failure (always returning the search maximum) is exactly what happens when the predicate is left unspecified and implemented as always true.

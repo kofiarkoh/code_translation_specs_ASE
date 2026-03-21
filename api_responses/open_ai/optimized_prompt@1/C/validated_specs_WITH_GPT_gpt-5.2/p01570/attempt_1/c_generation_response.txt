@@ -1,0 +1,121 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef long long i64;
+
+typedef struct {
+    int *a;
+    int n;
+    int cap;
+} IntVec;
+
+static void vec_push(IntVec *v, int x) {
+    if (v->n == v->cap) {
+        int newcap = v->cap ? (v->cap * 2) : 4;
+        int *na = (int *)realloc(v->a, (size_t)newcap * sizeof(int));
+        /* Per spec: on allocation failure, behavior is undefined; we do not handle it. */
+        v->a = na;
+        v->cap = newcap;
+    }
+    v->a[v->n++] = x;
+}
+
+static i64 *g_s = NULL;
+
+static int cmp_child_desc_s(const void *pa, const void *pb) {
+    int a = *(const int *)pa;
+    int b = *(const int *)pb;
+    i64 sa = g_s[a];
+    i64 sb = g_s[b];
+    if (sa > sb) return -1;
+    if (sa < sb) return 1;
+    return 0; /* ties arbitrary */
+}
+
+static void dfs_compute(int u, IntVec *children, const i64 *w, i64 *s, i64 *dp) {
+    /* Postorder: compute all descendants first */
+    for (int i = 0; i < children[u].n; i++) {
+        int v = children[u].a[i];
+        dfs_compute(v, children, w, s, dp);
+    }
+
+    /* s[u] = w[u] + sum s[child] */
+    i64 su = w[u];
+    for (int i = 0; i < children[u].n; i++) {
+        su += s[children[u].a[i]];
+    }
+    s[u] = su;
+
+    /* dp[u] = sum dp[child] + min over permutations sum s[child_at_k] * k
+       Minimum achieved by sorting children by non-increasing s[child]. */
+    i64 dpu = 0;
+    for (int i = 0; i < children[u].n; i++) {
+        dpu += dp[children[u].a[i]];
+    }
+
+    if (children[u].n > 1) {
+        g_s = s;
+        qsort(children[u].a, (size_t)children[u].n, sizeof(int), cmp_child_desc_s);
+    }
+
+    for (int k = 0; k < children[u].n; k++) {
+        int v = children[u].a[k];
+        dpu += s[v] * (i64)k;
+    }
+
+    dp[u] = dpu;
+}
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    /* Fixed maximum capacity is implementation-defined; we rely on available memory. */
+    i64 *w = (i64 *)malloc((size_t)N * sizeof(i64));
+    int *parent = (int *)malloc((size_t)N * sizeof(int));
+    IntVec *children = (IntVec *)calloc((size_t)N, sizeof(IntVec));
+    i64 *s = (i64 *)malloc((size_t)N * sizeof(i64));
+    i64 *dp = (i64 *)malloc((size_t)N * sizeof(i64));
+    int *roots = (int *)malloc((size_t)N * sizeof(int));
+    int rootn = 0;
+
+    /* Per spec: if allocation fails, behavior is undefined; no explicit handling. */
+
+    for (int i = 0; i < N; i++) {
+        long long wi;
+        int pi;
+        if (scanf("%lld %d", &wi, &pi) != 2) return 0;
+        w[i] = (i64)wi;
+        parent[i] = pi;
+    }
+
+    for (int i = 0; i < N; i++) {
+        if (parent[i] == -1) {
+            roots[rootn++] = i;
+        } else {
+            vec_push(&children[parent[i]], i);
+        }
+    }
+
+    i64 ans = 0;
+    for (int i = 0; i < rootn; i++) {
+        int r = roots[i];
+        dfs_compute(r, children, w, s, dp);
+        ans += dp[r];
+    }
+
+    printf("%lld\n", (long long)ans);
+
+    /* Cleanup (not required by spec, but safe) */
+    for (int i = 0; i < N; i++) free(children[i].a);
+    free(children);
+    free(w);
+    free(parent);
+    free(s);
+    free(dp);
+    free(roots);
+
+    return 0;
+}
+```

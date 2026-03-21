@@ -1,0 +1,236 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAX_SEQ   100000
+#define MAX_QUEUE 150000
+
+typedef struct {
+    int v;
+    int idx;
+} HeapNode;
+
+typedef struct {
+    HeapNode *a;
+    int n;
+    int cap;
+} MinHeap;
+
+static void heap_init(MinHeap *h, int cap) {
+    h->a = (HeapNode*)malloc((size_t)cap * sizeof(HeapNode));
+    h->n = 0;
+    h->cap = cap;
+}
+
+static void heap_free(MinHeap *h) {
+    free(h->a);
+    h->a = NULL;
+    h->n = h->cap = 0;
+}
+
+static void heap_push(MinHeap *h, HeapNode x) {
+    int i = h->n++;
+    h->a[i] = x;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (h->a[p].v <= h->a[i].v) break;
+        HeapNode t = h->a[p];
+        h->a[p] = h->a[i];
+        h->a[i] = t;
+        i = p;
+    }
+}
+
+static HeapNode heap_pop(MinHeap *h) {
+    HeapNode ret = h->a[0];
+    h->n--;
+    if (h->n > 0) {
+        h->a[0] = h->a[h->n];
+        int i = 0;
+        for (;;) {
+            int l = i * 2 + 1;
+            int r = l + 1;
+            int m = i;
+            if (l < h->n && h->a[l].v < h->a[m].v) m = l;
+            if (r < h->n && h->a[r].v < h->a[m].v) m = r;
+            if (m == i) break;
+            HeapNode t = h->a[m];
+            h->a[m] = h->a[i];
+            h->a[i] = t;
+            i = m;
+        }
+    }
+    return ret;
+}
+
+/*
+  Derive S(k) for k=0..K where K is the number of reachable cells from start.
+  Invariant 6 implies:
+    S(k) is the smallest threshold T such that at least k cells are reachable
+    from start using only cells with value <= T.
+  This is exactly the "flood" order of a minimax expansion (Dijkstra-like where
+  path cost is max cell value along the path). The k-th extracted cell's
+  minimax cost equals S(k).
+*/
+static int derive_sequence(int W, int H, int sx1, int sy1, int *grid, int *seq_out) {
+    int N = W * H;
+    unsigned char *vis = (unsigned char*)calloc((size_t)N, 1);
+    int *best = (int*)malloc((size_t)N * sizeof(int));
+    if (!vis || !best) {
+        /* No explicit error handling per spec; allow undefined behavior if OOM. */
+    }
+
+    for (int i = 0; i < N; i++) best[i] = INT_MAX;
+
+    int sx = sx1 - 1;
+    int sy = sy1 - 1;
+    int sidx = sy * W + sx;
+
+    MinHeap heap;
+    /* Heap capacity: at most N pushes; preconditions bound enqueued cells. */
+    heap_init(&heap, N > 0 ? N : 1);
+
+    best[sidx] = grid[sidx];
+    heap_push(&heap, (HeapNode){ best[sidx], sidx });
+
+    int k = 0;
+    seq_out[0] = 0; /* Convention S(0)=0 */
+
+    while (heap.n > 0) {
+        HeapNode cur = heap_pop(&heap);
+        int idx = cur.idx;
+        int cost = cur.v;
+
+        if (vis[idx]) continue;
+        if (cost != best[idx]) continue;
+
+        vis[idx] = 1;
+        k++;
+        if (k <= MAX_SEQ) {
+            seq_out[k] = cost;
+        } else {
+            /* Precondition says this won't happen; otherwise undefined. */
+        }
+
+        int x = idx % W;
+        int y = idx / W;
+
+        /* 4-neighbors */
+        if (x > 0) {
+            int nidx = idx - 1;
+            if (!vis[nidx]) {
+                int ncost = cost;
+                int gv = grid[nidx];
+                if (gv > ncost) ncost = gv;
+                if (ncost < best[nidx]) {
+                    best[nidx] = ncost;
+                    heap_push(&heap, (HeapNode){ ncost, nidx });
+                }
+            }
+        }
+        if (x + 1 < W) {
+            int nidx = idx + 1;
+            if (!vis[nidx]) {
+                int ncost = cost;
+                int gv = grid[nidx];
+                if (gv > ncost) ncost = gv;
+                if (ncost < best[nidx]) {
+                    best[nidx] = ncost;
+                    heap_push(&heap, (HeapNode){ ncost, nidx });
+                }
+            }
+        }
+        if (y > 0) {
+            int nidx = idx - W;
+            if (!vis[nidx]) {
+                int ncost = cost;
+                int gv = grid[nidx];
+                if (gv > ncost) ncost = gv;
+                if (ncost < best[nidx]) {
+                    best[nidx] = ncost;
+                    heap_push(&heap, (HeapNode){ ncost, nidx });
+                }
+            }
+        }
+        if (y + 1 < H) {
+            int nidx = idx + W;
+            if (!vis[nidx]) {
+                int ncost = cost;
+                int gv = grid[nidx];
+                if (gv > ncost) ncost = gv;
+                if (ncost < best[nidx]) {
+                    best[nidx] = ncost;
+                    heap_push(&heap, (HeapNode){ ncost, nidx });
+                }
+            }
+        }
+    }
+
+    heap_free(&heap);
+    free(vis);
+    free(best);
+
+    return k; /* number of reachable cells (entire connected component in full grid) */
+}
+
+int main(void) {
+    int R;
+    while (scanf("%d", &R) == 1) {
+        if (R == 0) break;
+
+        int W1, H1, X1, Y1;
+        int W2, H2, X2, Y2;
+
+        if (scanf("%d %d", &W1, &H1) != 2) return 0;
+        if (scanf("%d %d", &X1, &Y1) != 2) return 0;
+
+        int N1 = W1 * H1;
+        int *g1 = (int*)malloc((size_t)N1 * sizeof(int));
+        for (int i = 0; i < N1; i++) scanf("%d", &g1[i]);
+
+        if (scanf("%d %d", &W2, &H2) != 2) return 0;
+        if (scanf("%d %d", &X2, &Y2) != 2) return 0;
+
+        int N2 = W2 * H2;
+        int *g2 = (int*)malloc((size_t)N2 * sizeof(int));
+        for (int i = 0; i < N2; i++) scanf("%d", &g2[i]);
+
+        static int S1[MAX_SEQ + 1];
+        static int S2[MAX_SEQ + 1];
+
+        int K1 = derive_sequence(W1, H1, X1, Y1, g1, S1);
+        int K2 = derive_sequence(W2, H2, X2, Y2, g2, S2);
+
+        free(g1);
+        free(g2);
+
+        if (K1 > MAX_SEQ) K1 = MAX_SEQ;
+        if (K2 > MAX_SEQ) K2 = MAX_SEQ;
+
+        long long best = LLONG_MAX;
+
+        /* k must satisfy 0<=k<=R, k<=K1, R-k<=K2 */
+        int kmin = 0;
+        int kmax = R;
+        if (kmax > K1) kmax = K1;
+        int need_min_k = R - K2;
+        if (need_min_k > kmin) kmin = need_min_k;
+        if (kmin < 0) kmin = 0;
+
+        for (int k = kmin; k <= kmax; k++) {
+            int a = S1[k];
+            int b = S2[R - k];
+            long long sum = (long long)a + (long long)b;
+            if (sum < best) best = sum;
+        }
+
+        /* If no feasible k exists, behavior is not specified; preconditions imply feasibility. */
+        if (best == LLONG_MAX) best = 0;
+
+        printf("%lld\n", best);
+    }
+    return 0;
+}
+```

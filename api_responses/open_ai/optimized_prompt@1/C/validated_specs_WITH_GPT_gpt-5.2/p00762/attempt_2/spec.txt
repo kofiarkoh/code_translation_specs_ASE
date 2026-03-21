@@ -1,0 +1,45 @@
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates dropping a sequence of cubes onto a fixed, bounded 2D grid (size \( (2\cdot N\_MAX+1)\times(2\cdot N\_MAX+1) \), with \(N\_MAX=4\), i.e., 9×9). Each cube starts at the grid center and may “roll” across the grid before coming to rest. A roll is allowed only from a cell to an orthogonally adjacent cell whose current stack height is strictly lower than the current cell’s height. Among all allowed directions, the program chooses the single direction whose associated side-face value (as defined by the cube’s current orientation and the direction of motion) is the largest value strictly greater than 3; if no allowed direction has an associated value > 3, rolling stops. The cube is then placed on the current cell, increasing that cell’s stack height by 1 and recording the cube’s upward-facing value for that cell (overwriting any previous recorded top for that cell). After all cubes are processed, it outputs counts of how many grid cells have recorded top values 1 through 6.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer \(n\) (number of cubes).  
+- If \(n=0\), input terminates and no output is produced for that case.  
+- Otherwise, \(n\) lines follow, each containing two integers \(t\) and \(f\): the cube’s initial top (upward-facing) value and initial front value.
+
+3. Cube Labeling / Orientation Model (crucial)  
+- Face labels are the integers 1..6 with fixed opposite pairs: bottom = \(7-\text{top}\), back = \(7-\text{front}\).  
+- In addition, the cube’s left/right relationship is not arbitrary: it is defined by a fixed, globally agreed cube geometry that determines the right face for each valid (top, front) pair. The program uses an explicit mapping RIGHT(top, front) (a lookup table) and derives:  
+  - RIGHT = RIGHT(top, front)  
+  - LEFT = \(7-\)RIGHT(top, front)  
+  - BACK = \(7-\)front  
+  - BOTTOM = \(7-\)top  
+- Therefore, the input pair (top, front) is interpreted with respect to this specific fixed cube labeling; different valid physical cubes/orientation conventions are not interchangeable.
+
+4. Rolling / Movement Rules  
+For each cube, initialize position at the center cell and orientation to the input (top, front). Then repeat:  
+- Consider up to four candidate moves (north, south, west, east). A candidate move in a direction is eligible only if the adjacent cell in that direction has strictly smaller current height than the current cell.  
+- Each direction has an associated “side value” taken from the cube’s current orientation:  
+  - Moving north (toward decreasing row index): associated value = current FRONT face value.  
+  - Moving south (increasing row index): associated value = current BACK face value.  
+  - Moving west (decreasing column index): associated value = current LEFT face value.  
+  - Moving east (increasing column index): associated value = current RIGHT face value.  
+- Among eligible moves, select the one with the maximum associated value subject to the additional requirement that the associated value must be > 3. If no eligible move has associated value > 3, stop rolling.  
+- If a move is selected, update both position and orientation as if the cube is rolled one cell in that direction (the new top and new front are updated deterministically according to the direction and the cube-geometry rules above), and continue the loop.
+
+5. Placement and Recorded State  
+- When rolling stops, the cube is placed on the current cell: that cell’s height increases by 1.  
+- The cell’s recorded top value becomes the cube’s current top value after the final roll sequence (overwriting any previous recorded top at that cell).  
+- Cells never landed on retain recorded top value 0 internally.
+
+6. Outputs  
+For each non-terminating test case, output one line with six integers separated by single spaces: for face values 1,2,3,4,5,6 respectively, the number of grid cells whose recorded top value equals that face value at the end of the test case. (Cells with recorded value 0 are not reported.)
+
+7. Preconditions / Assumptions  
+- Inputs are well-formed and provide \(n\) pairs after each nonzero \(n\).  
+- Each provided top and front value is in 1..6 and corresponds to a valid orientation under the program’s fixed cube geometry (in particular, top and front are distinct and not opposite, and the pair is one for which the fixed RIGHT(top, front) mapping is defined).  
+- The sequence of rolls for every cube remains within the fixed 9×9 grid; otherwise behavior is undefined (the program does not perform bounds checks).
+
+8. Reset and Termination Behavior  
+- For each test case, the grid state (heights and recorded tops) is reset to all zeros before processing cubes.  
+- Processing continues until a test case with \(n=0\) is read, at which point the program terminates.

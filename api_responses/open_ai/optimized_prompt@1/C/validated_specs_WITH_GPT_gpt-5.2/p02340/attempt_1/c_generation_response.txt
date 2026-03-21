@@ -1,0 +1,44 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAX_N 1000
+#define MAX_K 1000
+#define MOD 1000000007u
+
+int main(void) {
+    int n, k;
+
+    /* Per spec: if input cannot be read, behavior is not guaranteed.
+       We still attempt to proceed; if scanf fails, n/k remain unspecified. */
+    (void)scanf("%d %d", &n, &k);
+
+    /* dp[kk][nn] = number of partitions of nn using parts in [1..kk], mod MOD */
+    static uint32_t dp[MAX_K + 1][MAX_N + 1];
+
+    /* Base: for any k, dp[k][0] = 1 (empty sum) */
+    for (int kk = 0; kk <= MAX_K; kk++) {
+        dp[kk][0] = 1u;
+    }
+    /* Base: dp[0][n>0] = 0 already by static zero-initialization */
+
+    /* Recurrence:
+       dp[k][n] = dp[k-1][n] + (n>=k ? dp[k][n-k] : 0)
+       This counts partitions with max part size k (unbounded multiplicity). */
+    for (int kk = 1; kk <= MAX_K; kk++) {
+        for (int nn = 1; nn <= MAX_N; nn++) {
+            uint32_t v = dp[kk - 1][nn];
+            if (nn >= kk) {
+                v += dp[kk][nn - kk];
+                if (v >= MOD) v -= MOD; /* since both addends are < MOD */
+            }
+            dp[kk][nn] = v;
+        }
+    }
+
+    /* For inputs within contract bounds, this is defined. */
+    uint32_t ans = dp[k][n];
+    printf("%u", ans);
+    return 0;
+}
+```

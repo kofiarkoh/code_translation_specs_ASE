@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a description of a rooted, ordered tree with up to 100,000 nodes. Each node’s children are given in left-to-right order. The program builds parent/child relationships, identifies a root as a node with no parent, computes a depth value for nodes reachable from that root, and then prints a fixed-format summary line for every node index from `0` to `n-1`, including its parent, depth, node-type label, and its ordered list of children.
+
+2. Inputs  
+- An integer `n` giving the number of nodes.  
+- Then `n` node descriptions, each consisting of:  
+  - An integer node identifier `id`.  
+  - A nonnegative integer `num` giving the number of children of `id`.  
+  - `num` integers giving the child node identifiers in left-to-right order.
+
+3. Outputs  
+For each node index `i` from `0` to `n-1` (in increasing order), the program prints exactly one line in the following fixed textual format (including punctuation, spacing, and wording):  
+- Begins with: `node i: parent = P, depth = D, `  
+- Then prints one of the following node-type phrases followed immediately by `, [`:  
+  - `root, [` if the node’s parent is the sentinel `-1`  
+  - `leaf, [` if the node is not a root and has no children  
+  - `internal node, [` otherwise (i.e., not a root and has at least one child)  
+- Then prints the node’s children as a comma-and-space separated list in left-to-right order (no extra spaces), or prints nothing between the brackets if there are no children.  
+- Ends with `]` and a newline.
+
+The parent value `P` is printed as an integer, using `-1` for “no parent”. The depth value `D` is printed as an integer.
+
+4. Tree Construction Semantics  
+- Each node stores at most one parent. All parents are initialized to `-1`.  
+- For each node `id`, the first listed child becomes its “left” child. Each subsequent child is linked as the “right” sibling of the previous child, preserving the input order.  
+- Each listed child’s parent is set to `id` (overwriting any previous parent value if the input repeats a child under multiple parents).
+
+5. Root Identification  
+After reading all node descriptions, the program selects a root by scanning node indices from `0` to `n-1` and assigning `root` to any node whose parent is `-1`; if multiple nodes have parent `-1`, the last such index encountered becomes the root used for depth computation.
+
+6. Depth Computation  
+- The chosen root is assigned depth `0`.  
+- Depths are computed by a recursive traversal that visits a node’s right-sibling chain first at the same depth, and then visits its left child at depth + 1.  
+- Only nodes reachable from the chosen root via these links have their depth values assigned by this traversal; other nodes’ depth values are unspecified.
+
+7. Preconditions / Assumptions  
+- `n` does not exceed 100,000.  
+- Node identifiers appearing in the input are intended to be within `[0, n-1]`.  
+- The input is intended to describe a rooted ordered tree (single parent per non-root, no cycles, and all nodes connected), though the program does not validate these properties.
+
+8. Error Handling / Exceptional Behavior  
+No explicit error handling is performed. If the input violates the assumptions (e.g., out-of-range identifiers, multiple roots, cycles, disconnected nodes, or excessive recursion depth), behavior and/or printed results are unspecified.
+
+```

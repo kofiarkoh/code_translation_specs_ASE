@@ -1,0 +1,47 @@
+1. Functional Description  
+Maintains an ordered, mutable sequence of integers with a movable cursor. Processes a finite list of commands to insert integers immediately before the cursor, move the cursor left or right by a signed offset, and erase the element at the cursor. After all commands, outputs the remaining sequence elements in order from front to back, excluding an internal end marker.
+
+2. Inputs  
+- An integer specifying the number of subsequent commands.  
+- A sequence of that many commands, each being one of:  
+  - Insert: includes an integer value to be inserted.  
+  - Move: includes a signed integer offset indicating cursor movement (negative = toward front, positive = toward back, zero = no movement).  
+  - Erase: no additional value.
+
+3. Outputs  
+- On normal completion: each stored integer in the sequence, one per line, in front-to-back order.  
+- On certain invalid cursor moves: an error message is emitted and the program terminates immediately (see section 7).
+
+4. Preconditions  
+- The initial command count is a valid integer and is non-negative.  
+- Each command line is present and conforms to one of the supported command types, with an integer argument where required.  
+- Inserted values and move offsets are representable as integers.  
+- Sufficient memory is available for all required insertions.
+
+5. Postconditions  
+- If the program completes normally, the output is exactly the final sequence contents after applying all commands in order, excluding the internal end marker.  
+- Insert commands add a new element immediately before the current cursor position and set the cursor to the newly inserted element.  
+- Move commands set the cursor to the element reached by applying the offset stepwise from the current cursor position.  
+- Erase commands remove the element at the cursor if it is not the internal end marker; after erasure, the cursor becomes the next element (toward back). If the cursor is at the internal end marker, erase has no effect.
+
+6. Invariants  
+- The sequence always contains a distinguished internal end marker element that is never removed.  
+- The cursor always points to some element in the sequence (never becomes null) during normal operation.  
+- The sequence is a well-formed doubly-linked order: for any adjacent pair, forward and backward links are mutually consistent, and the front element has no predecessor.
+
+7. Error Handling / Exceptional Behavior  
+- If a move command attempts to move left when the cursor is already at the front element, the program emits an error message and terminates with a non-zero exit status.  
+- If a move command attempts to move right when the cursor has no next element, the program emits an error message and terminates with a non-zero exit status.  
+- If memory allocation for a new element fails, behavior is undefined (no explicit handling).  
+- Malformed or missing input lines are not explicitly handled; behavior is undefined.
+
+8. State Transitions (if applicable)  
+State consists of (sequence contents and order, cursor position). For each command:  
+- Insert(value): sequence gains one new element immediately before cursor; cursor transitions to that new element.  
+- Move(offset): cursor transitions to the element offset steps away; if the target would be outside the sequence bounds, transitions to a terminal error state (program termination).  
+- Erase: if cursor is not the end marker, the cursor element is removed and cursor transitions to its successor; otherwise, no state change.
+
+9. Non-functional Constraints (if inferable)  
+- Time is proportional to the total number of move steps plus the number of commands and the final number of elements printed.  
+- Memory usage grows linearly with the number of successful insertions minus erasures (end marker excluded).  
+- On termination due to an invalid move, allocated memory is not reclaimed before exit.

@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads two signed integers `n` and `m`, computes a value using a two-dimensional dynamic program with an auxiliary accumulated table, and prints the final value reduced modulo a fixed prime modulus.
+
+2. Inputs  
+- Two signed integers read from standard input: `n` and `m`.
+
+3. Outputs  
+- Prints exactly one line to standard output containing `dp[n][m]` as a signed decimal integer followed by a newline, where all computations are performed modulo `MOD = 1,000,000,007`.
+
+4. Computation (Definition of the Recurrence)  
+All arithmetic below is performed modulo `MOD = 1,000,000,007`.
+
+The program maintains:
+- `pow2[x] = 2^x mod MOD` for `x = 0..(n+m)`
+- `inv2[x] = (1/2)^x mod MOD` for `x = 0..(n+m)`, where `1/2 mod MOD` is computed as `(MOD + 1) / 2`.
+
+Initialization for these sequences:
+- `pow2[0] = 1`, `inv2[0] = 1`
+- For `x = 1..(n+m)`:
+  - `pow2[x] = (pow2[x-1] * 2) mod MOD`
+  - `inv2[x] = (inv2[x-1] * ((MOD + 1)/2)) mod MOD`
+
+Dynamic programming tables:
+- `dp[i][j]` and `dq[i][j]` are conceptually defined for `i = 0..n` and `j = 0..m`.
+- `dq[i][0]` is treated as `0` for all `i` (this holds due to zero-initialization of the global table).
+- `dp[i][0]` is not explicitly filled by the recurrence loops; its value is whatever results from the program’s initialization (zero-initialized in this program).
+
+Filling order and formulas:
+- For each `i` from `0` to `n` (inclusive), and for each `j` from `1` to `m` (inclusive):
+  - If `i == 0`:
+    - `dp[0][j] = 1`
+  - Else (`i > 0`):
+    - `dp[i][j] = ((j + 1) * dp[i-1][j] + dq[i-1][j-1] * pow2[j-1]) mod MOD`
+  - Then update the auxiliary accumulation:
+    - `dq[i][j] = (dq[i][j-1] + (dp[i][j] * j mod MOD) * inv2[j]) mod MOD`
+
+Final result:
+- The printed value is exactly `dp[n][m]` modulo `MOD` (represented in the program using a signed 64-bit integer type).
+
+5. Preconditions / Input Constraints  
+- Input must contain two integers readable by `scanf("%lld%lld", &n, &m)`.
+- The program assumes `n` and `m` are within bounds of its fixed-size internal arrays. In particular, `n` and `m` must be small enough that indices up to `n` and `m` are valid for the preallocated `dp`/`dq` tables, and `n + m` is valid for the `pow2`/`inv2` arrays.
+- The program does not validate that `n` and `m` are nonnegative; negative values may lead to out-of-bounds access or other undefined behavior.
+
+6. Edge Cases  
+- `m` may be `0`. In that case, the inner loop over `j = 1..m` performs no iterations, and the program prints the existing value of `dp[n][0]` (which in this program is zero due to global zero-initialization).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.
+- If input is missing/invalid or if `n`/`m` violate the assumed bounds, behavior is undefined (may crash, access invalid memory, or print an unintended value).
+
+8. State Transitions  
+- The program reads input once, performs the precomputations and DP fill once, prints one line, and terminates. No persistent state is stored across runs.
+
+9. Non-functional Characteristics  
+- Time complexity is proportional to `O(n * m)` for the DP fill plus `O(n + m)` for the power precomputations.
+- Memory usage is dominated by the fixed-size 2D tables allocated for `dp` and `dq`, independent of the specific input values as long as they are within supported bounds.
+
+```

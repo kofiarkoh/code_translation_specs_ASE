@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the number of ordered triples of integers \((a,b,c)\) such that \(1 \le a,b,c \le N\) and \((a+b+c)\) is divisible by \(K\).
+
+2. Inputs  
+- Two signed integers \(N\) and \(K\) read from standard input.
+
+3. Outputs  
+- A single signed integer written to standard output: the count of ordered triples \((a,b,c)\) in \([1,N]^3\) whose sum is divisible by \(K\).
+
+4. Preconditions  
+- \(K \ne 0\).  
+- \(N \ge 0\).  
+- The computed result fits within the signed 64-bit integer range (to avoid arithmetic overflow).  
+- Input is present and parseable as two signed integers.
+
+5. Postconditions  
+- If \(K\) is odd, the output equals \(\left\lfloor \frac{N}{K} \right\rfloor^3\).  
+- If \(K\) is even, the output equals \(\left\lfloor \frac{N}{K} \right\rfloor^3 + \left\lfloor \frac{N + K/2}{K} \right\rfloor^3\).  
+- The output equals the number of ordered triples \((a,b,c)\) with \(1 \le a,b,c \le N\) satisfying \((a+b+c) \bmod K = 0\).
+
+6. Invariants  
+- The produced count is non-negative.  
+- The produced count does not exceed \(N^3\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, or if \(K=0\), or if intermediate/final arithmetic overflows the signed 64-bit range, behavior is undefined with respect to this specification.
+
+8. State Transitions (if applicable)  
+- None; the program is a single-shot computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to \(N\) and \(K\).
+
+```

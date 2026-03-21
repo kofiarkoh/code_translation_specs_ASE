@@ -1,0 +1,40 @@
+#include <stdio.h>
+
+int main(void) {
+    int t;
+    if (scanf("%d", &t) != 1) {
+        return 0; /* unspecified behavior on bad input; exit quietly */
+    }
+
+    for (int i = 0; i < t; i++) {
+        double x1, y1, r1, x2, y2, r2;
+        if (scanf("%lf %lf %lf %lf %lf %lf", &x1, &y1, &r1, &x2, &y2, &r2) != 6) {
+            return 0; /* unspecified behavior on bad input; exit quietly */
+        }
+
+        /* Classification is determined solely by comparing:
+           d^2 vs (r1+r2)^2 and vs (r1-r2)^2. */
+        double dx = x1 - x2;
+        double dy = y1 - y2;
+        double d2 = dx * dx + dy * dy;
+
+        double sum = r1 + r2;
+        double sum2 = sum * sum;
+
+        double diff = r1 - r2;
+        double diff2 = diff * diff;
+
+        int code;
+        if (d2 > sum2) {
+            code = 0;          /* externally disjoint */
+        } else if (d2 < diff2) {
+            code = (r1 > r2) ? 2 : -2; /* strict containment with no common points */
+        } else {
+            code = 1;          /* at least one common point, or non-strict containment */
+        }
+
+        printf("%d\n", code);
+    }
+
+    return 0;
+}

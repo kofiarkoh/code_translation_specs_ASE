@@ -1,0 +1,138 @@
+#include <stdio.h>
+#include <stdint.h>
+
+static int is_leap(int y) {
+    /* Gregorian leap year rule */
+    return (y % 4 == 0) && ((y % 100) != 0 || (y % 400) == 0);
+}
+
+int main(void) {
+    char s[50];
+    /* Month lengths for non-leap years */
+    static const int mdays[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+
+    while (scanf("%s", s) == 1) {
+        if (s[0] == '#') break;
+
+        /* Parse token into dot-separated unsigned decimal integers.
+           No validation; behavior for non-digit/non-dot is unspecified per spec. */
+        uint64_t a[64];
+        int n = 0;
+        uint64_t cur = 0;
+
+        for (int i = 0; s[i] != '\0'; i++) {
+            if (s[i] == '.') {
+                a[n++] = cur;
+                cur = 0;
+            } else {
+                cur = cur * 10u + (uint64_t)(s[i] - '0');
+            }
+        }
+        a[n++] = cur;
+
+        if (n == 3) {
+            /* Gregorian (Y.M.D) -> mixed radix (p0..p4) */
+            int Y = (int)a[0];
+            int M = (int)a[1];
+            int D = (int)a[2];
+
+            uint64_t dt = 0;
+
+            /* days before month M in year Y */
+            for (int m = 1; m <= M - 1; m++) {
+                /* If M is out of range, this indexing is unspecified; spec says no validation. */
+                dt += (uint64_t)mdays[m - 1];
+            }
+
+            /* (D - 1) as 0-based offset */
+            dt += (uint64_t)(D - 1);
+
+            if (M > 2 && is_leap(Y)) dt += 1;
+
+            /* year-based offset relative to 2001 using C integer arithmetic */
+            int k = Y - 2001;
+            dt += (uint64_t)(365 * (int64_t)k
+                             + (int64_t)(k / 4)
+                             - (int64_t)(k / 100)
+                             + (int64_t)(k / 400));
+
+            /* fixed epoch-alignment constant: 366 - m12, m12 = 365*13 + 4 - 11 */
+            {
+                int64_t m12 = 365LL * 13LL + 4LL - 11LL;
+                int64_t c = 366LL - m12;
+                dt += (uint64_t)c;
+            }
+
+            uint64_t p4 = dt % 20u; dt /= 20u;
+            uint64_t p3 = dt % 18u; dt /= 18u;
+            uint64_t p2 = dt % 20u; dt /= 20u;
+            uint64_t p1 = dt % 20u; dt /= 20u;
+            uint64_t p0 = dt % 13u;
+
+            printf("%llu.%llu.%llu.%llu.%llu\n",
+                   (unsigned long long)p0,
+                   (unsigned long long)p1,
+                   (unsigned long long)p2,
+                   (unsigned long long)p3,
+                   (unsigned long long)p4);
+        } else {
+            /* Mixed radix (first five components) -> Gregorian (Y.M.D)
+               If fewer than five components exist, behavior is undefined per spec. */
+            uint64_t d0 = a[0], d1 = a[1], d2 = a[2], d3 = a[3], d4 = a[4];
+
+            uint64_t dt = (((((d0) * 20u + d1) * 20u + d2) * 18u + d3) * 20u + d4);
+
+            /* add fixed constant offset 4739 */
+            dt += 4739u;
+
+            int Y = 2000;
+            uint64_t t = 0;
+
+            while (dt > 365u) {
+                t = dt;
+                dt -= 365u;
+                if (is_leap(Y)) dt -= 1u;
+                Y++;
+            }
+
+            if (dt == 0u) {
+                dt = t;
+                Y -= 1;
+            }
+
+            int M = 1;
+            for (;;) {
+                int ml = mdays[M - 1];
+                if (M == 2 && is_leap(Y)) {
+                    /* February in leap year: special handling as specified */
+                    if (dt > (uint64_t)ml) {
+                        dt -= (uint64_t)ml;
+                        dt -= 1u;
+                        if (dt == 0u) {
+                            /* exactly the leap day */
+                            M = 2;
+                            dt = 29u;
+                            break;
+                        }
+                        M++;
+                        continue;
+                    } else {
+                        break;
+                    }
+                } else {
+                    if (dt > (uint64_t)ml) {
+                        dt -= (uint64_t)ml;
+                        M++;
+                        continue;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            printf("%d.%d.%llu\n", Y, M, (unsigned long long)dt);
+        }
+    }
+
+    return 0;
+}

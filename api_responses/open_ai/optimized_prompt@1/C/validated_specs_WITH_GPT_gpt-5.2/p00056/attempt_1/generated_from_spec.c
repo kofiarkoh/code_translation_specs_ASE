@@ -1,0 +1,46 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_N 50000
+
+int main(void) {
+    /* Primality table for 0..MAX_N inclusive.
+       is_prime[x] == 1 means prime, 0 means not prime. */
+    unsigned char is_prime[MAX_N + 1];
+
+    /* Initialize all as prime, then sieve. */
+    memset(is_prime, 1, sizeof(is_prime));
+    if (MAX_N >= 0) is_prime[0] = 0;
+    if (MAX_N >= 1) is_prime[1] = 0;
+
+    for (int i = 2; (long long)i * i <= MAX_N; i++) {
+        if (is_prime[i]) {
+            for (int j = i * i; j <= MAX_N; j += i) {
+                is_prime[j] = 0;
+            }
+        }
+    }
+
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        /* Behavior is undefined by spec if n < 0 or n > MAX_N.
+           We intentionally do not add checks to preserve that. */
+
+        int count = 0;
+        int half = n / 2;
+        for (int p = 2; p <= half; p++) {
+            if (is_prime[p]) {
+                int q = n - p;
+                if (q >= 0 && q <= MAX_N && is_prime[q]) {
+                    count++;
+                }
+            }
+        }
+
+        printf("%d\n", count);
+    }
+
+    return 0;
+}

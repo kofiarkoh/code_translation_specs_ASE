@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+
+int main(void) {
+    long long n = 0, m = 0;
+    if (scanf("%lld %lld", &n, &m) != 2) {
+        return 0; /* unspecified behavior on invalid input */
+    }
+
+    long long *a = NULL, *b = NULL;
+    if (n > 0) a = (long long *)malloc((size_t)n * sizeof(long long));
+    if (m > 0) b = (long long *)malloc((size_t)m * sizeof(long long));
+    /* If allocation fails, behavior is unspecified by spec; proceed as-is. */
+
+    for (long long i = 0; i < n; i++) {
+        if (scanf("%lld", &a[i]) != 1) return 0;
+    }
+    for (long long i = 0; i < m; i++) {
+        if (scanf("%lld", &b[i]) != 1) return 0;
+    }
+
+    /* Compute sum over all unordered pairs (j>i) of (x[j] - x[i]).
+       For input order (intended non-decreasing), this equals sum_{i} x[i]*(2*i - (len-1)).
+       Use 64-bit signed arithmetic; overflow is undefined per spec. */
+    long long sumA = 0;
+    for (long long i = 0; i < n; i++) {
+        long long coeff = 2LL * i - (n - 1);
+        sumA += a[i] * coeff;
+    }
+
+    long long sumB = 0;
+    for (long long i = 0; i < m; i++) {
+        long long coeff = 2LL * i - (m - 1);
+        sumB += b[i] * coeff;
+    }
+
+    /* Reduce modulo MOD. Keep C's signed remainder behavior (may be negative). */
+    long long sumA_mod = sumA % MOD;
+    long long sumB_mod = sumB % MOD;
+
+    long long result = (sumA_mod * sumB_mod) % MOD;
+
+    printf("%lld\n", result);
+
+    free(a);
+    free(b);
+    return 0;
+}

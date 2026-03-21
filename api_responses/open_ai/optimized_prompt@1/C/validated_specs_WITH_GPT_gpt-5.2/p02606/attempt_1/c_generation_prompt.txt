@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and reports how many integers within a given inclusive range are divisible by a given positive divisor.
+
+2. Inputs  
+- Three integers:
+  - Lower bound of the range.
+  - Upper bound of the range.
+  - Divisor.
+
+3. Outputs  
+- One integer: the count of values in the inclusive range \[lower bound, upper bound\] that are exactly divisible by the divisor.
+
+4. Preconditions  
+- The three input values are successfully provided as integers.  
+- The divisor is non-zero.  
+- The lower bound is less than or equal to the upper bound.  
+- The arithmetic operations required to compute the result do not overflow the integer range of the execution environment.  
+- For the stated “divisible count” interpretation to match the computed value, the divisor is assumed to be positive and the bounds are assumed to be non-negative.
+
+5. Postconditions  
+- The output equals:  
+  count = ⌊upper bound / divisor⌋ − ⌊(lower bound − 1) / divisor⌋  
+  which corresponds to the number of multiples of the divisor in \[lower bound, upper bound\] under the assumptions in Preconditions.
+
+6. Invariants  
+- The reported count is an integer and is non-negative under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, if the divisor is zero, or if integer overflow occurs, behavior is undefined with respect to this specification.
+
+8. State Transitions (if applicable)  
+- None; the program is stateless aside from consuming input and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+
+```

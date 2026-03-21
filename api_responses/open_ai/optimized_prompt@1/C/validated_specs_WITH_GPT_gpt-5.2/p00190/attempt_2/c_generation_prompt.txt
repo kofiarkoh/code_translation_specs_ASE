@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each given configuration of a fixed 13-position puzzle with exactly two empty spaces, compute the minimum number of legal moves needed to reach the program’s fixed goal configuration. A legal move consists of choosing one of the two empty positions and swapping it with an adjacent non-empty tile (adjacency is defined by a fixed 13-node graph). If the program cannot prove a solution within its supported search bound, it reports no answer.
+
+2. Inputs  
+- The program reads multiple test cases from standard input.  
+- Each test case consists of exactly 13 integers, corresponding to positions indexed 0 through 12 in that order.  
+- The value `0` denotes an empty space; the intended input has exactly two zeros.  
+- Input terminates when the first integer of a test case (the value for position 0) is negative; in that case the program exits immediately without producing output for that test case.
+
+3. Goal Configuration  
+The goal is fixed for the lifetime of the program and is defined in terms of the 13 input positions (0..12) as follows:  
+- Position 0 contains tile `1`, position 1 contains `2`, …, position 10 contains `11`, position 11 contains `0`, and position 12 contains `0`.  
+Equivalently, the goal sequence of 13 integers is `1,2,3,4,5,6,7,8,9,10,11,0,0` in positions 0..12.
+
+4. Legal Moves / Adjacency Graph  
+A move swaps an empty position with a non-empty tile located at a neighboring position. The neighbor relation is exactly the following (undirected) adjacency list by position index:
+
+- 0: {2}  
+- 1: {2, 5}  
+- 2: {0, 1, 3, 6}  
+- 3: {2, 7}  
+- 4: {5}  
+- 5: {1, 4, 6, 9}  
+- 6: {2, 5, 7, 10}  
+- 7: {3, 6, 8, 11}  
+- 8: {7}  
+- 9: {5, 10}  
+- 10: {6, 9, 11, 12}  
+- 11: {7, 10}  
+- 12: {10}
+
+A swap is permitted only if the neighbor position is not the other empty position (i.e., the program never swaps an empty with an empty).
+
+5. Outputs  
+For each non-terminating test case, the program writes exactly one line:  
+- If it determines the minimum number of moves from the input configuration to the goal within its supported bound, it prints that minimum as a decimal integer.  
+- Otherwise it prints the literal string `NA`.
+
+6. Supported Search Bound and Answer Semantics  
+- The program guarantees to return the exact minimum move count when that minimum is at most 20.  
+- If the minimum move count is greater than 20, or if the program does not find a connection to the goal within its bounded search procedure, it outputs `NA`.  
+- The reported integer, when printed, is minimal with respect to the legal moves defined above.
+
+7. High-level Method (behavioral, not an implementation contract)  
+- The program conceptually precomputes all states within 16 moves of the goal and stores their exact distances.  
+- For a query state not found in that precomputed set, it searches outward from the query up to 4 moves to find any state that is in the precomputed set; if found, it outputs the sum of the two distances (query-to-intersection plus intersection-to-goal). If no such intersection is found within 4 moves, it outputs `NA`.
+
+8. Preconditions / Unspecified Behavior  
+- Each non-terminating test case must provide 13 integers.  
+- The intended domain is tile values that fit in 4 bits (0..15) and exactly two zeros; if these conditions are violated, the program’s behavior is unspecified.  
+- The program uses fixed-size internal storage for its searches; if those limits are exceeded, behavior is unspecified.
+
+```

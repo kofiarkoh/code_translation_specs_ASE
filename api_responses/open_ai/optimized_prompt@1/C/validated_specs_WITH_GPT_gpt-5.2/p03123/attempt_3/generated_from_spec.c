@@ -1,0 +1,125 @@
+#include <stdio.h>
+
+static const long long prime = 10000000019LL;
+
+static long long calcul(long long p, long long q, long long z, long long *outR, long long *outB) {
+    long long cnt = 0;
+    long long R = 0, B = 0;
+
+    int swapped = 0;
+    if (p < q) {
+        long long tmp = p;
+        p = q;
+        q = tmp;
+        swapped = 1;
+    }
+
+    long long i = 0;
+    while (z >= 0) {
+        long long w = z / q; /* integer division */
+        cnt += (w + 1);
+        R += i * (w + 1);
+        B += ((w + 1) * w) / 2;
+        z -= p;
+        i++;
+    }
+
+    if (swapped) {
+        long long tmp = R;
+        R = B;
+        B = tmp;
+    }
+
+    *outR = R;
+    *outB = B;
+    return cnt;
+}
+
+static void calc(long long p, long long q, long long k, long long *ZR, long long *ZB) {
+    long long l = 0;
+    long long r = prime * 2000LL;
+
+    /* The spec requires that if the search ends without c==k, we keep the
+       last values written by the most recent calcul call. */
+    while (l <= r) {
+        long long mid = (l + r) / 2;
+        long long tr = 0, tb = 0;
+        long long c = calcul(p, q, mid, &tr, &tb);
+        *ZR = tr;
+        *ZB = tb;
+
+        if (c == k) {
+            return;
+        } else if (c < k) {
+            l = mid + 1;
+        } else {
+            r = mid - 1;
+        }
+    }
+}
+
+static int ispossible(long long R, long long B, long long k) {
+    long long l = 1;
+    long long r = prime - 1;
+
+    long long SR = 0, SB = 0; /* point from ZR > R case */
+    long long FR = 0, FB = 0; /* point from ZR <= R case */
+
+    while (l <= r) {
+        long long te = (l + r) / 2;
+
+        long long ZR = 0, ZB = 0;
+        calc(te, prime - te, k, &ZR, &ZB);
+
+        if (ZR <= R && ZB <= B) {
+            return 1;
+        }
+        if (ZR > R && ZB > B) {
+            return 0;
+        }
+
+        if (ZR > R) {
+            SR = ZR;
+            SB = ZB;
+            l = te + 1;
+        } else {
+            FR = ZR;
+            FB = ZB;
+            r = te - 1;
+        }
+    }
+
+    /* Final geometric check: cross((S-F),(T-F)) >= 0 */
+    {
+        long long ax = SR - FR;
+        long long ay = SB - FB;
+        long long bx = R - FR;
+        long long by = B - FB;
+        long long cross = ax * by - ay * bx;
+        return (cross >= 0);
+    }
+}
+
+int main(void) {
+    long long r, b;
+    if (scanf("%lld%lld", &r, &b) != 2) {
+        return 0;
+    }
+
+    long long l = 0;
+    long long rr = 2222222LL;
+    long long ans = 0;
+
+    while (l <= rr) {
+        long long mid = (l + rr) / 2;
+        if (ispossible(r, b, mid)) {
+            ans = mid;
+            l = mid + 1;
+        } else {
+            rr = mid - 1;
+        }
+    }
+
+    printf("%lld\n", ans - 1);
+    return 0;
+}

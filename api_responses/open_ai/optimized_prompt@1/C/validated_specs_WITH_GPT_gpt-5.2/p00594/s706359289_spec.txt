@@ -1,0 +1,36 @@
+1. Functional Description  
+Processes multiple datasets from standard input. For each dataset, it determines whether there exists a value that occurs **strictly more than half** of the dataset size. If such a value exists, it outputs that value; otherwise it outputs a fixed message indicating no such value exists.
+
+2. Inputs  
+- A sequence of datasets read from standard input.  
+- Each dataset begins with an integer `n` (the dataset size).  
+- If `n` is nonzero, it is followed by exactly `n` integers (the dataset elements).  
+- A dataset size of `0` terminates processing; no output is produced for the terminating `0`.
+
+3. Outputs  
+For each dataset with `n != 0`, the program writes exactly one line to standard output:  
+- If some value occurs more than `n/2` times, output that value as a decimal integer followed by a newline.  
+- Otherwise output exactly the line:  
+  `NO COLOR`  
+  followed by a newline.
+
+4. Preconditions / Assumptions  
+- `n` is expected to be in the range `1` to `1,000,000` inclusive (fits the program’s fixed storage).  
+- Each dataset provides exactly `n` integer elements.  
+- The integer values are such that the program’s subtraction-based comparison used during sorting does not overflow; if overflow occurs, ordering (and thus behavior) is unspecified.
+
+5. Postconditions / Selection Semantics  
+For each processed dataset of size `n` with multiset of values `S`:  
+- If there exists a value `v` in `S` with `count(v) > n/2`, the program outputs that `v`. (For a strict majority, at most one such value can exist.)  
+- If no value satisfies `count(v) > n/2`, the program outputs `NO COLOR`.
+
+6. Internal Ordering and Counting Logic (observable only via chosen value)  
+- The program sorts the `n` elements in **descending** numeric order before counting occurrences.  
+- It then scans the sorted sequence to find the maximum run length (maximum frequency) and remembers the value associated with the longest run. The remembered value is updated only when a **strictly longer** run is found; ties in run length do not replace the previously remembered value.  
+- The final output still depends solely on whether the maximum run length is greater than `n/2`; if not, the remembered value is ignored and `NO COLOR` is printed.
+
+7. Error Handling / Exceptional Behavior  
+- There is no explicit handling for malformed input, premature end-of-file, or out-of-range `n`; behavior is unspecified in such cases.
+
+8. Processing Loop / Termination  
+- Repeats: read `n` → if `n == 0`, terminate → else read `n` integers → produce one output line → continue with the next dataset.

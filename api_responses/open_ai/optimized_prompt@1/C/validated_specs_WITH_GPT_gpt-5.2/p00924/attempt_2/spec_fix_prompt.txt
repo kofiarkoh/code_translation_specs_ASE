@@ -1,0 +1,196 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1345
+  Title:Bit String Reordering
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+#define max(x,y) (((x)>(y))?(x):(y))
+#define min(x,y) (((x)<(y))?(x):(y))
+int M,N;
+char b[15];
+char b1[15];
+int  p[15];
+int  p1[15];
+
+int solve(char bit[],int runlen[],int len,int runlenlen,char start)
+{
+  int pos;
+  char *p;
+
+  if(len==1)
+    return(0);
+  if(runlen[0]==0)
+    return(solve(bit,runlen+1,len,runlenlen-1,start=='1'?'0':'1'));
+  if(len==2)
+    {
+      if(bit[0]==start)
+	return(0);
+      else
+	return(1);
+    }
+  else if(bit[0]==start)
+    {
+      runlen[0]--;
+      return(solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+  else if(start=='0')
+    {
+      p = strchr(bit,'0');
+      pos =  p - bit;
+      runlen[0]--;
+      *p='1';
+      return(pos+solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+  else if(start=='1')
+    {
+      p = strchr(bit,'1');
+      pos =  p - bit;
+      runlen[0]--;
+      *p='0';
+      return(pos+solve(bit+1,runlen,len-1,runlenlen,start));
+    }
+}
+
+main()
+{
+  int i,ret,c1,ce,ret1,ret2;
+  
+  scanf("%d %d ",&N,&M);
+
+  for(i=c1=0;i<N;i++)
+    {  
+      scanf("%c ",&b[i]);
+      if(b[i]=='1')
+	c1++;
+    }
+  for(i=ce=0;i<M;i++)
+    {
+      scanf("%d",&p[i]);
+      if((i & 1)==0)
+	ce += p[i];
+    }
+
+    if(c1*2==N)
+    {
+      memcpy(b1,b,sizeof(b));
+      memcpy(p1,p,sizeof(p));
+      ret1=solve(b,p,N,M,'1');
+      ret2=solve(b1,p1,N,M,'0');
+      ret=min(ret1,ret2);
+    }
+  else if (ce==c1)
+    ret=solve(b,p,N,M,'1');
+  else
+    ret=solve(b,p,N,M,'0');
+  
+
+  printf("%d\n",ret);
+  
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total movement cost required to reorder a given binary string into a target pattern consisting of alternating runs of identical bits with specified run lengths. The target pattern starts with either bit value depending on the input’s bit counts and the run-length parity constraints, and the program outputs the minimum cost among the feasible starting choices when both are feasible.
+
+2. Inputs  
+- An integer length of the bit string.  
+- An integer count of run lengths.  
+- A sequence of bits of the given length.  
+- A sequence of nonnegative integers representing consecutive run lengths whose total is assumed to match the bit-string length.
+
+3. Outputs  
+- A single nonnegative integer: the computed minimum total movement cost to transform the input bit string into the required run-structured pattern under the selected starting bit (or the minimum over both starting bits when both are admissible).
+
+4. Preconditions  
+- The bit string length is at least 1 and does not exceed the fixed internal capacity (assumed ≤ 14).  
+- The number of run lengths does not exceed the fixed internal capacity (assumed ≤ 14).  
+- Each bit is either 0 or 1.  
+- The sum of all run lengths equals the bit-string length.  
+- The run-length sequence is compatible with the bit counts of the input string for at least one starting bit choice (i.e., the required number of 1s implied by the run lengths and chosen start equals the number of 1s in the input).  
+- When a required bit value must be placed at some position, such a bit exists somewhere at or after that position in the current string state (this is implied by compatibility above).
+
+5. Postconditions  
+- The output equals the minimum possible total movement cost among the evaluated starting-bit options, where:  
+  - The target string is exactly the concatenation of runs with the given lengths, alternating bit values, beginning with the chosen starting bit.  
+  - The movement cost is the sum, over each position from left to right, of the distance from that position to the position of the bit that is brought forward to satisfy the target at that position (equivalently, the number of positions the selected bit is moved left at each step).  
+- If the input has equal numbers of 0s and 1s, the output is the minimum cost over both possible starting bits. Otherwise, the output corresponds to the unique starting bit that matches the required count of 1s implied by the run lengths.
+
+6. Invariants  
+- The multiset of bits in the string is preserved throughout the conceptual transformation (only reordering occurs).  
+- The remaining run lengths always describe the remaining required suffix pattern.  
+- At each step, the already-processed prefix matches the required target prefix for the chosen starting bit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., incompatible run lengths, missing required bits, lengths exceeding capacity), behavior is undefined and may include incorrect results or abnormal termination.
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: given the same input, produces the same output and does not maintain persistent state across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small fixed maximum sizes (bit string and run-length list bounded by internal fixed arrays).  
+- Execution time is bounded by a small multiple of the square of the bit-string length due to repeated searches during transformation.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input parsing / wrong data representation assumption (format mismatch), leading to infeasible-start detection failure.
+
+B. What the current specification may be missing or misstating  
+- The specification implies the bit string is provided as “a sequence of bits,” but it does not constrain *how* those bits are encoded in the input (characters vs integers) or how whitespace is handled.  
+- The generated program assumes bits are read as integers via `scanf("%d", &b)`, while the source program reads each bit as a character via `scanf("%c ", &b[i])` (note the `%c` and trailing space), meaning it expects literal `'0'`/`'1'` characters and is tolerant of whitespace around them.  
+- Because of this mismatch, the generated program can misread the bit sequence (or fail to read it as intended), which then breaks the “feasible starting bit” logic and yields no feasible start (printing `LLONG_MAX`).
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the input format for the bit string: whether bits are provided as characters `'0'`/`'1'` (possibly separated by spaces/newlines) versus numeric tokens `0/1`, and how they should be parsed.  
+- Clarify that the program’s behavior depends on character-based reading of bits with whitespace skipping behavior induced by the trailing space in the format string (i.e., it consumes surrounding whitespace after each bit).  
+- More generally: specify that feasibility/starting-bit selection is computed from the *correctly parsed* bit counts, so parsing must match the source’s expectations.
+
+D. Why this clarification is supported by the source program  
+- The source uses `char b[15];` and reads bits with `scanf("%c ", &b[i]);`, then counts ones by comparing `b[i] == '1'`. This is unambiguously character-based parsing.  
+- The generated code uses `scanf("%d", &b)` into an `int` array and compares `bits[i] == 1`, which is a different representation and parsing contract.  
+- The observed failure (no feasible start found, leaving the answer at `LLONG_MAX`) is consistent with misparsed bits causing an incorrect `count1`, which then prevents either `req1_start0 == count1` or `req1_start1 == count1` from holding.
+
+```

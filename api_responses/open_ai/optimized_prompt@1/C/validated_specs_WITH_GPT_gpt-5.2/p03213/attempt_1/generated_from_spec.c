@@ -1,0 +1,73 @@
+#include <stdio.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        return 0; /* unspecified by spec if input missing/invalid */
+    }
+
+    if (n < 2) {
+        printf("0\n");
+        return 0;
+    }
+
+    /* Fixed storage implied by spec (up to about 100). */
+    int exp_count[101] = {0};
+
+    /* Compute exponents of primes in n! by factoring each i in [2..n]. */
+    for (int i = 2; i <= n && i <= 100; i++) {
+        int x = i;
+        for (int p = 2; p * p <= x; p++) {
+            while (x % p == 0) {
+                exp_count[p]++;
+                x /= p;
+            }
+        }
+        if (x > 1) {
+            exp_count[x]++;
+        }
+    }
+
+    /* Count primes with exponent thresholds needed for 75 divisors patterns. */
+    int c2 = 0, c4 = 0, c14 = 0, c24 = 0, c74 = 0;
+    for (int p = 2; p <= 100; p++) {
+        int e = exp_count[p];
+        if (e >= 2)  c2++;
+        if (e >= 4)  c4++;
+        if (e >= 14) c14++;
+        if (e >= 24) c24++;
+        if (e >= 74) c74++;
+    }
+
+    /*
+      A divisor d has exactly 75 divisors iff its prime-exponent pattern is one of:
+        75 = 75            -> (74)
+        75 = 25 * 3        -> (24, 2)
+        75 = 15 * 5        -> (14, 4)
+        75 = 5 * 5 * 3     -> (4, 4, 2)
+      where each term is (exponent+1).
+    */
+    long long ans = 0;
+
+    /* (74): choose one prime with exponent >= 74 */
+    ans += (long long)c74;
+
+    /* (24,2): choose prime a with e>=24 and distinct prime b with e>=2 */
+    if (c24 > 0) {
+        ans += (long long)c24 * (long long)(c2 - 1);
+    }
+
+    /* (14,4): choose prime a with e>=14 and distinct prime b with e>=4 */
+    if (c14 > 0) {
+        ans += (long long)c14 * (long long)(c4 - 1);
+    }
+
+    /* (4,4,2): choose two distinct primes with e>=4 and a third distinct with e>=2 */
+    if (c4 >= 2) {
+        long long pairs4 = (long long)c4 * (long long)(c4 - 1) / 2;
+        ans += pairs4 * (long long)(c2 - 2);
+    }
+
+    printf("%lld\n", ans);
+    return 0;
+}

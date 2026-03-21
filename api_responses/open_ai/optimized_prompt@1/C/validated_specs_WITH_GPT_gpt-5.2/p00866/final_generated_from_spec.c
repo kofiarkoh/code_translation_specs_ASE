@@ -1,0 +1,156 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WATCHES 10000
+#define TMAX 43200 /* 12 hours in seconds: 0..43199 */
+
+static void print_time(int t) {
+    int h = t / 3600;
+    int m = (t / 60) % 60;
+    int s = t % 60;
+    printf("%02d:%02d:%02d", h, m, s);
+}
+
+/*
+Feasibility model (narrowest reasonable interpretation from spec):
+
+Given a real time t within 12 hours:
+  - minute hand position on 0..59 scale is M = minute(t)
+  - second hand position on 0..59 scale is S = second(t)
+  - hour hand position on 0..59 scale advances with minutes:
+        H = floor( (hour(t) mod 12) * 5 + M / 12 )
+    This is the standard analog geometry mapped to 0..59 with minute-resolution
+    (hour hand moves 1/12 of a minute-mark per minute; integer readings imply floor).
+
+A watch provides three readings r0,r1,r2 in 0..59.
+It is feasible at time t if there exists:
+  - a permutation assigning the three readings to (H,M,S) in some order, and
+  - an integer offset o in 0..59 applied uniformly to all three readings modulo 60,
+such that:
+  (assigned_reading_for_H + o) % 60 == H
+  (assigned_reading_for_M + o) % 60 == M
+  (assigned_reading_for_S + o) % 60 == S
+Equivalently, for a chosen permutation, o is determined by the H equation and must
+satisfy the other two.
+*/
+static int feasible_at_time(int r[3], int t) {
+    int hour = (t / 3600) % 12;
+    int minute = (t / 60) % 60;
+    int second = t % 60;
+
+    int H = (hour * 5 + (minute / 12)) % 60;
+    int M = minute;
+    int S = second;
+
+    int idx[3] = {0, 1, 2};
+    /* iterate all 6 permutations */
+    for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) if (b != a) {
+            int c = 3 - a - b;
+            int rh = r[a], rm = r[b], rs = r[c];
+
+            int o = (H - rh) % 60;
+            if (o < 0) o += 60;
+
+            if (((rm + o) % 60) == M && ((rs + o) % 60) == S) return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n <= 0) break;
+        if (n > MAX_WATCHES) {
+            /* unspecified behavior per spec; still attempt to proceed with truncation */
+            n = MAX_WATCHES;
+        }
+
+        int (*reads)[3] = (int (*)[3])malloc((size_t)n * sizeof(*reads));
+        if (!reads) return 0;
+
+        for (int i = 0; i < n; i++) {
+            if (scanf("%d %d %d", &reads[i][0], &reads[i][1], &reads[i][2]) != 3) {
+                free(reads);
+                return 0;
+            }
+        }
+
+        /* Build coverage counts over time: count[t] = number of watches feasible at t */
+        int *count = (int *)calloc(TMAX, sizeof(int));
+        if (!count) {
+            free(reads);
+            return 0;
+        }
+
+        for (int i = 0; i < n; i++) {
+            for (int t = 0; t < TMAX; t++) {
+                if (feasible_at_time(reads[i], t)) count[t]++;
+            }
+        }
+
+        /* Find minimal-length inclusive interval [L,R] such that for every watch,
+           there exists at least one feasible time in [L,R].
+           With count[t] representing how many watches are feasible at t, the condition
+           becomes: for each watch i, exists t in [L,R] with feasible(i,t).
+           We implement a sliding window maintaining per-watch hit counts.
+        */
+        int *hit = (int *)calloc((size_t)n, sizeof(int));
+        if (!hit) {
+            free(count);
+            free(reads);
+            return 0;
+        }
+
+        int covered = 0;
+        int bestL = 0, bestR = TMAX - 1;
+        int bestLen = bestR - bestL;
+
+        int L = 0;
+        /* For efficiency, precompute feasible matrix is too large; instead, recompute
+           feasibility on the fly for window updates. This preserves semantics; performance
+           is not specified.
+        */
+        for (int R = 0; R < TMAX; R++) {
+            for (int i = 0; i < n; i++) {
+                if (feasible_at_time(reads[i], R)) {
+                    if (hit[i] == 0) covered++;
+                    hit[i]++;
+                }
+            }
+
+            while (covered == n && L <= R) {
+                int len = R - L;
+                if (len < bestLen) {
+                    bestLen = len;
+                    bestL = L;
+                    bestR = R;
+                }
+                /* If multiple minimal intervals exist, choose earliest by start time
+                   among those encountered by this search order: we only update on
+                   strictly smaller length, so earliest for that length is kept.
+                */
+
+                for (int i = 0; i < n; i++) {
+                    if (feasible_at_time(reads[i], L)) {
+                        hit[i]--;
+                        if (hit[i] == 0) covered--;
+                    }
+                }
+                L++;
+            }
+        }
+
+        print_time(bestL);
+        printf(" ");
+        print_time(bestR);
+        printf("\n");
+
+        free(hit);
+        free(count);
+        free(reads);
+    }
+    return 0;
+}

@@ -1,0 +1,77 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+typedef struct {
+    int64_t x;
+    int64_t w;
+} Item;
+
+static int cmp_item(const void *a, const void *b) {
+    const Item *ia = (const Item *)a;
+    const Item *ib = (const Item *)b;
+    if (ia->x < ib->x) return -1;
+    if (ia->x > ib->x) return 1;
+    if (ia->w < ib->w) return -1;
+    if (ia->w > ib->w) return 1;
+    return 0;
+}
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    /* Capacity per spec: at most 500,001 items; behavior unspecified if violated. */
+    Item *a = (Item *)malloc((size_t)N * sizeof(Item));
+    if (!a) return 0; /* Unspecified by spec; just terminate quietly. */
+
+    for (int i = 0; i < N; i++) {
+        /* Inputs are non-negative decimal integers; store in signed 64-bit. */
+        long long x, w;
+        if (scanf("%lld %lld", &x, &w) != 2) {
+            free(a);
+            return 0;
+        }
+        a[i].x = (int64_t)x;
+        a[i].w = (int64_t)w;
+    }
+
+    qsort(a, (size_t)N, sizeof(Item), cmp_item);
+
+    /*
+      We need:
+        max_{l<=r} (sum_{k=l..r} w_k - (x_r - x_l))
+      Let prefix S[i] = sum_{k=1..i} w_k, S[0]=0.
+      For fixed r:
+        value(l,r) = (S[r]-S[l-1]) - x_r + x_l
+                   = (S[r] - x_r) - (S[l-1] - x_l)
+      So for each r, maximize by minimizing (S[l-1] - x_l) over l in [1..r].
+      Maintain minM = min_{l in [1..r]} (S[l-1] - x_l) while scanning r=1..N.
+    */
+    int64_t S = 0; /* running prefix sum S[r] */
+    int64_t best = 0;
+
+    /* Initialize with l=1 candidate: M = S[0] - x_1 = -x_1 */
+    int64_t minM = -a[0].x;
+
+    for (int i = 0; i < N; i++) {
+        S += a[i].w; /* S = S[i+1] in 1-based terms */
+
+        int64_t val = (S - a[i].x) - minM;
+        if (val > best) best = val;
+
+        /* Prepare minM for future r: consider l = (i+2) in 1-based terms.
+           That uses S[l-1] = S[i+1] (current S) and x_l = x_{i+2}. */
+        if (i + 1 < N) {
+            int64_t cand = S - a[i + 1].x;
+            if (cand < minM) minM = cand;
+        }
+    }
+
+    printf("%lld\n", (long long)best);
+
+    free(a);
+    return 0;
+}
+```

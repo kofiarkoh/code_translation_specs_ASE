@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int count;
+    if (scanf("%d", &count) != 1) {
+        /* Unspecified behavior on invalid/missing input; exit quietly. */
+        return 0;
+    }
+
+    /* Specification says memory usage grows linearly with count (stores the sequence). */
+    int *arr = NULL;
+    if (count > 0) {
+        arr = (int *)malloc((size_t)count * sizeof(int));
+        if (!arr) {
+            /* No explicit error handling specified; behavior unspecified. */
+            return 0;
+        }
+    }
+
+    for (int i = 0; i < count; i++) {
+        if (scanf("%d", &arr[i]) != 1) {
+            /* Unspecified behavior on invalid/missing input. */
+            free(arr);
+            return 0;
+        }
+    }
+
+    int total = 0;
+    for (int i = 0; i < count; i++) {
+        /* Invariant: after k elements, total == sum(first k) - k */
+        total += arr[i] - 1;
+    }
+
+    printf("%d", total);
+
+    free(arr);
+    return 0;
+}

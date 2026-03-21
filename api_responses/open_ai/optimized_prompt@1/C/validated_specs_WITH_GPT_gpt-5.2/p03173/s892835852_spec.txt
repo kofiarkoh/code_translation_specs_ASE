@@ -1,0 +1,34 @@
+1. Functional Description  
+Reads a sequence of `N` integer item values in order and computes the minimum total cost to merge the entire sequence into a single group by repeatedly merging two **adjacent** contiguous groups. Each merge incurs a cost equal to the **sum of the values** in the newly formed merged group. The total cost is the sum of all merge costs over the full merging process, and the program outputs the minimum possible total over all valid merge orders that preserve adjacency.
+
+2. Inputs  
+- An integer `N`.  
+- `N` integers `a[1]..a[N]` giving the item values in order.
+
+3. Outputs  
+- Prints one signed integer value (in decimal) followed by a newline: the minimum achievable total merge cost for merging items `1..N` into one group.
+
+4. Preconditions / Assumptions  
+- `1 ≤ N ≤ 400` (fixed internal capacity).  
+- Input values are provided in a form readable as C `int` using `scanf("%d", ...)`.  
+- The computed minimum total merge cost is representable in a signed 64-bit `long long` (and intermediate sums used in the computation are assumed not to overflow the program’s integer types).  
+- No validation is performed; if input is missing/malformed or constraints are violated, behavior is unspecified.
+
+5. Semantics and Edge Cases  
+- A “group” is always a contiguous subsequence of the original sequence; only adjacent groups may be merged.  
+- The cost to merge two adjacent groups covering indices `[l..m]` and `[m+1..r]` is `sum(a[l..r])`.  
+- The total cost of a complete merge plan is the sum of the costs of each merge step.  
+- If `N = 1`, no merges are performed and the output is `0`.
+
+6. Computation Model (Required Result)  
+- For any contiguous interval `[l..r]`, the cost to reduce it to one group is the minimum over all split points `k` with `l < k ≤ r` of:  
+  `cost(l, k-1) + cost(k, r) + sum(a[l..r])`,  
+  with base case `cost(i, i) = 0`.  
+- The program outputs `cost(1, N)`.
+
+7. I/O and Formatting Constraints (as implied by the program)  
+- Input is read using standard C formatted input with `%d` for `N` and each item value.  
+- Output is produced as a `long long` value printed with `%lld` and a trailing newline.
+
+8. Error Handling / Exceptional Behavior  
+- There is no explicit error handling for invalid input, out-of-range `N`, or arithmetic overflow; results are unspecified in such cases.

@@ -1,0 +1,41 @@
+1. Functional Description  
+For each test case, computes the signed area of the portion of a given simple polygon that lies outside (i.e., not within) an axis-aligned rectangular window defined by four input points. The result is reported as a signed area value (twice the geometric area, consistent with standard polygon signed-area conventions).
+
+2. Inputs  
+For each test case, read from standard input:  
+- An integer specifying the number of polygon vertices.  
+- That many pairs of integers giving the polygon’s vertex coordinates in order.  
+- Four pairs of integers giving points that define an axis-aligned rectangle; the rectangle is taken as the bounding box of these four points.  
+Input ends when the polygon-vertex count is zero.
+
+3. Outputs  
+For each test case, writes one integer to standard output: the signed area (in doubled-area units) of the polygon region outside the rectangle.
+
+4. Preconditions  
+- The polygon vertex count is positive and does not exceed the fixed internal capacity (at most 101 vertices).  
+- The polygon vertices describe a non-self-intersecting polygon in order (assumption; otherwise “inside/outside” area is not well-defined).  
+- The rectangle is axis-aligned and is interpreted as the minimum/maximum x and y over the four provided points.  
+- Coordinate magnitudes are such that intermediate doubled-area computations fit within signed 64-bit range.
+
+5. Postconditions  
+For each test case:  
+- Let \(P\) be the input polygon and \(R\) be the axis-aligned rectangle derived from the four points.  
+- The program outputs \(2 \cdot \text{signedArea}(P \setminus R)\), where the sign follows the polygon’s orientation (counterclockwise positive, clockwise negative).  
+Equivalently, it outputs \(2 \cdot \text{signedArea}(P) - 2 \cdot \text{signedArea}(P \cap R)\).
+
+6. Invariants  
+- The rectangle used for clipping is always the axis-aligned bounding box of the four rectangle-defining points.  
+- The reported value is linear with respect to polygon orientation: reversing vertex order negates the output.  
+- The computation treats the polygon as closed (the last vertex connects back to the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, incomplete, exceeds capacity, violates assumptions (e.g., self-intersection), or causes arithmetic overflow, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats processing independent test cases until a zero vertex count is encountered, after which the program terminates.  
+- No persistent state is carried between test cases beyond overwriting internal working storage.
+
+9. Non-functional Constraints (if inferable)  
+- Time per test case is linear in the number of polygon vertices.  
+- Uses fixed-size internal storage for vertices, limiting the maximum supported vertex count.

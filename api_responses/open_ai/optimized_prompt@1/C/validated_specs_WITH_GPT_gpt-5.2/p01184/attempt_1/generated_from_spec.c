@@ -1,0 +1,207 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAX_UNIQUE 20
+#define MAX_GROUPS 22
+#define MAX_NAME_LEN 63
+#define MAX_GROUP_NAMES 20
+
+typedef struct {
+    char name[MAX_NAME_LEN + 1];
+} Person;
+
+static int find_person(Person *people, int n, const char *name) {
+    for (int i = 0; i < n; i++) {
+        if (strcmp(people[i].name, name) == 0) return i;
+    }
+    return -1;
+}
+
+static int add_person_unique(Person *people, int *n, const char *name) {
+    int idx = find_person(people, *n, name);
+    if (idx >= 0) return idx;
+    if (*n >= MAX_UNIQUE) {
+        /* Contract says correctness not guaranteed beyond 20; keep behavior simple. */
+        return -1;
+    }
+    strncpy(people[*n].name, name, MAX_NAME_LEN);
+    people[*n].name[MAX_NAME_LEN] = '\0';
+    (*n)++;
+    return (*n) - 1;
+}
+
+static int popcount_u32(uint32_t x) {
+    int c = 0;
+    while (x) {
+        x &= (x - 1);
+        c++;
+    }
+    return c;
+}
+
+/* Connectivity among chosen people:
+   Two chosen people are adjacent if they co-appear in at least one group.
+   Connectivity is checked on the induced subgraph of chosen people. */
+static int is_connected(uint32_t chosen, uint32_t groupMasks[MAX_GROUPS], int gcount) {
+    int nChosen = popcount_u32(chosen);
+    if (nChosen <= 1) return 1;
+
+    /* Build adjacency bitmasks for chosen nodes only. */
+    uint32_t adj[MAX_UNIQUE];
+    for (int i = 0; i < MAX_UNIQUE; i++) adj[i] = 0;
+
+    for (int gi = 0; gi < gcount; gi++) {
+        uint32_t m = groupMasks[gi] & chosen;
+        if (m == 0) continue;
+        /* For all nodes in m, connect to all others in m. */
+        uint32_t tmp = m;
+        while (tmp) {
+            uint32_t lsb = tmp & (uint32_t)(-(int32_t)tmp);
+            int u = __builtin_ctz(tmp); /* GCC/Clang; if unavailable, behavior unspecified by contract. */
+            (void)lsb;
+            adj[u] |= (m & ~(1u << u));
+            tmp &= (tmp - 1);
+        }
+    }
+
+    /* BFS/DFS over chosen nodes. */
+    int start = __builtin_ctz(chosen);
+    uint32_t visited = 0;
+    uint32_t stack = 0;
+
+    visited |= (1u << start);
+    stack |= (1u << start);
+
+    while (stack) {
+        int u = __builtin_ctz(stack);
+        stack &= ~(1u << u);
+        uint32_t nbrs = adj[u] & chosen & ~visited;
+        visited |= nbrs;
+        stack |= nbrs;
+    }
+
+    return (visited & chosen) == chosen;
+}
+
+static int covers_all_groups(uint32_t chosen, uint32_t groupMasks[MAX_GROUPS], int gcount) {
+    for (int gi = 0; gi < gcount; gi++) {
+        if ((groupMasks[gi] & chosen) == 0) return 0;
+    }
+    return 1;
+}
+
+int main(void) {
+    int candCount, groupCount;
+    int firstDataset = 1;
+
+    while (scanf("%d", &candCount) == 1) {
+        if (candCount <= 0) break;
+        if (scanf("%d", &groupCount) != 1) return 0;
+
+        Person people[MAX_UNIQUE];
+        int uniqueN = 0;
+
+        /* Read candidate names; duplicates do not create new distinct people. */
+        for (int i = 0; i < candCount; i++) {
+            char buf[256];
+            if (scanf("%255s", buf) != 1) return 0;
+            (void)add_person_unique(people, &uniqueN, buf);
+        }
+
+        uint32_t groupMasks[MAX_GROUPS];
+        for (int gi = 0; gi < groupCount; gi++) groupMasks[gi] = 0;
+
+        /* Read groups; membership evaluated w.r.t. unique candidates. */
+        for (int gi = 0; gi < groupCount; gi++) {
+            int k;
+            if (scanf("%d", &k) != 1) return 0;
+            uint32_t mask = 0;
+            for (int j = 0; j < k; j++) {
+                char buf[256];
+                if (scanf("%255s", buf) != 1) return 0;
+                int idx = find_person(people, uniqueN, buf);
+                if (idx >= 0 && idx < 32) {
+                    mask |= (1u << idx);
+                } else {
+                    /* Contract says group names are among candidates; otherwise unspecified. */
+                }
+            }
+            groupMasks[gi] = mask;
+        }
+
+        if (!firstDataset) {
+            printf("\n");
+        }
+        firstDataset = 0;
+
+        uint32_t bestMask = 0;
+        int bestSize = 0;
+
+        /* Enumerate combinations of size 1..5, stop at first size with any solution.
+           For determinism, enumerate in increasing index order. */
+        for (int sz = 1; sz <= 5 && bestSize == 0; sz++) {
+            if (sz > uniqueN) break;
+
+            if (sz == 1) {
+                for (int a = 0; a < uniqueN; a++) {
+                    uint32_t m = (1u << a);
+                    if (!covers_all_groups(m, groupMasks, groupCount)) continue;
+                    if (!is_connected(m, groupMasks, groupCount)) continue;
+                    bestMask = m; bestSize = 1;
+                    break;
+                }
+            } else if (sz == 2) {
+                for (int a = 0; a < uniqueN; a++) for (int b = a + 1; b < uniqueN; b++) {
+                    uint32_t m = (1u << a) | (1u << b);
+                    if (!covers_all_groups(m, groupMasks, groupCount)) continue;
+                    if (!is_connected(m, groupMasks, groupCount)) continue;
+                    bestMask = m; bestSize = 2;
+                    goto found;
+                }
+            } else if (sz == 3) {
+                for (int a = 0; a < uniqueN; a++) for (int b = a + 1; b < uniqueN; b++)
+                for (int c = b + 1; c < uniqueN; c++) {
+                    uint32_t m = (1u << a) | (1u << b) | (1u << c);
+                    if (!covers_all_groups(m, groupMasks, groupCount)) continue;
+                    if (!is_connected(m, groupMasks, groupCount)) continue;
+                    bestMask = m; bestSize = 3;
+                    goto found;
+                }
+            } else if (sz == 4) {
+                for (int a = 0; a < uniqueN; a++) for (int b = a + 1; b < uniqueN; b++)
+                for (int c = b + 1; c < uniqueN; c++) for (int d = c + 1; d < uniqueN; d++) {
+                    uint32_t m = (1u << a) | (1u << b) | (1u << c) | (1u << d);
+                    if (!covers_all_groups(m, groupMasks, groupCount)) continue;
+                    if (!is_connected(m, groupMasks, groupCount)) continue;
+                    bestMask = m; bestSize = 4;
+                    goto found;
+                }
+            } else { /* sz == 5 */
+                for (int a = 0; a < uniqueN; a++) for (int b = a + 1; b < uniqueN; b++)
+                for (int c = b + 1; c < uniqueN; c++) for (int d = c + 1; d < uniqueN; d++)
+                for (int e = d + 1; e < uniqueN; e++) {
+                    uint32_t m = (1u << a) | (1u << b) | (1u << c) | (1u << d) | (1u << e);
+                    if (!covers_all_groups(m, groupMasks, groupCount)) continue;
+                    if (!is_connected(m, groupMasks, groupCount)) continue;
+                    bestMask = m; bestSize = 5;
+                    goto found;
+                }
+            }
+        }
+found:
+
+        if (bestSize == 0) {
+            printf("Impossible\n");
+        } else {
+            printf("%d\n", bestSize);
+            for (int i = 0; i < uniqueN; i++) {
+                if (bestMask & (1u << i)) {
+                    printf("%s\n", people[i].name);
+                }
+            }
+        }
+    }
+
+    return 0;
+}

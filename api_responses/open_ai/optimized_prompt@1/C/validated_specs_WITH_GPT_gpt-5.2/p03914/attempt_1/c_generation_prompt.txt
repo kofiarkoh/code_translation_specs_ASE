@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a value derived from a finite-state counting process parameterized by two integers: a size parameter and a number of steps. The process starts from a single initial state and, for each step, redistributes counts among states according to fixed transition multiplicities that depend on the current state and the size parameter. The program outputs the count associated with the terminal state where both state components equal the size parameter, reduced modulo a fixed large prime.
+
+2. Inputs  
+- Two integers:  
+  - A size parameter.  
+  - A step count.
+
+3. Outputs  
+- One integer: the computed count for the terminal state (size, size), reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- The two input integers are successfully provided.  
+- The size parameter is within the supported internal bounds (at most 301) to avoid out-of-bounds state indexing.  
+- The step count is non-negative and within the supported internal bounds (at most 301) to avoid out-of-bounds state indexing.  
+- To avoid undefined arithmetic behavior, the size parameter is assumed to be at least 1, and intermediate arithmetic is assumed not to overflow the signed 64-bit range (the program does not enforce this).
+
+5. Postconditions  
+- The program outputs the value of the terminal state (size, size) after exactly the given number of steps, modulo 1,000,000,007.  
+- If the terminal state is unreachable under the process for the given inputs, the output is 0.
+
+6. Invariants  
+- All state values represent accumulated counts (possibly large) derived from the initial state through repeated application of the step transitions.  
+- At any step boundary, only states with first component between 1 and (step index + 1) and second component between 1 and the first component may be non-zero (subject to the internal bounds).  
+- The terminal state queried for output is always the state whose two components both equal the size parameter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input.  
+- If inputs exceed internal bounds, behavior is undefined (may access memory out of range).  
+- If intermediate arithmetic exceeds the signed 64-bit range, behavior is undefined.  
+- Negative inputs may lead to nonsensical results or undefined behavior; no validation is performed.
+
+8. State Transitions (if applicable)  
+- The computation maintains a 2D state indexed by two positive integers (a, b) with 1 ≤ b ≤ a.  
+- Initialization: the state (1, 1) starts with count 1; all other states start at 0.  
+- For each of the specified number of steps, each existing state (a, b) contributes its current count to up to three successor states with multiplicities determined by (size − a), b, and (a − b), respectively:  
+  - One successor increases the first component by 1 while keeping the second component unchanged.  
+  - One successor sets the second component equal to the first component (i.e., moves to a state where both components are equal to the prior first component).  
+  - One successor keeps both components unchanged.  
+- The output is taken from the state (size, size) after all steps.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory for the state table; memory usage is constant with respect to input values beyond the fixed bound.  
+- Runtime grows on the order of the square of the step count (within the fixed bound).  
+- Output is reduced modulo 1,000,000,007.
+
+```

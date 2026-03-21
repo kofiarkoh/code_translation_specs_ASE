@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Simulates the path of a ray moving on a bounded square region with axis-aligned mirror segments placed on a coarse grid. Starting from a fixed initial position and direction, the ray advances in equal diagonal steps, optionally reflecting when it crosses a mirror segment. The program outputs the final position where the simulation terminates, either by leaving the bounded region, reaching a specific target state that maps to a fixed reported point, or by immediate termination conditions implied by the simulation rules.
+
+2. Inputs  
+- Repeated test cases.  
+- For each test case:  
+  - An integer specifying the number of mirror segments.  
+  - That many mirror descriptions, each consisting of:  
+    - A type indicating one of two orthogonal orientations.  
+    - Two integer grid coordinates identifying the segment’s placement.
+
+3. Outputs  
+- For each test case, two integers representing the final reported position of the ray in the simulation’s coordinate system.
+
+4. Preconditions  
+- The initial count is provided for each test case; processing stops when the count is negative.  
+- Mirror coordinates are assumed to be within the supported grid index range such that all referenced segment endpoints are valid.  
+- Mirror type is assumed to be one of the two expected orientation markers.  
+- Input is assumed to be well-formed according to the above structure.
+
+5. Postconditions  
+For each non-terminating (non-negative) test case, exactly one line is produced containing the final position, satisfying one of the following:  
+- The ray has reached a boundary condition where it is considered to have exited the bounded region (as defined by the simulation’s boundary checks), and the reported position is the ray’s position at termination.  
+- The ray has reached a specific internal state (a particular position and direction) after at least two steps, in which case the reported position is a fixed mapped point.  
+
+6. Invariants  
+- The ray’s position always lies on the discrete lattice reachable from the initial position by repeated equal diagonal steps.  
+- The ray’s direction is always one of four diagonal directions.  
+- At most one reflection decision is applied per step, based on whether the step crosses a mirror segment of the relevant orientation.  
+- Mirror configuration is constant throughout a test case.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (e.g., out-of-range coordinates or unexpected mirror type), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Initial state per test case: fixed starting position, fixed initial direction, and an internal alternation state controlling which mirror orientation is checked on each step.  
+- Each step transitions the state by:  
+  - Advancing position by one fixed diagonal increment according to current direction.  
+  - Toggling the alternation state.  
+  - Optionally changing direction if a mirror segment is crossed on that step (reflection), otherwise direction remains unchanged.  
+- Termination occurs when either:  
+  - After at least two steps, the ray is at the designated target state (position and direction), causing an immediate transition to a fixed reported terminal position; or  
+  - After at least two steps, the ray is at or beyond the defined boundary and the last step did not reflect (as implied by the boundary termination condition).
+
+9. Non-functional Constraints (if inferable)  
+- Per test case, memory usage is bounded by a fixed-size grid representation of mirror segments.  
+- Runtime per test case is proportional to the number of simulated steps until termination plus the number of mirrors read; termination is assumed to occur for valid problem inputs.
+
+```

@@ -1,0 +1,232 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+	char name[30];
+	int score;
+} TEAM;
+	
+	
+int main(void)
+{
+	int n, i, j, f = 0;
+	int win, lose, draw;
+	TEAM team[10], temp;
+	
+
+	while (1){
+		scanf("%d", &n);
+		
+		if (n == 0){
+			break;
+		}
+		
+		for (i = 0; i < n; i++){
+			scanf("%s %d %d %d", team[i].name, &win, &lose, &draw);
+			team[i].score = win * 3 + draw;
+		}
+		
+		for (i = 0; i < n; i++){
+			for (j = n - 1; j > i; j--){
+				if (team[j].score > team[j-1].score){
+					strcpy(temp.name, team[j-1].name);
+					temp.score = team[j-1].score;
+					
+					strcpy(team[j-1].name, team[j].name);
+					team[j-1].score = team[j].score;
+					
+					strcpy(team[j].name, temp.name);
+					team[j].score = temp.score;
+				}
+			}
+		}
+		if (f == 1){
+			puts("");
+		}
+		for (i = 0; i < n; i++){
+			printf("%s,%d\n", team[i].name, team[i].score);	
+			f = 1;
+		}
+	}
+	
+	return (0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads one or more datasets describing teams and their match results, computes a points total for each team, orders teams by descending points, and outputs each team with its computed points. Processing ends when a dataset size of zero is provided.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer specifying the number of teams.  
+- For each team: a name token and three integers representing wins, losses, and draws.
+
+3. Outputs  
+- For each dataset (except the terminating one), writes to standard output a list of the teams and their computed points, one team per line.  
+- Inserts a single blank line between outputs of consecutive datasets.
+
+4. Preconditions  
+- Each dataset size is non-negative and does not exceed 10.  
+- Each team name fits within 29 characters (excluding terminator) and contains no whitespace.  
+- Each team record provides three integers for wins, losses, and draws.  
+- Input is well-formed and available for all required fields.
+
+5. Postconditions  
+For every non-terminating dataset:  
+- Each team’s points equal (3 × wins) + draws.  
+- The output contains exactly the dataset’s teams, each paired with its computed points.  
+- The output ordering is non-increasing by points (highest points first).  
+- If multiple teams have equal points, their relative order in the output is not guaranteed.
+
+6. Invariants  
+- Across all datasets, the program does not retain or combine team data between datasets; each dataset is processed independently except for the insertion of a blank line between dataset outputs.  
+- The computed points for a team remain constant once computed for that dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, missing, exceeds expected bounds, or names exceed allowed length, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Repeats the following cycle: read dataset size → if zero, terminate; otherwise read team records → compute points → output sorted results → await next dataset.  
+- Maintains a boolean-like state indicating whether any prior dataset has been output, used solely to decide whether to emit a blank line before the next dataset’s output.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 10 teams per dataset.  
+- Time and memory usage are bounded by small fixed limits due to the fixed maximum dataset size.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_TEAMS 10
+#define NAME_LEN 30
+
+typedef struct {
+    char name[NAME_LEN];
+    int wins;
+    int losses;
+    int draws;
+    int points;
+} Team;
+
+static int cmp_team_desc_points(const void *a, const void *b) {
+    const Team *ta = (const Team *)a;
+    const Team *tb = (const Team *)b;
+
+    /* Non-increasing by points. Relative order for ties is not guaranteed. */
+    if (ta->points < tb->points) return 1;
+    if (ta->points > tb->points) return -1;
+    return 0;
+}
+
+int main(void) {
+    int n;
+    int printed_any = 0;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) {
+            break;
+        }
+
+        Team teams[MAX_TEAMS];
+
+        for (int i = 0; i < n; i++) {
+            scanf("%29s %d %d %d", teams[i].name, &teams[i].wins, &teams[i].losses, &teams[i].draws);
+            teams[i].points = 3 * teams[i].wins + teams[i].draws;
+        }
+
+        /* Sort by descending points */
+        qsort(teams, (size_t)n, sizeof(teams[0]), cmp_team_desc_points);
+
+        if (printed_any) {
+            putchar('\n');
+        }
+        printed_any = 1;
+
+        for (int i = 0; i < n; i++) {
+            printf("%s %d\n", teams[i].name, teams[i].points);
+        }
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00124/p00124_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00124/p00124_sample1_output.txt
+Input:
+3
+TeamA 5 2 1
+TeamB 4 3 2
+TeamC 6 1 2
+2
+TeamX 3 4 1
+TeamY 2 2 6
+0
+Expected:
+TeamC,20
+TeamA,16
+TeamB,14
+
+TeamY,12
+TeamX,10
+Actual:
+TeamC 20
+TeamA 16
+TeamB 14
+
+TeamY 12
+TeamX 10
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

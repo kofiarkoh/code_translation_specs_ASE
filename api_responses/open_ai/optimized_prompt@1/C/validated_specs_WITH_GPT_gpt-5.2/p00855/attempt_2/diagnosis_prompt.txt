@@ -1,0 +1,169 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+i, t;
+p( n )
+{
+	for ( i = t = 2; i * i <= n; ++i )
+	{
+		n%i?:t++;
+	}
+	return t - 2;
+}
+main( l, s, u )
+{
+	for ( ; scanf("%d", &l ), u = l; )
+	{
+		for( ; p(l); l-- );
+		for( ; p(u); u++ );
+		printf( "%d\n",  u - l );
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of integers. For each integer, finds the nearest prime number less than or equal to it and the nearest prime number greater than or equal to it, then outputs the distance between those two primes (upper minus lower).
+
+2. Inputs  
+- A stream of signed integers provided one at a time until input termination.
+
+3. Outputs  
+- For each successfully read integer, outputs one signed integer representing the difference between:
+  - the smallest prime number greater than or equal to the input, and
+  - the largest prime number less than or equal to the input.
+
+4. Preconditions  
+- Each processed input value is an integer that can be represented in the program’s integer type.  
+- To guarantee termination and meaningful results, each processed input value is at least 2.  
+- To avoid arithmetic overflow during prime testing, the input values and the intermediate candidates searched upward/downward are such that squaring trial divisors does not overflow the integer type.
+
+5. Postconditions  
+For each processed input integer `x` (meeting preconditions):  
+- Let `L` be the greatest prime such that `L ≤ x`.  
+- Let `U` be the least prime such that `U ≥ x`.  
+- The program outputs exactly `U - L` for that input.  
+- If `x` itself is prime, then `L = U = x` and the output is `0`.
+
+6. Invariants  
+- During processing of a given input `x`, the maintained lower candidate never exceeds `x`, and the maintained upper candidate never goes below `x`.  
+- When the program produces an output for `x`, the final lower candidate is prime and is the greatest prime not exceeding `x`, and the final upper candidate is prime and is the least prime not less than `x`.
+
+7. Error Handling / Exceptional Behavior  
+- Input termination (including end-of-input) stops processing; no further output is produced.  
+- If an input value violates the preconditions (e.g., less than 2), behavior is not guaranteed to terminate or produce meaningful output.  
+- If arithmetic overflow occurs in computations used for prime testing, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeats the following per successfully read integer:  
+  - Transition from “awaiting next integer” to “processing integer,” then back to “awaiting next integer” after emitting one output line.  
+- Transitions to “terminated” upon input termination.
+
+9. Non-functional Constraints (if inferable)  
+- For each input value, runtime grows with the distance to the nearest primes around the input and with the cost of primality checks; no fixed upper bound is guaranteed by the code alone.  
+- Uses a small, constant amount of additional memory per input value.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+static int is_prime(int n) {
+    int d;
+
+    if (n < 2) return 0;
+    if (n == 2) return 1;
+    if ((n % 2) == 0) return 0;
+
+    /* Precondition: d*d does not overflow int for all d tested. */
+    for (d = 3; d * d <= n; d += 2) {
+        if ((n % d) == 0) return 0;
+    }
+    return 1;
+}
+
+int main(void) {
+    int x;
+
+    while (scanf("%d", &x) == 1) {
+        int lower = x;
+        int upper = x;
+
+        /* Preconditions say x >= 2; otherwise behavior is not guaranteed. */
+
+        while (!is_prime(lower)) {
+            lower--;
+        }
+        while (!is_prime(upper)) {
+            upper++;
+        }
+
+        printf("%d\n", upper - lower);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_output.txt
+Input:
+20
+25
+0
+Expected:
+4
+6
+Actual:
+4
+6
+-2147483627
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

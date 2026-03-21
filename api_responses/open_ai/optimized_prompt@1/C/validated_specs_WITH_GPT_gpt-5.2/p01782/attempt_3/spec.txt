@@ -1,0 +1,37 @@
+1. Functional Description  
+The program reads an integer \(N\) and an \(N \times N\) grid of alphabetic characters. It selects exactly one cell from each row and exactly one cell from each column (i.e., a perfect matching between rows and columns). The \(N\) selected cells determine a multiset of \(N\) characters.
+
+The program chooses the matching by solving an assignment/min-cost-flow problem with a **52-dimensional integer cost vector** ordered by:
+\[
+\text{‘A’, ‘B’, …, ‘Z’, ‘a’, ‘b’, …, ‘z’}.
+\]
+Selecting a cell whose character is the \(k\)-th character in this order contributes a cost vector that is \(-1\) in component \(k\) and \(0\) elsewhere. The total cost of a matching is the componentwise sum of these per-cell vectors, i.e. \((-c_0, -c_1, \dots, -c_{51})\) where \(c_k\) is the number of selected occurrences of the \(k\)-th character.
+
+Among all perfect matchings, the program selects one whose total cost vector is **lexicographically smallest** under the fixed component order (compare component 0 first, then 1, etc.). If multiple matchings have exactly the same total cost vector, the program may output any one of them; no additional canonical tie-breaking among equal-cost matchings is specified by the program’s logic beyond what arises from its internal shortest-path/augmentation procedure.
+
+Finally, it outputs the selected multiset as a string sorted in the same fixed order (all uppercase ‘A’..‘Z’, then all lowercase ‘a’..‘z’), with each character repeated according to its count in the chosen matching.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- \(N\) subsequent lines, each providing at least \(N\) characters forming the grid.  
+- Each grid character used by the program is assumed to be in {‘A’–‘Z’, ‘a’–‘z’}. Characters beyond the first \(N\) positions on a line are ignored.
+
+3. Outputs  
+- One newline-terminated line containing exactly \(N\) characters: the multiset of characters from the chosen perfect matching, printed in sorted order: ‘A’..‘Z’ then ‘a’..‘z’.
+
+4. Preconditions / Assumptions  
+- \(N\) must be small enough to fit the program’s fixed-size storage for the grid and graph; the program does not validate bounds.  
+- Each of the \(N\) input lines must contain at least \(N\) usable characters.  
+- A perfect matching is always feasible because every row is connected to every column in the constructed assignment graph.
+
+5. Postconditions / Optimality Criterion  
+- Exactly one column is selected for each row and exactly one row for each column.  
+- Let \(c_k\) be the count of the \(k\)-th character (in the order ‘A’..‘Z’, ‘a’..‘z’) among the selected \(N\) cells. The program chooses a matching that lexicographically minimizes \((-c_0, -c_1, \dots, -c_{51})\). Equivalently: for any other feasible matching with counts \(c'_k\), if \(k\) is the first index where \(c_k \ne c'_k\), then the chosen matching satisfies \(c_k > c'_k\).  
+- If two matchings have identical counts for all 52 characters (i.e., identical total cost vectors), either may be chosen.  
+- The printed output is the chosen multiset sorted by the fixed order ‘A’..‘Z’, then ‘a’..‘z’.
+
+6. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input violates assumptions (non-alphabetic characters, insufficient line length, out-of-range \(N\), etc.), behavior is unspecified.
+
+7. Termination Behavior  
+- Processes exactly one instance from standard input, prints one newline-terminated output line, and exits.

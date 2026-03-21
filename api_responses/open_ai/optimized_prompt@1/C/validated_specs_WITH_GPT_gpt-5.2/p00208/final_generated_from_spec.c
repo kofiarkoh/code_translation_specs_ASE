@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+int main(void) {
+    int x;
+
+    /* Fixed internal storage for up to 199 base-8 digits (per specification). */
+    int digits[200];
+
+    while (scanf("%d", &x) == 1) {
+        if (x == 0) {
+            break;
+        }
+
+        /* Contract says nonzero inputs are non-negative; negative behavior unspecified. */
+        int n = x;
+
+        int i = 0;
+        while (n > 0) {
+            digits[i++] = n % 8;
+            n /= 8;
+            /* If i exceeds 199, behavior is undefined per specification (overwrite). */
+        }
+
+        /* Output most significant digit first. */
+        for (int j = i - 1; j >= 0; --j) {
+            int d = digits[j];
+            int t;
+            if (d <= 3) {
+                t = d;
+            } else if (d <= 5) { /* d is 4 or 5 */
+                t = d + 1;
+            } else { /* d is 6 or 7 */
+                t = d + 2;
+            }
+            putchar('0' + t);
+        }
+        putchar('\n');
+    }
+
+    return 0;
+}

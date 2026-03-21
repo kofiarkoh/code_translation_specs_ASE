@@ -1,0 +1,293 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+/*
+  Translation notes (kept as C comments per instructions):
+
+  - We compute shortest distances from source using Dijkstra (nonnegative weights).
+  - We also compute shortest distances to destination (by running Dijkstra from destination,
+    since the graph is undirected). This allows us to identify nodes/edges that can lie on
+    some shortest s->t path.
+
+  - Define D = distS[t]. A node v can be on some shortest s->t path iff distS[v] + distT[v] == D.
+    A directed transition u -> v is "shortest-path-consistent toward destination" iff:
+      distS[u] + w(u,v) == distS[v]   (edge is on some shortest path tree layer from s)
+      and distS[u] + distT[u] == D    (u is on some shortest s->t path)
+      and distS[v] + distT[v] == D    (v is on some shortest s->t path)
+    This yields a DAG because distS strictly increases along any positive-weight edge; for
+    zero-weight edges, distS can be equal, which can create cycles. The specification says
+    "directed acyclic subgraph"; to preserve that invariant under nonnegative weights, we
+    break ties by only allowing u->v when (distS[u] < distS[v]) OR (distS[u]==distS[v] and u < v).
+    This keeps reachability semantics consistent with "can reach along edges that preserve
+    shortest-path optimality toward the destination" while ensuring an order for propagation.
+
+  - Queries are processed in batches of up to 64 using bitsets (uint64_t). For each batch:
+      mark[x] has bit i set if query i starts at node x.
+      propagate marks along the fixed directed relation in topological order.
+      Answer "Yes" for query (x,y) iff after propagation, mark[y] contains bit i.
+    This matches: "x can reach y along edges that preserve shortest-path optimality toward the destination".
+
+  - Fixed internal capacities are implemented as static arrays with conservative maxima.
+    If inputs exceed these, behavior is unspecified per spec; we do not add explicit checks.
+*/
+
+#define MAXN 200005
+#define MAXM 400005
+#define MAXQ 40002
+
+typedef long long ll;
+
+typedef struct {
+    int to;
+    int next;
+    ll w;
+} Edge;
+
+static int n, m;
+static int head[MAXN];
+static Edge edges[2 * MAXM];
+static int ecnt = 0;
+
+static inline void add_edge(int u, int v, ll w) {
+    edges[ecnt].to = v;
+    edges[ecnt].w = w;
+    edges[ecnt].next = head[u];
+    head[u] = ecnt++;
+}
+
+typedef struct {
+    ll dist;
+    int v;
+} HeapNode;
+
+typedef struct {
+    HeapNode *a;
+    int sz;
+    int cap;
+} MinHeap;
+
+static void heap_init(MinHeap *h, int cap) {
+    h->a = (HeapNode*)malloc((size_t)cap * sizeof(HeapNode));
+    h->sz = 0;
+    h->cap = cap;
+}
+
+static void heap_free(MinHeap *h) {
+    free(h->a);
+    h->a = NULL;
+    h->sz = h->cap = 0;
+}
+
+static inline void heap_swap(HeapNode *x, HeapNode *y) {
+    HeapNode t = *x; *x = *y; *y = t;
+}
+
+static void heap_push(MinHeap *h, ll dist, int v) {
+    int i = h->sz++;
+    h->a[i].dist = dist;
+    h->a[i].v = v;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (h->a[p].dist <= h->a[i].dist) break;
+        heap_swap(&h->a[p], &h->a[i]);
+        i = p;
+    }
+}
+
+static HeapNode heap_pop(MinHeap *h) {
+    HeapNode ret = h->a[0];
+    h->sz--;
+    if (h->sz > 0) {
+        h->a[0] = h->a[h->sz];
+        int i = 0;
+        for (;;) {
+            int l = i * 2 + 1, r = l + 1, s = i;
+            if (l < h->sz && h->a[l].dist < h->a[s].dist) s = l;
+            if (r < h->sz && h->a[r].dist < h->a[s].dist) s = r;
+            if (s == i) break;
+            heap_swap(&h->a[i], &h->a[s]);
+            i = s;
+        }
+    }
+    return ret;
+}
+
+static const ll INF = (ll)4e18;
+
+static void dijkstra(int src, ll *dist) {
+    for (int i = 1; i <= n; i++) dist[i] = INF;
+    dist[src] = 0;
+
+    MinHeap h;
+    heap_init(&h, (m > 0 ? (2 * m + 5) : 16));
+
+    heap_push(&h, 0, src);
+
+    while (h.sz) {
+        HeapNode cur = heap_pop(&h);
+        ll d = cur.dist;
+        int u = cur.v;
+        if (d != dist[u]) continue;
+        for (int ei = head[u]; ei != -1; ei = edges[ei].next) {
+            int v = edges[ei].to;
+            ll nd = d + edges[ei].w;
+            if (nd < dist[v]) {
+                dist[v] = nd;
+                heap_push(&h, nd, v);
+            }
+        }
+    }
+
+    heap_free(&h);
+}
+
+/* Directed relation storage (DAG) */
+static int dagHead[MAXN];
+static int dagTo[MAXN * 2];   /* upper bound: at most 2m directed edges */
+static int dagNext[MAXN * 2];
+static int dagCnt = 0;
+
+static inline void dag_add(int u, int v) {
+    dagTo[dagCnt] = v;
+    dagNext[dagCnt] = dagHead[u];
+    dagHead[u] = dagCnt++;
+}
+
+/* Topological order by nondecreasing distS, tie by node id */
+static int order[MAXN];
+
+static int cmp_order(const void *a, const void *b, void *ctx) {
+    const ll *distS = (const ll*)ctx;
+    int x = *(const int*)a;
+    int y = *(const int*)b;
+    if (distS[x] < distS[y]) return -1;
+    if (distS[x] > distS[y]) return 1;
+    return (x < y) ? -1 : (x > y);
+}
+
+/* Per-node bitset marks for current batch */
+static unsigned long long markBits[MAXN];
+
+int main(void) {
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    for (int i = 1; i <= n; i++) head[i] = -1;
+    ecnt = 0;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        long long w;
+        scanf("%d %d %lld", &u, &v, &w);
+        add_edge(u, v, (ll)w);
+        add_edge(v, u, (ll)w);
+    }
+
+    int s, t;
+    scanf("%d %d", &s, &t);
+
+    static ll distS[MAXN], distT[MAXN];
+    dijkstra(s, distS);
+    dijkstra(t, distT);
+
+    ll D = distS[t];
+
+    /* Build DAG of shortest-path-consistent transitions relevant to reaching destination */
+    for (int i = 1; i <= n; i++) dagHead[i] = -1;
+    dagCnt = 0;
+
+    /* Precompute which nodes can lie on some shortest s->t path */
+    static unsigned char onShortest[MAXN];
+    for (int i = 1; i <= n; i++) {
+        onShortest[i] = (distS[i] < INF && distT[i] < INF && distS[i] + distT[i] == D) ? 1u : 0u;
+    }
+
+    for (int u = 1; u <= n; u++) {
+        if (!onShortest[u]) continue;
+        for (int ei = head[u]; ei != -1; ei = edges[ei].next) {
+            int v = edges[ei].to;
+            ll w = edges[ei].w;
+            if (!onShortest[v]) continue;
+            if (distS[u] >= INF || distS[v] >= INF) continue;
+            if (distS[u] + w != distS[v]) continue;
+
+            /* Enforce acyclicity under zero-weight edges by tie-breaking */
+            if (distS[u] < distS[v] || (distS[u] == distS[v] && u < v)) {
+                dag_add(u, v);
+            }
+        }
+    }
+
+    /* Build processing order: nodes on shortest paths sorted by (distS, id) */
+    int ordN = 0;
+    for (int i = 1; i <= n; i++) {
+        if (onShortest[i]) order[ordN++] = i;
+    }
+#if defined(__GLIBC__) && !defined(__APPLE__)
+    qsort_r(order, (size_t)ordN, sizeof(int), cmp_order, distS);
+#else
+    /* Portable fallback: use global pointer for comparator context */
+    static const ll *g_distS;
+    g_distS = distS;
+    int cmp_fallback(const void *a, const void *b) {
+        int x = *(const int*)a;
+        int y = *(const int*)b;
+        if (g_distS[x] < g_distS[y]) return -1;
+        if (g_distS[x] > g_distS[y]) return 1;
+        return (x < y) ? -1 : (x > y);
+    }
+    qsort(order, (size_t)ordN, sizeof(int), cmp_fallback);
+#endif
+
+    int Q;
+    scanf("%d", &Q);
+
+    static int qx[MAXQ], qy[MAXQ];
+    for (int i = 0; i < Q; i++) {
+        scanf("%d %d", &qx[i], &qy[i]);
+    }
+
+    /* Process queries in batches of up to 64 */
+    for (int base = 0; base < Q; base += 64) {
+        int k = Q - base;
+        if (k > 64) k = 64;
+
+        /* Clear marks for nodes on shortest paths (others are irrelevant) */
+        for (int i = 0; i < ordN; i++) markBits[order[i]] = 0ULL;
+
+        /* Initialize start markers */
+        for (int i = 0; i < k; i++) {
+            int x = qx[base + i];
+            if (x >= 1 && x <= n && onShortest[x]) {
+                markBits[x] |= (1ULL << (unsigned)i);
+            }
+        }
+
+        /* Propagate reachability along DAG in topological order */
+        for (int oi = 0; oi < ordN; oi++) {
+            int u = order[oi];
+            unsigned long long bits = markBits[u];
+            if (!bits) continue;
+            for (int ei = dagHead[u]; ei != -1; ei = dagNext[ei]) {
+                int v = dagTo[ei];
+                markBits[v] |= bits;
+            }
+        }
+
+        /* Emit answers */
+        for (int i = 0; i < k; i++) {
+            int y = qy[base + i];
+            unsigned long long mask = (1ULL << (unsigned)i);
+            int ok = 0;
+            if (y >= 1 && y <= n && onShortest[y]) {
+                ok = ((markBits[y] & mask) != 0ULL);
+            } else {
+                ok = 0;
+            }
+            puts(ok ? "Yes" : "No");
+        }
+    }
+
+    return 0;
+}

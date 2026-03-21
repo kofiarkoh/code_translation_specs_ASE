@@ -1,0 +1,39 @@
+1. Functional Description  
+Computes the pointwise “sum” of two rooted binary trees encoded as strings. For each pair of corresponding nodes that exist in both input trees, the output contains a node whose value is the arithmetic sum of the two node values, and whose left and right subtrees are the recursively summed corresponding subtrees. If either input tree lacks a node at some position, the output omits that entire subtree at that position.
+
+2. Inputs  
+- Two whitespace-delimited strings representing rooted binary trees.  
+- Each tree representation is assumed to encode, for every non-empty node: a left subtree, an integer node value, and a right subtree, with explicit markers for empty subtrees.
+
+3. Outputs  
+- One line containing a single tree string representing the summed tree as defined above, using the same representation style as the inputs.
+
+4. Preconditions  
+- Exactly two input tree strings are provided.  
+- Each input string is a well-formed tree representation with properly balanced and correctly nested delimiters.  
+- Each node value is a valid decimal integer within the range of the platform’s integer type.  
+- Each input string length does not exceed the fixed internal buffer capacity.  
+- The total size of the produced output representation fits within the fixed internal output buffer capacity.
+
+5. Postconditions  
+- The program outputs a well-formed tree representation.  
+- For every position in the tree where both inputs have a non-empty node, the output has a non-empty node whose value equals the sum of the two input node values at that position.  
+- For every position where at least one input has an empty subtree, the output has an empty subtree at that position (i.e., no node is produced there, and no deeper descendants are produced there).  
+- The output’s structure is exactly the intersection of the two input tree structures (nodes exist only where both inputs have nodes).
+
+6. Invariants  
+- During recursive combination, subtree boundaries are always treated as contiguous slices of the original input strings.  
+- The output is constructed as a concatenation of well-formed subtree representations; each constructed subtree is well-formed if its inputs are well-formed.  
+- The recursion preserves left/right positional correspondence: left combines with left, right combines with right.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs are malformed, exceed buffer capacities, contain out-of-range integers, or if the output exceeds its buffer capacity, behavior is undefined (may produce incorrect output, memory corruption, or termination).
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external systems.  
+- Internal state transitions: reads two input strings → constructs an output string in an internal buffer → writes the output line → terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum input size and fixed maximum output size due to static buffers.  
+- Time complexity is proportional to the size of the produced tree representation plus the work to parse corresponding subtrees; recursion depth is proportional to the maximum nesting depth of the tree representation.

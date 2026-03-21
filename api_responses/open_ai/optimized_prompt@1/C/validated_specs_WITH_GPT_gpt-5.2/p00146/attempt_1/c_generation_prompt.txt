@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes an ordering of the given items that minimizes a cumulative travel cost over a path that visits each item exactly once. The cost of moving from one visited item to a newly visited item depends on the absolute difference of their second attributes and on a weight derived from the set of items already visited. Outputs the first attribute of each item in the chosen visit order.
+
+2. Inputs  
+- An integer `n`: number of items.  
+- `n` triples of integers per item:  
+  - First attribute: an identifier/value to be output in the final sequence.  
+  - Second attribute: a position-like value used to compute movement distance.  
+  - Third attribute: a weight-like value contributing to the cost multiplier once the item has been visited.
+
+3. Outputs  
+- A sequence of `n` integers: the first attributes of the items, ordered according to a minimum-cost Hamiltonian path under the program’s cost model. Items are separated by single spaces and terminated by a newline.
+
+4. Preconditions  
+- `n` is such that the program’s internal fixed-size storage is sufficient; in particular, `n` must not exceed the supported maximum implied by the internal tables (effectively `n ≤ 16`).  
+- Input provides exactly `n` well-formed triples.  
+- The computed costs and intermediate totals fit within the numeric ranges used by the program (no overflow/undefined behavior in integer absolute difference or bit operations).
+
+5. Postconditions  
+- Exactly `n` output values are produced.  
+- Each output value corresponds to the first attribute of a distinct input item; every input item appears exactly once in the output order.  
+- The produced order minimizes the total path cost among all permutations, where total cost is the sum over each step from a previously visited item `i` to a newly visited item `k` given the already-visited set `S` (including `i`):  
+  - Step cost = (|second[k] − second[i]| / 2000) × (70 + 20 × sum(third[x] for x in S)).  
+- If multiple orders have the same minimal cost, the program outputs one of them (tie-breaking is not specified).
+
+6. Invariants  
+- During optimization, each partial solution represents a path that visits a specific subset of items exactly once and ends at a specific last item.  
+- For any subset and endpoint that is reachable, the stored cost is the minimal cost among all paths realizing that subset and endpoint under the defined step cost.  
+- For any stored predecessor relation used for reconstruction, it refers to an item that is included in the corresponding visited subset and yields the stored minimal cost.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., unsupported `n`, malformed input, or numeric/bit-operation issues), behavior is undefined: it may crash, produce incorrect output, or access memory out of bounds.
+
+8. State Transitions (if applicable)  
+- Initializes the set of visited items to each singleton item as a valid starting state with zero cost.  
+- Expands states by adding one unvisited item at a time, updating the minimal cost for the new visited set and new endpoint.  
+- After considering all visited sets, selects the minimal-cost state that has all items visited (endpoint chosen by minimal total cost).  
+- Reconstructs the corresponding full visit order by repeatedly moving to the recorded predecessor while removing the current endpoint from the visited set, until the start is reached.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow exponentially with `n` due to enumeration of visited subsets; practical operation is limited to small `n` (up to the internal maximum, effectively 16).  
+- Uses floating-point arithmetic for costs; results may be subject to floating-point comparison/rounding effects when costs are extremely close.
+
+```

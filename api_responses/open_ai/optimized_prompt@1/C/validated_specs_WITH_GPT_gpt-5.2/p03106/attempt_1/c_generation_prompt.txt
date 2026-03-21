@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and outputs the value of the *c-th* greatest positive common divisor of the first two integers (i.e., the divisor that is the c-th element when all positive common divisors are ordered from largest to smallest).
+
+2. Inputs  
+- Three integers:  
+  - First value: an integer whose positive divisors are considered.  
+  - Second value: an integer whose positive divisors are considered.  
+  - Third value: a positive rank indicating which common divisor to select (1 = greatest common divisor, 2 = second greatest, etc.).
+
+3. Outputs  
+- A single integer: the c-th greatest positive integer that divides both of the first two input integers.
+
+4. Preconditions  
+- The first two input integers are positive.  
+- The rank input is positive.  
+- The first two integers have at least `c` positive common divisors.
+
+5. Postconditions  
+- If the preconditions hold, the program outputs an integer `d` such that:  
+  - `d` divides both input integers, and  
+  - exactly `c-1` positive common divisors of the two integers are strictly greater than `d`.
+
+6. Invariants  
+- The count of discovered positive common divisors is non-decreasing during execution.  
+- Any produced output value (when produced under the preconditions) is a positive common divisor of the first two inputs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are non-positive, the rank is non-positive, or there are fewer than `c` positive common divisors, the output is unspecified (may print an uninitialized/indeterminate value).  
+- If input cannot be read as three integers, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state beyond the single execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows linearly with the smaller of the first two input values (iterating downward through candidate divisors).  
+- Uses constant additional memory.
+
+```

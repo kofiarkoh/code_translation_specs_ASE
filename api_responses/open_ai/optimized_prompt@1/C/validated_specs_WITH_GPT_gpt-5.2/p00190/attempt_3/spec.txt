@@ -1,0 +1,58 @@
+1. Functional Description  
+For each given configuration of a fixed 13-position puzzle with exactly two empty spaces, compute the minimum number of legal moves needed to reach the program’s fixed goal configuration. A legal move consists of choosing one of the two empty positions and swapping it with an adjacent non-empty tile (adjacency is defined by a fixed 13-node graph). If the program cannot determine a solution within its supported bounded procedure, it reports no answer.
+
+2. Inputs  
+- The program reads multiple test cases from standard input.  
+- Each test case consists of exactly 13 integers, corresponding to positions indexed 0 through 12 in that order.  
+- The value `0` denotes an empty space; the intended input has exactly two zeros (the program tracks the first two zeros it encounters as the empty positions).  
+- Input terminates when the first integer of a test case (the value for position 0) is negative; in that case the program exits immediately without producing output for that test case.
+
+3. State Interpretation and Goal Configuration (position order is significant)  
+- The program’s notion of a “state” is exactly the ordered 13-tuple of the input values at positions 0..12, in the same order they are read.  
+- The goal configuration is fixed for the lifetime of the program and is the unique state whose position values are:  
+  - position 0 = 1, position 1 = 2, position 2 = 3, position 3 = 4, position 4 = 5, position 5 = 6, position 6 = 7, position 7 = 8, position 8 = 9, position 9 = 10, position 10 = 11, position 11 = 0, position 12 = 0.  
+- This goal is the one used for all distance computations and comparisons; the ordering is exactly by position index 0..12 as read from input (i.e., position 0 is the “first” position and position 12 is the “last” position).
+
+4. Legal Moves / Adjacency Graph  
+A move swaps an empty position with a non-empty tile located at a neighboring position. The neighbor relation is exactly the following (undirected) adjacency list by position index:
+
+- 0: {2}  
+- 1: {2, 5}  
+- 2: {0, 1, 3, 6}  
+- 3: {2, 7}  
+- 4: {5}  
+- 5: {1, 4, 6, 9}  
+- 6: {2, 5, 7, 10}  
+- 7: {3, 6, 8, 11}  
+- 8: {7}  
+- 9: {5, 10}  
+- 10: {6, 9, 11, 12}  
+- 11: {7, 10}  
+- 12: {10}
+
+Additional rule: a swap is permitted only if the neighbor position is not the other empty position (i.e., the program never swaps an empty with an empty).
+
+5. Outputs  
+For each non-terminating test case, the program writes exactly one line:  
+- If it determines a minimum number of moves to reach the goal within its supported bound, it prints that minimum as a decimal integer.  
+- Otherwise it prints the literal string `NA`.
+
+6. Supported Search Bound and Answer Semantics  
+- The program precomputes exact distances from the goal for all states reachable from the goal in at most 16 moves, and stores those distances.  
+- For a query state:  
+  - If the state is in the precomputed set, the program outputs its exact minimum distance to the goal (an integer in the range 0..16).  
+  - Otherwise, the program searches outward from the query state up to 4 moves. If it encounters any state that is in the precomputed set, it outputs the sum of:  
+    - the number of moves taken from the query to reach that encountered state (between 1 and 4), and  
+    - the stored distance from that encountered state to the goal (between 0 and 16).  
+    This sum is the program’s reported minimum distance for the query.  
+  - If no such connection is found within 4 moves, the program outputs `NA`.  
+- Consequently, the program will output an exact minimum move count when the true minimum is at most 20 and the bounded procedure finds a connection as described; if the true minimum exceeds 20 or no connection is found within the bounded search, it outputs `NA`.
+
+7. Termination and Case Handling  
+- The program processes test cases until the termination condition (negative first integer) is met.  
+- Each non-terminating test case produces exactly one output line.
+
+8. Preconditions / Unspecified Behavior  
+- Each non-terminating test case must provide 13 integers.  
+- The intended domain is tile values that fit in 4 bits (0..15) and exactly two zeros; if these conditions are violated (including having fewer than two zeros), the program’s behavior is unspecified.  
+- The program uses fixed-size internal storage for its searches; if those limits are exceeded, behavior is unspecified.

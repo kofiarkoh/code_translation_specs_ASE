@@ -1,0 +1,80 @@
+#include <stdio.h>
+
+#define MAXN 100000
+
+static int parent_arr[MAXN];
+static int left_child[MAXN];
+static int right_sib[MAXN];
+static int depth_arr[MAXN];
+
+static void rec_depth(int u, int d) {
+    depth_arr[u] = d;
+    if (right_sib[u] != -1) rec_depth(right_sib[u], d);
+    if (left_child[u] != -1) rec_depth(left_child[u], d + 1);
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    /* Initialize arrays as specified */
+    for (int i = 0; i < n; i++) {
+        parent_arr[i] = -1;
+        left_child[i] = -1;
+        right_sib[i] = -1;
+        /* depth_arr intentionally not initialized: unspecified for unreachable nodes */
+    }
+
+    for (int i = 0; i < n; i++) {
+        int id, num;
+        if (scanf("%d %d", &id, &num) != 2) return 0;
+
+        int prev = -1;
+        for (int j = 0; j < num; j++) {
+            int c;
+            if (scanf("%d", &c) != 1) return 0;
+
+            if (j == 0) {
+                left_child[id] = c;
+            } else {
+                right_sib[prev] = c;
+            }
+            prev = c;
+
+            /* Overwrite parent if repeated under multiple parents */
+            parent_arr[c] = id;
+        }
+    }
+
+    /* Root identification: last index with parent == -1 */
+    int root = -1;
+    for (int i = 0; i < n; i++) {
+        if (parent_arr[i] == -1) root = i;
+    }
+
+    /* Depth computation from chosen root only */
+    if (root != -1) rec_depth(root, 0);
+
+    /* Output fixed format for all nodes 0..n-1 */
+    for (int i = 0; i < n; i++) {
+        printf("node %d: parent = %d, depth = %d, ", i, parent_arr[i], depth_arr[i]);
+
+        if (parent_arr[i] == -1) {
+            printf("root, [");
+        } else if (left_child[i] == -1) {
+            printf("leaf, [");
+        } else {
+            printf("internal node, [");
+        }
+
+        int first = 1;
+        for (int c = left_child[i]; c != -1; c = right_sib[c]) {
+            if (!first) printf(", ");
+            printf("%d", c);
+            first = 0;
+        }
+        printf("]\n");
+    }
+
+    return 0;
+}

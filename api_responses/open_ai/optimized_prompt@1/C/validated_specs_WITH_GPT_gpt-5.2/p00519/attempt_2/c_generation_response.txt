@@ -1,0 +1,153 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAXR 5000
+
+typedef struct Edge {
+    int to;
+    int next;
+} Edge;
+
+typedef struct Node {
+    int cost;
+    int town;
+    int rem;
+} Node;
+
+typedef struct Heap {
+    Node *a;
+    int size;
+    int cap;
+} Heap;
+
+static void heap_init(Heap *h, int cap) {
+    h->a = (Node *)malloc((size_t)cap * sizeof(Node));
+    h->size = 0;
+    h->cap = cap;
+}
+
+static void heap_push(Heap *h, Node x) {
+    if (h->size >= h->cap) {
+        int ncap = h->cap ? (h->cap * 2) : 1024;
+        Node *na = (Node *)realloc(h->a, (size_t)ncap * sizeof(Node));
+        /* Behavior undefined on allocation failure per spec; we do not handle it. */
+        h->a = na;
+        h->cap = ncap;
+    }
+    int i = h->size++;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (h->a[p].cost <= x.cost) break;
+        h->a[i] = h->a[p];
+        i = p;
+    }
+    h->a[i] = x;
+}
+
+static Node heap_pop(Heap *h) {
+    Node ret = h->a[0];
+    Node x = h->a[--h->size];
+    int i = 0;
+    while (1) {
+        int l = i * 2 + 1;
+        int r = l + 1;
+        if (l >= h->size) break;
+        int m = l;
+        if (r < h->size && h->a[r].cost < h->a[l].cost) m = r;
+        if (h->a[m].cost >= x.cost) break;
+        h->a[i] = h->a[m];
+        i = m;
+    }
+    h->a[i] = x;
+    return ret;
+}
+
+int main(void) {
+    int N, K;
+    if (scanf("%d %d", &N, &K) != 2) return 1;
+
+    int *fare = (int *)malloc((size_t)N * sizeof(int));
+    int *lim  = (int *)malloc((size_t)N * sizeof(int));
+    /* Undefined on allocation failure per spec. */
+
+    for (int i = 0; i < N; i++) {
+        if (scanf("%d %d", &fare[i], &lim[i]) != 2) return 1;
+    }
+
+    int *head = (int *)malloc((size_t)N * sizeof(int));
+    for (int i = 0; i < N; i++) head[i] = -1;
+
+    Edge *edges = (Edge *)malloc((size_t)(2 * (size_t)K) * sizeof(Edge));
+    int ec = 0;
+
+    for (int i = 0; i < K; i++) {
+        int A, B;
+        if (scanf("%d %d", &A, &B) != 2) return 1;
+        A--; B--; /* convert 1-based to 0-based as specified */
+
+        edges[ec].to = B;
+        edges[ec].next = head[A];
+        head[A] = ec++;
+
+        edges[ec].to = A;
+        edges[ec].next = head[B];
+        head[B] = ec++;
+    }
+
+    /* dist[town][rem] flattened; rem in 0..MAXR inclusive */
+    const int R = MAXR + 1;
+    size_t dist_sz = (size_t)N * (size_t)R;
+    int *dist = (int *)malloc(dist_sz * sizeof(int));
+    for (size_t i = 0; i < dist_sz; i++) dist[i] = INT_MAX;
+
+    Heap pq;
+    heap_init(&pq, 1024);
+
+    /* Start at town 0 with remaining 0 and cost 0 */
+    dist[0 * R + 0] = 0;
+    heap_push(&pq, (Node){0, 0, 0});
+
+    while (pq.size > 0) {
+        Node cur = heap_pop(&pq);
+        int c = cur.cost;
+        int t = cur.town;
+        int r = cur.rem;
+
+        if (c != dist[(size_t)t * R + (size_t)r]) continue;
+
+        if (t == N - 1) {
+            printf("%d\n", c);
+            return 0;
+        }
+
+        /* Purchase taxi in current town: (t, L(t)) with cost + F(t) */
+        {
+            int nr = lim[t]; /* assumed within 0..5000 per spec */
+            int nc = c + fare[t]; /* assumed to fit in signed int per spec */
+            int *dptr = &dist[(size_t)t * R + (size_t)nr];
+            if (nc < *dptr) {
+                *dptr = nc;
+                heap_push(&pq, (Node){nc, t, nr});
+            }
+        }
+
+        /* Free road traversal if r > 0 */
+        if (r > 0) {
+            int nr = r - 1;
+            for (int e = head[t]; e != -1; e = edges[e].next) {
+                int to = edges[e].to;
+                int *dptr = &dist[(size_t)to * R + (size_t)nr];
+                if (c < *dptr) {
+                    *dptr = c;
+                    heap_push(&pq, (Node){c, to, nr});
+                }
+            }
+        }
+    }
+
+    /* Destination unreachable: terminate normally without printing. */
+    return 0;
+}
+```

@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads four integers and prints the outcome of a comparison between two participants, choosing which pair of values to compare based on whether either “result” value is negative.
+
+2. Inputs  
+- Four integers read from standard input, in this order:
+  1) `T1` (first participant’s comparison value)  
+  2) `T2` (second participant’s comparison value)  
+  3) `R1` (first participant’s result value)  
+  4) `R2` (second participant’s result value)
+
+3. Outputs  
+- If input is successfully read, writes exactly one line to standard output containing exactly one of the following case-sensitive tokens (followed by a newline):
+  - `Alice`
+  - `Bob`
+  - `Draw`
+
+4. Preconditions  
+- Standard input must provide four parsable integers.  
+
+5. Postconditions / Decision Logic  
+- If fewer than four integers are successfully read, the program produces no output and terminates with a non-zero status.  
+- Otherwise, the program determines the output as follows:
+  - If `R1 < 0` **or** `R2 < 0`, compare `T1` and `T2`:
+    - Print `Alice` if `T1 < T2`
+    - Print `Bob` if `T1 > T2`
+    - Print `Draw` if `T1 == T2`
+  - Else (both `R1` and `R2` are non-negative), compare `R1` and `R2`:
+    - Print `Alice` if `R1 > R2`
+    - Print `Bob` if `R1 < R2`
+    - Print `Draw` if `R1 == R2`
+- After printing the selected token, the program terminates normally.
+
+6. Invariants  
+- On successful input, exactly one line is printed.  
+- The printed line is always one of `Alice`, `Bob`, or `Draw`.
+
+7. Error Handling / Exceptional Behavior  
+- If the input does not contain four integers, the program exits with a non-zero status and prints nothing.
+
+8. State Transitions  
+- No persistent state; a single decision is made from the provided inputs and then the program terminates.
+
+9. Non-functional Constraints  
+- Runs in constant time and constant memory.
+
+```

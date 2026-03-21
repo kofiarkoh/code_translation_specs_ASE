@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given an undirected tree on \(n\) labeled vertices, the program computes, for every vertex \(v\), a value determined by the sizes of the connected components that would remain if \(v\) were removed. Let these component sizes be \(s_1, s_2, \dots, s_k\) (so \(\sum_i s_i = n-1\)). For each vertex \(v\), the program outputs (modulo a fixed prime \(P\)) the quantity:
+\[
+n!\;\cdot\;\prod_{i=1}^{k}\frac{1}{s_i! \cdot s_i}
+\;\equiv\;
+\frac{n!}{\left(\prod_i s_i!\right)\left(\prod_i s_i\right)}
+\pmod P.
+\]
+Equivalently, since \(\prod_i (s_i!\,s_i)=\prod_i \bigl(s_i\cdot s_i!\bigr)=\prod_i \bigl((s_i+0)\cdot s_i!\bigr)\), the result is a component-size–based expression that includes both factorial terms and an additional multiplicative factor of the component sizes themselves.
+
+2. Inputs  
+- An integer \(n\), the number of vertices.  
+- \(n-1\) undirected edges, each given as a pair of vertex indices.
+
+3. Outputs  
+- Exactly \(n\) lines are printed.  
+- Line \(v\) (for vertex indices in increasing order) contains one integer in \([0, P-1]\) equal to:
+  \[
+  \frac{n!}{\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|!\right)\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|\right)}
+  \bmod P,
+  \]
+  where the products range over the connected components of the graph obtained by removing \(v\).
+
+4. Preconditions / Assumptions  
+- The input graph is a tree: it has exactly \(n\) vertices, exactly \(n-1\) edges, is connected, and has no cycles.  
+- Vertex indices appearing in edges are valid for the program’s 1-based vertex storage (the program prints results for vertices \(1\) through \(n\)).  
+- \(1 \le n\) and \(n\) does not exceed the fixed array capacity used by the implementation.  
+- The modulus \(P = 10^9+7\) is prime. Modular division is performed via multiplicative inverses modulo \(P\). (If a required inverse does not exist modulo \(P\), behavior is unspecified; under the stated constraints with \(n < P\), the needed inverses exist.)
+
+5. Behavioral Notes / Edge Cases  
+- For \(n=1\), there are no components after removing the only vertex; the empty products are treated as 1, so the output is \(1\) modulo \(P\).  
+- The result for a vertex depends only on the multiset of component sizes formed by removing that vertex, not on the order in which edges are provided.
+
+6. Computation Model (High-level)  
+- The program performs a tree DP with rerooting to compute the per-vertex value for all vertices in overall linear time (aside from logarithmic-time modular exponentiation used for inverses).  
+- Internally it maintains, for the current rooting, subtree sizes and a multiplicative DP value that aggregates child contributions and includes a factor of the inverse of the current subtree size; rerooting across an edge updates the two affected subtree sizes and DP values so that the final stored value at each vertex corresponds to the formula in Section 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed. If the input violates the preconditions (not a tree, out-of-range indices, \(n\) too large for the fixed arrays, etc.), the behavior is unspecified.
+
+```

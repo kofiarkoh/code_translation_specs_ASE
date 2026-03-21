@@ -1,0 +1,45 @@
+1. Functional Description  
+Computes, for each entity in a population, the number of other entities in the same connected component (under a given set of undirected connections) that are eligible to be counted as potential new connections, excluding the entity itself, its directly connected neighbors, and certain disallowed same-component pairs.
+
+2. Inputs  
+- An integer `n`: number of entities, indexed from 1 through `n`.  
+- An integer `m`: number of undirected connections.  
+- An integer `k`: number of disallowed pairs.  
+- `m` pairs `(a, b)`: each denotes an undirected connection between two entities.  
+- `k` pairs `(c, d)`: each denotes a disallowed pair; it only affects results if both entities are in the same connected component induced by the `m` connections.
+
+3. Outputs  
+- A sequence of `n` integers, one per entity `i` from 1 to `n`, where each value equals:  
+  (size of `i`’s connected component) − (1 + number of connections incident to `i`) − (number of disallowed same-component pairs incident to `i`).  
+
+4. Preconditions  
+- `1 ≤ n ≤ 100000`.  
+- All entity indices appearing in input pairs are within `[1, n]`.  
+- The internal parent-chain depth encountered during component queries does not exceed 20 (otherwise behavior is undefined due to fixed internal storage).  
+- Input provides exactly the required number of integers/pairs.
+
+5. Postconditions  
+For each entity `i` (1..`n`), the printed value equals the count of entities `j` such that all of the following hold:  
+- `j ≠ i`.  
+- `j` is in the same connected component as `i` considering only the `m` connections.  
+- There is no direct connection between `i` and `j` among the `m` connections.  
+- The pair `(i, j)` is not listed among the `k` disallowed pairs (in either order) in a way that applies (i.e., both endpoints are in the same component).  
+If the input contains duplicate connections or duplicate disallowed pairs, each occurrence is counted separately in the exclusions, reducing the output accordingly.
+
+6. Invariants  
+- The population is partitioned into disjoint connected components induced by the `m` connections.  
+- Component membership used for all disallowed-pair checks and final counts is based solely on the `m` connections (disallowed pairs do not change components).  
+- For each entity `i`, the exclusion count starts at 1 (excluding itself) and is incremented once per incident connection occurrence and once per incident disallowed-pair occurrence that is within the same component.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, indices are out of range, or the parent-chain depth exceeds the fixed bound, the program may produce incorrect results or exhibit undefined behavior.
+
+8. State Transitions (if applicable)  
+- Initial state: each entity is alone in its own component; exclusion count for each entity is 1.  
+- After processing all `m` connections: components reflect connectivity under those connections; exclusion counts additionally reflect incident connection occurrences.  
+- After processing all `k` disallowed pairs: components unchanged; exclusion counts additionally reflect incident disallowed-pair occurrences that are within the same component.  
+- Final state: outputs are derived from component sizes and exclusion counts; no further state changes.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for up to 100000 entities.  
+- Uses fixed-size internal storage for component-query path tracking, imposing the stated depth constraint.

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines whether every marked cell in a rectangular grid has at least one orthogonally adjacent marked neighbor (up, down, left, or right). Outputs an affirmative result if this condition holds for all marked cells; otherwise outputs a negative result.
+
+2. Inputs  
+- Two integers: the grid height and width.  
+- A sequence of grid rows equal to the height, each representing a row of cells and containing width characters.
+
+3. Outputs  
+- A single textual result indicating whether the adjacency condition is satisfied for all marked cells.
+
+4. Preconditions  
+- The provided height is between 0 and 51 inclusive.  
+- The provided width is between 0 and 59 inclusive.  
+- Each input row contains at least `width` characters.  
+- The grid is intended to be indexed within its declared bounds; behavior is only defined when all neighbor accesses remain within allocated storage (see assumptions in Error Handling / Exceptional Behavior).
+
+5. Postconditions  
+- If the program outputs the affirmative result, then for every cell that is marked, at least one of its orthogonal neighbors within the grid is also marked.  
+- If the program outputs the negative result, then there exists at least one marked cell whose orthogonal neighbors within the grid are all unmarked or absent (outside the grid).
+
+6. Invariants  
+- Unmarked cells do not affect the result except as potential neighbors of marked cells.  
+- Only orthogonal adjacency (not diagonal) is considered.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for malformed input, insufficient rows, or rows shorter than the declared width.  
+- The program may read outside the logical grid when evaluating neighbors at the bottom or right edges; the observable behavior is therefore only well-defined under the assumption that such reads do not occur or do not affect correctness (e.g., the input and memory layout prevent out-of-bounds access). If this assumption is violated, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Terminates immediately upon detecting any marked cell without a marked orthogonal neighbor, producing the negative result.  
+- Otherwise terminates after checking all cells, producing the affirmative result.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of grid cells.  
+- Uses fixed-size storage for the grid, limiting maximum supported dimensions as stated in Preconditions.
+
+```

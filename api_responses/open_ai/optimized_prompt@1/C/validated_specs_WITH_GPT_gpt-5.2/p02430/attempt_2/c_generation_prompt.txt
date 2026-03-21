@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Enumerates all integer bitmask values representable with `n` bits (from `0` up to `2^n - 1`) and outputs those that contain exactly `k` set bits. For each qualifying bitmask, it outputs the bitmask value followed by the list of zero-based bit positions that are set in that bitmask.
+
+2. Inputs  
+- Two integers read from standard input on a single line (whitespace-separated):  
+  - `n`: the number of bit positions considered.  
+  - `k`: the required number of set bits in each generated bitmask.
+
+3. Outputs  
+- To standard output, zero or more lines, in increasing numeric order of the bitmask value.  
+- Each output line corresponds to one bitmask with exactly `k` set bits and has the following exact textual format:  
+  - The decimal integer value of the bitmask, immediately followed by a colon character `:` (with no space before the colon),  
+  - Then, for each set bit position `i` in ascending order, the position printed in decimal and preceded by a single space,  
+  - Then a terminating newline.
+
+4. Preconditions / Assumptions  
+- Input provides two integers; if not, the program’s behavior is not defined by this specification.  
+- `n` is assumed to be non-negative.  
+- `n` is assumed to be small enough that `(1 << n)` is well-defined for the platform’s `int` type and that iterating over all values from `0` to `(1 << n) - 1` is feasible.
+
+5. Postconditions  
+- For every integer bitmask `p` in the range `[0, 2^n - 1]` with exactly `k` set bits (as counted by the platform’s popcount on an `int`), exactly one output line is produced describing `p` and its set bit positions.  
+- No output lines are produced for bitmasks whose number of set bits is not exactly `k`.  
+- If no bitmask in `[0, 2^n - 1]` has exactly `k` set bits, the program produces no output.
+
+6. Invariants  
+- Each produced line lists only indices `i` such that `0 <= i < n`.  
+- Within a line, listed indices are strictly increasing.  
+- For each produced line, the number of listed indices equals `k`.  
+- Across all produced lines, each qualifying bitmask in `[0, 2^n - 1]` appears exactly once.
+
+7. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting.  
+- If the input cannot be read or parsed as two integers, the values used for `n` and/or `k` are unspecified and the resulting output is unspecified.  
+- If assumptions about valid shifting/iteration bounds are violated, behavior is unspecified.
+
+8. Termination Behavior  
+- The program reads input once, enumerates the relevant range, writes the corresponding output lines, and then terminates normally.
+
+```

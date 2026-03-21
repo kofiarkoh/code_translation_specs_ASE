@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+
+int main(void) {
+    int H, W;
+    int K;
+    if (scanf("%d %d %d", &H, &W, &K) != 3) return 0;
+
+    static char s[12][1005];
+    for (int i = 0; i < H; i++) {
+        if (scanf("%1004s", s[i]) != 1) return 0;
+    }
+
+    int best = INT_MAX;
+
+    /* Enumerate all horizontal cut configurations via bitmask over (H-1) gaps. */
+    int maxmask = 1 << (H - 1);
+    for (int mask = 0; mask < maxmask; mask++) {
+        /* Build group id per row based on horizontal cuts. */
+        int gid[12];
+        int groups = 0;
+        gid[0] = 0;
+        groups = 1;
+        for (int r = 1; r < H; r++) {
+            if (mask & (1 << (r - 1))) groups++;
+            gid[r] = groups - 1;
+        }
+
+        int horizontal_cuts = groups - 1;
+
+        /* Greedily determine minimal vertical cuts for this horizontal partition. */
+        int cur[12];
+        for (int g = 0; g < groups; g++) cur[g] = 0;
+
+        int vertical_cuts = 0;
+        int feasible = 1;
+
+        for (int c = 0; c < W; c++) {
+            int add[12];
+            for (int g = 0; g < groups; g++) add[g] = 0;
+
+            for (int r = 0; r < H; r++) {
+                if (s[r][c] == '1') add[gid[r]]++;
+            }
+
+            /* If any single column segment already exceeds K, infeasible for this mask. */
+            for (int g = 0; g < groups; g++) {
+                if (add[g] > K) {
+                    feasible = 0;
+                    break;
+                }
+            }
+            if (!feasible) break;
+
+            int need_cut = 0;
+            for (int g = 0; g < groups; g++) {
+                if (cur[g] + add[g] > K) {
+                    need_cut = 1;
+                    break;
+                }
+            }
+
+            if (need_cut) {
+                vertical_cuts++;
+                for (int g = 0; g < groups; g++) cur[g] = add[g];
+            } else {
+                for (int g = 0; g < groups; g++) cur[g] += add[g];
+            }
+        }
+
+        if (!feasible) continue;
+
+        int total = horizontal_cuts + vertical_cuts;
+        if (total < best) best = total;
+    }
+
+    printf("%d\n", best);
+    return 0;
+}

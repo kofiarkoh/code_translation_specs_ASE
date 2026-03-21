@@ -1,0 +1,78 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define LIMIT 100000
+
+static int primes[100000]; /* enough for all primes < 100000 (there are 9592) */
+static int prime_count = 0;
+static unsigned char is_composite[LIMIT];
+
+static void build_primes(void) {
+    /* Sieve of Eratosthenes for primes < 100000 */
+    is_composite[0] = 1;
+    if (LIMIT > 1) is_composite[1] = 1;
+
+    for (int i = 2; (int64_t)i * i < LIMIT; i++) {
+        if (!is_composite[i]) {
+            for (int j = i * i; j < LIMIT; j += i) {
+                is_composite[j] = 1;
+            }
+        }
+    }
+    for (int i = 2; i < LIMIT; i++) {
+        if (!is_composite[i]) primes[prime_count++] = i;
+    }
+}
+
+int main(void) {
+    build_primes();
+
+    long long m_ll, a_ll, b_ll;
+    while (1) {
+        if (scanf("%lld %lld %lld", &m_ll, &a_ll, &b_ll) != 3) {
+            /* If a record cannot be fully read, terminate without further output. */
+            return 0;
+        }
+        if (m_ll == 0 && a_ll == 0 && b_ll == 0) {
+            return 0;
+        }
+
+        int best_p = 0, best_q = 0;
+        long long best_prod = -1;
+
+        /* Consider all prime pairs (p, q) with p,q < 100000. */
+        for (int i = 0; i < prime_count; i++) {
+            int p = primes[i];
+
+            for (int j = 0; j < prime_count; j++) {
+                int q = primes[j];
+
+                /* Product constraint: p*q <= m */
+                long long prod = (long long)p * (long long)q;
+                if (prod > m_ll) continue;
+
+                /* Ratio constraint: a*q <= p*b, evaluated with integer arithmetic.
+                   Use 64-bit to avoid overflow in intermediate products as much as possible;
+                   spec notes behavior is not guaranteed if representability assumptions are violated. */
+                long long left = a_ll * (long long)q;
+                long long right = (long long)p * b_ll;
+                if (left > right) continue;
+
+                if (prod > best_prod) {
+                    best_prod = prod;
+                    best_p = p;
+                    best_q = q;
+                }
+            }
+        }
+
+        if (best_prod < 0) {
+            /* No valid pair exists. */
+            printf("0 0\n");
+        } else {
+            printf("%d %d\n", best_p, best_q);
+        }
+    }
+}
+```

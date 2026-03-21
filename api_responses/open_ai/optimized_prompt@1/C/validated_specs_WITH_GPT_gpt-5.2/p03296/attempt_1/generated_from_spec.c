@@ -1,0 +1,30 @@
+#include <stdio.h>
+
+int main(void) {
+    int n;
+    int a[100];
+
+    if (scanf("%d", &n) != 1) {
+        return 0; /* Unspecified behavior on malformed/missing input; terminate quietly */
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &a[i]) != 1) {
+            return 0; /* Unspecified behavior; terminate quietly */
+        }
+    }
+
+    int count = 0;
+    int i = 0;
+    while (i + 1 < n) {
+        if (a[i] == a[i + 1]) {
+            count++;
+            i += 2; /* consume both elements; non-overlapping pairs */
+        } else {
+            i += 1;
+        }
+    }
+
+    printf("%d", count);
+    return 0;
+}

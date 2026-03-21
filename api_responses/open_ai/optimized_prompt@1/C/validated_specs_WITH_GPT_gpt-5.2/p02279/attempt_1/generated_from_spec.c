@@ -1,0 +1,72 @@
+#include <stdio.h>
+
+#define MAX_N 100000
+#define NIL   (-1)
+
+static int n;
+static int parent_arr[MAX_N];
+static int depth_arr[MAX_N];
+static int child_count[MAX_N];
+static int children[MAX_N][MAX_N]; /* Fixed maximum capacity; may be too large in practice but matches "fixed maximum" style. */
+
+static void set_depth(int u, int d) {
+    depth_arr[u] = d;
+    for (int i = 0; i < child_count[u]; i++) {
+        int v = children[u][i];
+        set_depth(v, d + 1);
+    }
+}
+
+int main(void) {
+    if (scanf("%d", &n) != 1) return 0;
+
+    for (int i = 0; i < n; i++) {
+        parent_arr[i] = NIL;
+        child_count[i] = 0;
+        /* depths unspecified until computed */
+    }
+
+    for (int i = 0; i < n; i++) {
+        int id, k;
+        if (scanf("%d %d", &id, &k) != 2) return 0;
+        child_count[id] = k;
+        for (int j = 0; j < k; j++) {
+            int c;
+            scanf("%d", &c);
+            children[id][j] = c;
+            parent_arr[c] = id;
+        }
+    }
+
+    int root = NIL;
+    for (int i = 0; i < n; i++) {
+        if (parent_arr[i] == NIL) {
+            root = i;
+            break;
+        }
+    }
+
+    if (root != NIL) {
+        set_depth(root, 0);
+    }
+
+    for (int i = 0; i < n; i++) {
+        const char *type;
+        if (parent_arr[i] == NIL) {
+            type = "root";
+        } else if (child_count[i] == 0) {
+            type = "leaf";
+        } else {
+            type = "internal";
+        }
+
+        printf("node %d: parent = %d, depth = %d, %s, [", i, parent_arr[i], depth_arr[i], type);
+        for (int j = 0; j < child_count[i]; j++) {
+            if (j) printf(", ");
+            printf("%d", children[i][j]);
+        }
+        printf("]\n");
+    }
+
+    return 0;
+}

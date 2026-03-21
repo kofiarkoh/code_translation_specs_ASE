@@ -1,0 +1,55 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static long long gcd_ll(long long a, long long b) {
+    if (b == 0) return a;
+    return gcd_ll(b, a % b);
+}
+
+/* Comparator intentionally uses subtraction to match the spec's overflow note. */
+static int cmp_ll_sub(const void *pa, const void *pb) {
+    long long a = *(const long long *)pa;
+    long long b = *(const long long *)pb;
+    return (int)(a - b);
+}
+
+int main(void) {
+    const long long MOD = 998244353LL;
+
+    long long N;
+    if (scanf("%lld", &N) != 1) {
+        return 0;
+    }
+
+    /* Assumed by spec: N >= 0 and allocation succeeds. */
+    long long *A = NULL;
+    if (N > 0) {
+        A = (long long *)malloc((size_t)N * sizeof(long long));
+        if (!A) {
+            /* Spec: no explicit error handling; abnormal termination is acceptable. */
+            return 0;
+        }
+    }
+
+    for (long long i = 0; i < N; i++) {
+        (void)scanf("%lld", &A[i]);
+    }
+
+    if (N > 0) {
+        qsort(A, (size_t)N, sizeof(long long), cmp_ll_sub);
+    }
+
+    long long ans = 1;
+    for (long long i = 0; i < N; i++) {
+        long long g = gcd_ll(A[i], i);
+        /* Spec: no guarantees on overflow in multiplication before modulo. */
+        ans = (ans * g) % MOD;
+    }
+
+    printf("%lld\n", ans);
+
+    free(A);
+    return 0;
+}
+```

@@ -1,0 +1,100 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+enum {
+    /* Fixed internal capacities (global storage). Chosen to be reasonable and bounded. */
+    MAX_NODES = 200000,
+    MAX_EDGES = 400000
+};
+
+static int indeg[MAX_NODES + 1];
+static int trigger_pred[MAX_NODES + 1];
+
+/* Adjacency in forward-star form */
+static int head[MAX_NODES + 1];
+static int to[MAX_EDGES + 5];
+static int next_edge[MAX_EDGES + 5];
+
+static int queue_nodes[MAX_NODES + 5];
+
+int main(void) {
+    int n, extra;
+    if (scanf("%d %d", &n, &extra) != 2) {
+        /* Input not fully readable as required */
+        return 1;
+    }
+
+    if (n <= 0 || n > MAX_NODES) {
+        /* Preconditions say this won't happen; keep behavior narrow and terminate. */
+        return 1;
+    }
+
+    long long m_ll = (long long)(n - 1) + (long long)extra;
+    if (m_ll < 0 || m_ll > MAX_EDGES) {
+        /* Preconditions say this won't happen; keep behavior narrow and terminate. */
+        return 1;
+    }
+    int m = (int)m_ll;
+
+    for (int i = 1; i <= n; i++) {
+        head[i] = -1;
+        indeg[i] = 0;
+        trigger_pred[i] = 0;
+    }
+
+    /* Store edges; if allocation were required and failed, we'd exit with a specific code.
+       Here we use fixed global storage, so allocation failure cannot occur. */
+    int ecount = 0;
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        if (scanf("%d %d", &u, &v) != 2) {
+            /* Input not fully readable as required */
+            return 1;
+        }
+        /* No validation for out-of-range node numbers per spec; behavior undefined if violated. */
+
+        to[ecount] = v;
+        next_edge[ecount] = head[u];
+        head[u] = ecount;
+        ecount++;
+
+        indeg[v] += 1;
+    }
+
+    /* Initialize frontier with initially incoming-free nodes; they do NOT get a trigger. */
+    int qh = 0, qt = 0;
+    for (int i = 1; i <= n; i++) {
+        if (indeg[i] == 0) {
+            queue_nodes[qt++] = i;
+        }
+    }
+
+    /* Iterative removal process */
+    while (qh < qt) {
+        int u = queue_nodes[qh++];
+
+        for (int ei = head[u]; ei != -1; ei = next_edge[ei]) {
+            int v = to[ei];
+
+            /* Maintained incoming-reference count never increases */
+            indeg[v] -= 1;
+
+            /* Add to frontier exactly when count becomes zero */
+            if (indeg[v] == 0) {
+                /* Record trigger predecessor exactly once, and only for newly incoming-free nodes */
+                if (trigger_pred[v] == 0) {
+                    trigger_pred[v] = u;
+                }
+                queue_nodes[qt++] = v;
+            }
+        }
+    }
+
+    for (int i = 1; i <= n; i++) {
+        printf("%d\n", trigger_pred[i]);
+    }
+
+    return 0;
+}
+```

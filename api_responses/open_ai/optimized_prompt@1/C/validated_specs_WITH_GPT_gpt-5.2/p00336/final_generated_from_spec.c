@@ -1,0 +1,41 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MOD 1000000007u
+#define MAXLEN 1000
+
+int main(void) {
+    static char source[MAXLEN + 1];
+    static char target[MAXLEN + 1];
+
+    if (scanf("%1000s %1000s", source, target) != 2) {
+        /* Unspecified behavior per spec if input missing/malformed; exit quietly. */
+        return 0;
+    }
+
+    size_t n = strlen(source);
+    size_t m = strlen(target);
+
+    /* dp[i][j] = number of ways target[0..j-1] occurs as a subsequence of source[0..i-1], mod MOD */
+    static unsigned int dp[MAXLEN + 1][MAXLEN + 1];
+
+    /* Base cases:
+       - Empty target occurs once in any prefix of source (choose nothing).
+       - Non-empty target occurs zero times in empty source. */
+    for (size_t i = 0; i <= n; i++) dp[i][0] = 1u;
+    for (size_t j = 1; j <= m; j++) dp[0][j] = 0u;
+
+    for (size_t i = 1; i <= n; i++) {
+        for (size_t j = 1; j <= m; j++) {
+            unsigned int val = dp[i - 1][j]; /* skip source[i-1] */
+            if (source[i - 1] == target[j - 1]) {
+                val += dp[i - 1][j - 1];     /* use source[i-1] to match target[j-1] */
+                if (val >= MOD) val -= MOD;  /* since both addends are in [0, MOD-1], sum < 2*MOD */
+            }
+            dp[i][j] = val;
+        }
+    }
+
+    printf("%u\n", dp[n][m] % MOD);
+    return 0;
+}

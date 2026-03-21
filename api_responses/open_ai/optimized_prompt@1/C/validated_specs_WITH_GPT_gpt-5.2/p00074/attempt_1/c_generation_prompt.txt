@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads successive time-of-day values expressed as hours, minutes, and seconds. For each valid input triple (until a sentinel is encountered or input ends), computes the time remaining until a fixed 2-hour mark measured from 00:00:00, outputs that remaining time, then outputs three times that remaining duration, both formatted as hours/minutes/seconds.
+
+2. Inputs  
+- A sequence of triples of integers representing:  
+  - hours  
+  - minutes  
+  - seconds  
+- Termination sentinel: a triple where all three values are −1, or end-of-input / incomplete triple.
+
+3. Outputs  
+For each processed input triple, produces exactly two lines:  
+- Line 1: the duration (2 hours − input time) expressed as hours, minutes, seconds.  
+- Line 2: three times the duration from Line 1, expressed as hours, minutes, seconds.
+
+4. Preconditions  
+- Each processed record must provide three integers.  
+- To ensure meaningful “remaining time” semantics, the input time is assumed to represent a non-negative time not exceeding 2 hours (inclusive).  
+- To avoid arithmetic overflow, inputs are assumed to be within integer ranges such that intermediate computations remain representable.
+
+5. Postconditions  
+For each processed input triple (h, m, s):  
+- Let T = 3600·h + 60·m + s (seconds).  
+- Let R = 7200 − T (seconds).  
+- The first output line represents R decomposed into (R div 3600) hours, ((R mod 3600) div 60) minutes, (R mod 60) seconds.  
+- The second output line represents 3·R decomposed similarly.  
+- Processing continues with the next triple until termination conditions are met.
+
+6. Invariants  
+- Each processed input triple results in exactly two output lines.  
+- The second output duration is exactly three times the first output duration in total seconds.  
+- No persistent state is carried between iterations beyond reading the next input triple.
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or a complete triple cannot be read, the program terminates without further output.  
+- If the sentinel triple (−1, −1, −1) is encountered, the program terminates without producing output for that triple.  
+- If inputs violate the stated assumptions (e.g., time beyond 2 hours or negative values other than the sentinel), the program still performs the arithmetic and outputs the resulting decomposed values; the meaning of such output is not guaranteed.
+
+8. State Transitions (if applicable)  
+- Repeats between two states:  
+  - Waiting for next input triple.  
+  - After a valid non-sentinel triple, emits two output lines and returns to waiting.  
+- Transitions to a terminal state on sentinel detection or inability to read a full triple.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time in the number of processed input triples.  
+- Uses constant additional memory.
+
+```

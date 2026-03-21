@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given two integer resource quantities \(R\) and \(B\), the program computes an integer value derived from a specific arithmetic feasibility test implemented in the source. It finds the largest integer \(k\) (within a fixed search range) for which the feasibility test succeeds, then prints that \(k\) minus 1. The final subtraction is always performed and is intended to exclude one “empty box” from the reported count.
+
+2. Inputs  
+- Two integers are read from standard input in decimal form and stored as C `long long` values.  
+- Input is read using `scanf("%lld%lld", &r, &b)`; therefore the input must be compatible with the `%lld` conversion and must contain two successfully parseable integers.
+
+3. Outputs  
+- One integer is written to standard output in decimal form, printed as a C `long long` using `printf("%lld\n", value)`.
+
+4. Preconditions / Assumptions  
+- The input values must be representable in C `long long`.  
+- The intended domain is \(R \ge 0\) and \(B \ge 0\). No validation is performed; behavior outside this domain is not part of the contract.  
+- The program assumes all intermediate computations fit within signed 64-bit `long long`; it does not guard against overflow (overflow yields undefined behavior in C).  
+- The program uses a fixed constant `prime = 10000000019`.
+
+5. Core Computation (Exact Feasibility Predicate)  
+
+5.1. High-level search for \(k\)  
+- The program searches for the maximum integer \(k\) in the fixed range \([0, 2{,}222{,}222]\) such that `ispossible(R,B,k)` is true.  
+- This search is performed by integer binary search and relies on `ispossible(R,B,k)` being treated as monotone in \(k\) over that range (see §7).
+
+5.2. The function `ispossible(R,B,k)`  
+`ispossible` decides feasibility by searching over an integer parameter \(t\) (named `te` in the code) in the range \([1, \texttt{prime}-1]\). For each candidate \(t\), it computes a required resource pair \((Z_R, Z_B)\) via `calc(t, prime - t, k, &Z_R, &Z_B)` and compares it to the available \((R,B)\).
+
+- If for some \(t\), the computed pair satisfies \(Z_R \le R\) and \(Z_B \le B\), then `ispossible` returns true immediately.
+- If during the search it encounters a \(t\) where both requirements exceed the available resources (\(Z_R > R\) and \(Z_B > B\)), it returns false immediately.
+- Otherwise, it continues a binary search on \(t\), moving the search interval based on whether \(Z_R\) exceeds \(R\) (move upward in \(t\)) or not (move downward in \(t\)). While doing so, it records two “bounding” computed points:
+  - one point from a case where \(Z_R > R\) (stored as \((S_R,S_B)\)), and
+  - one point from a case where \(Z_R \le R\) (stored as \((F_R,F_B)\)).
+- If the binary search finishes without returning, `ispossible` performs a final geometric check: it returns true iff the input point \((R,B)\) lies on or to one particular side of the directed line through the two recorded points \((F_R,F_B)\) and \((S_R,S_B)\). Concretely, it computes a 2D cross product
+  \[
+    \text{cross}((S-F),(T-F)) \ge 0
+  \]
+  where \(F=(F_R,F_B)\), \(S=(S_R,S_B)\), and \(T=(R,B)\). If the cross product is nonnegative it returns true; otherwise false. (This is exactly the code’s “on/above the line” test.)
+
+5.3. The function `calc(p,q,k,&Z_R,&Z_B)`  
+Given positive integers \(p\) and \(q\) (in this program always \(p=t\), \(q=\texttt{prime}-t\)), `calc` searches for an integer \(z\) such that `calcul(p,q,z,&Z_R,&Z_B)` returns a count equal to \(k\). It performs an integer binary search on \(z\) over the fixed range:
+- \(z \in [0, \texttt{prime} \cdot 2000]\).
+
+At each midpoint \(z\), it calls `calcul(p,q,z,...)` which returns a count `c`.  
+- If `c == k`, `calc` stops and leaves \((Z_R,Z_B)\) as produced by that call.  
+- If `c < k`, it increases the lower bound; if `c > k`, it decreases the upper bound.  
+- If the loop ends without finding `c == k`, the function terminates without any additional correction step; the final \((Z_R,Z_B)\) are simply whatever values were last written by the most recent `calcul` call executed during the search.
+
+5.4. The function `calcul(p,q,z,&outR,&outB)`  
+This function computes three values from integers \(p,q,z\):  
+- a returned count `cnt`, and  
+- two accumulated quantities written to `*outR` and `*outB`.
+
+Behavior:
+- It initializes `cnt = 0`, `*outR = 0`, `*outB = 0`.  
+- If \(p < q\), it swaps \(p\) and \(q\) for the computation and remembers that it swapped; at the end it swaps the two outputs `outR` and `outB` back (so the output components correspond to the original \(p,q\) order).
+- It then iterates with an index \(i = 0,1,2,\dots\) while the current \(z \ge 0\). In each iteration:
+  - \(w = \left\lfloor z / q \right\rfloor\) (integer division),
+  - `cnt` increases by \(w+1\),
+  - `*outR` increases by \(i \cdot (w+1)\),
+  - `*outB` increases by the triangular number \(\frac{(w+1)w}{2}\),
+  - then \(z\) is decreased by \(p\) and \(i\) is incremented.
+- The function returns `cnt` and leaves `*outR`, `*outB` as accumulated (possibly swapped back as described).
+
+6. Output Semantics / Postconditions  
+Let \(k^\*\) be the maximum integer in \([0, 2{,}222{,}222]\) such that `ispossible(R,B,k^\*)` returns true under the exact procedure in §5. The program prints:
+- \(k^\* - 1\)
+
+Consequences of the fixed search bounds and final subtraction:
+- The printed value is at most \(2{,}222{,}221\).  
+- If \(k^\* = 0\), the program prints \(-1\).
+
+7. Monotonicity Assumption Used by the Search  
+- The binary search in `solve` treats `ispossible(R,B,k)` as monotone in \(k\) over the searched range: if it is true for some \(k\), it is assumed true for all smaller \(k\); if it is false for some \(k\), it is assumed false for all larger \(k\). The program’s result is defined by its execution of this search and predicate, regardless of whether the mathematical property holds beyond what the code enforces.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, negative values, or overflow.  
+- The program performs one computation for the given input and terminates after printing the result.
+
+```

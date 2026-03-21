@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, reads a rectangular matrix of integers and computes the sum of each column. Produces a permutation of the column indices ordered by non-increasing column sum, outputting all column indices exactly once per dataset. Processing stops when a terminating dataset marker is encountered.
+
+2. Inputs  
+- A sequence of datasets.  
+- Each dataset begins with two integers: the number of rows and the number of columns.  
+- If both are zero, input terminates.  
+- Otherwise, exactly (rows × columns) integers follow, representing the matrix entries in row-major order.
+
+3. Outputs  
+- For each non-terminating dataset: one line containing the 1-based indices of all columns, ordered by descending column sum, separated by single spaces.
+
+4. Preconditions  
+- Each dataset provides valid integers in the required quantity.  
+- The number of rows and columns are non-negative; for non-terminating datasets, both are positive.  
+- The product (rows × columns) is representable and feasible for in-memory processing.  
+- Column sums fit within the integer range of the execution environment.
+
+5. Postconditions  
+For each non-terminating dataset:  
+- Exactly one output line is produced.  
+- The line contains each integer from 1 through the number of columns exactly once.  
+- If column A’s sum is greater than column B’s sum, then A’s index appears before B’s index in the output.  
+- If two columns have equal sums, the column with the smaller index appears earlier (stable tie-breaking by ascending index).
+
+6. Invariants  
+- Within a dataset, each column index is selected and output at most once.  
+- After producing a dataset’s output line, all columns have been selected and output exactly once.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or insufficient, behavior is unspecified.  
+- If memory requirements cannot be met or integer overflow occurs during summation, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read dataset header → if terminating marker then stop; else read matrix → compute column sums → output ordered column indices → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Time per dataset grows proportionally to the number of matrix elements plus an additional factor proportional to the square of the number of columns (due to repeated selection of the next maximum).  
+- Memory per dataset grows proportionally to the number of matrix elements plus the number of columns.
+
+```

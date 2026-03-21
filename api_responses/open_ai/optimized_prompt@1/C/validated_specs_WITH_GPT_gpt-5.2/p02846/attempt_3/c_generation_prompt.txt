@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+The program reads two phase durations and two pairs of per-phase values for entities A and B. It compares the entities’ time-weighted totals over the two phases and outputs either:
+- the literal `infinity` if the two entities’ combined totals over both phases are exactly equal, or
+- otherwise, a nonnegative integer computed from time-weighted per-phase differences after a normalization step that may swap A and B.
+
+2. Inputs  
+Six signed integers, read as C `long long` values, in this order:
+- `T1`, `T2`: durations of phase 1 and phase 2  
+- `A1`, `A2`: A’s values in phase 1 and phase 2  
+- `B1`, `B2`: B’s values in phase 1 and phase 2  
+
+Input is read using `scanf` with the `%lld` conversion specifier (whitespace-separated in any standard way).
+
+3. Outputs  
+Exactly one line printed using `printf`:
+- `infinity` followed by a newline, or  
+- a decimal integer followed by a newline.
+
+4. Preconditions / Assumptions  
+- All six values are present in the input and are representable as C `long long`.  
+- All intermediate arithmetic performed by the program (products, sums, differences, and derived expressions) is assumed not to overflow the `long long` range; if overflow occurs, behavior follows C’s rules for signed overflow (i.e., is undefined).  
+- No validation is performed; behavior is unspecified if inputs are missing or malformed.
+
+5. Computation and Postconditions  
+
+5.1 Total-equality check  
+Compute:
+- `TotalA = A1*T1 + A2*T2`  
+- `TotalB = B1*T1 + B2*T2`  
+If `TotalA == TotalB`, output `infinity` and terminate.
+
+5.2 Normalization (possible swap)  
+If `A1 > B1`, swap A’s and B’s values for both phases (swap `A1` with `B1` and also swap `A2` with `B2`).  
+After this step, `A1 <= B1` holds.
+
+5.3 Derived quantities and integer result  
+After any swap, define:
+- `X = (B1 - A1) * T1`  
+- `Y = (A2 - B2) * T2`
+
+Then:
+- If `X > Y`, output `0`.  
+- Otherwise, let `D = Y - X` and compute using C integer division/remainder on `long long`:
+  - If `X % D == 0`, output `2 * (X / D)`.  
+  - Else, output `2 * (X / D) + 1`.
+
+6. Notes on edge conditions  
+- In the non-`infinity` path, the program may evaluate `X / D` and `X % D`. If `D == 0`, this causes division/modulo by zero and the program’s behavior is undefined (the program does not guard against this case).  
+- Apart from the `infinity` case, the output is the integer produced by the above rules (intended to be nonnegative under the program’s assumed arithmetic conditions).
+
+7. Implementation/I-O Contract Clarification  
+- A conforming C implementation consistent with this specification uses `long long` for all six inputs and uses `%lld` with `scanf`/`printf` (as in the source), requiring only `<stdio.h>`.  
+- The specification does not require use of `int64_t` or `SCNd64`/`PRId64` macros.
+
+8. State / Termination  
+- The program is stateless aside from local variables.  
+- It prints exactly one line and then terminates normally, except in cases of undefined behavior (e.g., signed overflow or division by zero).
+
+```

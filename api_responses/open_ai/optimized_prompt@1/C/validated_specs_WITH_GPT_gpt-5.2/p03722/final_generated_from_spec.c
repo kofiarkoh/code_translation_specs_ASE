@@ -1,0 +1,147 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int u;
+    int v;
+    long long w;
+} Edge;
+
+int main(void) {
+    int N, M;
+    if (scanf("%d %d", &N, &M) != 2) return 0;
+
+    Edge *edges = (Edge *)malloc((size_t)M * sizeof(Edge));
+    if (!edges && M > 0) return 0;
+
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        long long c;
+        if (scanf("%d %d %lld", &u, &v, &c) != 3) {
+            free(edges);
+            return 0;
+        }
+        edges[i].u = u;
+        edges[i].v = v;
+        edges[i].w = c;
+    }
+
+    /* Sentinel for "no path" / unreachable: very large negative integer. */
+    const long long NEG_INF = LLONG_MIN / 4;
+
+    long long *dist = (long long *)malloc((size_t)(N + 1) * sizeof(long long));
+    if (!dist) {
+        free(edges);
+        return 0;
+    }
+
+    for (int i = 1; i <= N; i++) dist[i] = NEG_INF;
+    dist[1] = 0; /* baseline */
+
+    /* Bellman-Ford style relaxation for maximum path weight (no positive cycles). */
+    for (int iter = 1; iter <= N - 1; iter++) {
+        int changed = 0;
+        for (int i = 0; i < M; i++) {
+            int u = edges[i].u;
+            int v = edges[i].v;
+            long long w = edges[i].w;
+            if (dist[u] == NEG_INF) continue;
+            long long cand = dist[u] + w;
+            if (cand > dist[v]) {
+                dist[v] = cand;
+                changed = 1;
+            }
+        }
+        if (!changed) break;
+    }
+
+    /* Detect reachable positive-weight cycle that can still reach N.
+       We do this by:
+       1) Mark nodes that can reach N (reverse graph reachability).
+       2) Check if any edge can still relax (improve) after N-1 iterations
+          from a node reachable from 1 (dist[u] != NEG_INF) and whose target
+          can reach N (or itself can reach N). If so, answer is infinite. */
+    int *revHead = (int *)malloc((size_t)(N + 1) * sizeof(int));
+    int *revTo = (int *)malloc((size_t)M * sizeof(int));
+    int *revNext = (int *)malloc((size_t)M * sizeof(int));
+    if (!revHead || (!revTo && M > 0) || (!revNext && M > 0)) {
+        free(edges);
+        free(dist);
+        free(revHead);
+        free(revTo);
+        free(revNext);
+        return 0;
+    }
+
+    for (int i = 1; i <= N; i++) revHead[i] = -1;
+    for (int i = 0; i < M; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        /* reverse edge: v -> u */
+        revTo[i] = u;
+        revNext[i] = revHead[v];
+        revHead[v] = i;
+    }
+
+    char *canReachN = (char *)calloc((size_t)(N + 1), 1);
+    int *queue = (int *)malloc((size_t)(N + 5) * sizeof(int));
+    if (!canReachN || !queue) {
+        free(edges);
+        free(dist);
+        free(revHead);
+        free(revTo);
+        free(revNext);
+        free(canReachN);
+        free(queue);
+        return 0;
+    }
+
+    int qh = 0, qt = 0;
+    canReachN[N] = 1;
+    queue[qt++] = N;
+
+    while (qh < qt) {
+        int x = queue[qh++];
+        for (int ei = revHead[x]; ei != -1; ei = revNext[ei]) {
+            int p = revTo[ei];
+            if (!canReachN[p]) {
+                canReachN[p] = 1;
+                queue[qt++] = p;
+            }
+        }
+    }
+
+    int infinite = 0;
+    for (int i = 0; i < M; i++) {
+        int u = edges[i].u;
+        int v = edges[i].v;
+        long long w = edges[i].w;
+        if (dist[u] == NEG_INF) continue; /* not reachable from 1 */
+        if (!canReachN[u] && !canReachN[v]) continue; /* cannot lead to N */
+        long long cand = dist[u] + w;
+        if (cand > dist[v]) {
+            /* Improvement after N-1 relaxations implies a positive cycle
+               on some path from 1; requiring reachability to N via canReachN. */
+            if (canReachN[v] || canReachN[u]) {
+                infinite = 1;
+                break;
+            }
+        }
+    }
+
+    if (infinite) {
+        printf("inf");
+    } else {
+        printf("%lld", dist[N]);
+    }
+
+    free(edges);
+    free(dist);
+    free(revHead);
+    free(revTo);
+    free(revNext);
+    free(canReachN);
+    free(queue);
+    return 0;
+}

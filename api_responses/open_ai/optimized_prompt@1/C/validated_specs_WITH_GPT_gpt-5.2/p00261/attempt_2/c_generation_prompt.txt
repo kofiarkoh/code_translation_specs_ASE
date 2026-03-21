@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of whitespace-delimited tokens, each representing a path as a string of binary digits. For each non-terminating token, the program simulates a deterministic finite-state transition system starting from a fixed initial state. It then reports whether the state reached after consuming the token (or after stopping early due to an undefined transition) is the single accepting state.
+
+2. Inputs  
+- A sequence of whitespace-delimited text tokens read from standard input.  
+- Processing stops when a token is read whose first character is `'#'`; that token is not otherwise interpreted as a path.  
+- Each non-terminating token is expected to be a finite string of characters `'0'` and `'1'`.
+
+3. Outputs  
+- For each non-terminating input token, the program outputs exactly one line:  
+  - `Yes` followed by a newline if the token is accepted, or  
+  - `No` followed by a newline if the token is rejected.  
+Capitalization and spelling must match exactly as shown.
+
+4. Preconditions / Assumptions  
+- Each processed (non-terminating) token must fit in the program’s fixed internal buffer (maximum 109 characters, excluding the terminating null character).  
+- Each character in a processed path token must be either `'0'` or `'1'`. If other characters appear, behavior is undefined (the program may index outside the transition table).  
+- Input is provided in a form readable by repeated token-based scanning; behavior if input ends before any `'#'`-prefixed token is encountered is unspecified.
+
+5. Processing and Acceptance Semantics  
+For each non-terminating token:  
+- Initialize the current state to the initial state.  
+- Scan the token from left to right. For each character:
+  - Interpret `'0'` as input symbol 0 and `'1'` as input symbol 1.
+  - If the transition for the current state and that symbol is undefined, stop processing the token immediately (remaining characters are ignored) and keep the current state unchanged.
+  - Otherwise, move to the defined next state and continue.
+- After scanning ends (either by consuming the entire token or stopping early due to an undefined transition), accept if and only if the current state is the accepting state; otherwise reject.
+
+6. State Machine Definition  
+There are six states: one initial state and one accepting state. Transitions are defined for input symbols `0` and `1` as follows (S0 is initial, S5 is accepting):  
+- From S0: on `0` → S1, on `1` → S2  
+- From S1: on `0` → undefined, on `1` → S3  
+- From S2: on `0` → S1, on `1` → undefined  
+- From S3: on `0` → S4, on `1` → S5  
+- From S4: on `0` → S5, on `1` → S2  
+- From S5: on `0` → S2, on `1` → S1  
+If an undefined transition is encountered, processing of that token stops immediately and acceptance is determined from the state at that point.
+
+7. Termination Behavior  
+- The program continues processing tokens and producing one output line per non-terminating token until it reads a token whose first character is `'#'`, after which it terminates without producing output for that terminating token.
+
+```

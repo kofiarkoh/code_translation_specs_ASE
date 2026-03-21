@@ -1,0 +1,42 @@
+1. Functional Description  
+For each query window length, computes the total number of ordered triples of positions \((a,b,c)\) within the string such that \(a<b<c\), the characters at those positions are respectively `D`, `M`, `C`, and all three positions lie within at least one contiguous substring (window) of the given length. Each valid triple is counted once per window that contains it, and the program outputs the sum over all windows of that length.
+
+2. Inputs  
+- An integer representing the string length.  
+- A string of that length.  
+- An integer representing the number of queries.  
+- A sequence of query integers, each representing a window length.
+
+3. Outputs  
+- For each query, one integer value: the total count described above for that query’s window length, printed in query order.
+
+4. Preconditions  
+- The provided string length matches the actual length of the input string.  
+- The number of queries does not exceed the fixed internal capacity for storing query lengths.  
+- Each query window length is assumed to satisfy \(1 \le k \le n\).  
+- The string is assumed to fit within the fixed internal capacity.  
+
+5. Postconditions  
+For each query window length \(k\), the program outputs:
+\[
+\sum_{t=0}^{n-k} \#\{(a,b,c)\mid t \le a<b<c \le t+k-1,\ s[a]='D',\ s[b]='M',\ s[c]='C'\}
+\]
+where indices are 0-based in the definition above (conceptually; input/output does not expose indexing).
+
+6. Invariants  
+- For a fixed query, the reported total equals the sum of counts of `D`-before-`M`-before-`C` triples within each contiguous window of the specified length.  
+- Only triples with strictly increasing positions are counted.  
+- Only characters equal to `D`, `M`, and `C` contribute to the count; other characters do not form part of any counted triple.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or malformed input.  
+- If preconditions are violated (e.g., window length outside \([1,n]\), excessive query count, or oversized string), behavior is undefined (may produce incorrect results or crash).
+
+8. State Transitions (if applicable)  
+- The program is stateless across queries except for reading inputs; each query’s computation is independent and produces one output line.  
+- No persistent state is maintained after program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the string length per query.  
+- Uses fixed-size internal storage for the string and query list; memory usage is bounded accordingly.  
+- Output values are computed using 64-bit signed integer arithmetic; correctness assumes the true result fits within that range.

@@ -1,0 +1,26 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified construction rule (leading to non-implementable or ambiguous code generation), plus a tooling/formatting ambiguity (code-block boundaries) that caused invalid C output.
+
+B. What the current specification may be missing or misstating  
+- It does not precisely define *how* the component-level “next” is selected from the source program’s behavior. In the source, `nx[cmp[i]]` is set using **the first adjacency entry `to[i][0]` for any vertex `i` that has outgoing edges**, and later assignments overwrite earlier ones. This is not “pick the first outgoing edge of any vertex in the SCC” in a stable sense; it is “for each vertex with outdegree>0, set the SCC’s next to the SCC of that vertex’s first stored outgoing edge; the last such vertex encountered in increasing vertex index wins.”  
+- It also doesn’t pin down what “first outgoing edge” means operationally. In the source, “first” means the **first edge stored in the dynamically grown adjacency array**, which corresponds to **the first edge added for that vertex in input order** (because edges are appended). This is different from “first in adjacency list” for common linked-list adjacency implementations (often reverse input order).  
+- The spec’s “consistency assumption” suggests the next relation is intended to be well-defined per SCC, but the source does not enforce consistency and will silently pick one based on vertex iteration/overwrite behavior. That makes the “next” relation potentially dependent on vertex order even if edges are consistent within an SCC.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the exact rule for computing `next` per SCC, including:
+  1) “first outgoing edge” is the earliest edge read for that vertex (input order), not an arbitrary adjacency traversal order; and  
+  2) if multiple vertices in the same SCC have outgoing edges, the SCC’s `next` is whichever is assigned last by iterating vertices in increasing index (i.e., overwrite semantics), not a deterministic “choose one representative vertex” rule.  
+- Clarify that the algorithm’s component processing order is the SCC index order produced by Kosaraju (`k`), and that the DP propagation is performed in that index order; this matters because `dp[i]` is incremented at visit time and then either multiplied into `ans` or merged forward, so ordering affects intermediate states.  
+- Separately (formatting/tooling): clarify that the output should be a single valid C translation unit; the failing build shows the generator emitted multiple programs / markdown fences, which indicates the spec does not constrain code generation to one compilable file.
+
+D. Why this clarification is supported by the source program  
+- `nx` construction in the source is:
+  ```c
+  memset(nx, -1, sizeof(int)*k);
+  for (i = 0; i < N; i++) if (hi[i]) nx[cmp[i]] = cmp[to[i][0]];
+  ```
+  This proves:
+  - “first outgoing edge” is `to[i][0]` (the first stored edge for vertex `i`), and
+  - `nx[cmp[i]]` is assigned potentially many times (once per vertex with outgoing edges), so the final value depends on the **last** such vertex `i` in the loop, not on a stable SCC-level selection.
+- Edge storage uses `to[_from][hi[_from]++] = _to;` (append), so `to[v][0]` is the first edge added for `v` (input order for that vertex). Any spec that allows “first in adjacency traversal” without tying it to insertion order is too vague to reproduce this.
+- The compilation failure itself indicates the spec did not constrain the generator away from emitting multiple `main`s / markdown artifacts; while not a property of the source algorithm, it is a symptom that the spec is not sufficiently precise about producing a single compilable C program.

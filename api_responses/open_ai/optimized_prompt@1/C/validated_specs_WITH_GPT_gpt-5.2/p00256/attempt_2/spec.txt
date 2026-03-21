@@ -1,0 +1,71 @@
+1. Functional Description  
+The program repeatedly reads one whitespace-delimited token at a time and stops when it reads a token whose first character is `#` (or when input ends). For each non-sentinel token, it parses the token as a dot-separated sequence of unsigned decimal integers and performs one of two conversions:
+
+- If the token contains exactly 3 components, it is interpreted as a Gregorian calendar date `Y.M.D` (year, month, day) and is converted to a 5-component mixed-radix representation `p0.p1.p2.p3.p4`.
+- Otherwise (including the intended case of 5 components), it is interpreted as a 5-component mixed-radix representation and is converted to a Gregorian date `Y.M.D`.
+
+Each processed token produces exactly one output line containing the converted representation as dot-separated integers.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens.  
+- Termination token: any token whose first character is `#`.  
+- Each non-sentinel token is parsed by scanning characters left-to-right, splitting on `.` and interpreting each component as a base-10 non-negative integer (no sign handling).  
+- The program does not enforce a specific component count beyond distinguishing “exactly 3” versus “not 3”.
+
+3. Outputs  
+- For each non-sentinel token, one line is printed:
+  - If the input has 3 components, the output has 5 components: `p0.p1.p2.p3.p4`.
+  - If the input does not have 3 components, the output has 3 components: `Y.M.D`.
+- No output is produced for the sentinel token.
+
+4. Calendar Rules and Day Counting  
+- Gregorian month lengths are the standard lengths with February = 28 days, plus one extra day in leap years.  
+- Leap year rule: a year is a leap year if it is divisible by 4 and (not divisible by 100 unless also divisible by 400).  
+- Day-of-month handling is 1-based in the input and output Gregorian dates. Internally, the program converts a Gregorian date to a 0-based day index within the year by subtracting 1 from the day component.
+
+5. Conversion: Gregorian (3 components) → Mixed-radix (5 components)  
+Given a parsed Gregorian date `Y.M.D`, the program computes an internal non-negative day count `dt` as follows:
+
+- Start with the number of days elapsed before month `M` in year `Y` (using standard month lengths), then add 1 extra day if the date is after February in a leap year, then add `(D - 1)`.
+- Add a year-based offset computed from `(Y - 2001)` using the formula  
+  `365*(Y-2001) + floor((Y-2001)/4) - floor((Y-2001)/100) + floor((Y-2001)/400)`,  
+  and then add an additional fixed constant offset.  
+  This fixed offset is chosen by the program so that the mapping is anchored to a specific epoch around years 2000–2001 rather than to year 0; it is not a generic “days since 0000-01-01” count.
+
+The resulting `dt` is then decomposed into five mixed-radix digits by repeated modulus/division in this order (least significant first):  
+- `p4 = dt mod 20`, then `dt = dt / 20`  
+- `p3 = dt mod 18`, then `dt = dt / 18`  
+- `p2 = dt mod 20`, then `dt = dt / 20`  
+- `p1 = dt mod 20`, then `dt = dt / 20`  
+- `p0 = dt mod 13`  
+
+The program prints `p0.p1.p2.p3.p4`. When converting from a Gregorian input, these digits are always within ranges implied by the moduli: `p0∈[0,12]`, `p1∈[0,19]`, `p2∈[0,19]`, `p3∈[0,17]`, `p4∈[0,19]`.
+
+6. Conversion: Mixed-radix (not 3 components; intended 5) → Gregorian (3 components)  
+The program interprets the first five parsed components as digits in a mixed-radix number with radices (most significant to least significant): 13, 20, 20, 18, 20, combining them as:
+
+`dt = ((((d0)*20 + d1)*20 + d2)*18 + d3)*20 + d4`
+
+It then adds a fixed positive constant offset to `dt`. This constant is part of the program’s chosen epoch alignment and is required for the produced Gregorian date to match the program’s mapping.
+
+To convert this adjusted `dt` into a Gregorian date, the program:
+- Initializes the year to 2000.
+- Repeatedly advances the year by subtracting the length of the current year from `dt` while `dt` is greater than 365, subtracting 366 for leap years and 365 otherwise (implemented as subtracting 365 and then subtracting one more day in leap years).
+- Handles the boundary case where the subtraction lands exactly on a year boundary by stepping back to the previous year and restoring the prior remainder.
+- Determines the month by subtracting month lengths from `dt` starting at January until the remaining `dt` fits within the current month, with special handling for February in leap years.
+- Outputs `Y.M.D` where `D` is the remaining `dt` value (as a 1-based day-of-month after the month-selection logic).
+
+7. Preconditions / Assumptions  
+- Each token must fit in the program’s fixed-size input buffer.  
+- The program assumes tokens contain only digits and `.` separators; other characters lead to unspecified parsing results.  
+- For meaningful results:
+  - 3-component inputs should form a valid Gregorian date.
+  - Mixed-radix inputs should provide at least five components, and the first five should be within their natural digit ranges (13,20,20,18,20) and correspond (after the program’s fixed offset) to a date representable by the program’s arithmetic and year-iteration logic.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit validation is performed for component count, digit ranges, invalid dates, or overflow. Behavior for malformed or out-of-range inputs is unspecified.  
+- If end-of-input occurs without a sentinel token, the program terminates without additional output.
+
+9. Determinism and Invertibility  
+- The conversion is deterministic.  
+- The two directions are tied to the same program-defined epoch via fixed constants and base years (2000/2001). The mapping is not specified in terms of a universal absolute-day origin; it is defined by these internal offsets and the described counting rules.

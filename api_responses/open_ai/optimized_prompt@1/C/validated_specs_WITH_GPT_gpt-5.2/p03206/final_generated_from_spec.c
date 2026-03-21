@@ -1,0 +1,22 @@
+#include <stdio.h>
+
+int main(void) {
+    int day;
+    /* Behavior is unspecified for missing/invalid input; we simply attempt to read. */
+    if (scanf("%d", &day) != 1) {
+        return 0;
+    }
+
+    if (day == 25) {
+        puts("Christmas");
+    } else if (day == 24) {
+        puts("Christmas Eve");
+    } else if (day == 23) {
+        puts("Christmas Eve Eve");
+    } else if (day == 22) {
+        puts("Christmas Eve Eve Eve");
+    }
+    /* For any other value: produce no output. */
+
+    return 0;
+}

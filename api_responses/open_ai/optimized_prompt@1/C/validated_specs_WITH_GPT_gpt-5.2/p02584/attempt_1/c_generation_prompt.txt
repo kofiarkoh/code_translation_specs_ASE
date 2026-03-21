@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum possible absolute value of an integer position after performing at most a given number of moves, where each move changes the position by exactly a fixed step size in either direction.
+
+2. Inputs  
+- Three signed integers:  
+  - Initial position value.  
+  - Maximum number of moves allowed.  
+  - Step size per move.
+
+3. Outputs  
+- A single non-negative integer: the minimum achievable absolute position after up to the allowed number of moves.
+
+4. Preconditions  
+- The step size is positive.  
+- The maximum number of moves is non-negative.  
+- All intermediate arithmetic (including multiplying step size by number of moves) fits within the signed 64-bit integer range.  
+- Input values are provided in a valid numeric form.
+
+5. Postconditions  
+- The output equals:  
+  - Let \(a = |x|\).  
+  - Let \(t = \min(k, \lfloor a/d \rfloor)\).  
+  - Let \(r = a - t \cdot d\).  
+  - If \(k > \lfloor a/d \rfloor\) and \((k - \lfloor a/d \rfloor)\) is odd, the result is \(|r - d|\); otherwise the result is \(r\).  
+- The output is the minimum possible value of \(|x + s|\) over all sequences of at most \(k\) moves, where each move adds either \(+d\) or \(-d\).
+
+6. Invariants  
+- The computed result is always non-negative.  
+- The result is always less than or equal to the absolute value of the initial position plus the total possible movement magnitude.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing/invalid or preconditions are violated (e.g., step size is zero, overflow occurs), behavior is undefined with respect to this specification.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.
+
+```

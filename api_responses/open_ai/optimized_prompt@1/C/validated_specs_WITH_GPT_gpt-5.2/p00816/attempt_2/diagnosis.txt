@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong output formatting / wrong rendering rule (separator character and spacing), plus a minor ordering/placement detail about where separators appear.
+
+B. What the current specification may be missing or misstating  
+- It says “separators inserted” and “separated expression,” but does not specify *how* separators are printed. The generated code chose `'+'` between groups, while the source prints groups separated by spaces.  
+- It also doesn’t clearly state the exact output tokenization: the source prints the best sum, then a space, then the digit string with **spaces after cut positions** (and a newline at the end), not a plus-joined arithmetic expression.
+
+C. What general behavior should be clarified in the specification  
+- The exact output format for the unique-best case should be specified precisely:
+  - After printing the best sum and a space, print the original digits in order.
+  - Insert a **space** (not `+`) after each digit position where a separator is chosen, except that after the final digit it prints a newline (not an extra space).
+  - The output is not an evaluable “a+b+c” expression; it is a space-delimited partition display (e.g., `12 34`, `1 3 57 9`).
+- Clarify that the “separator placement” corresponds to a cut **after digit i** (including the possibility of a cut after the last digit in the internal representation), but the printed form is simply spaces between groups.
+
+D. Why this clarification is supported by the source program  
+- In `main`, the unique case prints:
+  - `printf("%d ", best);` (sum then a space)
+  - then for each digit `putchar(paper[i]);`
+  - and if the mask bit is set, it prints either a space or newline: `putchar(i==n-1?'\n':' ');`
+- There is no `'+'` printed anywhere; group boundaries are rendered as spaces, and the last boundary results in a newline. This directly explains the observed mismatch (`12+34` vs `12 34`, `1+3+57+9` vs `1 3 57 9`).

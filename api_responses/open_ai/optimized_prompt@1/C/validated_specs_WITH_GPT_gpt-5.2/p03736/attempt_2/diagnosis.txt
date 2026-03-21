@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong recurrence (state update uses the wrong position and wrong cost term), plus a missing initialization/INF detail.
+
+B. What the current specification may be missing or misstating  
+- It does not precisely state **which index’s DP entry is updated each step**. The source updates `dp[i]` where `i` is the *previous/current position before reading the next query*, not the newly read position. The generated program instead “relaxes” the DP at `nxt`.  
+- It does not capture that the per-step computed value `x` includes a **subtraction of the movement distance** `-|i - i_|` inside the DP recurrence (the source computes `x = (...) - abs(i-i_)`), and then later adds the total travel distance `d` only once at the end. The generated program effectively adds movement into the DP each step (`cand = dp_cur + |nxt-cur|`), which is a different cost decomposition.  
+- It does not specify the **initial DP array state**. In the source, `dp[]` is a static global array, so it starts at **0 for all indices**, not `+INF`. The algorithm then takes `min(dp[i], x)`, meaning `dp[i]` can never increase above 0. The current spec implies “accumulated values” start as “uninitialized/INF except target,” which matches the generated code but not the source.
+
+C. What general behavior should be clarified in the specification  
+- The exact recurrence and update timing: for each query move from old position `i` to new position `i_`, compute an intermediate value from the data structures queried at `i_`, adjust it by `-abs(i-i_)`, and then update the DP value **at the old position `i`** and update the Fenwick/summary structures using that same old position.  
+- The cost accounting split: the DP term is maintained in a form that already compensates for per-step movement via subtraction, and only the total travel distance is added once at the end.  
+- The initial conditions: `dp[]` starts at 0 (due to static storage), while the Fenwick trees start at `INF` except for two initial updates derived from the distinguished target `j` (`-j` and `+j` in transformed coordinates).
+
+D. Why this clarification is supported by the source program  
+- Update location: inside the loop the source does `dp[i] = min(dp[i], x); update(ft1, i, ...); update(ft2, ..., i, ...); i = i_;`—all updates use the *old* `i`, and only after updating does it assign `i = i_`.  
+- Movement handling: the source computes `d += abs(i - i_)` and also computes `x = ... - abs(i - i_)`, then outputs `min(dp) + d`. This shows movement is both accumulated separately and subtracted inside the per-step DP update, which is not equivalent to adding movement into DP each step as the generated code does.  
+- Initialization: `static long long dp[N]` implies zero-initialization by C rules; there is no `memset(dp, INF, ...)`. Meanwhile `ft1`/`ft2` are explicitly set to `INF` and seeded with `update(ft1, j, n, -j)` and `update(ft2, n-1-j, n, j)`, which the spec currently abstracts away too loosely.

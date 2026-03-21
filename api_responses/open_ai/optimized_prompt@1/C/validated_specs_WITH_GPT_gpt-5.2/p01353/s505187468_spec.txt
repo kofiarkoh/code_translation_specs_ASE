@@ -1,0 +1,54 @@
+1. Functional Description  
+Given `n+1` entities indexed `0..n`, the program computes an integer `ans` by aggregating contributions from a subset of the non-distinguished entities (indices `1..n`) according to a two-phase procedure (an initial aggregation phase followed by a sorted processing phase). The program outputs either the final computed `ans` or `-1` if it detects an unsatisfiable condition or if the running accumulated value reaches or exceeds a limit associated with entity `0`.
+
+2. Inputs  
+- An integer `n`.  
+- For each index `i` from `0` to `n`, four integers `h[i]`, `a[i]`, `d[i]`, `s[i]` read in that order.  
+Assumptions/constraints implied by the program:  
+- Exactly `n+1` quadruples are provided.  
+- `n` must be small enough to fit the fixed internal arrays (so that indices `0..n` are valid).  
+- All values are read as (nonnegative) decimal integers; behavior is unspecified for malformed input.  
+- Intermediate arithmetic uses 64-bit signed integers for `ans`, `turn`, and one derived value per relevant entity; overflow is not checked.
+
+3. Derived quantities and relevance of entities  
+For each non-distinguished entity `i` (1..n), define:
+- `k(i) = a[i] - d[0]`.  
+  - If `k(i) <= 0`, entity `i` is ignored entirely and does not affect the result.  
+  - If `k(i) > 0`, entity `i` is considered *relevant* and participates in subsequent checks and computations.
+- For each relevant entity `i`, the program requires `a[0] > d[i]`. If `a[0] <= d[i]` for any relevant entity, the program immediately outputs `-1` and terminates.
+- For each relevant entity `i`, define a nonnegative integer
+  - `t(i) = ceil((h[i] - d[i]) / (a[0] - d[i]))`, computed using integer arithmetic as  
+    `t(i) = (h[i] - d[i] + (a[0] - 1)) / (a[0] - d[i])`.  
+  This value is stored together with `k(i)` for later processing.
+
+4. Computation (two-phase accumulation)  
+The program maintains two 64-bit integers:
+- `turn`, initialized to 0  
+- `ans`, initialized to 0
+
+Phase 1: initial aggregation and collection  
+For each `i = 1..n` with `k(i) > 0` (relevant):
+- Add `k(i)` to `turn`.  
+- If `s[i] > s[0]`, also add `k(i)` to `ans`.  
+- Store the pair `(t(i), k(i))` into a list for sorting.
+
+Phase 2: sorted processing  
+- Sort the stored pairs using a comparator intended to order by decreasing ratio `t/k`, i.e., pair `p1=(t1,k1)` is considered “before” `p2=(t2,k2)` when `t1 * k2 > t2 * k1`.  
+  - The program does not define a deterministic tie-break rule when `t1 * k2 == t2 * k1`; the relative order of ties is unspecified.
+- Then, for each pair `(t, k)` in the resulting order:
+  - Update `ans` as: `ans = ans + turn * t - k`.  
+  - Immediately after this update, if `ans` is greater than or equal to `h[0]` (i.e., `h[0] <= ans`), output `-1` and terminate.  
+  - Decrease `turn` by `k` (i.e., `turn = turn - k`) and continue.
+
+If all pairs are processed without triggering failure, output the final value of `ans` as a signed decimal integer.
+
+5. Outputs  
+- If an unsatisfiable condition is detected (`a[0] <= d[i]` for some relevant `i`), output `-1`.  
+- If during Phase 2 the running `ans` reaches or exceeds `h[0]`, output `-1`.  
+- Otherwise output the computed `ans` after all processing.
+
+6. Behavioral notes / invariants  
+- Only entities with `a[i] > d[0]` (i.e., `k(i) > 0`) can affect `turn`, `ans`, or feasibility.  
+- `turn` is the sum of `k(i)` over relevant entities not yet removed in Phase 2; it starts as the total sum over all relevant entities and decreases by exactly `k` after each processed pair.  
+- `ans` is updated in Phase 1 by a conditional sum of some `k(i)` values (based on `s[i] > s[0]`), and in Phase 2 by the recurrence `ans += turn * t - k` with an immediate failure check against `h[0]`.  
+- The program does not enforce that `ans` is nonnegative; it simply prints the computed signed 64-bit value if it does not fail.

@@ -1,0 +1,31 @@
+1. Functional Description  
+Determines whether six given rectangles can be assigned bijectively to the six faces of a rectangular box (cuboid), with each rectangle optionally rotated (swapping its two side lengths), such that all required shared edges between adjacent faces have equal lengths. The program searches all assignments and rotation choices and stops at the first configuration that satisfies every required edge-length equality.
+
+2. Inputs  
+- Exactly six pairs of integers are read from standard input.  
+- Each pair represents the two side lengths of one rectangle (order as given is not significant because rotation is allowed).
+
+3. Outputs  
+- If at least one valid assignment and set of rotations exists, the program prints exactly `yes` followed by a newline.  
+- Otherwise, it prints exactly `no` followed by a newline.  
+- No other output is produced.
+
+4. Preconditions / Input Assumptions  
+- The input must contain 12 integers forming six complete pairs; otherwise the program terminates early with a non-zero exit status and produces no `yes`/`no` line.  
+- Side lengths are treated as plain integers; the program does not validate positivity, non-zero values, or geometric feasibility beyond equality comparisons.
+
+5. Validity Condition (What “fits a cuboid” means here)  
+A configuration is defined by:  
+- a one-to-one assignment of the six input rectangles to six fixed face positions, and  
+- an independent choice for each face of whether to use the rectangle as given or with its two side lengths swapped.  
+
+The configuration is valid iff all of the program’s fixed set of adjacency constraints between face edges are satisfied, i.e., for each required comparison, the selected edge length from one face equals the selected edge length from the adjacent face. If any required comparison fails, the configuration is invalid.
+
+6. Search / Termination Behavior  
+- The program exhaustively enumerates all permutations of the six rectangles across the six face positions and all 2⁶ combinations of per-face rotation choices.  
+- It immediately prints `yes` and exits with status 0 upon finding the first valid configuration.  
+- If all configurations are exhausted without finding a valid one, it prints `no` and exits with status 0.
+
+7. Error Handling / Exceptional Behavior  
+- If reading the six rectangle pairs fails (fewer than six pairs are successfully read), the program exits with a non-zero status and does not print `yes` or `no`.  
+- No other error conditions are explicitly handled.

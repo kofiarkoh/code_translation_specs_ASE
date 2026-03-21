@@ -1,0 +1,127 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-5
+
+int main (void) {
+    int q;
+    double px, x;
+    while (scanf("%d", &q) != EOF && q != -1) {
+        px = (double)q / 2;
+        do {
+            x = px - (px*px*px - q) / (3*px*px);
+            px = x;
+        } while (fabs(x*x*x - q) >= EPS * q);
+        printf("%.6lf\n", x);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes and outputs an approximation of the real cube root of each provided integer value, processing values sequentially until a designated termination value or end of input is reached.
+
+2. Inputs  
+- A sequence of integer values read from standard input.  
+- A special sentinel integer value indicating termination.
+
+3. Outputs  
+- For each processed input integer (excluding the sentinel), one line to standard output containing a decimal approximation of its real cube root, rounded to a fixed number of digits after the decimal point.
+
+4. Preconditions  
+- Each non-terminating input integer is assumed to be strictly positive.  
+- Input is assumed to be well-formed as a sequence of integers.
+
+5. Postconditions  
+For each processed input integer \( q \) (with \( q > 0 \)):  
+- Exactly one output line is produced.  
+- The printed value \( r \) satisfies the relative cube error criterion:  
+  \[
+  |r^3 - q| < \varepsilon \cdot q
+  \]
+  where \( \varepsilon = 10^{-5} \).  
+- The output value is an approximation of the real cube root of \( q \).
+
+6. Invariants  
+- Each output line corresponds to exactly one input integer processed (excluding the sentinel).  
+- Processing continues input-by-input until termination conditions are met.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If a non-positive integer is provided (including zero), the behavior is not guaranteed by this specification (the computation may fail to terminate or may produce invalid numeric results).  
+- If malformed input occurs, behavior is unspecified beyond potentially terminating input processing.
+
+8. State Transitions (if applicable)  
+- Initial state: ready to read the next integer.  
+- For each read integer:  
+  - If it is the sentinel value, transition to terminated state.  
+  - Otherwise, transition to “compute cube root approximation,” then to “emit result,” then back to ready-to-read.  
+- End-of-input transitions directly to terminated state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed absolute/relative tolerance parameter \( \varepsilon = 10^{-5} \) to determine when the approximation is sufficiently accurate.  
+- Output precision is fixed to a constant number of digits after the decimal point.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong output formatting rule (precision/rounding).  
+- Possibly also a missing/incorrect requirement about reproducing the *exact* printed approximation produced by the specific iteration/termination behavior.
+
+B. What the current specification may be missing or misstating  
+- It says “rounded to a fixed number of digits after the decimal point” but does not state **how many digits**. The source prints with `printf("%.6lf\n", x);` (exactly 6 digits after the decimal).  
+- It frames the result primarily as “an approximation satisfying the relative cube error criterion,” which allows many valid approximations; however, the source program’s output is not just any value meeting the inequality—it is the value produced by a particular Newton iteration starting from `q/2` and stopping when `fabs(x^3 - q) < EPS*q`, then printed to 6 decimals. That combination can yield outputs (e.g., `4.000009`) that differ from other correct cube-root approximations.
+
+C. What general behavior should be clarified in the specification  
+- The **exact output format**: print exactly **six digits after the decimal point** on each line.  
+- Whether the required output is the **specific numeric result produced by the program’s Newton iteration** (initial guess `q/2`, update formula as coded, and termination check as coded), rather than any cube-root approximation meeting a tolerance.
+
+D. Why this clarification is supported by the source program  
+- The source hard-codes the formatting: `printf("%.6lf\n", x);`, which mandates 6 digits after the decimal regardless of tolerance.  
+- The source uses a specific Newton-Raphson form and stopping condition:
+  - initial `px = (double)q / 2;`
+  - update `x = px - (px*px*px - q) / (3*px*px);`
+  - loop while `fabs(x*x*x - q) >= EPS * q`
+  This deterministic procedure can produce a value that, when rounded to 6 decimals, is not necessarily the mathematically closest cube root rounding (or the same as other initial guesses/termination safeguards). The observed discrepancy (e.g., `4.000009` vs `4.000000`) is consistent with the spec being too permissive about acceptable approximations and underspecified about reproducing the program’s exact printed result.
+
+```

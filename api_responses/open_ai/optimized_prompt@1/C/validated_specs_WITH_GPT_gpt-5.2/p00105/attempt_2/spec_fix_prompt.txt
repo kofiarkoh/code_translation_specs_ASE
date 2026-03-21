@@ -1,0 +1,216 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+#define PGMAX 1001
+#define WDMAX 31
+
+typedef struct _index {
+	int pgnum[PGMAX];
+	int tm;
+	char str[WDMAX];
+} index_t;
+
+void swap( int i, int j, index_t idx[MAX] )
+{
+	char tmp_str[WDMAX];
+	int tmp_pgnum[PGMAX];
+	int tmp_tm;
+
+	strcpy( tmp_str, idx[i].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		tmp_pgnum[k] = idx[i].pgnum[k];
+	}
+	tmp_tm = idx[i].tm;
+
+	strcpy( idx[i].str, idx[j].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[i].pgnum[k] = idx[j].pgnum[k];
+	}
+	idx[i].tm = idx[j].tm;
+
+	strcpy( idx[j].str, tmp_str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[j].pgnum[k] = tmp_pgnum[k];
+	}
+	idx[j].tm = tmp_tm;
+}
+
+int main()
+{
+	index_t idx[MAX];
+	char tmp_str[WDMAX] = {};
+	int tmp_pgnum = 0, rgnum = 0, i = 0, j = 0, flag = 0, k = 0;
+
+	while ( scanf( "%s %d", tmp_str, &tmp_pgnum ) != EOF ) {
+		flag = 1;
+		i = 0;
+		while ( i < rgnum ) {
+			if ( strcmp( tmp_str, idx[i].str ) == 0 ) {
+				// BEPO?$5$l$?J8;zNs$NCf$+$i, B:#2sF~NO$5$l$?J8;zNs$,EPO?$5$l$F$$$k$+3NG'$9$k
+				idx[i].pgnum[tmp_pgnum] = 1;
+				idx[i].tm++;
+				flag = 0; // BF~NOJ8;zNs$,EPO?:Q$_$N>l9g
+				break;
+			}
+			i++;
+		}
+
+		if ( flag ) {
+			// BF~NOJ8;zNs$,EPO?$5$l$F$$$J$$>l9g
+			idx[rgnum].pgnum[tmp_pgnum] = 1;
+			idx[rgnum].tm++;
+			strcpy( idx[rgnum].str, tmp_str );
+			rgnum++;
+		}
+		
+	}
+
+	// BF~NOJ8;zNs$N@0Ns$r9T$&
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		for ( j = i+1 ; j < rgnum ; j++ ) {
+			if ( strcmp( idx[i].str, idx[j].str ) > 0 ) {
+				swap( i, j, idx );
+			}
+		}
+	}
+
+	// B@0Ns:Q$_$NF~NOJ8;zNs$NG[Ns$KBP$7$F, B=P8=$7$?%Z!<%8HV9f$J$I$r=PNO$9$k
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		printf( "%s\n", idx[i].str );
+		k = 0;
+		for ( j = 0 ; j < PGMAX ; j++ ) {
+			if ( idx[i].pgnum[j] == 1 ) { 
+				if ( k == idx[i].tm-1 ) {
+					printf( "%d\n", j );
+					break;
+				} else {
+					printf( "%d ", j );
+					k++;
+				}
+			}
+		}
+	}
+
+	return 0;	
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Builds an index from a stream of (word, page-number) pairs. For each distinct word, it records the set of page numbers on which the word appears and the total number of occurrences read for that word. After all input is consumed, it outputs all distinct words in ascending lexicographic order, each followed by the page numbers associated with that word.
+
+2. Inputs  
+- A sequence of zero or more records, each containing:  
+  - A word token (bounded length).  
+  - A non-negative integer page number (bounded range).  
+- Input ends at end-of-file.
+
+3. Outputs  
+For each distinct word (in ascending lexicographic order):  
+- One line containing the word.  
+- One line containing the page numbers associated with that word, in ascending numeric order, separated by single spaces.
+
+4. Preconditions  
+- The number of distinct words in the input does not exceed a fixed maximum capacity.  
+- Each word’s length fits within a fixed maximum length (including terminator).  
+- Each page number is within a fixed inclusive range starting at 0.  
+- For each word, the number of input occurrences for that word does not exceed the number of distinct page numbers recorded for it (i.e., the input does not repeat the same (word, page-number) pair for a given word).  
+
+5. Postconditions  
+- For every distinct word present in the input, exactly one word entry is produced in the output.  
+- For each output word entry, the printed page numbers are exactly the set of page numbers that appeared with that word in the input.  
+- Output word entries are ordered lexicographically ascending by word.  
+- Within each word entry, page numbers are printed in strictly ascending order.
+
+6. Invariants  
+- Each stored word entry corresponds to a unique word (no duplicates among stored words).  
+- For each stored word entry, the recorded page-number set contains only page numbers that appeared with that word in the input.  
+- The recorded occurrence count for a word is non-decreasing as input is processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any precondition is violated (e.g., too many distinct words, out-of-range page numbers, overly long words, or repeated (word, page-number) pairs for the same word), behavior is undefined and may include incorrect output or memory corruption.
+
+8. State Transitions (if applicable)  
+- Initial state: empty index.  
+- For each input record:  
+  - If the word is new, a new entry is created and associated with the given page number.  
+  - If the word already exists, the given page number is added to that word’s page-number set.  
+- Final state: index is sorted by word and then emitted to output.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed upper bounds on: number of distinct words, word length, and page-number range.  
+- Processing time grows quadratically with the number of distinct words due to sorting and lookup strategy.  
+- Memory usage is bounded by the fixed capacities for stored words and page-number sets.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / wrong assumption about initialization and counting; also a missing edge-case about output formatting when no pages are recorded.
+
+B. What the current specification may be missing or misstating  
+- It assumes the program correctly maintains a “set of page numbers” and a “total number of occurrences” in a consistent way, and even adds a precondition forbidding repeated (word, page) pairs. The source does not enforce that constraint and, more importantly, its internal “occurrence count” (`tm`) is incremented on every input record even if the page number was already seen for that word.  
+- The spec implicitly assumes the page-number set starts empty for each new word. In the source, `idx` is an uninitialized local array; `pgnum[]` and `tm` are never zeroed for new entries. The behavior therefore depends on indeterminate initial memory contents unless the environment happens to zero it.  
+- The spec says the printed page numbers are “exactly the set” and are printed with single spaces. In the source, printing is driven by `tm` (the incremented count), not by the number of distinct pages actually present; if `tm` doesn’t match the number of `pgnum[j]==1` entries (e.g., due to repeated pairs or uninitialized state), the output can be truncated, can omit a trailing newline, or can behave inconsistently.
+
+C. What general behavior should be clarified in the specification  
+- Whether the program’s per-word counter represents **total input records** for that word (including duplicates) or **number of distinct pages**; and how that counter is used to decide when to stop printing page numbers.  
+- Whether repeated (word, page) inputs are allowed and, if allowed, whether they affect output (they do affect `tm` in the source, even though the page “set” does not change).  
+- Whether the page-number presence array and counters are guaranteed to be initialized to zero for new words (the source does not do this), and what the resulting behavior is if they are not.  
+- Output formatting guarantees in cases where the internal count does not match the number of pages marked present (e.g., whether the program always prints a newline after the page list).
+
+D. Why this clarification is supported by the source program  
+- In the source, on every record for an existing word it executes:
+  - `idx[i].pgnum[tmp_pgnum] = 1;`
+  - `idx[i].tm++;`
+  This increments `tm` regardless of whether that page was already marked, so `tm` is not “number of distinct pages.”  
+- For a new word, it does:
+  - `idx[rgnum].pgnum[tmp_pgnum] = 1;`
+  - `idx[rgnum].tm++;`
+  - `strcpy(...)`
+  but never initializes `pgnum[]` or `tm` to 0 beforehand; `idx` is a stack array, so those fields are indeterminate.  
+- When printing, it iterates pages in ascending order but stops when `k == idx[i].tm-1`, i.e., it prints exactly `tm` pages *assuming* there are `tm` pages with `pgnum[j]==1`. If that assumption is violated (duplicates or uninitialized bits), the printed list and even newline emission can deviate from the “exact set with spaces” description.
+
+```

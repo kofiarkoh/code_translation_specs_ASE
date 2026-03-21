@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes one or more datasets. For each dataset, it ranks a set of records by defined priority rules and selects up to 26 record identifiers under tiered per-group quota constraints. It outputs the selected identifiers in the order they are selected from the ranked list.
+
+2. Inputs  
+For each dataset:  
+- An integer count of records.  
+- For each record: four integers representing:
+  - a record identifier,
+  - a group identifier,
+  - a primary ranking score,
+  - a secondary ranking score.  
+Datasets repeat until a terminating count value is provided.
+
+3. Outputs  
+For each non-terminating dataset:  
+- Zero to 26 lines, each containing one selected record identifier, in selection order.
+
+4. Preconditions  
+- Each dataset’s record count is non-negative and does not exceed the fixed internal capacity (assumed ≤ 300).  
+- Group identifiers are within a fixed non-negative range supported by internal counting (assumed 0 to 1000 inclusive).  
+- Input provides exactly the required integers for each dataset and record.  
+- The terminating dataset is indicated by a record count of zero.
+
+5. Postconditions  
+For each dataset with count > 0:  
+- Records are conceptually ordered by:
+  1) higher primary ranking score first,  
+  2) for ties, lower secondary ranking score first,  
+  3) for ties, lower record identifier first.  
+- From this ordered list, a sequence of selected record identifiers is produced such that:
+  - At most 26 identifiers are selected.
+  - Selection respects tiered per-group limits based on the selection position:
+    - For selection positions 1–10 (up to the first 10 selections): no more than 3 selections from the same group.
+    - For selection positions 11–20 (up to the next 10 selections): no more than 2 selections from the same group.
+    - For selection positions 21–26 (up to the final 6 selections): no more than 1 selection from the same group.
+  - A record is selected if and only if, at the time it is considered in ranked order, selecting it would not violate the applicable per-group limit for the current selection tier and the overall selection limit has not been reached.
+- The program outputs exactly the selected identifiers, one per line, in the order selected.
+
+6. Invariants  
+- For a given dataset, the per-group selection count used for quota decisions is non-decreasing for each group as records are considered.  
+- The number of selected identifiers never exceeds 26.  
+- The selection order is consistent with the ranked order of records (no reordering among selected items beyond that implied by ranking).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, out-of-range values, or capacity overruns. Behavior is unspecified if preconditions are violated or if input cannot be read as required.
+
+8. State Transitions (if applicable)  
+- Repeats dataset processing until a terminating count of zero is read.  
+- For each dataset, internal selection counts and the output list are reset before processing begins; no state is carried over between datasets.
+
+9. Non-functional Constraints (if inferable)  
+- Operates within fixed-size internal storage limits for records and group counts.  
+- Time cost grows at least quadratically with the number of records due to ranking step, and linearly for selection and output.
+
+```

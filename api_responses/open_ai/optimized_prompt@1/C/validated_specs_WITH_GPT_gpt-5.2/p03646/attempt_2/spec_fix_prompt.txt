@@ -1,0 +1,150 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MOD 1000000007
+#define ll long long
+
+int main(){
+    ll k;
+    ll n;
+    scanf("%lld",&k);
+    if(k>=50){
+        n=50;
+        ll a[n];
+        ll rem=k/50;
+        ll x=49+rem;
+        ll t=k%50;
+        ll i,j;
+        for(i=0;i<50;i++) a[i]=x;
+        for(i=0;i<t;i++){
+            a[i]+=50;
+            for(j=0;j<50;j++) if(j!=i) a[j]--;
+        }
+        printf("50\n");
+        for(i=0;i<50;i++) printf("%lld ",a[i]);
+    } else if(k>=2){
+        n=k;
+        printf("%lld\n",n);
+        for(int i=0;i<n;i++) printf("%lld ",n);
+    } else if(k==0) printf("4\n3 3 3 3\n");
+    else printf("3\n1 0 3\n");
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a single non-negative integer and outputs a positive integer length followed by a sequence of non-negative integers of that length. The produced length and sequence are deterministically derived from the input value and fall into one of four cases based on the input’s magnitude.
+
+2. Inputs  
+- One integer value (assumed to fit in signed 64-bit range).
+
+3. Outputs  
+- First, an integer `n` representing the number of elements in the sequence.  
+- Then, `n` integers representing the sequence values.
+
+4. Preconditions  
+- The input value is provided and is a valid integer within signed 64-bit range.  
+- Assumption: the input value is non-negative (behavior for negative values is not meaningfully defined by the program’s contract).
+
+5. Postconditions  
+Let the input be `k`.
+
+- If `k >= 50`:  
+  - Outputs `n = 50`.  
+  - Outputs a sequence of 50 integers.  
+  - All output elements are non-negative integers.  
+  - The sequence is fully determined by `k` and is constructed so that:
+    - There exists an integer base value `B` such that all elements start from `B`, then exactly `k mod 50` elements are increased by 50, and for each such increase, all other elements are decreased by 1 (net effect applied cumulatively).
+
+- If `2 <= k < 50`:  
+  - Outputs `n = k`.  
+  - Outputs a sequence of length `k` where every element equals `k`.
+
+- If `k == 0`:  
+  - Outputs `n = 4`.  
+  - Outputs the sequence `[3, 3, 3, 3]`.
+
+- If `k == 1`:  
+  - Outputs `n = 3`.  
+  - Outputs the sequence `[1, 0, 3]`.
+
+6. Invariants  
+- The first output value equals the number of subsequent integers output.  
+- The output sequence length is always one of: `50`, `k` (when `2 <= k < 50`), `4`, or `3`.  
+- Under the non-negative input assumption, all printed sequence elements are non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or outside representable range, the behavior is unspecified.  
+- If the input is negative, the produced output may violate the non-negativity property and is not specified by this contract.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from producing output based solely on the single input value.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to the input magnitude (bounded by fixed-size output in the `k >= 50` case and by `k < 50` otherwise).  
+- Output size is bounded: at most 51 integers are printed (one length plus up to 50 elements).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Missing constraint / underspecified implementation requirements (C I/O formatting and headers)** leading to **non-compilable generated code**.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the algorithmic behavior, but it does **not constrain the concrete C implementation details** needed to compile, specifically:
+  - The source uses `scanf("%lld", &k)` / `printf("%lld", ...)` with `long long`, while the generated code uses `SCNd64`/`PRId64` macros without ensuring the required header (`<inttypes.h>`) is included.
+  - The spec does not state what exact C types/format specifiers should be used, so a generator may choose an alternative (int64 + macros) that requires additional includes.
+
+C. What general behavior should be clarified in the specification  
+- Clarify **I/O representation requirements** for a C implementation, e.g.:
+  - Whether the intended implementation should use `long long` with `%lld` (as in the source), or if fixed-width `int64_t` is allowed—**and if allowed, require inclusion of `<inttypes.h>`** (or otherwise specify correct formatting).
+- More generally: specify that the produced program must be **valid C (compilable under the target standard)** and include any headers required by chosen format macros/types.
+
+D. Why this clarification is supported by the source program  
+- The source program compiles without `<inttypes.h>` because it **does not use** `SCNd64`/`PRId64`; it uses `%lld` directly with `ll` (`typedef long long ll;`).  
+- The failure is purely at compilation: the generated program references `SCNd64`/`PRId64` but only includes `<stdint.h>`, so the macros are undefined and the format strings become syntactically invalid. This indicates the spec lacks constraints ensuring generated code matches the source’s concrete, compilable I/O approach (or equivalently constrains required headers when deviating).
+
+```

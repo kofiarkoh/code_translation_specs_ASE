@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- Wrong input/operation encoding assumption (wrong abstraction of the command language)  
+- Wrong transition rule for insertion/removal (how halves are populated and rebalanced)  
+- Wrong query semantics (order-statistic meaning within each half)
+
+B. What the current specification may be missing or misstating  
+- The specification does not define the actual operation codes and their numeric meanings. The source uses integer opcodes `0..9` with optional integer arguments, but the spec (and generated program) assumes letter commands (`I/R/A/B/C/D`). This is a fundamental mismatch: the generated program never recognizes the numeric commands, so it produces no query outputs.  
+- The specification’s description of “k-th smallest/largest within a half” is likely incorrect for the source. The source does not maintain sorted halves; it maintains *monotone stacks/queues* of prefix/suffix minima/maxima that support queries like “the k-th minimum from one end” rather than “k-th order statistic by value.”  
+- The specification’s removal rule (“most recently added element among those currently in the first half”) is not grounded in the source’s actual data-structure behavior. In the source, the first half behaves like a stack (LIFO) and the second half like a queue (FIFO), and rebalancing moves elements between halves in a specific way; this is not the same as “time-ordered halves” or “boundary element of insertion order.”
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the command set as numeric opcodes, including which opcodes take an extra integer parameter and which half (first/second) and which statistic (min/max) they query.  
+- Clarify what “k-th” means in queries: whether it is k-th smallest/largest by value (true order statistic) or k-th element in a monotone-min/monotone-max structure (e.g., k-th minimum when scanning from a particular end).  
+- Clarify the concrete semantics of the two halves: which end insertions go to, which end deletions come from, and the exact rebalancing rule (when and which element is moved between halves). This includes the fact that the two halves are not “earliest vs latest by insertion time” but are maintained by stack/queue operations plus balancing.
+
+D. Why this clarification is supported by the source program  
+- The `main()` dispatch is entirely numeric: `op = in(); if (op==0) add(ALL, in()); else if (op==1) a=del(ALL); else if (op==4) a=gmin(FH, in()); ...` up to `op==9`. This directly contradicts the spec’s unspecified/letter-based command language and explains why the generated program prints only `end`.  
+- The functions `gmin(id, th)` and `gmax(id, th)` index into `min[][]`/`max[][]` arrays that are maintained as monotone sequences (note the while-pop loops for `SH` and the conditional push-only behavior for `FH`). That is characteristic of “k-th element in a monotone min/max structure” (e.g., k-th smallest prefix-minimum), not a general k-th order statistic among all values in the half.  
+- `add(ALL, a)` always inserts into `SH` first, then possibly moves one element from `SH` to `FH` via `del(SH)` if `FH` is smaller. `del(ALL)` removes from `FH` (specifically `del(FH)` which pops from the *back*), then may rebalance by moving from `SH` to `FH`. This establishes specific stack/queue end behaviors and a specific balancing trigger that the current spec does not accurately capture.

@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a given sequence of category selections can be consistent with a process in which, over time, categories become “completed” in a strictly increasing order starting from the smallest non-completed category, under a capacity constraint of size `n`. Outputs an affirmative result if and only if the implied completion order matches this required increasing order; otherwise outputs a negative result.
+
+2. Inputs  
+- An integer `n`: a positive capacity/limit value.  
+- An integer `m`: the number of categories, with categories assumed to be numbered from 0 through `m`.  
+- An integer `q`: the length of the observed sequence.  
+- A sequence of `q` integers, each denoting a category number.
+
+3. Outputs  
+- Prints exactly one of two outcomes: an affirmative decision or a negative decision, followed by a newline.
+
+4. Preconditions  
+- `m >= 0`, `q >= 0`.  
+- `n` is intended to be non-negative; behavior is only meaningful for `n >= 0`.  
+- Every category value in the sequence is within `[0, m]`.  
+- Sufficient memory is available for internal storage proportional to `m + q`.
+
+5. Postconditions  
+- If the program prints the affirmative decision, then the categories that become completed (as implied by the input sequence under the program’s rules) do so in the exact order `0, 1, 2, ...` without skipping or reordering.  
+- If the program prints the negative decision, then at least one category is implied to complete out of order relative to the smallest not-yet-completed category at that point.
+
+6. Invariants  
+- Each category is marked completed at most once.  
+- The “next required category” is always the smallest category index not yet marked completed.  
+- The implied completion sequence (if any) is evaluated in the order derived from the input and does not change during evaluation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input values, out-of-range category indices, or allocation failures; such conditions result in undefined behavior (including possible crashes or incorrect output).  
+- No recovery or partial output is produced beyond the single final decision (except that the negative decision may be printed early).
+
+8. State Transitions (if applicable)  
+- State consists of a set of completed categories and a pointer to the next required (smallest incomplete) category.  
+- Transition rule: when a category is processed as “completed” by the implied completion sequence, it is added to the completed set and the next required category advances to the smallest index not in the completed set.  
+- Acceptance condition: every completed category encountered equals the next required category at the moment it is completed.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in `m + q` under the assumption of valid inputs.  
+- Memory usage is linear in `m + q`.
+
+```

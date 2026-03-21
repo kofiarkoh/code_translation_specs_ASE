@@ -1,0 +1,49 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int64_t T1, T2, A1, A2, B1, B2;
+
+    /* Specification assumes all six values are present; no validation required. */
+    if (scanf("%" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64 " %" SCNd64,
+              &T1, &T2, &A1, &A2, &B1, &B2) != 6) {
+        return 0;
+    }
+
+    /* 5.1 Total-equality check */
+    int64_t TotalA = A1 * T1 + A2 * T2;
+    int64_t TotalB = B1 * T1 + B2 * T2;
+
+    if (TotalA == TotalB) {
+        puts("infinity");
+        return 0;
+    }
+
+    /* 5.2 Normalization (possible swap) */
+    if (A1 > B1) {
+        int64_t tmp;
+        tmp = A1; A1 = B1; B1 = tmp;
+        tmp = A2; A2 = B2; B2 = tmp;
+    }
+
+    /* 5.3 Derived quantities and integer result */
+    int64_t X = (B1 - A1) * T1;
+    int64_t Y = (A2 - B2) * T2;
+
+    if (X > Y) {
+        puts("0");
+        return 0;
+    }
+
+    int64_t D = Y - X;
+    /* Per spec: no guard for D == 0; division/modulo by zero is undefined. */
+    if (X % D == 0) {
+        printf("%" PRId64 "\n", 2 * (X / D));
+    } else {
+        printf("%" PRId64 "\n", 2 * (X / D) + 1);
+    }
+
+    return 0;
+}
+```

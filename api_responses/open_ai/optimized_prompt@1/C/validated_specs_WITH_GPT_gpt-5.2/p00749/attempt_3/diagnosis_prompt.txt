@@ -1,0 +1,477 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether a 2D arrangement of occupied cells is “STABLE” under a specific stacking model. Occupied cells with the same character that are orthogonally connected (4-neighborhood) are grouped into rigid components. Each component has a mass (number of its cells) and a horizontal moment (sum of column indices of its cells). A rooted parent/child structure is then constructed by scanning the grid from bottom row to top row and left to right within each row, using only vertical adjacency (a cell directly below) to establish support. Stability is evaluated bottom-up on this constructed tree: each component is stable only if the horizontal center of mass of the component together with all of its already-validated descendants lies strictly within that component’s computed support footprint. If all components reachable from the chosen root satisfy this, the program prints “STABLE”; otherwise it prints “UNSTABLE”.
+
+2. Inputs  
+- Repeated test cases.  
+- For each test case:  
+  - Two integers `w` (width) and `h` (height).  
+  - Then `h` strings, each representing a row of the grid.  
+- Cells containing `'.'` are empty; any other character is occupied and participates in component formation.  
+- Termination occurs when a test case is read with `w <= 0` (the value of `h` is read but not used for termination).
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Constraints  
+- Dimensions must fit the program’s fixed internal storage: `h <= 60` and `w <= 10` (and thus `w*h <= 600`).  
+- Each input row must be a null-terminated string with at least `w` characters; the program assumes it can read it with `%s`.  
+- No explicit validation is performed for malformed input.
+
+5. Component Formation  
+- Two occupied cells belong to the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- For each component, the program computes:  
+  - `m`: total mass = number of occupied cells in the component.  
+  - `mx`: total horizontal moment = sum of the column indices (0-based) of all occupied cells in the component.
+
+6. Support Footprint (per component)  
+- Each component also accumulates a horizontal support interval `[xl, xr]` (inclusive, in 0-based column indices), but **only from “supported” cells** encountered during the bottom-up scan:  
+  - If a component cell is on the bottom row and is occupied, its column contributes to `[xl, xr]`.  
+  - If a component cell is not on the bottom row, its column contributes to `[xl, xr]` only if the cell directly below it is occupied (any character).  
+  - Cells with empty space directly below (overhangs) do **not** expand `[xl, xr]`.  
+- If a component has no such contributing cells, its footprint remains undefined in the internal representation; the subsequent stability check will treat this as failing the strict containment test.
+
+7. Construction of the Parent/Child Relation (Support Tree)  
+- The program builds a directed structure during the same bottom-up scan (rows from `h-1` down to `0`, columns from `0` up to `w-1`):  
+  - Each connected component is assigned an internal node ID in the order it is first encountered in this scan.  
+  - For a scanned occupied cell at `(r,c)` that is not on the bottom row, if the cell directly below `(r+1,c)` is occupied, then the component containing `(r,c)` may be attached as a child of the component containing `(r+1,c)`.  
+  - A component’s parent is assigned **at most once**: after the first time a parent is set, later vertical contacts do not change the parent and do not add additional parents.  
+  - Children of a parent are stored in the order they are attached during the scan (append to the end of the parent’s child list).  
+- This model is not a general “supported by any component below” relation; it is specifically the single-parent relation induced by the scan order and the “first parent wins” rule.
+
+8. Root Selection and Reachability  
+- The stability evaluation is anchored at the internal node with ID `1` (the first component created by the scan). This node is forcibly set to be its own parent.  
+- Only components reachable from this root via the constructed child links are considered by the recursive evaluation. The program does not separately search for multiple roots or disconnected support trees.
+
+9. Stability Check and Aggregation Logic  
+- The check is performed recursively in a depth-first manner over the constructed child/sibling links.  
+- For each node, after all its descendants are successfully checked, the program computes the horizontal center of mass as:  
+  - `x = 0.5 + (mx / m)` using real division.  
+- The node is considered stable iff `x` lies **strictly inside** its support footprint interpreted as the open interval `(xl, xr+1)`, i.e.:  
+  - unstable if `x <= xl` or `x >= xr + 1`.  
+- If stable, the node’s `m` and `mx` are added into its parent’s `m` and `mx` (aggregating mass and moment upward), and the node is marked as processed so it will not be aggregated twice.
+
+10. Exceptional / Unspecified Aspects  
+- The program does not detect or correct inconsistent or physically unintuitive configurations (e.g., components with no supported cells, multiple disconnected stacks, or support relations that do not reflect all possible contacts). Its output is defined only by the above construction and check procedure.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXH 60
+#define MAXW 10
+#define MAXN (MAXH * MAXW)
+#define MAXC MAXN
+
+static int w, h;
+static char grid[MAXH][MAXW + 5];
+
+static int comp_id[MAXH][MAXW]; /* 0 for empty, else 1..ncomp */
+static int ncomp;
+
+static char comp_ch[MAXC + 1];
+static int comp_m[MAXC + 1];
+static int comp_mx[MAXC + 1];
+
+/* support footprint; xl/xr only meaningful if has_support=1 */
+static int comp_xl[MAXC + 1];
+static int comp_xr[MAXC + 1];
+static int comp_has_support[MAXC + 1];
+
+/* scan-order node id assignment: node_id[comp] = 1..nnode, 0 if not assigned */
+static int node_id_of_comp[MAXC + 1];
+static int comp_of_node[MAXC + 1];
+static int nnode;
+
+/* parent/child as first-child / next-sibling lists over nodes 1..nnode */
+static int parent_node[MAXC + 1];
+static int first_child[MAXC + 1];
+static int next_sibling[MAXC + 1];
+static int last_child[MAXC + 1];
+
+static int processed[MAXC + 1]; /* per node: aggregated upward already */
+
+/* Flood fill to label components by 4-neighborhood with same character */
+static void label_components(void) {
+    int r, c;
+    ncomp = 0;
+    for (r = 0; r < h; r++) {
+        for (c = 0; c < w; c++) comp_id[r][c] = 0;
+    }
+
+    for (r = 0; r < h; r++) {
+        for (c = 0; c < w; c++) {
+            if (grid[r][c] == '.' || comp_id[r][c] != 0) continue;
+
+            ncomp++;
+            comp_ch[ncomp] = grid[r][c];
+            comp_m[ncomp] = 0;
+            comp_mx[ncomp] = 0;
+
+            /* stack for DFS */
+            int st_r[MAXN], st_c[MAXN], sp = 0;
+            st_r[sp] = r; st_c[sp] = c; sp++;
+            comp_id[r][c] = ncomp;
+
+            while (sp > 0) {
+                sp--;
+                int cr = st_r[sp], cc = st_c[sp];
+
+                comp_m[ncomp] += 1;
+                comp_mx[ncomp] += cc;
+
+                /* 4-neighbors */
+                const int dr[4] = {-1, 1, 0, 0};
+                const int dc[4] = {0, 0, -1, 1};
+                for (int k = 0; k < 4; k++) {
+                    int nr = cr + dr[k], nc = cc + dc[k];
+                    if (nr < 0 || nr >= h || nc < 0 || nc >= w) continue;
+                    if (grid[nr][nc] != comp_ch[ncomp]) continue;
+                    if (comp_id[nr][nc] != 0) continue;
+                    comp_id[nr][nc] = ncomp;
+                    st_r[sp] = nr; st_c[sp] = nc; sp++;
+                }
+            }
+        }
+    }
+}
+
+static void init_support_and_tree(void) {
+    for (int i = 1; i <= ncomp; i++) {
+        comp_has_support[i] = 0;
+        comp_xl[i] = 0;
+        comp_xr[i] = -1;
+        node_id_of_comp[i] = 0;
+    }
+    nnode = 0;
+    for (int i = 1; i <= MAXC; i++) {
+        comp_of_node[i] = 0;
+        parent_node[i] = 0;
+        first_child[i] = 0;
+        next_sibling[i] = 0;
+        last_child[i] = 0;
+        processed[i] = 0;
+    }
+}
+
+/* Append child to parent's child list preserving attachment order */
+static void attach_child(int parent, int child) {
+    if (first_child[parent] == 0) {
+        first_child[parent] = child;
+        last_child[parent] = child;
+    } else {
+        next_sibling[last_child[parent]] = child;
+        last_child[parent] = child;
+    }
+}
+
+/* Bottom-up scan: assign node IDs, build single-parent tree, and compute support footprints */
+static void scan_build(void) {
+    for (int r = h - 1; r >= 0; r--) {
+        for (int c = 0; c < w; c++) {
+            if (grid[r][c] == '.') continue;
+
+            int comp = comp_id[r][c];
+            if (comp <= 0) continue;
+
+            /* assign node id on first encounter in this scan */
+            if (node_id_of_comp[comp] == 0) {
+                nnode++;
+                node_id_of_comp[comp] = nnode;
+                comp_of_node[nnode] = comp;
+                parent_node[nnode] = 0; /* unset */
+            }
+
+            /* support footprint contribution */
+            int supported = 0;
+            if (r == h - 1) {
+                supported = 1;
+            } else {
+                if (grid[r + 1][c] != '.') supported = 1;
+            }
+            if (supported) {
+                if (!comp_has_support[comp]) {
+                    comp_has_support[comp] = 1;
+                    comp_xl[comp] = c;
+                    comp_xr[comp] = c;
+                } else {
+                    if (c < comp_xl[comp]) comp_xl[comp] = c;
+                    if (c > comp_xr[comp]) comp_xr[comp] = c;
+                }
+            }
+
+            /* parent/child relation via vertical adjacency, first parent wins */
+            if (r != h - 1 && grid[r + 1][c] != '.') {
+                int below_comp = comp_id[r + 1][c];
+                if (below_comp > 0) {
+                    int child_node = node_id_of_comp[comp];
+                    /* below component must have a node id by now because we scan bottom-up */
+                    int parent = node_id_of_comp[below_comp];
+                    if (parent != 0 && parent_node[child_node] == 0) {
+                        parent_node[child_node] = parent;
+                        attach_child(parent, child_node);
+                    }
+                }
+            }
+        }
+    }
+
+    /* Root selection: node 1 is forced to be its own parent (even if it had none) */
+    if (nnode >= 1) parent_node[1] = 1;
+}
+
+/* Recursive stability check; aggregates mass/moment upward on success */
+static int dfs_check(int node) {
+    /* process children first */
+    for (int ch = first_child[node]; ch != 0; ch = next_sibling[ch]) {
+        if (!dfs_check(ch)) return 0;
+    }
+
+    int comp = comp_of_node[node];
+    int m = comp_m[comp];
+    int mx = comp_mx[comp];
+
+    /* center of mass: x = 0.5 + (mx / m) using real division */
+    double x;
+    if (m == 0) {
+        /* Not expected from component formation; treat as failing strict containment */
+        return 0;
+    } else {
+        x = 0.5 + ((double)mx / (double)m);
+    }
+
+    /* strict containment in (xl, xr+1); if no support footprint, fail */
+    if (!comp_has_support[comp]) return 0;
+    int xl = comp_xl[comp];
+    int xr = comp_xr[comp];
+    if (x <= (double)xl) return 0;
+    if (x >= (double)(xr + 1)) return 0;
+
+    /* aggregate into parent once */
+    if (!processed[node]) {
+        int p = parent_node[node];
+        if (p != 0 && p != node) {
+            int pcomp = comp_of_node[p];
+            comp_m[pcomp] += comp_m[comp];
+            comp_mx[pcomp] += comp_mx[comp];
+        }
+        processed[node] = 1;
+    }
+    return 1;
+}
+
+int main(void) {
+    while (1) {
+        if (scanf("%d %d", &w, &h) != 2) return 0;
+        if (w <= 0) {
+            /* h is read but not used for termination per spec */
+            break;
+        }
+
+        for (int r = 0; r < h; r++) {
+            char buf[MAXW + 5];
+            scanf("%s", buf);
+            /* assume at least w chars as per spec */
+            for (int c = 0; c < w; c++) grid[r][c] = buf[c];
+            grid[r][w] = '\0';
+        }
+
+        label_components();
+        init_support_and_tree();
+        scan_build();
+
+        int ok;
+        if (nnode < 1) {
+            /* No components: root doesn't exist; narrow interpretation => not stable */
+            ok = 0;
+        } else {
+            ok = dfs_check(1);
+        }
+
+        puts(ok ? "STABLE" : "UNSTABLE");
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_output.txt
+Exit code: -11
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+
+```

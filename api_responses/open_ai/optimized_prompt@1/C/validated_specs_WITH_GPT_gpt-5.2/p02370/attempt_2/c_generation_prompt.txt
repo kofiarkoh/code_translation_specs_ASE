@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a directed graph and performs a topological-sort traversal using an indegree-based (Kahn-style) algorithm. It prints vertices in the exact order they are removed from a FIFO queue of currently zero-indegree vertices. If the graph is acyclic, all vertices are printed once in a valid topological order. If the graph contains a directed cycle, the program prints only the vertices that can be reached by repeatedly removing zero-indegree vertices; vertices that never reach indegree zero are not printed, and no cycle is explicitly reported.
+
+2. Inputs  
+- An integer `V`: the number of vertices.  
+- An integer `E`: the number of directed edges.  
+- `E` directed edges, each given as a pair `(s, t)` meaning an edge from `s` to `t`.  
+Vertex indices are treated as integers in the range `[0, V-1]`.
+
+3. Outputs  
+- Zero or more lines, each containing a single vertex index.  
+- Each printed vertex is printed exactly once.  
+- The printed sequence is the order produced by the algorithm described below (not an arbitrary topological ordering).
+
+4. Preconditions / Assumptions  
+- `V` does not exceed the program’s fixed maximum supported vertex count.  
+- Each edge endpoint `s` and `t` is a valid vertex index in `[0, V-1]`.  
+- The input provides exactly `E` edge pairs.  
+- Sufficient memory is available to store all edges and adjacency information.  
+If these assumptions are violated, behavior is undefined.
+
+5. Algorithmic Semantics and Tie-Breaking  
+The program maintains an indegree counter for each vertex (counting all incoming edges, including duplicates and self-loops). It then:
+
+- Initializes a FIFO queue by scanning vertices in increasing index order from `0` to `V-1` and enqueuing every vertex whose indegree is zero at that time, in that scan order.  
+- Repeatedly dequeues the front vertex `u`, prints `u`, and processes all outgoing edges `u -> v`. For each such edge, it decrements `v`’s indegree; if `v`’s indegree becomes exactly zero due to this decrement, `v` is enqueued at the back of the queue immediately.  
+- Outgoing edges of a vertex are processed in the same relative order as the corresponding edges appear in the input among edges with the same source vertex.
+
+This fully determines the output order when multiple vertices are eligible: eligibility is discovered and enqueued in FIFO order, with initial eligibility determined by increasing vertex index, and later eligibility determined by the order in which edges are processed.
+
+6. Postconditions / Properties of the Output  
+- Every printed vertex index is within `[0, V-1]`.  
+- No vertex is printed more than once.  
+- For every edge `u -> v` where both `u` and `v` are printed, `u` appears earlier than `v` in the output.  
+- If the graph is acyclic, all `V` vertices are printed.  
+- If the graph contains a directed cycle (including self-loops), the program may print fewer than `V` vertices; any vertex that remains with positive indegree after the queue becomes empty is not printed.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error reporting.  
+- On malformed input, out-of-range indices, exceeding supported sizes, or allocation failure, behavior is undefined (may crash, terminate abnormally, or produce incorrect output).
+
+```

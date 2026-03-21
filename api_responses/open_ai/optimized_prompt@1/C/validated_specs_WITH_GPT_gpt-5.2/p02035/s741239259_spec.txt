@@ -1,0 +1,35 @@
+Reads two integers `n` and `m` and prints a value computed by a modular summation.
+
+### Functional behavior
+1. Precomputes factorials and inverse factorials modulo `m` up to index `2010` (inclusive) using modular exponentiation and Fermat-style inversion (`x^(m−2) mod m`).
+2. Computes an accumulator `ans` as a sum over all splits of an `n`-element set into two nonempty parts of sizes `i` and `n−i` for `i = 1..n−1`. For each `i`, it forms:
+   - an inclusion–exclusion subtotal over `j = 0..(n−i−1)` with alternating signs, where each term is
+     - `C(n−i, j)` modulo `m`, multiplied by
+     - `(2^(n−i−j) − 1)^i` modulo `m`,
+     - added when `j` is even and subtracted when `j` is odd;
+   - then multiplies that subtotal (modulo `m`) by:
+     - `C(n, i)` modulo `m`,
+     - `2^{i(i−1)/2}` modulo `m`,
+     - `2^{(n−i)(n−i−1)/2}` modulo `m`.
+3. Prints the final result reduced to a nonnegative residue modulo `m` (i.e., in `[0, m−1]`).
+
+Equivalently, with `C(a,b)` defined as the program’s binomial-coefficient routine (returning `0` when `a<0`, `b<0`, or `b>a`), the computed value is:
+\[
+\text{ans} \equiv \sum_{i=1}^{n-1}\left(
+C(n,i)\cdot 2^{\frac{i(i-1)}{2}}\cdot 2^{\frac{(n-i)(n-i-1)}{2}}
+\cdot \sum_{j=0}^{n-i-1}(-1)^j\,C(n-i,j)\,(2^{(n-i-j)}-1)^i
+\right)\pmod m,
+\]
+and the printed value is `(ans % m + m) % m`.
+
+### Inputs
+- `n` (int)
+- `m` (int), used as the modulus in all modular arithmetic.
+
+### Output
+- One integer: the computed value normalized to `[0, m−1]`.
+
+### Assumptions / constraints implied by the program
+- The program computes modular inverses as `x^(m−2) mod m`; for the binomial coefficients to match standard modular combinations, this requires that these inverses exist for the factorial values used (commonly satisfied when `m` is prime and the relevant factorials are nonzero modulo `m`).
+- Factorials are precomputed only up to `2010`; therefore, meaningful use of `C(n,i)` and `C(n−i,j)` as implemented requires `n ≤ 2010`. No input validation is performed.
+- The intended implementation is ordinary ISO C (e.g., C11) without nonstandard extensions: helper routines for modular exponentiation, factorial precomputation, and binomial coefficients are defined at file scope (not as nested functions), and the program should compile under a standard-conforming C compiler.

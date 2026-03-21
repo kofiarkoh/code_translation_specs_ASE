@@ -1,0 +1,297 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+
+/* {1,2,3} -> ... -> {3,2,1} */
+int next_permutation(int arr[],int n) {
+	int target;
+	int i;
+	int temp;
+	for (i = n - 2; i >= 0; i--) {
+		if (arr[i] < arr[i + 1]) break;
+	}
+	if (i < 0) return 0;
+	target = i;
+
+	for (i = 0; target + i + 1 < n - i - 1; i++) {
+		temp = arr[target + 1 + i];
+		arr[target + 1 + i] = arr[n - 1 - i];
+		arr[n - i - 1] = temp;
+	}
+
+	for (i = target + 1; i < n; i++) {
+		if (arr[i] > arr[target]) break;
+	}
+	temp = arr[i];
+	arr[i] = arr[target];
+	arr[target] = temp;
+	return 1;
+}
+
+/*
+ 1
+4025
+ 3
+*/
+int connect[12][4] = {
+	/* {pos, h/w, pos, h/w} */
+	{0, 1, 1, 1},
+	{0, 0, 2, 0},
+	{0, 1, 3, 1},
+	{0, 0, 4, 0},
+
+	{1, 0, 2, 1},
+	{2, 1, 3, 0},
+	{3, 0, 4, 1},
+	{4, 1, 1, 0},
+
+	{5, 1, 1, 1},
+	{5, 0, 4, 0},
+	{5, 1, 3, 1},
+	{5, 0, 4, 0}
+};
+
+int main(void) {
+	int hw[6][2];
+	int i;
+	int permutation[6] = {0, 1, 2, 3, 4, 5};
+	int rotate;
+	for (i = 0; i < 6; i++) {
+		if (scanf("%d%d", &hw[i][0], &hw[i][1]) != 2) return 1;
+	}
+	do {
+		for (rotate = 0; rotate < (1 << 6); rotate++) {
+			int ng = 0;
+			for (i = 0; i < 12; i++) {
+				int len1 = hw[permutation[connect[i][0]]][connect[i][1] ^ ((rotate >> connect[i][0]) & 1)];
+				int len2 = hw[permutation[connect[i][2]]][connect[i][3] ^ ((rotate >> connect[i][2]) & 1)];
+				if (len1 != len2) {
+					ng = 1;
+					break;
+				}
+			}
+			if (!ng) {
+				puts("yes");
+				return 0;
+			}
+		}
+	} while (next_permutation(permutation, 6));
+	puts("no");
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether six given rectangles can be assigned to the six faces of a rectangular box (cuboid), with each rectangle optionally rotated, such that all shared edges between adjacent faces have equal lengths. Prints an affirmative result if at least one assignment and set of rotations satisfies all required edge-length equalities; otherwise prints a negative result.
+
+2. Inputs  
+- Six pairs of integers, each pair representing the two side lengths of one rectangle.
+
+3. Outputs  
+- A single line indicating whether a valid cuboid-face assignment exists (affirmative) or not (negative).  
+- Program exit status indicating success when a result is produced, or failure if input cannot be read.
+
+4. Preconditions  
+- Exactly six rectangles are provided as input, each with two integer side lengths.  
+- Side lengths are assumed to be meaningful as edge lengths (typically non-negative); the program does not enforce positivity.
+
+5. Postconditions  
+- If the program outputs the affirmative result, then there exists:
+  - a one-to-one assignment of the six input rectangles to the six cuboid faces, and
+  - an independent choice per face of whether to swap its two side lengths (rotation),
+  such that every required adjacency between faces has matching edge lengths.  
+- If the program outputs the negative result, then no such assignment and rotation choices exist among all possibilities considered.
+
+6. Invariants  
+- Each candidate configuration always uses each of the six input rectangles exactly once.  
+- For any candidate configuration, each face uses exactly one of the two possible orientations of its rectangle (unrotated or rotated).  
+- A configuration is considered valid only if all specified adjacent-face edge comparisons are equalities.
+
+7. Error Handling / Exceptional Behavior  
+- If the six rectangle pairs cannot be fully read from input, the program terminates early with a non-zero exit status and produces no affirmative/negative result line.  
+- No other error conditions are explicitly handled.
+
+8. State Transitions (if applicable)  
+- The program transitions from “searching” to “accepted” upon finding the first valid configuration, immediately producing the affirmative output and terminating.  
+- If all configurations are exhausted without success, it transitions to “rejected,” produces the negative output, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- The search is exhaustive over all assignments of six rectangles to six faces and all independent rotation choices per face; runtime is bounded by a fixed constant factor for this input size.  
+- Memory usage is constant with respect to input size (fixed-size storage for six rectangles and internal bookkeeping).
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int a, b;
+} Rect;
+
+static int check_configuration(const Rect faces[6], const int rot[6]) {
+    /* Face indices:
+       0: Front, 1: Back, 2: Left, 3: Right, 4: Top, 5: Bottom
+
+       For each face i, its oriented sides are:
+         w(i) = rot[i] ? faces[i].b : faces[i].a
+         h(i) = rot[i] ? faces[i].a : faces[i].b
+
+       Adjacency equalities for a cuboid net in 3D:
+         Front-Back: same dimensions
+         Left-Right: same dimensions
+         Top-Bottom: same dimensions
+
+         Front shares vertical edges with Left/Right and horizontal edges with Top/Bottom:
+           Front.h == Left.h == Right.h
+           Front.w == Top.w == Bottom.w
+
+         Left shares its other dimension with Top/Bottom:
+           Left.w == Top.h == Bottom.h
+
+       These constraints are sufficient and necessary for a consistent cuboid with edge lengths (X,Y,Z).
+    */
+    int w[6], h[6];
+    for (int i = 0; i < 6; i++) {
+        if (rot[i]) {
+            w[i] = faces[i].b;
+            h[i] = faces[i].a;
+        } else {
+            w[i] = faces[i].a;
+            h[i] = faces[i].b;
+        }
+    }
+
+    /* Opposite faces must match exactly (with their chosen orientations). */
+    if (w[0] != w[1] || h[0] != h[1]) return 0;
+    if (w[2] != w[3] || h[2] != h[3]) return 0;
+    if (w[4] != w[5] || h[4] != h[5]) return 0;
+
+    /* Around the box: */
+    if (h[0] != h[2]) return 0;
+    if (h[0] != h[3]) return 0;
+
+    if (w[0] != w[4]) return 0;
+    if (w[0] != w[5]) return 0;
+
+    if (w[2] != h[4]) return 0;
+    if (w[2] != h[5]) return 0;
+
+    return 1;
+}
+
+static int search(const Rect input[6]) {
+    int perm[6] = {0, 1, 2, 3, 4, 5};
+
+    /* Generate all permutations of 6 rectangles assigned to 6 faces. */
+    for (int i0 = 0; i0 < 6; i0++) {
+        perm[0] = i0;
+        for (int i1 = 0; i1 < 6; i1++) if (i1 != i0) {
+            perm[1] = i1;
+            for (int i2 = 0; i2 < 6; i2++) if (i2 != i0 && i2 != i1) {
+                perm[2] = i2;
+                for (int i3 = 0; i3 < 6; i3++) if (i3 != i0 && i3 != i1 && i3 != i2) {
+                    perm[3] = i3;
+                    for (int i4 = 0; i4 < 6; i4++) if (i4 != i0 && i4 != i1 && i4 != i2 && i4 != i3) {
+                        perm[4] = i4;
+                        for (int i5 = 0; i5 < 6; i5++) if (i5 != i0 && i5 != i1 && i5 != i2 && i5 != i3 && i5 != i4) {
+                            perm[5] = i5;
+
+                            Rect faces[6];
+                            for (int f = 0; f < 6; f++) faces[f] = input[perm[f]];
+
+                            /* For each assignment, try all independent rotations (2^6). */
+                            for (int mask = 0; mask < 64; mask++) {
+                                int rot[6];
+                                for (int f = 0; f < 6; f++) rot[f] = (mask >> f) & 1;
+                                if (check_configuration(faces, rot)) return 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    Rect r[6];
+    for (int i = 0; i < 6; i++) {
+        if (scanf("%d %d", &r[i].a, &r[i].b) != 2) {
+            return 1; /* produce no result line */
+        }
+    }
+
+    if (search(r)) {
+        puts("YES");
+    } else {
+        puts("NO");
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00320/p00320_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00320/p00320_sample1_output.txt
+Input:
+1 2
+2 3
+3 4
+4 1
+2 3
+3 1
+Expected:
+no
+Actual:
+NO
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

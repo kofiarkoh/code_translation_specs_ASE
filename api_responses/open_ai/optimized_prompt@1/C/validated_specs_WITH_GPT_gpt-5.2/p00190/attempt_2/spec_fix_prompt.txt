@@ -1,0 +1,226 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// Aizu Vol-1 0190: Eleven Puzzle
+// 2017.8.23 bal4u@uu
+// ???????????¢?´¢??????????????\??????????????§??¶????????§??????
+// ????????????????????????16?????????????????§??§???OK???
+// 1????????????????????§8??????4??????????????§4096????????¶??????
+
+#include <stdio.h>
+
+#define MAX 500000
+typedef unsigned long long UL;
+
+typedef struct { UL s; char m; } HASH;
+typedef struct { UL s; char b1, b2; } QUE;
+#define HASHSIZ 900001ULL
+HASH hash[HASHSIZ + 5], *hashend = hash + HASHSIZ;
+QUE Q[MAX + 5], *top, *end, *qmax = Q + MAX;
+
+int lookup(UL s)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return p->m;
+		if (++p == hashend) p = hash;
+	}
+	return -1;
+}
+
+int insert(UL s, char m)
+{
+	HASH *p = hash + s % HASHSIZ;
+	while (p->s) {
+		if (p->s == s) return 0;
+		if (++p == hashend) p = hash;
+	}
+	p->s = s, p->m = m;
+	return 1;
+}
+
+int move[13][5] = {
+	/*  0 */{ 2, -1 },
+	/*  1 */{ 2, 5, -1 },
+	/*  2 */{ 0, 1, 3, 6, -1 },
+	/*  3 */{ 2, 7, -1 },
+	/*  4 */{ 5, -1 },
+	/*  5 */{ 1, 4, 6, 9, -1 },
+	/*  6 */{ 2, 5, 7, 10, -1 },
+	/*  7 */{ 3, 6, 8, 11, -1 },
+	/*  8 */{ 7, -1 },
+	/*  9 */{ 5, 10, -1 },
+	/* 10 */{ 6, 9, 11, 12, -1 },
+	/* 11 */{ 7, 10, -1 },
+	/* 12 */{ 10, -1 } };
+
+UL swap(UL s, int p1, int sp)
+{
+	UL n1;
+	p1 = (12 - p1) << 2, sp = (12 - sp) << 2;
+	n1 = (s >> p1) & 0xf;
+	s &= ~(0xfULL << p1);
+	s |= (n1 << sp);
+	return s;
+}
+
+int sach(UL s, int b1, int b2, int mode, int step, int lim)
+{
+	int i, j, x, b[2];
+	UL s2;
+
+	top = end = Q;
+	end->s = s, end->b1 = b1, end->b2 = b2, end++, end->s = 0, end++;
+	while (top < end) {
+		s = top->s, b[0] = top->b1, b[1] = top->b2, top++;
+		if (!s) { step++, end->s = 0, end++; continue; }
+		if (step > lim) break;
+//	printf("%#15llx, b1 %2d, b2 %2d, step %2d\n", s, b[0], b[1], step);
+		for (i = 0; i < 2; i++) {
+			for (j = 0; (x = move[b[i]][j]) >= 0; j++) {
+				if (x == b[0] || x == b[1]) continue;
+				s2 = swap(s, x, b[i]);
+				if (mode) { if (lookup(s2) >= 0) return step; }
+				else if (!insert(s2, step)) continue;
+				end->s = s2;
+				if (i) end->b1 = b[0], end->b2 = x;
+				else   end->b1 = x, end->b2 = b[1];
+				end++;
+			}
+		}
+	}
+	return step;
+}
+
+int main()
+{
+	int i, ans, p, b1, b2;
+	UL s;
+	int lim = 16;
+
+	s = 0x123456789ab0ULL, insert(s, 0);
+	sach(s, 0, 12, 0, 1, lim);
+	while (1) {
+		b1 = -1;
+		for (s = i = 0; i < 13; i++) {
+			scanf("%d", &p);
+			if (i == 0 && p < 0) return 0;
+			if (!p) { if (b1 < 0) b1 = i; else b2 = i; }
+			s = (s << 4) | p;
+		}
+		if ((ans = lookup(s)) < 0) {
+			if ((ans = sach(s, b1, b2, 1, 1, 4)) > 4) ans = -1;
+			else ans += lim;
+		}
+		printf(ans < 0 ? "NA\n" : "%d\n", ans);	
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines the minimum number of moves required to transform a given 13-position sliding puzzle configuration into a fixed target configuration, under the rule that a move swaps a tile adjacent to one of the two empty positions into that empty position. If the minimum required moves exceed a fixed bound, reports that no answer is available within that bound.
+
+2. Inputs  
+- Repeated test cases from standard input.  
+- Each test case consists of 13 integers representing the tile values at positions 0..12.  
+- Exactly two positions must contain the value 0, representing the two empty spaces.  
+- Termination occurs when the first integer of a test case is negative.
+
+3. Outputs  
+- For each non-terminating test case, writes one line to standard output:  
+  - An integer: the minimum number of moves from the given configuration to the target configuration, if that minimum is within the supported bound.  
+  - Otherwise, the string indicating no available answer.
+
+4. Preconditions  
+- Each non-terminating test case provides exactly 13 integers.  
+- The configuration contains exactly two zeros (two empty spaces).  
+- All tile values fit within a 4-bit range (0..15).  
+- The puzzle’s adjacency relation is fixed and matches the 13-position graph implied by the move rules.  
+- The number of reachable states explored during internal searches does not exceed internal capacity limits (otherwise behavior is undefined by this contract).
+
+5. Postconditions  
+For each processed test case:  
+- If the configuration is solvable to the target within 20 moves, the program outputs the exact minimum move count.  
+- If the configuration requires more than 20 moves (or is not solvable), the program outputs the no-answer indicator.
+
+6. Invariants  
+- The target configuration is fixed for the lifetime of the program.  
+- A move always consists of swapping one non-empty tile with one of the two empty positions, and the two empty positions remain distinct after every move.  
+- The reported move count, when provided, is minimal with respect to the allowed move rules.
+
+7. Error Handling / Exceptional Behavior  
+- If the first value of a test case is negative, the program terminates normally without further output.  
+- No explicit handling is provided for malformed input (wrong count, missing values, non-integers) or invalid configurations (not exactly two zeros, out-of-range values); results are unspecified.  
+- If internal storage limits are exceeded during search, results are unspecified.
+
+8. State Transitions (if applicable)  
+- Each puzzle state transitions to another by selecting one of the two empty positions and swapping it with an adjacent non-empty tile.  
+- The program conceptually uses a precomputed set of states within 16 moves of the target and, for queries not in that set, searches outward from the query up to 4 moves to find an intersection; the final answer is the sum of the two distances when such an intersection exists.
+
+9. Non-functional Constraints (if inferable)  
+- Guarantees answers only up to a maximum of 20 moves; beyond that it reports no answer.  
+- Uses fixed-size internal memory for visited-state tracking and search queues, imposing an upper bound on the amount of exploration it can safely perform.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong target configuration / wrong state encoding assumption  
+- Wrong output convention (no-answer indicator)  
+- Wrong adjacency (move graph) abstraction
+
+B. What the current specification may be missing or misstating  
+- The specification never states the *exact* fixed target configuration used by the source program. The generated code assumed a “canonical” target with blanks at the end, but the source’s target is explicitly `0x123456789ab0` (i.e., tiles `1..11, 0, 0` in a specific nibble/position order). Without pinning down the exact target and the exact mapping from input positions to packed state positions, “minimum moves to a fixed target” is underspecified and can yield different answers (e.g., returning 0 for an input that the source does not consider solved).  
+- The specification says the adjacency relation “matches the 13-position graph implied by the move rules” but does not actually define that graph. The source hard-codes a specific neighbor list (`move[13][5]`) that is not the same as a generic “cross” layout chosen by the generated program.  
+- The specification’s output description says “string indicating no available answer” but does not specify the literal token. The source prints exactly `"NA\n"`; the generated program printed `"No answer\n"`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the target configuration in terms of the 13 input positions (which tile value is expected at each index 0..12 in the goal).  
+- Precisely define the puzzle’s adjacency graph as an explicit neighbor list per position (or an unambiguous diagram that matches the source’s `move` table).  
+- Specify the exact output format for unsolved/out-of-bound cases (the literal string), not just a semantic “no answer indicator.”  
+- Clarify the state representation/order: the source packs 13 nibbles in a particular positional order (it shifts left and ORs each read value), and its swap routine uses `(12 - pos)` when computing bit offsets—this implies a specific mapping between “position index” and “nibble location” that must be consistent with the goal constant and with moves.
+
+D. Why this clarification is supported by the source program  
+- The source sets the goal state to a concrete constant: `s = 0x123456789ab0ULL` and precomputes distances from that exact state. Any deviation in goal definition or in how input positions map into the packed integer changes membership in the precomputed set and can change distances (including whether a state is recognized as distance 0).  
+- The source’s legal moves are exactly those in `move[13][5]`; this is the authoritative adjacency relation. A different adjacency (even if “reasonable”) changes reachability and shortest-path lengths, so the spec must commit to the exact graph.  
+- The source prints `printf(ans < 0 ? "NA\n" : "%d\n", ans);` so the no-answer indicator is not arbitrary; it is specifically `"NA"`.  
+- The source’s `swap()` uses bit positions derived from `(12 - p)` rather than `p`, which means the packed-state nibble order is reversed relative to the input loop’s shifting. This is a concrete, global rule about encoding/decoding that the current specification does not capture, and mismatches here can make an input that “looks like the goal” not equal to the internal goal state.
+
+```

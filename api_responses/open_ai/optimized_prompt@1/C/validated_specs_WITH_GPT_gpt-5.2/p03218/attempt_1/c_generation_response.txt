@@ -1,0 +1,55 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MODULUS 1000000007LL /* fixed prime modulus */
+
+static int cmp_int64(const void *a, const void *b) {
+    const int64_t x = *(const int64_t *)a;
+    const int64_t y = *(const int64_t *)b;
+    /* Avoid subtraction to prevent overflow; spec assumes comparisons fit anyway. */
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+}
+
+static int64_t gcd_int64(int64_t a, int64_t b) {
+    /* Euclidean algorithm; for negative inputs, behavior/sign is implementation-dependent per spec. */
+    while (b != 0) {
+        int64_t t = a % b;
+        a = b;
+        b = t;
+    }
+    /* For nonnegative inputs, this is nonnegative. */
+    return a;
+}
+
+int main(void) {
+    int64_t N64;
+    if (scanf("%" SCNd64, &N64) != 1) {
+        return 0; /* unspecified behavior on invalid input; keep minimal */
+    }
+
+    size_t N = (size_t)N64; /* if N64 is negative, this conversion is implementation-defined */
+    int64_t *A = (int64_t *)malloc(N * sizeof(int64_t)); /* no explicit error handling per spec */
+
+    for (size_t i = 0; i < N; i++) {
+        (void)scanf("%" SCNd64, &A[i]); /* no explicit error handling per spec */
+    }
+
+    qsort(A, N, sizeof(int64_t), cmp_int64);
+
+    int64_t acc = 1;
+    for (size_t i = 0; i < N; i++) {
+        int64_t g = gcd_int64(A[i], (int64_t)i);
+        /* Spec assumes multiplication fits in signed 64-bit before modular reduction. */
+        acc = (acc * g) % MODULUS;
+    }
+
+    printf("%" PRId64 "\n", acc);
+
+    free(A);
+    return 0;
+}
+```

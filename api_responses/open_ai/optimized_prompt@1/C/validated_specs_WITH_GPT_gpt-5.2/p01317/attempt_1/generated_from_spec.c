@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 205
+#define MAXM 1005
+
+/* Large sentinel for unreachable; chosen to avoid overflow under stated assumption. */
+static const long long INF = (1LL << 60);
+
+static long long minll(long long a, long long b) { return a < b ? a : b; }
+
+int main(void) {
+    int n, m;
+    while (scanf("%d %d", &n, &m) == 2) {
+        if (n == 0) break;
+
+        static long long d0[MAXN][MAXN];
+        static long long d1[MAXN][MAXN];
+
+        /* Initialize per-type all-pairs costs: 0 on diagonal, INF otherwise. */
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                d0[i][j] = (i == j) ? 0 : INF;
+                d1[i][j] = (i == j) ? 0 : INF;
+            }
+        }
+
+        /* Read connections: endpoints, nonnegative cost, type indicator (two types). */
+        for (int e = 0; e < m; e++) {
+            int a, b;
+            long long c;
+            int t;
+            if (scanf("%d %d %lld %d", &a, &b, &c, &t) != 4) return 0;
+
+            /* Narrow interpretation: type indicator selects one of two types.
+               Treat t==0 as first type, otherwise as second type. */
+            if (t == 0) {
+                if (c < d0[a][b]) d0[a][b] = c;
+                if (c < d0[b][a]) d0[b][a] = c;
+            } else {
+                if (c < d1[a][b]) d1[a][b] = c;
+                if (c < d1[b][a]) d1[b][a] = c;
+            }
+        }
+
+        /* Floyd-Warshall independently for each type to satisfy invariant #6. */
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                long long dik0 = d0[i][k];
+                long long dik1 = d1[i][k];
+                if (dik0 == INF && dik1 == INF) continue;
+                for (int j = 0; j < n; j++) {
+                    if (dik0 != INF && d0[k][j] != INF) {
+                        long long cand = dik0 + d0[k][j];
+                        if (cand < d0[i][j]) d0[i][j] = cand;
+                    }
+                    if (dik1 != INF && d1[k][j] != INF) {
+                        long long cand = dik1 + d1[k][j];
+                        if (cand < d1[i][j]) d1[i][j] = cand;
+                    }
+                }
+            }
+        }
+
+        int L;
+        if (scanf("%d", &L) != 1) return 0;
+
+        static int req[MAXM];
+        for (int i = 0; i < L; i++) {
+            if (scanf("%d", &req[i]) != 1) return 0;
+        }
+
+        /* DP over required sequence:
+           dp_prev[x] = min total cost after completing current required visit,
+                        positioned at transfer location x for the next boundary. */
+        static long long dp_prev[MAXN], dp_cur[MAXN];
+
+        /* Base: after visiting first required location req[0], choose boundary transfer x.
+           Cost is first-type from req[0] to x. */
+        for (int x = 0; x < n; x++) dp_prev[x] = d0[req[0]][x];
+
+        /* Transition for each next required location. */
+        for (int i = 0; i < L - 1; i++) {
+            int u = req[i];
+            int v = req[i + 1];
+
+            for (int y = 0; y < n; y++) dp_cur[y] = INF;
+
+            /* For each previous boundary x and next boundary y:
+               segment cost = d0[u][x] + d1[x][y] + d0[y][v]
+               Total = dp_prev[x] + d1[x][y] + d0[y][v]
+               Note: dp_prev[x] already includes d0[u][x] by construction. */
+            for (int x = 0; x < n; x++) {
+                long long base = dp_prev[x];
+                if (base == INF) continue;
+                for (int y = 0; y < n; y++) {
+                    if (d1[x][y] == INF || d0[y][v] == INF) continue;
+                    long long cand = base + d1[x][y] + d0[y][v];
+                    if (cand < dp_cur[y]) dp_cur[y] = cand;
+                }
+            }
+
+            /* Advance. */
+            for (int y = 0; y < n; y++) dp_prev[y] = dp_cur[y];
+        }
+
+        /* Final answer: minimum over boundary transfer locations after last required visit. */
+        long long ans = INF;
+        for (int x = 0; x < n; x++) ans = minll(ans, dp_prev[x]);
+
+        /* Output as a single integer (sentinel allowed). */
+        printf("%lld\n", ans);
+    }
+    return 0;
+}

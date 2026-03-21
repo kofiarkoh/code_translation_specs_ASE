@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes and outputs a deterministic integer value derived from two input integers. The computed value is the result of evaluating a recursively defined function parameterized by a nonnegative “level” and an integer “position”, where each level defines a finite threshold and partitions the position range into two regions that map to different offsets in the result.
+
+2. Inputs  
+- Two signed integers:
+  - A level parameter.
+  - A position parameter.
+
+3. Outputs  
+- A single signed integer: the value of the recursive function evaluated at the provided level and position.
+
+4. Preconditions  
+- The level parameter is nonnegative.  
+- The level parameter is small enough that the intermediate threshold value of the form (2^level − 1) is representable without overflow in the implementation’s signed integer range.  
+- Recursion depth equal to the level parameter is supported by the execution environment (sufficient stack).  
+- Input is provided in a form that can be interpreted as two signed integers.
+
+5. Postconditions  
+Let `F(level, pos)` be defined as:  
+- Base: `F(0, pos) = 0` if `pos ≤ 0`, otherwise `1`.  
+- For `level > 0`, let `p = 2^level − 1`:
+  - If `pos ≤ 2p`, then `F(level, pos) = F(level − 1, pos − 1)`.  
+  - If `pos > 2p`, then `F(level, pos) = (p + 1) + F(level − 1, pos − 1 − 2p)`.  
+
+The program outputs exactly `F(n, k)` for the provided inputs `n` and `k`.
+
+6. Invariants  
+- For any call with `level ≥ 0`, the function terminates after exactly `level` recursive reductions to the base case.  
+- The returned value is always an integer in the range `[0, 2^level]` for inputs satisfying the preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If inputs are missing/invalid, behavior is unspecified.  
+- If arithmetic overflow occurs while forming thresholds or offsets, behavior is unspecified.  
+- If recursion exceeds available stack space, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained across executions. The only state change is producing the single output value.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the level parameter (linear in `n`).  
+- Space usage on the call stack is proportional to the level parameter (linear in `n`).

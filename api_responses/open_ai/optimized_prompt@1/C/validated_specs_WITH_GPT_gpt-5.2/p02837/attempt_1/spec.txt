@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes the maximum size of a subset of `n` entities that can be simultaneously selected such that, for every selected entity, all of its stated binary assertions about other entities’ selection status are satisfied by the subset.
+
+2. Inputs  
+- An integer `n`: the number of entities.  
+- For each entity `i` in `[1..n]`:  
+  - An integer `a[i]`: the number of assertions made by entity `i`.  
+  - Then `a[i]` pairs `(t, v)` where:  
+    - `t` identifies a target entity (1-based index).  
+    - `v` is a binary value indicating the asserted selection status of the target entity (0 = not selected, 1 = selected).
+
+3. Outputs  
+- A single integer: the maximum number of entities that can be selected while satisfying all assertions made by selected entities.
+
+4. Preconditions  
+- `0 <= n <= 20`.  
+- For each entity `i`, `0 <= a[i] <= 20`.  
+- Each assertion’s target index `t` is in `[1..n]`.  
+- Each assertion’s binary value `v` is either `0` or `1`.  
+- The input provides exactly the required number of integers.  
+- Assumption: right-shift behavior on non-negative integers is well-defined; the program’s intended use is with `n` such that subset enumeration is representable in the integer type used.
+
+5. Postconditions  
+- Let `S` be any subset of entities. `S` is considered consistent if for every entity `j` in `S`, and for every assertion `(t, v)` made by `j`, the membership of `t` in `S` equals `v`.  
+- The output equals `max{|S| : S is consistent}`.  
+- If no non-empty subset is consistent, the output is `0` (the empty subset is always consistent).
+
+6. Invariants  
+- During evaluation, a subset is treated as valid only if all assertions of all selected entities match the subset’s membership decisions for their referenced targets.  
+- The reported maximum is always the size of some consistent subset examined so far and never decreases.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., out-of-range sizes/indices, malformed input, or values outside expected domains), behavior is undefined (may compute an incorrect result or access invalid memory).
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes a result, outputs it, and terminates. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows exponentially with `n` due to enumeration of all subsets; practical only for small `n` (up to 20 as implied by fixed storage).  
+- Memory usage is bounded by fixed-size storage for up to 20 entities and up to 20 assertions per entity.

@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong state interpretation (orientation tracking), plus a missing constraint about how to detect horizontal tiles.
+
+B. What the current specification may be missing or misstating  
+- The spec’s transition factors for “current orientation vs previous orientation” are not pinned down precisely enough to match the source. In particular, it implies a symmetric “process each tile (or tile pair) implied by the sequences” model, but the source does **not** actually step by “tiles” the way the generated code does.  
+- The spec’s rule for detecting a horizontal tile (“when the sequences differ at position i”) is not the rule the source uses inside the loop. The source’s loop detects a horizontal placement by checking **whether `S1[i] == S1[i+1]`** (i.e., equality in the top string across adjacent columns), not by checking `S1[i] != S2[i]` at the current column.  
+- The spec suggests consuming two columns when a horizontal tile is found; the source code does not advance `i` by 2 and instead relies on its own pattern of checks and a state variable `t`.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the *exact* method the algorithm uses to infer tile orientation at each step (especially for horizontal tiles): whether it is based on cross-row mismatch at a column (`S1[i] != S2[i]`) or based on same-row adjacency (`S1[i] == S1[i+1]`).  
+- Clarify the iteration/consumption model: whether the algorithm conceptually processes “columns” with overlapping checks (as in the source) versus processing “tiles” and skipping the second column of a horizontal domino (as in the generated code).  
+- Clarify the precise multiplication factors and when they apply, in terms of the source’s state variable (`t` meaning “previous was vertical” vs “previous was horizontal”) and the two independent conditions checked per index.
+
+D. Why this clarification is supported by the source program  
+- In the loop, the source has two separate `if` statements at each `i`:
+  - `if (S1[i] == S2[i]) { ... t = 1; }` (vertical case)
+  - `if (S1[i] == S1[i+1]) { ... t = 0; }` (horizontal case inferred from adjacency in `S1`)
+  This shows the source’s orientation detection and transitions are driven by these specific character comparisons, not by a single mutually exclusive “vertical else horizontal” decision on `S1[i] == S2[i]`.  
+- The source increments `i` by 1 always (`for (i=1; i<N; i++)`), never by 2, so any spec that frames the computation as consuming two columns for a horizontal tile is an abstraction that can change behavior unless it exactly matches the source’s effective transitions.  
+- The mismatch in the failing test (doubling the answer) is consistent with applying a “V after V” multiplier where the source would not (or vice versa), which stems directly from the differing orientation-detection/iteration model between the spec-derived code and the source.

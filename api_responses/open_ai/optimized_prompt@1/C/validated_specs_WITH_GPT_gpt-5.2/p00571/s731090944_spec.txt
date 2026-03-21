@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes the maximum achievable value of: (sum of the second components over a contiguous subsequence) minus (difference between the first components at the subsequence’s end and start), after ordering all items by the first component (and by the second component to break ties).
+
+2. Inputs  
+- An integer count of items.  
+- For each item:  
+  - A non-negative integer “position-like” value (first component).  
+  - A non-negative integer “weight-like” value (second component).
+
+3. Outputs  
+- A single signed integer representing the maximum value over all non-empty contiguous subsequences in the sorted order, of:  
+  **(sum of weights in the subsequence) − (last position − first position)**.
+
+4. Preconditions  
+- The item count is within the supported fixed capacity (at most 500,001 items).  
+- All numeric inputs are provided in a form consistent with non-negative decimal integers.  
+- The total sum of weights and intermediate arithmetic fit within signed 64-bit range.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \max_{1 \le l \le r \le N}\left(\sum_{k=l}^{r} w_k - (x_r - x_l)\right)
+  \]
+  where items \((x_k, w_k)\) are the input items sorted by non-decreasing \(x\), and for equal \(x\), by non-decreasing \(w\).  
+- The maximization is over non-empty subsequences only.
+
+6. Invariants  
+- Items are considered only in the globally sorted order described above.  
+- The computed maximum is at least 0 (since a single-item subsequence yields value \(w \ge 0\)).  
+- The running prefix sum of weights is non-decreasing.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., negative numbers, insufficient data, overflow, or exceeding capacity), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, produces one output, and terminates. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting: \(O(N \log N)\).  
+- Additional processing is linear: \(O(N)\).  
+- Memory usage is \(O(N)\) for storing items and prefix sums.

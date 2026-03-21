@@ -1,0 +1,52 @@
+1. Functional Description  
+Reads an integer \(m\), an initial binary string \(A\), and then \(m\) additional binary strings. It performs polynomial arithmetic over \(\mathrm{GF}(2)\) (bitwise XOR for addition/subtraction, and left-shift for multiplication by \(x^k\)) on fixed-size bitsets up to a compile-time maximum degree. After processing the \(m\) additional strings with an internal XOR/shift reduction procedure, it computes and outputs (modulo a fixed prime) a count derived from comparing the initial polynomial \(A\) against a family of polynomials generated from the final reduced polynomial via XOR with shifted copies. The counting is performed by a deterministic high-to-low bit scan with early termination in certain low-degree cases.
+
+2. Inputs  
+- An integer \(m \ge 0\).  
+- A nonempty binary string \(A\) (characters ‘0’ and ‘1’), interpreted as a polynomial over \(\mathrm{GF}(2)\) with the leftmost character as the highest-degree coefficient.  
+- \(m\) further nonempty binary strings \(B_1,\dots,B_m\), each interpreted the same way.
+
+3. Outputs  
+- A single integer: the computed count reduced modulo \(998244353\).
+
+4. Preconditions / Constraints  
+- All strings contain only ‘0’ and ‘1’ and are nonempty.  
+- The program uses a fixed internal maximum bit-length \(N=4000\). Any input string longer than \(N\) causes out-of-bounds behavior (undefined).  
+- Internally, all polynomials are represented only up to degree \(N-1\); higher degrees are not supported.  
+- No validation is performed for malformed input or I/O failure; behavior is undefined in such cases.
+
+5. Semantics of Polynomial Representation  
+- A binary string of length \(t\) represents the polynomial \(\sum_{k=0}^{t-1} s[t-1-k]\cdot x^k\) over \(\mathrm{GF}(2)\).  
+- The “degree” of a represented polynomial is the index of its highest set bit; the zero polynomial has no set bits.
+
+6. Reduction Phase (processing the \(m\) additional polynomials)  
+- The initial string \(A\) is parsed and stored separately for later use in the counting phase.  
+- The program maintains an internal polynomial state \(D\) (stored in a fixed-size bitset) that is updated once per additional input string.  
+- For each additional polynomial \(B\), the program repeatedly performs the following until \(B\) becomes the zero polynomial (no set bits within the supported range):  
+  - Let \(i\) be the current highest set bit index of \(D\) (within \([0, N-1]\)), and \(j\) the current highest set bit index of \(B\).  
+  - If \(i < j\), swap \(D\) and \(B\) (so the current \(D\) has degree at least that of \(B\)).  
+  - Replace \(D\) by \(D \oplus (B \ll (i-j))\), i.e., XOR \(D\) with \(B\) shifted left so that their leading terms align.  
+- This is an XOR/shift Euclidean-style reduction over \(\mathrm{GF}(2)\). (The program’s behavior depends on the initial contents of \(D\); as written, \(D\) is not explicitly initialized from \(A\) before these updates.)
+
+7. Determination of the Final Reduced Polynomial’s Degree  
+- After all \(m\) updates, let \(L\) be one plus the index of the highest set bit of the final \(D\) (so \(L\in[0,N]\)); if \(D\) is the zero polynomial, then \(L=0\).
+
+8. Counting Phase (what is counted)  
+The program computes an integer `ans` modulo \(998244353\) by scanning the bits of \(A\) from its most significant bit down to its least significant bit, maintaining an auxiliary polynomial state \(R\) (initially zero) and conditionally XORing \(R\) with shifted copies of \(D\). The logic is:
+
+- Precompute powers of two modulo \(998244353\) up to the length of \(A\).  
+- Initialize \(R := 0\) and `ans := 0`.  
+- For each bit position \(i\) from \(\deg(A)\) down to \(0\) (where \(\deg(A)=|A|-1\) in the string’s indexing):  
+  - Let \(x\) be bit \(i\) of \(A\), and \(y\) be bit \(i\) of \(R\).  
+  - If \(i \ge L-1\) and \(x=1\), add \(2^{\,i-(L-1)}\) (modulo \(998244353\)) to `ans`.  
+  - If \(x \ne y\), then:  
+    - If \(i \ge L-1\), update \(R := R \oplus (D \ll (i-(L-1)))\) and continue scanning.  
+    - Otherwise (i.e., \(i < L-1\)), the scan terminates immediately after optionally adding 1 to `ans` when \(x>y\) (with bits treated as integers 0/1).  
+- If the scan completes all the way past the least significant bit without terminating early (i.e., no break occurred), then add 1 to `ans`.  
+- Output `ans` modulo \(998244353\).
+
+This phase defines the program’s result; it is not specified as a simple “count of integer multiples below \(A\)”, but rather as the value produced by the above deterministic bitwise comparison-and-update process driven by \(A\), the final reduced polynomial \(D\), and its effective length \(L\).
+
+9. Exceptional / Edge Cases  
+- If the final reduced polynomial \(D\) is zero (so \(L=0\)), the counting logic still runs with the condition \(i \ge L-1\) always true; the program’s output is whatever the above procedure yields in that case.  
+- If \(A\) is all zeros, the scan still executes over its length and follows the same rules.

@@ -1,0 +1,317 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAX_PRE_DEPTH 16
+#define MAX_QUERY_DEPTH 4
+#define MAX_ANSWER 20
+
+/* Fixed-size internal memory (capacity limits). If exceeded, behavior is unspecified by contract. */
+#define PRE_MAX_STATES 2000000
+#define Q_MAX_STATES   200000
+
+/* 13-position fixed adjacency graph (implied by move rules).
+   The specification does not provide the exact graph; we choose the narrowest reasonable
+   interpretation consistent with a common 13-position "cross" sliding puzzle:
+        0  1  2
+        3  4  5
+   6  7  8  9 10 11 12
+   Moves are between orthogonally adjacent positions in this layout. */
+static const uint8_t deg[13] = {
+    2, 3, 2,
+    2, 3, 2,
+    1, 3, 3, 3, 3, 3, 1
+};
+static const uint8_t adj[13][3] = {
+    {1, 3, 0},        /* 0 */
+    {0, 2, 4},        /* 1 */
+    {1, 5, 0},        /* 2 */
+    {0, 4, 0},        /* 3 */
+    {1, 3, 5},        /* 4 */
+    {2, 4, 0},        /* 5 */
+    {7, 0, 0},        /* 6 */
+    {6, 8, 4},        /* 7 */
+    {7, 9, 5},        /* 8 */
+    {8, 10, 0},       /* 9 */
+    {9, 11, 0},       /* 10 */
+    {10, 12, 0},      /* 11 */
+    {11, 0, 0}        /* 12 */
+};
+
+/* Target configuration is fixed for program lifetime.
+   Not specified explicitly; choose a canonical target with two blanks at the end. */
+static const uint8_t target_tiles[13] = { 1,2,3,4,5,6,7,8,9,10,11,0,0 };
+
+/* State encoding: 13 nibbles packed into 64 bits (fits: 13*4=52 bits). */
+static uint64_t pack_state(const uint8_t t[13]) {
+    uint64_t x = 0;
+    for (int i = 0; i < 13; i++) {
+        x |= ((uint64_t)(t[i] & 0xF)) << (4 * i);
+    }
+    return x;
+}
+static uint8_t get_nib(uint64_t s, int i) {
+    return (uint8_t)((s >> (4 * i)) & 0xFULL);
+}
+static uint64_t set_nib(uint64_t s, int i, uint8_t v) {
+    uint64_t mask = 0xFULL << (4 * i);
+    s = (s & ~mask) | (((uint64_t)(v & 0xF)) << (4 * i));
+    return s;
+}
+static uint64_t swap_pos(uint64_t s, int a, int b) {
+    uint8_t va = get_nib(s, a);
+    uint8_t vb = get_nib(s, b);
+    s = set_nib(s, a, vb);
+    s = set_nib(s, b, va);
+    return s;
+}
+
+/* Hash table for precomputed distances (open addressing). */
+typedef struct {
+    uint64_t key;
+    uint8_t dist;
+    uint8_t used;
+} Entry;
+
+static Entry pre_table[PRE_MAX_STATES];
+static uint32_t pre_count = 0;
+
+static uint32_t hash64(uint64_t x) {
+    /* Simple 64->32 mix; deterministic. */
+    x ^= x >> 33;
+    x *= 0xff51afd7ed558ccdULL;
+    x ^= x >> 33;
+    x *= 0xc4ceb9fe1a85ec53ULL;
+    x ^= x >> 33;
+    return (uint32_t)x;
+}
+
+static int pre_insert(uint64_t key, uint8_t dist) {
+    uint32_t m = PRE_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        Entry *e = &pre_table[i];
+        if (!e->used) {
+            e->used = 1;
+            e->key = key;
+            e->dist = dist;
+            pre_count++;
+            return 1;
+        }
+        if (e->key == key) {
+            /* Keep minimal distance (BFS ensures first is minimal). */
+            return 0;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    /* Capacity exceeded: unspecified behavior; return failure. */
+    return 0;
+}
+
+static int pre_lookup(uint64_t key, uint8_t *out_dist) {
+    uint32_t m = PRE_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        Entry *e = &pre_table[i];
+        if (!e->used) return 0;
+        if (e->key == key) {
+            *out_dist = e->dist;
+            return 1;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+
+/* Queue for BFS (fixed-size). */
+typedef struct {
+    uint64_t s;
+    uint8_t z1, z2; /* positions of the two zeros */
+    uint8_t d;
+} Node;
+
+static Node pre_q[PRE_MAX_STATES];
+
+static void find_zeros(uint64_t s, uint8_t *z1, uint8_t *z2) {
+    uint8_t a = 255, b = 255;
+    for (uint8_t i = 0; i < 13; i++) {
+        if (get_nib(s, i) == 0) {
+            if (a == 255) a = i;
+            else { b = i; break; }
+        }
+    }
+    *z1 = a;
+    *z2 = b;
+}
+
+static void precompute(void) {
+    memset(pre_table, 0, sizeof(pre_table));
+    pre_count = 0;
+
+    uint64_t start = pack_state(target_tiles);
+    uint8_t z1, z2;
+    find_zeros(start, &z1, &z2);
+
+    /* BFS from target up to depth 16. */
+    uint32_t head = 0, tail = 0;
+    pre_insert(start, 0);
+    pre_q[tail++] = (Node){ start, z1, z2, 0 };
+
+    while (head < tail) {
+        Node cur = pre_q[head++];
+        if (cur.d >= MAX_PRE_DEPTH) continue;
+
+        /* Expand moves: swap a neighbor tile into either empty position. */
+        for (int which = 0; which < 2; which++) {
+            uint8_t z = (which == 0) ? cur.z1 : cur.z2;
+            for (uint8_t k = 0; k < deg[z]; k++) {
+                uint8_t nb = adj[z][k];
+                if (get_nib(cur.s, nb) == 0) continue; /* must swap non-empty into empty */
+                uint64_t ns = swap_pos(cur.s, z, nb);
+
+                uint8_t nz1 = cur.z1, nz2 = cur.z2;
+                /* After swapping, the empty moves to nb. */
+                if (which == 0) nz1 = nb; else nz2 = nb;
+                /* Maintain distinctness (invariant); if swap would collide, skip. */
+                if (nz1 == nz2) continue;
+
+                uint8_t nd = (uint8_t)(cur.d + 1);
+                if (pre_insert(ns, nd)) {
+                    if (tail >= PRE_MAX_STATES) {
+                        /* Capacity exceeded: unspecified by contract; stop expanding. */
+                        return;
+                    }
+                    pre_q[tail++] = (Node){ ns, nz1, nz2, nd };
+                }
+            }
+        }
+    }
+}
+
+/* Query-side BFS up to depth 4, looking for intersection with precomputed set. */
+static uint8_t q_dist[Q_MAX_STATES];
+static uint64_t q_key[Q_MAX_STATES];
+static uint8_t q_used[Q_MAX_STATES];
+
+static int q_lookup(uint64_t key, uint8_t *out_dist) {
+    /* Very small fixed hash table for query BFS visited. */
+    uint32_t m = Q_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        if (!q_used[i]) return 0;
+        if (q_key[i] == key) {
+            *out_dist = q_dist[i];
+            return 1;
+        }
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+static int q_insert(uint64_t key, uint8_t dist) {
+    uint32_t m = Q_MAX_STATES;
+    uint32_t i = hash64(key) % m;
+    for (uint32_t step = 0; step < m; step++) {
+        if (!q_used[i]) {
+            q_used[i] = 1;
+            q_key[i] = key;
+            q_dist[i] = dist;
+            return 1;
+        }
+        if (q_key[i] == key) return 0;
+        i++;
+        if (i == m) i = 0;
+    }
+    return 0;
+}
+
+static Node q_q[Q_MAX_STATES];
+
+static int solve(uint64_t start) {
+    uint8_t pre_d;
+    if (pre_lookup(start, &pre_d)) {
+        if (pre_d <= MAX_ANSWER) return (int)pre_d;
+        return -1;
+    }
+
+    memset(q_used, 0, sizeof(q_used));
+
+    uint8_t z1, z2;
+    find_zeros(start, &z1, &z2);
+
+    uint32_t head = 0, tail = 0;
+    q_insert(start, 0);
+    q_q[tail++] = (Node){ start, z1, z2, 0 };
+
+    int best = 1000;
+
+    while (head < tail) {
+        Node cur = q_q[head++];
+        if (cur.d > MAX_QUERY_DEPTH) continue;
+
+        uint8_t pd;
+        if (pre_lookup(cur.s, &pd)) {
+            int total = (int)cur.d + (int)pd;
+            if (total < best) best = total;
+        }
+
+        if (cur.d == MAX_QUERY_DEPTH) continue;
+
+        for (int which = 0; which < 2; which++) {
+            uint8_t z = (which == 0) ? cur.z1 : cur.z2;
+            for (uint8_t k = 0; k < deg[z]; k++) {
+                uint8_t nb = adj[z][k];
+                if (get_nib(cur.s, nb) == 0) continue;
+                uint64_t ns = swap_pos(cur.s, z, nb);
+
+                uint8_t nz1 = cur.z1, nz2 = cur.z2;
+                if (which == 0) nz1 = nb; else nz2 = nb;
+                if (nz1 == nz2) continue;
+
+                uint8_t nd = (uint8_t)(cur.d + 1);
+                if (q_insert(ns, nd)) {
+                    if (tail >= Q_MAX_STATES) {
+                        /* Capacity exceeded: unspecified by contract; stop. */
+                        head = tail; /* break outer loop */
+                        break;
+                    }
+                    q_q[tail++] = (Node){ ns, nz1, nz2, nd };
+                }
+            }
+        }
+    }
+
+    if (best <= MAX_ANSWER) return best;
+    return -1;
+}
+
+int main(void) {
+    precompute();
+
+    for (;;) {
+        int first;
+        if (scanf("%d", &first) != 1) return 0;
+        if (first < 0) return 0;
+
+        uint8_t t[13];
+        t[0] = (uint8_t)(first & 0xF);
+        for (int i = 1; i < 13; i++) {
+            int v;
+            if (scanf("%d", &v) != 1) return 0;
+            t[i] = (uint8_t)(v & 0xF);
+        }
+
+        uint64_t start = pack_state(t);
+        int ans = solve(start);
+        if (ans >= 0) {
+            printf("%d\n", ans);
+        } else {
+            /* No-answer indicator string not specified; choose a minimal conventional token. */
+            printf("No answer\n");
+        }
+    }
+}
+```

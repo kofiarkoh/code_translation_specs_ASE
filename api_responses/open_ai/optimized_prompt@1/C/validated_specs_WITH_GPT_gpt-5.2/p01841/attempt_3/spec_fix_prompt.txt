@@ -1,0 +1,251 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+A2740
+title:Rooted Tree for Misawa-san
+@kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+char input_tree[2][100000];
+char ans[100000];
+char *ap;
+char zeros[1]="\0";
+
+typedef struct  {
+  char *sptr;
+  int  len;
+} mystr_;
+
+void display(mystr_ *str)
+{
+  int i;
+  for(i=0;i<str->len;i++)
+    printf("%c",str->sptr[i]);
+#ifdef DEBUG
+  printf("{%d}",str->len);
+#endif
+  printf("\n");
+}
+
+void analyze_tree(mystr_ *in,mystr_ *left,mystr_ *right,int *val)
+{
+  char *p;
+  int lv,i;
+
+  left->sptr = p = in->sptr;
+
+  for(i=0,lv=0;i<in->len;i++)
+    {
+      if(p[i]=='[')
+	{
+	if(lv==0)
+	  {
+	    left->len=i;
+	    *val = atoi(p+i+1);
+	  }
+	
+	
+	  lv++;
+	}
+      else if(p[i]==']')
+	{
+	  if(lv==1)
+	    {
+	      right->sptr=&p[i+1];
+	      right->len =in->len-i-1;
+	    }
+	  lv--;
+	}
+      else if(p[i]=='(')
+	lv++;
+      else if(p[i]==')')
+	lv--;
+    }
+}
+
+int is_empty_tree(mystr_ *in)
+{
+  if(in->len==2)
+    return(1);
+  else
+    return(0);
+}
+
+void remove_paren(mystr_ *in)
+{
+  in->len  -= 2;
+  in->sptr ++;
+}
+
+
+void add_tree(mystr_ *in1,mystr_ *in2,mystr_ *out)
+{
+  mystr_ stree[2][2],sstree[2];
+  int v[2],val,le,i;
+
+  analyze_tree(in1,&stree[0][0],&stree[0][1],&v[0]);
+  analyze_tree(in2,&stree[1][0],&stree[1][1],&v[1]);
+  val = v[0]+v[1];
+
+  if(is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]))
+    {
+      sstree[0].sptr=zeros;
+      sstree[0].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][0]);
+      remove_paren(&stree[1][0]);
+      add_tree(&stree[0][0],&stree[1][0],&sstree[0]);
+    }
+  if(is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]))
+    {
+      sstree[1].sptr=zeros;
+      sstree[1].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][1]);
+      remove_paren(&stree[1][1]);
+      add_tree(&stree[0][1],&stree[1][1],&sstree[1]);
+    }
+
+  out->sptr=ap;
+
+  sprintf(ap,"(%.*s)[%d](%.*s)",sstree[0].len,sstree[0].sptr,val,
+	  sstree[1].len,sstree[1].sptr);
+
+  while(*ap)
+    ap++;
+  out->len=ap - out->sptr;
+
+}
+
+int main()
+{
+  char *l,*r;
+  int llen,rlen,val;
+  mystr_ tree[3],ltree,rtree;
+  
+  scanf("%s",&(input_tree[0][0]));
+  tree[0].sptr=&(input_tree[0][0]);
+  tree[0].len =strlen(&(input_tree[0][0]));
+  scanf("%s",&(input_tree[1][0]));
+  tree[1].sptr=&(input_tree[1][0]);
+  tree[1].len =strlen(&(input_tree[1][0]));
+  ap=&ans[0];
+
+  add_tree(&tree[0],&tree[1],&tree[2]);
+  display(&tree[2]);
+
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads two rooted **binary** trees encoded as strings in a fixed concrete format and produces a new tree string representing their recursive “sum”. At each node position where **both** input trees have a non-empty node, the output contains a node whose integer value is the sum of the two input node values, and whose left and right children are obtained by recursively summing the corresponding left and right subtrees. If, at some position, **either** input has an empty subtree, then the output subtree at that position is empty and recursion does not continue below that position.
+
+2. Tree String Representation (Concrete Grammar)  
+- A **non-empty node** is encoded as:  
+  `(<left>)[<value>](<right>)`  
+  where:
+  - `<left>` is the encoding of the left subtree (possibly empty),
+  - `<value>` is a decimal integer in text form (optionally signed),
+  - `<right>` is the encoding of the right subtree (possibly empty).
+- An **empty subtree** is encoded **exactly** as the two-character string:  
+  `()`  
+  (i.e., an opening parenthesis immediately followed by a closing parenthesis, with nothing inside).
+
+3. Inputs  
+- Two whitespace-delimited strings, each being a well-formed tree encoding in the format above.  
+- The program reads exactly two such strings from standard input.
+
+4. Outputs  
+- One line containing a single tree string in the same format, representing the summed tree.  
+- The output is always a well-formed encoding using the same delimiters: each produced node is printed as `(<left>)[<sum>](<right>)`, and empty subtrees appear as `()`.
+
+5. Combination Rules / Semantics  
+- Let `T1` and `T2` be the two input trees.
+- If both `T1` and `T2` are non-empty nodes at a given position, the output node value is `value(T1) + value(T2)`, and the output left (respectively right) subtree is the result of combining the left (respectively right) subtrees of `T1` and `T2`.
+- If either input subtree at a position is empty (`()`), the output subtree at that position is empty (`()`), and no descendants are produced there.
+- Consequently, the output tree’s shape is the structural intersection of the two input trees: nodes exist only where both inputs have nodes.
+
+6. Parsing/Well-Formedness Assumptions  
+- Each input string is assumed to be properly balanced and nested with respect to parentheses `(` `)` and square brackets `[` `]` according to the representation above.  
+- The integer value for a node is taken from the text immediately following the node’s top-level `[` and is interpreted as a C-style decimal integer (as accepted by `atoi`), up to the closing `]`.  
+- No validation is performed beyond this assumed well-formedness.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error reporting or recovery.  
+- If inputs are malformed, contain values outside the range of the platform `int`, exceed internal fixed buffer capacities, or if the constructed output exceeds the output buffer capacity, behavior is undefined.
+
+8. Execution/Termination Behavior  
+- The program reads two tree strings, constructs the combined tree in an internal buffer via recursion, prints the resulting tree followed by a newline, and then terminates.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong parsing/transition rule (tree decomposition) and wrong termination/consumption rule during recursion.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the tree format as a clean recursive grammar `(<left>)[<value>](<right>)` with `()` as the only empty subtree, implying that parsing can be done by recursively descending from the first character.  
+- The source does **not** parse by “subtree starts at current index” recursion. Instead, it **splits the whole node string** into left-part and right-part by scanning for the **top-level** `[`…`]` (and tracking nesting across both `()` and `[]`) and then treats the substrings before and after that bracketed value as the left and right subtree encodings (including their outer parentheses).  
+- Because of that, the spec is likely too vague/incorrect about how to locate the node’s value and how to determine the exact left/right substring boundaries. A generated parser that assumes a strict positional grammar can desynchronize and crash on valid inputs for the source.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that, for a non-empty node, the program identifies the node’s integer by finding the **outermost** `[`…`]` pair (at nesting level 0 with respect to parentheses/brackets tracking), and defines:
+  - left subtree string = everything **before** that `[` (this is expected to be a parenthesized subtree like `(<...>)` or `()`),
+  - right subtree string = everything **after** the matching `]` (again expected to be `(<...>)` or `()`).
+- Clarify that emptiness is detected by the **length** of the subtree string being exactly 2 (i.e., exactly `"()"`), not by checking characters at an arbitrary index in a larger buffer.
+- Clarify that recursion operates on these extracted substrings (after stripping the outer parentheses for non-empty subtrees), rather than by consuming a stream with an index.
+
+D. Why this clarification is supported by the source program  
+- `analyze_tree()` scans the entire `in` string, tracks a nesting counter `lv`, and when it sees a `[` at `lv==0` it:
+  - sets `left->len = i` (everything before `[`)
+  - sets `*val = atoi(p+i+1)` (value starts right after `[`)
+  - later, when it sees the matching `]` at `lv==1`, it sets `right->sptr = &p[i+1]` and `right->len = in->len - i - 1` (everything after `]`).  
+  This is a “split around top-level brackets” strategy, not a positional recursive-descent grammar.
+- `is_empty_tree()` returns true solely when `len==2`, i.e., the subtree substring is exactly `"()"`. This is a substring-length property, not an “at current index” property.
+- `remove_paren()` assumes the subtree substring begins and ends with parentheses and strips exactly one pair before recursing, which only makes sense if left/right are handled as whole substrings extracted from the parent, not as a stream cursor.
+- The runtime error in the generated program is consistent with a parser/index becoming misaligned (e.g., reading past `]`/`)`), which would happen if the spec’s implied parsing model doesn’t match the source’s actual decomposition rules.
+
+```

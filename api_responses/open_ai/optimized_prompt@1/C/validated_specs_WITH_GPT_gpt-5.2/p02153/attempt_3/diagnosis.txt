@@ -1,0 +1,23 @@
+A. Likely mismatch category  
+Missing constraint / wrong assumption about input safety (memory-safety / bounds), leading to a wrong abstraction of the hazard-marking step.
+
+B. What the current specification may be missing or misstating  
+- The specification introduces a **precondition** that hazard sources `*` are not on the border (“for memory safety … must not be on the outermost border cells”).  
+- The source program does **not** enforce such a precondition at the input level; instead, it relies on its own array layout/indexing scheme to make neighbor-marking safe (or at least to avoid immediate crashes under typical constraints).  
+- The generated program *implements* the precondition as an assumption and then performs neighbor writes like `danger[i+dy][j+dx]` on a 0-based `H x W` array, which will segfault if `*` appears on an edge. This indicates the spec’s model of how safety is achieved is incorrect/incomplete.
+
+C. What general behavior should be clarified in the specification  
+- Clarify **how the original program handles hazard expansion at grid boundaries**: whether it is guaranteed safe by construction (e.g., via padding/sentinels/1-based indexing with extra margin), or whether the input constraints truly forbid border hazards.  
+- More generally: specify the **indexing/padding strategy** (the source uses 1..H and 1..W and writes to neighbors without explicit bounds checks), and what that implies for valid inputs and memory safety.  
+- If the intent is to describe source behavior rather than impose extra constraints, the spec should not add an input restriction unless it is actually required by the source’s correctness model.
+
+D. Why this clarification is supported by the source program  
+- In `main`, when a `*` is found at `(r,c)`, the source does:
+  ```c
+  bomb[r][c] = 1;
+  for (i = 0; i < 8; i++)
+      bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+  ```
+  with **no bounds checks**.  
+- The arrays are declared as `char bomb[MAXV][MAXV];` with `MAXV=1005`, and the grid is read into `map[r]+1` for `r=1..H`, i.e., **1-based indexing** with implicit extra space around the used region. This differs materially from the generated program’s 0-based `danger[H][W]` approach.  
+- The runtime error (-11) is consistent with the generated program writing outside `danger` when a hazard is on/near the border—an issue that arises because the spec’s “precondition” and the generated implementation’s memory model do not match the source program’s effective handling of neighbor marking.

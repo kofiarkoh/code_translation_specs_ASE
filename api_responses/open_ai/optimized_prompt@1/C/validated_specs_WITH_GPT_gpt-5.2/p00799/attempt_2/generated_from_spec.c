@@ -1,0 +1,144 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DEVICES 1024
+#define MAX_CYCLE   1024
+#define MAX_QUEUE   1048576  /* per spec: if exceeded, behavior undefined */
+
+typedef struct {
+    int u[MAX_CYCLE];
+    int c[MAX_CYCLE];
+    int len;        /* number of (u,c) pairs */
+    int idx;        /* current pair index */
+    int state;      /* 0 = Active, 1 = Charging */
+    int remA;       /* remaining active time */
+    int remC;       /* remaining charging time */
+} Device;
+
+int main(void) {
+    int n;
+    int lim;
+
+    while (1) {
+        if (scanf("%d", &n) != 1) return 0;
+        if (scanf("%d", &lim) != 1) return 0;
+
+        if (n <= 0) {
+            /* termination: lim is read but ignored for termination purposes */
+            return 0;
+        }
+
+        if (n > MAX_DEVICES) {
+            /* Undefined by spec; still attempt to proceed in a bounded way */
+            /* Narrowest reasonable: clamp to MAX_DEVICES (input beyond is still read). */
+        }
+
+        int useN = n;
+        if (useN > MAX_DEVICES) useN = MAX_DEVICES;
+
+        Device dev[MAX_DEVICES];
+
+        for (int i = 0; i < useN; i++) {
+            dev[i].len = 0;
+            dev[i].idx = 0;
+            dev[i].state = 0;
+            dev[i].remA = 0;
+            dev[i].remC = 0;
+
+            while (1) {
+                int u;
+                if (scanf("%d", &u) != 1) return 0;
+                if (u <= 0) break;
+                int c;
+                if (scanf("%d", &c) != 1) return 0;
+
+                if (dev[i].len < MAX_CYCLE) {
+                    dev[i].u[dev[i].len] = u;
+                    dev[i].c[dev[i].len] = c;
+                    dev[i].len++;
+                } else {
+                    /* Undefined by spec if exceeds supported maximum; ignore extras. */
+                }
+            }
+
+            /* Per spec: at least one (u,c) pair is provided and positive. */
+            dev[i].idx = 0;
+            dev[i].state = 0; /* Active */
+            dev[i].remA = dev[i].u[0];
+            dev[i].remC = 0;
+        }
+
+        /* If n > MAX_DEVICES, still must consume remaining devices' sequences from input. */
+        for (int i = useN; i < n; i++) {
+            while (1) {
+                int u;
+                if (scanf("%d", &u) != 1) return 0;
+                if (u <= 0) break;
+                int c;
+                if (scanf("%d", &c) != 1) return 0;
+            }
+        }
+
+        long long misses = 0;
+
+        /* Charging queue: store device indices. */
+        int q[MAX_QUEUE];
+        int qh = 0, qt = 0; /* [qh, qt) */
+        int qlen = 0;
+
+        if (lim > 0) {
+            for (int t = 1; t <= lim; t++) {
+                /* Snapshot of which devices were already charging at start of time unit. */
+                int qlen_start = qlen;
+
+                /* A) Advance active devices and enqueue new chargers */
+                for (int i = 0; i < useN; i++) {
+                    if (dev[i].state == 0) { /* Active at start of step A */
+                        dev[i].remA -= 1;
+                        if (dev[i].remA == 0) {
+                            dev[i].state = 1; /* Charging */
+                            dev[i].remC = dev[i].c[dev[i].idx];
+
+                            /* append to queue */
+                            if (qt >= MAX_QUEUE) {
+                                /* Undefined by spec if capacity exceeded; wrap to keep running. */
+                                qt = 0;
+                            }
+                            q[qt++] = i;
+                            qlen++;
+                        }
+                    }
+                }
+
+                /* B) Count misses for devices already charging at start of this time unit */
+                if (qlen_start > 0) {
+                    /* Among those qlen_start devices, front is serviced, others miss. */
+                    misses += (long long)(qlen_start - 1);
+                }
+
+                /* C) Apply one unit of charging service to the queue front */
+                if (qlen > 0) {
+                    if (qh >= MAX_QUEUE) qh = 0;
+                    int front = q[qh];
+
+                    dev[front].remC -= 1;
+                    if (dev[front].remC == 0) {
+                        /* leave queue */
+                        qh++;
+                        qlen--;
+
+                        /* switch to Active, advance to next cycle pair */
+                        dev[front].state = 0;
+                        dev[front].idx++;
+                        if (dev[front].idx >= dev[front].len) dev[front].idx = 0;
+                        dev[front].remA = dev[front].u[dev[front].idx];
+                    } else {
+                        /* remains at front */
+                    }
+                }
+            }
+        }
+
+        printf("%lld\n", misses);
+    }
+}

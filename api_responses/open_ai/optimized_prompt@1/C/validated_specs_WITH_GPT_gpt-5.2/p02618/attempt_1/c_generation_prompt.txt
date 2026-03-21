@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a planning horizon length, per-category penalty weights, and per-day per-category satisfaction values. Produces a schedule assigning one category to each day. The produced schedule is initialized by choosing, for each day independently, the category with the highest satisfaction for that day, then iteratively attempts to improve the overall objective score by randomly swapping two days’ assigned categories and keeping the swap only if it strictly increases the objective score. The program outputs the final schedule after a fixed time-bounded improvement phase.
+
+2. Inputs  
+- An integer number of days.  
+- A fixed-size set of penalty weights, one per category (26 categories).  
+- A matrix of satisfaction values: for each day and each category, an integer satisfaction value.
+
+3. Outputs  
+- A sequence of integers of length equal to the number of days, where each integer denotes the chosen category for that day (categories are numbered 1 through 26).
+
+4. Preconditions  
+- The number of days is positive.  
+- All required penalty weights and satisfaction values are present in the input.  
+- Satisfaction values are such that, for every day, at least one category has a strictly positive satisfaction value; otherwise the initial schedule selection is not well-defined.  
+- The environment provides a monotonic notion of elapsed processor time sufficient to bound the improvement phase.
+
+5. Postconditions  
+- The output schedule assigns exactly one category to each day, and each assigned category is within 1..26.  
+- Let `Score(schedule)` be defined as: for each day in order, add that day’s satisfaction for the scheduled category; then subtract, for every category, its penalty weight multiplied by the number of days since that category was last scheduled (with “last scheduled” initially treated as day 0). The program guarantees that the final schedule’s score is greater than or equal to the score of the initial schedule constructed by per-day maximum satisfaction selection.  
+- The final schedule is the result of applying zero or more accepted swaps, where each accepted swap strictly increases the score relative to the immediately preceding schedule.
+
+6. Invariants  
+- Throughout execution after initialization, the schedule remains a length‑D assignment with values restricted to 1..26.  
+- The tracked “best-so-far” score value is non-decreasing over time.  
+- Any schedule change that is retained corresponds to a strict improvement in the objective score; non-improving attempted swaps do not change the schedule.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for invalid, missing, or out-of-range input; behavior is undefined if preconditions are violated.  
+- If any day has no strictly positive satisfaction value across categories, the initial schedule selection is undefined and subsequent behavior is undefined.  
+- If the number of days is so large that required memory cannot be allocated on the stack, behavior is undefined.  
+- The improvement phase is time-bounded but not iteration-bounded; if time measurement behaves unexpectedly, runtime may deviate from the intended bound.
+
+8. State Transitions (if applicable)  
+- State consists of the current schedule and the current best score.  
+- Initialization transitions state from “no schedule” to the initial schedule and its computed score.  
+- Each improvement attempt transitions either:  
+  - to a new schedule with strictly higher score (swap accepted), updating the best score; or  
+  - back to the prior schedule with unchanged best score (swap rejected).  
+- Termination occurs after the elapsed time reaches the fixed bound, after which the current schedule is emitted.
+
+9. Non-functional Constraints (if inferable)  
+- The improvement phase is intended to run for approximately a fixed duration (~2 seconds of measured processor time), independent of input size, subject to timing granularity and system load.  
+- Uses randomized search; output is not deterministic across runs even for identical inputs.  
+- Time per improvement attempt scales with the number of days and the fixed number of categories, since each attempted swap recomputes the full score.
+
+```

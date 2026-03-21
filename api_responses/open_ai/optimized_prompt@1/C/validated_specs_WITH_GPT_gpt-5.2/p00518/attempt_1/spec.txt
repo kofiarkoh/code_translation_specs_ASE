@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes, modulo a fixed constant, the number of valid sequences of daily participant subsets over a given number of days, subject to constraints derived from a required participant per day and a day-to-day overlap rule. The first day additionally requires inclusion of a designated initial participant.
+
+2. Inputs  
+- An integer representing the number of days.  
+- A string of length equal to the number of days, where each character denotes the required participant for the corresponding day (one of three possible participants).
+
+3. Outputs  
+- A single non-negative integer: the count of valid sequences modulo 10007.
+
+4. Preconditions  
+- The day count is non-negative.  
+- The provided string length equals the day count.  
+- Each character in the string is one of the three supported participant designators.  
+- The day count does not exceed the maximum supported by the fixed input buffer size (assumed ≤ 1000).
+
+5. Postconditions  
+Let there be three participants. For each day, a “daily subset” is any non-empty subset of these participants. A sequence of daily subsets of length N is considered valid iff:  
+- For every day d, the daily subset for day d includes the required participant designated by the input character at position d.  
+- For every day d > 0, the daily subset for day d shares at least one participant with the daily subset for day d−1.  
+- For day 0, the daily subset includes both the required participant for day 0 and a designated initial participant (the one corresponding to the first of the three designators).  
+
+The program outputs the number of valid sequences satisfying the above, reduced modulo 10007.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 10007.  
+- Only subsets of the three participants are considered; the empty subset is never counted as a valid daily subset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, contains unsupported characters, or violates size assumptions, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- The computation maintains a day-indexed state representing, for the current day, the number of valid partial sequences ending with each possible daily subset.  
+- Each day advances this state by applying the per-day required-participant constraint and the overlap-with-previous-day constraint, producing the next day’s state.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of days with a small constant factor (bounded by the fixed number of participant subsets).  
+- Memory usage is constant with respect to the number of days (bounded by fixed-size state arrays and input storage).

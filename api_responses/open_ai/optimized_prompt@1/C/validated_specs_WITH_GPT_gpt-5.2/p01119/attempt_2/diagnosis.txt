@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for the “adjustment” computation (and related counting/feasibility condition).
+
+B. What the current specification may be missing or misstating  
+- It treats the adjustment as **adding the same nonnegative value `d` to each unbalanceable target** (i.e., requiring `u + d ∈ S`).  
+- The source program instead computes candidates using **absolute differences** `t = |u − q|` over all achievable signed net sums `q` (including negative and zero), and then looks for a **common `t`** across all unbalanceable targets. This is not equivalent to “add `d` to the target”.  
+- The spec’s definition of `S` as “strictly positive net differences” and then using membership `target ∈ S` is incomplete for the later phase: the algorithm’s adjustment search is based on the full set of signed outcomes `q` (positive/negative/zero), not just `S`.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that when some targets are not directly measurable, the program searches for the **minimum nonnegative value `d` such that every unmeasurable target can be made measurable by allowing an adjustment of magnitude `d` in either direction**, i.e., for each such target `u` there exists some achievable signed balance outcome `q` with `|u − q| = d`.  
+- Clarify that the adjustment is a **common absolute deviation** from some achievable balance result per target (the achievable result may differ per target), rather than a uniform additive offset applied to all targets.  
+- Clarify that the search space for this is derived from **all signed sums** obtainable by placing weights on either pan (the `q` values), not only the strictly positive differences set.
+
+D. Why this clarification is supported by the source program  
+- The program enumerates all signed sums `q[j]` via `q[end++] = q[j] + w[i]` and `q[end++] = q[j] - w[i]`, starting from `0`, so `q` includes negative and zero outcomes.  
+- For the first unmeasurable target, it computes `t = ABS(a[i] - q[j])` for all `j` and records all such `t` values; `ans` is the minimum such `t`. This directly indicates the “adjustment” is an **absolute difference to some achievable `q`**, not “add to target to reach a positive difference”.  
+- For subsequent unmeasurable targets, it again computes `t = ABS(a[i] - q[j])` and intersects with previously seen `t` values (via `lookup2(t, x)`), meaning it is finding a **single common `t`** that works for all unmeasurable targets.  
+- The algorithm never checks `u + d ∈ S`; it checks existence of `q` such that `|u − q| = d`, which is a different condition and explains why a case can yield a positive answer in the source but `-1` under the current spec.

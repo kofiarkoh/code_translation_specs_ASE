@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value modulo a fixed prime modulus from a collection of `N` input pairs. The value is a deterministic function of the multiset of pairs and is invariant under permutation of the input order. The computation depends only on equality/ordering relationships among the first components and among the second components, and on how the second components are distributed within groups of equal first components (and symmetrically, how the first components are distributed within groups of equal second components).
+
+2. Inputs  
+- An integer `N` denoting the number of pairs.  
+- `N` pairs of integers `(a_i, b_i)`.
+
+3. Outputs  
+- One integer in the range `[0, Mod-1]` (where `Mod` is a fixed constant), representing the computed result modulo `Mod`.
+
+4. Preconditions  
+- `1 ≤ N ≤ 200000`.  
+- All input pairs are present and readable as integers.  
+- The computation assumes sufficient memory for arrays sized proportional to `N`.  
+- Assumption (to avoid undefined behavior from internal indexing): the number of distinct values among the first components is at most `N` (always true) and internal ranks derived from them fit within the allocated bounds (guaranteed by the `N ≤ 200000` limit).
+
+5. Postconditions  
+- The program outputs exactly one modular integer equal to the value produced by the implemented formula over the input pairs, reduced modulo `Mod`.  
+- The output is independent of the order in which the `N` pairs are provided.  
+- The output depends only on the relative ordering of distinct values and on equality classes of the first and second components (i.e., any strictly order-preserving renaming of values leaves the result unchanged).
+
+6. Invariants  
+- All intermediate arithmetic contributing to the final result is interpreted modulo `Mod` (with the final printed value reduced into `[0, Mod-1]`).  
+- Internally maintained counts represent numbers of already-processed elements within dynamically defined rank ranges; these counts are always non-negative and never exceed `N`.  
+- Grouping by equal first component and grouping by equal second component are consistent: each input pair belongs to exactly one group under each component.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/malformed or if `N` exceeds supported bounds, behavior is unspecified (may produce incorrect output or fail).  
+- No overflow protection is provided for non-modular integer accumulations other than those stored in sufficiently wide integer types for the intended bounds.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes, and writes one output.  
+- Internal state progresses through phases:  
+  1) Derives rank/group identifiers for equal first-component values.  
+  2) Derives rank/group identifiers for equal second-component values.  
+  3) Accumulates contributions in two directional passes based on these ranks.  
+  4) Accumulates additional corrections based on grouping under the opposite component.  
+  These phases only affect internal working arrays and the final accumulator.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is `O(N log N)` due to sorting and logarithmic-time rank-count queries/updates.  
+- Space complexity is `O(N)` for working storage.  
+- Designed for `N` up to 200000 within typical competitive-programming resource limits.
+
+```

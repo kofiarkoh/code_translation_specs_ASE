@@ -1,0 +1,156 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// Aizu 1108: A Long Ride on a Railway
+// 2017.9.16 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+typedef struct { int a, b, d, f; } T;
+T tbl[25]; int n, m;
+int ans[12], tmp[12], len, num;
+
+void combi(int k, int a, int w)
+{
+	int i, b;
+
+	for (b = 1; b <= n; b++) {
+		if (b == a) continue;
+		for (i = 0; i < m; i++) {
+			if ((tbl[i].a == a && tbl[i].b == b || tbl[i].a == b && tbl[i].b == a) && !tbl[i].f) {
+				tbl[i].f = 1, tmp[k] = b;
+				combi(k+1, b, w + tbl[i].d);
+				tbl[i].f = 0;
+			}
+		}
+	}
+	if (w > len) num = k, len = w, memcpy(ans, tmp, sizeof(int)*num);
+}
+
+int main()
+{
+	int i, a, b;
+
+	while (scanf("%d%d", &n, &m) && n) {
+		for (i = 0; i < m; i++) scanf("%d%d%d", &tbl[i].a, &tbl[i].b, &tbl[i].d), tbl[i].f = 0;
+		for (len = num = 0, a = 1; a <= n; a++) for (b = 1; b <= n; b++) {
+			if (b == a) continue;
+			for (i = 0; i < m; i++) {
+				if ((tbl[i].a == a && tbl[i].b == b || tbl[i].b == a && tbl[i].a == b) && !tbl[i].f) {
+					tbl[i].f = 1;
+					tmp[0] = a, tmp[1] = b, combi(2, b, tbl[i].d);
+					tbl[i].f = 0;
+				}
+			}
+		}
+		printf("%d\n", len);
+		printf("%d", ans[0]);
+		for (i = 1; i < num; i++) printf(" %d", ans[i]);
+		printf("\n");
+    }
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes, for each dataset, a maximum-total-length route through an undirected weighted graph such that no edge is used more than once. Outputs the maximum achievable total length and one corresponding vertex sequence describing a route that attains it.
+
+2. Inputs  
+For each dataset:  
+- An integer number of vertices.  
+- An integer number of edges.  
+- A list of edges, each given by two endpoint vertex labels and a nonnegative or arbitrary integer length.  
+Datasets repeat until a dataset with zero vertices is encountered.
+
+3. Outputs  
+For each dataset:  
+- The maximum total length among all routes that traverse edges without repeating any edge.  
+- A sequence of vertex labels representing one route achieving that maximum length, listed in traversal order.
+
+4. Preconditions  
+- Vertex labels in edges are within the declared vertex range.  
+- The number of vertices does not exceed the fixed internal capacity for storing a route (at most 12 vertices in the reported route).  
+- The number of edges does not exceed the fixed internal capacity for storing edges (at most 25 edges).  
+- Input is well-formed according to the described dataset structure.
+
+5. Postconditions  
+- The first output value equals the maximum possible sum of edge lengths over all edge-simple routes (trails) in the graph.  
+- The printed vertex sequence corresponds to a valid route in the input graph whose consecutive vertices are connected by edges, and no edge is used more than once in that route.  
+- The sum of the lengths of the edges traversed by the printed route equals the printed maximum total length.
+
+6. Invariants  
+- During route construction, an edge is either unused or used exactly once in the current partial route; no partial route contains a repeated edge.  
+- The maintained “best” route length is always the greatest length found so far among all explored routes, and the stored best vertex sequence corresponds to that length.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input violates capacity limits or is malformed, behavior is unspecified.  
+- If the graph contains no edges, the program still prints a length of zero; the accompanying vertex sequence is not well-defined by the code’s guarantees.
+
+8. State Transitions (if applicable)  
+- For each dataset, internal state is reset: all edges are marked unused and the best-known route is cleared.  
+- While exploring routes, edges transition between “unused” and “used” within the scope of exploring a candidate route, and are restored to “unused” after that exploration completes.  
+- Upon completion of a dataset, the best-known route becomes the reported result; then the program transitions to reading the next dataset or terminates on zero vertices.
+
+9. Non-functional Constraints (if inferable)  
+- Exploration is exhaustive over edge-simple routes; runtime can grow exponentially with the number of edges.  
+- Memory usage is bounded by fixed-size storage for a limited number of edges and a limited route length.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong output formatting / ordering rule (line breaks and token layout).
+
+B. What the current specification may be missing or misstating  
+The specification says the program outputs “the maximum total length” and “a sequence of vertex labels,” but it does not constrain *how* these two outputs are separated (same line vs separate lines). The generated program printed the length and the path on one line, while the source prints the length on its own line and the vertex sequence on the next line.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact output layout: for each dataset, print:
+1) the maximum length as an integer followed by a newline, then  
+2) the chosen vertex sequence on a separate line (space-separated), followed by a newline.  
+Also clarify that the path line contains only the vertex labels (no leading length on that line).
+
+D. Why this clarification is supported by the source program  
+In `main()` the source does:
+- `printf("%d\n", len);` which always prints the length and a newline, then
+- prints the vertex sequence starting with `printf("%d", ans[0]);` and ends with `printf("\n");`  
+This enforces a strict two-line-per-dataset output format, which the current specification did not explicitly require, allowing the generated code to choose a different (single-line) format.
+
+```

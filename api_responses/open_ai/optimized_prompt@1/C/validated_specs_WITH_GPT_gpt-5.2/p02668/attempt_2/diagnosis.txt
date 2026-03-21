@@ -1,0 +1,32 @@
+A. Likely mismatch category  
+- **Wrong / incomplete transition rule (recurrence definition missing)** and **wrong base/initial conditions**.  
+- Also a **missing constraint/edge-condition** issue: the current spec claims the second parameter must be ≥ 1, but the source code allows **m = 0** (and even sets `m=0` before reading input).
+
+B. What the current specification may be missing or misstating  
+- It does not state the **actual modulus** (`MOD = 1000000007`).  
+- It does not state the **exact DP recurrences** for `dp` and `dq`, including the use of powers of 2 and modular inverses of 2.  
+- It does not state the **initialization**: `dp[0][j] = 1` for `j=1..m`, and `dq` is implicitly zero-initialized (global array) with `dq[i][0]=0`.  
+- It incorrectly suggests **undefined behavior for m=0**, but the source computes and prints `dp[n][0]` (which is 0 due to global zero initialization and no loop iterations for `j`).
+
+C. What general behavior should be clarified in the specification  
+- The specification should explicitly define the computation as a **2D dynamic program** with:
+  - the modulus value,
+  - the loop bounds (`i=0..n`, `j=1..m`),
+  - the recurrence formulas for `dp[i][j]` and `dq[i][j]`,
+  - how `pow2[j]` and `inv2[j]` are computed (iteratively using `inv = (MOD+1)/2`),
+  - and the returned/printed value being exactly `dp[n][m]`.
+- The allowed domain should clarify that **m may be 0** and describe what happens then (the program still prints a value, derived from the initialized tables).
+
+D. Why this clarification is supported by the source program  
+- The source code concretely implements:
+  - `MOD` as a fixed prime `1000000007`.
+  - Precomputation:
+    - `pow2[i] = 2^i mod MOD`
+    - `inv2[i] = (1/2)^i mod MOD` using `inv=(MOD+1)/2`.
+  - DP fill:
+    - For `i=0..n` and `j=1..m`:
+      - if `i==0`: `dp[0][j]=1`
+      - else: `dp[i][j] = ((j+1)*dp[i-1][j] + dq[i-1][j-1]*pow2[j-1]) mod MOD`
+      - `dq[i][j] = (dq[i][j-1] + dp[i][j]*j*inv2[j]) mod MOD`
+  - Output: `printf("%lld\n", dp[n][m]);`
+- Because the current spec omits these rules, a generated implementation cannot reproduce outputs like `4148` for input `5 3`, indicating the spec is missing the essential algorithmic definition rather than a minor edge case.

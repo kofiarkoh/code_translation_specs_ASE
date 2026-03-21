@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- Wrong transition/update rule (state evolution) and wrong abstraction of the “iterative inversion” behavior.
+
+B. What the current specification may be missing or misstating  
+- The spec’s description of the “iterative inversion rule” has been abstracted into a simple “flip state” that depends only on bits of `(i-1)` and is then used to compare against bits of `(j-1)`.  
+- In the source, the inversion is not a separate boolean flip; it is performed by bitwise complementing the *entire* running value (`i = ~i` and later `j = ~j`) whenever a derived bit is 0. This means subsequent extracted bits come from a complemented integer, not merely from the original bits XORed with a flip.  
+- The spec also implies the same inversion rule is applied “under the same iterative inversion rule” to both `(i-1)` and `(j-1)` in a symmetric way, but the source uses `i` to *generate* a `low[]` sequence first, then uses that `low[]` to decide output and to decide when to complement `j`. That dependency structure (j’s evolution depends on low) is not captured precisely.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the algorithm maintains *mutable* working copies of `i-1` and `j-1` and conditionally applies a full bitwise NOT (`~`) to the entire working value after examining each step’s bit.  
+- Clarify the two-phase process and dependency:  
+  1) derive an `n`-bit sequence `low[0..n-1]` from the evolving `i` by reading bits MSB→LSB and complementing `i` whenever the read bit is 0;  
+  2) produce output by reading bits of the evolving `j` MSB→LSB, comparing each to the corresponding `low` bit to emit `L/R`, and complementing `j` whenever the corresponding `low` bit is 0.  
+- Clarify that the complement operation is on the full machine integer width (as in C `~` on a signed/unsigned integer type), not a bounded `n`-bit flip unless explicitly masked.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly performs `i = ~i;` inside the loop that constructs `low[]` when `low[...]` is 0, and later performs `j = ~j;` when `low[...]` is 0. This is a stateful transformation of the entire integer, affecting all subsequent bit extractions.  
+- The output character computation uses `low[k-1]` (derived from `i`) as the comparator target for `j`’s current bit and as the condition for complementing `j`, demonstrating that `j`’s evolution is driven by `low`, not by `j`’s own bits.  
+- The generated program’s “flip ^= abit” model does not correspond to `~i`/`~j` updates, which explains systematic mismatches across all sample lines rather than a single edge case.

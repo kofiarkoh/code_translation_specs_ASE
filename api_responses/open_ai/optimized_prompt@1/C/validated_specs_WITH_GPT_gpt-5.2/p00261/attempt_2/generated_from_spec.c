@@ -1,0 +1,45 @@
+#include <stdio.h>
+
+int main(void) {
+    /* Fixed internal buffer: maximum 109 characters excluding terminating NUL */
+    char tok[110];
+
+    /* Transition table: -1 denotes undefined transition */
+    enum { S0 = 0, S1, S2, S3, S4, S5 };
+    static const int trans[6][2] = {
+        /* S0 */ { S1, S2 },
+        /* S1 */ { -1, S3 },
+        /* S2 */ { S1, -1 },
+        /* S3 */ { S4, S5 },
+        /* S4 */ { S5, S2 },
+        /* S5 */ { S2, S1 }
+    };
+
+    while (scanf("%109s", tok) == 1) {
+        if (tok[0] == '#') {
+            break;
+        }
+
+        int state = S0;
+
+        for (int i = 0; tok[i] != '\0'; i++) {
+            /* Per spec, characters are assumed to be '0' or '1'; otherwise behavior is undefined.
+               We intentionally do not validate to preserve that assumption. */
+            int sym = tok[i] - '0'; /* '0'->0, '1'->1 */
+            int next = trans[state][sym];
+            if (next < 0) {
+                /* Undefined transition: stop immediately, keep current state unchanged */
+                break;
+            }
+            state = next;
+        }
+
+        if (state == S5) {
+            puts("Yes");
+        } else {
+            puts("No");
+        }
+    }
+
+    return 0;
+}

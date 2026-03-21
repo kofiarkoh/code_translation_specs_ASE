@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifndef MAXV
+/* Fixed maximum number of vertices supported (compile-time). */
+#define MAXV 100000
+#endif
+
+typedef struct EdgeNode {
+    int to;
+    int next;
+} EdgeNode;
+
+int main(void) {
+    int n, m;
+    if (scanf("%d", &n) != 1) return 0;
+    if (scanf("%d", &m) != 1) return 0;
+
+    /* Preconditions are assumed; if violated, behavior is undefined per spec. */
+    if (n < 0 || n > MAXV) {
+        /* Undefined behavior allowed; we simply proceed in a minimal way. */
+    }
+
+    int *head = (int *)malloc((size_t)n * sizeof(int));
+    int *indeg = (int *)malloc((size_t)n * sizeof(int));
+    EdgeNode *edges = (EdgeNode *)malloc((size_t)m * sizeof(EdgeNode));
+    int *queue = (int *)malloc((size_t)n * sizeof(int));
+
+    /* If allocation fails, behavior is undefined per spec; we do not handle it. */
+
+    for (int i = 0; i < n; i++) {
+        head[i] = -1;
+        indeg[i] = 0;
+    }
+
+    int ec = 0;
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        if (scanf("%d %d", &u, &v) != 2) {
+            /* Malformed input => undefined behavior; stop reading. */
+            break;
+        }
+        /* Endpoints assumed valid per preconditions. */
+        edges[ec].to = v;
+        edges[ec].next = head[u];
+        head[u] = ec;
+        ec++;
+
+        indeg[v]++; /* Dependency count never increases during processing; only decreases later. */
+    }
+
+    /* Kahn's algorithm: emit vertices when they have no unmet incoming dependencies. */
+    int qh = 0, qt = 0;
+    for (int i = 0; i < n; i++) {
+        if (indeg[i] == 0) queue[qt++] = i;
+    }
+
+    while (qh < qt) {
+        int u = queue[qh++];
+
+        /* Print each vertex at most once: each enters queue at most once when indeg hits 0. */
+        printf("%d\n", u);
+
+        for (int e = head[u]; e != -1; e = edges[e].next) {
+            int v = edges[e].to;
+            /* Decrease dependency count; it never increases. */
+            indeg[v]--;
+            if (indeg[v] == 0) {
+                queue[qt++] = v;
+            }
+        }
+    }
+
+    /* For cyclic graphs, vertices remaining with indeg > 0 are not printed, as required. */
+
+    free(queue);
+    free(edges);
+    free(indeg);
+    free(head);
+    return 0;
+}

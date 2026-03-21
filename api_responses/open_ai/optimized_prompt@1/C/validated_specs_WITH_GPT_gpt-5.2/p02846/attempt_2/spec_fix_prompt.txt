@@ -1,0 +1,135 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	long long T[3], A[3], B[3];
+	scanf("%lld %lld", &(T[1]), &(T[2]));
+	scanf("%lld %lld", &(A[1]), &(A[2]));
+	scanf("%lld %lld", &(B[1]), &(B[2]));
+	if (A[1] * T[1] + A[2] * T[2] == B[1] * T[1] + B[2] * T[2]) {
+		printf("infinity\n");
+		fflush(stdout);
+		return 0;
+	}
+	
+	if (A[1] > B[1]) {
+		A[1] += B[1];
+		B[1] = A[1] - B[1];
+		A[1] -= B[1];
+		A[2] += B[2];
+		B[2] = A[2] - B[2];
+		A[2] -= B[2];
+	}
+	if ((B[1] - A[1]) * T[1] > (A[2] - B[2]) * T[2]) printf("0\n");
+	else if ((B[1] - A[1]) * T[1] % ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) == 0) printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2);
+	else printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2 + 1);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads two time durations and two pairs of per-time-unit values for two entities. Computes and outputs either:
+- an unbounded result (“infinity”) when the entities’ total over the full two-phase duration is equal, or
+- otherwise, a nonnegative integer count derived from the relative per-phase differences and durations, representing how many boundary events occur under the implied two-phase comparison model.
+
+2. Inputs  
+- Two integers: the durations of phase 1 and phase 2.  
+- Two integers: entity A’s per-unit values in phase 1 and phase 2.  
+- Two integers: entity B’s per-unit values in phase 1 and phase 2.
+
+3. Outputs  
+- Either the literal word `infinity` followed by a newline, or  
+- A decimal integer followed by a newline.
+
+4. Preconditions  
+- All six input values are provided and are representable in the program’s integer range.  
+- Intermediate arithmetic used by the computation (products, differences, and derived expressions) does not overflow the program’s integer range.  
+- For the non-`infinity` case, the divisor used in the final ratio computation is nonzero (i.e., the derived denominator is not zero).
+
+5. Postconditions  
+- If the total combined value of entity A over both phases equals that of entity B over both phases, the program outputs `infinity`.  
+- Otherwise, the program outputs:
+  - `0` if a derived “phase-1 advantage” quantity is strictly greater than a derived “phase-2 catch-up” quantity, and  
+  - else a positive odd or even integer computed from the integer quotient of those derived quantities, where the result is even if an exact divisibility condition holds and odd otherwise.
+
+6. Invariants  
+- After a possible normalization step, entity A’s phase-1 per-unit value is less than or equal to entity B’s phase-1 per-unit value.  
+- The output in the non-`infinity` case is always a nonnegative integer.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input.  
+- If arithmetic overflow occurs or if the derived divisor is zero in the non-`infinity` path, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution. The only state change is internal normalization of the two entities’ per-phase values for computation.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.  
+- Performs a fixed amount of arithmetic and produces exactly one line of output.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition/derivation rule (incorrect denominator/ratio computation) and a missing constraint about how the “phase-2 catch-up” term participates in the final division.
+
+B. What the current specification may be missing or misstating  
+- The spec (and generated code) treats the final division as using only the *per-unit* phase-2 difference `(a2 - b2)` as the divisor, instead of using the *time-weighted* phase-2 difference and subtracting the phase-1 term as in the source.  
+- The spec’s “divisor used in the final ratio computation” is described vaguely and then implemented as `(a2 - b2)`, but the source program’s divisor is a composite expression involving both phases:  
+  `((A2 - B2) * T2 - (B1 - A1) * T1)`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the derived quantities and the exact formula used for the quotient/remainder test in the non-`infinity` and non-`0` case, including that:
+  - both phase differences are multiplied by their respective durations, and
+  - the denominator is the *difference between* the phase-2 weighted difference and the phase-1 weighted difference (not merely a per-unit difference).  
+- Clarify that the “even vs odd” output depends on divisibility by that composite denominator, not by `(a2 - b2)` or by the raw phase-2 weighted term alone.
+
+D. Why this clarification is supported by the source program  
+- After normalization, the source computes:
+  - `X = (B1 - A1) * T1`
+  - `Y = (A2 - B2) * T2`
+  - If `X > Y` output `0`
+  - Else it computes `X % (Y - X)` and `X / (Y - X)` to decide the final count (`2*(X/(Y-X))` if divisible, else `2*(X/(Y-X))+1`).  
+- This shows the denominator is explicitly `(Y - X) = (A2 - B2)*T2 - (B1 - A1)*T1`, so any specification that allows/encourages dividing by `(a2 - b2)` (or otherwise omits the `T2` factor and the `-X` term) is not describing the source behavior.
+
+```

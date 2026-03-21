@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong transition / relaxation rule (algorithmic semantics), leading to incorrect minimum-cost computation.
+
+B. What the current specification may be missing or misstating  
+The specification describes the computation as “minimum accumulated move cost” with 0/1 edge costs, which suggests a standard shortest-path interpretation (e.g., Dijkstra/0-1 BFS with a settled/processed set). However, the source program does **not** implement a settled-node shortest-path algorithm. It uses a queue-like propagation where a node can be re-enqueued and its neighbors reconsidered whenever its cost improves, without any “finalization” concept. This difference matters because the source’s update/enqueue policy is not equivalent to the generated program’s “pick smallest unprocessed, then never relax into processed nodes” rule.
+
+C. What general behavior should be clarified in the specification  
+Clarify the *exact* cost-propagation mechanism used by the source, including that:
+
+- The algorithm is a repeated-relaxation / re-enqueue scheme (SPFA-like), not a finalized Dijkstra scheme.  
+- A cell whose cost decreases must be allowed to trigger further relaxations even if it was previously expanded; there is no notion of “processed/final” cells.  
+- The order of processing is FIFO over an explicit array queue (`t` as head, `r` as tail), and correctness relies on allowing revisits when improvements occur.
+
+D. Why this clarification is supported by the source program  
+- The source maintains `x[]/y[]` as a queue with indices `t` (current) and `r` (end), and loops `for (r=1; r-t; t++)`, which is a classic “process until queue empty” pattern.  
+- On every successful improvement (`c[ny][nx] = ...`), it appends `(nx,ny)` to the queue (`x[r]=nx; y[r++]=ny;`). This explicitly allows the same cell to be enqueued multiple times as better costs are found.  
+- There is no “visited/processed/finalized” marker in the source; the only gating condition is whether the newly computed cost is smaller than the stored one (or the cell is unreached).  
+- The generated program introduced a “processed” state (negative distances) and forbids relaxing edges into processed nodes, which is an additional constraint not present in the source and can change results, as evidenced by the mismatch.

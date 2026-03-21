@@ -1,0 +1,183 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+static int cmp_int64(const void *a, const void *b) {
+    int64_t x = *(const int64_t *)a;
+    int64_t y = *(const int64_t *)b;
+    return (x > y) - (x < y);
+}
+
+/*
+  Count subarrays whose (upper) median >= m.
+
+  Standard reduction:
+    For threshold m, map a[i] -> b[i] where b[i]=+1 if a[i] >= m else -1.
+    For subarray [l..r], let S = sum b[i].
+    Then:
+      - if len is odd: upper median >= m  <=>  #(+1) >= #(-1)  <=> S >= 1
+      - if len is even: upper median >= m <=>  #(+1) >  #(-1)  <=> S >= 2
+    Both cases unify as: S >= 1 + (len % 2 == 0).
+
+  Using prefix sums P[0]=0, P[k]=sum_{i<k} b[i].
+  For subarray l..r (inclusive), with k=r+1:
+      S = P[k] - P[l], len = k-l.
+  Condition becomes:
+      P[l] <= P[k] - 1 - ( (k-l) even ? 1 : 0 )
+  Parity depends on l and k:
+      (k-l) even <=> parity(l) == parity(k).
+  So for each k, count l<k with:
+      if parity(l)==parity(k): P[l] <= P[k]-2
+      else:                   P[l] <= P[k]-1
+
+  We compute this in O(n log n) by coordinate-compressing all P values and
+  maintaining two Fenwick trees (one per parity) over counts of seen P[l].
+*/
+
+typedef struct {
+    int n;
+    int64_t *bit;
+} Fenwick;
+
+static void fw_init(Fenwick *fw, int n) {
+    fw->n = n;
+    fw->bit = (int64_t *)calloc((size_t)(n + 1), sizeof(int64_t));
+}
+
+static void fw_reset(Fenwick *fw) {
+    /* Reinitialize to zero for each candidate evaluation */
+    for (int i = 1; i <= fw->n; i++) fw->bit[i] = 0;
+}
+
+static void fw_add(Fenwick *fw, int idx, int64_t delta) {
+    for (int i = idx; i <= fw->n; i += i & -i) fw->bit[i] += delta;
+}
+
+static int64_t fw_sum(Fenwick *fw, int idx) {
+    int64_t s = 0;
+    for (int i = idx; i > 0; i -= i & -i) s += fw->bit[i];
+    return s;
+}
+
+static int lower_bound_int64(const int64_t *arr, int n, int64_t x) {
+    int l = 0, r = n;
+    while (l < r) {
+        int mid = l + (r - l) / 2;
+        if (arr[mid] < x) l = mid + 1;
+        else r = mid;
+    }
+    return l;
+}
+
+static int upper_bound_int64(const int64_t *arr, int n, int64_t x) {
+    int l = 0, r = n;
+    while (l < r) {
+        int mid = l + (r - l) / 2;
+        if (arr[mid] <= x) l = mid + 1;
+        else r = mid;
+    }
+    return l;
+}
+
+static int64_t count_subarrays_median_ge(
+    const int *a, int n, int m,
+    int64_t *pref, int64_t *coords, int coordN,
+    Fenwick *fw0, Fenwick *fw1
+) {
+    /* Build prefix sums of +/-1 */
+    pref[0] = 0;
+    for (int i = 0; i < n; i++) {
+        pref[i + 1] = pref[i] + ((a[i] >= m) ? 1 : -1);
+    }
+
+    /* Coordinate compression array is fixed for this m: all pref values */
+    for (int i = 0; i <= n; i++) coords[i] = pref[i];
+    qsort(coords, (size_t)(n + 1), sizeof(int64_t), cmp_int64);
+    int uniq = 0;
+    for (int i = 0; i <= n; i++) {
+        if (i == 0 || coords[i] != coords[i - 1]) coords[uniq++] = coords[i];
+    }
+    coordN = uniq;
+
+    fw0->n = coordN;
+    fw1->n = coordN;
+    fw_reset(fw0);
+    fw_reset(fw1);
+
+    /* Insert l=0 */
+    {
+        int idx0 = lower_bound_int64(coords, coordN, pref[0]) + 1;
+        fw_add(fw0, idx0, 1); /* parity(0)=0 */
+    }
+
+    int64_t total = 0;
+    for (int k = 1; k <= n; k++) {
+        int pk_par = k & 1;
+        int64_t pk = pref[k];
+
+        /* Need counts of P[l] <= pk-2 for same parity, <= pk-1 for opposite parity */
+        int64_t thr_same = pk - 2;
+        int64_t thr_opp  = pk - 1;
+
+        int idx_same = upper_bound_int64(coords, coordN, thr_same); /* number of <= thr */
+        int idx_opp  = upper_bound_int64(coords, coordN, thr_opp);
+
+        if (pk_par == 0) {
+            total += fw_sum(fw0, idx_same);
+            total += fw_sum(fw1, idx_opp);
+        } else {
+            total += fw_sum(fw1, idx_same);
+            total += fw_sum(fw0, idx_opp);
+        }
+
+        /* Insert current prefix as future l */
+        int idx_ins = lower_bound_int64(coords, coordN, pk) + 1;
+        if (pk_par == 0) fw_add(fw0, idx_ins, 1);
+        else fw_add(fw1, idx_ins, 1);
+    }
+
+    return total;
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    int *a = (int *)malloc((size_t)n * sizeof(int));
+    for (int i = 0; i < n; i++) scanf("%d", &a[i]);
+
+    /* Search interval: values are in [1, 1e9] per preconditions */
+    int lo = 1, hi = 1000000000;
+
+    /* Working storage proportional to n */
+    int64_t *pref = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+    int64_t *coords = (int64_t *)malloc((size_t)(n + 1) * sizeof(int64_t));
+
+    Fenwick fw0, fw1;
+    fw_init(&fw0, n + 1);
+    fw_init(&fw1, n + 1);
+
+    /* Total number of subarrays */
+    int64_t total_sub = (int64_t)n * (int64_t)(n + 1) / 2;
+    /* Need "at least half" in upper-median sense => >= ceil(total/2) */
+    int64_t need = (total_sub + 1) / 2;
+
+    /* Binary search for greatest m such that count(m) >= need */
+    while (lo < hi) {
+        int mid = lo + (hi - lo + 1) / 2;
+        int64_t cnt = count_subarrays_median_ge(a, n, mid, pref, coords, 0, &fw0, &fw1);
+        if (cnt >= need) lo = mid;
+        else hi = mid - 1;
+    }
+
+    printf("%d\n", lo);
+
+    free(fw0.bit);
+    free(fw1.bit);
+    free(coords);
+    free(pref);
+    free(a);
+    return 0;
+}
+```

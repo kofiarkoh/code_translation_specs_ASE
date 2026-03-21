@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, computes how many ways the concatenation of the given text fragments can be partitioned into a sequence of non-overlapping occurrences of the given patterns such that each pattern is used exactly once, in any order, and the sequence covers a contiguous prefix of the concatenated text (possibly the entire text). The result is the total count of such complete “use-all-patterns” matches over all possible ending positions within the concatenated text.
+
+2. Inputs  
+- Repeated datasets, each starting with two integers:  
+  - Number of patterns.  
+  - Number of text fragments to concatenate.  
+- A list of patterns (strings), count equals the number of patterns.  
+- A list of text fragments (strings), count equals the number of fragments; these are concatenated in the given order to form the search text.  
+- A terminating dataset indicated by both integers being zero.
+
+3. Outputs  
+- For each non-terminating dataset, outputs a single integer: the number of complete matches (as defined above).
+
+4. Preconditions  
+- The number of patterns is small enough that all subsets of patterns are representable (i.e., the total number of subsets fits within the program’s internal limits).  
+- Each pattern length and the total concatenated text length fit within the program’s fixed storage limits.  
+- Input strings contain no embedded whitespace (they are read as tokens).  
+- Assumption: Any trailing control character at the end of a text fragment token is intended to be ignored (the program attempts to drop a final character if it is below the space character).
+
+5. Postconditions  
+For each dataset:  
+- The printed count equals the number of pairs (end position, ordering/placement) such that:  
+  - Starting at the beginning of the concatenated text, patterns are placed consecutively without gaps or overlaps.  
+  - Each placed pattern matches the text exactly at its placement position.  
+  - Each pattern is used at most once, and by the end of the placement sequence all patterns have been used exactly once.  
+  - The sequence ends at the reported end position (which may be any position from 0 up to the full text length, depending on whether the patterns collectively match a prefix of that length).
+
+6. Invariants  
+- A “reachable state” corresponds to: a specific position in the concatenated text and a specific subset of patterns already used, such that the text prefix up to that position can be exactly covered by a concatenation of the used patterns (each used at most once).  
+- Reachability is monotonic with respect to extending the covered prefix: states only advance to larger positions by appending an unused pattern that matches at the current position.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input or size violations.  
+- If input sizes exceed internal fixed limits (too many patterns, too-long patterns, or too-long concatenated text), behavior is undefined (may corrupt memory or crash).  
+- If the number of patterns is large enough that the subset space exceeds internal limits, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Initial state: position 0 with no patterns used is reachable.  
+- Transition rule: from any reachable (position P, used-set S), for any pattern not in S that matches the text starting at P, the state (P + pattern-length, S ∪ {pattern}) becomes reachable.  
+- Accepting states: any reachable state whose used-set includes all patterns, at any position within the text bounds.  
+- Output count: the number of accepting states across all positions.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow with the concatenated text length and exponentially with the number of patterns (due to tracking all subsets).  
+- Uses fixed-size storage; maximum supported sizes are bounded by compile-time array capacities.
+
+```

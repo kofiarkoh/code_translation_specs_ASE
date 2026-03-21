@@ -1,0 +1,34 @@
+1. Functional Description  
+Reads multiple datasets. For each dataset, it computes the maximum number of intervals that overlap at any second within a single 24-hour day. Each interval contributes to every whole second from its start time (inclusive) up to its end time (exclusive). Outputs that maximum overlap for each dataset.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer `n` (the number of intervals).  
+- If `n` is nonzero, it is followed by `n` intervals. Each interval is given as two times-of-day: a start time then an end time.  
+- Each time-of-day is provided in colon-delimited form `H:M:S` (i.e., three decimal integers separated by literal `:` characters). Whitespace (spaces/newlines) may appear between tokens.
+
+3. Outputs  
+- For each dataset with `n > 0`, output one line containing a single integer: the maximum number of simultaneously active intervals at any second of the day.
+
+4. Preconditions / Assumptions  
+- Input is well-formed and matches the dataset structure above, including the `H:M:S` colon separators.  
+- Each time-of-day denotes a second within the same 24-hour day (0 through 23 hours, 0 through 59 minutes, 0 through 59 seconds).  
+- For every interval, the end time is not earlier than the start time, and intervals do not wrap across midnight.  
+- `n` is nonnegative; `n = 0` is used only as the termination marker.
+
+5. Semantics / Counting Rules  
+For a dataset with `n > 0`:
+- Convert each time-of-day to an integer second offset `t = hour*3600 + minute*60 + second`.  
+- For each interval `[start, end)`, increment the count for every integer second `t` such that `start <= t < end`.  
+- The reported value is the maximum count over all seconds in the fixed range of a 24-hour day.
+
+6. Dataset Independence and Termination  
+- Each dataset is processed independently; counts are reset for each dataset.  
+- The program terminates when it reads an interval count of `0` and produces no output for that terminating dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input is malformed, uses a different time format, contains out-of-range components, has an end time earlier than the start time, or otherwise violates the assumptions, behavior is unspecified.
+
+8. Non-functional Characteristics (inferable)  
+- Uses fixed memory proportional to the number of seconds in a day.  
+- Runtime per dataset is proportional to the total number of seconds covered by all intervals plus a full scan of the day.

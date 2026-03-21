@@ -1,0 +1,332 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAXN 1001
+/* Coordinate grid capacity is unspecified; we must not assume a fixed array grid.
+   Use dynamic point mapping instead, while preserving semantics. */
+
+typedef struct {
+    int x, y;
+} Point;
+
+typedef struct {
+    Point a, b;
+} Segment;
+
+typedef struct {
+    int parent[MAXN];
+    int rankv[MAXN];
+} DSU;
+
+static void dsu_init(DSU *d, int n) {
+    for (int i = 0; i < n; i++) {
+        d->parent[i] = i;
+        d->rankv[i] = 0;
+    }
+}
+static int dsu_find(DSU *d, int x) {
+    while (d->parent[x] != x) {
+        d->parent[x] = d->parent[d->parent[x]];
+        x = d->parent[x];
+    }
+    return x;
+}
+static void dsu_union(DSU *d, int a, int b) {
+    int ra = dsu_find(d, a);
+    int rb = dsu_find(d, b);
+    if (ra == rb) return;
+    if (d->rankv[ra] < d->rankv[rb]) {
+        d->parent[ra] = rb;
+    } else if (d->rankv[ra] > d->rankv[rb]) {
+        d->parent[rb] = ra;
+    } else {
+        d->parent[rb] = ra;
+        d->rankv[ra]++;
+    }
+}
+
+/* Point map: store unique points and their multiplicity (endpoint usage count). */
+typedef struct {
+    Point p;
+    int count;
+} PointCount;
+
+static int point_equal(Point a, Point b) {
+    return a.x == b.x && a.y == b.y;
+}
+
+static int point_index(PointCount *arr, int *sz, Point p) {
+    for (int i = 0; i < *sz; i++) {
+        if (point_equal(arr[i].p, p)) return i;
+    }
+    arr[*sz].p = p;
+    arr[*sz].count = 0;
+    (*sz)++;
+    return (*sz) - 1;
+}
+
+static int is_shared_point(PointCount *arr, int sz, Point p) {
+    for (int i = 0; i < sz; i++) {
+        if (point_equal(arr[i].p, p)) return arr[i].count > 1;
+    }
+    return 0;
+}
+
+/* Strict interior point-on-segment test:
+   collinear, within bounding box, and not equal to either endpoint. */
+static int point_on_segment_interior(Point p, Segment s) {
+    long long x1 = s.a.x, y1 = s.a.y;
+    long long x2 = s.b.x, y2 = s.b.y;
+    long long x = p.x, y = p.y;
+
+    if ((p.x == s.a.x && p.y == s.a.y) || (p.x == s.b.x && p.y == s.b.y)) return 0;
+
+    long long cross = (x2 - x1) * (y - y1) - (y2 - y1) * (x - x1);
+    if (cross != 0) return 0;
+
+    long long minx = (x1 < x2) ? x1 : x2;
+    long long maxx = (x1 > x2) ? x1 : x2;
+    long long miny = (y1 < y2) ? y1 : y2;
+    long long maxy = (y1 > y2) ? y1 : y2;
+
+    if (x < minx || x > maxx || y < miny || y > maxy) return 0;
+    return 1;
+}
+
+/* Oriented area sign for sidedness; returns -1,0,1 */
+static int orient_sign(Point a, Point b, Point c) {
+    long long v = (long long)(b.x - a.x) * (c.y - a.y) - (long long)(b.y - a.y) * (c.x - a.x);
+    if (v < 0) return -1;
+    if (v > 0) return 1;
+    return 0;
+}
+
+/* For m==5,p==8: orientation/sidedness computation derived from endpoint-sharing structure.
+   The specification is not fully explicit; implement the narrowest reasonable interpretation:
+   - Identify the two unique (non-shared) endpoints in the component; each belongs to exactly one segment.
+   - Those two segments are the "junction" segments.
+   - For each junction segment, take its other endpoint (which is shared) as the junction point.
+   - Find a "branch point" for each junction: among component segments incident to that junction point,
+     pick the endpoint opposite the junction point on a segment that is not the junction segment.
+     (If multiple, pick the first found; behavior otherwise is unspecified by the spec.)
+   - Compare sidedness of the opposite unique endpoint of the other junction segment and the branch point
+     with respect to the first junction segment, and symmetrically for the second.
+   - Map patterns to digits 2/5/6 in a deterministic way.
+*/
+static int classify_2_5_6(Segment *segs, int *compSegIdx, int m,
+                         PointCount *pc, int pcsz) {
+    /* Collect unique endpoints (non-shared) in this component */
+    Point uniquePts[10];
+    int uniqueCount = 0;
+
+    for (int i = 0; i < m; i++) {
+        Segment s = segs[compSegIdx[i]];
+        if (!is_shared_point(pc, pcsz, s.a)) uniquePts[uniqueCount++] = s.a;
+        if (!is_shared_point(pc, pcsz, s.b)) uniquePts[uniqueCount++] = s.b;
+    }
+
+    /* Expect exactly 2 unique endpoints for this template; otherwise fall back deterministically. */
+    if (uniqueCount < 2) return 2;
+    Point u1 = uniquePts[0], u2 = uniquePts[1];
+
+    /* Find the junction segments: those incident to u1 and u2 */
+    int j1 = -1, j2 = -1;
+    for (int i = 0; i < m; i++) {
+        Segment s = segs[compSegIdx[i]];
+        if (j1 < 0 && (point_equal(s.a, u1) || point_equal(s.b, u1))) j1 = i;
+        if (j2 < 0 && (point_equal(s.a, u2) || point_equal(s.b, u2))) j2 = i;
+    }
+    if (j1 < 0 || j2 < 0) return 2;
+
+    Segment sj1 = segs[compSegIdx[j1]];
+    Segment sj2 = segs[compSegIdx[j2]];
+
+    /* Junction points (shared endpoints) */
+    Point jp1 = point_equal(sj1.a, u1) ? sj1.b : sj1.a;
+    Point jp2 = point_equal(sj2.a, u2) ? sj2.b : sj2.a;
+
+    /* Find branch points at each junction point */
+    Point bp1 = jp1;
+    int found1 = 0;
+    for (int i = 0; i < m; i++) {
+        if (i == j1) continue;
+        Segment s = segs[compSegIdx[i]];
+        if (point_equal(s.a, jp1) && !point_equal(s.b, jp1)) { bp1 = s.b; found1 = 1; break; }
+        if (point_equal(s.b, jp1) && !point_equal(s.a, jp1)) { bp1 = s.a; found1 = 1; break; }
+    }
+    Point bp2 = jp2;
+    int found2 = 0;
+    for (int i = 0; i < m; i++) {
+        if (i == j2) continue;
+        Segment s = segs[compSegIdx[i]];
+        if (point_equal(s.a, jp2) && !point_equal(s.b, jp2)) { bp2 = s.b; found2 = 1; break; }
+        if (point_equal(s.b, jp2) && !point_equal(s.a, jp2)) { bp2 = s.a; found2 = 1; break; }
+    }
+    if (!found1 || !found2) return 2;
+
+    /* Sidedness tests */
+    int s1_u2 = orient_sign(sj1.a, sj1.b, u2);
+    int s1_bp1 = orient_sign(sj1.a, sj1.b, bp1);
+    int s2_u1 = orient_sign(sj2.a, sj2.b, u1);
+    int s2_bp2 = orient_sign(sj2.a, sj2.b, bp2);
+
+    /* Deterministic mapping:
+       - If both branch points lie on the same side as the opposite unique endpoint for both junctions => 2
+       - If both lie on opposite sides for both junctions => 5
+       - Otherwise => 6
+       (This preserves the spec's "relative sidedness determines 2/5/6" without inventing extra geometry.) */
+    int same1 = (s1_u2 != 0 && s1_bp1 != 0 && s1_u2 == s1_bp1);
+    int same2 = (s2_u1 != 0 && s2_bp2 != 0 && s2_u1 == s2_bp2);
+    int opp1  = (s1_u2 != 0 && s1_bp1 != 0 && s1_u2 == -s1_bp1);
+    int opp2  = (s2_u1 != 0 && s2_bp2 != 0 && s2_u1 == -s2_bp2);
+
+    if (same1 && same2) return 2;
+    if (opp1 && opp2) return 5;
+    return 6;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) return 0;
+
+        if (n < 0 || n > MAXN) {
+            /* Undefined by spec; still attempt to proceed minimally. */
+        }
+
+        Segment segs[MAXN];
+        PointCount pc[2 * MAXN];
+        int pcsz = 0;
+
+        for (int i = 0; i < n; i++) {
+            int x1, y1, x2, y2;
+            scanf("%d %d %d %d", &x1, &y1, &x2, &y2);
+            segs[i].a.x = x1; segs[i].a.y = y1;
+            segs[i].b.x = x2; segs[i].b.y = y2;
+
+            int ia = point_index(pc, &pcsz, segs[i].a);
+            int ib = point_index(pc, &pcsz, segs[i].b);
+            pc[ia].count++;
+            pc[ib].count++;
+        }
+
+        /* Build connectivity via shared endpoints (exact coordinate match). */
+        DSU dsu;
+        dsu_init(&dsu, n);
+
+        /* Map point -> list of segments incident to it, using simple arrays (O(n^2) worst-case). */
+        for (int i = 0; i < pcsz; i++) {
+            int first = -1;
+            for (int s = 0; s < n; s++) {
+                if (point_equal(segs[s].a, pc[i].p) || point_equal(segs[s].b, pc[i].p)) {
+                    if (first < 0) first = s;
+                    else dsu_union(&dsu, first, s);
+                }
+            }
+        }
+
+        /* Collect components: store up to 5 segments per component for analysis (per spec). */
+        int compRep[MAXN];
+        int compSize[MAXN];
+        int compSegs[MAXN][5];
+        int compCount = 0;
+        for (int i = 0; i < n; i++) {
+            int r = dsu_find(&dsu, i);
+            int idx = -1;
+            for (int k = 0; k < compCount; k++) {
+                if (compRep[k] == r) { idx = k; break; }
+            }
+            if (idx < 0) {
+                idx = compCount++;
+                compRep[idx] = r;
+                compSize[idx] = 0;
+            }
+            if (compSize[idx] < 5) {
+                compSegs[idx][compSize[idx]] = i;
+            }
+            compSize[idx]++;
+        }
+
+        long long digitCount[10];
+        for (int i = 0; i < 10; i++) digitCount[i] = 0;
+
+        int accountedSegments = 0;
+
+        /* Pre-collect all endpoints in dataset for geometric checks. */
+        Point allEndpoints[2 * MAXN];
+        for (int i = 0; i < n; i++) {
+            allEndpoints[2*i] = segs[i].a;
+            allEndpoints[2*i+1] = segs[i].b;
+        }
+
+        for (int c = 0; c < compCount; c++) {
+            int m = compSize[c];
+            if (m < 2) continue; /* not considered for template matching */
+
+            /* p: endpoint occurrences in component that lie at shared points (multiplicity) */
+            int p = 0;
+            int storeM = (m > 5) ? 5 : m; /* behavior undefined if m>5; still compute with stored subset */
+            for (int i = 0; i < storeM; i++) {
+                Segment s = segs[compSegs[c][i]];
+                if (is_shared_point(pc, pcsz, s.a)) p++;
+                if (is_shared_point(pc, pcsz, s.b)) p++;
+            }
+            /* If m>5, p computed is incomplete; but spec says undefined, so acceptable. */
+
+            int classifiedDigit = -1;
+
+            if (m == 2 && p == 2) {
+                classifiedDigit = 4;
+            } else if (m == 4 && p == 6) {
+                classifiedDigit = 9;
+            } else if (m == 4 && p == 8) {
+                /* 0/8: any endpoint in dataset lies strictly in interior of any segment of this component */
+                int found = 0;
+                for (int i = 0; i < storeM && !found; i++) {
+                    Segment s = segs[compSegs[c][i]];
+                    for (int e = 0; e < 2*n; e++) {
+                        if (point_on_segment_interior(allEndpoints[e], s)) { found = 1; break; }
+                    }
+                }
+                classifiedDigit = found ? 8 : 0;
+            } else if (m == 3 && p == 4) {
+                /* 3/7: endpoint lies in interior of a segment of this component whose both endpoints are shared */
+                int found = 0;
+                for (int i = 0; i < storeM && !found; i++) {
+                    Segment s = segs[compSegs[c][i]];
+                    if (!(is_shared_point(pc, pcsz, s.a) && is_shared_point(pc, pcsz, s.b))) continue;
+                    for (int e = 0; e < 2*n; e++) {
+                        if (point_on_segment_interior(allEndpoints[e], s)) { found = 1; break; }
+                    }
+                }
+                classifiedDigit = found ? 3 : 7;
+            } else if (m == 5 && p == 8) {
+                int idxs[5];
+                for (int i = 0; i < 5; i++) idxs[i] = compSegs[c][i];
+                classifiedDigit = classify_2_5_6(segs, idxs, 5, pc, pcsz);
+                if (classifiedDigit != 2 && classifiedDigit != 5 && classifiedDigit != 6) {
+                    /* Defensive: keep within template's allowed digits */
+                    classifiedDigit = 2;
+                }
+            }
+
+            if (classifiedDigit >= 0) {
+                digitCount[classifiedDigit] += 1;
+                accountedSegments += m;
+            }
+        }
+
+        /* Catch-all digit 1: all remaining segments not otherwise accounted for. */
+        long long remaining = (long long)n - (long long)accountedSegments;
+        if (remaining < 0) remaining = 0; /* undefined situations; keep non-negative */
+        digitCount[1] += remaining;
+
+        for (int i = 0; i < 10; i++) {
+            if (i) putchar(' ');
+            printf("%lld", digitCount[i]);
+        }
+        putchar('\n');
+    }
+    return 0;
+}

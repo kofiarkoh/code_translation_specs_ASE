@@ -1,0 +1,31 @@
+#include <stdio.h>
+
+int main(void) {
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2) {
+        /* Unspecified behavior per spec if input is missing/invalid.
+           Return without producing output. */
+        return 0;
+    }
+
+    /* h = trunc(m/2); C integer division truncates toward zero. */
+    int h = m / 2;
+    int sum;
+
+    if (m == 1) {
+        sum = 0;
+    } else if (h < n) {
+        sum = h;
+    } else {
+        int d = h - n;
+        if (0 <= d && d < 2) {
+            sum = n;
+        } else {
+            /* Else case corresponds to d >= 2 under the spec's partitioning. */
+            sum = n + (d / 2);
+        }
+    }
+
+    printf("%d", sum);
+    return 0;
+}

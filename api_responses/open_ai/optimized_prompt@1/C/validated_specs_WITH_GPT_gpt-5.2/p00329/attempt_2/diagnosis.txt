@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- Wrong input model / wrong parsing rules (including size adjustment) and wrong output formatting (case sensitivity).
+
+B. What the current specification may be missing or misstating  
+- The “size parameter” is not the actual bipartite set size; the source subtracts 1 (`N = in() - 1`). The spec’s “internal adjustment” is too vague and the generated code assumed no adjustment.  
+- The relation matrix is not read as `n*n` integers via token-based scanning. The source reads a fixed `N×N` grid of *characters* and treats an entry as “allowed” if the character’s least significant bit is 1 (`if (gc() & 1)`), then consumes an additional character (`gc()`) per cell (effectively skipping separators/newlines). The spec describes a “matrix of indicators” but not the character-level format/consumption behavior.  
+- Output literals are lowercase `"yes"` / `"no"` in the source, not `"YES"` / `"NO"`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define how the first input integer maps to the internal problem size (i.e., the program uses one less than the given number).  
+- Precisely define the input encoding of the matrix: it is provided as a grid of single-character indicators (e.g., `'0'`/`'1'`) with separators, and the program’s notion of “allowed” is based on the character code parity (`c & 1`), not numeric parsing of tokens.  
+- Specify exact required output strings including case (`"yes"`/`"no"`), and that the program prints `N` lines of assignments where `N` is the internally adjusted size.
+
+D. Why this clarification is supported by the source program  
+- Size adjustment is explicit: `N = in() - 1;` and all subsequent loops and matching sizes use `N`, not the raw input.  
+- Matrix reading is character-based and consumes two characters per cell:  
+  - `if (gc() & 1) to[j][hi[j]++] = N+i;` decides edge existence from the raw character read.  
+  - The following `gc();` unconditionally consumes the next character (separator), meaning the input is not parsed as integers with whitespace in the usual way.  
+- Output strings are hardcoded: `outs("no");` and `outs("yes");`, and `outs` appends `'\n'`, so exact lowercase spelling is part of observable behavior.

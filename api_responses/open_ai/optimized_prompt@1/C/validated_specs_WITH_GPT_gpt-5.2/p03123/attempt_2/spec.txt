@@ -1,0 +1,35 @@
+1. Functional Description  
+Given two resource quantities \(R\) and \(B\), the program computes a maximum feasible count \(k\) under an internal arithmetic feasibility predicate derived from the code. It then prints \(k-1\), interpreting the subtraction as excluding one reserved “empty box” from the reported number of non-empty boxes/groups.
+
+2. Inputs  
+- Two integers read from standard input in decimal form, stored as C `long long` values.  
+- The program reads them using `scanf("%lld%lld", &r, &b)`; therefore the input must be compatible with the `%lld` conversion.
+
+3. Outputs  
+- One integer written to standard output in decimal form, printed as a C `long long` using `printf("%lld\n", value)`.
+
+4. Preconditions / Assumptions  
+- The input values must be representable in C `long long`.  
+- The intended domain is \(R \ge 0\) and \(B \ge 0\). No validation is performed; behavior outside this domain is not part of the contract.  
+- The program assumes that all intermediate computations fit within signed 64-bit `long long`; it does not guard against overflow (overflow yields undefined behavior in C).  
+- Input must contain two successfully parseable integers; otherwise behavior is undefined.
+
+5. Computation and Semantics  
+- The program defines a feasibility predicate `ispossible(R,B,k)` that, for a given nonnegative integer parameter \(k\), determines whether \((R,B)\) can satisfy the code’s internal constraints for that \(k\).  
+- The solver performs a binary search over integer \(k\) in the fixed range \([0, 2{,}222{,}222]\) to find the largest \(k\) for which `ispossible(R,B,k)` returns true.  
+- The printed result is that maximum feasible \(k\) minus 1.
+
+6. Postconditions  
+Let \(k^\*\) be the maximum integer in \([0, 2{,}222{,}222]\) such that `ispossible(R,B,k^\*)` is true (as computed by the program’s search). The program prints \(k^\* - 1\).  
+- Consequently, the output is bounded above by \(2{,}222{,}221\) due to the fixed search limit and the final subtraction.  
+- If \(k^\* = 0\), the program prints \(-1\) (because it always subtracts 1 from the found maximum).
+
+7. Monotonicity Requirement Used by the Search  
+- The binary search in `solve` assumes that `ispossible(R,B,k)` is monotone in \(k\) over the searched range: if it is true for some \(k\), it is treated as true for all smaller \(k\); if it is false for some \(k\), it is treated as false for all larger \(k\). The program’s correctness relies on this property of its internal predicate.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, negative values, or overflow.  
+- The program is deterministic and stateless: it performs one computation for the given input and terminates after printing the result.
+
+9. Implementation/Portability Constraint (I/O Interface)  
+- A conforming implementation must use C `long long` for the two inputs and the output and must use `%lld`-compatible I/O (or an exactly equivalent approach that compiles and behaves the same). If an alternative 64-bit type/macro-based I/O is used, all required headers and format specifiers must be provided so the program compiles and reads/writes the same integer values.

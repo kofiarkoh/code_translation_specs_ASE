@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of devices that repeatedly alternate between an “active” phase and a “charging” phase. Each device has its own cyclic list of (active duration, charging duration) pairs. While one or more devices are in charging, at most one device (the one at the front of a first-come-first-served queue) receives charging service in a given time unit. The program computes the total number of “misses”: time units in which a device is in charging but is not the serviced device, counting only devices that were already in charging at the start of that time unit.
+
+2. Inputs  
+- Repeated test cases. Each test case consists of:  
+  - An integer `n`: number of devices.  
+  - An integer `lim`: number of time units to simulate.  
+  - For each device, a finite sequence of positive integer pairs `(u, c)` giving active duration `u` and charging duration `c`. The sequence ends when the next `u` read is non-positive (that terminator is not part of the cycle).  
+- Input ends when `n` is non-positive (the corresponding `lim` is read but ignored for termination purposes).
+
+3. Outputs  
+- For each test case, outputs a single non-negative integer: the total number of miss time units accumulated during the simulation.
+
+4. Preconditions / Assumptions  
+- `n > 0` defines a test case; `n <=` the program’s supported maximum number of devices.  
+- `lim` is an integer; if `lim <= 0`, the simulation performs zero time steps and the output is zero.  
+- For each device, at least one `(u, c)` pair is provided; all `u` and `c` values used are positive integers.  
+- Each device’s cycle length does not exceed the supported maximum.  
+- The number of devices simultaneously waiting in the charging queue never exceeds the supported queue capacity; otherwise behavior is undefined.
+
+5. Device State and Cycle  
+- Each device is always in exactly one of two states:  
+  - **Active** with a remaining active-time counter.  
+  - **Charging** with a remaining charging-time counter.  
+- Initially, every device starts in **Active** using the first pair in its cycle, with remaining active time set to that pair’s `u`.  
+- When a device finishes a charging phase and returns to active, it advances to the next pair in its cycle (wrapping to the first pair after the last), and its remaining active time is set to the new pair’s `u`.
+
+6. Per–Time-Unit Semantics (Ordering and Timing)  
+For each time unit `t = 1..lim`, the following occurs in order:
+
+A) **Advance active devices and enqueue new chargers**  
+- For every device that is **Active** at the start of this step:  
+  - Decrease its remaining active time by 1.  
+  - If it becomes 0, the device immediately switches to **Charging**, sets its remaining charging time to the current pair’s `c`, and is appended to the end of the charging queue (FCFS by the time it entered charging).  
+- Devices that are already **Charging** at the start of this step are not advanced here.
+
+B) **Count misses for charging devices that were already charging at the start of this time unit**  
+- If the charging queue is empty, no misses are counted in this time unit and no charging progress occurs.  
+- Otherwise, consider only devices that were in **Charging** before step (A) began (i.e., devices that did not just transition from active to charging during time unit `t`). Among those devices:  
+  - The device at the front of the queue is the **serviced** device for this time unit.  
+  - Every other such charging device contributes 1 miss for this time unit.  
+- Devices that enter charging during step (A) do **not** contribute misses during the same time unit `t`, even if they are not serviced.
+
+C) **Apply one unit of charging service to the queue front**  
+- If the charging queue is non-empty, the front device’s remaining charging time is decreased by 1 (exactly one device is progressed in charging per time unit).  
+- If that remaining charging time becomes 0, the device leaves the queue, switches to **Active**, advances to the next cycle pair (wrapping as needed), and sets its remaining active time to the new pair’s `u`.  
+- If it does not become 0, it remains at the front of the queue for the next time unit.
+
+7. Miss Count Definition (Postcondition)  
+- The reported value equals the sum, over all simulated time units, of the number of devices that:  
+  - were already in **Charging** at the start of that time unit, and  
+  - were not the serviced (queue-front) device for that time unit.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. If input is malformed, missing, exceeds supported bounds, or violates the queue-capacity assumption, behavior is undefined.
+
+```

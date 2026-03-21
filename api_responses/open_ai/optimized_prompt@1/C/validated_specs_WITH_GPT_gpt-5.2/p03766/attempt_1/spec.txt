@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes and outputs a single integer value defined by a recurrence over the input integer \(n\), with all arithmetic performed modulo \(1{,}000{,}000{,}007\). For \(n=1\), the output is \(1\). For \(n\ge 2\), the output is the \(n\)-th term \(T(n)\) of a sequence \(T\) defined below.
+
+2. Inputs  
+- One integer \(n\) read from standard input.
+
+3. Outputs  
+- One integer written to standard output: the value \(T(n) \bmod 1{,}000{,}000{,}007\).
+
+4. Preconditions  
+- \(n\) is provided and is a valid integer.  
+- \(1 \le n \le 1{,}000{,}000\) (required to stay within fixed internal storage bounds).  
+
+5. Postconditions  
+Let \(M = 1{,}000{,}000{,}007\). The program outputs:  
+- If \(n = 1\): \(1\).  
+- If \(n \ge 2\): \(T(n) \bmod M\), where the sequence \(T\) is defined by:  
+  - \(T(1) = 1\) (only used for the \(n=1\) case)  
+  - \(T(2) = n^2 \bmod M\)  
+  - For all integers \(i\) with \(3 \le i \le n\):  
+    \[
+    T(i) \equiv T(i-1) + \sum_{j=1}^{i-3} T(j) + (i-3)(n-1) + (n-i+2)n \pmod M
+    \]
+  The printed value equals \(T(n)\) under this definition.
+
+6. Invariants  
+- All maintained sequence values and intermediate sums are reduced modulo \(M\).  
+- For \(n \ge 2\), after processing up to index \(i\) (for \(2 \le i \le n\)), the internally stored prefix-sum structure represents the multiset of values \(\{T(1), T(2), \dots, T(i)\}\) modulo \(M\), enabling retrieval of \(\sum_{j=1}^{r} T(j) \bmod M\) for relevant \(r\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as an integer, behavior is unspecified.  
+- If \(n\) is outside the supported range (notably \(n > 1{,}000{,}000\) or \(n < 1\)), behavior is unspecified (may include incorrect results or memory corruption).
+
+8. State Transitions (if applicable)  
+- For \(n=1\): transitions directly from start to output and termination.  
+- For \(n\ge 2\): progresses through a sequence-building phase from index \(2\) up to \(n\), updating the current term \(T(i)\) and the internal prefix-sum state at each step; terminates after outputting \(T(n)\).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(n \log n)\) for \(n \ge 2\).  
+- Memory usage is \(O(n)\) with a fixed upper bound sized for \(n \le 1{,}000{,}000\).  
+- Output is deterministic for a given valid input \(n\).

@@ -1,0 +1,36 @@
+1. Functional Description  
+Determines the maximum length \(k\) such that the first input string and the second input string contain at least one pair of substrings of length \(k\) that are anagrams of each other (i.e., have identical letter-multiset composition). Outputs that maximum \(k\).
+
+2. Inputs  
+- Two lines of text, each representing a string consisting of lowercase alphabetic characters, terminated by a line break or end-of-input.  
+- Only the contiguous prefix of each line up to (but not including) the first whitespace character is considered part of the string.
+
+3. Outputs  
+- A single non-negative integer \(k\) followed by a line break: the maximum anagrammatic common substring length as defined above.
+
+4. Preconditions  
+- Each input line contains at least one whitespace terminator (line break counts) within the supported maximum line length.  
+- All characters in the considered prefix of each line are lowercase letters from the English alphabet.  
+- The considered prefix length of each line is within the supported maximum (fits in the program’s fixed buffers).
+
+5. Postconditions  
+- Let \(A\) and \(B\) be the two considered input strings with lengths \(|A|\) and \(|B|\). The program outputs an integer \(k\) satisfying:  
+  - \(0 \le k \le \min(|A|, |B|)\).  
+  - If \(k > 0\), there exists at least one substring of \(A\) of length \(k\) and at least one substring of \(B\) of length \(k\) that are anagrams.  
+  - For any integer \(k' > k\), no substring of \(A\) of length \(k'\) is an anagram of any substring of \(B\) of length \(k'\).
+
+6. Invariants  
+- For any fixed candidate length \(k\) being evaluated, substring comparison is based solely on counts of each of the 26 letters (order-independent).  
+- During evaluation of a fixed \(k\), the set of all distinct letter-count signatures of length-\(k\) substrings of the first string is treated as a membership set for subsequent queries from the second string.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If inputs violate preconditions (e.g., contain non-lowercase letters in the considered prefix, exceed supported lengths, or are missing), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- The program iteratively evaluates candidate lengths \(k\) from \(\min(|A|,|B|)\) down to 1, rebuilding the membership set for each \(k\).  
+- It terminates early upon finding the first (largest) \(k\) for which an anagrammatic substring match exists; otherwise it completes the search and outputs 0.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size internal buffers and a fixed-capacity membership structure; it does not scale with input beyond those limits.  
+- Runtime is proportional to the number of candidate lengths tested times the number of substrings examined, with early termination when a match is found.

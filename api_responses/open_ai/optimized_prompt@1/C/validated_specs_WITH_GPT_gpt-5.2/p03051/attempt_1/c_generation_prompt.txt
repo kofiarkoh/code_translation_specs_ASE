@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value modulo a fixed prime. The value is a function of the input sequence’s prefix bitwise-xor values and the positions where the prefix xor equals zero. The computation aggregates contributions associated with each distinct prefix-xor value and produces a final result determined by whether the total xor of the entire sequence is zero or nonzero.
+
+2. Inputs  
+- An integer length `N`.  
+- A sequence of `N` signed integers.
+
+3. Outputs  
+- One non-negative integer in the range `[0, P-1]`, where `P` is the fixed modulus, written to standard output.
+
+4. Preconditions  
+- `N >= 1`.  
+- Every prefix xor value of the sequence lies in `[0, 2^20 - 1]` (equivalently, the running xor never exceeds 20 bits).  
+- Sufficient memory is available for arrays sized proportional to `N` and `2^20`.  
+- The input provides at least `N+1` integers (the length and the sequence).
+
+5. Postconditions  
+Let `S[i]` be the bitwise xor of the first `i` elements, with `S[0] = 0`. Let `Z(i)` be the count of indices `k` in `[1..i]` such that `S[k] = 0`. The program outputs a value `Ans` modulo `P` such that:  
+- If `S[N] != 0`, then `Ans` equals the final accumulated value associated with xor state `S[N]` after processing all positions.  
+- If `S[N] == 0`, then `Ans` equals the sum (modulo `P`) of:  
+  - `2^(Z(N)-1)` (modulo `P`), and  
+  - the final accumulated totals over all nonzero xor states after processing all positions.
+
+6. Invariants  
+- All maintained accumulator values are always reduced modulo `P` and thus remain within `[0, P-1]`.  
+- For each xor state `v` in `[0, 2^20-1]`, the program maintains a notion of the most recent index where `S[index] = v` (or “none yet”), and uses it consistently when updating the accumulators for `v`.  
+- `Z(i)` is nondecreasing with `i` and equals the number of zero-xor prefixes among the first `i` positions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/malformed, if memory allocation fails, or if the precondition on prefix-xor range is violated, behavior is undefined (may crash or produce incorrect output).  
+- The exponent used in the power term when `S[N] == 0` assumes `Z(N) >= 1`; otherwise the computation may not terminate or may behave unpredictably.
+
+8. State Transitions (if applicable)  
+- The computation progresses through positions `i = 1..N`, updating internal state keyed by the current prefix-xor value `S[i]`.  
+- After processing all positions, the program transitions to a finalization step that selects one of two output formulas depending on whether `S[N]` is zero.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in `N` plus linear in `2^20` for initialization.  
+- Memory usage is `O(N + 2^20)`.  
+- Output is deterministic given the input and the stated preconditions.
+
+```

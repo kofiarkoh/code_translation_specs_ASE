@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+- Wrong input parsing / wrong abstraction of edge “type” and indexing (format/encoding mismatch).  
+- Wrong DP initialization / transition rule (state meaning mismatch).
+
+B. What the current specification may be missing or misstating  
+- **Edge type encoding and input format**: The source reads the edge type as a **character** (`%c`) with values `'L'` or something else (in the sample, `'S'`). The current spec only says “type indicator selecting one of two cost types” without pinning down that it is a **character token** and what the tokens are. This led the generated program to read an **integer** type and thus fail to parse the input correctly (and consequently produce no output).  
+- **1-based location indices in input**: The source decrements endpoints (`x--; y--;`) and also decrements each required location as it is read (`de[i++]--`). The spec does not clearly state that input indices are **1-based** and must be converted to **0-based** internally.  
+- **DP base case/state definition mismatch**: The spec’s invariant suggests “positioned at a transfer location for the next segment boundary,” but the source actually initializes `dp[0][de[0]] = 0` (only at the first required node), not `min L(de0, x)` over all transfer nodes. So the spec’s description of the DP state and/or initialization is not aligned with the source.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the **edge record format**: endpoints, cost, and a **single character** type field; enumerate the two valid type characters and which cost matrix each populates.  
+- Specify that **all location identifiers in input are 1-based**, including the required sequence, and are converted to 0-based for internal arrays.  
+- Clarify the **DP state and initialization** consistent with the source: after “0 segments completed,” the only reachable state is being at the first required location with cost 0; subsequent transitions add `L(required_k, j) + S(j, i) + L(i, required_{k+1})` (plus a special-case relaxation when `i==j`).
+
+D. Why this clarification is supported by the source program  
+- Input parsing in the source is unambiguous: `scanf("%d%d%d %c",&x,&y,&s,&t);` and `if(t=='L') ... else ...`, so the type is a **char** and `'L'` is treated specially while all other chars go to the other matrix.  
+- The explicit `x--; y--;` and `de[i++]--` show the program expects **1-based input indices** for both edges and required nodes.  
+- The DP initialization `dp[0][de[0]]=0;` and the transition formula in the nested loops demonstrate the intended state/transition differs from the spec-derived generated code’s “boundary transfer after first required node” initialization.

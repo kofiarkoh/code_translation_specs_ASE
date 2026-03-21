@@ -1,0 +1,38 @@
+1. Functional Description  
+Computes the number of valid color assignments for a length‑`N` tiling implied by two equal-length character sequences, where each position represents either a vertical tile (when the two sequences match at that position) or the left half of a horizontal tile spanning two positions (when the sequences differ at that position). The count is produced modulo a fixed large prime.
+
+2. Inputs  
+- An integer `N` representing the length of the two sequences.  
+- Two character sequences of length `N` each.
+
+3. Outputs  
+- A single non-negative integer: the number of valid colorings modulo `1,000,000,007`.
+
+4. Preconditions  
+- `N >= 1`.  
+- Both input sequences have length exactly `N`.  
+- The sequences describe a valid tiling of a 2×`N` board under the following interpretation:  
+  - If the two sequences have the same character at position `i`, column `i` is a vertical tile.  
+  - If they differ at position `i`, then columns `i` and `i+1` form a pair of horizontal tiles, which implies the top sequence has equal characters at `i` and `i+1` (and correspondingly the bottom sequence as well).  
+- The input is well-formed and present.
+
+5. Postconditions  
+- The output equals the number of ways to assign one of three colors to each tile such that adjacent tiles sharing an edge have different colors, computed for the tiling implied by the input sequences, reduced modulo `1,000,000,007`.
+
+6. Invariants  
+- The maintained count is always reduced modulo `1,000,000,007`.  
+- The computation’s state at each processed position depends only on the already-processed portion of the implied tiling and the orientation (vertical vs horizontal) of the most recently accounted tile(s).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., invalid tiling description, insufficient input, or `N` too small), behavior is undefined.
+
+8. State Transitions (if applicable)  
+- The process tracks whether the most recently accounted tile orientation is vertical or horizontal.  
+- Initial state is determined by the orientation of the first tile:  
+  - First tile vertical ⇒ initial count is 3 and state becomes “previous vertical”.  
+  - First tile horizontal ⇒ initial count is 6 and state becomes “previous horizontal”.  
+- For each subsequent tile (or tile pair) implied by the sequences, the count is multiplied by a factor determined by the current tile orientation and the previous orientation, then the state updates to the current orientation.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time with respect to `N`.  
+- Uses memory proportional to `N` to store the two sequences.

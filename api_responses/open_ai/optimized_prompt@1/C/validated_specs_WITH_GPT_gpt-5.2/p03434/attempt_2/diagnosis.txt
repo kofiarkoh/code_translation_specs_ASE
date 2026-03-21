@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+- **Missing constraint / underspecified I/O format and C environment assumptions** (compile-time portability issue rather than algorithmic behavior).
+
+B. What the current specification may be missing or misstating  
+- The specification describes inputs as “signed 64-bit integers” but does **not constrain how they are read/printed in C** (i.e., which `scanf`/`printf` format strings must be used).  
+- It also does not state whether the implementation is expected to rely on **C99/C11 `<inttypes.h>` format macros** (`SCNd64`, `PRId64`) or instead use the concrete `long long` formats (`%lld`).  
+- The failing build indicates the generated code used `SCNd64`/`PRId64` **without including `<inttypes.h>`**, which is a direct consequence of the spec not pinning down the required headers / formatting approach.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact C-level representation and I/O contract** for numbers:
+  - Whether the program uses `long long` specifically (as the source does) versus `int64_t`.
+  - The required `scanf`/`printf` format specifiers (e.g., `%d` for `N`, `%lld` for values and output) and/or required headers if using `int64_t` macros.
+- Clarify that the program is expected to be **self-contained and compile under the stated standard** (here `-std=c11`) with all necessary includes for any macros/types it uses.
+
+D. Why this clarification is supported by the source program  
+- The source program explicitly uses:
+  - `int N; scanf("%d", &N);`
+  - `long long a[N]; scanf("%lld", &a[i]);`
+  - `printf("%lld\n", A - B);`
+  and includes only standard headers like `<stdio.h>`, not `<inttypes.h>`.  
+- Therefore, the ground-truth behavior includes a concrete, compilable I/O formatting strategy based on `long long` and `%lld`. The current specification’s more abstract “signed 64-bit integer” wording leaves room for an implementation to choose `int64_t` + `SCNd64`/`PRId64`, which introduces additional header requirements and can break compilation if not specified.

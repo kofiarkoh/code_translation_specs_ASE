@@ -1,0 +1,43 @@
+1. Functional Description  
+Reads a sequence of `n` records, each containing a single-character label and an integer key, sorts the records in nondecreasing order by key using a specific in-place quicksort procedure, checks whether the resulting order is stable with respect to the original input order for equal keys, then outputs the stability result followed by the sorted records.
+
+2. Inputs  
+- An integer `n`: the number of records.  
+- `n` records, each consisting of:  
+  - a single character label  
+  - an integer key  
+Input is read using standard formatted scanning; whitespace may appear before the label.
+
+3. Outputs  
+- One line: either `Stable` or `Not stable` (exact capitalization and spacing as shown).  
+- Then `n` lines, each containing the label, a space, and the key of a record, in the exact order produced by the program’s sort.
+
+4. Preconditions / Assumptions  
+- `n` is expected to be at least 1; behavior is unspecified if `n <= 0` (the program may attempt to sort an invalid range).  
+- Exactly `n` records follow `n` in the input, each matching the expected format.  
+- Sufficient stack space is available for recursion and for storing `n` records in an automatic array.
+
+5. Sorting Semantics (Order Produced)  
+The program does not define the output as “any” nondecreasing-by-key ordering. It produces the specific ordering resulting from the following deterministic quicksort:
+
+- The sort is applied to the entire array of records.  
+- Quicksort recursively sorts subarrays `[p..r]` when `p < r`.  
+- Partitioning uses the last element of the subarray as the pivot. Let `x` be the pivot key.  
+- The partition procedure scans the subarray from left to right (excluding the pivot position). Each time it encounters an element with key `<= x`, it advances a boundary index and swaps the encountered element into the left partition.  
+- After the scan, it swaps the pivot element into the position immediately after the left partition and returns that pivot index.  
+- Recursion then sorts the left and right partitions around the pivot index.
+
+This procedure fully determines the final permutation, including the relative order of records with equal keys (which is not guaranteed to match input order).
+
+6. Stability Check Semantics  
+- Each record is tagged with its original input position.  
+- After sorting, the program reports `Stable` iff there is no pair of records with equal keys that appear in an order inconsistent with their original input positions.  
+- Concretely, if there exist indices `i < j` in the sorted array such that the keys are equal but the original position of element `i` is greater than the original position of element `j`, the program reports `Not stable`; otherwise it reports `Stable`.
+
+7. Postconditions  
+- The printed records are exactly the input records (labels remain associated with their keys), reordered by the quicksort described above.  
+- The printed sequence is in nondecreasing order by key.  
+- The stability line corresponds to the stability of the produced sorted order as defined in Section 6.
+
+8. Error Handling / Exceptional Behavior  
+No explicit error handling is performed for malformed input, premature end of input, or resource exhaustion; behavior is unspecified in such cases.

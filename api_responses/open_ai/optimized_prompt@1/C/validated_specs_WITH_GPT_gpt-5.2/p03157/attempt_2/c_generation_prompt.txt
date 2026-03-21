@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a rectangular grid of characters and partitions its cells into maximal regions under the following connectivity rule: two cells are adjacent for connectivity purposes only if they are 4-neighbors (up/down/left/right) **and** their characters are different. For each region, it counts how many cells contain `'.'` and how many contain any other character, multiplies those two counts, and outputs the sum of these products over all regions.
+
+2. Inputs  
+- Two integers `H` and `W`: the grid height and width.  
+- Then `H` whitespace-delimited strings (rows). Each row is read as a C “word” (no embedded whitespace) and is used as the row’s character data.
+
+3. Outputs  
+- One line containing a single non-negative integer equal to  
+  \[
+  \sum_{\text{region } R} \bigl(\#\text{cells in }R\text{ with }'.'\bigr)\times\bigl(\#\text{cells in }R\text{ with }\neq '.'\bigr).
+  \]
+- The value is computed using 64-bit unsigned arithmetic and printed in a portable 64-bit unsigned decimal format.
+
+4. Preconditions / Assumptions  
+- The two dimensions are successfully read.  
+- `0 \le H \le 512` and `0 \le W \le 512`.  
+- Each of the `H` rows is successfully read as a non-whitespace string of length **at least** `W`. (Characters beyond column `W-1` are ignored by the computation.)  
+- Each input row must fit within the program’s fixed row buffer (at most 511 characters plus terminator as read by the program).  
+- The total number of cells `H×W` does not exceed `512×512`.
+
+5. Region Definition and Counting Logic  
+- Each cell belongs to exactly one region.  
+- A region is a maximal set of cells such that any two cells in the set are connected by a path of 4-neighbor steps where **each step moves between two cells with different characters**.  
+- For each region, the program counts:
+  - dot-cells: cells whose character is exactly `'.'`
+  - non-dot cells: all other characters  
+  and contributes `(dot-cells) × (non-dot cells)` to the final sum.
+
+6. Termination and Error Handling  
+- If reading `H` and `W` fails, the program terminates with a non-zero exit status and produces no defined output.  
+- If reading any row fails, the program terminates with a non-zero exit status and produces no defined output.  
+- If the stated bounds/row-length assumptions are violated, behavior is undefined.
+
+7. Output Formatting / Portability Constraint  
+- The program prints the final sum as an unsigned 64-bit decimal integer followed by a newline, using the C standard `PRIu64` formatting macro (as provided by `<inttypes.h>`) to ensure portable formatting across platforms.
+
+```

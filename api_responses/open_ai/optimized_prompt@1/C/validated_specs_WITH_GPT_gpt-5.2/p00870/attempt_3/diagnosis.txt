@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule (DP iteration order and state expansion), plus a likely wrong constraint on `n` (subset representation size).
+
+B. What the current specification may be missing or misstating  
+- It implies a generic “reachable-state DP” without constraining *how* reachability is propagated. The source program’s propagation is **position-driven**: it iterates text positions `i` from `0..L-1`, and from each `i` it expands to `i+len[k]`. This enforces a particular monotone progression in position.  
+- The spec’s “subset DP” description is compatible with multiple implementations, including subset-first expansion (as in the generated program). That is not guaranteed equivalent when you consider how the source uses a 2D table indexed as `flag[position][subset]` and only expands from positions in increasing order.  
+- The spec’s constraints on `n` are too loose/vague. The source hard-codes `flag[5001][4096]`, which means **subsets are limited to 4096 = 2^12**, i.e., `n <= 12`. The current spec says only “small enough to fit,” but the generated code assumes up to 20 and allocates `2^MAX_N` states, which is a materially different model.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the algorithm’s reachability is computed in a **forward scan over text positions**, where transitions are only attempted from a given position `P` when processing that `P` in increasing order, using a table conceptually shaped as `[position][subset]`. This is more specific than “any reachable state can transition,” and it constrains acceptable implementations.  
+- Clarify the **hard limit on `n`** implied by the subset table size (i.e., the program only supports up to 12 patterns because it uses a 4096-wide subset dimension).  
+- Clarify that the program’s DP table is **boolean** and is updated as `flag[P+len][S∪{k}] = 1` during the position scan; the counting is then performed by summing `flag[P][FULL]` over all `P`.
+
+D. Why this clarification is supported by the source program  
+- The source uses `flag[i][j]` where `i` is a text position and `j` is a subset mask, and the outermost loop is `for(i=0; i<l_s; i++)`, i.e., **position-first**. It only ever writes to `flag[i+l][pat]` with `i+l >= i`, so reachability is propagated strictly forward in position during that scan.  
+- The subset dimension is literally `4096`, and `loop = 1<<n` is used to iterate masks; this only makes sense safely when `1<<n <= 4096`, i.e., `n <= 12`. This is a concrete behavioral constraint of the source, not just an “assumption.”

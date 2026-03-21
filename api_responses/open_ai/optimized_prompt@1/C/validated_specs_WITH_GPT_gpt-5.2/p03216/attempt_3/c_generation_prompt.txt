@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each query window length \(k\), the program slides a contiguous window of length \(k\) from left to right across the first \(n\) characters of the input string \(s\). While sliding, it maintains three running 64-bit counters over the *current* window:
+
+- \(d\): the number of `'D'` characters currently in the window.  
+- \(m\): the number of `'M'` characters currently in the window.  
+- \(dm\): a derived counter updated by the program’s specific transition rules (defined below), intended to represent an accumulated “`D` then `M`” contribution within the current window.
+
+As the window is processed, whenever the program reads a character `'C'` at the right edge (during initialization of the first window and during each slide), it adds the current value of \(dm\) to an accumulator \(ans\). After the full scan for that query, it prints \(ans\).
+
+Only the characters `'D'`, `'M'`, and `'C'` affect the counters; all other characters are ignored.
+
+2. Inputs  
+- An integer \(n\).  
+- A string \(s\) read as a whitespace-delimited token.  
+- An integer \(q\).  
+- \(q\) integers \(k_0,\dots,k_{q-1}\), each a window length, processed in the given order.
+
+3. Outputs  
+For each query \(k\), print one line containing the computed total \(ans\) as a signed 64-bit integer.
+
+4. Preconditions / Assumptions  
+- The program assumes the string token has length at least \(n\) and accesses \(s[0]\) through \(s[n-1]\). If the token is shorter than \(n\), behavior is undefined.  
+- The program assumes \(1 \le k \le n\) for each query; otherwise behavior is undefined.  
+- The string is stored in a fixed-size buffer of about \(10^6\) characters, and the query lengths are stored in a fixed-size array of length 102. Exceeding these capacities causes undefined behavior.  
+- No validation is performed for malformed input.
+
+5. Exact Per-Query Computation (State Transitions)  
+For a given query \(k\), the program computes \(ans\) using the following procedure.
+
+**Initialization over the first window \([0, k-1]\):**  
+Set \(ans = 0\), \(d = 0\), \(m = 0\), \(dm = 0\).  
+For each index \(i = 0\) to \(k-1\) (left to right), update:
+- If \(s[i] = 'D'\): \(d \leftarrow d + 1\).
+- If \(s[i] = 'M'\): \(m \leftarrow m + 1\); \(dm \leftarrow dm + d\).
+- If \(s[i] = 'C'\): \(ans \leftarrow ans + dm\).
+(If multiple conditions could apply, they are checked independently, but since \(s[i]\) is a single character, at most one applies.)
+
+**Sliding the window for each next position:**  
+For each index \(i = k\) to \(n-1\), the window moves forward by one: the character at position \(i-k\) leaves, and the character at position \(i\) enters. The program updates in this exact order:
+
+1) **Remove the leaving character \(s[i-k]\):**
+- If \(s[i-k] = 'D'\): \(dm \leftarrow dm - m\); \(d \leftarrow d - 1\).
+- If \(s[i-k] = 'M'\): \(m \leftarrow m - 1\).
+
+2) **Add the entering character \(s[i]\):**
+- If \(s[i] = 'D'\): \(d \leftarrow d + 1\).
+- If \(s[i] = 'M'\): \(m \leftarrow m + 1\); \(dm \leftarrow dm + d\).
+- If \(s[i] = 'C'\): \(ans \leftarrow ans + dm\).
+
+After processing all \(i\), output \(ans\).
+
+6. Clarification of What Is Being Counted  
+- The output is exactly the value produced by the above state-machine update rules.  
+- Although the updates resemble counting ordered patterns involving `'D'`, `'M'`, and `'C'` within each window, the program’s maintained quantity \(dm\) is defined operationally by the specific increment/decrement rules (not by recomputing a fresh combinational count from scratch for each window). In particular, when a `'D'` leaves the window, the program subtracts the *current total* number of `'M'` in the window from \(dm\), and this rule governs the meaning of \(dm\) and thus of the final \(ans\).
+
+7. Independence Across Queries and Termination  
+Each query is computed independently from the same input string, starting from fresh counters. The program prints one line per query and then terminates.
+
+```

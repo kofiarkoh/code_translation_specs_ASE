@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified implementation constraints (language-level constraint), leading to non-compilable generated code.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* the “order suitable for propagating reachability” is produced in a way that is compatible with standard C (C11) compilation constraints.  
+- In particular, it leaves room for implementations that rely on non-portable or invalid C constructs (e.g., defining a comparator function inside another function, or relying on `qsort_r` availability/ABI), even though the source program avoids these issues entirely by using a queue-based topological sort and never needs a sort comparator at all.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the program’s propagation order is obtained via an explicit topological sorting procedure over the derived shortest-path subgraph (Kahn-style using indegrees), not by “sorting nodes by distance” or by any approach that requires custom comparator callbacks.  
+- More generally: specify that the implementation must be standard C-compatible (no nested function definitions; no reliance on nonstandard library variants), or specify the exact mechanism used to compute the propagation order (topological sort from the source).
+
+D. Why this clarification is supported by the source program  
+- The source constructs a shortest-path-consistent directed subgraph (`to2/hi2`) and then computes `ord[]` using indegrees (`deg[]`) and a queue (`q[]`) in `tsort()`. This is a true topological sort and is independent of any library sorting/comparator.  
+- The source is strictly C (no nested functions, no `qsort_r`), so the ground-truth behavior implies an implementation strategy that is portable and compilable under standard C toolchains. The failure indicates the current spec doesn’t sufficiently pin down that constraint, allowing a generator to choose an invalid/nonportable ordering implementation.

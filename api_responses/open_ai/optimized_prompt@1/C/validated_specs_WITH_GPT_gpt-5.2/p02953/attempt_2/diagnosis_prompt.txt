@@ -1,0 +1,143 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+n,i,a[100009];main(){
+	scanf("%d",&n);for(i=0;i<n;i++)scanf("%d",&a[i]);
+	for(i=n-1;i>=1;i--){
+    	if(a[i]<a[i-1])a[i-1]--;
+    	if(a[i]<a[i-1]){printf("No");return 0;}
+	}
+	printf("Yes");
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether a given integer sequence can be made non-decreasing by applying, at most once per adjacent pair during a single right-to-left pass, a decrement of 1 to the left element when it is greater than the right element. Outputs acceptance if the sequence can be made non-decreasing under this rule; otherwise outputs rejection.
+
+2. Inputs  
+- An integer length value.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single affirmative or negative decision indicating whether the sequence is acceptable under the allowed adjustment rule.
+
+4. Preconditions  
+- The provided length is non-negative and does not exceed the maximum supported capacity (100009).  
+- Exactly that many integers are available as input.
+
+5. Postconditions  
+- If the output is affirmative, then after applying the allowed decrements as needed during the right-to-left pass, the resulting sequence is non-decreasing.  
+- If the output is negative, then there exists at least one adjacent pair for which the left element would still exceed the right element even after applying the single allowed decrement to the left element at that step.
+
+6. Invariants  
+- During processing from right to left, once an index has been processed, the suffix starting at that index is non-decreasing under the adjustments performed so far, unless the program has already rejected.  
+- Each element may be decremented by at most 1, and only when compared against its immediate right neighbor during the pass.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range length, or input exhaustion. Behavior is unspecified if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- Initial state: sequence read.  
+- Processing state: iteratively validates/adjusts adjacent pairs from right to left.  
+- Terminal states:  
+  - Reject: outputs negative decision and terminates immediately upon detecting an unfixable adjacent inversion.  
+  - Accept: outputs affirmative decision after completing the pass without rejection.
+
+9. Non-functional Constraints (if inferable)  
+- Operates in linear time with respect to the sequence length.  
+- Uses memory proportional to the sequence length up to the fixed maximum capacity.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+#define MAXN 100009
+
+int main(void) {
+    int n;
+    static long long a[MAXN];
+
+    if (scanf("%d", &n) != 1) return 0;
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%lld", &a[i]) != 1) return 0;
+    }
+
+    /* Right-to-left single pass; at most one decrement of 1 per adjacent pair,
+       applied only to the left element when it is greater than the right. */
+    for (int i = n - 2; i >= 0; i--) {
+        if (a[i] > a[i + 1]) {
+            a[i] -= 1;
+            if (a[i] > a[i + 1]) {
+                /* Unfixable inversion even after the single allowed decrement. */
+                puts("NO");
+                return 0;
+            }
+        }
+        /* Invariant: suffix starting at i is non-decreasing under adjustments so far. */
+    }
+
+    puts("YES");
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_output.txt
+Input:
+6
+2 3 4 5 6 7
+Expected:
+Yes
+Actual:
+YES
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

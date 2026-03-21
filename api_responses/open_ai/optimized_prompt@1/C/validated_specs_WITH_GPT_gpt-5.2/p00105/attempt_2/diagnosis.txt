@@ -1,0 +1,25 @@
+A. Likely mismatch category  
+Missing constraint / wrong assumption about initialization and counting; also a missing edge-case about output formatting when no pages are recorded.
+
+B. What the current specification may be missing or misstating  
+- It assumes the program correctly maintains a “set of page numbers” and a “total number of occurrences” in a consistent way, and even adds a precondition forbidding repeated (word, page) pairs. The source does not enforce that constraint and, more importantly, its internal “occurrence count” (`tm`) is incremented on every input record even if the page number was already seen for that word.  
+- The spec implicitly assumes the page-number set starts empty for each new word. In the source, `idx` is an uninitialized local array; `pgnum[]` and `tm` are never zeroed for new entries. The behavior therefore depends on indeterminate initial memory contents unless the environment happens to zero it.  
+- The spec says the printed page numbers are “exactly the set” and are printed with single spaces. In the source, printing is driven by `tm` (the incremented count), not by the number of distinct pages actually present; if `tm` doesn’t match the number of `pgnum[j]==1` entries (e.g., due to repeated pairs or uninitialized state), the output can be truncated, can omit a trailing newline, or can behave inconsistently.
+
+C. What general behavior should be clarified in the specification  
+- Whether the program’s per-word counter represents **total input records** for that word (including duplicates) or **number of distinct pages**; and how that counter is used to decide when to stop printing page numbers.  
+- Whether repeated (word, page) inputs are allowed and, if allowed, whether they affect output (they do affect `tm` in the source, even though the page “set” does not change).  
+- Whether the page-number presence array and counters are guaranteed to be initialized to zero for new words (the source does not do this), and what the resulting behavior is if they are not.  
+- Output formatting guarantees in cases where the internal count does not match the number of pages marked present (e.g., whether the program always prints a newline after the page list).
+
+D. Why this clarification is supported by the source program  
+- In the source, on every record for an existing word it executes:
+  - `idx[i].pgnum[tmp_pgnum] = 1;`
+  - `idx[i].tm++;`
+  This increments `tm` regardless of whether that page was already marked, so `tm` is not “number of distinct pages.”  
+- For a new word, it does:
+  - `idx[rgnum].pgnum[tmp_pgnum] = 1;`
+  - `idx[rgnum].tm++;`
+  - `strcpy(...)`
+  but never initializes `pgnum[]` or `tm` to 0 beforehand; `idx` is a stack array, so those fields are indeterminate.  
+- When printing, it iterates pages in ascending order but stops when `k == idx[i].tm-1`, i.e., it prints exactly `tm` pages *assuming* there are `tm` pages with `pgnum[j]==1`. If that assumption is violated (duplicates or uninitialized bits), the printed list and even newline emission can deviate from the “exact set with spaces” description.

@@ -1,0 +1,33 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule (especially desk indexing and the “primary desk full” replacement sequence), plus a missing initialization constraint.
+
+B. What the current specification may be missing or misstating  
+1) **Desk indices and move-cost accounting are off by one (or otherwise mis-modeled).**  
+- The source program treats the *primary desk as index 1* and auxiliary desks as 2..m, and it adds costs using these 1-based indices (e.g., `ans++` for placing into primary, `ans += from` for removing from desk `from`).  
+- The current spec (and generated code) models the primary desk as index 0 and auxiliaries as 1..n, which changes every cost term and also changes which desk is considered “full” (`hi[1]` in source vs `desks[0]` in generated code).
+
+2) **The replacement sequence when the primary desk is full is not accurately specified.**  
+- The spec describes a “temporary placement” and “undo” in a generic way, but the source performs a very specific multi-step shuffle that includes:
+  - selecting the first non-full auxiliary desk *twice* with subtle interaction if it’s the same desk,
+  - moving the *front* book of the primary desk out,
+  - inserting that evicted book into an auxiliary desk at a computed position,
+  - and adjusting sizes (`hi[tmp]--`) and positions in a way that is not equivalent to “temporarily place then undo” as implemented in the generated code.
+- In particular, the source’s cost additions during this full-primary handling are not simply “tmp + 1 + evD + tmp”; it adds `tmp`, then later `ans++`, then `ans += j + tmp` (and also decrements `hi[tmp]`), reflecting a more complex net effect than the spec captures.
+
+3) **Initial placement of first-seen books is constrained differently than the spec implies.**  
+- The source does *not* place first-seen books into “the first auxiliary desk with space.” It places every new book into a single designated desk `m+1` (a special desk index beyond the auxiliaries/primary set), accumulating them there before processing requests.  
+- The current spec omits this special “initial holding desk” behavior and instead spreads initial books across auxiliaries, which changes later `from` desk indices and therefore costs and movement patterns.
+
+C. What general behavior should be clarified in the specification  
+- **Define the desk numbering scheme used for both state and cost** (explicitly whether desks are 1-based with primary=1, and what indices auxiliaries use).  
+- **Precisely define the “primary full” procedure** as an exact sequence of moves, including:
+  - which auxiliary desk is chosen at each selection step,
+  - what happens when the same auxiliary desk would be chosen twice,
+  - how the evicted primary-front book is inserted (position rules),
+  - and the exact cost contributions of each sub-move.  
+- **Clarify the initialization/introductory placement rule for books appearing for the first time**, including whether there is a dedicated initial desk (and its index) and how that affects subsequent move costs.
+
+D. Why this clarification is supported by the source program  
+- The source uses `hi[1]` as the primary desk size and increments cost with `ans++` for primary operations, proving **primary desk index is 1** and costs are **1-based**.  
+- The full-primary block in the source (`if (hi[1] == c) { ... }`) performs additional moves and cost updates (`ans += tmp`, `ans++`, `ans += j + tmp`, `hi[tmp]--`) that do not match the simpler “temporary place then undo” abstraction in the current spec.  
+- During input reading, the source assigns first-seen books to `tmp = m+1` via `book[id][0] = tmp` and pushes them into `desk[tmp]`, demonstrating a **special initial desk** not represented in the current specification.

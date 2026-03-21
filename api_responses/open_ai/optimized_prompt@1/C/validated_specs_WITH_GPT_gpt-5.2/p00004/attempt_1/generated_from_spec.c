@@ -1,0 +1,22 @@
+#include <stdio.h>
+
+int main(void) {
+    double a, b, c, d, e, f;
+
+    while (scanf("%lf %lf %lf %lf %lf %lf", &a, &b, &c, &d, &e, &f) == 6) {
+        /* Solve:
+             a*x + b*y = c
+             d*x + e*y = f
+           Using elimination consistent with the preconditions:
+             a != 0
+             e - (b*d)/a != 0
+        */
+        double denom = e - (b * d) / a;
+        double y = (f - (c * d) / a) / denom;
+        double x = (c - b * y) / a;
+
+        printf("%.3f %.3f\n", x, y);
+    }
+
+    return 0;
+}

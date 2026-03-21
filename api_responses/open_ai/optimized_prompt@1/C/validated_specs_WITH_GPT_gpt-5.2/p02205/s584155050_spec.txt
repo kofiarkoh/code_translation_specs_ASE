@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads three integers and performs a deterministic sequence of paired arithmetic updates to two integer values for a number of steps equal to the first input reduced modulo 12. Produces the resulting pair of integers after completing those steps.
+
+2. Inputs  
+- An integer step count `N` (treated as a signed integer value).  
+- Two signed integer initial values `A` and `B`.
+
+3. Outputs  
+- Two signed integers: the final values of `A` and `B` after applying the update sequence for `N mod 12` steps.
+
+4. Preconditions  
+- Exactly three integer values are provided as input.  
+- The step count is non-negative.  
+- All intermediate and final results of the arithmetic updates fit within the range of the signed integer type used for `A` and `B` (otherwise behavior is not defined by this specification).
+
+5. Postconditions  
+Let `k = N mod 12`, with `k` in the range `[0, 11]`. Starting from `(A0, B0)` as the input values, define a sequence of states `(A_t, B_t)` for `t = 0..k` such that:  
+- `(A_0, B_0) = (A0, B0)`  
+- For each step `t` from `1` to `k`:
+  - If `t` is odd: `A_t = A_{t-1} - B_{t-1}`, `B_t = B_{t-1}`  
+  - If `t` is even: `A_t = A_{t-1}`, `B_t = A_{t-1} + B_{t-1}`  
+The program outputs `(A_k, B_k)`.
+
+6. Invariants  
+- The number of applied steps is exactly `k = N mod 12`.  
+- After any completed step `t`, the pair `(A_t, B_t)` is uniquely determined by `(A0, B0)` and `t` via the recurrence in the Postconditions.
+
+7. Error Handling / Exceptional Behavior  
+- If the required three input integers are not successfully provided, the resulting output is unspecified.  
+- If arithmetic overflow occurs for the integer type used for `A` or `B`, the resulting behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- State consists of the pair `(A, B)` and an implicit step index `t`.  
+- Transition for odd `t`: `(A, B) → (A − B, B)`  
+- Transition for even `t`: `(A, B) → (A, A + B)`  
+- Exactly `k` transitions are performed, where `k = N mod 12`.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to `N mod 12` (at most 11 steps), and uses constant memory.

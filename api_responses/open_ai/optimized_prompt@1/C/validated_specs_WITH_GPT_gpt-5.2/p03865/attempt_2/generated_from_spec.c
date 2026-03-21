@@ -1,0 +1,31 @@
+#include <unistd.h>
+#include <stdio.h>
+
+int main(void) {
+    /* Fixed internal buffer capacity; exact size is not specified, only that it is fixed. */
+    unsigned char buf[4096];
+
+    /* Single read call; no error handling per specification. */
+    ssize_t L = read(STDIN_FILENO, buf, sizeof(buf));
+
+    /*
+     * Specification states behavior is undefined if:
+     * - read fails (L < 0), or
+     * - fewer than 2 bytes are read (L < 2).
+     * We intentionally do not guard these cases to preserve the possibility of
+     * out-of-bounds access / arbitrary behavior.
+     */
+
+    /* Decision rule under preconditions (L >= 2). */
+    ssize_t N = L - 1;
+    int E = (buf[0] == buf[L - 2]) ? 1 : 0;
+    ssize_t S = N + (ssize_t)E;
+
+    if ((S & 1) != 0) {
+        puts("First");
+    } else {
+        puts("Second");
+    }
+
+    return 0;
+}

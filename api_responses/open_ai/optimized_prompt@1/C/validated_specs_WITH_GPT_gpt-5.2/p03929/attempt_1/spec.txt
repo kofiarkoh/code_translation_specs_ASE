@@ -1,0 +1,48 @@
+1. Functional Description  
+Computes and outputs the number of integers in a derived range that satisfy both:
+- a weekday-like constraint excluding two specific residues modulo 7, and  
+- a modular arithmetic constraint involving multiplication by 9 modulo 11 equaling a given target value.
+
+The derived range length is seven times the first input value.
+
+2. Inputs  
+- Two signed integers:
+  - A base count value.
+  - A target residue value used for a modulo-11 equality test.
+
+3. Outputs  
+- One signed integer: the computed count of values meeting the stated constraints, after applying boundary exclusions described in Postconditions.
+
+4. Preconditions  
+- Two integers are provided as input.  
+- The base count value is non-negative.  
+- The product of the base count value and 7 fits within the signed 64-bit integer range.  
+- The target residue value is intended to be in the range 0 through 10; if outside, the modular equality may be unsatisfiable and the result may be 0.
+
+5. Postconditions  
+Let \(N = 7 \times \text{base}\). The program outputs a value equal to:
+
+The number of integers \(i\) such that:
+- \(1 \le i \le N\),
+- \(i \bmod 7 \notin \{0, 1\}\), and
+- \((9 \times i) \bmod 11 = \text{target}\),
+
+minus the number of such integers that also lie in the union of the two boundary windows:
+- \(1 \le i \le 7\), and
+- \(N-6 \le i \le N\).
+
+(If these windows overlap, values in the overlap are subtracted once per window membership, i.e., potentially twice.)
+
+6. Invariants  
+- The reported count is an integer and is derived solely from the input values.  
+- Only integers satisfying the modulo-7 exclusion and modulo-11 equality can contribute positively before boundary-window subtractions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input; behavior is undefined if the required inputs are not successfully read.  
+- No explicit overflow checks are performed; behavior is undefined if intermediate arithmetic exceeds signed 64-bit limits.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution; the program reads input once and produces one output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to a fixed constant plus a small amount dependent on \(N \bmod 693\); memory usage is constant.

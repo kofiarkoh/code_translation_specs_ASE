@@ -1,0 +1,53 @@
+#include <stdio.h>
+
+#define MAXN 106
+
+int main(void) {
+    int M, N;
+    if (scanf("%d %d", &M, &N) != 2) {
+        return 0; /* Undefined behavior per spec if input missing; exit quietly */
+    }
+
+    int A[MAXN];
+    long long total = 0; /* total is nonnegative; use wide type to avoid overflow assumptions */
+
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            int x;
+            if (scanf("%d", &x) != 1) {
+                return 0; /* Undefined per spec; exit */
+            }
+            A[j] = x;
+        }
+
+        if (i != 0) {
+            for (int j = 0; j < N; j++) {
+                A[j] ^= 1;
+            }
+        }
+
+        int l = 0;
+        int r = N - 1;
+
+        while (l <= r) {
+            if (A[l] == 1) {
+                total += 1;
+                l = l + 1;
+                /* Spec requires toggling even if l has moved past r; this may be OOB if l==N. */
+                A[l] ^= 1;
+            } else if (A[r] == 1) {
+                total += 1;
+                r = r - 1;
+                /* Spec requires toggling even if r has moved past l; this may be OOB if r==-1. */
+                A[r] ^= 1;
+            } else {
+                l = l + 1;
+                /* Spec requires toggling even if l has moved past r; this may be OOB if l==N. */
+                A[l] ^= 1;
+            }
+        }
+    }
+
+    printf("%lld\n", total);
+    return 0;
+}

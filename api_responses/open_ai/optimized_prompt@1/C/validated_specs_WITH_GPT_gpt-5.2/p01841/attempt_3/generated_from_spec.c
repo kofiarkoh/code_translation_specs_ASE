@@ -1,0 +1,137 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define INBUF_SIZE 100000
+#define OUTBUF_SIZE 1000000
+
+static char outbuf[OUTBUF_SIZE];
+static size_t outpos = 0;
+
+static void out_ch(char c) {
+    /* Undefined behavior if outbuf overflows, per spec. */
+    outbuf[outpos++] = c;
+}
+
+static void out_str_n(const char *s, size_t n) {
+    /* Undefined behavior if outbuf overflows, per spec. */
+    memcpy(outbuf + outpos, s, n);
+    outpos += n;
+}
+
+static void out_int(int v) {
+    /* Use snprintf for formatting; integer semantics (overflow in parsing) are via atoi elsewhere. */
+    char tmp[64];
+    int n = snprintf(tmp, sizeof(tmp), "%d", v);
+    if (n > 0) out_str_n(tmp, (size_t)n);
+}
+
+typedef struct {
+    const char *left;
+    size_t left_len;
+    const char *val;      /* points at '[' of the selected value */
+    size_t val_len;       /* includes brackets, e.g. "[123]" */
+    const char *right;
+    size_t right_len;
+} Parts;
+
+static void decompose(const char *s, size_t len, Parts *p) {
+    /* Assumes well-formed input per spec; no validation. */
+    int depth = 0;
+    size_t i;
+
+    /* Find first '[' at depth 0. */
+    for (i = 0; i < len; i++) {
+        char c = s[i];
+        if (c == '[' || c == '(') depth++;
+        else if (c == ']' || c == ')') depth--;
+        if (c == '[' && depth == 1) { /* it was at depth 0 before increment */
+            break;
+        }
+    }
+
+    p->left = s;
+    p->left_len = i;
+    p->val = s + i;
+
+    /* Find matching ']' that returns depth from 1 back to 0 for this bracketed value. */
+    /* At this point, depth is 1 because we just consumed '['. Continue scanning. */
+    for (i = i + 1; i < len; i++) {
+        char c = s[i];
+        if (c == '[' || c == '(') depth++;
+        else if (c == ']' || c == ')') depth--;
+        if (c == ']' && depth == 0) {
+            i++; /* include this ']' in val_len; right starts after it */
+            break;
+        }
+    }
+
+    p->val_len = (size_t)((s + i) - p->val);
+    p->right = s + i;
+    p->right_len = len - i;
+}
+
+static int is_empty_subtree(const char *s, size_t len) {
+    /* Emptiness determined solely by length == 2, per spec. */
+    (void)s;
+    return len == 2;
+}
+
+static void combine_inner(const char *a, size_t alen, const char *b, size_t blen);
+
+static void combine_side(const char *sa, size_t la, const char *sb, size_t lb) {
+    if (is_empty_subtree(sa, la) || is_empty_subtree(sb, lb)) {
+        /* Output empty subtree as "()" (still wrapped by caller's parentheses). */
+        /* Caller will output '(' + combined + ')' so combined must be empty content. */
+        return;
+    }
+
+    /* Remove exactly one outer pair of parentheses and recurse on inside. */
+    /* Assumes subtree is "(<...>)" and length >= 2. */
+    combine_inner(sa + 1, la - 2, sb + 1, lb - 2);
+}
+
+static void combine_inner(const char *a, size_t alen, const char *b, size_t blen) {
+    Parts pa, pb;
+    decompose(a, alen, &pa);
+    decompose(b, blen, &pb);
+
+    /* Parse values using atoi semantics: parsing starts after '[' and stops at first non-numeric. */
+    int va = atoi(pa.val + 1);
+    int vb = atoi(pb.val + 1);
+    int sum = va + vb;
+
+    /* Emit: (<combined_left>)[<sum>](<combined_right>) */
+    out_ch('(');
+    combine_side(pa.left, pa.left_len, pb.left, pb.left_len);
+    out_ch(')');
+
+    out_ch('[');
+    out_int(sum);
+    out_ch(']');
+
+    out_ch('(');
+    combine_side(pa.right, pa.right_len, pb.right, pb.right_len);
+    out_ch(')');
+}
+
+int main(void) {
+    static char in1[INBUF_SIZE];
+    static char in2[INBUF_SIZE];
+
+    if (scanf("%99999s %99999s", in1, in2) != 2) {
+        return 0;
+    }
+
+    outpos = 0;
+
+    /* Top-level inputs are treated as node substrings (not wrapped by an extra pair here). */
+    combine_inner(in1, strlen(in1), in2, strlen(in2));
+
+    /* Print final combined tree string followed by newline. */
+    outbuf[outpos] = '\0';
+    fputs(outbuf, stdout);
+    fputc('\n', stdout);
+
+    return 0;
+}

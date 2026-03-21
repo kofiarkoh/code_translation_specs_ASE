@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int to;
+    int next;
+} Edge;
+
+int main(void) {
+    int V, E;
+    if (scanf("%d", &V) != 1) return 0;
+    if (scanf("%d", &E) != 1) return 0;
+
+    /* Adjacency list with stable per-source edge order:
+       we append edges in input order, preserving relative order among edges
+       with the same source vertex. */
+    int *head = (int *)malloc((size_t)V * sizeof(int));
+    int *tail = (int *)malloc((size_t)V * sizeof(int));
+    int *indeg = (int *)calloc((size_t)V, sizeof(int));
+    Edge *edges = (Edge *)malloc((size_t)E * sizeof(Edge));
+
+    /* Per spec, allocation failure behavior is undefined; we do not handle it. */
+    for (int i = 0; i < V; i++) {
+        head[i] = -1;
+        tail[i] = -1;
+    }
+
+    for (int i = 0; i < E; i++) {
+        int s, t;
+        scanf("%d %d", &s, &t);
+
+        edges[i].to = t;
+        edges[i].next = -1;
+
+        if (head[s] == -1) {
+            head[s] = i;
+            tail[s] = i;
+        } else {
+            edges[tail[s]].next = i;
+            tail[s] = i;
+        }
+
+        /* Count all incoming edges, including duplicates and self-loops. */
+        indeg[t]++;
+    }
+
+    /* FIFO queue for zero-indegree vertices. */
+    int *q = (int *)malloc((size_t)V * sizeof(int));
+    int qh = 0, qt = 0;
+
+    /* Initial scan in increasing vertex index order. */
+    for (int v = 0; v < V; v++) {
+        if (indeg[v] == 0) {
+            q[qt++] = v;
+        }
+    }
+
+    while (qh < qt) {
+        int u = q[qh++];
+
+        /* Print in exact dequeue order, one vertex per line. */
+        printf("%d\n", u);
+
+        /* Process outgoing edges in the same relative order as input for this source. */
+        for (int ei = head[u]; ei != -1; ei = edges[ei].next) {
+            int v = edges[ei].to;
+            indeg[v]--;
+            if (indeg[v] == 0) {
+                q[qt++] = v;
+            }
+        }
+    }
+
+    free(q);
+    free(edges);
+    free(indeg);
+    free(tail);
+    free(head);
+    return 0;
+}

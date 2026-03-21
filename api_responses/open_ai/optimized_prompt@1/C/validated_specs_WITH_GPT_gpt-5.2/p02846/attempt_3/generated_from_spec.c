@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+int main(void) {
+    long long T1, T2, A1, A2, B1, B2;
+    if (scanf("%lld %lld %lld %lld %lld %lld", &T1, &T2, &A1, &A2, &B1, &B2) != 6) {
+        /* Behavior unspecified by the specification for malformed/missing input. */
+        return 0;
+    }
+
+    long long TotalA = A1 * T1 + A2 * T2;
+    long long TotalB = B1 * T1 + B2 * T2;
+
+    if (TotalA == TotalB) {
+        printf("infinity\n");
+        return 0;
+    }
+
+    if (A1 > B1) {
+        long long tmp;
+        tmp = A1; A1 = B1; B1 = tmp;
+        tmp = A2; A2 = B2; B2 = tmp;
+    }
+
+    long long X = (B1 - A1) * T1;
+    long long Y = (A2 - B2) * T2;
+
+    if (X > Y) {
+        printf("0\n");
+        return 0;
+    }
+
+    long long D = Y - X; /* If D == 0, division/modulo by zero is undefined as per spec. */
+
+    if (X % D == 0) {
+        printf("%lld\n", 2 * (X / D));
+    } else {
+        printf("%lld\n", 2 * (X / D) + 1);
+    }
+
+    return 0;
+}

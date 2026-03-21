@@ -1,0 +1,68 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    long long N;
+    static long long A[100001];
+    static long long x[100001];
+
+    if (scanf("%lld", &N) != 1) return 0;
+
+    for (long long i = 0; i < N; i++) {
+        if (scanf("%lld", &A[i]) != 1) return 0;
+    }
+
+    /* Cyclic extra element for difference computations */
+    A[N] = A[0];
+
+    /* sum = Σ_{i=1..N} A[i] includes A[N]=A[0] */
+    long long sum = 0;
+    for (long long i = 1; i <= N; i++) {
+        sum += A[i];
+    }
+
+    /* T = N*(N+1)/2 in signed 64-bit long long */
+    long long T = N * (N + 1) / 2;
+
+    if (T == 0 || (sum % T) != 0) {
+        printf("NO\n");
+        return 0;
+    }
+
+    long long S = sum / T;
+
+    long long sx = 0;
+    for (long long i = 1; i <= N; i++) {
+        long long d = A[i] - A[i - 1];
+        /* x_i = (S - d_i) / N using C signed integer division */
+        long long xi = (S - d) / N;
+        x[i] = xi;
+        if (xi < 0 || xi > S) {
+            printf("NO\n");
+            return 0;
+        }
+        sx += xi;
+    }
+
+    if (sx != S) {
+        printf("NO\n");
+        return 0;
+    }
+
+    /* Final weighted check: start from A[N] (== A[0]) */
+    long long chk = A[N];
+    for (long long i = 1; i <= N; i++) {
+        long long w = (N - i + 1);
+        chk -= x[i] * w;
+    }
+
+    if (chk != 0) {
+        /* Case-sensitive late rejection */
+        printf("No\n");
+        return 0;
+    }
+
+    printf("YES\n");
+    return 0;
+}
+```

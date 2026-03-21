@@ -1,0 +1,265 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of records, each containing a label and an integer key, sorts the records in nondecreasing order by the key, determines whether the resulting order is stable with respect to the original input order for equal keys, then outputs the stability result followed by the sorted records.
+
+2. Inputs  
+- An integer `n`: the number of records.  
+- `n` records, each consisting of:  
+  - a single-character label  
+  - an integer key
+
+3. Outputs  
+- A single line indicating whether the produced sorted order is stable (“Stable”) or not (“Not stable”).  
+- Then `n` lines, each containing the label and key of a record in the produced sorted order.
+
+4. Preconditions  
+- `n` is nonnegative.  
+- Exactly `n` records are provided after `n`, each with a valid label and integer key.  
+- Sufficient memory is available to store `n` records.
+
+5. Postconditions  
+- The output list is a permutation of the input records (no records are created, lost, or duplicated).  
+- The output list is sorted in nondecreasing order by key.  
+- The reported stability result is consistent with the produced output order:  
+  - “Stable” iff for every pair of input records with equal keys, their relative order in the output matches their relative order in the input.  
+  - Otherwise “Not stable”.
+
+6. Invariants  
+- Each record’s label and key remain associated with each other throughout processing.  
+- The stability check is based on the original input order of records.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, input exhaustion, or allocation failure; behavior is unspecified in such cases.
+
+8. State Transitions (if applicable)  
+- Records transition from “unsorted, with remembered original order” to “sorted, with original order still known for stability evaluation,” then to “reported and printed.”
+
+9. Non-functional Constraints (if inferable)  
+- Sorting is not guaranteed to be stable.  
+- Uses recursion; very large `n` may risk stack exhaustion depending on environment.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    char label;
+    int key;
+    int orig_index; /* remembered original order for stability evaluation */
+} Record;
+
+static void merge_sort(Record *a, Record *tmp, int left, int right) {
+    /* Sort a[left:right) by key in nondecreasing order.
+       This merge is intentionally NOT stable: on equal keys it takes from the right half first. */
+    if (right - left <= 1) return;
+
+    int mid = left + (right - left) / 2;
+    merge_sort(a, tmp, left, mid);
+    merge_sort(a, tmp, mid, right);
+
+    int i = left, j = mid, k = left;
+    while (i < mid && j < right) {
+        if (a[i].key < a[j].key) {
+            tmp[k++] = a[i++];
+        } else {
+            /* For a[i].key == a[j].key, this chooses from the right half first -> not stable. */
+            tmp[k++] = a[j++];
+        }
+    }
+    while (i < mid) tmp[k++] = a[i++];
+    while (j < right) tmp[k++] = a[j++];
+
+    for (k = left; k < right; k++) a[k] = tmp[k];
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    Record *a = NULL;
+    Record *tmp = NULL;
+
+    if (n > 0) {
+        a = (Record *)malloc((size_t)n * sizeof(Record));
+        tmp = (Record *)malloc((size_t)n * sizeof(Record));
+    }
+
+    for (int i = 0; i < n; i++) {
+        /* Leading whitespace before %c to skip newlines/spaces between tokens. */
+        scanf(" %c %d", &a[i].label, &a[i].key);
+        a[i].orig_index = i;
+    }
+
+    if (n > 0) merge_sort(a, tmp, 0, n);
+
+    int stable = 1;
+    for (int i = 1; i < n; i++) {
+        if (a[i - 1].key == a[i].key) {
+            if (a[i - 1].orig_index > a[i].orig_index) {
+                stable = 0;
+                break;
+            }
+        }
+    }
+
+    printf("%s\n", stable ? "Stable" : "Not stable");
+    for (int i = 0; i < n; i++) {
+        printf("%c %d\n", a[i].label, a[i].key);
+    }
+
+    free(tmp);
+    free(a);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02277/p02277_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02277/p02277_sample1_output.txt
+Input:
+6
+H 4
+C 9
+S 4
+D 2
+C 3
+H 9
+Expected:
+Not stable
+D 2
+C 3
+S 4
+H 4
+C 9
+H 9
+Actual:
+Not stable
+D 2
+C 3
+S 4
+H 4
+H 9
+C 9
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

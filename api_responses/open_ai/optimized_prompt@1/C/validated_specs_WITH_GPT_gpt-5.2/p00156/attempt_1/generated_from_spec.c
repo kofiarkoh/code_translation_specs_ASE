@@ -1,0 +1,113 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXW 101
+#define MAXH 101
+#define MAXN (MAXW * MAXH)
+
+/* Fixed-size work queue as implied by the specification. */
+#define QMAX 200000
+
+static char grid[MAXH][MAXW];
+static int distc[MAXH][MAXW];
+
+static int qx[QMAX];
+static int qy[QMAX];
+static int qh, qt;
+
+static void q_init(void) { qh = qt = 0; }
+static int q_empty(void) { return qh == qt; }
+static void q_push(int x, int y) {
+    /* No explicit error handling per spec; overflow is undefined behavior. */
+    qx[qt] = x;
+    qy[qt] = y;
+    qt++;
+    if (qt >= QMAX) qt = 0;
+}
+static void q_pop(int *x, int *y) {
+    *x = qx[qh];
+    *y = qy[qh];
+    qh++;
+    if (qh >= QMAX) qh = 0;
+}
+
+int main(void) {
+    int w, h;
+    while (scanf("%d %d", &w, &h) == 2) {
+        if (w == 0 && h == 0) break;
+
+        int sx = -1, sy = -1;
+
+        /* Read grid: height rows, width columns of single-character cell values.
+           Use " %c" to skip whitespace/newlines between characters. */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                char c;
+                scanf(" %c", &c);
+                grid[y][x] = c;
+                if (c == 'S') { /* designated start marker */
+                    sx = x;
+                    sy = y;
+                }
+            }
+        }
+
+        /* Start marker treated as normal cell with same terrain as "empty" terrain.
+           The specification does not name the empty terrain character; choose the
+           narrowest reasonable interpretation: '.' is the empty terrain. */
+        if (sx >= 0 && sy >= 0) {
+            grid[sy][sx] = '.';
+        }
+
+        /* Initialize distances to a large finite value. */
+        const int INF = 0x3f3f3f3f;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                distc[y][x] = INF;
+            }
+        }
+
+        /* 0-1 BFS using a simple queue with relaxation; since edge weights are 0/1,
+           repeated relaxation with a FIFO queue still converges (SPFA-like).
+           Spec only requires that costs never increase once lowered. */
+        q_init();
+        distc[sy][sx] = 0;
+        q_push(sx, sy);
+
+        static const int dx[4] = { 1, -1, 0, 0 };
+        static const int dy[4] = { 0, 0, 1, -1 };
+
+        while (!q_empty()) {
+            int x, y;
+            q_pop(&x, &y);
+            int base = distc[y][x];
+
+            for (int k = 0; k < 4; k++) {
+                int nx = x + dx[k];
+                int ny = y + dy[k];
+                if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+
+                int wgt = (grid[ny][nx] == grid[y][x]) ? 0 : 1;
+                int nd = base + wgt;
+                if (nd < distc[ny][nx]) {
+                    distc[ny][nx] = nd;
+                    q_push(nx, ny);
+                }
+            }
+        }
+
+        /* Minimum over all boundary cells of floor(cost/2). */
+        int best = INF;
+        for (int x = 0; x < w; x++) {
+            if (distc[0][x] < best) best = distc[0][x];
+            if (distc[h - 1][x] < best) best = distc[h - 1][x];
+        }
+        for (int y = 0; y < h; y++) {
+            if (distc[y][0] < best) best = distc[y][0];
+            if (distc[y][w - 1] < best) best = distc[y][w - 1];
+        }
+
+        printf("%d\n", best / 2);
+    }
+    return 0;
+}

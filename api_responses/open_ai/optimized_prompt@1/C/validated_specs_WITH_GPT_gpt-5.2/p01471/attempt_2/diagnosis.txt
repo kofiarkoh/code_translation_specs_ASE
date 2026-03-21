@@ -1,0 +1,11 @@
+A. Likely mismatch category  
+Output formatting / precision rule mismatch.
+
+B. What the current specification may be missing or misstating  
+The specification says “a single real number” but does not constrain the exact textual format (number of digits after the decimal point). The generated program prints with a fixed precision of 10 digits after the decimal (`%.10f`), while the source prints using `%lf` (default `printf` formatting for `double`), which typically emits 6 digits after the decimal. This can cause exact-output judging failures even when the numeric value matches.
+
+C. What general behavior should be clarified in the specification  
+The required output formatting should be specified precisely: whether the program must use the C default `%f`/`%lf` formatting (commonly 6 digits after the decimal), or whether any reasonable floating-point representation is acceptable. If exact matching is required (as in many judges), the spec must state the exact number of digits (or the exact `printf`-style format) to use.
+
+D. Why this clarification is supported by the source program  
+The source ends with `printf("%lf\n", ans);`, which implies reliance on the default fixed-point formatting behavior of `printf` for doubles (typically 6 digits after the decimal). The failing test shows the expected output is `300.000000` (6 decimals), while the generated program prints `300.0000000000` (10 decimals). This indicates the observable behavior difference is not in the knapsack logic but in the mandated output representation.

@@ -1,0 +1,184 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+long long M=1e9+7;
+int mbk(long long a,int n,int m){return n?(mbk((a*a)%m,n/2,m)*(n%2?a:1))%m:1;}
+int inv(int a,int m){return mbk((long long)a,m-2,m);}
+int ta[200010],nt[400010],to[400010],tS[400010];
+long long tu[200010],ANS[200020],tans[200020];
+//sが親でtから帰ってきた時の処理 変えるやつ
+void fc(int s,int t){tans[s]=tans[s]*tans[t]       %M;}
+//fcの逆処理　変えるやつ
+void ic(int s,int t){tans[s]=tans[s]*inv(tans[t],M)%M;}
+//すべての子の処理が終わった時の処理　変えるやつ
+void fp(int s){tans[s]=tans[s]*inv(tS[s],M)%M;}
+//fpの逆処理　変えるやつ
+void ip(int s){tans[s]=tans[s]*tS[s]       %M;}
+//木DPの関数
+void tDP(int s){//printf("!%d\n",s);
+  long long i;
+  tu[s]=1;
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]])continue;
+    tDP(to[i]);
+    fc(s,to[i]);
+    tS[s]+=tS[to[i]];
+  }
+  fp(s);
+}
+//根をsからtにする奴
+void chrt(int s,int t){
+  ip(s);
+  ic(s,t);
+  ip(t);
+  tS[s]-=tS[t];
+  tS[t]+=tS[s];
+  fp(s);
+  fc(t,s);
+  fp(t);
+}
+//全方位やる奴
+void atdp(int s){//printf("!!%d %d\n",s,cc[s]);
+  int i;
+  tu[s]=2;
+  ANS[s]=tans[s];
+  for(i=ta[s];i+1;i=nt[i]){
+    if(tu[to[i]]==2)continue;
+    chrt(s,to[i]);
+    atdp(to[i]);
+    chrt(to[i],s);
+  }
+}
+//呼びだす奴
+void atDP(int v,int *a,int *b){
+  int i,I=1;
+  for(i=0;i<v;i++)ta[i+I]=-1;
+  for(i=0;i<v;i++)tS[i+I]=1;
+  for(i=0;i<v;i++)tans[i+I]=1;
+  for(i=0;i<v-1;i++){
+    nt[i]=ta[to[i+v-1]=a[i]];
+    nt[i+v-1]=ta[to[i]=b[i]];
+    ta[a[i]]=i;
+    ta[b[i]]=i+v-1;
+  }
+  tDP(I);
+  atdp(I);
+}
+int main(){
+  int n,i,a[200010],b[200010];
+  long long p=1;
+  scanf("%d",&n);
+  for(i=0;i<n-1;i++)scanf("%d %d",&a[i],&b[i]);
+  for(i=1;i<=n;i++)p=p*i%M;
+  atDP(n,a,b);
+  for(i=0;i<n;i++)printf("%lld\n",ANS[i+1]*p%M);
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given an undirected tree on \(n\) labeled vertices, the program computes, for every vertex \(v\), a value determined by the sizes of the connected components that would remain if \(v\) were removed. Let these component sizes be \(s_1, s_2, \dots, s_k\) (so \(\sum_i s_i = n-1\)). For each vertex \(v\), the program outputs (modulo a fixed prime \(P\)) the quantity:
+\[
+n!\;\cdot\;\prod_{i=1}^{k}\frac{1}{s_i! \cdot s_i}
+\;\equiv\;
+\frac{n!}{\left(\prod_i s_i!\right)\left(\prod_i s_i\right)}
+\pmod P.
+\]
+Equivalently, since \(\prod_i (s_i!\,s_i)=\prod_i \bigl(s_i\cdot s_i!\bigr)=\prod_i \bigl((s_i+0)\cdot s_i!\bigr)\), the result is a component-size–based expression that includes both factorial terms and an additional multiplicative factor of the component sizes themselves.
+
+2. Inputs  
+- An integer \(n\), the number of vertices.  
+- \(n-1\) undirected edges, each given as a pair of vertex indices.
+
+3. Outputs  
+- Exactly \(n\) lines are printed.  
+- Line \(v\) (for vertex indices in increasing order) contains one integer in \([0, P-1]\) equal to:
+  \[
+  \frac{n!}{\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|!\right)\left(\prod_{C \in \text{components}(V\setminus\{v\})} |C|\right)}
+  \bmod P,
+  \]
+  where the products range over the connected components of the graph obtained by removing \(v\).
+
+4. Preconditions / Assumptions  
+- The input graph is a tree: it has exactly \(n\) vertices, exactly \(n-1\) edges, is connected, and has no cycles.  
+- Vertex indices appearing in edges are valid for the program’s 1-based vertex storage (the program prints results for vertices \(1\) through \(n\)).  
+- \(1 \le n\) and \(n\) does not exceed the fixed array capacity used by the implementation.  
+- The modulus \(P = 10^9+7\) is prime. Modular division is performed via multiplicative inverses modulo \(P\). (If a required inverse does not exist modulo \(P\), behavior is unspecified; under the stated constraints with \(n < P\), the needed inverses exist.)
+
+5. Behavioral Notes / Edge Cases  
+- For \(n=1\), there are no components after removing the only vertex; the empty products are treated as 1, so the output is \(1\) modulo \(P\).  
+- The result for a vertex depends only on the multiset of component sizes formed by removing that vertex, not on the order in which edges are provided.
+
+6. Computation Model (High-level)  
+- The program performs a tree DP with rerooting to compute the per-vertex value for all vertices in overall linear time (aside from logarithmic-time modular exponentiation used for inverses).  
+- Internally it maintains, for the current rooting, subtree sizes and a multiplicative DP value that aggregates child contributions and includes a factor of the inverse of the current subtree size; rerooting across an edge updates the two affected subtree sizes and DP values so that the final stored value at each vertex corresponds to the formula in Section 3.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed. If the input violates the preconditions (not a tree, out-of-range indices, \(n\) too large for the fixed arrays, etc.), the behavior is unspecified.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong counting rule / wrong closed-form formula (missing factorial factors in the per-component contribution).
+
+B. What the current specification may be missing or misstating  
+The spec claims the per-vertex value is
+\[
+n!\cdot \prod_i \frac{1}{s_i!\,s_i}\pmod P
+\]
+where \(s_i\) are component sizes after removing \(v\).  
+But the source program’s DP (`tans`) only ever multiplies by inverses of subtree sizes (`fp` divides by `tS[s]`) and multiplies child contributions (`fc` multiplies `tans[s] *= tans[t]`). There is **no multiplication by any factorial or inverse factorial of component sizes** anywhere in the source DP/rerooting logic. The only factorial computed is the global \(p=n!\), multiplied at the very end.
+
+So the spec’s inclusion of \(\prod_i 1/(s_i!)\) is not supported by the source; it appears to be an over-interpretation of the DP.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact mathematical quantity computed from component sizes: the output depends on component sizes via **size factors only** (products of inverses of component sizes, and possibly an additional global factor), and **does not include factorial-of-component-size terms**. In other words, the spec should precisely state whether the per-component contribution is \(1/s_i\) versus \(1/(s_i!\,s_i)\), and how the global \(n!\) factor interacts with that.
+
+D. Why this clarification is supported by the source program  
+- `tS[x]` is maintained as a subtree size (initialized to 1, accumulated by `tS[s] += tS[child]`, adjusted during rerooting by subtract/add).  
+- `tans[x]` is initialized to 1 and updated only by:
+  - multiplying by child `tans` values (`fc`), and
+  - dividing/multiplying by subtree sizes via modular inverses (`fp` divides by `tS[s]`, `ip` multiplies by `tS[s]`), plus corresponding inverse operations during rerooting (`ic` divides by `tans[child]`).
+- There is no code path that introduces factorials of `tS` or any combinatorial term like `invfact[tS]`.  
+- The only factorial is `p = n! mod M` computed in `main` and multiplied as `ANS[v] * p % M`. This indicates the DP result `ANS[v]` is meant to be multiplied by \(n!\), but the DP itself encodes only size-based denominators, not \(\prod s_i!\).
+
+```

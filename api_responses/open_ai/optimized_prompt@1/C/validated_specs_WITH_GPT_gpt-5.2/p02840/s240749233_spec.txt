@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes and outputs the number of distinct values obtainable from sums of the form  
+\[
+\sum_{k \in S} (X + kD)
+\]
+where \(S\) ranges over all subsets of \(\{0,1,\dots,N-1\}\). Equivalently, it counts the number of distinct subset sums of the length-\(N\) arithmetic progression starting at \(X\) with common difference \(D\).
+
+2. Inputs  
+- An integer \(N\) (number of terms available).  
+- An integer \(X\) (first term of the progression).  
+- An integer \(D\) (common difference of the progression).  
+
+3. Outputs  
+- A single integer: the count of distinct subset sums achievable from the progression.
+
+4. Preconditions  
+- Input values are provided and fit within signed 64-bit integer range.  
+- \(N\) is assumed to be non-negative.  
+- To avoid undefined behavior from internal fixed storage, \(N\) is assumed to be at most 200000.  
+- Intermediate arithmetic is assumed not to overflow signed 64-bit range.
+
+5. Postconditions  
+- If \(X = 0\) and \(D = 0\): output is 1 (only sum 0 is possible).  
+- Else if \(D = 0\): output is \(N+1\) (possible sums are \(kX\) for \(k=0..N\)).  
+- Else if \(X = 0\) and \(D \neq 0\): output is \(\frac{N(N-1)}{2} + 1\).  
+- Otherwise: output equals the exact number of distinct subset sums of \(\{X + 0D, X + 1D, \dots, X + (N-1)D\}\).
+
+6. Invariants  
+- The computed result is an integer in \([1, 2^N]\).  
+- Distinct subset sums are counted without duplication: each achievable sum contributes exactly once to the final count.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range values, or arithmetic overflow.  
+- If preconditions are violated (e.g., \(N>200000\) or overflow occurs), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless: no externally visible state is preserved between runs; the program reads input once and produces one output.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to run in time roughly proportional to \(N\) with additional overhead dependent on hashing behavior.  
+- Uses memory proportional to \(N\) (bounded by the fixed internal storage sized for up to 200001 records).

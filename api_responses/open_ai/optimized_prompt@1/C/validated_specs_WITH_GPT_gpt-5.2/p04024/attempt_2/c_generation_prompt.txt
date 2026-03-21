@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+- Reads a rectangular grid of height `H` and width `W` consisting of characters, where `'#'` cells are treated as “marked” and all other characters are treated as “unmarked”, and an integer `K`.  
+- Computes and outputs a single integer defined by a piecewise formula based on:
+  - the total number of marked cells,
+  - whether any row has both its leftmost and rightmost cells marked,
+  - whether any column has both its topmost and bottommost cells marked,
+  - and additional per-row counts computed after an orientation-normalization step.  
+- All arithmetic is performed modulo the fixed prime `P = 1,000,000,007`, using modular exponentiation and modular inverses.
+
+2. Inputs  
+- Three integers `H`, `W`, `K`.  
+- Then `H` strings, each representing one grid row and containing at least `W` characters (the program reads each row as a whitespace-delimited string).
+
+3. Outputs  
+- One integer in `[0, P-1]` followed by a newline.
+
+4. Preconditions / Assumptions  
+- `H > 0`, `W > 0`, `K >= 0`.  
+- The input provides at least `H` row strings, each of length at least `W`.  
+- The program does not guard against allocation failure or malformed input.  
+- In the branch that performs modular division, it is assumed that the divisor is not congruent to `0 (mod P)`; otherwise the program will attempt to compute the modular inverse of `0`.
+
+5. Definitions and Computation  
+- Let `x` be the total number of marked (`'#'`) cells in the grid.  
+- Define two boundary flags from the *original* grid:
+  - `f_row` is true if there exists a row `i` such that both `s[i][0]` and `s[i][W-1]` are `'#'`.  
+  - `f_col` is true if there exists a column `j` such that both `s[0][j]` and `s[H-1][j]` are `'#'`.
+
+- Immediate outputs:
+  - If `K == 0`, output `1`.  
+  - Else if `f_row` and `f_col` are both true, output `1`.
+
+- Orientation normalization (performed only when `f_col` is true and `f_row` is false):  
+  - The program transposes the stored grid data in-place over a square buffer of side `max(H, W)` (i.e., it swaps `s[i][j]` with `s[j][i]` for all `i < j` within that square), then swaps `H` and `W`.  
+  - After this step, subsequent per-row counting is performed on the (possibly transposed) grid with the updated `H` and `W`.  
+  - The total marked count `x` is computed from the grid used for counting (and is preserved by transposition).
+
+- Per-row aggregates after normalization:  
+  Initialize `a = 0`, `b = 0`, `c = 0`, and compute `x` as the total marked cells while scanning rows. For each row `i`:
+  - Let `x_sub` be the number of marked cells in that row.  
+  - Let `e` be the number of horizontally adjacent marked pairs in that row, i.e., the count of indices `j` in `1..W-1` such that both `s[i][j-1]` and `s[i][j]` are `'#'`.  
+  - If `x_sub == W` (the row is fully marked), increment `c`.  
+  - Otherwise:
+    - Add `(x_sub - e)` to `a`.  
+    - If additionally the row’s first and last cells are both marked (`s[i][0] == '#'` and `s[i][W-1] == '#'`), then decrement `a` by `2` and increment `b` by `1`.
+
+6. Output Formula (modulo `P`)  
+Let `pow(u, n)` denote modular exponentiation `u^n mod P` as implemented by the program, and `inv(v)` denote the modular inverse `v^(P-2) mod P`.
+
+- If neither boundary flag is true (`f_row == false` and `f_col == false`), output:  
+  - `pow(x, K-1)`.
+
+- Otherwise (exactly one of the boundary flags is true, after the possible normalization and after computing `a, b, c, x` as above):
+  - If `a == 0` and `b == 0`, output:  
+    - `pow(c, K-1)`.
+  - Else output the following modular rational expression (division interpreted as multiplication by a modular inverse):  
+    - `(((a + b) * pow(x, K-1) + (x - (a + 2*b + c)) * pow(b + c, K-1)) * inv(x - (b + c))) mod P`,  
+    with all intermediate additions/subtractions/multiplications taken modulo `P` in the natural way.
+
+7. Notes on Edge Behavior  
+- If `x == 0` and the program evaluates `pow(x, K-1)` with `K > 0`, the result follows modular exponentiation rules (it yields `0` for positive exponents).  
+- If the divisor `x - (b + c)` is `0 mod P` in the general-case formula, the program will still attempt to compute `inv(0)`; the mathematical meaning is undefined even though the program will execute.
+
+8. Execution Model  
+- Single-run program: reads once, computes once, prints once, and terminates.
+
+```

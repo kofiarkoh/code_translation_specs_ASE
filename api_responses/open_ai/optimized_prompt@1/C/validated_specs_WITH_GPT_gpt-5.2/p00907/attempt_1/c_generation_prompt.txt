@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, identifies and reports the index of a single value in a sequence that is inconsistent with the existence of a degree‑`d` polynomial passing through the remaining values (within a fixed tolerance). The reported index is the first index (smallest) that can be deemed an outlier under this criterion.
+
+2. Inputs  
+- Repeated datasets.  
+- Each dataset begins with an integer `d`.  
+- If `d` is nonzero, it is followed by `d + 3` real numbers representing a sequence of sampled values at consecutive integer positions (implicitly indexed from `0` to `d+2`).  
+- Input terminates when a dataset begins with `d = 0`.
+
+3. Outputs  
+- For each non-terminating dataset, outputs one integer: the index (0-based) of the detected outlier value.
+
+4. Preconditions  
+- `d > 0` for each processed dataset.  
+- Exactly `d + 3` real values are provided for each dataset.  
+- `d + 3` does not exceed 10.  
+- Assumption (implied by intended problem): there exists at least one index that satisfies the outlier criterion described in Postconditions.
+
+5. Postconditions  
+For each dataset, the program outputs an index `i` such that:  
+- There exists at least one other index `j` (`j != i`) for which the value at `j` differs by more than `0.1` from the value predicted at `j` by the unique degree‑`d` polynomial interpolating all points except indices `i` and `j`.  
+- For every index `i'` smaller than `i`, and for every `j` with `j != i'`, the value at `j` differs by at most `0.1` from the value predicted at `j` by the unique degree‑`d` polynomial interpolating all points except indices `i'` and `j`.  
+In other words, `i` is the smallest index that cannot be made consistent (within tolerance `0.1`) with all other points under the “remove two points, predict one of them from the rest” degree‑`d` interpolation test.
+
+6. Invariants  
+- Within a dataset, the sequence length is fixed at `n = d + 3`.  
+- All index reasoning is over the fixed range `[0, n-1]`.  
+- The tolerance used to judge inconsistency is constant at `0.1` for all datasets and all comparisons.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing values, or out-of-range `d`. Behavior is undefined if preconditions are violated.  
+- If no index satisfies the outlier criterion (contrary to the stated assumption), the produced output is not guaranteed to be meaningful.
+
+8. State Transitions (if applicable)  
+- The program processes datasets sequentially until a terminating `d = 0` is encountered.  
+- For each dataset, internal state is reset to reflect the new `d` and associated sequence values; no state is carried over between datasets beyond normal control progression.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on at most 10 values per dataset.  
+- Uses floating-point arithmetic; results depend on floating-point precision and the fixed comparison tolerance `0.1`.
+
+```

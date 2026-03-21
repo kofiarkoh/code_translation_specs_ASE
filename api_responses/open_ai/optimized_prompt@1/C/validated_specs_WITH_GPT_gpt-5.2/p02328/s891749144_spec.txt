@@ -1,0 +1,41 @@
+1. Functional Description  
+Reads a histogram described by a bar count and bar heights, then computes the maximum rectangular area that can be formed by choosing a contiguous range of bars and taking the rectangle height as the minimum height within that range. Prints this maximum area as a signed decimal integer followed by a newline.
+
+2. Inputs  
+- One signed decimal integer `w` read from standard input, representing the number of histogram bars.  
+- Then exactly `w` signed decimal integers, each a bar height, read from standard input.
+
+3. Outputs  
+- One signed decimal integer (in base 10) written to standard output: the maximum rectangular area, followed by a newline.
+
+4. Preconditions / Assumptions  
+- `w` is interpreted as a `long long int` value as read by `scanf` with the `%lld` conversion.  
+- `0 <= w <= 100000`. (The program uses fixed-size internal arrays of length 100001 and additionally writes a sentinel value at index `w`.)  
+- Exactly `w` heights are present in the input and are interpreted as `long long int` values as read by `scanf` with `%lld`.  
+- Heights are assumed to be non-negative for the histogram interpretation; the program does not validate this.  
+- All intermediate and final area computations are performed in signed `long long int`; if multiplication or other arithmetic overflows that type, behavior is undefined.  
+- No explicit input validation is performed; if input is missing or not parseable by the stated conversions, the program’s behavior is undefined.
+
+5. Postconditions / Result Definition  
+Let the input heights be \(h_0, h_1, \dots, h_{w-1}\). The program outputs:
+\[
+\max_{0 \le l \le r < w} \left(\min_{k \in [l,r]} h_k\right)\cdot (r-l+1)
+\]
+If `w == 0`, the output is `0`.
+
+6. Algorithmic/State Properties (observable semantics)  
+- The computation is performed in a single pass over the bars plus an additional finalization step achieved by treating an extra trailing bar of height 0, ensuring all candidate rectangles are considered before termination.  
+- Internally, it maintains a set of candidate bar heights with associated earliest start positions such that heights are strictly increasing in the maintained structure; when a lower height is encountered, it finalizes areas for prior heights that can no longer extend to the current position.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages or recovery are provided. Violations of the preconditions (including `w` out of range, insufficient input values, or arithmetic overflow) result in undefined behavior.
+
+8. Termination Behavior  
+- After reading the required inputs, the program computes the maximum area, prints it, and terminates. No persistent state is kept across runs.
+
+9. Non-functional Constraints (inferable)  
+- Time complexity is linear in `w` under the stated assumptions.  
+- Memory usage is linear in `w` and bounded by the fixed maximum capacity (100001 elements).
+
+10. C I/O Contract (to match the source program)  
+- The program uses C standard I/O (`<stdio.h>`) and reads/writes `long long int` values using the `%lld` format for both `scanf` and `printf`. No fixed-width integer format macros are required or assumed.

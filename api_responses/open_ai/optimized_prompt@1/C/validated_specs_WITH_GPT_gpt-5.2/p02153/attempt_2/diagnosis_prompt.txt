@@ -1,0 +1,421 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 3055 Don't Burn Kotatsu Turtle
+// 2019.4.7 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(x) putchar_unlocked(x)
+#else
+#define gc() getchar()
+#define pc(x) putchar(x)
+#endif
+int in()    // 非負整数の入力
+{
+	int n = 0, c = gc();
+	//	while (isspace(c)) c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void ins(char *s)  // 文字列の入力　スペース以下の文字で入力終了
+{
+	do *s = gc();
+	while (*s++ > ' ');
+	*(s - 1) = 0;
+}
+
+
+//// 優先度付きキュー（ダイクストラ法用）
+#define MAX 500000
+typedef struct { long long t; short r, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int r, int c, long long t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].t = t, que[i].r = r, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		i = min;
+	}
+}
+
+
+//// 本問題関連
+#define MAXV 1005
+char vis[MAXV][MAXV];
+char map[MAXV][MAXV]; int H, W;
+char bomb[MAXV][MAXV];
+int A, B;
+int mv[8][2] = { {-1,0},{0,1},{1,0},{0,-1},{-1,-1},{-1,1},{1,1},{1,-1} };
+int tt[8][2];
+
+long long dijkstra(int sr, int sc, int gr, int gc)
+{
+	int i, k, r, c, f, g, rr, cc;
+	long long t;
+
+	enq(sr, sc, 0);
+	while (qsize) {
+		r = que[0].r, c = que[0].c, t = que[0].t, deq();
+		if (r == gr && c == gc) return t;
+		if (vis[r][c]) continue;
+		vis[r][c] = 1;
+
+		f = bomb[r][c], k = (2-f) << 2;
+		for (i = 0; i < k; i++) {
+			rr = r + mv[i][0], cc = c + mv[i][1];
+			if (rr < 1 || rr > H || cc < 1 || cc > W) continue;
+			g = (map[rr][cc] == '#');
+			if (f && g) continue;
+			if ((i < 4 || g) && !vis[rr][cc]) enq(rr, cc, t + tt[i][g]);
+		}
+	}
+	return -1LL;
+}
+
+
+int main()
+{
+	int i, r, c, sr, sc, tr, tc;
+	long long ans;
+
+	H = in(), W = in(), A = in(), B = in();
+	for (r = 1; r <= H; r++) {
+		ins(map[r]+1);
+		for (c = 1; c <= W; c++) {
+			if (map[r][c] == '*') {
+				bomb[r][c] = 1;
+				for (i = 0; i < 8; i++)
+					bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+			}
+			else if (map[r][c] == 's') sr = r, sc = c;
+			else if (map[r][c] == 'g') tr = r, tc = c;
+		}
+	}
+	for (i = 0; i < 4; i++) tt[i][0] = A, tt[i][1] = A + B;
+	A <<= 1;
+	for (; i < 8; i++) tt[i][0] = A, tt[i][1] = A + B;
+
+	ans = dijkstra(sr, sc, tr, tc);
+	if (ans >= 0) printf("%lld\n", ans);
+	else puts("INF");
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid, subject to movement, terrain, and hazard constraints. If the goal is unreachable under these constraints, reports that no finite cost path exists.
+
+2. Inputs  
+- Grid height and width (positive integers).  
+- Two non-negative cost parameters:  
+  - Base movement cost.  
+  - Additional penalty for entering a blocked/rough cell type.  
+- A rectangular grid of characters describing each cell, including:  
+  - A start cell (exactly one).  
+  - A goal cell (exactly one).  
+  - Hazard source cells.  
+  - Blocked/rough cells.  
+  - Other traversable cells.
+
+3. Outputs  
+- If the goal is reachable: a single non-negative integer equal to the minimum total cost to reach the goal from the start.  
+- If the goal is not reachable: the literal string indicating infinity (no finite path).
+
+4. Preconditions  
+- Grid dimensions do not exceed the fixed internal maximum supported size.  
+- The grid contains exactly one start cell and exactly one goal cell.  
+- All grid rows are provided with the declared width.  
+- Cost parameters fit within the integer ranges used by the program such that the resulting minimum cost fits within signed 64-bit range.  
+- Assumption (required for memory safety): hazard sources are not placed on the outermost border cells, so that marking their adjacent cells stays within allocated bounds.
+
+5. Postconditions  
+- If a path exists that respects all movement and hazard rules, the output cost equals the minimum possible sum of step costs over all such paths.  
+- If no such path exists, the program outputs infinity.  
+- The computed result depends only on the provided grid and cost parameters.
+
+6. Invariants  
+- Movement is only between grid cells within bounds.  
+- Each step cost is non-negative and depends only on:  
+  - Whether the move is orthogonal or diagonal.  
+  - Whether the destination cell is blocked/rough.  
+- Hazard influence is derived solely from hazard source cells and their immediate neighbors (8-connected).  
+- A cell, once finalized as visited in the search, is not reconsidered for a lower cost.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery for malformed input. Behavior is undefined if preconditions are violated.  
+- If internal capacity for the search frontier is exceeded, behavior is undefined (no bounds checking on the internal queue).  
+- If the goal is unreachable, this is handled normally by outputting infinity.
+
+8. State Transitions (if applicable)  
+- The system transitions from an unvisited state to a visited state for grid cells as the minimum-cost search progresses.  
+- The search frontier evolves by adding candidate states (cell positions with accumulated cost) and removing the currently lowest-cost candidate until the goal is finalized or the frontier is empty.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for performance on large grids using a minimum-cost search with a priority-based frontier.  
+- Uses fixed-size global storage proportional to the maximum grid size and a fixed maximum frontier capacity.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAXH 1024
+#define MAXW 1024
+#define MAXN (MAXH * MAXW)
+
+/* Fixed maximum frontier capacity; per spec, overflow is undefined (no bounds checks). */
+#define HEAP_CAP (MAXN * 4)
+
+static char grid[MAXH][MAXW + 1];
+static unsigned char hazard_blocked[MAXH][MAXW]; /* 1 if cell is forbidden due to hazard influence */
+static unsigned char visited[MAXH][MAXW];
+static int64_t distv[MAXH][MAXW];
+
+typedef struct {
+    int r, c;
+    int64_t d;
+} Node;
+
+static Node heap[HEAP_CAP];
+static int heap_sz = 0;
+
+static void heap_push(Node x) {
+    /* Undefined behavior if heap_sz exceeds HEAP_CAP-1 (per spec). */
+    int i = heap_sz++;
+    heap[i] = x;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (heap[p].d <= heap[i].d) break;
+        Node tmp = heap[p];
+        heap[p] = heap[i];
+        heap[i] = tmp;
+        i = p;
+    }
+}
+
+static Node heap_pop(void) {
+    Node ret = heap[0];
+    heap_sz--;
+    heap[0] = heap[heap_sz];
+    int i = 0;
+    for (;;) {
+        int l = i * 2 + 1;
+        int r = l + 1;
+        int m = i;
+        if (l < heap_sz && heap[l].d < heap[m].d) m = l;
+        if (r < heap_sz && heap[r].d < heap[m].d) m = r;
+        if (m == i) break;
+        Node tmp = heap[i];
+        heap[i] = heap[m];
+        heap[m] = tmp;
+        i = m;
+    }
+    return ret;
+}
+
+static int is_rough(char ch) {
+    /* Specification does not define exact characters; choose narrow interpretation:
+       treat '#' as blocked/rough cell type that is still enterable with penalty. */
+    return ch == '#';
+}
+
+static int is_hazard_source(char ch) {
+    /* Specification does not define exact characters; choose narrow interpretation:
+       treat 'H' as hazard source. */
+    return ch == 'H';
+}
+
+int main(void) {
+    int H, W;
+    int64_t base_cost, rough_penalty;
+
+    if (scanf("%d %d", &H, &W) != 2) return 0;
+    if (scanf("%" SCNd64 " %" SCNd64, &base_cost, &rough_penalty) != 2) return 0;
+
+    int sr = -1, sc = -1, gr = -1, gc = -1;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", grid[i]) != 1) return 0;
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 'S') { sr = i; sc = j; }
+            else if (grid[i][j] == 'G') { gr = i; gc = j; }
+        }
+    }
+
+    /* Initialize hazard influence map: hazard sources and their 8-neighbors are forbidden. */
+    memset(hazard_blocked, 0, sizeof(hazard_blocked));
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (is_hazard_source(grid[i][j])) {
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int dc = -1; dc <= 1; dc++) {
+                        int ni = i + dr;
+                        int nj = j + dc;
+                        /* Per precondition, hazard sources are not on border, so this stays in-bounds. */
+                        hazard_blocked[ni][nj] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Dijkstra-like minimum-cost search with visited finalization. */
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            visited[i][j] = 0;
+            distv[i][j] = INT64_MAX;
+        }
+    }
+
+    heap_sz = 0;
+
+    /* If start is hazard-blocked, no path exists (narrow interpretation consistent with constraints). */
+    if (sr < 0 || sc < 0 || gr < 0 || gc < 0) {
+        /* Preconditions say exactly one S and one G; undefined otherwise. */
+        return 0;
+    }
+
+    if (!hazard_blocked[sr][sc]) {
+        distv[sr][sc] = 0;
+        heap_push((Node){sr, sc, 0});
+    }
+
+    /* 8-connected movement: orthogonal vs diagonal affects step cost. */
+    const int drs[8] = {-1,-1,-1, 0,0, 1,1,1};
+    const int dcs[8] = {-1, 0, 1,-1,1,-1,0,1};
+
+    while (heap_sz > 0) {
+        Node cur = heap_pop();
+        int r = cur.r, c = cur.c;
+        if (visited[r][c]) continue;
+        if (cur.d != distv[r][c]) continue;
+
+        visited[r][c] = 1;
+        if (r == gr && c == gc) break;
+
+        for (int k = 0; k < 8; k++) {
+            int nr = r + drs[k];
+            int nc = c + dcs[k];
+            if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+
+            if (hazard_blocked[nr][nc]) continue;
+
+            int diagonal = (drs[k] != 0 && dcs[k] != 0);
+            int64_t step = base_cost + (diagonal ? base_cost : 0);
+            if (is_rough(grid[nr][nc])) step += rough_penalty;
+
+            /* Non-negative step costs assumed by spec; no extra checks. */
+            int64_t nd = cur.d + step;
+            if (!visited[nr][nc] && nd < distv[nr][nc]) {
+                distv[nr][nc] = nd;
+                heap_push((Node){nr, nc, nd});
+            }
+        }
+    }
+
+    if (distv[gr][gc] == INT64_MAX || !visited[gr][gc]) {
+        /* Literal string indicating infinity (no finite path). */
+        printf("infinity\n");
+    } else {
+        printf("%" PRId64 "\n", distv[gr][gc]);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: FAILED
+
+Compiler stderr:
+api_responses/open_ai/optimized_prompt@1/C/validated_specs_WITH_GPT_gpt-5.2/p02153/attempt_1/generated_from_spec.c:76:19: error: expected ')'
+   76 |     if (scanf("%" SCNd64 " %" SCNd64, &base_cost, &rough_penalty) != 2) return 0;
+      |                   ^
+api_responses/open_ai/optimized_prompt@1/C/validated_specs_WITH_GPT_gpt-5.2/p02153/attempt_1/generated_from_spec.c:76:14: note: to match this '('
+   76 |     if (scanf("%" SCNd64 " %" SCNd64, &base_cost, &rough_penalty) != 2) return 0;
+      |              ^
+api_responses/open_ai/optimized_prompt@1/C/validated_specs_WITH_GPT_gpt-5.2/p02153/attempt_1/generated_from_spec.c:163:20: error: expected ')'
+  163 |         printf("%" PRId64 "\n", distv[gr][gc]);
+      |                    ^
+api_responses/open_ai/optimized_prompt@1/C/validated_specs_WITH_GPT_gpt-5.2/p02153/attempt_1/generated_from_spec.c:163:15: note: to match this '('
+  163 |         printf("%" PRId64 "\n", distv[gr][gc]);
+      |               ^
+2 errors generated.
+
+```

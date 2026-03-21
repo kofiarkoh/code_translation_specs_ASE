@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int idx;   /* 1-based column index */
+    int sum;   /* column sum */
+} ColInfo;
+
+static int cmp_colinfo(const void *a, const void *b) {
+    const ColInfo *x = (const ColInfo *)a;
+    const ColInfo *y = (const ColInfo *)b;
+
+    /* Non-increasing sum */
+    if (x->sum > y->sum) return -1;
+    if (x->sum < y->sum) return 1;
+
+    /* Tie-break: smaller index first */
+    if (x->idx < y->idx) return -1;
+    if (x->idx > y->idx) return 1;
+    return 0;
+}
+
+int main(void) {
+    int rows, cols;
+
+    while (scanf("%d %d", &rows, &cols) == 2) {
+        if (rows == 0 && cols == 0) {
+            break;
+        }
+
+        /* Preconditions say for non-terminating datasets both are positive. */
+        int *sums = (int *)calloc((size_t)cols, sizeof(int));
+        if (!sums) {
+            /* Behavior unspecified by spec on allocation failure; exit. */
+            return 0;
+        }
+
+        for (int r = 0; r < rows; r++) {
+            for (int c = 0; c < cols; c++) {
+                int v;
+                if (scanf("%d", &v) != 1) {
+                    /* Unspecified behavior on malformed/insufficient input; exit. */
+                    free(sums);
+                    return 0;
+                }
+                sums[c] += v; /* Overflow behavior unspecified by spec. */
+            }
+        }
+
+        ColInfo *info = (ColInfo *)malloc((size_t)cols * sizeof(ColInfo));
+        if (!info) {
+            free(sums);
+            return 0;
+        }
+
+        for (int c = 0; c < cols; c++) {
+            info[c].idx = c + 1;
+            info[c].sum = sums[c];
+        }
+
+        /* Produces the required ordering with stable tie-breaking by index. */
+        qsort(info, (size_t)cols, sizeof(ColInfo), cmp_colinfo);
+
+        for (int i = 0; i < cols; i++) {
+            if (i) putchar(' ');
+            printf("%d", info[i].idx);
+        }
+        putchar('\n');
+
+        free(info);
+        free(sums);
+    }
+
+    return 0;
+}

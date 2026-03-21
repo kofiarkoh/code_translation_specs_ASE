@@ -1,0 +1,152 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(void) {
+	const char *A = "Alice", *B = "Bob", *D = "Draw";
+	int T1, T2, R1, R2;
+	if (scanf("%d%d%d%d", &T1, &T2, &R1, &R2) != 4) return 1;
+	if (R1 < 0 || R2 < 0) {
+		puts(T1 < T2 ? A : (T1 > T2 ? B : D));
+	} else {
+		puts(R1 > R2 ? A : (R1 < R2 ? B : D));
+	}
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines and outputs the winner between two participants or declares a draw based on two provided comparison values, selecting which comparison to use depending on whether either of two result values is negative.
+
+2. Inputs  
+- Four integers provided from standard input in a single read operation:
+  - Two comparison values (one per participant).
+  - Two result values (one per participant).
+
+3. Outputs  
+- Writes exactly one line to standard output containing one of:
+  - The first participant’s name,
+  - The second participant’s name,
+  - Or a draw indicator.
+
+4. Preconditions  
+- Standard input must provide four integers.
+
+5. Postconditions  
+- If four integers are successfully read:
+  - If at least one result value is negative, the output is determined by comparing the two comparison values:
+    - First participant if the first comparison value is greater.
+    - Second participant if the second comparison value is greater.
+    - Draw if they are equal.
+  - Otherwise (both result values are non-negative), the output is determined by comparing the two result values:
+    - First participant if the first result value is greater.
+    - Second participant if the second result value is greater.
+    - Draw if they are equal.
+- Program terminates after producing the output.
+
+6. Invariants  
+- At most one line is produced.
+- The output is always one of the three fixed tokens: first participant, second participant, or draw.
+
+7. Error Handling / Exceptional Behavior  
+- If fewer than four integers are available/parsable from input, no output is produced and the program terminates with a non-zero status.
+
+8. State Transitions (if applicable)  
+- No persistent state; a single decision is made from the provided inputs and then the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+int main(void) {
+    int cmp1, cmp2;
+    int res1, res2;
+
+    if (scanf("%d %d %d %d", &cmp1, &cmp2, &res1, &res2) != 4) {
+        /* Fewer than four integers: produce no output and exit non-zero. */
+        return 1;
+    }
+
+    const char *out;
+
+    if (res1 < 0 || res2 < 0) {
+        /* At least one result is negative: compare comparison values. */
+        if (cmp1 > cmp2) out = "First";
+        else if (cmp2 > cmp1) out = "Second";
+        else out = "Draw";
+    } else {
+        /* Both results are non-negative: compare result values. */
+        if (res1 > res2) out = "First";
+        else if (res2 > res1) out = "Second";
+        else out = "Draw";
+    }
+
+    printf("%s\n", out);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02162/p02162_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02162/p02162_sample1_output.txt
+Input:
+5 10 7 3
+Expected:
+Alice
+Actual:
+First
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

@@ -1,0 +1,39 @@
+1. Functional Description  
+Computes, for a given undirected tree with \(n\) vertices, a single integer value defined as a modulo-\(10^9+7\) weighted alternating sum over all vertex counts \(i \in [0,n]\). The weights depend only on the parity of \(n-i\) and on the product of odd numbers up to \(n-i-1\) (i.e., a double-factorial–like term). The coefficients of this sum are derived from the tree structure via a root-at-0 decomposition and represent two complementary classes whose contributions are added and subtracted respectively.
+
+2. Inputs  
+- An integer \(n\): number of vertices.  
+- \(n-1\) unordered pairs of integers: edges of a graph on \(n\) vertices.
+
+3. Outputs  
+- One integer in \([0,10^9+6]\): the computed value modulo \(10^9+7\).
+
+4. Preconditions  
+- \(1 \le n \le 5000\).  
+- The \(n-1\) edges describe a simple, connected, acyclic undirected graph (a tree).  
+- Vertex labels in the input are 1-based and refer to valid vertices \(1..n\).  
+- Input is well-formed and complete.
+
+5. Postconditions  
+- The program outputs a value \(A \bmod 10^9+7\), where  
+  - \(A = \sum_{i=0}^{n} \left(C_0(i) - C_1(i)\right)\cdot W(n-i)\),  
+  - \(W(k)=0\) if \(k\) is odd, otherwise \(W(k)=\prod_{t=1}^{k/2}(2t-1)\) (computed modulo \(10^9+7\)),  
+  - \(C_0(i)\) and \(C_1(i)\) are tree-dependent coefficients determined by the rooted tree at vertex 0 and represent counts (modulo \(10^9+7\)) of two complementary categories for size \(i\).  
+- The printed value is normalized to be non-negative modulo \(10^9+7\).
+
+6. Invariants  
+- All intermediate arithmetic is performed modulo \(10^9+7\).  
+- The computed subtree size for each vertex equals the number of vertices in its rooted subtree (rooted at 0).  
+- For each vertex, the maintained coefficient tables are only defined/used for sizes within the vertex’s subtree size bounds.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input violates preconditions (non-tree, out-of-range \(n\), invalid vertex labels, insufficient data), behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Not applicable: the program is a single-run batch computation with no externally visible state beyond its output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is quadratic in \(n\) in the worst case due to combining size-indexed coefficient tables across edges.  
+- Memory usage is \(O(n^2)\) for storing size-indexed coefficients.  
+- Designed to fit within constraints implied by \(n \le 5000\).

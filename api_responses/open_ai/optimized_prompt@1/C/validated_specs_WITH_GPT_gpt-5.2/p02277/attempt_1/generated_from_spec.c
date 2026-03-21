@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    char label;
+    int key;
+    int orig_index; /* remembered original order for stability evaluation */
+} Record;
+
+static void merge_sort(Record *a, Record *tmp, int left, int right) {
+    /* Sort a[left:right) by key in nondecreasing order.
+       This merge is intentionally NOT stable: on equal keys it takes from the right half first. */
+    if (right - left <= 1) return;
+
+    int mid = left + (right - left) / 2;
+    merge_sort(a, tmp, left, mid);
+    merge_sort(a, tmp, mid, right);
+
+    int i = left, j = mid, k = left;
+    while (i < mid && j < right) {
+        if (a[i].key < a[j].key) {
+            tmp[k++] = a[i++];
+        } else {
+            /* For a[i].key == a[j].key, this chooses from the right half first -> not stable. */
+            tmp[k++] = a[j++];
+        }
+    }
+    while (i < mid) tmp[k++] = a[i++];
+    while (j < right) tmp[k++] = a[j++];
+
+    for (k = left; k < right; k++) a[k] = tmp[k];
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    Record *a = NULL;
+    Record *tmp = NULL;
+
+    if (n > 0) {
+        a = (Record *)malloc((size_t)n * sizeof(Record));
+        tmp = (Record *)malloc((size_t)n * sizeof(Record));
+    }
+
+    for (int i = 0; i < n; i++) {
+        /* Leading whitespace before %c to skip newlines/spaces between tokens. */
+        scanf(" %c %d", &a[i].label, &a[i].key);
+        a[i].orig_index = i;
+    }
+
+    if (n > 0) merge_sort(a, tmp, 0, n);
+
+    int stable = 1;
+    for (int i = 1; i < n; i++) {
+        if (a[i - 1].key == a[i].key) {
+            if (a[i - 1].orig_index > a[i].orig_index) {
+                stable = 0;
+                break;
+            }
+        }
+    }
+
+    printf("%s\n", stable ? "Stable" : "Not stable");
+    for (int i = 0; i < n; i++) {
+        printf("%c %d\n", a[i].label, a[i].key);
+    }
+
+    free(tmp);
+    free(a);
+    return 0;
+}

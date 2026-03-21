@@ -1,0 +1,410 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAXH 50
+#define MAXW 50
+
+typedef enum {
+    TERM_NONE = 0,
+    TERM_CLEARED,
+    TERM_HOLE,
+    TERM_BLOCK,
+    TERM_GOALMOVED
+} TermState;
+
+static int H, W;
+static char g[MAXH][MAXW + 1];
+
+static int px, py;          /* player position (row, col) */
+static int goalx0, goaly0;  /* original goal coordinates */
+
+static TermState term;
+
+/* Cell classification helpers (narrow interpretation based on spec) */
+static int in_bounds(int x, int y) {
+    return (x >= 0 && x < H && y >= 0 && y < W);
+}
+
+static int is_empty(char c) {
+    return (c == '.');
+}
+
+static int is_hole(char c) {
+    return (c == 'H');
+}
+
+static int is_goal(char c) {
+    return (c == 'G');
+}
+
+static int is_player_start(char c) {
+    return (c == 'P');
+}
+
+/* "Non-empty" means any cell not '.' (including holes/goal/blocks/specials). */
+static int is_nonempty(char c) {
+    return !is_empty(c);
+}
+
+/* Countdown-type block: represented as '3','2','1' (decrements to '.' after 3 steps). */
+static int is_countdown(char c) {
+    return (c == '1' || c == '2' || c == '3');
+}
+
+static void decrement_countdown_at(int x, int y) {
+    if (!in_bounds(x, y)) return;
+    char c = g[x][y];
+    if (c == '3') g[x][y] = '2';
+    else if (c == '2') g[x][y] = '1';
+    else if (c == '1') g[x][y] = '.';
+}
+
+/* Support below: boundary below last row is solid support. */
+static int supported_from_below(int x, int y) {
+    if (x == H - 1) return 1; /* boundary below grid is solid */
+    return is_nonempty(g[x + 1][y]);
+}
+
+/* Terminal condition detection in required priority order. */
+static void update_terminal(void) {
+    if (term != TERM_NONE) return;
+
+    /* 1) Player standing directly above goal cell */
+    if (px + 1 < H && is_goal(g[px + 1][py])) {
+        term = TERM_CLEARED;
+        return;
+    }
+
+    /* 2) Player standing directly above a hole cell */
+    if (px + 1 < H && is_hole(g[px + 1][py])) {
+        term = TERM_HOLE;
+        return;
+    }
+
+    /* 3) Player’s current cell is not empty */
+    if (!is_empty(g[px][py])) {
+        term = TERM_BLOCK;
+        return;
+    }
+
+    /* 4) The original goal cell no longer contains the goal symbol */
+    if (!in_bounds(goalx0, goaly0) || !is_goal(g[goalx0][goaly0])) {
+        term = TERM_GOALMOVED;
+        return;
+    }
+}
+
+/* Automatic updates: apply repeatedly until stable. */
+static void apply_hole_removals(int *changed) {
+    /* Any non-empty cell directly above a hole is removed. */
+    for (int x = 0; x < H - 1; x++) {
+        for (int y = 0; y < W; y++) {
+            if (is_hole(g[x + 1][y]) && is_nonempty(g[x][y])) {
+                g[x][y] = '.';
+                *changed = 1;
+            }
+        }
+    }
+}
+
+static void apply_player_fall(int *changed) {
+    /* Player falls vertically until supported from below by a non-empty cell. */
+    while (!supported_from_below(px, py)) {
+        px++;
+        *changed = 1;
+        if (px >= H) { /* should not happen due to boundary support, but keep safe */
+            px = H - 1;
+            break;
+        }
+    }
+}
+
+static void apply_block_fall(int *changed) {
+    /* Other non-empty cells may fall vertically as long as the three cells below
+       (down-left, down, down-right within bounds) are all empty; repeats until stable. */
+    /* Process bottom-up to avoid double-moving in one pass. */
+    for (int x = H - 2; x >= 0; x--) {
+        for (int y = 0; y < W; y++) {
+            if (is_nonempty(g[x][y])) {
+                /* Do not treat the player as a grid cell; player is separate. */
+                /* If a block is at player's coordinates, terminal will catch it. */
+                int ok = 1;
+                for (int dy = -1; dy <= 1; dy++) {
+                    int ny = y + dy;
+                    int nx = x + 1;
+                    if (ny < 0 || ny >= W) continue; /* "within bounds" only */
+                    if (!is_empty(g[nx][ny])) {
+                        ok = 0;
+                        break;
+                    }
+                }
+                if (ok && is_empty(g[x + 1][y])) {
+                    g[x + 1][y] = g[x][y];
+                    g[x][y] = '.';
+                    *changed = 1;
+                }
+            }
+        }
+    }
+}
+
+static void stabilize_world(void) {
+    for (;;) {
+        int changed = 0;
+
+        apply_hole_removals(&changed);
+        update_terminal();
+        if (term != TERM_NONE) return;
+
+        apply_player_fall(&changed);
+        update_terminal();
+        if (term != TERM_NONE) return;
+
+        apply_block_fall(&changed);
+        update_terminal();
+        if (term != TERM_NONE) return;
+
+        if (!changed) break;
+    }
+}
+
+/* Command implementations (narrow, local constraints as specified). */
+
+static int cmd_move_to_column(int target_col_1based) {
+    int desty = target_col_1based - 1;
+    if (desty < 0 || desty >= W) return 0;
+    if (!is_empty(g[px][desty])) return 0;
+
+    int step = (desty > py) ? 1 : -1;
+    int y = py;
+    while (y != desty) {
+        y += step;
+        /* Entire horizontal path is supported from below (no empty cell directly beneath). */
+        if (!supported_from_below(px, y)) return 0;
+        /* Also require traversed cell itself to be empty (narrowest reasonable). */
+        if (!is_empty(g[px][y])) return 0;
+    }
+
+    int oldx = px, oldy = py;
+    py = desty;
+
+    /* After successful player movement, decrement countdown beneath previous position. */
+    decrement_countdown_at(oldx + 1, oldy);
+    return 1;
+}
+
+static int is_unpushable(char c) {
+    /* Specification mentions "unpushable block type" but does not define symbols.
+       Narrowest interpretation: only '.' is not a block; everything non-empty is pushable. */
+    (void)c;
+    return 0;
+}
+
+static int is_unpullable(char c) {
+    /* Same as above: no explicit unpullable types defined. */
+    (void)c;
+    return 0;
+}
+
+static int cmd_push(int dir) {
+    int y1 = py + dir;
+    if (y1 < 0 || y1 >= W) return 0;
+    if (is_empty(g[px][y1])) return 0;
+
+    /* Find contiguous run of non-empty cells adjacent in push direction. */
+    int start = y1;
+    int end = y1;
+    while (end + dir >= 0 && end + dir < W && is_nonempty(g[px][end + dir])) {
+        end += dir;
+    }
+
+    /* Disallow if run contains an unpushable block type. */
+    for (int y = start; ; y += dir) {
+        if (is_unpushable(g[px][y])) return 0;
+        if (y == end) break;
+    }
+
+    /* Need at least one empty cell after the run to push into. */
+    int after = end + dir;
+    if (after < 0 || after >= W) return 0;
+    if (!is_empty(g[px][after])) return 0;
+
+    /* Shift the run by one cell. */
+    for (int y = end; ; y -= dir) {
+        g[px][y + dir] = g[px][y];
+        if (y == start) break;
+    }
+    g[px][start] = '.';
+
+    /* Push is not a player movement per spec; no countdown decrement. */
+    return 1;
+}
+
+static int cmd_pull(int dir) {
+    int newy = py + dir;
+    if (newy < 0 || newy >= W) return 0;
+    if (!is_empty(g[px][newy])) return 0;
+
+    int blocky = py - dir;
+    if (blocky < 0 || blocky >= W) return 0;
+    if (is_empty(g[px][blocky])) return 0;
+    if (is_unpullable(g[px][blocky])) return 0;
+
+    int oldx = px, oldy = py;
+
+    /* Move player */
+    py = newy;
+
+    /* Pull block into player's previous cell */
+    g[oldx][oldy] = g[oldx][blocky];
+    g[oldx][blocky] = '.';
+
+    decrement_countdown_at(oldx + 1, oldy);
+    return 1;
+}
+
+static int cmd_climb(int dir) {
+    int sidey = py + dir;
+    if (sidey < 0 || sidey >= W) return 0;
+
+    /* Adjacent non-empty cell to climb onto/over */
+    if (is_empty(g[px][sidey])) return 0;
+
+    /* Two required upper cells are empty: (px-1,py) and (px-1,sidey) */
+    if (px - 1 < 0) return 0;
+    if (!is_empty(g[px - 1][py])) return 0;
+    if (!is_empty(g[px - 1][sidey])) return 0;
+
+    int oldx = px, oldy = py;
+    px = px - 1;
+    py = sidey;
+
+    decrement_countdown_at(oldx + 1, oldy);
+    return 1;
+}
+
+static int cmd_get_down(int dir) {
+    int sidey = py + dir;
+    int downx = px + 1;
+    if (sidey < 0 || sidey >= W) return 0;
+    if (downx >= H) return 0;
+
+    /* Both the side cell and the lower-diagonal cell are empty. */
+    if (!is_empty(g[px][sidey])) return 0;
+    if (!is_empty(g[downx][sidey])) return 0;
+
+    int oldx = px, oldy = py;
+    px = downx;
+    py = sidey;
+
+    decrement_countdown_at(oldx + 1, oldy);
+    return 1;
+}
+
+static void die_unrecognized_action(void) {
+    exit(1);
+}
+
+int main(void) {
+    while (scanf("%d %d", &H, &W) == 2) {
+        if (H == 0 && W == 0) break;
+
+        if (H < 1 || W < 1 || H > MAXH || W > MAXW) {
+            /* Preconditions violated; undefined. Keep minimal safe behavior. */
+            return 1;
+        }
+
+        /* Read grid */
+        px = py = 0;
+        goalx0 = goaly0 = 0;
+        for (int i = 0; i < H; i++) {
+            if (scanf("%50s", g[i]) != 1) return 1;
+            g[i][W] = '\0';
+            for (int j = 0; j < W; j++) {
+                if (is_player_start(g[i][j])) {
+                    px = i; py = j;
+                    g[i][j] = '.'; /* player start converted to empty */
+                } else if (is_goal(g[i][j])) {
+                    goalx0 = i; goaly0 = j; /* last one encountered wins */
+                }
+            }
+        }
+
+        term = TERM_NONE;
+        update_terminal();
+
+        int ncmd = 0;
+        if (scanf("%d", &ncmd) != 1) return 1;
+
+        for (int k = 0; k < ncmd; k++) {
+            char action[64];
+            char param[64];
+            if (scanf("%63s %63s", action, param) != 2) return 1;
+
+            if (term != TERM_NONE) {
+                /* Still must read commands, but no effect. */
+                continue;
+            }
+
+            int accepted = 0;
+
+            if (strcmp(action, "move") == 0) {
+                /* move to column (1-based) */
+                char *endp = NULL;
+                long col = strtol(param, &endp, 10);
+                if (endp != param && *endp == '\0') {
+                    accepted = cmd_move_to_column((int)col);
+                } else {
+                    accepted = 0;
+                }
+            } else if (strcmp(action, "push") == 0) {
+                int dir = 0;
+                if (strcmp(param, "left") == 0) dir = -1;
+                else if (strcmp(param, "right") == 0) dir = 1;
+                else dir = 0;
+                if (dir != 0) accepted = cmd_push(dir);
+            } else if (strcmp(action, "pull") == 0) {
+                int dir = 0;
+                if (strcmp(param, "left") == 0) dir = -1;
+                else if (strcmp(param, "right") == 0) dir = 1;
+                else dir = 0;
+                if (dir != 0) accepted = cmd_pull(dir);
+            } else if (strcmp(action, "climb") == 0) {
+                int dir = 0;
+                if (strcmp(param, "left") == 0) dir = -1;
+                else if (strcmp(param, "right") == 0) dir = 1;
+                else dir = 0;
+                if (dir != 0) accepted = cmd_climb(dir);
+            } else if (strcmp(action, "getdown") == 0) {
+                int dir = 0;
+                if (strcmp(param, "left") == 0) dir = -1;
+                else if (strcmp(param, "right") == 0) dir = 1;
+                else dir = 0;
+                if (dir != 0) accepted = cmd_get_down(dir);
+            } else {
+                die_unrecognized_action();
+            }
+
+            update_terminal();
+            if (term != TERM_NONE) continue;
+
+            if (accepted) {
+                stabilize_world();
+            }
+        }
+
+        /* Final outcome line based on terminal priority order (persisted). */
+        update_terminal();
+        const char *out = "Gave up";
+        if (term == TERM_CLEARED) out = "Cleared";
+        else if (term == TERM_HOLE) out = "Death by hole";
+        else if (term == TERM_BLOCK) out = "Death by block";
+        else if (term == TERM_GOALMOVED) out = "Death by walking goal";
+        else out = "Gave up";
+
+        printf("%s\n", out);
+    }
+    return 0;
+}

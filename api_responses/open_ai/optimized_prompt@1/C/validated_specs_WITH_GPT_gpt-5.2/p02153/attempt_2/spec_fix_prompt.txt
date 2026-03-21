@@ -1,0 +1,251 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 3055 Don't Burn Kotatsu Turtle
+// 2019.4.7 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(x) putchar_unlocked(x)
+#else
+#define gc() getchar()
+#define pc(x) putchar(x)
+#endif
+int in()    // 非負整数の入力
+{
+	int n = 0, c = gc();
+	//	while (isspace(c)) c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void ins(char *s)  // 文字列の入力　スペース以下の文字で入力終了
+{
+	do *s = gc();
+	while (*s++ > ' ');
+	*(s - 1) = 0;
+}
+
+
+//// 優先度付きキュー（ダイクストラ法用）
+#define MAX 500000
+typedef struct { long long t; short r, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int r, int c, long long t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].t = t, que[i].r = r, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i]; que[i] = que[min]; que[min] = qt;
+		i = min;
+	}
+}
+
+
+//// 本問題関連
+#define MAXV 1005
+char vis[MAXV][MAXV];
+char map[MAXV][MAXV]; int H, W;
+char bomb[MAXV][MAXV];
+int A, B;
+int mv[8][2] = { {-1,0},{0,1},{1,0},{0,-1},{-1,-1},{-1,1},{1,1},{1,-1} };
+int tt[8][2];
+
+long long dijkstra(int sr, int sc, int gr, int gc)
+{
+	int i, k, r, c, f, g, rr, cc;
+	long long t;
+
+	enq(sr, sc, 0);
+	while (qsize) {
+		r = que[0].r, c = que[0].c, t = que[0].t, deq();
+		if (r == gr && c == gc) return t;
+		if (vis[r][c]) continue;
+		vis[r][c] = 1;
+
+		f = bomb[r][c], k = (2-f) << 2;
+		for (i = 0; i < k; i++) {
+			rr = r + mv[i][0], cc = c + mv[i][1];
+			if (rr < 1 || rr > H || cc < 1 || cc > W) continue;
+			g = (map[rr][cc] == '#');
+			if (f && g) continue;
+			if ((i < 4 || g) && !vis[rr][cc]) enq(rr, cc, t + tt[i][g]);
+		}
+	}
+	return -1LL;
+}
+
+
+int main()
+{
+	int i, r, c, sr, sc, tr, tc;
+	long long ans;
+
+	H = in(), W = in(), A = in(), B = in();
+	for (r = 1; r <= H; r++) {
+		ins(map[r]+1);
+		for (c = 1; c <= W; c++) {
+			if (map[r][c] == '*') {
+				bomb[r][c] = 1;
+				for (i = 0; i < 8; i++)
+					bomb[r + mv[i][0]][c + mv[i][1]] = 1;
+			}
+			else if (map[r][c] == 's') sr = r, sc = c;
+			else if (map[r][c] == 'g') tr = r, tc = c;
+		}
+	}
+	for (i = 0; i < 4; i++) tt[i][0] = A, tt[i][1] = A + B;
+	A <<= 1;
+	for (; i < 8; i++) tt[i][0] = A, tt[i][1] = A + B;
+
+	ans = dijkstra(sr, sc, tr, tc);
+	if (ans >= 0) printf("%lld\n", ans);
+	else puts("INF");
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid, subject to movement, terrain, and hazard constraints. If the goal is unreachable under these constraints, reports that no finite cost path exists.
+
+2. Inputs  
+- Grid height and width (positive integers).  
+- Two non-negative cost parameters:  
+  - Base movement cost.  
+  - Additional penalty for entering a blocked/rough cell type.  
+- A rectangular grid of characters describing each cell, including:  
+  - A start cell (exactly one).  
+  - A goal cell (exactly one).  
+  - Hazard source cells.  
+  - Blocked/rough cells.  
+  - Other traversable cells.
+
+3. Outputs  
+- If the goal is reachable: a single non-negative integer equal to the minimum total cost to reach the goal from the start.  
+- If the goal is not reachable: the literal string indicating infinity (no finite path).
+
+4. Preconditions  
+- Grid dimensions do not exceed the fixed internal maximum supported size.  
+- The grid contains exactly one start cell and exactly one goal cell.  
+- All grid rows are provided with the declared width.  
+- Cost parameters fit within the integer ranges used by the program such that the resulting minimum cost fits within signed 64-bit range.  
+- Assumption (required for memory safety): hazard sources are not placed on the outermost border cells, so that marking their adjacent cells stays within allocated bounds.
+
+5. Postconditions  
+- If a path exists that respects all movement and hazard rules, the output cost equals the minimum possible sum of step costs over all such paths.  
+- If no such path exists, the program outputs infinity.  
+- The computed result depends only on the provided grid and cost parameters.
+
+6. Invariants  
+- Movement is only between grid cells within bounds.  
+- Each step cost is non-negative and depends only on:  
+  - Whether the move is orthogonal or diagonal.  
+  - Whether the destination cell is blocked/rough.  
+- Hazard influence is derived solely from hazard source cells and their immediate neighbors (8-connected).  
+- A cell, once finalized as visited in the search, is not reconsidered for a lower cost.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery for malformed input. Behavior is undefined if preconditions are violated.  
+- If internal capacity for the search frontier is exceeded, behavior is undefined (no bounds checking on the internal queue).  
+- If the goal is unreachable, this is handled normally by outputting infinity.
+
+8. State Transitions (if applicable)  
+- The system transitions from an unvisited state to a visited state for grid cells as the minimum-cost search progresses.  
+- The search frontier evolves by adding candidate states (cell positions with accumulated cost) and removing the currently lowest-cost candidate until the goal is finalized or the frontier is empty.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for performance on large grids using a minimum-cost search with a priority-based frontier.  
+- Uses fixed-size global storage proportional to the maximum grid size and a fixed maximum frontier capacity.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Missing constraint / underspecified I/O and implementation requirements (compile-time portability details).
+
+B. What the current specification may be missing or misstating  
+- The spec does not constrain how 64-bit integers must be read/printed in C, nor does it require inclusion of the correct headers/macros for format specifiers.  
+- The generated program used `SCNd64`/`PRId64` but did not include `<inttypes.h>`, causing compilation failure. This indicates the spec is silent about (or too abstract about) the exact C-level I/O conventions needed to produce a valid program.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the required C I/O contract for 64-bit values: either  
+  - mandate using standard `long long` with `%lld` for both input and output (as the source does), or  
+  - mandate using `<inttypes.h>` and the `SCN*`/`PRI*` macros if `int64_t` is used.  
+- More generally, specify that the implementation must compile as C11 with the stated compiler flags, which implies any required headers for chosen format macros must be included.
+
+D. Why this clarification is supported by the source program  
+- The source program reads `A` and `B` as `int` via a custom fast integer reader and prints the final answer with `printf("%lld\n", ans);` where `ans` is `long long`. It does not rely on `inttypes.h` macros at all.  
+- Therefore, the ground-truth behavior includes a concrete, compilable approach to integer I/O; the current spec leaves this open, allowing a generated implementation that accidentally omits required headers and fails to compile.
+
+```

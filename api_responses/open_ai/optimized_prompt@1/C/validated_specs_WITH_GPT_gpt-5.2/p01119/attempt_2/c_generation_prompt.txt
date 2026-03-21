@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, the program evaluates a two-pan balance scale problem with a fixed multiset of available weights. Each available weight may be placed on the same pan as the object, on the opposite pan, or not used.  
+
+- If every requested target weight can be balanced exactly using the available weights, the program outputs `0`.  
+- Otherwise, consider only those targets that are **not** exactly balanceable. The program finds the **smallest non-negative integer** `d` such that **each** of these unbalanceable targets can be made consistent with the scale outcomes by allowing an absolute deviation of exactly `d`: for every such target `u`, there exists some achievable signed net outcome `q` (depending on `u`) with `|u − q| = d`.  
+- If no single common `d` satisfies this condition for all unbalanceable targets, the program outputs `-1`.
+
+2. Inputs  
+The input consists of multiple datasets, processed sequentially until termination. For each dataset:  
+- An integer `n`: number of target weights.  
+- An integer `m`: number of available weights.  
+- `n` non-negative integers: the target weights.  
+- `m` non-negative integers: the available weights.  
+Input terminates when `n` is zero (in that case, the dataset is not processed).
+
+3. Outputs  
+For each dataset, output a single integer on its own line:  
+- `0` if all targets are exactly balanceable; otherwise the minimal common deviation `d` as defined above; or `-1` if no such `d` exists.
+
+4. Preconditions / Assumptions  
+- All inputs are non-negative integers and each dataset is well-formed with exactly `n + m` subsequent integers after `n` and `m`.  
+- Practical constraints implied by fixed internal storage: `n ≤ 102` and `m ≤ 12` (the program enumerates `3^m` signed outcomes and stores them in a fixed-size array).  
+- Intermediate arithmetic is assumed to fit within 32-bit signed integer range; behavior is unspecified if overflow occurs.
+
+5. Semantics and Edge Cases  
+- Let `Q` be the multiset of all signed net outcomes obtainable from the available weights by assigning each weight a coefficient in `{−1, 0, +1}` and summing. (This includes `0` and may include negative values.)  
+- A target `t` is considered **exactly balanceable** if there exists some `q ∈ Q` with `q = t` and `t > 0`. (Targets equal to `0` are not treated as exactly balanceable by this program’s check.)  
+- If at least one target is not exactly balanceable, the program computes the set of candidate deviations `d` for each such target as `{ |t − q| : q ∈ Q }` and outputs the minimum `d` that lies in the intersection of these sets across all unbalanceable targets.  
+- If there are no unbalanceable targets, the output is `0`. If there are unbalanceable targets but the intersection is empty, the output is `-1`.
+
+6. State and Dataset Independence  
+- Each dataset is processed independently. Internal tables used for membership/intersection are reset per dataset; no information is carried across datasets.
+
+```

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs an integer representing the length of a shortest string that can be formed by concatenating the first input string followed by the second input string, while allowing an overlap where a suffix of the first string matches a prefix of the second string. If no such overlap exists, the result is the sum of the two lengths.
+
+2. Inputs  
+- An integer length value.  
+- A first string intended to have that length.  
+- A second string intended to have that length.
+
+3. Outputs  
+- A single integer: the computed minimal combined length under the allowed overlap rule.
+
+4. Preconditions  
+- The length value is non-negative.  
+- Both provided strings are present and have length exactly equal to the given length.  
+- The strings contain no embedded whitespace (as they are read as single tokens).  
+- Sufficient stack space exists to allocate storage proportional to the given length.
+
+5. Postconditions  
+- The output value equals:  
+  - `2 * N - k`, where `k` is the maximum integer in `[0, N]` such that the last `k` characters of the first string are identical to the first `k` characters of the second string.  
+- If no positive overlap exists, the output is `2 * N`.  
+- If the strings are identical, the output is `N`.
+
+6. Invariants  
+- The reported overlap length (implicitly `k = 2*N - output`) is always within `[0, N]`.  
+- The output is always within `[N, 2*N]` under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or the strings are not of the declared length, behavior is undefined (may produce an incorrect result or exhibit runtime faults).  
+- If the length is negative or too large for available stack memory, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no persistent state beyond producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the input length.  
+- Execution time is bounded by a function of the input length (at most quadratic in the length in the worst case).
+
+```

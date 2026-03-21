@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <string.h>
+
+/*
+ * The specification does not define the exact derivation of the category index
+ * from (A, B, N). To avoid inventing functionality, we choose the narrowest
+ * reasonable interpretation that still uses A, B, and N: a deterministic mapping
+ * based on their sum.
+ *
+ * Assumption per spec: all derived indices fall within the fixed table size;
+ * otherwise behavior is undefined. We therefore do not add bounds checks.
+ */
+
+#define TABLE_SIZE 1000000
+
+int main(void) {
+    long long N;
+    long long ignored;
+
+    if (scanf("%lld", &N) != 1) {
+        /* Precondition says N exists; if not, terminate quietly. */
+        return 0;
+    }
+    if (scanf("%lld", &ignored) != 1) {
+        /* Precondition says the second integer exists; if not, terminate quietly. */
+        return 0;
+    }
+
+    unsigned char used[TABLE_SIZE];
+    memset(used, 0, sizeof(used));
+
+    int feasible = 1;
+
+    for (;;) {
+        long long A, B;
+        int r1 = scanf("%lld", &A);
+        if (r1 != 1) break;
+        int r2 = scanf("%lld", &B);
+        if (r2 != 1) break;
+
+        /* Derived category index (intentionally simple and deterministic). */
+        unsigned long long idx = (unsigned long long)(A + B + N);
+
+        /* Undefined behavior if idx is out of bounds, per specification. */
+        if (feasible) {
+            if (used[idx]) {
+                feasible = 0;
+            } else {
+                used[idx] = 1;
+            }
+        }
+        /* If infeasible, continue consuming input but do not change decision. */
+    }
+
+    puts(feasible ? "POSSIBLE" : "IMPOSSIBLE");
+    return 0;
+}

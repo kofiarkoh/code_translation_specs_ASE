@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer count and a character sequence, evaluates the first count characters of the sequence by treating one designated character as +1 and all other characters as −1, and outputs an affirmative response if the resulting total is positive; otherwise outputs a negative response.
+
+2. Inputs  
+- An integer value representing the number of characters to evaluate.  
+- A non-empty, whitespace-delimited character sequence.
+
+3. Outputs  
+- Exactly one line containing either an affirmative word or a negative word, indicating whether the computed total is strictly greater than zero.
+
+4. Preconditions  
+- The integer input is successfully provided and is non-negative.  
+- The character sequence is successfully provided.  
+- The sequence contains at least as many characters as the provided count.  
+- Assumption: Only the character `'R'` is intended to contribute +1; any other character contributes −1.
+
+5. Postconditions  
+- If the number of `'R'` characters among the first count characters is greater than half of the count, the program outputs the affirmative word.  
+- Otherwise (including equality), the program outputs the negative word.
+
+6. Invariants  
+- After processing any prefix of the first count characters, the running total equals:  
+  (number of `'R'` in the processed prefix) − (number of non-`'R'` in the processed prefix).  
+- The running total changes by exactly +1 or −1 per processed character.
+
+7. Error Handling / Exceptional Behavior  
+- If either required input value cannot be read, the program terminates immediately with a non-zero exit status and produces no specified output.  
+- If the count exceeds the available sequence length, behavior is not defined by this specification (the code does not guard against this).
+
+8. State Transitions (if applicable)  
+- Initial state: no inputs consumed, total = 0.  
+- After successful input consumption: ready to evaluate.  
+- After evaluation: total finalized.  
+- Terminal state: one-line decision output produced (or early termination on input failure).
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the provided count.  
+- Uses a fixed upper bound on the stored input sequence length; inputs exceeding that bound are not supported by this specification.
+
+```

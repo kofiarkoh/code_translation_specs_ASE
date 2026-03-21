@@ -1,0 +1,222 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Maintains a dynamic sequence of integers that supports insertion, removal, and order-statistic queries over two logical partitions of the sequence: a “first half” and a “second half”. The structure guarantees that the first half has size greater than or equal to the second half, and their sizes differ by at most one. It can return the k-th smallest or k-th largest value within either half, and can remove and return one element from the sequence according to the structure’s defined removal rule.
+
+2. Inputs  
+- One or more test cases.  
+- Each test case begins with an integer count of operations. A count of zero terminates all processing.  
+- Each operation is specified by an operation code, optionally followed by an integer parameter (either a value to insert or an index k for a query), depending on the operation code.
+
+3. Outputs  
+- For each operation that is not an insertion, outputs a single integer result on its own line.  
+- After completing all operations of a test case, outputs a single line containing the literal word `end`.
+
+4. Preconditions  
+- For each test case, the number of operations is non-negative and fits within the implementation’s fixed capacity.  
+- Any query that requests the k-th smallest/largest element within a half uses a positive k that does not exceed the current size of that half.  
+- Any removal operation is only issued when the overall sequence is non-empty.  
+- Inserted and returned integer values fit within the integer range used by the program.
+
+5. Postconditions  
+For each test case, after each operation:  
+- Insertion: the inserted value becomes part of the overall sequence, and the two halves are rebalanced so that:  
+  - size(first half) ≥ size(second half)  
+  - size(first half) − size(second half) ≤ 1  
+- Removal: one value is removed from the overall sequence and printed; the halves are rebalanced to preserve the size constraints above. The removed value is the most recently added element among those currently in the first half (i.e., the “top” element of the first half under the structure’s internal ordering).  
+- Minimum/maximum queries: prints the requested order statistic within the specified half without modifying the sequence:  
+  - “k-th smallest in a half” returns the k-th smallest value among elements currently in that half.  
+  - “k-th largest in a half” returns the k-th largest value among elements currently in that half.
+
+6. Invariants  
+- The overall sequence is partitioned into two halves whose union equals the set of stored elements and which are disjoint.  
+- The size relationship between halves is always maintained:  
+  - size(first half) ≥ size(second half)  
+  - size(first half) − size(second half) ≤ 1  
+- For each half, order-statistic queries (k-th smallest/largest) are consistent with the multiset of values currently contained in that half (including duplicates).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., querying with k out of range, removing from an empty structure, exceeding capacity, or malformed input), behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Start of each test case: the sequence is empty.  
+- Insertion transitions the state by adding one element and possibly moving one element from the second half to the first half to restore balance.  
+- Removal transitions the state by removing one element from the first half and possibly moving one element from the second half to the first half to restore balance.  
+- Query operations do not change state.  
+- End of test case: state is discarded and a new empty state is created for the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for a bounded maximum number of stored elements per test case (fixed upper limit).  
+- Intended to support efficient per-operation performance suitable for large operation counts, using additional memory proportional to the maximum capacity.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input/operation encoding assumption (wrong abstraction of the command language)  
+- Wrong transition rule for insertion/removal (how halves are populated and rebalanced)  
+- Wrong query semantics (order-statistic meaning within each half)
+
+B. What the current specification may be missing or misstating  
+- The specification does not define the actual operation codes and their numeric meanings. The source uses integer opcodes `0..9` with optional integer arguments, but the spec (and generated program) assumes letter commands (`I/R/A/B/C/D`). This is a fundamental mismatch: the generated program never recognizes the numeric commands, so it produces no query outputs.  
+- The specification’s description of “k-th smallest/largest within a half” is likely incorrect for the source. The source does not maintain sorted halves; it maintains *monotone stacks/queues* of prefix/suffix minima/maxima that support queries like “the k-th minimum from one end” rather than “k-th order statistic by value.”  
+- The specification’s removal rule (“most recently added element among those currently in the first half”) is not grounded in the source’s actual data-structure behavior. In the source, the first half behaves like a stack (LIFO) and the second half like a queue (FIFO), and rebalancing moves elements between halves in a specific way; this is not the same as “time-ordered halves” or “boundary element of insertion order.”
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the command set as numeric opcodes, including which opcodes take an extra integer parameter and which half (first/second) and which statistic (min/max) they query.  
+- Clarify what “k-th” means in queries: whether it is k-th smallest/largest by value (true order statistic) or k-th element in a monotone-min/monotone-max structure (e.g., k-th minimum when scanning from a particular end).  
+- Clarify the concrete semantics of the two halves: which end insertions go to, which end deletions come from, and the exact rebalancing rule (when and which element is moved between halves). This includes the fact that the two halves are not “earliest vs latest by insertion time” but are maintained by stack/queue operations plus balancing.
+
+D. Why this clarification is supported by the source program  
+- The `main()` dispatch is entirely numeric: `op = in(); if (op==0) add(ALL, in()); else if (op==1) a=del(ALL); else if (op==4) a=gmin(FH, in()); ...` up to `op==9`. This directly contradicts the spec’s unspecified/letter-based command language and explains why the generated program prints only `end`.  
+- The functions `gmin(id, th)` and `gmax(id, th)` index into `min[][]`/`max[][]` arrays that are maintained as monotone sequences (note the while-pop loops for `SH` and the conditional push-only behavior for `FH`). That is characteristic of “k-th element in a monotone min/max structure” (e.g., k-th smallest prefix-minimum), not a general k-th order statistic among all values in the half.  
+- `add(ALL, a)` always inserts into `SH` first, then possibly moves one element from `SH` to `FH` via `del(SH)` if `FH` is smaller. `del(ALL)` removes from `FH` (specifically `del(FH)` which pops from the *back*), then may rebalance by moving from `SH` to `FH`. This establishes specific stack/queue end behaviors and a specific balancing trigger that the current spec does not accurately capture.
+
+```

@@ -1,0 +1,136 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+static int cmp_int32(const void *a, const void *b) {
+    /* Specification precondition: ordering comparisons are well-defined
+       (no overflow in differences used for ordering). We still avoid subtraction. */
+    int32_t x = *(const int32_t *)a;
+    int32_t y = *(const int32_t *)b;
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+}
+
+static size_t upper_bound_int32(const int32_t *arr, size_t n, int32_t key) {
+    /* Returns first index i in [0..n] such that arr[i] > key (i.e., count of <= key). */
+    size_t lo = 0, hi = n;
+    while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2;
+        if (arr[mid] <= key) lo = mid + 1;
+        else hi = mid;
+    }
+    return lo;
+}
+
+int main(void) {
+    int n_in;
+    if (scanf("%d", &n_in) != 1) return 0;
+    if (n_in < 0) return 0;
+    size_t n = (size_t)n_in;
+
+    int32_t *a = NULL;
+    int64_t *pref = NULL;
+
+    if (n > 0) {
+        a = (int32_t *)malloc(n * sizeof(*a));
+        pref = (int64_t *)malloc((n + 1) * sizeof(*pref));
+        if (!a || !pref) {
+            free(a);
+            free(pref);
+            return 0;
+        }
+    } else {
+        /* Still allocate prefix of size 1 for uniformity */
+        pref = (int64_t *)malloc(1 * sizeof(*pref));
+        if (!pref) return 0;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        int tmp;
+        if (scanf("%d", &tmp) != 1) {
+            free(a);
+            free(pref);
+            return 0;
+        }
+        a[i] = (int32_t)tmp;
+    }
+
+    if (n > 0) qsort(a, n, sizeof(*a), cmp_int32);
+
+    pref[0] = 0;
+    for (size_t i = 0; i < n; i++) {
+        /* Specification precondition: sums fit in signed 64-bit, so no overflow here. */
+        pref[i + 1] = pref[i] + (int64_t)a[i];
+    }
+
+    int m_in;
+    if (scanf("%d", &m_in) != 1) {
+        free(a);
+        free(pref);
+        return 0;
+    }
+    if (m_in < 0) {
+        free(a);
+        free(pref);
+        return 0;
+    }
+    size_t m = (size_t)m_in;
+
+    int32_t *thr = NULL;
+    int64_t *req = NULL;
+
+    if (m > 0) {
+        thr = (int32_t *)malloc(m * sizeof(*thr));
+        req = (int64_t *)malloc(m * sizeof(*req));
+        if (!thr || !req) {
+            free(a);
+            free(pref);
+            free(thr);
+            free(req);
+            return 0;
+        }
+    }
+
+    for (size_t i = 0; i < m; i++) {
+        int tmp;
+        if (scanf("%d", &tmp) != 1) {
+            free(a);
+            free(pref);
+            free(thr);
+            free(req);
+            return 0;
+        }
+        thr[i] = (int32_t)tmp;
+    }
+
+    for (size_t i = 0; i < m; i++) {
+        long long tmp;
+        if (scanf("%lld", &tmp) != 1) {
+            free(a);
+            free(pref);
+            free(thr);
+            free(req);
+            return 0;
+        }
+        req[i] = (int64_t)tmp;
+    }
+
+    for (size_t i = 0; i < m; i++) {
+        size_t k = (n > 0) ? upper_bound_int32(a, n, thr[i]) : 0;
+        int64_t sum = pref[k];
+        if (sum >= req[i]) {
+            puts("Yes");
+        } else {
+            puts("No");
+        }
+    }
+
+    free(a);
+    free(pref);
+    free(thr);
+    free(req);
+    return 0;
+}
+```

@@ -1,0 +1,494 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 64 /* fixed-size storage; spec says bounds are assumed and not validated */
+
+static int char_index(char ch) {
+    if (ch >= 'A' && ch <= 'Z') return (int)(ch - 'A');
+    if (ch >= 'a' && ch <= 'z') return 26 + (int)(ch - 'a');
+    return -1; /* unspecified behavior if non-alphabetic; keep a sentinel */
+}
+
+static char index_char(int idx) {
+    if (idx >= 0 && idx < 26) return (char)('A' + idx);
+    if (idx >= 26 && idx < 52) return (char)('a' + (idx - 26));
+    return '?';
+}
+
+/*
+  We must lexicographically minimize the 52D cost vector (-c0, -c1, ..., -c51),
+  i.e., lexicographically maximize counts c0, then c1, etc.
+
+  Implement by iterating k=0..51:
+    - Consider only edges whose character index is >= k (i.e., not "better" than k).
+    - Among those, find the maximum number of edges with character == k that can be
+      included in a perfect matching.
+    - Fix that maximum for k by restricting to matchings that achieve it, and proceed.
+
+  This is done by:
+    - For each k, binary search / incremental search on required number t of k-edges.
+    - Feasibility check: can we find a perfect matching using only allowed edges,
+      and using at least t edges of type k?
+    - Feasibility is reduced to a max-flow on a bipartite graph with an extra
+      "k-edge budget" dimension via splitting each row into two nodes:
+        row -> rowK (capacity 1) and row -> rowN (capacity 1)
+      and columns split similarly:
+        colK -> col (cap 1), colN -> col (cap 1)
+      For an edge (row i, col j):
+        if char==k: connect rowK -> colK (cap 1)
+        else:       connect rowN -> colN (cap 1)
+      Then:
+        - total flow must be N (perfect matching)
+        - flow through rowK->... edges equals number of k-edges used; enforce >= t
+          by requiring at least t units to go through the K-part. We do this by
+          limiting non-k usage to at most N-t: cap(source->rowN)=1 but we can
+          additionally cap total flow into colN side to N-t by adding a gate node.
+      To keep it simple and small, we instead enforce "at least t k-edges" by
+      trying all possibilities t from current best down/up and checking if max
+      number of k-edges achievable is >= t; we compute the maximum directly by
+      min-cost on 0/1? But we avoid costs: we compute maximum k-edges among perfect
+      matchings by building a flow network where k-edges have capacity 1 and we
+      maximize their count subject to perfect matching. This can be done by:
+        - First find any perfect matching in allowed graph.
+        - Then run augmenting cycles to increase k-edge count (a standard technique),
+          but that's complex.
+      Given small N (assumed), we can compute maximum k-edges by converting to
+      min-cost max-flow with scalar costs: cost = 0 for k-edges, cost = 1 for non-k,
+      and minimize total cost among perfect matchings; then max k-edges = N - minCost.
+      This preserves the lexicographic step because earlier characters are excluded
+      by allowed set, and we only optimize count of current k.
+
+  We implement successive shortest augmenting path min-cost max-flow with potentials
+  on a graph of size O(N^2). Costs are small integers (0/1). This is deterministic
+  only up to internal tie-breaking, which the spec allows.
+*/
+
+typedef struct Edge {
+    int to, rev;
+    int cap;
+    int cost;
+} Edge;
+
+typedef struct Graph {
+    int n;
+    int head_dummy; /* unused; keep struct simple */
+    Edge adj[20000];
+    int adj_next[20000];
+    int first[600];
+    int ec;
+} Graph;
+
+static void g_init(Graph *g, int n) {
+    g->n = n;
+    g->ec = 0;
+    for (int i = 0; i < n; i++) g->first[i] = -1;
+}
+
+static void g_add_edge(Graph *g, int u, int v, int cap, int cost) {
+    int e1 = g->ec++;
+    int e2 = g->ec++;
+    g->adj[e1].to = v; g->adj[e1].rev = e2; g->adj[e1].cap = cap; g->adj[e1].cost = cost;
+    g->adj[e2].to = u; g->adj[e2].rev = e1; g->adj[e2].cap = 0;   g->adj[e2].cost = -cost;
+    g->adj_next[e1] = g->first[u]; g->first[u] = e1;
+    g->adj_next[e2] = g->first[v]; g->first[v] = e2;
+}
+
+static int min_cost_max_flow(Graph *g, int s, int t, int maxf, int *out_cost) {
+    const int INF = 0x3f3f3f3f;
+    static int dist[600], pv_v[600], pv_e[600], inq[600];
+    static int pot[600];
+
+    for (int i = 0; i < g->n; i++) pot[i] = 0;
+
+    int flow = 0;
+    int cost = 0;
+
+    while (flow < maxf) {
+        for (int i = 0; i < g->n; i++) {
+            dist[i] = INF;
+            pv_v[i] = -1;
+            pv_e[i] = -1;
+            inq[i] = 0;
+        }
+        dist[s] = 0;
+
+        /* SPFA is fine for small graphs and handles negative reduced costs if any */
+        int q[2000], qh = 0, qt = 0;
+        q[qt++] = s;
+        inq[s] = 1;
+
+        while (qh != qt) {
+            int v = q[qh++];
+            if (qh == 2000) qh = 0;
+            inq[v] = 0;
+            for (int ei = g->first[v]; ei != -1; ei = g->adj_next[ei]) {
+                Edge *e = &g->adj[ei];
+                if (e->cap <= 0) continue;
+                int nd = dist[v] + e->cost + pot[v] - pot[e->to];
+                if (nd < dist[e->to]) {
+                    dist[e->to] = nd;
+                    pv_v[e->to] = v;
+                    pv_e[e->to] = ei;
+                    if (!inq[e->to]) {
+                        inq[e->to] = 1;
+                        q[qt++] = e->to;
+                        if (qt == 2000) qt = 0;
+                    }
+                }
+            }
+        }
+
+        if (pv_v[t] == -1) break; /* cannot send more */
+
+        for (int i = 0; i < g->n; i++) {
+            if (dist[i] < INF) pot[i] += dist[i];
+        }
+
+        int addf = maxf - flow;
+        for (int v = t; v != s; v = pv_v[v]) {
+            Edge *e = &g->adj[pv_e[v]];
+            if (e->cap < addf) addf = e->cap;
+        }
+
+        for (int v = t; v != s; v = pv_v[v]) {
+            int ei = pv_e[v];
+            Edge *e = &g->adj[ei];
+            Edge *r = &g->adj[e->rev];
+            e->cap -= addf;
+            r->cap += addf;
+            cost += addf * e->cost;
+        }
+        flow += addf;
+    }
+
+    if (out_cost) *out_cost = cost;
+    return flow;
+}
+
+/* Build assignment network for a given allowed set and a given "current character" k.
+   Costs: 0 for edges with char==k, 1 for other allowed edges.
+   Then min-cost perfect matching gives max count of k as N - minCost.
+   Also can extract one matching from residual graph after flow. */
+static int solve_for_k(int N, int grid_idx[MAXN][MAXN], int allowed_min_idx,
+                       int k, int *out_min_cost, int match_col_for_row[MAXN]) {
+    /* Nodes: source, rows, cols, sink */
+    int S = 0;
+    int row0 = 1;
+    int col0 = row0 + N;
+    int T = col0 + N;
+    int V = T + 1;
+
+    Graph g;
+    g_init(&g, V);
+
+    for (int i = 0; i < N; i++) g_add_edge(&g, S, row0 + i, 1, 0);
+    for (int j = 0; j < N; j++) g_add_edge(&g, col0 + j, T, 1, 0);
+
+    /* Keep track of edge indices from row i to col j to extract matching */
+    static int edge_id[MAXN][MAXN];
+    for (int i = 0; i < N; i++) for (int j = 0; j < N; j++) edge_id[i][j] = -1;
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            int idx = grid_idx[i][j];
+            if (idx < allowed_min_idx) continue; /* disallow better-than-allowed characters */
+            int cost = (idx == k) ? 0 : 1;
+            int u = row0 + i;
+            int v = col0 + j;
+            int before_ec = g.ec;
+            g_add_edge(&g, u, v, 1, cost);
+            edge_id[i][j] = before_ec; /* forward edge index */
+        }
+    }
+
+    int minc = 0;
+    int f = min_cost_max_flow(&g, S, T, N, &minc);
+    if (f != N) return 0; /* should not happen under spec assumptions */
+
+    if (out_min_cost) *out_min_cost = minc;
+
+    if (match_col_for_row) {
+        for (int i = 0; i < N; i++) match_col_for_row[i] = -1;
+        /* In residual graph, a used row->col edge has cap==0 (was 1). */
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                int ei = edge_id[i][j];
+                if (ei < 0) continue;
+                /* forward edge */
+                if (g.adj[ei].cap == 0) {
+                    match_col_for_row[i] = j;
+                    break;
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    static int grid_idx[MAXN][MAXN];
+    char line[4096];
+
+    /* consume endline after N if present */
+    int c;
+    do { c = getchar(); } while (c != '\n' && c != EOF);
+
+    for (int i = 0; i < N; i++) {
+        if (!fgets(line, (int)sizeof(line), stdin)) return 0;
+        for (int j = 0; j < N; j++) {
+            char ch = line[j];
+            grid_idx[i][j] = char_index(ch);
+        }
+    }
+
+    int counts[52];
+    for (int k = 0; k < 52; k++) counts[k] = 0;
+
+    int allowed_min_idx = 0;
+    int final_match[MAXN];
+    for (int i = 0; i < N; i++) final_match[i] = -1;
+
+    /* Successively fix maximum counts for each character in order */
+    for (int k = 0; k < 52; k++) {
+        int minc = 0;
+        /* Solve min-cost perfect matching where cost counts non-k edges among allowed */
+        (void)solve_for_k(N, grid_idx, allowed_min_idx, k, &minc, NULL);
+        int max_ck = N - minc;
+        counts[k] = max_ck;
+
+        /* Now restrict future matchings to those achieving this max for k by
+           disallowing characters < k+1 (i.e., keep allowed_min_idx = k+1),
+           and additionally we must ensure exactly max_ck of k are used.
+           The simplest faithful approach is to "commit" by actually constructing
+           one matching that achieves the lexicographic optimum overall at the end.
+           We do that by progressively raising allowed_min_idx, but that alone
+           doesn't enforce the achieved max_ck for k in later steps.
+           Therefore, we instead compute the final matching in one pass using
+           weighted scalarization with a large base:
+             minimize sum_{selected} W[idx], where W[idx] = B^(idx) with B>N,
+           which exactly enforces lexicographic minimization of (-counts).
+           Use 64-bit costs with saturation to avoid UB; N is assumed small.
+        */
+    }
+
+    /* One-pass exact lexicographic via big-base weights:
+       Minimize sum W[idx] where W[idx] = B^(idx), B = N+1.
+       Since selecting a smaller idx increases its count, and we want to maximize
+       counts lexicographically, we instead minimize sum of weights of selected
+       characters with weights increasing with idx. This makes the optimizer prefer
+       smaller indices, but does it match lexicographic on counts? Yes with base>B:
+         total = sum_k c_k * B^k; minimizing total lexicographically minimizes c_0,
+       but we need maximize c_0. So we minimize sum ( (N - c_k) * B^k ) equivalently
+       maximize c_k lexicographically. Since N is constant, minimizing
+         sum (N*B^k) - sum(c_k*B^k) is equivalent to maximizing sum(c_k*B^k),
+       which is not lexicographic. So we cannot use this scalarization.
+
+       Therefore, we must enforce counts step-by-step. We do it by building a flow
+       network with 52 layers of constraints is too large; instead, we implement
+       step-by-step with feasibility by adding a constraint on number of k-edges
+       using min-cost flow with costs 0/1 and then fixing by forbidding some non-k
+       edges until the min-cost equals N-max_ck. Narrowest approach: for each k,
+       we permanently remove all edges with character == k from consideration after
+       recording max_ck, and conceptually "select" them later. But selection depends
+       on matching structure, so we must actually construct a matching.
+
+       Given the spec allows any matching among those with identical count vector,
+       we can construct the matching by iterating k and forcing exactly max_ck
+       edges of type k using min-cost flow with an added lower-bound on k-edges.
+       We implement this by trying to find a perfect matching with at most (N-max_ck)
+       non-k edges (since k-edges = N - non-k). This is achieved by adding a gate
+       that limits how many non-k edges can be used.
+    */
+
+    /* Recompute and build final matching with progressive constraints */
+    int fixed_counts[52];
+    for (int k = 0; k < 52; k++) fixed_counts[k] = 0;
+
+    /* We'll maintain a set of allowed edges: those with idx >= current k (since
+       earlier characters' counts are already fixed by constraints). Additionally,
+       for each k we enforce at least fixed_counts[k] k-edges by limiting non-k
+       usage to N - fixed_counts[k] in the subproblem where only idx>=k are allowed.
+       We solve sequentially and at the end extract matching from last solve. */
+
+    /* First, compute fixed_counts by sequential optimization with constraints. */
+    int prev_constraints[52];
+    for (int k = 0; k < 52; k++) prev_constraints[k] = 0;
+
+    for (int k = 0; k < 52; k++) {
+        /* Build a constrained min-cost flow:
+           - Only edges with idx >= k are allowed.
+           - For edges with idx == k: cost 0
+             else (idx > k): cost 1
+           - Additionally, for each earlier character p<k, we must ensure exactly
+             prev_constraints[p] occurrences. But since edges with idx < k are
+             disallowed, earlier characters cannot appear, so their counts are
+             already fixed by having been "accounted for" in earlier stages.
+           This implies we must actually commit to a partial matching, which we
+           are not doing. To stay faithful without inventing more, we choose the
+           narrowest workable interpretation: implement the lexicographic selection
+           directly by repeated min-cost flow with edge filtering and then take the
+           matching from the final stage k=0 only, because that matching already
+           lexicographically maximizes counts when costs are 52D. However, scalar
+           min-cost with 0/1 does not capture 52D.
+
+           Therefore, implement true 52D lexicographic min-cost via successive
+           shortest augmenting path where each path is compared by 52D vector.
+           We can do this by representing distances as 52-bitset-like integer arrays
+           and using Dijkstra with lexicographic compare. N is small; use O(V^2).
+        */
+        break;
+    }
+
+    /* True 52D lexicographic min-cost max-flow for assignment */
+    {
+        /* Nodes: S, rows, cols, T */
+        int S = 0;
+        int row0 = 1;
+        int col0 = row0 + N;
+        int T = col0 + N;
+        int V = T + 1;
+
+        Graph g;
+        g_init(&g, V);
+
+        for (int i = 0; i < N; i++) g_add_edge(&g, S, row0 + i, 1, 0);
+        for (int j = 0; j < N; j++) g_add_edge(&g, col0 + j, T, 1, 0);
+
+        static int edge_id[MAXN][MAXN];
+        for (int i = 0; i < N; i++) for (int j = 0; j < N; j++) edge_id[i][j] = -1;
+
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                int idx = grid_idx[i][j];
+                int u = row0 + i;
+                int v = col0 + j;
+                int before = g.ec;
+                /* store idx in cost field temporarily? cost is int; keep 0 and use idx separately not possible.
+                   We'll encode idx as cost and treat it specially in lexicographic distance. */
+                g_add_edge(&g, u, v, 1, idx);
+                edge_id[i][j] = before;
+            }
+        }
+
+        /* Lexicographic shortest augmenting path with potentials in 52D:
+           Distance is a 52-int vector; adding an edge with character idx contributes
+           -1 at idx. We want lexicographically smallest total vector, so we run
+           shortest path where "smaller" means lexicographically smaller vector.
+           Potentials are also 52D; for simplicity and small sizes, we skip potentials
+           and use Bellman-Ford-like relaxation with lexicographic compare on vectors.
+           Graph is small; we do SPFA with vector distances.
+        */
+        typedef struct {
+            int v[52];
+        } Vec;
+
+        auto int vec_less(const Vec *a, const Vec *b) {
+            for (int i = 0; i < 52; i++) {
+                if (a->v[i] != b->v[i]) return a->v[i] < b->v[i];
+            }
+            return 0;
+        }
+        auto void vec_set_inf(Vec *a) {
+            for (int i = 0; i < 52; i++) a->v[i] = 0x3f3f3f3f;
+        }
+        auto void vec_zero(Vec *a) {
+            for (int i = 0; i < 52; i++) a->v[i] = 0;
+        }
+        auto Vec vec_add_edge(const Vec *a, int idx) {
+            Vec r = *a;
+            if (idx >= 0 && idx < 52) r.v[idx] -= 1;
+            return r;
+        }
+
+        static Vec dist[600];
+        static int pv_v[600], pv_e[600], inq[600];
+
+        int flow = 0;
+        while (flow < N) {
+            for (int i = 0; i < V; i++) {
+                vec_set_inf(&dist[i]);
+                pv_v[i] = -1;
+                pv_e[i] = -1;
+                inq[i] = 0;
+            }
+            vec_zero(&dist[S]);
+
+            int q[4000], qh = 0, qt = 0;
+            q[qt++] = S;
+            inq[S] = 1;
+
+            while (qh != qt) {
+                int u = q[qh++];
+                if (qh == 4000) qh = 0;
+                inq[u] = 0;
+                for (int ei = g.first[u]; ei != -1; ei = g.adj_next[ei]) {
+                    Edge *e = &g.adj[ei];
+                    if (e->cap <= 0) continue;
+                    int v = e->to;
+                    Vec nd = dist[u];
+                    /* edge cost stored as idx for row->col edges; others have 0 */
+                    if (u >= row0 && u < row0 + N && v >= col0 && v < col0 + N) {
+                        nd = vec_add_edge(&dist[u], e->cost);
+                    }
+                    if (vec_less(&nd, &dist[v])) {
+                        dist[v] = nd;
+                        pv_v[v] = u;
+                        pv_e[v] = ei;
+                        if (!inq[v]) {
+                            inq[v] = 1;
+                            q[qt++] = v;
+                            if (qt == 4000) qt = 0;
+                        }
+                    }
+                }
+            }
+
+            if (pv_v[T] == -1) break; /* should not happen */
+
+            int addf = 1;
+            for (int v = T; v != S; v = pv_v[v]) {
+                Edge *e = &g.adj[pv_e[v]];
+                if (e->cap < addf) addf = e->cap;
+            }
+            for (int v = T; v != S; v = pv_v[v]) {
+                int ei = pv_e[v];
+                Edge *e = &g.adj[ei];
+                Edge *r = &g.adj[e->rev];
+                e->cap -= addf;
+                r->cap += addf;
+            }
+            flow += addf;
+        }
+
+        for (int i = 0; i < N; i++) final_match[i] = -1;
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                int ei = edge_id[i][j];
+                if (ei >= 0 && g.adj[ei].cap == 0) {
+                    final_match[i] = j;
+                    break;
+                }
+            }
+        }
+
+        for (int k = 0; k < 52; k++) counts[k] = 0;
+        for (int i = 0; i < N; i++) {
+            int j = final_match[i];
+            if (j >= 0) {
+                int idx = grid_idx[i][j];
+                if (idx >= 0 && idx < 52) counts[idx]++;
+            }
+        }
+    }
+
+    /* Output sorted multiset */
+    for (int k = 0; k < 52; k++) {
+        for (int t = 0; t < counts[k]; t++) putchar(index_char(k));
+    }
+    putchar('\n');
+    return 0;
+}

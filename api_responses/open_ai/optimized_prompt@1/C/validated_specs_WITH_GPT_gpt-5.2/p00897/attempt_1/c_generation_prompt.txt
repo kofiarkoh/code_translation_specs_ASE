@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum total travel distance between a designated origin city and a designated destination city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”) that can be fully restored at designated refueling cities. If no feasible route exists under the refueling/range constraints, reports that no route is possible.
+
+2. Inputs  
+For each dataset (repeated until termination):  
+- An integer specifying the number of roads.  
+- An integer specifying the number of refueling cities.  
+- An integer specifying the base capacity unit, which is scaled by a factor of 10 to obtain the maximum travel range.  
+- Two city names: the origin city and the destination city.  
+- For each road: two city names (endpoints) and a nonnegative integer distance.  
+- For each refueling city: a city name.
+
+3. Outputs  
+For each dataset, outputs a single integer:  
+- The minimum total distance from origin to destination achievable while never traversing a road that would exceed the remaining range since the last refuel, with automatic refuel to full capacity upon arriving at a refueling city; or  
+- `-1` if the destination is unreachable under these constraints.
+
+4. Preconditions  
+- The dataset is well-formed and provides exactly the required number of road and refueling entries.  
+- City names are non-empty and fit within the supported maximum name length.  
+- The number of distinct cities, the scaled capacity, and the road distances are within internal fixed limits such that all required states can be represented.  
+- Road distances are treated as range consumption units and are assumed not to exceed the maximum representable range state.
+
+5. Postconditions  
+- If a feasible constrained route exists, the output equals the minimum possible sum of road distances among all feasible routes from origin to destination.  
+- If no feasible constrained route exists, the output is `-1`.  
+- Each dataset is processed independently; no results or state carry over between datasets.
+
+6. Invariants  
+- Travel along a road is permitted only if the remaining range before traversal is at least the road’s distance; remaining range decreases by that distance after traversal.  
+- Upon being at a refueling city, the remaining range is considered restored to full capacity for subsequent travel decisions.  
+- The computed best-known total distance for any (city, remaining-range) state never increases during computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery or diagnostic output is provided for malformed input, out-of-range sizes, allocation failures, or internal limit violations; behavior in such cases is unspecified.  
+- If a refueling city name does not correspond to any city present in the road network or the designated endpoints, it has no effect.
+
+8. State Transitions (if applicable)  
+- State is modeled as (current city, remaining range).  
+- Transition along a road from city A to city B with distance d is allowed when remaining range ≥ d, producing state (B, remaining range − d) and increasing total distance by d.  
+- If the current city is a refueling city, the effective remaining range for outgoing transitions is full capacity (regardless of the incoming remaining range).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of cities and on the capacity-related state space; inputs exceeding these bounds are not supported.  
+- Memory usage includes storage proportional to the number of roads plus a distance table proportional to (number of cities × capacity).  
+- Produces one line of output per dataset and terminates when the road count input indicates no further datasets.
+
+```

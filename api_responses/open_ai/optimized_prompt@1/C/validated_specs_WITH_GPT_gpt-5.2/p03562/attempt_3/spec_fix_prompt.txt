@@ -1,0 +1,205 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/* https://probgate.org/viewanalysis.php?pid=978 */
+#include <stdio.h>
+#include <string.h>
+
+#define N	4000
+#define L	62
+#define K	((N + L - 1) / L)
+#define MD	998244353
+
+void shift(long long *aa, long long *bb, int s) {
+	int h, q, r;
+
+	memset(bb, 0, K * sizeof *bb);
+	q = s / L, r = s % L;
+	for (h = 0; h + q < K; h++) {
+		bb[h + q] |= (aa[h] & (1LL << L - r) - 1) << r;
+		if (h + q + 1 < K && r > 0)
+			bb[h + q + 1] |= aa[h] >> L - r;
+	}
+}
+
+void xor(long long *aa, long long *bb) {
+	int h;
+
+	for (h = 0; h < K; h++)
+		aa[h] ^= bb[h];
+}
+
+int main() {
+	static char s[N + 1];
+	static long long aa[K], bb_[K], cc[K], dd_[K], *bb = bb_, *dd = dd_;
+	static int p2[N];
+	int m, n, l, i, j, p, ans;
+
+	scanf("%d%s", &m, s), n = strlen(s);
+	for (i = 0; i < n; i++)
+		if (s[i] == '1')
+			aa[(n - 1 - i) / L] |= 1LL << (n - 1 - i) % L;
+	while (m--) {
+		scanf("%s", s), l = strlen(s);
+		memset(bb, 0, K * sizeof *bb);
+		for (i = 0; i < l; i++)
+			if (s[i] == '1')
+				bb[(l - 1 - i) / L] |= 1LL << (l - 1 - i) % L;
+		i = j = N - 1;
+		while (1) {
+			long long *tt;
+			int tmp;
+
+			while (i >= 0 && (dd[i / L] & 1LL << i % L) == 0)
+				i--;
+			while (j >= 0 && (bb[j / L] & 1LL << j % L) == 0)
+				j--;
+			if (i < j)
+				tt = dd, dd = bb, bb = tt, tmp = i, i = j, j = tmp;
+			if (j < 0)
+				break;
+			shift(bb, cc, i - j);
+			xor(dd, cc);
+		}
+	}
+	l = N;
+	while (l > 0 && (dd[(l - 1) / L] & 1LL << (l - 1) % L) == 0)
+		l--;
+	p = 1;
+	for (i = 0; i < n; i++) {
+		p2[i] = p;
+		p = p * 2 % MD;
+	}
+	memset(bb, 0, K * sizeof *bb);
+	ans = 0;
+	for (i = n - 1; i >= 0; i--) {
+		int x = aa[i / L] >> i % L & 1, y = bb[i / L] >> i % L & 1;
+
+		if (i >= l - 1 && x == 1)
+			ans = (ans + p2[i - l + 1]) % MD;
+		if (x != y) {
+			if (i >= l - 1) {
+				shift(dd, cc, i - l + 1);
+				xor(bb, cc);
+			} else {
+				if (x > y)
+					ans = (ans + 1) % MD;
+				break;
+			}
+		}
+	}
+	if (i < 0)
+		ans = (ans + 1) % MD;
+	printf("%d\n", ans);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads an integer \(m\), an initial binary string \(A\), and then \(m\) additional binary strings. It performs polynomial arithmetic over \(\mathrm{GF}(2)\) (bitwise XOR for addition/subtraction, and left-shift for multiplication by \(x^k\)) on fixed-size bitsets up to a compile-time maximum degree. After processing the \(m\) additional strings with an internal XOR/shift reduction procedure, it computes and outputs (modulo a fixed prime) a count derived from comparing the initial polynomial \(A\) against a family of polynomials generated from the final reduced polynomial via XOR with shifted copies. The counting is performed by a deterministic high-to-low bit scan with early termination in certain low-degree cases.
+
+2. Inputs  
+- An integer \(m \ge 0\).  
+- A nonempty binary string \(A\) (characters ‘0’ and ‘1’), interpreted as a polynomial over \(\mathrm{GF}(2)\) with the leftmost character as the highest-degree coefficient.  
+- \(m\) further nonempty binary strings \(B_1,\dots,B_m\), each interpreted the same way.
+
+3. Outputs  
+- A single integer: the computed count reduced modulo \(998244353\).
+
+4. Preconditions / Constraints  
+- All strings contain only ‘0’ and ‘1’ and are nonempty.  
+- The program uses a fixed internal maximum bit-length \(N=4000\). Any input string longer than \(N\) causes out-of-bounds behavior (undefined).  
+- Internally, all polynomials are represented only up to degree \(N-1\); higher degrees are not supported.  
+- No validation is performed for malformed input or I/O failure; behavior is undefined in such cases.
+
+5. Semantics of Polynomial Representation  
+- A binary string of length \(t\) represents the polynomial \(\sum_{k=0}^{t-1} s[t-1-k]\cdot x^k\) over \(\mathrm{GF}(2)\).  
+- The “degree” of a represented polynomial is the index of its highest set bit; the zero polynomial has no set bits.
+
+6. Reduction Phase (processing the \(m\) additional polynomials)  
+- The initial string \(A\) is parsed and stored separately for later use in the counting phase.  
+- The program maintains an internal polynomial state \(D\) (stored in a fixed-size bitset) that is updated once per additional input string.  
+- For each additional polynomial \(B\), the program repeatedly performs the following until \(B\) becomes the zero polynomial (no set bits within the supported range):  
+  - Let \(i\) be the current highest set bit index of \(D\) (within \([0, N-1]\)), and \(j\) the current highest set bit index of \(B\).  
+  - If \(i < j\), swap \(D\) and \(B\) (so the current \(D\) has degree at least that of \(B\)).  
+  - Replace \(D\) by \(D \oplus (B \ll (i-j))\), i.e., XOR \(D\) with \(B\) shifted left so that their leading terms align.  
+- This is an XOR/shift Euclidean-style reduction over \(\mathrm{GF}(2)\). (The program’s behavior depends on the initial contents of \(D\); as written, \(D\) is not explicitly initialized from \(A\) before these updates.)
+
+7. Determination of the Final Reduced Polynomial’s Degree  
+- After all \(m\) updates, let \(L\) be one plus the index of the highest set bit of the final \(D\) (so \(L\in[0,N]\)); if \(D\) is the zero polynomial, then \(L=0\).
+
+8. Counting Phase (what is counted)  
+The program computes an integer `ans` modulo \(998244353\) by scanning the bits of \(A\) from its most significant bit down to its least significant bit, maintaining an auxiliary polynomial state \(R\) (initially zero) and conditionally XORing \(R\) with shifted copies of \(D\). The logic is:
+
+- Precompute powers of two modulo \(998244353\) up to the length of \(A\).  
+- Initialize \(R := 0\) and `ans := 0`.  
+- For each bit position \(i\) from \(\deg(A)\) down to \(0\) (where \(\deg(A)=|A|-1\) in the string’s indexing):  
+  - Let \(x\) be bit \(i\) of \(A\), and \(y\) be bit \(i\) of \(R\).  
+  - If \(i \ge L-1\) and \(x=1\), add \(2^{\,i-(L-1)}\) (modulo \(998244353\)) to `ans`.  
+  - If \(x \ne y\), then:  
+    - If \(i \ge L-1\), update \(R := R \oplus (D \ll (i-(L-1)))\) and continue scanning.  
+    - Otherwise (i.e., \(i < L-1\)), the scan terminates immediately after optionally adding 1 to `ans` when \(x>y\) (with bits treated as integers 0/1).  
+- If the scan completes all the way past the least significant bit without terminating early (i.e., no break occurred), then add 1 to `ans`.  
+- Output `ans` modulo \(998244353\).
+
+This phase defines the program’s result; it is not specified as a simple “count of integer multiples below \(A\)”, but rather as the value produced by the above deterministic bitwise comparison-and-update process driven by \(A\), the final reduced polynomial \(D\), and its effective length \(L\).
+
+9. Exceptional / Edge Cases  
+- If the final reduced polynomial \(D\) is zero (so \(L=0\)), the counting logic still runs with the condition \(i \ge L-1\) always true; the program’s output is whatever the above procedure yields in that case.  
+- If \(A\) is all zeros, the scan still executes over its length and follows the same rules.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / wrong assumption about allowed implementation details (memory management / required headers), i.e., the spec is not constraining the generated program to be self-contained and compile under the same assumptions as the source.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* auxiliary storage (the powers-of-two table) is allocated. The generated code chose dynamic allocation (`malloc`/`free`), which introduces an additional requirement: including `<stdlib.h>`.  
+- The source program does not use dynamic allocation at all; it uses fixed-size static arrays (`static int p2[N];`). The current spec doesn’t reflect that the intended implementation is fixed-memory and header-minimal, so a generator can legally choose `malloc` and then fail to compile if it omits the header.
+
+C. What general behavior should be clarified in the specification  
+- Clarify whether the implementation must avoid dynamic memory allocation and instead use fixed-size arrays bounded by `N` (as the source does), or, if dynamic allocation is permitted, clarify that the program must include the necessary standard headers and remain valid ISO C (no implicit declarations).  
+- More generally: specify compilation/portability constraints (e.g., “must compile as C11 with standard headers; no implicit function declarations”) and whether auxiliary arrays are bounded by `N` and can be statically allocated.
+
+D. Why this clarification is supported by the source program  
+- The source includes only `<stdio.h>` and `<string.h>` and relies exclusively on statically allocated storage (`static int p2[N];`, static bitset arrays). There is no `malloc`/`free` usage, so no need for `<stdlib.h>`.  
+- Therefore, a faithful spec should either (1) constrain implementations to the same fixed-memory approach (preventing `malloc` from being introduced), or (2) explicitly require correct inclusion of headers if alternative allocation strategies are allowed. The failure indicates the current spec leaves this under-specified.
+
+```

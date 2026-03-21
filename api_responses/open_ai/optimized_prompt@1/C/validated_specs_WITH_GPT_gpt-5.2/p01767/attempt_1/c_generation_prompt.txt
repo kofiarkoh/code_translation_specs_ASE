@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a multiset of integers and then answers multiple independent queries. For each query, it determines whether the sum of all input integers that are less than or equal to a given threshold is at least a given required total, and outputs an affirmative or negative response accordingly.
+
+2. Inputs  
+- An integer `n`: the count of available integers.  
+- A sequence of `n` integers: the available values.  
+- An integer `m`: the number of queries.  
+- A sequence of `m` integers: per-query threshold values.  
+- A sequence of `m` signed 64-bit integers: per-query required totals.
+
+3. Outputs  
+- Exactly `m` lines, one per query, each being either an affirmative response (“Yes”) or a negative response (“No”).  
+- For query `i`, the output is affirmative iff the sum of all available values `<= threshold[i]` is `>= required[i]`.
+
+4. Preconditions  
+- `0 <= n <= 300000` and `0 <= m <= 300000`.  
+- The input provides at least `n + 1 + m + m` numeric values in the expected order and within the representable ranges of their respective types.  
+- The sum of the selected available integers for any query is representable in signed 64-bit range (to avoid arithmetic overflow in the computed sums).  
+- Comparison of available integers is well-defined without overflow in the comparison operation (i.e., differences used for ordering do not overflow the integer range).
+
+5. Postconditions  
+- For each query `i`, let `S(i)` be the sum of all available integers `x` such that `x <= threshold[i]`. The program outputs “Yes” for query `i` iff `S(i) >= required[i]`, otherwise outputs “No”.  
+- The output order corresponds to the input query order.
+
+6. Invariants  
+- The multiset of available integers is not changed in value; only its ordering may be rearranged for evaluation.  
+- The computed prefix sums are non-decreasing with respect to the number of included elements when the available integers are in non-decreasing order.  
+- For any threshold, the count of included elements equals the number of available integers less than or equal to that threshold.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range sizes, or arithmetic overflow; behavior is unspecified if preconditions are violated.  
+- If input reading fails or provides insufficient data, the produced output is unspecified.
+
+8. State Transitions (if applicable)  
+- After reading inputs, the available integers transition from an arbitrary order to a non-decreasing order.  
+- A derived prefix-sum state is constructed once and then remains unchanged while queries are answered.  
+- Each query produces output without modifying the stored available integers or prefix sums.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 300000 available integers and 300000 queries within fixed preallocated storage.  
+- Per-query evaluation time grows logarithmically with `n` after a one-time preprocessing step.
+
+```

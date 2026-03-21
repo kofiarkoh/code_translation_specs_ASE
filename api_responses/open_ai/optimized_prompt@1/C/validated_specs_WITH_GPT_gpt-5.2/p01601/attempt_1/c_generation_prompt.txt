@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer and outputs the numerically closest non-negative integer that is a decimal palindrome (i.e., its decimal digit sequence reads the same forward and backward). If two palindromic candidates are equally close, the smaller one is output.
+
+2. Inputs  
+- One integer value provided via standard input.
+
+3. Outputs  
+- One integer value written to standard output: the selected palindromic non-negative integer, followed by a line terminator.
+
+4. Preconditions  
+- The input must contain a valid integer representable in the program’s integer type.  
+- To guarantee termination and defined behavior, the input should be non-negative and the search for a palindromic result must not require exceeding the representable integer range.
+
+5. Postconditions  
+- The program outputs a value `p` such that:  
+  - `p` is a non-negative integer.  
+  - `p` is a decimal palindrome.  
+  - For all non-negative decimal palindromes `q`, `|p - n| <= |q - n|`.  
+  - If there exists a palindrome `q` with `|q - n| == |p - n|`, then `p <= q` (tie broken toward the smaller value).
+
+6. Invariants  
+- During the search, the current best candidate (once found) is the first palindromic value encountered at the minimal distance from the input, with preference for the smaller value at equal distance.  
+- The digit-reversal operation used for palindrome testing produces a non-negative integer derived from the input’s decimal digits, ignoring any sign.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or missing input. Behavior is unspecified if input cannot be read as an integer.  
+- If the input is negative, the program may still produce an output, but the “closest palindrome” guarantee relative to the original negative value is not ensured.  
+- If the search requires values outside the representable integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Single-pass execution: reads input → searches for nearest palindromic non-negative integer → outputs result → terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows with the distance from the input to the nearest palindromic non-negative integer, and with the number of decimal digits processed per candidate.  
+- Uses constant additional memory.
+
+```

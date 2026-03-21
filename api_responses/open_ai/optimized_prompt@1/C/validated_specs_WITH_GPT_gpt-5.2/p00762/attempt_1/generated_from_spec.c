@@ -1,0 +1,160 @@
+#include <stdio.h>
+
+#define GRID_NMAX 4
+#define GRID_SIZE (2 * GRID_NMAX + 1)
+
+typedef struct {
+    int top, bottom, north, south, east, west;
+} Cube;
+
+static void cube_init(Cube *c, int up, int forward) {
+    /* Standard opposite pairs: (1,6), (2,5), (3,4) */
+    static const int opp[7] = {0, 6, 5, 4, 3, 2, 1};
+
+    c->top = up;
+    c->bottom = opp[up];
+
+    /* Interpret "forward-facing" as the face on the north side (toward -y). */
+    c->north = forward;
+    c->south = opp[forward];
+
+    /* Determine east/west as the remaining opposite pair not used by top/bottom or north/south. */
+    int used[7] = {0};
+    used[c->top] = used[c->bottom] = 1;
+    used[c->north] = used[c->south] = 1;
+
+    int a = 0, b = 0;
+    for (int v = 1; v <= 6; v++) {
+        if (!used[v]) {
+            if (a == 0) a = v;
+            else b = v;
+        }
+    }
+    /* a and b must be opposites; choose a as east, b as west. */
+    c->east = a;
+    c->west = b;
+}
+
+static void roll_north(Cube *c) {
+    int old_top = c->top;
+    c->top = c->south;
+    c->south = c->bottom;
+    c->bottom = c->north;
+    c->north = old_top;
+}
+
+static void roll_south(Cube *c) {
+    int old_top = c->top;
+    c->top = c->north;
+    c->north = c->bottom;
+    c->bottom = c->south;
+    c->south = old_top;
+}
+
+static void roll_east(Cube *c) {
+    int old_top = c->top;
+    c->top = c->west;
+    c->west = c->bottom;
+    c->bottom = c->east;
+    c->east = old_top;
+}
+
+static void roll_west(Cube *c) {
+    int old_top = c->top;
+    c->top = c->east;
+    c->east = c->bottom;
+    c->bottom = c->west;
+    c->west = old_top;
+}
+
+int main(void) {
+    int m;
+    while (scanf("%d", &m) == 1) {
+        if (m == 0) break;
+
+        int height[GRID_SIZE][GRID_SIZE];
+        int last_top[GRID_SIZE][GRID_SIZE];
+
+        for (int y = 0; y < GRID_SIZE; y++) {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                height[y][x] = 0;
+                last_top[y][x] = 0;
+            }
+        }
+
+        for (int i = 0; i < m; i++) {
+            int up, forward;
+            if (scanf("%d %d", &up, &forward) != 2) return 0;
+
+            Cube c;
+            cube_init(&c, up, forward);
+
+            int x = GRID_NMAX, y = GRID_NMAX;
+
+            for (;;) {
+                int h0 = height[y][x];
+
+                /* Consider eligible moves: orthogonally adjacent with strictly lower height. */
+                int best_dir = -1; /* 0=N,1=E,2=S,3=W */
+                int best_val = -1;
+
+                /* North */
+                if (y - 1 >= 0 && height[y - 1][x] < h0) {
+                    int v = c.north; /* visible side in that direction */
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 0;
+                    }
+                }
+                /* East */
+                if (x + 1 < GRID_SIZE && height[y][x + 1] < h0) {
+                    int v = c.east;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 1;
+                    }
+                }
+                /* South */
+                if (y + 1 < GRID_SIZE && height[y + 1][x] < h0) {
+                    int v = c.south;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 2;
+                    }
+                }
+                /* West */
+                if (x - 1 >= 0 && height[y][x - 1] < h0) {
+                    int v = c.west;
+                    if (v > 3 && v > best_val) {
+                        best_val = v;
+                        best_dir = 3;
+                    }
+                }
+
+                if (best_dir < 0) break;
+
+                /* Execute the chosen roll and move. */
+                switch (best_dir) {
+                    case 0: roll_north(&c); y -= 1; break;
+                    case 1: roll_east(&c);  x += 1; break;
+                    case 2: roll_south(&c); y += 1; break;
+                    case 3: roll_west(&c);  x -= 1; break;
+                }
+            }
+
+            height[y][x] += 1;
+            last_top[y][x] = c.top;
+        }
+
+        int cnt[7] = {0,0,0,0,0,0,0};
+        for (int y = 0; y < GRID_SIZE; y++) {
+            for (int x = 0; x < GRID_SIZE; x++) {
+                int v = last_top[y][x];
+                if (v >= 1 && v <= 6) cnt[v]++;
+            }
+        }
+
+        printf("%d %d %d %d %d %d\n", cnt[1], cnt[2], cnt[3], cnt[4], cnt[5], cnt[6]);
+    }
+    return 0;
+}

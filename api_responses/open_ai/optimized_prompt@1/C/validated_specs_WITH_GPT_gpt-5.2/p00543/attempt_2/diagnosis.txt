@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+- Wrong transition rule / wrong ordering rule (and a minor output-format mismatch).
+
+B. What the current specification may be missing or misstating  
+- It implies that after each modulus pass `k`, the sequence is fully adjusted until **all** adjacent pairs satisfy `(a[i] % k) <= (a[i+1] % k)` (i.e., “enforce the property for every adjacent pair” as a postcondition/invariant).  
+- The source program does **not** do that. For each `k`, it performs only **one left-to-right sweep** of adjacent comparisons/swaps (a single bubble-sort pass), not repeated passes to convergence. Therefore, after a pass `k`, the adjacent remainder ordering property is **not guaranteed** to hold globally.  
+- The spec also doesn’t clearly state the exact number of comparisons/swaps per pass; the source does exactly `n-1` adjacent comparisons per `k`.
+
+C. What general behavior should be clarified in the specification  
+- For each modulus `k = 1..m`, the algorithm performs exactly one iteration over adjacent pairs `(1,2), (2,3), ..., (n-1,n)` and swaps a pair if the left remainder modulo `k` is greater than the right remainder modulo `k`. It does **not** iterate until no swaps occur and does **not** guarantee a fully “sorted by remainder” sequence for that `k`.  
+- The postconditions/invariants should not claim the final array after pass `k` satisfies the adjacent remainder ordering for all pairs; instead, the spec should describe the single-scan swap process as the transformation.  
+- Output formatting: the source prints each integer on its own line, not space-separated on one line.
+
+D. Why this clarification is supported by the source program  
+- The core loop is:
+
+  - `do { for(i=1,j=2; i<n, j<=n; i++, j++) { if(a[i]%k > a[j]%k) swap; } k++; } while(k<=m);`
+
+  This contains only one `for` loop per `k` with no outer repetition based on whether swaps occurred. Hence it cannot “enforce” the adjacent ordering property across the whole array for that modulus; it only applies local swaps once in sequence.  
+- The printing loop is `for(i=1;i<=n;i++) printf("%d\n", a[i]);`, which is newline-delimited output.

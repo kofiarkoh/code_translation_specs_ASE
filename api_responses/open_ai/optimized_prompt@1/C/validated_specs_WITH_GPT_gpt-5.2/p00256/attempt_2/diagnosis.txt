@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+- Wrong abstraction / missing constant-offset definition (epoch mismatch)  
+- Wrong transition rule for converting between calendars (incorrect absolute-day origin and direction-specific offsets)  
+- Wrong termination/selection rule detail (component-count handling is mostly fine; the core mismatch is the mapping)
+
+B. What the current specification may be missing or misstating  
+- It does not define the *exact* absolute-day reference (epoch) used by the source program for either direction of conversion. The spec says “absolute day” and “applies a fixed offset” but leaves the offset undefined; the generated code assumed offset 0 and used a generic epoch (day 0 = year 0-01-01), which is not what the source does.  
+- It implies a single symmetric “fixed offset” between the mixed-radix number and the Gregorian absolute day, but the source uses specific constants and a nontrivial alignment (including a `m12` adjustment and a `4738+1` adjustment) that effectively define a particular epoch and mapping.  
+- It does not capture that the Gregorian→mixed conversion is anchored relative to a specific base year (the code subtracts 2001 from the input year and adds a constant term), rather than using a universal year-0-based accumulation.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the epoch and offset(s) that relate:  
+  1) a Gregorian date (Y.M.D) to the internal day count used for decomposition into radices 13,20,20,18,20, and  
+  2) the mixed-radix 5-tuple back to a Gregorian date.  
+- Clarify whether the mapping is intended to be perfectly inverse and, if so, specify the exact constants/epoch so that both directions round-trip.  
+- State the base Gregorian year used in computations (the source effectively uses an epoch around years 2000/2001 with additional constant shifts), rather than leaving it as an abstract “absolute day”.
+
+D. Why this clarification is supported by the source program  
+- In the 3-component (Gregorian) branch, the source does **not** compute days from year 0. It explicitly does `d[0] -= 2001;` and then adds `365*d[0] + d[0]/4 - d[0]/100 + d[0]/400 + 366 - m12`, where `m12` is a precomputed constant. This hard-codes an epoch/offset tied to year 2001 plus additional alignment.  
+- In the 5-component branch, after reconstructing the mixed-radix value, the source does `dt += 4738 + 1;` and then starts the year at `a[0] = 2000` while subtracting year lengths. This is another hard-coded epoch/offset and a different base year for the iterative year extraction.  
+- These constants (`m12`, `4738+1`, starting year 2000, and the `-2001` shift) are essential to match outputs; omitting them (as the current spec effectively does) yields systematically different converted dates, exactly the kind of discrepancy shown by the failing test.

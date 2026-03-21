@@ -1,0 +1,48 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int n;
+    long long i, j;
+
+    /* Fixed-size buffers as implied by the specification (size 62). */
+    int low[62];
+
+    while (1) {
+        if (scanf("%d %lld %lld", &n, &i, &j) != 3) {
+            return 0; /* input exhausted / parsing fails */
+        }
+        if (n <= 0) {
+            return 0; /* terminating case not processed */
+        }
+
+        /* Working 0-based indices (signed 64-bit). */
+        long long I = i - 1;
+        long long J = j - 1;
+
+        /* Phase A: derive low control sequence from I, stored by bit position p. */
+        for (int k = 1; k <= n; k++) {
+            int p = n - k; /* p goes n-1 down to 0 */
+            int b = (int)((I >> p) & 1LL);
+            low[p] = b;
+            if (low[p] == 0) {
+                I = ~I; /* full-width bitwise complement on signed 64-bit */
+            }
+        }
+
+        /* Phase B: produce output from J driven by low consumed from index 0 upward. */
+        for (int k = 1; k <= n; k++) {
+            int p = n - k; /* p goes n-1 down to 0 */
+            int c = (int)((J >> p) & 1LL);
+            int ctrl = low[k - 1];
+
+            putchar((c == ctrl) ? 'L' : 'R');
+
+            if (ctrl == 0) {
+                J = ~J; /* full-width bitwise complement on signed 64-bit */
+            }
+        }
+        putchar('\n');
+    }
+}
+```

@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+static int cmp_desc_ll(const void *a, const void *b) {
+    long long x = *(const long long *)a;
+    long long y = *(const long long *)b;
+    if (x < y) return 1;
+    if (x > y) return -1;
+    return 0;
+}
+
+static int cmp_asc_ll(const void *a, const void *b) {
+    long long x = *(const long long *)a;
+    long long y = *(const long long *)b;
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+}
+
+int main(void) {
+    long long Xll, Yll, All, Bll, Cll;
+    if (scanf("%lld %lld %lld %lld %lld", &Xll, &Yll, &All, &Bll, &Cll) != 5) {
+        return 1; /* missing/invalid input */
+    }
+
+    int X = (int)Xll, Y = (int)Yll, A = (int)All, B = (int)Bll, C = (int)Cll;
+
+    long long *p = NULL, *q = NULL, *r = NULL;
+    if (A > 0) {
+        p = (long long *)malloc((size_t)A * sizeof(long long));
+        if (!p) return 1;
+    }
+    if (B > 0) {
+        q = (long long *)malloc((size_t)B * sizeof(long long));
+        if (!q) return 1;
+    }
+    if (C > 0) {
+        r = (long long *)malloc((size_t)C * sizeof(long long));
+        if (!r) return 1;
+    }
+
+    for (int i = 0; i < A; i++) {
+        if (scanf("%lld", &p[i]) != 1) return 1;
+    }
+    for (int i = 0; i < B; i++) {
+        if (scanf("%lld", &q[i]) != 1) return 1;
+    }
+    for (int i = 0; i < C; i++) {
+        if (scanf("%lld", &r[i]) != 1) return 1;
+    }
+
+    /* Initial optimal selection without using the third group:
+       take top X from first group and top Y from second group. */
+    if (A > 1) qsort(p, (size_t)A, sizeof(long long), cmp_desc_ll);
+    if (B > 1) qsort(q, (size_t)B, sizeof(long long), cmp_desc_ll);
+
+    int N = X + Y;
+    long long *chosen = NULL;
+    if (N > 0) {
+        chosen = (long long *)malloc((size_t)N * sizeof(long long));
+        if (!chosen) return 1;
+    }
+
+    int idx = 0;
+    for (int i = 0; i < X; i++) chosen[idx++] = p[i];
+    for (int i = 0; i < Y; i++) chosen[idx++] = q[i];
+
+    /* Replacement state:
+       Sort chosen ascending (so smallest are easiest to replace),
+       sort replacement candidates descending, then greedily replace
+       while it improves total. */
+    if (N > 1) qsort(chosen, (size_t)N, sizeof(long long), cmp_asc_ll);
+    if (C > 1) qsort(r, (size_t)C, sizeof(long long), cmp_desc_ll);
+
+    int i = 0; /* index into chosen (smallest upward) */
+    int j = 0; /* index into r (largest downward) */
+    while (i < N && j < C) {
+        if (r[j] > chosen[i]) {
+            chosen[i] = r[j];
+            i++;
+            j++;
+        } else {
+            break; /* further r are <= current smallest chosen, so no improvement possible */
+        }
+    }
+
+    int64_t sum = 0;
+    for (int k = 0; k < N; k++) sum += (int64_t)chosen[k];
+
+    printf("%lld\n", (long long)sum);
+
+    free(p);
+    free(q);
+    free(r);
+    free(chosen);
+    return 0;
+}

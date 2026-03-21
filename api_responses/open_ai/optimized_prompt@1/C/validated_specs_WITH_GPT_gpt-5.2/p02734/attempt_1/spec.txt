@@ -1,0 +1,42 @@
+1. Functional Description  
+Computes, modulo a fixed prime, the total number of ways to choose a non-empty subsequence of the given integer sequence and then choose a “cut position” within that subsequence (including the position after its last element) such that the sum of the elements in the chosen prefix (up to the cut) equals a given target value.
+
+Equivalently: counts pairs \((T, k)\) where \(T\) is a non-empty subsequence (preserving original order) and \(k\) is an integer from \(0\) to \(|T|\), such that the sum of the first \(k\) elements of \(T\) is exactly the target.
+
+2. Inputs  
+- An integer \(n\): number of elements.  
+- An integer \(s\): target sum.  
+- A sequence of \(n\) integers.
+
+3. Outputs  
+- A single integer: the count described above, reduced modulo \(998244353\).
+
+4. Preconditions  
+- \(n \ge 1\).  
+- \(s \ge 0\).  
+- All input values are provided and are valid integers.  
+- To avoid out-of-bounds behavior implied by the computation, each sequence element is assumed to be non-negative.  
+- Sufficient memory is available for storage proportional to \(n \cdot (s+1)\).
+
+5. Postconditions  
+Let the input sequence be \(A[0..n-1]\). The program outputs:  
+\[
+\left(\sum_{\substack{T \text{ is a non-empty subsequence of } A}} \left|\{k \in [0,|T|] : \sum_{i=1}^{k} T_i = s\}\right|\right) \bmod 998244353
+\]
+where \(T_i\) denotes the \(i\)-th element of subsequence \(T\).
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo \(998244353\).  
+- Only sums in the range \([0, s]\) contribute to stored counts; sums greater than \(s\) are ignored.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing/invalid, or if preconditions are violated (e.g., negative target, negative elements, or insufficient memory), behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes a result, writes output once, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to \(n \cdot (s+1)\).  
+- Memory usage is proportional to \(n \cdot (s+1)\).  
+- Result is always within the modular range \([0, 998244352]\).

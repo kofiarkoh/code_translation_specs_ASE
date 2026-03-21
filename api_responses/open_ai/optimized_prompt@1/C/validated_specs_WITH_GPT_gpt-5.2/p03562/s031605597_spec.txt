@@ -1,0 +1,55 @@
+1. Functional Description  
+The program reads an integer \(m\), an initial binary string \(A\), and then \(m\) additional binary strings. Each string is interpreted as a polynomial over \(\mathrm{GF}(2)\) (XOR as addition/subtraction; left shift as multiplication by \(x^k\)) within a fixed maximum supported bit-length.  
+
+It performs an XOR/shift reduction procedure across the \(m\) additional polynomials, maintaining an internal polynomial state \(D\). After all \(m\) strings are processed, it computes and outputs (modulo a fixed prime) a value derived from scanning \(A\) from high degree to low degree while maintaining an auxiliary polynomial state \(R\) updated by XOR with shifted copies of the final \(D\). The scan may terminate early in low-degree cases; otherwise it completes and applies a final increment.
+
+2. Inputs  
+- An integer \(m \ge 0\).  
+- A binary string \(A\) (characters ‘0’ and ‘1’), interpreted with the leftmost character as the highest-degree coefficient.  
+- \(m\) further binary strings \(B_1,\dots,B_m\), each interpreted the same way.
+
+3. Outputs  
+- A single integer: the computed value reduced modulo \(998244353\).
+
+4. Preconditions / Constraints / Environment  
+- All strings are expected to contain only ‘0’ and ‘1’. No input validation is performed; malformed input or I/O failure yields undefined behavior.  
+- The program has a fixed internal maximum supported bit-length \(N=4000\). Any input string longer than \(N\) may cause out-of-bounds behavior (undefined).  
+- All polynomial operations are performed only within indices \([0, N-1]\); bits outside this range are not represented.  
+- The intended implementation model is fixed-memory: all working storage is bounded by constants derived from \(N\) and is allocated as fixed-size arrays (no dynamic allocation is required or used by the source).  
+- The program is self-contained using only standard C headers needed for formatted I/O and memory operations (as in the source: `<stdio.h>` and `<string.h>`); it does not rely on implicit function declarations.
+
+5. Semantics of Polynomial Representation  
+- A binary string of length \(t\) represents the polynomial \(\sum_{k=0}^{t-1} s[t-1-k]\cdot x^k\) over \(\mathrm{GF}(2)\).  
+- The “degree” of a represented polynomial is the index of its highest set bit within \([0, N-1]\). The zero polynomial has no set bits.
+
+6. Reduction Phase (processing the \(m\) additional polynomials)  
+- The initial string \(A\) is parsed and stored separately for later use in the counting phase; it is not used to initialize the reduction state.  
+- The program maintains an internal polynomial state \(D\), initially the zero polynomial.  
+- For each additional input string \(B\):  
+  - Parse \(B\) into a polynomial state (within the supported range).  
+  - Repeatedly apply the following until \(B\) becomes the zero polynomial (no set bits within \([0, N-1]\)):  
+    - Let \(i\) be the current highest set bit index of \(D\), and \(j\) the current highest set bit index of \(B\). (If a polynomial is zero, its “highest set bit index” is treated as nonexistent and the loop ends when \(B\) is zero.)  
+    - If \(i < j\), swap the roles of \(D\) and \(B\) (so that \(D\) has degree at least that of \(B\)).  
+    - Replace \(D\) by \(D \oplus (B \ll (i-j))\), i.e., XOR \(D\) with \(B\) shifted left so that their leading terms align.  
+- This is an XOR/shift Euclidean-style reduction over \(\mathrm{GF}(2)\) that updates \(D\) once per input polynomial via the above inner loop.
+
+7. Determination of the Final Reduced Polynomial’s Effective Length  
+- After all \(m\) updates, define \(L\) as one plus the index of the highest set bit of the final \(D\) (so \(L \in [0, N]\)). If \(D\) is the zero polynomial, then \(L=0\).
+
+8. Counting Phase (output computation)  
+The program computes an integer `ans` modulo \(998244353\) by scanning bit positions of \(A\) from high to low, maintaining an auxiliary polynomial state \(R\) (initially zero) and conditionally XORing \(R\) with shifted copies of \(D\).
+
+- Precompute \(2^i \bmod 998244353\) for \(i=0\) to \(|A|-1\) using fixed-size storage bounded by \(N\).  
+- Initialize \(R := 0\) and `ans := 0`.  
+- For each bit position \(i\) from \(|A|-1\) down to \(0\):  
+  - Let \(x\) be bit \(i\) of \(A\), and \(y\) be bit \(i\) of \(R\).  
+  - If \(i \ge L-1\) and \(x=1\), add \(2^{\,i-(L-1)}\) (modulo \(998244353\)) to `ans`.  
+  - If \(x \ne y\), then:  
+    - If \(i \ge L-1\), update \(R := R \oplus (D \ll (i-(L-1)))\) and continue scanning.  
+    - Otherwise (i.e., \(i < L-1\)), terminate the scan immediately after adding 1 to `ans` iff \(x>y\) (with bits treated as integers 0/1).  
+- If the scan completes all positions without early termination, add 1 to `ans`.  
+- Output `ans` modulo \(998244353\).
+
+9. Edge Cases / Special Conditions  
+- If \(D\) is the zero polynomial (\(L=0\)), the conditions involving \(i \ge L-1\) are evaluated with \(L-1=-1\), so they are always true for scanned indices; the algorithm proceeds exactly as written above.  
+- If \(A\) contains no ‘1’ bits, the scan still runs over its full length and follows the same rules.

@@ -1,0 +1,39 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int M[3][3];
+
+    /* Read exactly nine integers in row-major order. */
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (scanf("%d", &M[i][j]) != 1) {
+                /* Unspecified behavior per spec for missing/invalid input;
+                   return without producing extra output. */
+                return 0;
+            }
+        }
+    }
+
+    /* Normalize by subtracting a row-specific constant: the row minimum. */
+    for (int i = 0; i < 3; i++) {
+        int mn = M[i][0];
+        if (M[i][1] < mn) mn = M[i][1];
+        if (M[i][2] < mn) mn = M[i][2];
+        for (int j = 0; j < 3; j++) {
+            M[i][j] -= mn;
+        }
+    }
+
+    /* After normalization, accept iff each column has identical values across all rows. */
+    for (int j = 0; j < 3; j++) {
+        if (!(M[0][j] == M[1][j] && M[1][j] == M[2][j])) {
+            puts("No");
+            return 0; /* terminate immediately on rejection */
+        }
+    }
+
+    puts("Yes");
+    return 0;
+}
+```

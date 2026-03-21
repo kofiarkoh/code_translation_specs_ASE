@@ -1,0 +1,205 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1110
+  Title:Patience
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+#define max(x,y) (((x)>(y))?(x):(y))
+int max_;
+char buf[20];
+
+void remove2(char cards[],char out[],int m1,int m2)
+{
+  int i,j;
+ 
+  //printf("rm %d %d\n",m1,m2);
+
+  for(i=j=0;i<20;i++)
+    {
+      if(i != m1 && i!= m2)
+	{
+	  out[j]=cards[i];
+	  j++;
+	}
+    }
+}
+void dump(char buf[],int depth)
+{
+  int i,j;
+  for(i=0;i<5;i++)
+    {
+      for(j=0;j<4;j++)
+	{
+	  if(i*4+j >= 20-depth*2)
+	    goto END;
+	  printf("%d|",buf[i*4+j]);
+	}
+      if(i<4)
+	printf("\n");
+    }
+ END:
+  printf("\n------- [%d]\n",depth);
+  return;
+}
+int solve(char buf[],int depth)
+{
+  int  i,last_;
+  char mybuf[4][20];
+
+
+  last_=20-2*depth;
+#ifdef DEBUG
+  dump(buf,depth);
+#endif
+  for(i=0;i<last_;i++)
+    {
+      if(i < 16 && i+4 < last_ && buf[i]==buf[i+4])
+	{
+	  remove2(buf,&mybuf[0][0],i,i+4);
+	  solve(&mybuf[0][0],depth+1);
+	}
+      if((i % 4)< 3 && i+1 < last_ && buf[i]==buf[i+1])
+	{
+	  remove2(buf,&mybuf[1][0],i,i+1);
+	  solve(&mybuf[1][0],depth+1);
+	}
+      if(i < 16 && (i % 4)< 3 && i+5 < last_ && buf[i]==buf[i+5])
+	{
+	  remove2(buf,&mybuf[2][0],i,i+5);
+	  solve(&mybuf[2][0],depth+1);
+	}
+      if(i < 16 && (i % 4)> 0 && i+3 < last_ && buf[i]==buf[i+3])
+	{
+	  remove2(buf,&mybuf[3][0],i,i+3);
+	  solve(&mybuf[3][0],depth+1);
+	}
+    }
+  max_=max(max_,depth);
+}
+
+main()
+{
+  
+  int i,j,n,ret;
+
+  scanf("%d ",&n);
+  for(i=0;i<n;i++)
+    {
+      for(j=0;j<20;j++)
+	{
+	  scanf("%c ",&buf[j]);
+	  buf[j] -= '0';
+	}
+      max_=0;
+      ret=solve(buf,0);
+      printf("%d\n",20-max_*2);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each test case, computes the minimum number of cards that can remain after repeatedly removing pairs of equal-valued cards that are in specific adjacency relationships on an implicit 5×4 layout. The program explores all possible valid removal sequences and reports the smallest achievable remaining count.
+
+2. Inputs  
+- An integer specifying the number of test cases.  
+- For each test case, a sequence of 20 single-digit card values (interpreted as numeric values).
+
+3. Outputs  
+- For each test case, one integer: the minimum number of cards that can remain after performing zero or more valid pair removals.
+
+4. Preconditions  
+- The number of test cases is non-negative.  
+- Each test case provides exactly 20 card values.  
+- Each card value is a single digit representing a numeric value.  
+- The implicit layout is fixed as 5 rows by 4 columns, filled in row-major order.
+
+5. Postconditions  
+For each test case, the printed value equals:  
+- \(20 - 2 \times M\), where \(M\) is the maximum number of valid pair removals achievable in any sequence starting from the given 20-card arrangement.  
+Equivalently, the output is the minimum remaining card count reachable under the allowed moves.
+
+6. Invariants  
+- Each removal operation reduces the current card count by exactly 2.  
+- Only pairs of equal-valued cards are removable.  
+- Removals are only permitted when the two cards occupy positions that are adjacent in the implicit grid by one of these offsets (when both positions exist in the current remaining prefix of the sequence):  
+  - Same column, next row (vertical neighbor).  
+  - Same row, next column (horizontal neighbor).  
+  - Down-right diagonal neighbor.  
+  - Down-left diagonal neighbor.  
+- The relative order of all non-removed cards is preserved after a removal (the remaining cards compact without reordering).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or contains non-digit card values, behavior is unspecified.  
+- The computation assumes recursion completes; resource exhaustion (e.g., stack overflow) is not handled.
+
+8. State Transitions (if applicable)  
+- State per test case consists of the current multiset/sequence of remaining cards (as an ordered list) and the number of pairs removed so far.  
+- A transition removes one valid adjacent equal pair, producing a new state with two fewer cards and an increased removal count by 1.  
+- The reported result corresponds to the best reachable terminal/any state in terms of maximum removal count (not necessarily requiring no further moves).
+
+9. Non-functional Constraints (if inferable)  
+- Uses exhaustive search over possible removal sequences; runtime may grow exponentially with the number of available moves.  
+- Memory usage is bounded by recursion depth up to 10 removals (since 20 cards), plus fixed-size working storage per recursion level.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong abstraction / missing constraint leading to wrong complexity (performance/termination mismatch).
+
+B. What the current specification may be missing or misstating  
+- The spec implies “adjacent in an implicit 5×4 layout” and “explores all possible valid removal sequences,” but it does not capture an important operational constraint present in the source: **the source only ever considers four specific neighbor offsets from each position (i→i+1, i→i+3, i→i+4, i→i+5) and only when those indices are within the current `last_ = 20 - 2*depth` prefix**.  
+- The generated program interprets the spec as “any pair of positions that are adjacent in the current grid,” and then checks adjacency by scanning **all pairs (i,j)** and testing a row/column relation. While logically similar, this changes the search mechanics from “constant number of candidate moves per i” to “O(n²) candidate pairs per state,” which can explode runtime and cause timeouts.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that move generation is restricted to checking only the four *forward* neighbor positions from each index in the current sequence prefix (right, down, down-left, down-right), rather than considering arbitrary pairs and then filtering by adjacency.  
+- Clarify that the “grid” is not a persistent 2D structure with coordinates tracked across removals; instead, at each recursion depth the program treats the **current remaining cards as a 1D array prefix** and applies only those fixed index-offset adjacency tests within that prefix.  
+- More generally: specify the intended move-enumeration rule (fixed-offset neighbor checks) because it materially constrains the branching factor and thus feasibility.
+
+D. Why this clarification is supported by the source program  
+- In `solve`, for each `i` it checks at most four candidates: `i+4` (vertical), `i+1` (horizontal), `i+5` (down-right), `i+3` (down-left), each guarded by bounds like `i+4 < last_` and column conditions `(i%4)<3` / `(i%4)>0`. There is **no nested loop over all j**.  
+- The state size is tracked solely by `last_ = 20 - 2*depth`, and `remove2` compacts by copying all indices except the removed ones, preserving order—consistent with a 1D-prefix model.  
+- Because the source’s branching factor is tightly limited by these fixed-offset checks, a spec that allows/encourages “check all pairs then test adjacency” can lead to a much slower implementation (as seen by timeout), even if it seems semantically aligned at a high level.
+
+```

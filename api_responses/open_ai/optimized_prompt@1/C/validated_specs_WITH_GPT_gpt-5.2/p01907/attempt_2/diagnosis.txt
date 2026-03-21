@@ -1,0 +1,32 @@
+A. Likely mismatch category  
+Wrong aggregation/counting rule (specification omits an additional term in the second factor / wrong initialization of a sum).
+
+B. What the current specification may be missing or misstating  
+The specification states the output is the product of:
+- (sum over nodes of parent-edge-weight × \(P^{depth}\)) and
+- (sum over nodes of \(P^{depth}\)).
+
+But the source program does **not** use exactly \(\sum_{v=1}^{N} P^{depth(v)}\) as the second factor. It initializes that second accumulator to **1** and then adds \(P^{depth(v)}\) for all nodes \(v=1..N\). Since the root already contributes \(P^0 = 1\) inside the loop, this effectively adds an **extra +1 constant** beyond the node-sum.
+
+So the current spec’s “sum of depth-dependent factors over all nodes” is incomplete: the implemented computation is “1 plus that sum”.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact definition of the second multiplicative factor: whether it is
+- exactly \(\sum_{v=1}^{N} P^{depth(v)}\), or
+- \(1 + \sum_{v=1}^{N} P^{depth(v)}\) (equivalently \(\sum_{v=1}^{N} P^{depth(v)}\) plus an additional constant 1 not associated with any node).
+
+This is a general rule about the formula, not an edge case: it affects all valid inputs.
+
+D. Why this clarification is supported by the source program  
+In `main()` of the source:
+
+```c
+a = 0, b = 1;
+for (i = 1; i <= N; i++)
+    a += cost[i] * p[depth[i]], b += p[depth[i]];
+printf("%.10lf\n", a*b);
+```
+
+- `b` is explicitly initialized to `1` before adding `p[depth[i]]` for every node `i=1..N`.  
+- Since `p[depth[1]] = p[0] = 1` is also added for the root during the loop, the final `b` equals `1 + sum_{v=1..N} P^{depth(v)}`.  
+- The generated program followed the current spec and computed `S2 = sum_{v} P^{depth(v)}` without that extra constant, producing a systematically smaller result, consistent with the observed failure.

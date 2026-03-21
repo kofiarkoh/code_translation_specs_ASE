@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each provided undirected weighted graph instance, the minimum total travel cost from the first node to the last node when the traveler may traverse up to two edges at zero additional cost (i.e., may “waive” the cost of at most two traversed edges). Outputs that minimum cost for each instance.
+
+2. Inputs  
+For each instance (repeated until termination):  
+- An integer number of nodes.  
+- An integer number of undirected edges.  
+- For each edge: two endpoint node indices and a non-negative integer edge cost.  
+Termination is indicated by an instance whose node count is zero.
+
+3. Outputs  
+For each non-terminating instance:  
+- A single integer: the minimum achievable total cost to travel from the first node to the last node while using at most two cost waivers.
+
+4. Preconditions  
+- Node count is positive for each processed instance and does not exceed the fixed internal capacity (assumed ≤ 102).  
+- Edge count and per-node adjacency do not exceed fixed internal capacities (assumed each node has ≤ 102 incident edges as stored).  
+- Input node indices refer to valid nodes within the instance.  
+- Edge costs are assumed to be non-negative to ensure the computed minimum is well-defined under the algorithm’s assumptions.  
+- There exists at least one path from the first node to the last node; otherwise the produced output is not meaningfully defined by the code.
+
+5. Postconditions  
+For each processed instance, the program outputs the minimum over all paths from the first node to the last node of:  
+- the sum of costs of edges on the path, excluding the costs of up to two chosen edges on that path (which may be treated as zero),  
+where the traveler may choose to use zero, one, or two waivers.
+
+6. Invariants  
+- For each node and each possible remaining-waiver count in {0,1,2}, the stored best-known cost (if any) is the minimum cost discovered so far to reach that node with exactly that remaining-waiver count.  
+- Best-known costs, once improved, never increase.  
+- Remaining-waiver count is always within {0,1,2}.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range indices, capacity overflow, or unreachable destination. Behavior in such cases is undefined (may produce incorrect output or exhibit runtime faults).  
+- If the destination is unreachable, the code may output an invalid value derived from uninitialized/invalid state.
+
+8. State Transitions (if applicable)  
+A travel state is defined as (current node, remaining waivers). From any state, for each adjacent edge to a neighbor:  
+- Transition without using a waiver: (neighbor, same remaining waivers) with cost increased by the edge cost, permitted only when remaining waivers is not exactly 1.  
+- Transition using a waiver (if remaining waivers > 0): (neighbor, remaining waivers − 1) with no cost increase.  
+The reported answer is the minimum cost among destination states with remaining waivers equal to 0 or 2 (destination with remaining waivers equal to 1 is not accepted as a final state).
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small graphs bounded by fixed-size internal storage (on the order of 10^2 nodes and 10^2 adjacency entries per node).  
+- Uses integer arithmetic; results must fit within the range of signed 32-bit integers to avoid overflow.
+
+```

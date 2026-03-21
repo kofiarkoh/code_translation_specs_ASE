@@ -1,0 +1,408 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+    int u, v;
+} Edge;
+
+typedef struct {
+    int to;
+    int next;
+    int eid; /* original edge id */
+} AdjEdge;
+
+static void add_adj(AdjEdge *adj, int *head, int *ecnt, int from, int to, int eid) {
+    int i = (*ecnt)++;
+    adj[i].to = to;
+    adj[i].eid = eid;
+    adj[i].next = head[from];
+    head[from] = i;
+}
+
+/* ---------- Tarjan SCC (iterative recursion depth is safe for n<=1000, but use recursion for simplicity) ---------- */
+static int n, m;
+static int *head_g, *head_gr;
+static AdjEdge *g, *gr;
+static int g_ecnt, gr_ecnt;
+
+static int *dfn, *low, *st, st_top;
+static unsigned char *in_st;
+static int timer_scc, scc_cnt;
+static int *comp;      /* comp[v] in [0..scc_cnt-1] */
+static int *comp_size;
+
+static void tarjan_dfs(int u) {
+    dfn[u] = low[u] = ++timer_scc;
+    st[st_top++] = u;
+    in_st[u] = 1;
+
+    for (int ei = head_g[u]; ei != -1; ei = g[ei].next) {
+        int v = g[ei].to;
+        if (dfn[v] == 0) {
+            tarjan_dfs(v);
+            if (low[v] < low[u]) low[u] = low[v];
+        } else if (in_st[v]) {
+            if (dfn[v] < low[u]) low[u] = dfn[v];
+        }
+    }
+
+    if (low[u] == dfn[u]) {
+        int w;
+        int cid = scc_cnt++;
+        do {
+            w = st[--st_top];
+            in_st[w] = 0;
+            comp[w] = cid;
+            comp_size[cid]++;
+        } while (w != u);
+    }
+}
+
+/* ---------- Bitset reachability on condensation DAG ---------- */
+static inline void bitset_or(unsigned long long *dst, const unsigned long long *src, int words) {
+    for (int i = 0; i < words; i++) dst[i] |= src[i];
+}
+static inline int bitset_test(const unsigned long long *bs, int idx) {
+    return (int)((bs[idx >> 6] >> (idx & 63)) & 1ULL);
+}
+static inline void bitset_set(unsigned long long *bs, int idx) {
+    bs[idx >> 6] |= (1ULL << (idx & 63));
+}
+
+/* ---------- Per-SCC bridge-like test for "forced reachability" of an internal edge u->v ---------- */
+/*
+   Condition: within SCC, there exists no directed path from u to v avoiding edge e.
+   Equivalent: in SCC subgraph, edge e is a bridge in the flow graph from u to v in the sense that
+   removing it disconnects v from u (reachability).
+   We implement by computing dominators in the SCC with start=u on the SCC's induced subgraph,
+   and check whether v is dominated by v? Actually we need whether edge (u->v) is the only way
+   from u to v. This is true iff:
+     - v is reachable from u (true in SCC),
+     - and in the graph with start=u, v's immediate dominator is u AND there is exactly one incoming
+       edge to v from nodes reachable from u? Not sufficient.
+   Instead, compute dominators from start=u and also dominators in reverse graph from start=v
+   (post-dominators w.r.t. reaching v). Then edge (u->v) is "strong bridge" for pair (u,v) iff
+   u dominates v in forward and v dominates u in reverse? That still doesn't capture pair-specific.
+   Given constraints (n<=1000), we choose the narrowest faithful approach: for each internal edge,
+   run a reachability DFS/BFS within its SCC while skipping that single edge, and test if v reachable.
+   This is O(m * (n+m)) worst-case, but n is small; still m can be 2e5.
+   To keep polynomial and practical, we do per-SCC preprocessing:
+     For each SCC, for each source vertex s in SCC, compute reachability to all vertices once.
+     Then for each edge (u->v) in SCC, we need to know if there exists an alternative path from u to v
+     not using that edge. This is true iff either:
+       - there is another outgoing edge from u to v (parallel edge), or
+       - there exists a path from u to v of length >=2.
+     We can test length>=2 by checking if there exists a neighbor x of u (via an edge u->x that is not
+     the specific edge) such that x can reach v.
+   So we compute transitive closure within each SCC using bitsets:
+     reach[u] = set of vertices in SCC reachable from u (including itself).
+   Then for edge e=(u->v), alternative exists iff:
+     - there is another edge u->v with different eid, OR
+     - exists x != v such that edge u->x exists (any) and reach[x] contains v, OR
+       exists x==v but using a different parallel edge (covered above).
+   This avoids per-edge BFS.
+*/
+static int main(void) {
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    Edge *edges = (Edge*)malloc((size_t)m * sizeof(Edge));
+    if (!edges) return 0;
+
+    head_g = (int*)malloc((size_t)(n + 1) * sizeof(int));
+    head_gr = (int*)malloc((size_t)(n + 1) * sizeof(int));
+    if (!head_g || !head_gr) return 0;
+    for (int i = 1; i <= n; i++) head_g[i] = head_gr[i] = -1;
+
+    g = (AdjEdge*)malloc((size_t)m * sizeof(AdjEdge));
+    gr = (AdjEdge*)malloc((size_t)m * sizeof(AdjEdge));
+    if (!g || !gr) return 0;
+    g_ecnt = gr_ecnt = 0;
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        if (scanf("%d %d", &u, &v) != 2) return 0;
+        edges[i].u = u;
+        edges[i].v = v;
+        add_adj(g, head_g, &g_ecnt, u, v, i);
+        add_adj(gr, head_gr, &gr_ecnt, v, u, i);
+    }
+
+    /* SCC */
+    dfn = (int*)calloc((size_t)(n + 1), sizeof(int));
+    low = (int*)calloc((size_t)(n + 1), sizeof(int));
+    comp = (int*)malloc((size_t)(n + 1) * sizeof(int));
+    in_st = (unsigned char*)calloc((size_t)(n + 1), 1);
+    st = (int*)malloc((size_t)(n + 1) * sizeof(int));
+    comp_size = (int*)calloc((size_t)(n + 1), sizeof(int)); /* upper bound */
+    if (!dfn || !low || !comp || !in_st || !st || !comp_size) return 0;
+
+    timer_scc = 0;
+    scc_cnt = 0;
+    st_top = 0;
+    for (int i = 1; i <= n; i++) {
+        if (dfn[i] == 0) tarjan_dfs(i);
+    }
+
+    /* Build condensation graph with multiplicity counts for direct edges between SCCs */
+    int C = scc_cnt;
+    int *head_c = (int*)malloc((size_t)C * sizeof(int));
+    int *indeg_c = (int*)calloc((size_t)C, sizeof(int));
+    if (!head_c || !indeg_c) return 0;
+    for (int i = 0; i < C; i++) head_c[i] = -1;
+
+    /* We need:
+       - count of edges between SCC pairs (a,b)
+       - adjacency list of unique edges for reachability
+       Since C<=n<=1000, use dense matrix for counts.
+    */
+    int *pair_cnt = (int*)calloc((size_t)C * (size_t)C, sizeof(int));
+    if (!pair_cnt) return 0;
+
+    /* Build counts */
+    for (int i = 0; i < m; i++) {
+        int cu = comp[edges[i].u];
+        int cv = comp[edges[i].v];
+        if (cu != cv) {
+            pair_cnt[cu * C + cv] += 1;
+        }
+    }
+
+    /* Build unique adjacency for condensation */
+    AdjEdge *c_adj = (AdjEdge*)malloc((size_t)(C * C) * sizeof(AdjEdge)); /* worst-case */
+    if (!c_adj) return 0;
+    int c_ecnt = 0;
+    for (int a = 0; a < C; a++) {
+        for (int b = 0; b < C; b++) {
+            if (pair_cnt[a * C + b] > 0) {
+                add_adj(c_adj, head_c, &c_ecnt, a, b, -1);
+                indeg_c[b]++;
+            }
+        }
+    }
+
+    /* Topological order of condensation DAG (Kahn) */
+    int *q = (int*)malloc((size_t)C * sizeof(int));
+    int *topo = (int*)malloc((size_t)C * sizeof(int));
+    if (!q || !topo) return 0;
+    int qh = 0, qt = 0;
+    for (int i = 0; i < C; i++) if (indeg_c[i] == 0) q[qt++] = i;
+    int tcnt = 0;
+    while (qh < qt) {
+        int u = q[qh++];
+        topo[tcnt++] = u;
+        for (int ei = head_c[u]; ei != -1; ei = c_adj[ei].next) {
+            int v = c_adj[ei].to;
+            if (--indeg_c[v] == 0) q[qt++] = v;
+        }
+    }
+    /* If malformed (cycle), behavior unspecified; proceed with whatever order we got. */
+
+    /* Compute reachability between SCCs using bitsets DP in reverse topo */
+    int wordsC = (C + 63) / 64;
+    unsigned long long *reachC = (unsigned long long*)calloc((size_t)C * (size_t)wordsC, sizeof(unsigned long long));
+    if (!reachC) return 0;
+
+    for (int i = 0; i < C; i++) {
+        bitset_set(&reachC[i * wordsC], i);
+    }
+    for (int idx = tcnt - 1; idx >= 0; idx--) {
+        int u = topo[idx];
+        unsigned long long *ru = &reachC[u * wordsC];
+        for (int ei = head_c[u]; ei != -1; ei = c_adj[ei].next) {
+            int v = c_adj[ei].to;
+            unsigned long long *rv = &reachC[v * wordsC];
+            bitset_or(ru, rv, wordsC);
+        }
+    }
+
+    /* For each SCC, compute internal reachability closure using bitsets */
+    int *scc_vertices = (int*)malloc((size_t)n * sizeof(int));
+    int *scc_offset = (int*)malloc((size_t)(C + 1) * sizeof(int));
+    int *pos_in_scc = (int*)malloc((size_t)(n + 1) * sizeof(int));
+    if (!scc_vertices || !scc_offset || !pos_in_scc) return 0;
+
+    /* Counting sort vertices by comp */
+    int *cnt = (int*)calloc((size_t)C, sizeof(int));
+    if (!cnt) return 0;
+    for (int v = 1; v <= n; v++) cnt[comp[v]]++;
+    scc_offset[0] = 0;
+    for (int i = 0; i < C; i++) scc_offset[i + 1] = scc_offset[i] + cnt[i];
+    int *cur = (int*)malloc((size_t)C * sizeof(int));
+    if (!cur) return 0;
+    memcpy(cur, scc_offset, (size_t)C * sizeof(int));
+    for (int v = 1; v <= n; v++) {
+        int c = comp[v];
+        int p = cur[c]++;
+        scc_vertices[p] = v;
+    }
+    for (int c = 0; c < C; c++) {
+        for (int i = scc_offset[c]; i < scc_offset[c + 1]; i++) {
+            pos_in_scc[scc_vertices[i]] = i - scc_offset[c];
+        }
+    }
+
+    /* Prepare output flags */
+    unsigned char *is_same = (unsigned char*)calloc((size_t)m, 1);
+    if (!is_same) return 0;
+
+    /* Precompute parallel edge counts for internal edges u->v within SCC (by local indices) */
+    /* For each SCC, build a small dense matrix of counts if size is small; but size can be up to 1000.
+       Use hash-like via sorting edges per SCC by (u,v). We'll do global sort of internal edges by (comp,u,v). */
+    int *internal_ids = (int*)malloc((size_t)m * sizeof(int));
+    if (!internal_ids) return 0;
+    int internal_m = 0;
+    for (int i = 0; i < m; i++) {
+        if (comp[edges[i].u] == comp[edges[i].v]) internal_ids[internal_m++] = i;
+    }
+
+    /* Sort internal edge ids by (comp, u, v) using qsort */
+    typedef struct { int cid, u, v, id; } Key;
+    Key *keys = (Key*)malloc((size_t)internal_m * sizeof(Key));
+    if (!keys) return 0;
+    for (int i = 0; i < internal_m; i++) {
+        int id = internal_ids[i];
+        keys[i].cid = comp[edges[id].u];
+        keys[i].u = edges[id].u;
+        keys[i].v = edges[id].v;
+        keys[i].id = id;
+    }
+    int key_cmp(const void *a, const void *b) {
+        const Key *x = (const Key*)a, *y = (const Key*)b;
+        if (x->cid != y->cid) return (x->cid < y->cid) ? -1 : 1;
+        if (x->u != y->u) return (x->u < y->u) ? -1 : 1;
+        if (x->v != y->v) return (x->v < y->v) ? -1 : 1;
+        return (x->id < y->id) ? -1 : (x->id > y->id);
+    }
+    qsort(keys, (size_t)internal_m, sizeof(Key), key_cmp);
+
+    /* For each SCC, compute reachability closure among its vertices */
+    for (int cid = 0; cid < C; cid++) {
+        int sz = cnt[cid];
+        if (sz <= 1) {
+            /* No internal alternative paths; any self-loop edge u->u is forced only if no alternative path avoiding it.
+               In a singleton SCC, the only path u->u avoiding a self-loop is the empty path (length 0).
+               Spec says "directed path from u to v" avoiding e; for u==v, empty path exists and avoids e,
+               so self-loop is NOT forced. We interpret "directed path" as allowing length 0 (standard reachability).
+               Narrowest: treat u==v as having an avoiding path (the trivial path), so classify as diff.
+            */
+            continue;
+        }
+
+        int words = (sz + 63) / 64;
+        unsigned long long *reach = (unsigned long long*)calloc((size_t)sz * (size_t)words, sizeof(unsigned long long));
+        if (!reach) return 0;
+
+        /* Initialize reach with self */
+        for (int i = 0; i < sz; i++) bitset_set(&reach[i * words], i);
+
+        /* Build adjacency list restricted to this SCC using original graph adjacency */
+        /* We'll do a Floyd-Warshall-like transitive closure via repeated propagation on DAG? SCC has cycles.
+           Use bitset-based transitive closure by iterative relaxation:
+             while changed: for each u: reach[u] |= union_{u->x} reach[x]
+           This converges in O(sz * (edges_in_scc) * words) worst-case; with sz<=1000 it's acceptable.
+        */
+        int changed = 1;
+        while (changed) {
+            changed = 0;
+            for (int ii = 0; ii < sz; ii++) {
+                int u = scc_vertices[scc_offset[cid] + ii];
+                unsigned long long *ru = &reach[ii * words];
+                for (int ei = head_g[u]; ei != -1; ei = g[ei].next) {
+                    int v = g[ei].to;
+                    if (comp[v] != cid) continue;
+                    int jj = pos_in_scc[v];
+                    unsigned long long *rv = &reach[jj * words];
+                    /* check if rv adds anything */
+                    for (int w = 0; w < words; w++) {
+                        unsigned long long before = ru[w];
+                        unsigned long long after = before | rv[w];
+                        if (after != before) {
+                            ru[w] = after;
+                            changed = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        /* Process internal edges of this SCC from sorted keys */
+        /* First, compute multiplicity for each (u,v) in this SCC by scanning keys range */
+        int start = 0;
+        while (start < internal_m && keys[start].cid < cid) start++;
+        int end = start;
+        while (end < internal_m && keys[end].cid == cid) end++;
+
+        /* For each group (u,v), if multiplicity>1 then none of those edges are forced (alternative direct edge exists) */
+        int i = start;
+        while (i < end) {
+            int u = keys[i].u;
+            int v = keys[i].v;
+            int j = i;
+            while (j < end && keys[j].u == u && keys[j].v == v) j++;
+            int mult = j - i;
+
+            if (u == v) {
+                /* As above, treat as diff due to trivial path u->u avoiding the edge. */
+                /* leave is_same=0 */
+            } else if (mult > 1) {
+                /* alternative parallel edge exists => avoiding path exists */
+            } else {
+                /* mult==1: check if there exists a path u->v of length >=2 */
+                int iu = pos_in_scc[u];
+                int iv = pos_in_scc[v];
+
+                int has_alt = 0;
+                /* Look for neighbor x of u (within SCC) via any edge u->x, with x!=v, such that x reaches v */
+                for (int ei = head_g[u]; ei != -1; ei = g[ei].next) {
+                    int x = g[ei].to;
+                    if (comp[x] != cid) continue;
+                    if (x == v) continue; /* would use the same edge (and no parallel exists) */
+                    int ix = pos_in_scc[x];
+                    if (bitset_test(&reach[ix * words], iv)) {
+                        has_alt = 1;
+                        break;
+                    }
+                }
+                if (!has_alt) {
+                    /* No alternative path avoiding the unique edge u->v */
+                    is_same[keys[i].id] = 1;
+                }
+            }
+            i = j;
+        }
+
+        free(reach);
+    }
+
+    /* Now handle inter-SCC edges condition (1) */
+    for (int i = 0; i < m; i++) {
+        int u = edges[i].u, v = edges[i].v;
+        int cu = comp[u], cv = comp[v];
+        if (cu == cv) continue; /* already handled internal edges */
+        /* Condition 1:
+           - exactly one edge from cu to cv in condensation (multiplicity==1)
+           - no alternative path of length >=2 from cu to cv
+             i.e., cv reachable from cu only via direct step.
+           This means: for all neighbors x of cu with x!=cv, cv is not reachable from x.
+        */
+        if (pair_cnt[cu * C + cv] != 1) continue;
+
+        int alt = 0;
+        for (int ei = head_c[cu]; ei != -1; ei = c_adj[ei].next) {
+            int x = c_adj[ei].to;
+            if (x == cv) continue;
+            if (bitset_test(&reachC[x * wordsC], cv)) {
+                alt = 1;
+                break;
+            }
+        }
+        if (!alt) is_same[i] = 1;
+    }
+
+    for (int i = 0; i < m; i++) {
+        puts(is_same[i] ? "same" : "diff");
+    }
+
+    return 0;
+}

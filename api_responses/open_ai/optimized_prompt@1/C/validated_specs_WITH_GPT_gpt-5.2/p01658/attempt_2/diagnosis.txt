@@ -1,0 +1,23 @@
+A. Likely mismatch category  
+Wrong transition rule / missing state update (edge-effect) during per-row processing.
+
+B. What the current specification may be missing or misstating  
+The spec describes “removal” when a boundary element is 1 and that the active segment shrinks, but it omits a crucial side effect present in the source: after each step (whether counting a removal or not), the program **toggles (XOR with 1) an adjacent element just inside the segment**. In the source, processing is not just “remove boundary if it is 1”; it also **mutates the next boundary element** (or the element after advancing the left pointer / before retreating the right pointer). The generated program only moves pointers and never flips any values, so it undercounts.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact per-iteration transformation on the row buffer while shrinking the segment:
+
+- When the left boundary is 1: increment count, advance left boundary, and **flip the new left boundary element**.  
+- Else if the right boundary is 1: increment count, retreat right boundary, and **flip the new right boundary element**.  
+- Else (both boundaries are 0): advance left boundary and **flip the new left boundary element**.  
+
+Also clarify that the algorithm is inherently stateful: decisions at later steps depend on these flips, not just on the original row values.
+
+D. Why this clarification is supported by the source program  
+In the source loop:
+
+- `if (A[l]==1) { a++; A[++l]^=1; }` increments the count and then flips `A[l]` after incrementing `l`.  
+- `else if (A[r]==1) { a++; A[--r]^=1; }` increments the count and then flips `A[r]` after decrementing `r`.  
+- `else { A[++l]^=1; }` still advances `l` and flips the new `A[l]` even when no count occurs.
+
+Thus, every iteration performs a pointer move **and** a flip of the newly exposed boundary element, which the current specification does not capture.

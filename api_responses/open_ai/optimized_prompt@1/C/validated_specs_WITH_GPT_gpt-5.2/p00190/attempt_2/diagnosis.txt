@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+- Wrong target configuration / wrong state encoding assumption  
+- Wrong output convention (no-answer indicator)  
+- Wrong adjacency (move graph) abstraction
+
+B. What the current specification may be missing or misstating  
+- The specification never states the *exact* fixed target configuration used by the source program. The generated code assumed a “canonical” target with blanks at the end, but the source’s target is explicitly `0x123456789ab0` (i.e., tiles `1..11, 0, 0` in a specific nibble/position order). Without pinning down the exact target and the exact mapping from input positions to packed state positions, “minimum moves to a fixed target” is underspecified and can yield different answers (e.g., returning 0 for an input that the source does not consider solved).  
+- The specification says the adjacency relation “matches the 13-position graph implied by the move rules” but does not actually define that graph. The source hard-codes a specific neighbor list (`move[13][5]`) that is not the same as a generic “cross” layout chosen by the generated program.  
+- The specification’s output description says “string indicating no available answer” but does not specify the literal token. The source prints exactly `"NA\n"`; the generated program printed `"No answer\n"`.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the target configuration in terms of the 13 input positions (which tile value is expected at each index 0..12 in the goal).  
+- Precisely define the puzzle’s adjacency graph as an explicit neighbor list per position (or an unambiguous diagram that matches the source’s `move` table).  
+- Specify the exact output format for unsolved/out-of-bound cases (the literal string), not just a semantic “no answer indicator.”  
+- Clarify the state representation/order: the source packs 13 nibbles in a particular positional order (it shifts left and ORs each read value), and its swap routine uses `(12 - pos)` when computing bit offsets—this implies a specific mapping between “position index” and “nibble location” that must be consistent with the goal constant and with moves.
+
+D. Why this clarification is supported by the source program  
+- The source sets the goal state to a concrete constant: `s = 0x123456789ab0ULL` and precomputes distances from that exact state. Any deviation in goal definition or in how input positions map into the packed integer changes membership in the precomputed set and can change distances (including whether a state is recognized as distance 0).  
+- The source’s legal moves are exactly those in `move[13][5]`; this is the authoritative adjacency relation. A different adjacency (even if “reasonable”) changes reachability and shortest-path lengths, so the spec must commit to the exact graph.  
+- The source prints `printf(ans < 0 ? "NA\n" : "%d\n", ans);` so the no-answer indicator is not arbitrary; it is specifically `"NA"`.  
+- The source’s `swap()` uses bit positions derived from `(12 - p)` rather than `p`, which means the packed-state nibble order is reversed relative to the input loop’s shifting. This is a concrete, global rule about encoding/decoding that the current specification does not capture, and mismatches here can make an input that “looks like the goal” not equal to the internal goal state.

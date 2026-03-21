@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+- Wrong abstraction / missing constraint leading to wrong complexity (performance/termination mismatch).
+
+B. What the current specification may be missing or misstating  
+- The spec implies “adjacent in an implicit 5×4 layout” and “explores all possible valid removal sequences,” but it does not capture an important operational constraint present in the source: **the source only ever considers four specific neighbor offsets from each position (i→i+1, i→i+3, i→i+4, i→i+5) and only when those indices are within the current `last_ = 20 - 2*depth` prefix**.  
+- The generated program interprets the spec as “any pair of positions that are adjacent in the current grid,” and then checks adjacency by scanning **all pairs (i,j)** and testing a row/column relation. While logically similar, this changes the search mechanics from “constant number of candidate moves per i” to “O(n²) candidate pairs per state,” which can explode runtime and cause timeouts.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that move generation is restricted to checking only the four *forward* neighbor positions from each index in the current sequence prefix (right, down, down-left, down-right), rather than considering arbitrary pairs and then filtering by adjacency.  
+- Clarify that the “grid” is not a persistent 2D structure with coordinates tracked across removals; instead, at each recursion depth the program treats the **current remaining cards as a 1D array prefix** and applies only those fixed index-offset adjacency tests within that prefix.  
+- More generally: specify the intended move-enumeration rule (fixed-offset neighbor checks) because it materially constrains the branching factor and thus feasibility.
+
+D. Why this clarification is supported by the source program  
+- In `solve`, for each `i` it checks at most four candidates: `i+4` (vertical), `i+1` (horizontal), `i+5` (down-right), `i+3` (down-left), each guarded by bounds like `i+4 < last_` and column conditions `(i%4)<3` / `(i%4)>0`. There is **no nested loop over all j**.  
+- The state size is tracked solely by `last_ = 20 - 2*depth`, and `remove2` compacts by copying all indices except the removed ones, preserving order—consistent with a 1D-prefix model.  
+- Because the source’s branching factor is tightly limited by these fixed-offset checks, a spec that allows/encourages “check all pairs then test adjacency” can lead to a much slower implementation (as seen by timeout), even if it seems semantically aligned at a high level.

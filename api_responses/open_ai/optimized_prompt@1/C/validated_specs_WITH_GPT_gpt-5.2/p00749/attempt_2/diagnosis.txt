@@ -1,0 +1,24 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for the support relation (parent/child modeling), plus a missing constraint about how the “footprint” is computed.
+
+B. What the current specification may be missing or misstating  
+- It treats “the component directly beneath it (if any)” as a simple, well-defined single parent chosen from any vertical contact. In the source, the parent/child relation is not “any below contact”; it is constructed in a very specific way during a bottom-up scan, and it can ignore some potential contacts once a parent is assigned.  
+- It describes a component’s “horizontal footprint” as min/max column indices among its occupied cells (or “support-relevant scan”), but it doesn’t capture that the source computes the footprint only from cells that have material directly below (or are on the bottom row). Cells that are “overhanging” with empty space below do not expand the footprint interval in the source.  
+- It assumes the support relation is a clean tree with a single root and acyclic; the source does not validate these assumptions and in fact hard-wires component 1 as the root (`tbl[1].par = 1`) based on scan order, not on “no parent”.
+
+C. What general behavior should be clarified in the specification  
+- Precisely how the support graph is derived from the grid:  
+  - When and how a component becomes a child of another component (based on the first encountered supporting component during a specific scan order), and that subsequent potential supports may be ignored once a parent is set.  
+  - That the model is effectively a rooted tree built by a bottom-up scan, not a general “supported-by-anything-below” relation.  
+- Precisely how a component’s footprint interval is defined for the stability check:  
+  - It is based on columns where the component is actually supported from below (or is on the ground), not necessarily all occupied cells of the component.  
+- How the “root” is chosen/represented: it is the first created component in the scan and is forced to be its own parent, rather than being inferred as “the unique component with no parent”.
+
+D. Why this clarification is supported by the source program  
+- Parent assignment is done inside `mktree(r,c,this)` and is gated by multiple early returns:  
+  - If not on bottom row and `map[r+1][c] == '.'`, it returns immediately (no footprint update, no parent relation).  
+  - It sets footprint (`xl/xr`) only when the cell is on the bottom row with material, or when there is material directly below.  
+  - It assigns `tbl[this].par` only once: `if (tbl[this].par) return;` meaning after the first parent is set, later contacts do not change/extend the parent relation.  
+  - Children are attached to the parent determined by `p = tr[k]` where `k` is the union-find id of the below cell’s component, i.e., the parent is whichever component is encountered below at that scan moment.  
+- The footprint used in the stability check is `xl..xr` computed as above, and the check uses strict inequality against `x = 0.5 + mx/m` (center-of-mass with half-cell offset): `if (x <= xl || xr+1 <= x) return 0;`. This matches a footprint defined by supported columns, not by all occupied columns.  
+- The root is not discovered by “no parent”; instead, after building, the code forces `tbl[1].par = 1` and calls `check(1)`, so the entire evaluation is anchored to component index 1 (first created in the bottom-up scan), not necessarily the unique parentless component.

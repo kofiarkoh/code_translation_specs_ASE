@@ -1,0 +1,31 @@
+#include <stdio.h>
+
+#define MAXN 100009
+
+int main(void) {
+    int n;
+    static long long a[MAXN];
+
+    if (scanf("%d", &n) != 1) return 0;
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%lld", &a[i]) != 1) return 0;
+    }
+
+    /* Right-to-left single pass; at most one decrement of 1 per adjacent pair,
+       applied only to the left element when it is greater than the right. */
+    for (int i = n - 2; i >= 0; i--) {
+        if (a[i] > a[i + 1]) {
+            a[i] -= 1;
+            if (a[i] > a[i + 1]) {
+                /* Unfixable inversion even after the single allowed decrement. */
+                puts("NO");
+                return 0;
+            }
+        }
+        /* Invariant: suffix starting at i is non-decreasing under adjustments so far. */
+    }
+
+    puts("YES");
+    return 0;
+}

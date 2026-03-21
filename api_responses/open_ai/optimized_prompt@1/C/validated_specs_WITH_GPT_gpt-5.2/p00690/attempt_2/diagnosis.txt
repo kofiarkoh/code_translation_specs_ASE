@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong output formatting / ordering rule (line breaks and token layout).
+
+B. What the current specification may be missing or misstating  
+The specification says the program outputs “the maximum total length” and “a sequence of vertex labels,” but it does not constrain *how* these two outputs are separated (same line vs separate lines). The generated program printed the length and the path on one line, while the source prints the length on its own line and the vertex sequence on the next line.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact output layout: for each dataset, print:
+1) the maximum length as an integer followed by a newline, then  
+2) the chosen vertex sequence on a separate line (space-separated), followed by a newline.  
+Also clarify that the path line contains only the vertex labels (no leading length on that line).
+
+D. Why this clarification is supported by the source program  
+In `main()` the source does:
+- `printf("%d\n", len);` which always prints the length and a newline, then
+- prints the vertex sequence starting with `printf("%d", ans[0]);` and ends with `printf("\n");`  
+This enforces a strict two-line-per-dataset output format, which the current specification did not explicitly require, allowing the generated code to choose a different (single-line) format.

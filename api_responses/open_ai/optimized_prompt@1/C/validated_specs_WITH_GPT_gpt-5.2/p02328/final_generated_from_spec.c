@@ -1,0 +1,66 @@
+#include <stdio.h>
+
+int main(void) {
+    long long w;
+    if (scanf("%lld", &w) != 1) {
+        /* Undefined behavior per specification if input is missing/unparseable.
+           We return to keep the program compilable and avoid extra I/O. */
+        return 0;
+    }
+
+    /* Fixed-size internal arrays; specification allows w up to 100000 and
+       mentions writing a sentinel at index w. */
+    long long h[100001];
+    long long st_h[100001];     /* stack of heights (strictly increasing) */
+    long long st_pos[100001];   /* earliest start position for each height */
+    long long top = 0;
+
+    for (long long i = 0; i < w; i++) {
+        if (scanf("%lld", &h[i]) != 1) {
+            /* Undefined behavior per specification; exit quietly. */
+            return 0;
+        }
+    }
+
+    if (w == 0) {
+        printf("%lld\n", 0LL);
+        return 0;
+    }
+
+    /* Sentinel trailing bar of height 0 at index w to flush remaining stack. */
+    h[w] = 0LL;
+
+    long long best = 0;
+
+    for (long long i = 0; i <= w; i++) {
+        long long cur_h = h[i];
+        long long start = i;
+
+        /* Finalize areas for heights that cannot extend to position i. */
+        while (top > 0 && st_h[top - 1] > cur_h) {
+            long long height = st_h[top - 1];
+            long long pos = st_pos[top - 1];
+            top--;
+
+            /* Area computed in signed long long; overflow is undefined per spec. */
+            long long area = height * (i - pos);
+            if (area > best) best = area;
+
+            /* The next (lower) height can extend back to the earliest start. */
+            start = pos;
+        }
+
+        /* Maintain strictly increasing heights in the structure. */
+        if (top == 0 || st_h[top - 1] < cur_h) {
+            st_h[top] = cur_h;
+            st_pos[top] = start;
+            top++;
+        } else {
+            /* If equal height, do nothing: keeping the earlier start already
+               represented yields correct max area and preserves strictness. */
+        }
+    }
+
+    printf("%lld\n", best);
+    return 0;
+}

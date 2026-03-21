@@ -1,0 +1,193 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given an input that defines a bipartite relation between two equally sized sets, the program determines whether a perfect matching (a one-to-one pairing covering all elements) exists. If no perfect matching exists, it reports failure. If a perfect matching exists, it reports success and then outputs, for each left-side element in increasing order, a right-side partner index (1-based) such that all left-side elements are paired and no right-side element is used more than once.
+
+2. Inputs  
+- A non-negative integer `K`. The program uses an internal size `N = K - 1`. All subsequent processing is based on this `N`.  
+- Then an `N × N` grid of relation indicators, read in a character-oriented way: for each of the `N*N` cells, the program reads one character `c` and treats the relation as “allowed” if `(c & 1) != 0` (i.e., the character code is odd). Immediately after that, it unconditionally reads and discards one additional character (intended as a separator such as a space or newline).  
+  - The allowed relations are interpreted as edges from left element `j` (column index) to right element `i` (row index).
+
+3. Outputs  
+- If no perfect matching exists: prints exactly the line `no`.  
+- If a perfect matching exists:  
+  - Prints exactly the line `yes`.  
+  - Then prints exactly `N` lines. On the `i`-th of these lines (for left element `i` in increasing order, 0-based internally), it prints a positive integer in the range `1..N` giving the chosen right-side partner’s index in 1-based form.
+
+4. Preconditions / Assumptions  
+- The first integer `K` is such that `N = K - 1` is non-negative and fits within the program’s fixed internal capacity (maximum supported `N` is bounded by the compiled array sizes).  
+- The input provides at least `2 * N * N` characters following `K` so that each cell has one indicator character plus one discardable separator character.  
+- Behavior is unspecified if the input format does not match the character consumption described above or if capacities are exceeded.
+
+5. Postconditions  
+- If `no` is printed, the program did not find a perfect matching for the relation as interpreted from the input characters.  
+- If `yes` is printed, the subsequent `N` printed indices define a bijection between the left set `{1..N}` and the right set `{1..N}`, and each printed pairing corresponds to an allowed relation according to the program’s `(c & 1)` rule.
+
+6. Additional Notes on Matching Construction  
+- The program first checks existence of a perfect matching. If one exists, it then produces the final per-left-element outputs by iterating left elements in increasing order and, for each one, recomputing a matching with that left element forced to be matched (while maintaining a perfect matching overall). The resulting printed partner for each left element is the one obtained by this process.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong input parsing / wrong abstraction of the input format (character consumption and grid interpretation).
+
+B. What the current specification may be missing or misstating  
+- The spec’s “character-oriented” reading rule (“read one character `c` per cell, then discard one separator character”) does not accurately capture how the source program consumes the grid when the grid is provided as ordinary digits separated by spaces/newlines.  
+- In particular, the spec does not state that the source uses a raw `gc()` stream immediately after reading the first integer with a custom integer reader, and that the first `gc()` for the grid will often see whitespace/newline left after the integer. This affects which characters are treated as cell indicators.  
+- The spec also over-commits to the idea that there are exactly `2*N*N` characters for the grid (indicator + separator per cell). The source does not validate this; it just reads two characters per cell regardless of whether they are digits or whitespace, which means the “indicator” character is not necessarily the digit character of the cell unless the input is formatted to match that exact consumption pattern.
+
+C. What general behavior should be clarified in the specification  
+- Precisely how the grid is tokenized/consumed from the byte stream, including the interaction between the initial integer read and the subsequent per-cell `gc()` calls.  
+- Whether the intended input is truly a fixed-width character grid (where every cell is represented by a single non-whitespace character plus a single separator character), or instead a whitespace-separated matrix of `0/1` tokens (in which case the source’s behavior is effectively “take every other byte” rather than “read integers”).  
+- That the program’s edge decision is based on the parity of the raw byte read at that moment, not on the numeric value of a parsed token—so whitespace/newlines can be (incorrectly, from a high-level view) treated as cell indicators if the stream alignment is off.
+
+D. Why this clarification is supported by the source program  
+- The source reads `N = in() - 1` using a custom `in()` that stops when it sees a non-digit, leaving that non-digit (typically `'\n'` or space) already consumed, but not normalizing the stream to the next digit in a tokenized sense.  
+- Then, for each cell, it does:
+  ```c
+  if (gc() & 1) to[j][hi[j]++] = N+i;
+  gc();
+  ```
+  i.e., it unconditionally consumes exactly two bytes per cell and uses the first byte’s least significant bit to decide whether an edge exists. There is no skipping of whitespace, no parsing of `0`/`1` as integers, and no guarantee that the first byte per cell is the digit character unless the input is formatted to match this exact two-bytes-per-cell pattern.  
+- The failing test input is a typical whitespace-separated `0/1` matrix. Under the generated program’s `getchar()`-based “indicator+discard” model (and especially with the leftover newline after `scanf`), the indicator bytes can become whitespace/newline rather than the intended digits, leading to a different graph and thus a different matching result.
+
+```

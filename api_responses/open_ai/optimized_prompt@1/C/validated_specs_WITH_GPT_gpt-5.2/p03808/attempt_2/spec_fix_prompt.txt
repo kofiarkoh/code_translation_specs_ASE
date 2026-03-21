@@ -1,0 +1,135 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	long long i, N, A[100001];
+	scanf("%lld", &N);
+	for (i = 0; i < N; i++) scanf("%lld", &(A[i]));
+	A[N] = A[0];
+
+	long long sum = 0, diff[100001];
+	for (i = 1; i <= N; i++) {
+		sum += A[i];
+		diff[i] = A[i] - A[i-1];
+	}
+	if (sum % (N * (N + 1) / 2) != 0) printf("NO\n");
+	else {
+		sum /= N * (N + 1) / 2;
+		for (i = 1, diff[0] = 0; i <= N; i++) {
+			diff[i] = (sum - diff[i]) / N;
+			if (diff[i] < 0 || diff[i] > sum) break;
+			else diff[0] += diff[i];
+		}
+		if (i <= N || diff[0] != sum) printf("NO\n");
+		else {
+			for (i = 1; i <= N; i++) A[N] -= diff[i] * (N - i + 1);
+			if (A[N] != 0) printf("No\n");
+			else printf("YES\n");
+		}
+	}
+	fflush(stdout);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether a given sequence of integers of length `N` satisfies a specific set of arithmetic consistency constraints derived from its cyclic adjacent differences and the total sum of its elements. Produces an affirmative or negative decision.
+
+2. Inputs  
+- An integer `N`.  
+- A sequence of `N` integers.
+
+3. Outputs  
+- Writes one decision line indicating acceptance or rejection.  
+  - Acceptance is printed as `YES`.  
+  - Rejection is printed as either `NO` or `No` (case varies by the failing condition).
+
+4. Preconditions  
+- `N` is within the supported bound such that storing `N+1` elements in fixed-size internal storage is valid (i.e., `0 ≤ N ≤ 100000`).  
+- Input provides at least `N` integers after `N`.  
+- Arithmetic operations on intermediate values fit within signed 64-bit integer range (otherwise behavior is not defined by this specification).
+
+5. Postconditions  
+- If the program prints `YES`, then there exists an integer value `S` and a sequence of `N` integers `x₁..x_N` such that:  
+  - `S` equals the total sum of the input sequence divided by `N(N+1)/2` (and this division is exact).  
+  - For each position `i` (1..N), the cyclic adjacent difference between element `i` and the previous element (with element 1’s previous being element N) satisfies:  
+    - `x_i = (S - (a_i - a_{i-1})) / N` is an integer, where `a_0` denotes the last element and `a_i` denotes the i-th input element.  
+    - `0 ≤ x_i ≤ S`.  
+  - The sum of `x₁..x_N` equals `S`.  
+  - A final weighted consistency check holds: the last element of the input sequence equals the weighted sum `Σ_{i=1..N} x_i * (N - i + 1)`.  
+- If the program prints `NO` or `No`, at least one of the above required conditions does not hold (or required divisibility/integrality constraints fail).
+
+6. Invariants  
+- The decision is based solely on the provided `N` and the `N` input integers; no external state is consulted.  
+- The cyclic nature of the sequence is assumed for difference computations (the element after the last is treated as the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range `N`, or arithmetic overflow. In such cases, behavior is unspecified.  
+- Rejection output may be `NO` or `No` depending on which check fails; both represent rejection.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is created or modified beyond producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage sized for up to 100001 elements; memory usage is bounded accordingly.  
+- Runs in time proportional to `N` under the stated preconditions.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / missing non-functional requirement (build/portability constraint), leading to a compilation failure rather than a behavioral mismatch.
+
+B. What the current specification may be missing or misstating  
+The specification describes only runtime arithmetic/logic behavior and output strings, but it does not constrain the required headers / C dialect / portability details needed to compile a conforming implementation. In particular, it doesn’t state whether the implementation may rely on C99/C11 `<inttypes.h>` format macros (e.g., `SCNd64`) or must use plain `scanf("%lld", ...)`-style formats as the source does.
+
+C. What general behavior should be clarified in the specification  
+Clarify the expected implementation-level I/O contract for 64-bit integers in C:  
+- whether inputs are read as `long long` using `%lld` (as in the source), or  
+- whether fixed-width `int64_t` is required/allowed and, if so, that `<inttypes.h>` must be included and the build standard must support the `SCNd64` macros.  
+More generally: specify compilation assumptions (required headers, C standard version) so that “conforming generated code” is guaranteed to compile under the intended toolchain.
+
+D. Why this clarification is supported by the source program  
+The source program uses `long long` and `scanf("%lld", ...)` without `<inttypes.h>` and without any fixed-width format macros. The failing artifact is a compile-time error caused by using `SCNd64` without the necessary header (and/or without guaranteeing the macro exists). This indicates the spec currently leaves too much freedom in how 64-bit I/O is expressed, even though the ground-truth source implicitly fixes a simple, portable approach (`%lld` with `long long`) under typical C compilers.
+
+```

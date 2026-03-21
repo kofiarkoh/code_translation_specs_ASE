@@ -1,0 +1,24 @@
+A. Likely mismatch category  
+Wrong ordering rule / wrong tie‑breaking policy in the topological sort.
+
+B. What the current specification may be missing or misstating  
+The specification describes only the partial-order constraint (“any topological ordering”), but the source program implements a *specific deterministic* topological ordering based on:
+- the order in which zero‑indegree vertices are enqueued (increasing vertex index scan), and
+- the order in which outgoing edges are processed (the same order as edges appear in the input for each source vertex),
+using a FIFO queue (not a stack/priority queue).
+
+The generated program builds adjacency lists by prepending edges, which reverses per-vertex edge traversal order relative to input, changing the resulting topological order even though it remains valid.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the program’s output is not just any valid topological ordering; it is the one produced by Kahn’s algorithm with:
+- initial queue filled by scanning vertices from 0 to V−1 and enqueuing those with indegree 0 in that scan order,
+- a FIFO queue discipline,
+- for each dequeued vertex, visiting its outgoing neighbors in the same sequence as the edges were given in the input for that vertex, enqueuing newly-zero-indegree vertices as they arise.
+
+This defines a stable, input-order-dependent tie-breaking among multiple valid topological orders.
+
+D. Why this clarification is supported by the source program  
+- `for (i = 0; i < V; i++) if (!count[i]) q[end++] = i;` enqueues initial zero‑indegree vertices in increasing index order.  
+- The queue is FIFO: `i = q[top++]; ... q[end++] = k;`.  
+- Adjacency arrays `to[s][hi[s]++] = t;` are filled in the second pass over `memo` in the original input order, so `for (j = 0; j < hi[i]; j++)` processes outgoing edges in input order.  
+- Therefore, when multiple vertices become eligible, their relative output order depends on (1) when they are enqueued (FIFO) and (2) the per-vertex edge iteration order (input order). The current spec does not constrain these tie-breakers, allowing implementations (like the generated one) that still satisfy “topological ordering” but produce different valid sequences.

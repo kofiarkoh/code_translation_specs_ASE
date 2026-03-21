@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads two positive integers from standard input. If both values are within the allowed inclusive range, computes their greatest common divisor (GCD) using the Euclidean algorithm and prints it followed by a newline. If either value is out of range, the program produces no output and terminates with a failure status.
+
+2. Inputs  
+- Exactly two whitespace-separated integer tokens are read from standard input.  
+- The intended domain is natural numbers (positive integers).
+
+3. Outputs  
+- When both inputs are valid (in range): prints one integer value equal to the GCD of the two inputs, followed by a line terminator.  
+- When either input is out of range: no output is produced.
+
+4. Preconditions / Input Assumptions  
+- Two input values are present and are readable as integers by the program’s chosen scanning method; if input is missing or not parseable, behavior is unspecified (no explicit error handling).  
+- For the “valid input” path, each input must be within the inclusive range [1, 1,000,000,000].
+
+5. Computation Semantics (GCD)  
+- If both inputs are within range, the program computes the GCD of the two values.  
+- The computation is performed by iteratively replacing the pair (a, b) with (b, a mod b) until the remainder becomes zero; the last non-zero divisor is the result.  
+- Prior to invoking the GCD routine, the program orders the two inputs so the first argument is the larger (or equal) value and the second is the smaller (or equal) value.
+
+6. Termination and Status Codes  
+- Returns exit status 0 on successful range validation and GCD output.  
+- Returns exit status 1 if either input is outside the allowed range.  
+- The internal GCD loop terminates for valid positive inputs; additionally, if the divisor becomes zero, the routine stops and returns the current divisor value (this case does not occur under the stated valid-input constraints).
+
+7. Error Handling / Exceptional Behavior  
+- Out-of-range detection is the only explicitly handled error condition; it suppresses output and sets the failure exit status.  
+- No guarantees are made for malformed input or I/O failures.
+
+8. Build / Conformance Constraints  
+- A conforming implementation must be a self-contained C program that compiles cleanly under a standard C toolchain (e.g., C11) with all required headers included for any library facilities, types, or format macros it uses.  
+- If fixed-width integer format macros (such as `PRI*`) are used, the required header(s) must be included; alternatively, the program may use basic integer types and matching `scanf`/`printf` format specifiers consistent with those types.
+
+```

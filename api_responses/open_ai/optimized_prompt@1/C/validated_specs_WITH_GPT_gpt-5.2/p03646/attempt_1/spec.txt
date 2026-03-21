@@ -1,0 +1,52 @@
+1. Functional Description  
+Reads a single non-negative integer and outputs a positive integer length followed by a sequence of non-negative integers of that length. The produced length and sequence are deterministically derived from the input value and fall into one of four cases based on the input’s magnitude.
+
+2. Inputs  
+- One integer value (assumed to fit in signed 64-bit range).
+
+3. Outputs  
+- First, an integer `n` representing the number of elements in the sequence.  
+- Then, `n` integers representing the sequence values.
+
+4. Preconditions  
+- The input value is provided and is a valid integer within signed 64-bit range.  
+- Assumption: the input value is non-negative (behavior for negative values is not meaningfully defined by the program’s contract).
+
+5. Postconditions  
+Let the input be `k`.
+
+- If `k >= 50`:  
+  - Outputs `n = 50`.  
+  - Outputs a sequence of 50 integers.  
+  - All output elements are non-negative integers.  
+  - The sequence is fully determined by `k` and is constructed so that:
+    - There exists an integer base value `B` such that all elements start from `B`, then exactly `k mod 50` elements are increased by 50, and for each such increase, all other elements are decreased by 1 (net effect applied cumulatively).
+
+- If `2 <= k < 50`:  
+  - Outputs `n = k`.  
+  - Outputs a sequence of length `k` where every element equals `k`.
+
+- If `k == 0`:  
+  - Outputs `n = 4`.  
+  - Outputs the sequence `[3, 3, 3, 3]`.
+
+- If `k == 1`:  
+  - Outputs `n = 3`.  
+  - Outputs the sequence `[1, 0, 3]`.
+
+6. Invariants  
+- The first output value equals the number of subsequent integers output.  
+- The output sequence length is always one of: `50`, `k` (when `2 <= k < 50`), `4`, or `3`.  
+- Under the non-negative input assumption, all printed sequence elements are non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or outside representable range, the behavior is unspecified.  
+- If the input is negative, the produced output may violate the non-negativity property and is not specified by this contract.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from producing output based solely on the single input value.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to the input magnitude (bounded by fixed-size output in the `k >= 50` case and by `k < 50` otherwise).  
+- Output size is bounded: at most 51 integers are printed (one length plus up to 50 elements).

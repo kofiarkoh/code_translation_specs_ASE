@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each test case, the program computes an integer value derived from the polygon’s **vertical edges** and an axis-aligned rectangle (“window”) derived from four input points. It forms two signed sums:
+
+- `cur`: a signed vertical-edge integral over the original polygon, using only edges whose endpoints have the same x-coordinate.  
+- `win`: the same kind of sum, but with each contributing vertical edge **independently clamped** to the rectangle bounds before being accumulated.
+
+The program outputs `win - cur` for each test case. This value is a signed quantity that matches a doubled-area-style edge integral for polygons where such a vertical-edge-only formulation is valid (e.g., polygons whose edges are axis-aligned), but it is **not** a general polygon–rectangle set-difference or intersection-area computation for arbitrary polygons.
+
+2. Inputs  
+For each test case, read from standard input in this order:  
+- An integer `N`, the number of polygon vertices.  
+- `N` pairs of integers `(x[i], y[i])` giving the polygon vertices in order. The polygon is treated as closed by connecting the last vertex back to the first.  
+- Four pairs of integers `(a, b)` that define a rectangle only through their coordinate extrema:  
+  - `xmin = min(a)`, `xmax = max(a)` over the four points’ x-coordinates  
+  - `ymin = min(b)`, `ymax = max(b)` over the four points’ y-coordinates  
+
+Input terminates when `N` is zero; no output is produced for that terminating case.
+
+3. Outputs  
+For each non-terminating test case, write one signed 64-bit integer (in decimal) followed by a newline:  
+- the value `win - cur` as computed in Section 5.
+
+4. Preconditions / Assumptions  
+- `N` is positive for each test case and fits the program’s fixed storage (at most 101 vertices are supported).  
+- Coordinates are integers.  
+- To interpret the result as a geometric area-related quantity, the polygon should satisfy the conditions under which the vertical-edge-only integral equals the polygon’s signed doubled area (typically, polygons with axis-aligned edges). If the polygon contains non-vertical/non-horizontal edges, the program still produces an output, but it is not specified to correspond to polygon area or to any polygon–rectangle set operation.  
+- Intermediate computations must fit in signed 64-bit (`long long`).
+
+5. Computation Semantics  
+Let the polygon vertices be `(x[0], y[0]) ... (x[N-1], y[N-1])` and define `(x[N], y[N]) = (x[0], y[0])`.
+
+Initialize `cur = 0`, `win = 0`. For each edge `i` from `0` to `N-1`:
+
+- Only if the edge is vertical (`x[i] == x[i+1]`), update:
+
+  **Original contribution (`cur`):**  
+  - `cur += x[i] * (y[i] - y[i+1])`
+
+  **Clamped contribution (`win`):**  
+  - Let `a` be `x[i]` clamped to `[xmin, xmax]`.  
+  - Let `b` be `y[i]` clamped to `[ymin, ymax]`.  
+  - Let `c` be `y[i+1]` clamped to `[ymin, ymax]`.  
+  - `win += a * (b - c)`
+
+After processing all edges, output `win - cur`.
+
+Notes on clamping: each of `a`, `b`, and `c` is clamped independently to the rectangle bounds; no geometric clipping or intersection polygon is constructed.
+
+6. Properties / Invariants  
+- The polygon is always treated as closed (last vertex connects to first).  
+- Only vertical edges contribute; horizontal and slanted edges are ignored entirely.  
+- Reversing the vertex order negates both `cur` and `win`, and therefore negates the output.  
+- The rectangle is always the axis-aligned bounding box of the four provided points.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, exceeds capacity, or arithmetic overflows, behavior is unspecified.
+
+8. Termination Behavior  
+- The program processes independent test cases until it reads `N = 0`, then terminates immediately.
+
+```

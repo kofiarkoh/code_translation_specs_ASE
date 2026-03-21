@@ -1,0 +1,136 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAXN 4000
+#define INF  1000000000
+
+/* We compute dp[i][j] = minimal length of a binary string that is NOT a subsequence
+   of at least one of the suffixes a[i..], b[j..].
+
+   Recurrence (for i in [0..n], j in [0..m]):
+     Let na0 = next position >= i in a with '0' (or n if none), similarly na1.
+     Let nb0, nb1 for b.
+     If na0==n or nb0==m then choosing '0' makes it fail in at least one string immediately,
+       so candidate length for starting with '0' is 1.
+     Else candidate is 1 + dp[na0+1][nb0+1].
+     Same for '1'.
+     dp[i][j] = min(cand0, cand1).
+
+   Reconstruction:
+     Starting at (0,0), at each step choose the smallest bit ('0' then '1')
+     that attains dp[i][j] via the above candidate, append it, and advance
+     to (na+1, nb+1) if both exist; otherwise stop (since length 1 achieved).
+   This yields a deterministic minimal-length answer.
+*/
+
+static char a[MAXN + 5], b[MAXN + 5];
+
+static inline int min_int(int x, int y) { return x < y ? x : y; }
+
+int main(void) {
+    if (scanf("%4000s %4000s", a, b) != 2) {
+        /* Unspecified behavior per spec; just exit quietly. */
+        return 0;
+    }
+
+    int n = (int)strlen(a);
+    int m = (int)strlen(b);
+
+    /* nextA[i][c] = smallest index >= i where a[index] == ('0'+c), or n if none.
+       Define for i in [0..n], with nextA[n][*] = n. */
+    int *nextA = (int *)malloc((size_t)(n + 1) * 2 * sizeof(int));
+    int *nextB = (int *)malloc((size_t)(m + 1) * 2 * sizeof(int));
+    if (!nextA || !nextB) return 0;
+
+    nextA[2 * n + 0] = n;
+    nextA[2 * n + 1] = n;
+    for (int i = n - 1; i >= 0; --i) {
+        nextA[2 * i + 0] = nextA[2 * (i + 1) + 0];
+        nextA[2 * i + 1] = nextA[2 * (i + 1) + 1];
+        nextA[2 * i + (a[i] - '0')] = i;
+    }
+
+    nextB[2 * m + 0] = m;
+    nextB[2 * m + 1] = m;
+    for (int j = m - 1; j >= 0; --j) {
+        nextB[2 * j + 0] = nextB[2 * (j + 1) + 0];
+        nextB[2 * j + 1] = nextB[2 * (j + 1) + 1];
+        nextB[2 * j + (b[j] - '0')] = j;
+    }
+
+    /* dp as (n+1) x (m+1) int table, row-major. */
+    size_t rows = (size_t)(n + 1);
+    size_t cols = (size_t)(m + 1);
+    int *dp = (int *)malloc(rows * cols * sizeof(int));
+    if (!dp) return 0;
+
+    /* Fill from bottom-right to top-left. Base dp[n][m] = 1 (any single bit fails). */
+    for (int i = n; i >= 0; --i) {
+        for (int j = m; j >= 0; --j) {
+            int cand0, cand1;
+
+            int na0 = nextA[2 * i + 0];
+            int nb0 = nextB[2 * j + 0];
+            if (na0 == n || nb0 == m) {
+                cand0 = 1;
+            } else {
+                cand0 = 1 + dp[(size_t)(na0 + 1) * cols + (size_t)(nb0 + 1)];
+            }
+
+            int na1 = nextA[2 * i + 1];
+            int nb1 = nextB[2 * j + 1];
+            if (na1 == n || nb1 == m) {
+                cand1 = 1;
+            } else {
+                cand1 = 1 + dp[(size_t)(na1 + 1) * cols + (size_t)(nb1 + 1)];
+            }
+
+            dp[(size_t)i * cols + (size_t)j] = min_int(cand0, cand1);
+        }
+    }
+
+    int L = dp[0 * (int)cols + 0];
+    char *out = (char *)malloc((size_t)L + 1);
+    if (!out) return 0;
+
+    int i = 0, j = 0, pos = 0;
+    while (1) {
+        int cur = dp[(size_t)i * cols + (size_t)j];
+
+        /* Try '0' then '1' for deterministic choice among minimal solutions. */
+        for (int bit = 0; bit <= 1; ++bit) {
+            int na = nextA[2 * i + bit];
+            int nb = nextB[2 * j + bit];
+            int cand;
+            if (na == n || nb == m) {
+                cand = 1;
+            } else {
+                cand = 1 + dp[(size_t)(na + 1) * cols + (size_t)(nb + 1)];
+            }
+
+            if (cand == cur) {
+                out[pos++] = (char)('0' + bit);
+                if (na == n || nb == m) {
+                    out[pos] = '\0';
+                    printf("%s\n", out);
+                    free(out);
+                    free(dp);
+                    free(nextA);
+                    free(nextB);
+                    return 0;
+                }
+                i = na + 1;
+                j = nb + 1;
+                break;
+            }
+        }
+        /* Loop continues until we hit a bit that fails immediately (cand==1). */
+    }
+
+    /* Unreachable. */
+    return 0;
+}
+```

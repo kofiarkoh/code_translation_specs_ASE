@@ -1,0 +1,43 @@
+1. Functional Description  
+Determines the minimum number of moves required to transform a given 13-position sliding puzzle configuration into a fixed target configuration, under the rule that a move swaps a tile adjacent to one of the two empty positions into that empty position. If the minimum required moves exceed a fixed bound, reports that no answer is available within that bound.
+
+2. Inputs  
+- Repeated test cases from standard input.  
+- Each test case consists of 13 integers representing the tile values at positions 0..12.  
+- Exactly two positions must contain the value 0, representing the two empty spaces.  
+- Termination occurs when the first integer of a test case is negative.
+
+3. Outputs  
+- For each non-terminating test case, writes one line to standard output:  
+  - An integer: the minimum number of moves from the given configuration to the target configuration, if that minimum is within the supported bound.  
+  - Otherwise, the string indicating no available answer.
+
+4. Preconditions  
+- Each non-terminating test case provides exactly 13 integers.  
+- The configuration contains exactly two zeros (two empty spaces).  
+- All tile values fit within a 4-bit range (0..15).  
+- The puzzle’s adjacency relation is fixed and matches the 13-position graph implied by the move rules.  
+- The number of reachable states explored during internal searches does not exceed internal capacity limits (otherwise behavior is undefined by this contract).
+
+5. Postconditions  
+For each processed test case:  
+- If the configuration is solvable to the target within 20 moves, the program outputs the exact minimum move count.  
+- If the configuration requires more than 20 moves (or is not solvable), the program outputs the no-answer indicator.
+
+6. Invariants  
+- The target configuration is fixed for the lifetime of the program.  
+- A move always consists of swapping one non-empty tile with one of the two empty positions, and the two empty positions remain distinct after every move.  
+- The reported move count, when provided, is minimal with respect to the allowed move rules.
+
+7. Error Handling / Exceptional Behavior  
+- If the first value of a test case is negative, the program terminates normally without further output.  
+- No explicit handling is provided for malformed input (wrong count, missing values, non-integers) or invalid configurations (not exactly two zeros, out-of-range values); results are unspecified.  
+- If internal storage limits are exceeded during search, results are unspecified.
+
+8. State Transitions (if applicable)  
+- Each puzzle state transitions to another by selecting one of the two empty positions and swapping it with an adjacent non-empty tile.  
+- The program conceptually uses a precomputed set of states within 16 moves of the target and, for queries not in that set, searches outward from the query up to 4 moves to find an intersection; the final answer is the sum of the two distances when such an intersection exists.
+
+9. Non-functional Constraints (if inferable)  
+- Guarantees answers only up to a maximum of 20 moves; beyond that it reports no answer.  
+- Uses fixed-size internal memory for visited-state tracking and search queues, imposing an upper bound on the amount of exploration it can safely perform.

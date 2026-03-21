@@ -1,0 +1,16 @@
+#include <stdio.h>
+
+int main(void) {
+    int l;
+    if (scanf("%d", &l) != 1) {
+        /* Unspecified behavior per specification when input is missing/invalid. */
+        return 0;
+    }
+
+    /* Compute (l/3)^3 in floating-point arithmetic. */
+    double one_third = (double)l / 3.0;
+    double result = one_third * one_third * one_third;
+
+    printf("%.12f\n", result);
+    return 0;
+}

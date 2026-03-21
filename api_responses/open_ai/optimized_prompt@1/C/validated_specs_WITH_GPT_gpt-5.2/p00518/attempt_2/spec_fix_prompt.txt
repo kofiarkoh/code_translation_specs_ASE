@@ -1,0 +1,192 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD (10007)
+
+int main(void)
+{
+    int N;
+    char in[1001];
+    int key, key_prev, key_prev_prev;
+    int schedule[8], schedule_next[8];
+    int conv;
+    int i, j, k;
+    
+    
+    scanf("%d", &N);
+    scanf("%s", in);
+
+    key_prev = 1;   // 最初に鍵を持っているのはJ
+    key_prev_prev = 0;
+ 
+ 
+    memset(schedule, 0, sizeof(schedule));
+    schedule[1] = 1;
+    
+    for (i = 0; i < N; i++){
+        switch (in[i]){
+          case 'J':
+            key = 1;
+            break;
+          
+          case 'O':
+            key = 2;
+            break;
+            
+          case 'I':
+            key = 4;
+            break;
+        }
+        memset(schedule_next, 0, sizeof(schedule_next));
+ 
+        if (i == 0){
+            for (j = 0; j <= 7; j++){
+                if ((j & (key | key_prev)) == (key | key_prev)){
+                    schedule_next[j] = 1;
+                }
+            }
+            key_prev_prev = key_prev;
+            key_prev = key;
+            memcpy(schedule, schedule_next, sizeof(schedule));
+
+//for (j = 0; j <= 7; j++){
+//    printf("(%d:%d)", j, schedule[j]);
+//}
+//printf("\n");
+            continue;
+        }
+        for (j = 0; j <= 7; j++){
+//            if ((j & (key | key_prev)) == (key | key_prev)){
+            if ((j & (key | key_prev)) != 0){
+                for (k = 0; k <= 7; k++){
+
+                    if (((k & j) != 0) && ((k & key) != 0)){
+//printf("(%d,%d,%d)", k, j, key);
+                        schedule_next[k] += schedule[j];
+						schedule_next[k] %= MOD;
+                    }
+                }
+            }
+        }
+        
+        key_prev_prev = key_prev;
+        key_prev = key;
+        memcpy(schedule, schedule_next, sizeof(schedule));
+        
+//for (j = 0; j <= 7; j++){
+//    printf("[%d:%d]", j, schedule[j]);
+//}
+//printf("\n");
+
+    }
+    conv = 0;
+    for (i = 0; i <= 7; i++){
+        conv += schedule[i];
+		conv %= MOD;
+    }
+    
+    printf("%d\n", conv);
+    
+    return (0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes, modulo a fixed constant, the number of valid sequences of daily participant subsets over a given number of days, subject to constraints derived from a required participant per day and a day-to-day overlap rule. The first day additionally requires inclusion of a designated initial participant.
+
+2. Inputs  
+- An integer representing the number of days.  
+- A string of length equal to the number of days, where each character denotes the required participant for the corresponding day (one of three possible participants).
+
+3. Outputs  
+- A single non-negative integer: the count of valid sequences modulo 10007.
+
+4. Preconditions  
+- The day count is non-negative.  
+- The provided string length equals the day count.  
+- Each character in the string is one of the three supported participant designators.  
+- The day count does not exceed the maximum supported by the fixed input buffer size (assumed ≤ 1000).
+
+5. Postconditions  
+Let there be three participants. For each day, a “daily subset” is any non-empty subset of these participants. A sequence of daily subsets of length N is considered valid iff:  
+- For every day d, the daily subset for day d includes the required participant designated by the input character at position d.  
+- For every day d > 0, the daily subset for day d shares at least one participant with the daily subset for day d−1.  
+- For day 0, the daily subset includes both the required participant for day 0 and a designated initial participant (the one corresponding to the first of the three designators).  
+
+The program outputs the number of valid sequences satisfying the above, reduced modulo 10007.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 10007.  
+- Only subsets of the three participants are considered; the empty subset is never counted as a valid daily subset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, contains unsupported characters, or violates size assumptions, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- The computation maintains a day-indexed state representing, for the current day, the number of valid partial sequences ending with each possible daily subset.  
+- Each day advances this state by applying the per-day required-participant constraint and the overlap-with-previous-day constraint, producing the next day’s state.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of days with a small constant factor (bounded by the fixed number of participant subsets).  
+- Memory usage is constant with respect to the number of days (bounded by fixed-size state arrays and input storage).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input interpretation / wrong abstraction of participant designators (mapping), leading to a broken transition constraint.
+
+B. What the current specification may be missing or misstating  
+- The spec says the required participant is “one of three possible participants” but does not pin down the *actual* designators used in input. The source program specifically expects characters `'J'`, `'O'`, `'I'` and maps them to three fixed participants.  
+- The spec’s phrase “designated initial participant (the one corresponding to the first of the three designators)” is ambiguous and, as implemented by the generated code, was interpreted as `'A'` being the first designator. In the source, the initial participant is concretely **J** (bit 1), not an abstract “first”.
+
+C. What general behavior should be clarified in the specification  
+- Explicitly define the input alphabet and its mapping to the three participants (e.g., required participant per day is given by characters `J`, `O`, `I`).  
+- Explicitly state which participant is the initially designated one for day 0 (i.e., the day-0 subset must include **J** in addition to the day-0 required participant).  
+- More generally: the spec should not leave the participant naming/mapping abstract if the program behavior depends on concrete characters.
+
+D. Why this clarification is supported by the source program  
+- The source `switch (in[i])` only handles `'J'`, `'O'`, `'I'`, assigning masks `1`, `2`, `4` respectively. Any other character would leave `key` uninitialized (undefined behavior), showing the program is tightly coupled to these exact designators.  
+- The initialization `key_prev = 1; // 最初に鍵を持っているのはJ` and `schedule[1] = 1;` hard-code that the initial participant is the one represented by bit `1`, i.e., **J**.  
+- The failing test uses `JOIJO`; the generated program’s `req_mask` recognizes only `A/B/C`, so it treats all required masks as 0, causing the DP to produce 0—consistent with a spec that failed to constrain the actual input characters/mapping.
+
+```

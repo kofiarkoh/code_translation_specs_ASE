@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each test case, computes the maximum achievable total “gathering score” over all ways of successively combining all positions arranged in a circle, where each combination step contributes the absolute difference between the values at the two endpoints of the combined segments. The final result is the maximum total score obtainable when all positions have been combined into one segment.
+
+2. Inputs  
+- An integer number of test cases.  
+- For each test case:  
+  - An integer count of positions on a circle.  
+  - A sequence of integer values, one per position, in circular order.
+
+3. Outputs  
+- For each test case, one integer: the maximum total gathering score as defined above.
+
+4. Preconditions  
+- The number of positions is at least 1.  
+- The number of positions does not exceed 102.  
+- All required integers are present in the input.  
+- Integer arithmetic used for scoring does not overflow the implementation’s integer range (assumption, since no checks are performed).
+
+5. Postconditions  
+For each test case, the program outputs a value equal to:  
+- The maximum, over all choices of a starting position and all binary parenthesizations of combining the circularly contiguous positions into a single segment, of the sum of step scores, where:  
+  - Each step combines two already-formed contiguous segments that together form a larger contiguous segment on the circle.  
+  - The step score is the absolute difference between the values at the two boundary positions where the two segments meet (i.e., the two endpoints being “joined” at that step).  
+- If the number of positions is 1, the output is 0.
+
+6. Invariants  
+- For any test case, the computed maximum score for combining any contiguous circular segment of a given length is non-negative.  
+- Extending the considered segment length never decreases the stored maximum score for that same start position and length (it remains the maximum over all valid combination choices for that segment).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/malformed or constraints are violated (e.g., too many positions, arithmetic overflow), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is carried across test cases beyond producing outputs; each test case is processed independently.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows on the order of the cube of the number of positions per test case.  
+- Memory usage grows on the order of the square of the number of positions per test case.
+
+```

@@ -1,0 +1,234 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2807 Fractal Tree
+// 2018.3.21 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// 高速数値入出力
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+int in()   // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+double dbl()    // 実数の入力
+{
+	int minus = 0;
+	double x, y;
+	int n = 0, c = gc();
+	if (c == '-') minus = 1, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+
+	if (c == '.') {
+		x = 0;
+		y = 1, c = gc();
+		do y *= 0.1, x += y * (c & 0xf), c = gc(); while (c >= '0');
+		x += n;
+	}
+	else x = n;
+	if (minus) x = -x;
+	return x;
+}
+
+
+// 本問題関連
+#define MAX 100005
+typedef struct { int to, c; } T;
+int hi[MAX]; T *t[100005]; int N;
+int cost[MAX], depth[MAX], depth_max;
+double p[MAX], P;
+
+typedef struct { int n, d; } Q;
+Q q[MAX]; int top;
+char vis[MAX];
+
+void dfs()
+{
+	int i, node, d, to;
+
+	q[0].n = 1, q[0].d = 0, top = 1;
+	while (top) {
+		node = q[--top].n, d = q[top].d;
+
+		if (vis[node]) continue;
+		vis[node] = 1;
+
+		depth[node] = d;
+		if (d > depth_max) depth_max = d;
+		for (i = 0; i < hi[node]; i++) {
+			to = t[node][i].to;
+			if (!vis[to]) {
+				cost[to] = t[node][i].c;
+				q[top].n = to, q[top++].d = d + 1;
+			}
+		}
+	}
+}
+
+int main()
+{
+	int i, k, x, y, c;
+	int *memo, sz;
+	double a, b;
+
+	// 入力受付
+	P = dbl(), N = in();
+	memo = malloc(sizeof(int) * 3 * N);
+	sz = 0; for (i = 1; i < N; i++) {
+		memo[sz++] = x = in(), memo[sz++] = y = in(), memo[sz++] = in();
+		hi[x]++, hi[y]++;
+	}
+	for (i = 1; i <= N; i++) if (hi[i]) t[i] = malloc(sizeof(T)*hi[i]);
+	memset(hi+1, 0, sizeof(int)*N);
+	i = 0; while (i < sz) {
+		x = memo[i++], y = memo[i++], c = memo[i++];
+		k = hi[x]++, t[x][k].to = y, t[x][k].c = c;
+		k = hi[y]++, t[y][k].to = x, t[y][k].c = c;
+	}
+//	free(memo);
+
+	dfs();
+	p[0] = 1; for (i = 1; i <= depth_max; i++) p[i] = p[i - 1] * P;
+	a = 0, b = 1; for (i = 1; i <= N; i++)
+		a += cost[i] * p[depth[i]], b += p[depth[i]];
+	printf("%.10lf\n", a*b);
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes a single real-valued result from a weighted, undirected tree rooted at node 1. Each node contributes its incident edge weight from its parent (root contributes 0) scaled by a depth-dependent factor. The program outputs the product of (a) the sum of scaled edge weights over all nodes and (b) the sum of depth-dependent factors over all nodes.
+
+2. Inputs  
+- A real number \(P\).  
+- An integer \(N\) denoting the number of nodes.  
+- \(N-1\) undirected edges, each given by:  
+  - two node indices \(x, y\) (intended to be in \([1, N]\)),  
+  - an integer edge weight \(c\).
+
+3. Outputs  
+- One real number equal to:
+  \[
+  \left(\sum_{v=1}^{N} \text{parentEdgeWeight}(v)\cdot P^{\text{depth}(v)}\right)
+  \cdot
+  \left(\sum_{v=1}^{N} P^{\text{depth}(v)}\right)
+  \]
+  where \(\text{parentEdgeWeight}(1)=0\) and for \(v\neq 1\), \(\text{parentEdgeWeight}(v)\) is the weight of the unique edge connecting \(v\) to its parent in the tree rooted at 1.
+
+4. Preconditions  
+- The graph described by the \(N\) nodes and \(N-1\) edges is a tree (connected and acyclic).  
+- Node indices used in edges are within \([1, N]\).  
+- Node 1 exists and is the intended root.  
+- Sufficient memory is available for internal storage proportional to \(N\).  
+- The computed real-valued result is representable in the implementation’s floating-point type (no overflow/NaN/Inf) if a meaningful numeric output is expected.
+
+5. Postconditions  
+- The output equals the formula in Section 3, with depths defined as shortest-path edge counts from node 1 in the tree.  
+- For every node \(v\), \(\text{depth}(v)\) is the number of edges on the unique path from node 1 to \(v\).  
+- For every node \(v\neq 1\), \(\text{parentEdgeWeight}(v)\) is the weight of the edge on that unique path adjacent to \(v\).
+
+6. Invariants  
+- Depth values are non-negative integers.  
+- Exactly one parent edge weight is associated with each non-root node, and it corresponds to the unique tree path to the root.  
+- The depth-dependent factor for a node depends only on its depth and the input \(P\), specifically \(P^{\text{depth}}\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If the input does not form a tree rooted at 1 (e.g., disconnected, cyclic, or missing nodes), the produced value is not guaranteed to correspond to any well-defined tree-rooted computation.  
+- If memory allocation fails, behavior is undefined (may crash or produce no valid output).  
+- If floating-point overflow/invalid operations occur during computation, the output may be non-finite or otherwise unspecified.
+
+8. State Transitions (if applicable)  
+- Builds an internal representation of the undirected weighted graph from the input.  
+- Derives a rooted tree at node 1 by traversing reachable nodes, assigning each node a depth and (for non-root nodes) a parent edge weight.  
+- Computes aggregated sums based on assigned depths and parent edge weights, then outputs the final product.
+
+9. Non-functional Constraints (if inferable)  
+- Intended to run in time linear in \(N\) and memory linear in \(N\) for valid tree inputs.  
+- Uses floating-point arithmetic; results are subject to typical rounding behavior of the underlying floating-point representation.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong aggregation/counting rule (specification omits an additional term in the second factor / wrong initialization of a sum).
+
+B. What the current specification may be missing or misstating  
+The specification states the output is the product of:
+- (sum over nodes of parent-edge-weight × \(P^{depth}\)) and
+- (sum over nodes of \(P^{depth}\)).
+
+But the source program does **not** use exactly \(\sum_{v=1}^{N} P^{depth(v)}\) as the second factor. It initializes that second accumulator to **1** and then adds \(P^{depth(v)}\) for all nodes \(v=1..N\). Since the root already contributes \(P^0 = 1\) inside the loop, this effectively adds an **extra +1 constant** beyond the node-sum.
+
+So the current spec’s “sum of depth-dependent factors over all nodes” is incomplete: the implemented computation is “1 plus that sum”.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact definition of the second multiplicative factor: whether it is
+- exactly \(\sum_{v=1}^{N} P^{depth(v)}\), or
+- \(1 + \sum_{v=1}^{N} P^{depth(v)}\) (equivalently \(\sum_{v=1}^{N} P^{depth(v)}\) plus an additional constant 1 not associated with any node).
+
+This is a general rule about the formula, not an edge case: it affects all valid inputs.
+
+D. Why this clarification is supported by the source program  
+In `main()` of the source:
+
+```c
+a = 0, b = 1;
+for (i = 1; i <= N; i++)
+    a += cost[i] * p[depth[i]], b += p[depth[i]];
+printf("%.10lf\n", a*b);
+```
+
+- `b` is explicitly initialized to `1` before adding `p[depth[i]]` for every node `i=1..N`.  
+- Since `p[depth[1]] = p[0] = 1` is also added for the root during the loop, the final `b` equals `1 + sum_{v=1..N} P^{depth(v)}`.  
+- The generated program followed the current spec and computed `S2 = sum_{v} P^{depth(v)}` without that extra constant, producing a systematically smaller result, consistent with the observed failure.
+
+```

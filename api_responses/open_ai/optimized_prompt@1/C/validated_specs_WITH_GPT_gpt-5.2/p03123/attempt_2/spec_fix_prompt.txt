@@ -1,0 +1,192 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+//AWTF2019-D
+#include<stdio.h>
+#include<stdbool.h>
+#define prime 10000000019
+
+void llswap(long long *a,long long *b){long long c;c=(*a);(*a)=(*b);(*b)=c;}
+long long llsankaku(long long x){return ((1+x)*x)/2;}
+
+long long calcul(long long p,long long q,long long z,long long *r,long long *b){
+  long long f=0,cnt=0,w,i;
+  (*r)=0;(*b)=0;
+  if(p<q){f=1;llswap(&p,&q);}
+  i=0;
+  while(z>=0){
+    w=z/q;
+    cnt+=(w+1);
+    (*r)+=i*(w+1);
+    (*b)+=llsankaku(w);
+    z-=p;
+    i++;
+  }
+  if(f){llswap(r,b);}
+  return cnt;
+}
+
+void calc(long long p,long long q,long long k,long long *r,long long *b){
+  long long st,fi,te,c;
+  st=0;fi=prime*2000;
+  while(st<=fi){
+    te=(st+fi)/2;
+    c=calcul(p,q,te,r,b);
+    if(c==k){break;}
+    if(c<k){st=te+1;}
+    if(c>k){fi=te-1;}
+  }
+}
+
+typedef struct{
+  long long xz;
+  long long yz;
+}point;
+
+point vector_minus(point a,point b){
+  point r;
+  r.xz=a.xz-b.xz;
+  r.yz=a.yz-b.yz;
+  return r;
+}
+
+//gaiseki
+long long crossproduct(point a,point b){
+  return a.xz*b.yz-a.yz*b.xz;
+}
+
+bool ispossible(long long r,long long b,long long k){
+  long long st,fi,te,zr,zb;
+  long long fr,fb,sr,sb;
+  st=1;fi=prime-1;
+  while(st<=fi){
+    te=(st+fi)/2;
+    calc(te,prime-te,k,&zr,&zb);
+    if(zr<=r && zb<=b){return true;}
+    if(zr>r && zb>b){return false;}
+    if(zr>r){st=te+1;sr=zr;sb=zb;}
+    else{fi=te-1;fr=zr;fb=zb;}
+  }
+  //Is (r,b) on above the line{(fr,fb),(sr,sb)}(fr<sr)?
+  point tg,l1,l2;
+  tg.xz=r;tg.yz=b;
+  l1.xz=fr;l1.yz=fb;
+  l2.xz=sr;l2.yz=sb;
+  if(crossproduct(vector_minus(l2,l1),vector_minus(tg,l1))>=0){return true;}
+  return false;
+}
+
+long long solve(long long r,long long b){
+  long long st=0,fi=2222222,te;
+  while(st<=fi){
+    te=(st+fi)/2;
+    if(ispossible(r,b,te)){st=te+1;}
+    else{fi=te-1;}
+  }
+  return fi;
+}
+
+int main(){
+  long long r,b;
+  scanf("%lld%lld",&r,&b);
+  printf("%lld\n",solve(r,b)-1);//-1 : empty box
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given two non-negative resource quantities (interpretable as counts of two types), the program computes the maximum number of non-empty “boxes” (or groups) that can be formed under an implicit feasibility model defined by the code’s arithmetic constraints. It outputs one less than the maximum feasible count, treating one unit as a reserved “empty box” that is excluded from the reported result.
+
+2. Inputs  
+- Two signed 64-bit integers representing available quantities of two resources.
+
+3. Outputs  
+- One signed 64-bit integer: the computed maximum number of non-empty boxes/groups that can be formed, according to the program’s feasibility test, minus one.
+
+4. Preconditions  
+- The two input integers fit within signed 64-bit range.  
+- The intended domain is non-negative inputs; behavior for negative inputs is not meaningfully defined by the program’s contract.  
+- Intermediate arithmetic is assumed not to overflow signed 64-bit for the given input domain (the program does not guard against overflow).
+
+5. Postconditions  
+Let the input be (R, B) and the printed value be N. The program guarantees:  
+- N is the largest integer such that the internal feasibility predicate holds for (R, B) with parameter (N+1).  
+- Equivalently, feasibility holds for k = N+1 and does not hold for k = N+2, within the program’s searched range.  
+- The output is at most 2,222,221 (due to the program’s fixed search bound and the final subtraction by one).
+
+6. Invariants  
+- All feasibility decisions are monotonic in the searched parameter: if a given k is deemed feasible for (R, B), then all smaller k are treated as feasible by the solver’s search logic; if a k is infeasible, all larger k are treated as infeasible.  
+- The reported result is derived solely from the input pair (R, B) and deterministic arithmetic; no external state influences the outcome.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input cannot be read as two integers, the program’s behavior is undefined.  
+- Signed integer overflow, if it occurs, yields undefined behavior.  
+- For negative inputs, the feasibility model may produce nonsensical results; no validation is performed.
+
+8. State Transitions (if applicable)  
+- The program is stateless across runs. It performs a single computation from the provided input and terminates after producing one output value.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is bounded by a small number of nested logarithmic searches with fixed upper bounds; runtime is effectively bounded and fast for all valid inputs.  
+- Memory usage is constant (O(1)).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / incomplete I/O specification (build/compilation requirements), not an algorithmic transition-rule mismatch.
+
+B. What the current specification may be missing or misstating  
+- The spec describes inputs as “signed 64-bit integers” but does not constrain *how* they must be read/printed in C (e.g., whether to use `long long` with `%lld` vs. `int64_t` with `SCNd64/PRId64`).  
+- It also omits required header dependencies if the implementation chooses the `inttypes.h` format macros (`SCNd64`, `PRId64`). The generated program used these macros but did not include `<inttypes.h>`, causing compilation failure.  
+- This indicates the spec is underspecified about the concrete C interface/portability requirements for 64-bit I/O, even though the source program clearly commits to a specific choice (`long long` + `%lld`).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the required C-level representation and I/O contract for the two integers and the output: either  
+  - explicitly “use `long long` and `%lld` for both input and output” (matching the source), or  
+  - explicitly allow `int64_t` but then require inclusion of `<inttypes.h>` and use of the corresponding format macros.  
+- More generally: specify that the produced C program must compile under the stated standard flags, which implies all necessary headers must be included for any library macros/types used.
+
+D. Why this clarification is supported by the source program  
+- The source includes only `<stdio.h>` and uses `long long` with `%lld` in both `scanf` and `printf`, so it has no dependency on `<inttypes.h>` or `SCNd64/PRId64`.  
+- Therefore, any correct spec-derived implementation must either follow that same I/O approach or, if it abstracts to `int64_t`, must explicitly account for the additional header/macro requirements. The current spec doesn’t pin this down, enabling a generated program that fails to compile even before behavioral equivalence can be tested.
+
+```

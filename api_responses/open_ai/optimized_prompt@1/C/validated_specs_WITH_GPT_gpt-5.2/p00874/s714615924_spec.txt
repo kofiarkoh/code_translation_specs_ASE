@@ -1,0 +1,48 @@
+1. Functional Description  
+Processes a sequence of test cases. For each test case, it computes a total cost by, for each value in the range 1 through 20, taking the larger of the two occurrence counts of that value from two provided collections and multiplying that count by the value itself. The result is the sum of these products over all values 1..20, produced once per test case.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with two integers:  
+  - The number of elements in the first collection.  
+  - The number of elements in the second collection.  
+- Then:  
+  - That many integers for the first collection.  
+  - That many integers for the second collection.  
+- Termination is indicated by a test case whose first integer (the first collection size) is zero; that terminating case is not processed.
+
+3. Outputs  
+- For each non-terminating test case, outputs one integer: the computed total cost for that test case, on its own line.
+
+4. Preconditions  
+- The input provides enough integers to satisfy the declared sizes for each test case until termination.  
+- All collection element values are integers in the inclusive range 1..20.  
+- The first integer of each test case (the first collection size) is non-negative; termination occurs when it is exactly zero.
+
+5. Postconditions  
+For each processed test case, the output value equals:  
+\[
+\sum_{v=1}^{20} v \times \max(\text{count of } v \text{ in first collection},\ \text{count of } v \text{ in second collection})
+\]
+No output is produced for the terminating test case.
+
+6. Invariants  
+- For any processed test case and any value v in 1..20, the tracked counts for v in each collection are non-negative integers.  
+- The computed total is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for malformed input, premature end of input, negative sizes, or element values outside 1..20; behavior is unspecified in these cases.  
+- If the input stream ends or fails before a complete test case is read, the program’s behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats the following states until termination:  
+  1) Read test case header (two sizes).  
+  2) If the first size is zero, terminate.  
+  3) Read first collection elements and accumulate counts.  
+  4) Read second collection elements and accumulate counts.  
+  5) Compute and output the test case result.  
+  6) Proceed to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Per test case, time is linear in the total number of input elements plus a fixed cost proportional to 20.  
+- Uses fixed, bounded auxiliary storage for counts over the value range 1..20.

@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_TEAMS 10
+#define MAX_NAME_LEN 29
+
+typedef struct {
+    char name[MAX_NAME_LEN + 1];
+    int wins;
+    int losses;
+    int draws;
+    int points;
+    int input_index; /* for stable tie-breaking */
+} Team;
+
+static void stable_sort_by_points_desc(Team *teams, int n) {
+    /* Stable insertion sort: keeps input order for equal points */
+    for (int i = 1; i < n; i++) {
+        Team key = teams[i];
+        int j = i - 1;
+        while (j >= 0 && teams[j].points < key.points) {
+            teams[j + 1] = teams[j];
+            j--;
+        }
+        teams[j + 1] = key;
+    }
+}
+
+int main(void) {
+    int n;
+    int printed_any = 0;
+
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) {
+            break;
+        }
+
+        Team teams[MAX_TEAMS];
+
+        for (int i = 0; i < n; i++) {
+            scanf("%29s %d %d %d", teams[i].name, &teams[i].wins, &teams[i].losses, &teams[i].draws);
+            teams[i].points = 3 * teams[i].wins + teams[i].draws;
+            teams[i].input_index = i;
+        }
+
+        stable_sort_by_points_desc(teams, n);
+
+        if (printed_any) {
+            putchar('\n'); /* exactly one blank line between datasets */
+        }
+        printed_any = 1;
+
+        for (int i = 0; i < n; i++) {
+            printf("%s,%d\n", teams[i].name, teams[i].points);
+        }
+    }
+
+    return 0;
+}

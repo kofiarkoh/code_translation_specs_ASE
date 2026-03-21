@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a finite sequence of integers and counts how many non-overlapping adjacent equal pairs occur when scanning from the beginning to the end, where each counted pair consumes both elements (i.e., pairs do not share elements). Outputs the resulting count.
+
+2. Inputs  
+- An integer specifying the number of elements in the sequence.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single integer: the number of non-overlapping adjacent equal pairs in the input sequence.
+
+4. Preconditions  
+- The provided sequence length is within the supported bound of the program’s fixed storage (assumed: 0 ≤ length ≤ 100).  
+- The input contains at least the declared number of integers.  
+- Input values fit within the integer range of the execution environment.
+
+5. Postconditions  
+- The output equals the number of indices k in the scan such that elements at positions k and k+1 are equal, and no element position participates in more than one counted pair.  
+- If the sequence length is less than 2, the output is 0.
+
+6. Invariants  
+- Each element position in the sequence is considered at most once as part of a counted pair.  
+- The count is never negative and never exceeds ⌊length / 2⌋.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing, malformed, or the length exceeds supported bounds, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless beyond local computation: consumes input, produces output, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed memory proportional to the maximum supported sequence length.  
+- Runs in time proportional to the sequence length.
+
+```

@@ -1,0 +1,43 @@
+1. Functional Description  
+Determines whether the input sequence induces a valid “completion” order of categories under the program’s internal counting rules. The program derives an ordered list of categories that become eligible for completion (based on processing the sequence from the end and maintaining per-category counts capped by a predecessor’s count), then checks that this derived completion order matches the rule “the next completed category must always be the smallest index not yet completed.” It prints an affirmative result if and only if the derived completion order satisfies this rule for all derived completions; otherwise it prints a negative result.
+
+2. Inputs  
+- Integer `n`: a non-negative limit used as the initial count for category `0` and as the threshold for immediate completion marking.  
+- Integer `m`: the maximum category id; categories are numbered from `0` through `m` inclusive.  
+- Integer `q`: the length of the sequence.  
+- A sequence of `q` integers `a[1..q]`, each a category id.
+
+3. Outputs  
+- Prints exactly one line:
+  - `"Yes\n"` if the sequence passes the program’s validation, or
+  - `"No\n"` if it fails.
+
+4. Preconditions / Assumptions  
+- `m >= 0`, `q >= 0`, and `n >= 0` for meaningful behavior.  
+- Every category value in the sequence is within `[0, m]`.  
+- Sufficient memory is available for arrays sized proportional to `m + q`.  
+- No explicit validation is performed; violating these assumptions yields undefined behavior.
+
+5. Derived Completion Sequence (as computed by the program)  
+- The program maintains, for each category `i`, an integer `count[i]` (initially `0` for all `i` except `count[0] = n`) and a predecessor link used to form a linked list of categories.  
+- It processes the input sequence from position `q` down to `1`. For each encountered category `x = a[i]`:
+  - If `count[x]` is currently `0`, category `x` is appended to the end of a linked list whose head is category `0`, and `x`’s predecessor is set to the previously appended category.
+  - Then `count[x]` is updated to `min(count[x] + 1, count[prev(x)])`, where `prev(x)` is the predecessor of `x` in that linked list (as established when `x` was first appended).  
+- After this reverse pass, the program traverses the linked list from the head (category `0`) forward; this traversal order is the program’s derived completion order to be checked.
+
+6. Validation / Acceptance Logic  
+- The program tracks which categories are marked completed and maintains `allow`, defined as the smallest category id in `[0, m]` not yet marked completed. Initially, no category is completed and `allow` starts at `0`.  
+- During traversal of the derived list:
+  - First, it marks as completed every consecutive node at the front of the list whose `count` equals `n` (including category `0` if applicable), updating `allow` after each mark to remain the smallest incomplete id.
+  - For each remaining node in the list (in order), it requires that the node’s category id equals the current `allow`. If any node’s id differs from `allow`, the program immediately prints `"No\n"` and terminates. Otherwise it marks that category completed, advances `allow` to the next smallest incomplete id, and continues.
+- If the traversal finishes without a mismatch, the program prints `"Yes\n"`.
+
+7. Additional Notes / Edge Conditions  
+- A category can be marked completed at most once.  
+- Categories that never appear in the derived linked list are never checked directly; `allow` advances by skipping already-completed categories only.  
+- The program may accept even if not all categories `0..m` become completed; acceptance depends solely on whether the categories that do appear in the derived traversal satisfy the “must equal current smallest incomplete id” rule.
+
+8. Error Handling / Termination Behavior  
+- On the first detected validation failure, the program prints `"No\n"` and exits immediately.  
+- Otherwise it prints `"Yes\n"` after completing the traversal.  
+- No other output is produced.

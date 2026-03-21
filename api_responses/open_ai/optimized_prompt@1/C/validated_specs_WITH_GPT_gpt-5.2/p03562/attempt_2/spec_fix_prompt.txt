@@ -1,0 +1,205 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/* https://probgate.org/viewanalysis.php?pid=978 */
+#include <stdio.h>
+#include <string.h>
+
+#define N	4000
+#define L	62
+#define K	((N + L - 1) / L)
+#define MD	998244353
+
+void shift(long long *aa, long long *bb, int s) {
+	int h, q, r;
+
+	memset(bb, 0, K * sizeof *bb);
+	q = s / L, r = s % L;
+	for (h = 0; h + q < K; h++) {
+		bb[h + q] |= (aa[h] & (1LL << L - r) - 1) << r;
+		if (h + q + 1 < K && r > 0)
+			bb[h + q + 1] |= aa[h] >> L - r;
+	}
+}
+
+void xor(long long *aa, long long *bb) {
+	int h;
+
+	for (h = 0; h < K; h++)
+		aa[h] ^= bb[h];
+}
+
+int main() {
+	static char s[N + 1];
+	static long long aa[K], bb_[K], cc[K], dd_[K], *bb = bb_, *dd = dd_;
+	static int p2[N];
+	int m, n, l, i, j, p, ans;
+
+	scanf("%d%s", &m, s), n = strlen(s);
+	for (i = 0; i < n; i++)
+		if (s[i] == '1')
+			aa[(n - 1 - i) / L] |= 1LL << (n - 1 - i) % L;
+	while (m--) {
+		scanf("%s", s), l = strlen(s);
+		memset(bb, 0, K * sizeof *bb);
+		for (i = 0; i < l; i++)
+			if (s[i] == '1')
+				bb[(l - 1 - i) / L] |= 1LL << (l - 1 - i) % L;
+		i = j = N - 1;
+		while (1) {
+			long long *tt;
+			int tmp;
+
+			while (i >= 0 && (dd[i / L] & 1LL << i % L) == 0)
+				i--;
+			while (j >= 0 && (bb[j / L] & 1LL << j % L) == 0)
+				j--;
+			if (i < j)
+				tt = dd, dd = bb, bb = tt, tmp = i, i = j, j = tmp;
+			if (j < 0)
+				break;
+			shift(bb, cc, i - j);
+			xor(dd, cc);
+		}
+	}
+	l = N;
+	while (l > 0 && (dd[(l - 1) / L] & 1LL << (l - 1) % L) == 0)
+		l--;
+	p = 1;
+	for (i = 0; i < n; i++) {
+		p2[i] = p;
+		p = p * 2 % MD;
+	}
+	memset(bb, 0, K * sizeof *bb);
+	ans = 0;
+	for (i = n - 1; i >= 0; i--) {
+		int x = aa[i / L] >> i % L & 1, y = bb[i / L] >> i % L & 1;
+
+		if (i >= l - 1 && x == 1)
+			ans = (ans + p2[i - l + 1]) % MD;
+		if (x != y) {
+			if (i >= l - 1) {
+				shift(dd, cc, i - l + 1);
+				xor(bb, cc);
+			} else {
+				if (x > y)
+					ans = (ans + 1) % MD;
+				break;
+			}
+		}
+	}
+	if (i < 0)
+		ans = (ans + 1) % MD;
+	printf("%d\n", ans);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes, modulo a fixed prime, the number of distinct binary polynomials (interpretable as nonnegative integers in binary) that are strictly less than a given initial binary value and are divisible by the greatest common divisor (over the binary field) of a multiset of input binary polynomials consisting of the initial value and an additional set of polynomials.
+
+2. Inputs  
+- An integer count specifying how many additional binary strings follow.  
+- One binary string representing the initial polynomial/value.  
+- That many additional binary strings, each representing a polynomial/value.  
+All binary strings are interpreted as polynomials over the binary field with the leftmost character as the highest-degree term.
+
+3. Outputs  
+- A single integer: the computed count modulo a fixed prime.
+
+4. Preconditions  
+- The count is nonnegative.  
+- Each provided string is nonempty and contains only characters ‘0’ and ‘1’.  
+- The maximum supported bit-length across all strings is bounded by a fixed compile-time limit (otherwise behavior is undefined).  
+- The initial string length does not exceed the fixed limit.  
+- The additional strings’ lengths do not exceed the fixed limit.  
+
+5. Postconditions  
+Let:  
+- \(A\) be the polynomial represented by the initial binary string.  
+- \(B_1, \dots, B_m\) be the polynomials represented by the additional binary strings.  
+- \(G = \gcd(A, B_1, \dots, B_m)\) computed in the polynomial ring over the binary field.  
+- Interpret a binary polynomial as a nonnegative integer by its bit pattern.  
+
+The program outputs:  
+- \(\#\{ X \mid 0 \le X < A,\; G \ne 0,\; X \equiv 0 \pmod{G} \}\) reduced modulo the fixed prime.  
+
+If \(G = 0\) (which occurs only when all inputs represent the zero polynomial), the set “multiples of \(G\)” is not mathematically well-defined; the program’s behavior in that case is not specified by this contract (see assumptions in Section 7).
+
+6. Invariants  
+- All polynomial arithmetic used for divisibility and gcd is over the binary field (coefficients reduced modulo 2).  
+- The computed gcd after processing any prefix of the additional inputs is a divisor (over the binary field) of the initial polynomial and of every processed additional polynomial.  
+- The final reported count is always reduced modulo the fixed prime.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed for malformed input, out-of-range sizes, or I/O failures; behavior is undefined in such cases.  
+- If all input polynomials are zero, the gcd is zero; the subsequent “divisibility by gcd” interpretation is ambiguous. The code does not explicitly define this case; assume at least one input polynomial is nonzero.
+
+8. State Transitions (if applicable)  
+- Maintains an internal “current gcd” state initialized to the initial polynomial.  
+- For each additional polynomial, updates the current gcd to the gcd of the current gcd and that polynomial (over the binary field).  
+- After all updates, transitions to a final counting phase that depends only on the initial polynomial and the final gcd.
+
+9. Non-functional Constraints (if inferable)  
+- Operates within fixed, statically bounded memory proportional to the maximum supported bit-length.  
+- Time cost grows with the maximum bit-length and the number of additional polynomials; intended for inputs up to the fixed bit-length limit.  
+- Output is always computed modulo a fixed prime, preventing integer overflow in the reported result.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (and also wrong modulus constant).
+
+B. What the current specification may be missing or misstating  
+- It characterizes the final result as “the number of \(X < A\) divisible by the final gcd \(G\)”, but the source program’s counting phase is not simply counting multiples of \(G\) below \(A\) in the integer-order sense. The source performs a bitwise, remainder-like construction using XOR and shifts against \(G\), which indicates a more specific combinational count tied to polynomial reduction, not naive enumeration of \(Q\cdot G\) values.  
+- The specification says the output is “modulo a fixed prime” but does not state which prime. The source uses `998244353`, while the generated program used `1000000007`. Even if the sample doesn’t overflow the modulus, this is a concrete spec omission/ambiguity.  
+- The spec implies the gcd is computed over exactly the set \(\{A,B_1,\dots,B_m\}\). In the source, the gcd state is initialized from `aa` (A) but the Euclidean loop is performed between `dd` and each `bb`; `dd` is never explicitly initialized from `aa` in the shown code, meaning the “gcd of all inputs including A” description is at least not clearly supported by the implementation as written. (At minimum, the spec is too confident about the initialization/inputs to the gcd state.)
+
+C. What general behavior should be clarified in the specification  
+- Precisely define what quantity is being counted in the final phase: whether it is truly \(\#\{X: 0\le X < A,\, G\mid X\}\) under integer ordering, or instead a count derived from comparing \(A\) to successive XOR-shift combinations of \(G\) (i.e., a polynomial-division/remainder driven digit process). The spec should describe the ordering/comparison mechanism and how \(G\) is used to generate/validate candidates.  
+- State the exact modulus constant used for the output.  
+- Clarify the exact initialization and update rule for the “current gcd” state in terms of the program variables: whether it starts as \(A\), as zero, or as some other value, and whether \(A\) is actually included in the gcd computation.
+
+D. Why this clarification is supported by the source program  
+- The source’s counting loop iterates bit positions of \(A\) from high to low, maintains an auxiliary bitset `bb` updated by `bb ^= (dd << shift)` when certain bit mismatches occur, and accumulates `ans` using powers of two based on bit positions relative to `l = deg(dd)+1`. This is structurally a constructive comparison/reduction process, not a direct “count all multiples of \(G\) less than \(A\)” enumeration. The fact that it conditionally adds `p2[i-l+1]` when `x==1` and `i>=l-1`, and has a special termination when `i<l-1`, indicates a specific combinational counting logic tied to degrees and leading bits.  
+- The modulus is explicitly `#define MD 998244353` and all modular arithmetic uses `MD`.  
+- The gcd-update phase uses `dd` and `bb` in a Euclidean-style XOR/shift loop, but `dd` is not assigned from `aa` before the loop; thus the spec’s statement that the gcd state is “initialized to the initial polynomial” is not directly reflected in the code as presented, and needs to be specified in a way that matches the actual state evolution in the implementation.
+
+```

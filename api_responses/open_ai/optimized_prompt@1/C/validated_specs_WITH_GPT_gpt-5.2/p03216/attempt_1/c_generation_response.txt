@@ -1,0 +1,107 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXN 200000
+#define MAXQ 200000
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) return 0;
+
+    static char s[MAXN + 5];
+    if (scanf("%s", s) != 1) return 0;
+
+    int q;
+    if (scanf("%d", &q) != 1) return 0;
+
+    static int ks[MAXQ];
+    for (int i = 0; i < q; i++) {
+        if (scanf("%d", &ks[i]) != 1) return 0;
+    }
+
+    /* Per-query O(n) computation using a sliding window.
+       For each window, count triples D-M-C with a<b<c inside the window.
+       Maintain:
+         Dcnt = #D in window
+         DM   = #pairs (D before M) within window
+         DMC  = #triples (D before M before C) within window
+       Update on add/remove with careful order to preserve "before" constraints. */
+    for (int qi = 0; qi < q; qi++) {
+        int k = ks[qi];
+
+        int64_t Dcnt = 0;
+        int64_t Mcnt = 0;
+        int64_t Ccnt = 0;
+        int64_t DM = 0;
+        int64_t MC = 0;
+        int64_t DMC = 0;
+
+        /* Build initial window [0, k-1] */
+        for (int i = 0; i < k; i++) {
+            char ch = s[i];
+            if (ch == 'D') {
+                Dcnt += 1;
+            } else if (ch == 'M') {
+                DM += Dcnt; /* all existing D are before this M */
+                Mcnt += 1;
+            } else if (ch == 'C') {
+                DMC += DM;  /* all existing (D,M) pairs are before this C */
+                MC += Mcnt; /* all existing M are before this C */
+                Ccnt += 1;
+            }
+        }
+
+        int64_t total = DMC;
+
+        /* Slide windows: remove s[t], add s[t+k] */
+        for (int t = 0; t + k < n; t++) {
+            char out = s[t];
+
+            /* Remove outgoing character at left boundary.
+               When removing, subtract contributions where it served as the "earliest" element
+               for pairs/triples, which can be expressed using current counts. */
+            if (out == 'D') {
+                /* This D contributed to DM with every M after it in window: subtract #M in window. */
+                DM -= Mcnt;
+                /* This D contributed to DMC with every (M,C) where M after D and C after M.
+                   For fixed D at left, number of such (M,C) pairs equals MC. */
+                DMC -= MC;
+                Dcnt -= 1;
+            } else if (out == 'M') {
+                /* This M contributed to MC with every C after it: subtract #C in window. */
+                MC -= Ccnt;
+                /* This M contributed to DMC with every (D before M) and C after M:
+                   number of such triples equals (#D in window) * (#C in window). */
+                DMC -= Dcnt * Ccnt;
+                Mcnt -= 1;
+            } else if (out == 'C') {
+                /* This C was the last element of triples/pairs: subtract all that ended at it. */
+                DMC -= DM;
+                MC -= Mcnt;
+                Ccnt -= 1;
+            }
+
+            char in = s[t + k];
+
+            /* Add incoming character at right boundary. */
+            if (in == 'D') {
+                Dcnt += 1;
+            } else if (in == 'M') {
+                DM += Dcnt;
+                Mcnt += 1;
+            } else if (in == 'C') {
+                DMC += DM;
+                MC += Mcnt;
+                Ccnt += 1;
+            }
+
+            total += DMC;
+        }
+
+        printf("%lld\n", (long long)total);
+    }
+
+    return 0;
+}
+```

@@ -1,0 +1,47 @@
+1. Functional Description  
+For each dataset, determines whether all requested target weights can be exactly balanced using a given set of available weights on a two-pan balance (allowing each available weight to be placed on either pan or not used).  
+- If every target is exactly balanceable, outputs `0`.  
+- Otherwise, outputs the smallest non-negative integer adjustment value `d` such that adding the same adjustment `d` to each unbalanceable target makes all of them balanceable with the given available weights.  
+- If no single adjustment value can make all unbalanceable targets balanceable, outputs `-1`.
+
+2. Inputs  
+For each dataset (repeated until termination):  
+- An integer `n`: number of target weights.  
+- An integer `m`: number of available weights.  
+- A sequence of `n` non-negative integers: the target weights.  
+- A sequence of `m` non-negative integers: the available weights.  
+Termination occurs when `n` is zero.
+
+3. Outputs  
+For each dataset, outputs a single integer on its own line:  
+- `0`, or a positive adjustment value `d`, or `-1` as described above.
+
+4. Preconditions  
+- `n` and `m` are non-negative, and the dataset is well-formed with exactly `n + m` subsequent non-negative integers.  
+- The number of available weights satisfies `m ≤ 10` (implied by internal capacity for enumerating all placements).  
+- The number of targets satisfies `n ≤ 100` (implied by internal storage).  
+- The magnitudes of computed intermediate values fit within signed 32-bit integer range (assumption required to avoid overflow).
+
+5. Postconditions  
+For each dataset:  
+- Let `S` be the set of all strictly positive net weight differences achievable by placing each available weight on the left pan, right pan, or not used.  
+- If every target weight is in `S`, the output is `0`.  
+- Otherwise, let `U` be the subset of targets not in `S`. The output is:  
+  - the minimum `d ≥ 0` such that for every `u ∈ U`, `u + d ∈ S`, if such a `d` exists;  
+  - `-1` if no such `d` exists.
+
+6. Invariants  
+- The set `S` of achievable strictly positive differences is derived solely from the available weights and is the same for all targets within the dataset.  
+- The reported adjustment value (if non-negative) is common to all initially unbalanceable targets and is minimal among all common adjustments that would make them balanceable.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, out-of-range values, or arithmetic overflow; behavior is unspecified under such conditions.  
+- If internal capacity assumptions (e.g., `m > 10`) are violated, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Processes multiple independent datasets sequentially.  
+- For each dataset, internal state is reset before computing the result; no state is carried across datasets.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage scale primarily with `3^m` due to enumeration of all placements of available weights; practical only for small `m` (up to 10 as implied).  
+- Uses fixed-size internal storage; does not allocate memory dynamically.

@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given a directed graph with a fixed set of vertices and directed edges, the program classifies each input edge as either **“same”** or **“diff”**.  
+An edge is classified as **“same”** exactly when it is *forced* to appear in every possible linear ordering of the graph’s strongly connected components that is consistent with reachability (i.e., in every topological ordering of the condensation graph), and within its own strongly connected component it is *forced* in the sense that removing it would break reachability from its source to its destination inside that component.  
+All other edges are classified as **“diff”**.
+
+2. Inputs  
+- An integer `n`: number of vertices.  
+- An integer `m`: number of directed edges.  
+- `m` pairs of integers `(u, v)`: each denotes a directed edge from vertex `u` to vertex `v`.  
+Assumption: vertices are provided using a consistent 1-based labeling in the input.
+
+3. Outputs  
+- `m` lines, in the same order as the input edges.  
+- Each line is either the word **“same”** or **“diff”**, indicating the classification of that edge.
+
+4. Preconditions  
+- `0 < n ≤ 1000`.  
+- `0 ≤ m ≤ 200000`.  
+- Each edge endpoint is a valid vertex label in the input’s labeling scheme.  
+- The total memory required by the program fits within the execution environment.
+
+5. Postconditions  
+For each input edge `e = (u → v)` the program outputs:  
+- **“same”** iff both conditions hold:  
+  1) Let `C(u)` and `C(v)` be the strongly connected components (SCCs) containing `u` and `v`. If `C(u) ≠ C(v)`, then in the SCC condensation graph there is exactly one edge from `C(u)` to `C(v)` and there is no alternative path from `C(u)` to `C(v)` of length ≥ 2 (i.e., `C(v)` is reachable from `C(u)` only via a direct step).  
+  2) If `C(u) = C(v)`, then within that SCC there exists no directed path from `u` to `v` that avoids using edge `e`.  
+- **“diff”** otherwise.
+
+6. Invariants  
+- The SCC partition of the vertex set is well-defined and each vertex belongs to exactly one SCC.  
+- The condensation graph over SCCs is acyclic.  
+- Each output line corresponds to exactly one input edge and preserves input order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, incomplete, or violates preconditions (including exceeding supported sizes), behavior is unspecified (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- The program is a single-run batch computation: it reads the graph, computes SCCs, evaluates edge classifications, and prints results.  
+- No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for graphs up to 1000 vertices and 200000 edges.  
+- Uses memory proportional to the graph size and several auxiliary arrays sized to these limits.  
+- Runtime is polynomial in `n` and `m`, with additional per-SCC and per-edge reachability checks; intended for the stated bounds.
+
+```

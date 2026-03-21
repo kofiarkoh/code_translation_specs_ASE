@@ -1,0 +1,88 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_H 128
+#define MAX_W 128
+
+static char grid[MAX_H][MAX_W];
+static unsigned char visited[MAX_H][MAX_W];
+
+static int H, W;
+
+static void dfs(int r, int c, char ch) {
+    if (r < 0 || r >= H || c < 0 || c >= W) return;
+    if (visited[r][c]) return;
+    if (grid[r][c] != ch) return;
+
+    visited[r][c] = 1;
+
+    dfs(r - 1, c, ch);
+    dfs(r + 1, c, ch);
+    dfs(r, c - 1, ch);
+    dfs(r, c + 1, ch);
+}
+
+int main(void) {
+    int h, w;
+
+    while (scanf("%d %d", &h, &w) == 2) {
+        /* Terminating size pair: the specification does not state which pair.
+           Narrowest reasonable interpretation: a pair of zeros. */
+        if (h == 0 && w == 0) break;
+
+        H = h;
+        W = w;
+
+        /* Clear visited for current dimensions */
+        for (int i = 0; i < H; i++) {
+            memset(visited[i], 0, (size_t)W);
+        }
+
+        /* Read exactly H rows; each row has at least W meaningful characters.
+           Extra characters are ignored by the region definition. */
+        for (int i = 0; i < H; i++) {
+            int ch;
+
+            /* Skip leading newlines from previous reads */
+            do {
+                ch = getchar();
+                if (ch == EOF) break;
+            } while (ch == '\n' || ch == '\r');
+
+            /* Read at least W characters into the grid row */
+            for (int j = 0; j < W; j++) {
+                if (ch == EOF) {
+                    grid[i][j] = '\0';
+                } else {
+                    grid[i][j] = (char)ch;
+                }
+                if (j + 1 < W) {
+                    ch = getchar();
+                }
+            }
+
+            /* Consume the rest of the line (if any), ignoring extra characters */
+            if (ch != EOF) {
+                while (ch != '\n' && ch != EOF) {
+                    ch = getchar();
+                }
+            }
+        }
+
+        int regions = 0;
+        for (int i = 0; i < H; i++) {
+            for (int j = 0; j < W; j++) {
+                if (!visited[i][j]) {
+                    regions++;
+                    dfs(i, j, grid[i][j]);
+                }
+            }
+        }
+
+        printf("%d\n", regions);
+    }
+
+    return 0;
+}
+```

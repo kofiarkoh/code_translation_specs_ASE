@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads integers `n` and `m` and computes a modular sum over all splits of an `n`-element set into two nonempty parts of sizes `i` and `n−i` for `i = 1..n−1`. For each `i`, the contribution is the product (modulo `m`) of:  
+- the number of ways to choose which `i` elements form the first part (`C(n,i)`),  
+- a factor `2^{i(i−1)/2}` depending only on `i`,  
+- a factor `2^{(n−i)(n−i−1)/2}` depending only on `n−i`, and  
+- an inclusion–exclusion sum over `j` with alternating signs, where `j` ranges over `0 ≤ j < n−i` and each term is  
+  `(-1)^j * C(n−i, j) * ( (2^{(n−i−j)} − 1)^i )` computed modulo `m`.  
+
+All arithmetic is performed modulo `m`, and the final printed value is normalized to a nonnegative residue modulo `m`.
+
+2. Inputs  
+- `n` (int): size parameter for the summations and binomial coefficients.  
+- `m` (int): modulus for all computations.
+
+3. Outputs  
+- One integer: the computed value reduced modulo `m`, printed as a value in `[0, m−1]`.
+
+4. Preconditions / Assumptions  
+- The program uses modular inverses via exponentiation to `m−2`, so correctness of binomial coefficients as implemented requires that these inverses exist for the factorial values used; in typical intended use this means `m` is prime and `fact[k] ≠ 0 (mod m)` for the needed range.  
+- Factorials and inverse factorials are precomputed up to a fixed bound of `2010` (inclusive). Therefore, for the binomial coefficients used (`C(n,i)` and `C(n−i,j)`), the intended valid range is `0 ≤ n ≤ 2010`.  
+- No validation is performed for invalid or out-of-range inputs; if the above assumptions are violated, the output is not guaranteed to be meaningful.
+
+5. Computation Details (Mathematical Form)  
+Let `C(a,b)` denote the binomial coefficient computed modulo `m` with the convention that it is `0` when `b<0`, `a<0`, or `b>a`. The program computes:  
+
+\[
+\text{ans} \equiv \sum_{i=1}^{n-1} \Bigg( C(n,i)\cdot 2^{\frac{i(i-1)}{2}} \cdot 2^{\frac{(n-i)(n-i-1)}{2}} \cdot \sum_{j=0}^{n-i-1} (-1)^j \, C(n-i,j)\, (2^{(n-i-j)}-1)^i \Bigg) \pmod m.
+\]
+
+The final output is `(ans mod m + m) mod m` to ensure a nonnegative residue.
+
+6. Error Handling / Exceptional Behavior  
+- There is no explicit error handling. If `m` is not suitable for the modular-inverse method used, if `n` exceeds the precomputation bound, or if other assumptions fail, the program may print an incorrect value.
+
+```

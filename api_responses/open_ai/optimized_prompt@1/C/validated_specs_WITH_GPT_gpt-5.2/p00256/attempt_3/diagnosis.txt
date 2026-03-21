@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+- **Missing/incorrect constant offsets (epoch alignment) and base-date anchoring**  
+- **Wrong transition rule / off-by-constant in both conversion directions**
+
+B. What the current specification may be missing or misstating  
+- The spec says there is a “fixed constant offset” in both directions but **does not state the actual constants** and leaves them abstract. In the source, these constants are **fully determined numeric values** (derived from `m12` and the literal `4738+1`) and are essential to the mapping.  
+- The spec’s description of the Gregorian→mixed “year-based offset” is incomplete: the source adds **extra fixed terms** (`+366 - m12`) in addition to the `365*(Y-2001)+...` expression, and those terms are not optional—they define the epoch.  
+- The spec implies the mixed→Gregorian direction “adds a fixed positive constant offset” but again does not pin it down; the source uses a **specific** `+4738+1` adjustment before year/month/day extraction.
+
+C. What general behavior should be clarified in the specification  
+- The specification should explicitly define the **exact epoch alignment** used by the program, i.e., the precise constants added in:
+  - Gregorian→mixed: the full closed-form expression for `dt` including all fixed terms (not just “some constant”).  
+  - Mixed→Gregorian: the exact constant added to the reconstructed mixed-radix value before converting to a Gregorian date.  
+- The spec should clarify that these constants are not arbitrary “implementation details” but are part of the **definition of the bijection** between the two representations.
+
+D. Why this clarification is supported by the source program  
+- In the source, the constants are concretely computed/used:
+  - `m12 = 365*13 + 4 - 11;` and then Gregorian→mixed does `... + 366 - m12;` after applying the `(Y-2001)` year formula and day-in-year computation. This is a **specific numeric shift** baked into the algorithm.
+  - Mixed→Gregorian reconstructs `dt` from the 5 digits and then does `dt += 4738 + 1;` before iterating years/months. This is again a **specific numeric shift**.
+- The failing outputs show large, systematic discrepancies in both directions, consistent with using `0` for these offsets (as the generated code did) rather than the source’s fixed shifts. This indicates the spec’s abstraction (“some fixed constant”) is too vague to reproduce source behavior.

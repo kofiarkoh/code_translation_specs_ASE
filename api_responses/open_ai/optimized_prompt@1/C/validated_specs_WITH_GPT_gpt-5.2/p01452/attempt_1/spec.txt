@@ -1,0 +1,47 @@
+1. Functional Description  
+Computes a single integer value modulo a fixed prime modulus as a finite sum over an index from 0 to a given nonnegative bound. Each term of the sum is the product (modulo the modulus) of three combinatorial factors derived from the three input integers, and the final result is reported modulo the modulus.
+
+2. Inputs  
+- Three signed integers:  
+  - First parameter (x)  
+  - Second parameter (y)  
+  - Third parameter (k)
+
+3. Outputs  
+- One integer in the range \([0, M-1]\), where \(M\) is the fixed modulus, representing the computed value modulo \(M\).
+
+4. Preconditions  
+- The input must contain three integers.  
+- \(k \ge 0\) (required for the summation bounds to be meaningful).  
+- \(x + y + 2k \ge 0\) (required for factorial-based combinatorial values to be defined as used).  
+- \(x + y + 2k\) must not exceed the maximum supported precomputation size (bounded by the fixed internal table capacity).  
+- All combinatorial denominators that are inverted modulo \(M\) must be coprime to \(M\); under the intended use, this is satisfied when all factorial arguments used are in \([0, M-1]\) (i.e., no factorial includes a factor of \(M\)).
+
+5. Postconditions  
+- The program outputs the value:
+  \[
+  \left(\sum_{i=0}^{k} \Big( A(i)\cdot B(i)\cdot C(i) \Big)\right)\bmod M
+  \]
+  where:
+  - \(A(i) = \left(\binom{x+2(k-i)}{k-i} - \binom{x+2(k-i)}{k-i-1}\right)\bmod M\)
+  - \(B(i) = \left(\binom{y+2i}{i} - \binom{y+2i}{i-1}\right)\bmod M\)
+  - \(C(i) = \binom{x+y+2k}{y+2i}\bmod M\)
+  - Any binomial coefficient with invalid parameters (negative, or lower index greater than upper index) is treated as 0.
+- The printed value is normalized to the canonical residue class in \([0, M-1]\).
+
+6. Invariants  
+- All intermediate combinatorial values and the running sum are maintained modulo \(M\).  
+- Binomial coefficients with out-of-domain arguments contribute 0 to the computation.  
+- The summation index ranges over all integers \(i\) such that \(0 \le i \le k\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is missing or malformed, behavior is unspecified.  
+- If preconditions are violated (e.g., required precomputation size exceeds internal capacity, negative factorial arguments arise, or modular inverses are requested for non-invertible values), behavior is unspecified and may result in incorrect output or runtime failure.
+
+8. State Transitions (if applicable)  
+- A global precomputed table transitions from an uninitialized/previous state to a state containing factorial values modulo \(M\) for indices up to \(x+y+2k\) (inclusive), after which it is read-only for the remainder of execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in \(x+y+2k\) for precomputation plus linear in \(k\) for the summation, assuming constant-time modular arithmetic.  
+- Memory usage is bounded by a fixed-size table of precomputed values.

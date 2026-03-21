@@ -1,0 +1,51 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_STR_LEN 10
+
+int main(void) {
+    int n1, n2;
+
+    if (scanf("%d", &n1) != 1) return 0;
+
+    /* Store first list */
+    char a[n1][MAX_STR_LEN + 1];
+    for (int i = 0; i < n1; i++) {
+        /* Input is specified as single-token strings of length <= 10; otherwise unspecified. */
+        if (scanf("%10s", a[i]) != 1) return 0;
+    }
+
+    if (scanf("%d", &n2) != 1) return 0;
+
+    /* Store second list */
+    char b[n2][MAX_STR_LEN + 1];
+    for (int i = 0; i < n2; i++) {
+        if (scanf("%10s", b[i]) != 1) return 0;
+    }
+
+    int best = 0; /* invariant: never negative */
+
+    /* For each string in the first list, compute count_in_first - count_in_second. */
+    for (int i = 0; i < n1; i++) {
+        int c1 = 0;
+        int c2 = 0;
+
+        for (int j = 0; j < n1; j++) {
+            if (strcmp(a[i], a[j]) == 0) c1++;
+        }
+        for (int j = 0; j < n2; j++) {
+            if (strcmp(a[i], b[j]) == 0) c2++;
+        }
+
+        int net = c1 - c2;
+        if (net > best) best = net;
+        /* If net is negative, best remains unchanged, preserving lower bound of 0. */
+    }
+
+    if (best < 0) best = 0; /* redundant given invariant, but matches postcondition explicitly */
+    printf("%d", best);
+
+    return 0;
+}
+```

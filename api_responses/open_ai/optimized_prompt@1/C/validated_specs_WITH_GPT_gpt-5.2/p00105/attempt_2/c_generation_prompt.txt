@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Builds an index from a stream of `(word, page-number)` pairs. It maintains, for each stored word, a page-presence table indexed by page number and a per-word counter that is incremented once for every input record read for that word. After all input is consumed, it sorts the stored words in ascending lexicographic order and prints each word followed by a list of page numbers selected from that word’s page-presence table.
+
+2. Inputs  
+- A sequence of zero or more records read until end-of-file, each containing:  
+  - A word token read with `%s` (whitespace-delimited).  
+  - An integer page number read with `%d`.
+
+3. Outputs  
+For each stored word, in ascending lexicographic order:  
+- One line containing the word.  
+- Then page numbers are scanned in increasing numeric order from the lowest representable page index up to the maximum supported page index. For each page index whose presence entry equals 1, that page index is printed. Printing stops after the program has printed a number of page indices equal to the word’s internal counter value (`tm`).  
+- Between printed page numbers, a single space is printed. A newline is printed only when the program prints what it considers the last page number for that word (i.e., when it reaches the `tm`-th printed page number).
+
+4. State and Counting Semantics  
+- Word identity is determined by exact string comparison.  
+- On reading a record `(w, p)`:
+  - If `w` matches an existing stored word, the program sets that word’s page-presence entry for `p` to 1 and increments that word’s counter `tm` by 1.  
+  - If `w` is not found among stored words, a new entry is created, the word string is stored, the page-presence entry for `p` is set to 1, and the counter `tm` is incremented by 1.  
+- The counter `tm` represents the number of input records processed for that word (including repeated occurrences of the same page number), not the number of distinct page numbers.
+
+5. Ordering / Tie-breaking  
+- After input ends, the program sorts the stored entries by ascending lexicographic order of the word strings. No secondary key is used.
+
+6. Assumptions, Constraints, and Undefined/Unspecified Behavior  
+- There is a fixed maximum number of distinct words that can be stored; exceeding it results in undefined behavior.  
+- Word length must fit in the fixed-size storage used for words; longer tokens cause undefined behavior.  
+- Page numbers are used as direct indices into a fixed-size page-presence array; page numbers outside the supported index range cause undefined behavior.  
+- The program does not explicitly initialize the per-entry page-presence array or the per-entry counter before first use. Therefore, unless the execution environment happens to provide zero-initialized storage for these fields, the page-presence contents and initial counter values for newly created entries are indeterminate, and the resulting output may be unpredictable.  
+- Because output termination for a word’s page list depends on `tm` matching the number of page indices encountered with presence value 1, if `tm` is larger than the number of such indices (e.g., due to repeated `(word, page)` records or indeterminate initial state), the program may print fewer page numbers than `tm` and may omit the trailing newline for that word’s page list.
+
+7. Error Handling / Termination  
+- No explicit error messages are produced.  
+- Processing ends at end-of-file; the program then sorts and prints the accumulated index and exits normally.
+
+```

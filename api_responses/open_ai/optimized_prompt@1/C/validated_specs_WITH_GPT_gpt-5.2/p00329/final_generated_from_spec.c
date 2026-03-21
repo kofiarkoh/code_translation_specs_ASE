@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 512
+
+static unsigned char g[MAXN][MAXN]; /* g[left][right] = 1 if edge present */
+
+static int N;
+static int matchR[MAXN]; /* matchR[r] = left matched to right r, or -1 */
+static int matchL[MAXN]; /* matchL[l] = right matched to left l, or -1 */
+static unsigned char visR[MAXN];
+
+static int dfs_augment(int l) {
+    for (int r = 0; r < N; r++) {
+        if (!g[l][r]) continue;
+        if (visR[r]) continue;
+        visR[r] = 1;
+        if (matchR[r] == -1 || dfs_augment(matchR[r])) {
+            matchR[r] = l;
+            matchL[l] = r;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static int build_perfect_matching(void) {
+    for (int r = 0; r < N; r++) matchR[r] = -1;
+    for (int l = 0; l < N; l++) matchL[l] = -1;
+
+    for (int l = 0; l < N; l++) {
+        for (int r = 0; r < N; r++) visR[r] = 0;
+        if (!dfs_augment(l)) return 0;
+    }
+    return 1;
+}
+
+int main(void) {
+    /* Read K as a sequence of digit characters; stop at first non-digit and consume it. */
+    int ch;
+    unsigned long K = 0;
+    while ((ch = getchar()) != EOF) {
+        if (ch >= '0' && ch <= '9') {
+            K = K * 10u + (unsigned long)(ch - '0');
+        } else {
+            break; /* consumed the first non-digit */
+        }
+    }
+
+    /* Preconditions are assumed satisfied; behavior unspecified otherwise. */
+    if (K == 0) return 0;
+    N = (int)(K - 1u);
+    if (N < 0 || N > MAXN) return 0;
+
+    /* Consume exactly 2*N*N bytes to define adjacency.
+       For each (i,j): read c, edge from left j to right i present iff (c&1)!=0; then read and discard one byte. */
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            int c = getchar();
+            g[j][i] = (unsigned char)(((unsigned int)c & 1u) != 0u);
+            (void)getchar(); /* discard separator byte */
+        }
+    }
+
+    if (!build_perfect_matching()) {
+        puts("no");
+        return 0;
+    }
+
+    puts("yes");
+
+    /* For each left vertex i in increasing order:
+       remove i and its currently matched partner (if any), then re-augment from i, then print partner of i (1-based). */
+    for (int i = 0; i < N; i++) {
+        int r = matchL[i];
+        if (r != -1) {
+            matchL[i] = -1;
+            matchR[r] = -1;
+        }
+
+        for (int rr = 0; rr < N; rr++) visR[rr] = 0;
+        (void)dfs_augment(i);
+
+        /* With a perfect matching existing and the described procedure, i should be matched here. */
+        printf("%d\n", matchL[i] + 1);
+    }
+
+    return 0;
+}

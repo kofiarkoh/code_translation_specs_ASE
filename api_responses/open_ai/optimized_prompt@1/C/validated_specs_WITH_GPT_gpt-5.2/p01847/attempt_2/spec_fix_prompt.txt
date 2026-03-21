@@ -1,0 +1,161 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2747 Curtain
+// 2018.4.26 bal4u
+
+#include <stdio.h>
+
+// バッファを経ずstdinから数値を得る
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	if (c == '-') { c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define INF 20002
+
+int x[102], y[102];
+
+int main()
+{
+	int N, a, b, c, i;
+	int xmin, xmax, ymin, ymax;
+	long long win, cur;
+
+	while (N = in()) {
+		for (i = 0; i < N; i++) x[i] = in(), y[i] = in();
+		x[N] = x[0], y[N] = y[0];
+ 
+		xmin = ymin = INF, xmax = ymax = -INF;
+		for (i = 0; i < 4; i++) {
+			a = in(), b = in();
+			if (a < xmin) xmin = a;
+			if (a > xmax) xmax = a;
+			if (b < ymin) ymin = b;
+			if (b > ymax) ymax = b;
+		}
+
+		win = cur = 0;
+		for (i = 0; i < N; i++) if (x[i] == x[i+1]) {
+			cur += (long long)x[i] * (y[i]-y[i+1]);
+			a = x[i]; if (a > xmax) a = xmax;
+			if (xmin > a) a = xmin;
+			b = y[i]; if (b > ymax) b = ymax;
+			if (ymin > b) b = ymin;
+			c = y[i+1]; if (c > ymax) c = ymax;
+			if (ymin > c) c = ymin;
+			win += (long long)a * (b-c);
+		}
+		printf("%lld\n", win-cur);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each test case, computes the signed area of the portion of a given simple polygon that lies outside (i.e., not within) an axis-aligned rectangular window defined by four input points. The result is reported as a signed area value (twice the geometric area, consistent with standard polygon signed-area conventions).
+
+2. Inputs  
+For each test case, read from standard input:  
+- An integer specifying the number of polygon vertices.  
+- That many pairs of integers giving the polygon’s vertex coordinates in order.  
+- Four pairs of integers giving points that define an axis-aligned rectangle; the rectangle is taken as the bounding box of these four points.  
+Input ends when the polygon-vertex count is zero.
+
+3. Outputs  
+For each test case, writes one integer to standard output: the signed area (in doubled-area units) of the polygon region outside the rectangle.
+
+4. Preconditions  
+- The polygon vertex count is positive and does not exceed the fixed internal capacity (at most 101 vertices).  
+- The polygon vertices describe a non-self-intersecting polygon in order (assumption; otherwise “inside/outside” area is not well-defined).  
+- The rectangle is axis-aligned and is interpreted as the minimum/maximum x and y over the four provided points.  
+- Coordinate magnitudes are such that intermediate doubled-area computations fit within signed 64-bit range.
+
+5. Postconditions  
+For each test case:  
+- Let \(P\) be the input polygon and \(R\) be the axis-aligned rectangle derived from the four points.  
+- The program outputs \(2 \cdot \text{signedArea}(P \setminus R)\), where the sign follows the polygon’s orientation (counterclockwise positive, clockwise negative).  
+Equivalently, it outputs \(2 \cdot \text{signedArea}(P) - 2 \cdot \text{signedArea}(P \cap R)\).
+
+6. Invariants  
+- The rectangle used for clipping is always the axis-aligned bounding box of the four rectangle-defining points.  
+- The reported value is linear with respect to polygon orientation: reversing vertex order negates the output.  
+- The computation treats the polygon as closed (the last vertex connects back to the first).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, incomplete, exceeds capacity, violates assumptions (e.g., self-intersection), or causes arithmetic overflow, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats processing independent test cases until a zero vertex count is encountered, after which the program terminates.  
+- No persistent state is carried between test cases beyond overwriting internal working storage.
+
+9. Non-functional Constraints (if inferable)  
+- Time per test case is linear in the number of polygon vertices.  
+- Uses fixed-size internal storage for vertices, limiting the maximum supported vertex count.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / missing algorithmic constraint (spec describes a geometric set operation, but the source implements a different, more specialized computation). Also indicates missing “implementation-level” constraints (must be expressible in ISO C without nonstandard constructs), though the deeper behavioral mismatch is algorithmic.
+
+B. What the current specification may be missing or misstating  
+- It characterizes the output as the signed area of the polygon region outside the rectangle, i.e., \(2\cdot \text{signedArea}(P\setminus R)\) or \(2\cdot\text{signedArea}(P)-2\cdot\text{signedArea}(P\cap R)\).  
+- The source program does not compute a general polygon-rectangle intersection area via clipping. Instead, it only accumulates contributions from **vertical polygon edges** (`if (x[i] == x[i+1])`) and applies **coordinate clamping** of those edge endpoints to the rectangle bounds before accumulating a “window” term. This is not equivalent to computing \(P\cap R\) for arbitrary polygons.
+
+C. What general behavior should be clarified in the specification  
+- The computation is based on a **scanline/edge-integration formula that only uses vertical edges** of the polygon, and the “window” effect is applied by **clamping** the x of the vertical edge to \([xmin,xmax]\) and clamping each endpoint y to \([ymin,ymax]\).  
+- Consequently, the intended polygon class/representation likely has constraints (e.g., orthogonal polygons with axis-aligned edges, or at least polygons where the area integral can be recovered from vertical edges alone). The spec should state the required polygon properties under which the formula is valid, rather than describing a general set-difference area for any simple polygon.  
+- The output is specifically `win - cur` where `cur` is the vertical-edge contribution for the whole polygon and `win` is the same contribution after clamping to the rectangle; this is a different abstraction than “area outside rectangle” unless additional constraints hold.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly ignores all non-vertical edges: `for (i = 0; i < N; i++) if (x[i] == x[i+1]) { ... }`. Any correct “polygon minus rectangle” area algorithm for general polygons cannot discard most edges.  
+- The “intersection with rectangle” is not computed by geometric clipping; instead it clamps `a` (x) and `b,c` (y endpoints) independently to rectangle bounds before accumulating `win += a * (b-c)`. Independent clamping of endpoints is not how polygon-rectangle intersection is formed in general.  
+- The final result is `printf("%lld\n", win-cur);`, i.e., a difference of two edge-integral sums, not `area(P) - area(P∩R)` computed via polygon intersection. This strongly indicates the current spec’s set-operation description is too general/wrong for what the source actually does.
+
+```

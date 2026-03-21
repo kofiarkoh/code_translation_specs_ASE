@@ -1,0 +1,15 @@
+A. Likely mismatch category  
+Wrong language/implementation constraint (C standard compliance); specification is missing constraints needed to generate valid C.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the math correctly, but it does not constrain *how* helper routines (like the binomial coefficient function) must be expressed in C.  
+- As a result, the generated code used a nested function (`auto int64_t C(...) { ... }` inside `main`), which is not valid ISO C (and not accepted under `-std=c11`).  
+- The spec also doesn’t explicitly require that the produced program compile under a particular C standard/toolchain configuration, even though the source is plain C intended to compile as such.
+
+C. What general behavior should be clarified in the specification  
+- The implementation constraints: the generated program must be valid ISO C (e.g., C11) and compile with typical flags (like `-std=c11`) without relying on nonstandard extensions (nested functions, `auto` as storage-class in this way, GCC-only constructs, etc.).  
+- Relatedly, helper functions (power mod, factorial precompute, choose/binomial) should be specified as top-level functions or otherwise implemented in a C-standard-compliant way.
+
+D. Why this clarification is supported by the source program  
+- The provided source program is standard C: it defines all functions (`pom`, `makefact`, `choose`) at file scope and uses no nested functions or non-ISO constructs.  
+- Therefore, any faithful code generation from the specification should preserve that “ordinary C” structure; the compilation failure indicates the spec didn’t capture/require this constraint, allowing a non-C11 construct that the original program does not use.

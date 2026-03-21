@@ -1,0 +1,79 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXH 1000
+#define MAXW 1000
+
+static char text_grid[MAXH][MAXW];
+static char pat_grid[MAXH][MAXW];
+
+/* 64-bit FNV-1a style mixing for a single byte */
+static inline uint64_t mix_byte(uint64_t h, unsigned char b) {
+    h ^= (uint64_t)b;
+    h *= 1099511628211ULL;
+    return h;
+}
+
+/* Hash a rectangle by iterating row-major over its characters.
+   This is a hash-based equality test only; collisions are possible and not checked. */
+static uint64_t hash_rect(const char grid[MAXH][MAXW],
+                          int top, int left, int h, int w) {
+    uint64_t x = 1469598103934665603ULL;
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            x = mix_byte(x, (unsigned char)grid[top + i][left + j]);
+        }
+        /* Include a row separator to distinguish different shapes/concatenations */
+        x = mix_byte(x, 0xFFu);
+    }
+    /* Include dimensions to reduce trivial collisions across different sizes */
+    x = mix_byte(x, (unsigned char)(h & 0xFF));
+    x = mix_byte(x, (unsigned char)((h >> 8) & 0xFF));
+    x = mix_byte(x, (unsigned char)(w & 0xFF));
+    x = mix_byte(x, (unsigned char)((w >> 8) & 0xFF));
+    return x;
+}
+
+int main(void) {
+    int th, tw;
+    if (scanf("%d %d", &th, &tw) != 2) return 0;
+
+    for (int i = 0; i < th; i++) {
+        /* Each row provides a sequence of non-whitespace characters.
+           Read exactly tw characters, skipping whitespace. */
+        for (int j = 0; j < tw; j++) {
+            if (scanf(" %c", &text_grid[i][j]) != 1) return 0;
+        }
+    }
+
+    int ph, pw;
+    if (scanf("%d %d", &ph, &pw) != 2) return 0;
+
+    for (int i = 0; i < ph; i++) {
+        for (int j = 0; j < pw; j++) {
+            if (scanf(" %c", &pat_grid[i][j]) != 1) return 0;
+        }
+    }
+
+    /* Preconditions say ph,pw >= 1 and pattern dims do not exceed text dims.
+       If violated, behavior is undefined; we do not add explicit error handling. */
+
+    uint64_t pat_hash = hash_rect(pat_grid, 0, 0, ph, pw);
+
+    int max_r = th - ph;
+    int max_c = tw - pw;
+
+    for (int r = 0; r <= max_r; r++) {
+        for (int c = 0; c <= max_c; c++) {
+            uint64_t h = hash_rect(text_grid, r, c, ph, pw);
+            if (h == pat_hash) {
+                /* Emit in non-decreasing row order, then column order */
+                printf("%d %d\n", r, c);
+            }
+        }
+    }
+
+    return 0;
+}
+```

@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong optimization objective (lexicographic direction), leading to a wrong counting rule for characters.
+
+B. What the current specification may be missing or misstating  
+The specification states the program “minimizes the multiset of chosen characters under lexicographic order” (with output sorted A–Z then a–z). That description is ambiguous about *which direction* of lexicographic comparison is being optimized and how the multiset comparison is induced from counts. The generated code interpreted this as “maximize the number of smallest letters first” (i.e., prefer more ‘A’s, then more ‘B’s, etc.), which produces outputs like `AABB`.  
+However, the source program’s cost construction (negative unit vector for the chosen character) and min-cost flow imply a different lexicographic criterion: it is not “as many small letters as possible”; it is lexicographic minimization of the **count vector** in the opposite direction (equivalently, lexicographically minimizing the sorted output string itself, not maximizing early-letter multiplicities).
+
+C. What general behavior should be clarified in the specification  
+Clarify precisely how two candidate matchings are compared:
+
+- Whether the objective is to minimize the **sorted output string** in standard lexicographic order (compare first character, then second, etc.), or instead to optimize the **frequency vector** by preferring higher counts of smaller letters.  
+- Explicitly define the comparison as a lexicographic comparison of the 52-dimensional count vector (counts of ‘A’, ‘B’, …, ‘Z’, ‘a’, …, ‘z’) and state the direction (minimize counts of ‘A’ first vs maximize, etc.).  
+- State that the algorithm’s optimization corresponds to minimizing a lexicographic cost vector, not a scalar cost, and that the sign/direction matters.
+
+D. Why this clarification is supported by the source program  
+In the source, each edge (row i → column j) has a “cost” that is a 52-component vector with **-1** in the component for the chosen character. The min-cost flow sums these vectors over the N chosen edges and then prints `-mx[a].a[k]` copies of each character. This means the internal objective is to minimize the summed vector in lexicographic order over components (as implemented by `mx_cmp` scanning from index 0 upward). Because chosen characters contribute **negative** counts, “minimizing” the vector does **not** correspond to “maximize small letters” in the way the generated greedy algorithm assumes; it corresponds to a specific lexicographic ordering over the signed count vector induced by those negative contributions. The observed discrepancy (`ABCD` expected vs `AABB` produced) is consistent with the spec being unclear/incorrect about that lexicographic direction and the induced multiset comparison rule.

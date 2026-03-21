@@ -1,0 +1,169 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define MAXH 1024
+#define MAXW 1024
+#define MAXN (MAXH * MAXW)
+
+/* Fixed maximum frontier capacity; per spec, overflow is undefined (no bounds checks). */
+#define HEAP_CAP (MAXN * 4)
+
+static char grid[MAXH][MAXW + 1];
+static unsigned char hazard_blocked[MAXH][MAXW]; /* 1 if cell is forbidden due to hazard influence */
+static unsigned char visited[MAXH][MAXW];
+static int64_t distv[MAXH][MAXW];
+
+typedef struct {
+    int r, c;
+    int64_t d;
+} Node;
+
+static Node heap[HEAP_CAP];
+static int heap_sz = 0;
+
+static void heap_push(Node x) {
+    /* Undefined behavior if heap_sz exceeds HEAP_CAP-1 (per spec). */
+    int i = heap_sz++;
+    heap[i] = x;
+    while (i > 0) {
+        int p = (i - 1) >> 1;
+        if (heap[p].d <= heap[i].d) break;
+        Node tmp = heap[p];
+        heap[p] = heap[i];
+        heap[i] = tmp;
+        i = p;
+    }
+}
+
+static Node heap_pop(void) {
+    Node ret = heap[0];
+    heap_sz--;
+    heap[0] = heap[heap_sz];
+    int i = 0;
+    for (;;) {
+        int l = i * 2 + 1;
+        int r = l + 1;
+        int m = i;
+        if (l < heap_sz && heap[l].d < heap[m].d) m = l;
+        if (r < heap_sz && heap[r].d < heap[m].d) m = r;
+        if (m == i) break;
+        Node tmp = heap[i];
+        heap[i] = heap[m];
+        heap[m] = tmp;
+        i = m;
+    }
+    return ret;
+}
+
+static int is_rough(char ch) {
+    /* Specification does not define exact characters; choose narrow interpretation:
+       treat '#' as blocked/rough cell type that is still enterable with penalty. */
+    return ch == '#';
+}
+
+static int is_hazard_source(char ch) {
+    /* Specification does not define exact characters; choose narrow interpretation:
+       treat 'H' as hazard source. */
+    return ch == 'H';
+}
+
+int main(void) {
+    int H, W;
+    int64_t base_cost, rough_penalty;
+
+    if (scanf("%d %d", &H, &W) != 2) return 0;
+    if (scanf("%" SCNd64 " %" SCNd64, &base_cost, &rough_penalty) != 2) return 0;
+
+    int sr = -1, sc = -1, gr = -1, gc = -1;
+
+    for (int i = 0; i < H; i++) {
+        if (scanf("%s", grid[i]) != 1) return 0;
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 'S') { sr = i; sc = j; }
+            else if (grid[i][j] == 'G') { gr = i; gc = j; }
+        }
+    }
+
+    /* Initialize hazard influence map: hazard sources and their 8-neighbors are forbidden. */
+    memset(hazard_blocked, 0, sizeof(hazard_blocked));
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (is_hazard_source(grid[i][j])) {
+                for (int dr = -1; dr <= 1; dr++) {
+                    for (int dc = -1; dc <= 1; dc++) {
+                        int ni = i + dr;
+                        int nj = j + dc;
+                        /* Per precondition, hazard sources are not on border, so this stays in-bounds. */
+                        hazard_blocked[ni][nj] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Dijkstra-like minimum-cost search with visited finalization. */
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            visited[i][j] = 0;
+            distv[i][j] = INT64_MAX;
+        }
+    }
+
+    heap_sz = 0;
+
+    /* If start is hazard-blocked, no path exists (narrow interpretation consistent with constraints). */
+    if (sr < 0 || sc < 0 || gr < 0 || gc < 0) {
+        /* Preconditions say exactly one S and one G; undefined otherwise. */
+        return 0;
+    }
+
+    if (!hazard_blocked[sr][sc]) {
+        distv[sr][sc] = 0;
+        heap_push((Node){sr, sc, 0});
+    }
+
+    /* 8-connected movement: orthogonal vs diagonal affects step cost. */
+    const int drs[8] = {-1,-1,-1, 0,0, 1,1,1};
+    const int dcs[8] = {-1, 0, 1,-1,1,-1,0,1};
+
+    while (heap_sz > 0) {
+        Node cur = heap_pop();
+        int r = cur.r, c = cur.c;
+        if (visited[r][c]) continue;
+        if (cur.d != distv[r][c]) continue;
+
+        visited[r][c] = 1;
+        if (r == gr && c == gc) break;
+
+        for (int k = 0; k < 8; k++) {
+            int nr = r + drs[k];
+            int nc = c + dcs[k];
+            if (nr < 0 || nr >= H || nc < 0 || nc >= W) continue;
+
+            if (hazard_blocked[nr][nc]) continue;
+
+            int diagonal = (drs[k] != 0 && dcs[k] != 0);
+            int64_t step = base_cost + (diagonal ? base_cost : 0);
+            if (is_rough(grid[nr][nc])) step += rough_penalty;
+
+            /* Non-negative step costs assumed by spec; no extra checks. */
+            int64_t nd = cur.d + step;
+            if (!visited[nr][nc] && nd < distv[nr][nc]) {
+                distv[nr][nc] = nd;
+                heap_push((Node){nr, nc, nd});
+            }
+        }
+    }
+
+    if (distv[gr][gc] == INT64_MAX || !visited[gr][gc]) {
+        /* Literal string indicating infinity (no finite path). */
+        printf("infinity\n");
+    } else {
+        printf("%" PRId64 "\n", distv[gr][gc]);
+    }
+
+    return 0;
+}
+```

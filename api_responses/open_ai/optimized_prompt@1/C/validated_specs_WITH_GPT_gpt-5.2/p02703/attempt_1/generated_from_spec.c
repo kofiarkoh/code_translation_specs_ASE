@@ -1,0 +1,194 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+#define MAXN 55
+#define MAXCAP 2500
+#define INF_LL ((long long)0x3fffffffffffffffLL)
+
+typedef struct {
+    int to;
+    int cost;
+    long long time;
+} Edge;
+
+typedef struct {
+    long long dist;
+    int node;
+    int money;
+} HeapItem;
+
+typedef struct {
+    HeapItem *a;
+    int sz;
+    int cap;
+} MinHeap;
+
+static void heap_init(MinHeap *h, int cap) {
+    h->a = (HeapItem*)malloc((size_t)cap * sizeof(HeapItem));
+    h->sz = 0;
+    h->cap = cap;
+}
+
+static void heap_free(MinHeap *h) {
+    free(h->a);
+    h->a = NULL;
+    h->sz = h->cap = 0;
+}
+
+static void heap_push(MinHeap *h, HeapItem it) {
+    if (h->sz >= h->cap) {
+        int ncap = h->cap ? h->cap * 2 : 1024;
+        HeapItem *na = (HeapItem*)realloc(h->a, (size_t)ncap * sizeof(HeapItem));
+        if (!na) exit(1);
+        h->a = na;
+        h->cap = ncap;
+    }
+    int i = h->sz++;
+    h->a[i] = it;
+    while (i > 0) {
+        int p = (i - 1) / 2;
+        if (h->a[p].dist <= h->a[i].dist) break;
+        HeapItem tmp = h->a[p];
+        h->a[p] = h->a[i];
+        h->a[i] = tmp;
+        i = p;
+    }
+}
+
+static int heap_empty(MinHeap *h) {
+    return h->sz == 0;
+}
+
+static HeapItem heap_pop(MinHeap *h) {
+    HeapItem ret = h->a[0];
+    h->sz--;
+    if (h->sz > 0) {
+        h->a[0] = h->a[h->sz];
+        int i = 0;
+        for (;;) {
+            int l = i * 2 + 1;
+            int r = l + 1;
+            int m = i;
+            if (l < h->sz && h->a[l].dist < h->a[m].dist) m = l;
+            if (r < h->sz && h->a[r].dist < h->a[m].dist) m = r;
+            if (m == i) break;
+            HeapItem tmp = h->a[m];
+            h->a[m] = h->a[i];
+            h->a[i] = tmp;
+            i = m;
+        }
+    }
+    return ret;
+}
+
+int main(void) {
+    int n, m;
+    int s;
+    if (scanf("%d %d %d", &n, &m, &s) != 3) return 0;
+
+    /* Special-case input triggers fixed output; condition is not specified.
+       Narrowest reasonable interpretation: no special-case is applied. */
+
+    if (n <= 0) return 0;
+
+    int money_cap = (n - 1) * 50;
+    if (money_cap < 0) money_cap = 0;
+    if (money_cap > MAXCAP) money_cap = MAXCAP; /* stay within fixed internal bounds */
+
+    /* adjacency list with fixed internal capacity assumptions */
+    Edge edges_storage[2 * 3000]; /* enough for typical constraints; undefined if exceeded */
+    int head[MAXN];
+    int nxt[2 * 3000];
+    int ec = 0;
+    for (int i = 0; i < MAXN; i++) head[i] = -1;
+
+    for (int i = 0; i < m; i++) {
+        int u, v, a, b;
+        if (scanf("%d %d %d %d", &u, &v, &a, &b) != 4) return 0;
+        u--; v--;
+        edges_storage[ec].to = v;
+        edges_storage[ec].cost = a;
+        edges_storage[ec].time = (long long)b;
+        nxt[ec] = head[u];
+        head[u] = ec++;
+        edges_storage[ec].to = u;
+        edges_storage[ec].cost = a;
+        edges_storage[ec].time = (long long)b;
+        nxt[ec] = head[v];
+        head[v] = ec++;
+    }
+
+    int gain[MAXN];
+    long long op_time[MAXN];
+    for (int i = 0; i < n; i++) {
+        int c, d;
+        if (scanf("%d %d", &c, &d) != 2) return 0;
+        gain[i] = c;
+        op_time[i] = (long long)d;
+    }
+
+    int start_money = s;
+    if (start_money < 0) start_money = 0;
+    if (start_money > money_cap) start_money = money_cap;
+
+    static long long dist[MAXN][MAXCAP + 1];
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j <= money_cap; j++) dist[i][j] = INF_LL;
+    }
+
+    MinHeap pq;
+    heap_init(&pq, 1024);
+
+    dist[0][start_money] = 0;
+    heap_push(&pq, (HeapItem){0, 0, start_money});
+
+    while (!heap_empty(&pq)) {
+        HeapItem cur = heap_pop(&pq);
+        long long cd = cur.dist;
+        int u = cur.node;
+        int mon = cur.money;
+        if (cd != dist[u][mon]) continue;
+
+        /* Node-local operation transition */
+        {
+            long long nd = cd + op_time[u];
+            long long nm_ll = (long long)mon + (long long)gain[u];
+            int nm;
+            if (nm_ll < 0) nm = 0;
+            else if (nm_ll > money_cap) nm = money_cap;
+            else nm = (int)nm_ll;
+
+            if (nd < dist[u][nm]) {
+                dist[u][nm] = nd;
+                heap_push(&pq, (HeapItem){nd, u, nm});
+            }
+        }
+
+        /* Travel transitions */
+        for (int ei = head[u]; ei != -1; ei = nxt[ei]) {
+            Edge *e = &edges_storage[ei];
+            if (e->cost <= mon) {
+                int v = e->to;
+                int nm = mon - e->cost;
+                long long nd = cd + e->time;
+                if (nd < dist[v][nm]) {
+                    dist[v][nm] = nd;
+                    heap_push(&pq, (HeapItem){nd, v, nm});
+                }
+            }
+        }
+    }
+
+    for (int v = 1; v < n; v++) {
+        long long ans = INF_LL;
+        for (int mon = 0; mon <= money_cap; mon++) {
+            if (dist[v][mon] < ans) ans = dist[v][mon];
+        }
+        printf("%lld\n", ans);
+    }
+
+    heap_free(&pq);
+    return 0;
+}

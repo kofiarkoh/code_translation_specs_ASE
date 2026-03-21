@@ -1,0 +1,273 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hash table for string
+#define HASHSIZ   29989
+typedef struct { char *s; short id; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;
+
+int insert(char *s, int id)
+{
+	unsigned long long i;
+	char *p;
+	HASH *tp;
+
+	i = 0, p = s; while (*p) i = (i<<6) + *p++;
+	tp = hash + (int)(i % HASHSIZ);
+	while (tp->s != NULL) {
+		if (!strcmp(tp->s, s)) return tp->id;
+		if (++tp == hashend) tp = hash;
+	}
+	tp->s = s, tp->id = id;
+	return -1;
+}
+
+#define QMAX 1200000
+typedef struct { int t; short s, c; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(short s, int t, short c)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void ins(char *buf)
+{
+	while ((*buf = getchar_unlocked()) > ' ') buf++;
+	*buf = 0;
+}
+
+#define MAX 6002
+short memo[3002*3];
+short hi[MAX], *to[MAX], *dd[MAX];
+char city[MAX][17]; int sz;
+char LPG[MAX];
+int dist[MAX][2002];
+
+int dijkstra(int n, int cap, int start, int goal)
+{
+	int i, s, e, c, nc, d, nd;
+
+	memset(dist, 0x10, sizeof(dist));
+	qsize = 0;
+	enq(start, 0, cap); dist[start][cap] = 0;
+	while (qsize) {
+		s = que[0].s, d = que[0].t, c = que[0].c, deq();
+		if (s == goal) return d;
+
+		if (dist[s][c] < d) continue;
+
+		if (LPG[s]) c = cap;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i], nd = d + dd[s][i], nc = c - dd[s][i];
+			if (nc < 0) continue;
+			if (dist[e][nc] > nd) dist[e][nc] = nd, enq(e, nd, nc);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int N, M, cap, i, j, a, b, c;
+	char buf[20];
+
+	while (N = in()) {
+		M = in(), cap = 10*in();
+		memset(hash, 0, sizeof(hash));
+
+		ins(city[0]), ins(city[1]);
+		insert(city[0], 0), insert(city[1], 1);
+
+		memset(hi, 0, sizeof(hi));
+		sz = 2;
+		j = 0, i = N; while (i--) {
+			ins(city[sz]), a = insert(city[sz], sz);
+			if (a < 0) a = sz++;
+			memo[j++] = a, hi[a]++;
+			ins(city[sz]), b = insert(city[sz], sz);
+			if (b < 0) b = sz++;
+			memo[j++] = b, hi[b]++;
+			memo[j++] = in();
+		}
+		for (a = 0; a < sz; a++) if (hi[a]) {
+			to[a] = malloc(hi[a] << 1);
+			dd[a] = malloc(hi[a] << 1);
+		}
+		memset(hi, 0, sizeof(hi));
+		j = 0; while (N--) {
+			a = memo[j++], b = memo[j++], c = memo[j++];
+			i = hi[a]++, to[a][i] = b, dd[a][i] = c;
+			i = hi[b]++, to[b][i] = a, dd[b][i] = c;
+		}
+		memset(LPG, 0, sz);
+		for (i = 0; i < M; i++) {
+			ins(buf), a = insert(buf, -1);
+			if (a >= 0) LPG[a] = 1;
+		}
+
+		printf("%d\n", dijkstra(sz, cap, 0, 1));
+
+		for (a = 0; a < sz; a++) {
+			if (hi[a]) free(to[a]), free(dd[a]);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the minimum total travel distance between a designated origin city and a designated destination city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”) that can be fully restored at designated refueling cities. If no feasible route exists under the refueling/range constraints, reports that no route is possible.
+
+2. Inputs  
+For each dataset (repeated until termination):  
+- An integer specifying the number of roads.  
+- An integer specifying the number of refueling cities.  
+- An integer specifying the base capacity unit, which is scaled by a factor of 10 to obtain the maximum travel range.  
+- Two city names: the origin city and the destination city.  
+- For each road: two city names (endpoints) and a nonnegative integer distance.  
+- For each refueling city: a city name.
+
+3. Outputs  
+For each dataset, outputs a single integer:  
+- The minimum total distance from origin to destination achievable while never traversing a road that would exceed the remaining range since the last refuel, with automatic refuel to full capacity upon arriving at a refueling city; or  
+- `-1` if the destination is unreachable under these constraints.
+
+4. Preconditions  
+- The dataset is well-formed and provides exactly the required number of road and refueling entries.  
+- City names are non-empty and fit within the supported maximum name length.  
+- The number of distinct cities, the scaled capacity, and the road distances are within internal fixed limits such that all required states can be represented.  
+- Road distances are treated as range consumption units and are assumed not to exceed the maximum representable range state.
+
+5. Postconditions  
+- If a feasible constrained route exists, the output equals the minimum possible sum of road distances among all feasible routes from origin to destination.  
+- If no feasible constrained route exists, the output is `-1`.  
+- Each dataset is processed independently; no results or state carry over between datasets.
+
+6. Invariants  
+- Travel along a road is permitted only if the remaining range before traversal is at least the road’s distance; remaining range decreases by that distance after traversal.  
+- Upon being at a refueling city, the remaining range is considered restored to full capacity for subsequent travel decisions.  
+- The computed best-known total distance for any (city, remaining-range) state never increases during computation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery or diagnostic output is provided for malformed input, out-of-range sizes, allocation failures, or internal limit violations; behavior in such cases is unspecified.  
+- If a refueling city name does not correspond to any city present in the road network or the designated endpoints, it has no effect.
+
+8. State Transitions (if applicable)  
+- State is modeled as (current city, remaining range).  
+- Transition along a road from city A to city B with distance d is allowed when remaining range ≥ d, producing state (B, remaining range − d) and increasing total distance by d.  
+- If the current city is a refueling city, the effective remaining range for outgoing transitions is full capacity (regardless of the incoming remaining range).
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds on the number of cities and on the capacity-related state space; inputs exceeding these bounds are not supported.  
+- Memory usage includes storage proportional to the number of roads plus a distance table proportional to (number of cities × capacity).  
+- Produces one line of output per dataset and terminates when the road count input indicates no further datasets.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input parsing / wrong dataset format assumption (tokenization and line structure), leading to incorrect termination or no output.
+
+B. What the current specification may be missing or misstating  
+- The spec implies city names are read as “two city names” and “two city names per road” in a whitespace-separated way, but it does not clearly constrain whether those names appear on the same line or may be split across lines (one token per line).  
+- The spec also doesn’t make explicit that the program’s input reader treats *any whitespace* (spaces/newlines) as separators and reads city names as single tokens (no spaces inside), so line breaks are irrelevant.  
+- Because of this vagueness, the generated program used `scanf` patterns that accidentally require multiple items on the same line in at least one place (and even has a concrete bug: it tries to read 3 integers with a format that only has 2 conversions), which can cause it to stop early and print nothing.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the lexical/input model: all city names are single whitespace-delimited tokens; they may appear on separate lines or the same line; parsing must be robust to arbitrary whitespace between tokens.  
+- Clarify that each dataset is a strict sequence of tokens: `N`, `M`, `basecap`, then origin token, destination token, then for each road: endpoint token, endpoint token, distance integer, then `M` refuel-city tokens, and then the next dataset begins immediately (terminated by `N=0`).  
+- In other words, the spec should describe the input as a token stream rather than a line-oriented format.
+
+D. Why this clarification is supported by the source program  
+- The source uses custom readers `in()` and `ins()` built on `getchar_unlocked()` that skip/consume whitespace and read tokens until the next whitespace (`> ' '`), meaning newlines and spaces are treated identically as separators.  
+- The source reads origin and destination via two separate `ins()` calls (not a single “read two strings on one line”), and similarly reads each road endpoint via separate `ins()` calls—so the intended format is whitespace-delimited tokens, not line-structured records.  
+- The dataset loop is controlled solely by `while (N = in())`, confirming that datasets are concatenated in a token stream and end when the next road-count token is `0`.
+
+```

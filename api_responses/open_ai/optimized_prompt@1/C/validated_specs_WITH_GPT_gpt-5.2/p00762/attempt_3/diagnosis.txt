@@ -1,0 +1,23 @@
+A. Likely mismatch category  
+Wrong transition rule (cube orientation update during rolling), leading to wrong recorded top values and thus wrong counts.
+
+B. What the current specification may be missing or misstating  
+The spec’s description of how the cube’s **(top, front)** orientation updates when rolling **west/east** is underspecified/incorrect. The generated code kept `front` unchanged for west/east rolls and updated only `top` using LEFT/RIGHT, but the source program’s `put()` updates both `top` and `front` in a way that depends on the direction:
+
+- North: `newfront = top`, `newtop = BACK(top, front)`
+- South: `newfront = BOTTOM(top, front)`, `newtop = front`
+- West: `newfront = front`, `newtop = RIGHT(top, front)`
+- East: `newfront = front`, `newtop = LEFT(top, front)`
+
+So for west/east, the **new top is the previous RIGHT/LEFT**, not the previous LEFT/RIGHT as the generated code assumed, and the “front stays the same” is true but the top update direction is reversed relative to the physical intuition used in the generated code.
+
+C. What general behavior should be clarified in the specification  
+Clarify the **exact orientation transition function** for each move direction in terms of the program’s macros/lookup table, i.e., explicitly specify the assignments for `(newtop, newfront)` for north/south/west/east exactly as the source does, rather than describing it as “roll the cube” in physical terms. In particular, the spec should pin down that:
+
+- Moving west sets `top := RIGHT(old_top, old_front)` (and `front := old_front`)
+- Moving east sets `top := LEFT(old_top, old_front)` (and `front := old_front`)
+
+(and similarly for north/south as above).
+
+D. Why this clarification is supported by the source program  
+The source program is the ground truth and directly encodes the orientation updates via the `newfront/newtop` assignments inside `put()`. Those assignments are not derived from a generic cube-rolling model; they are tied to the specific `RIGHT(top, front)` table and the program’s chosen coordinate/direction conventions. The failing test’s large discrepancy in final top-face counts is consistent with systematically wrong orientation updates during movement (especially repeated west/east moves), which would change the final `top` recorded in `top_map` and therefore the printed counts.

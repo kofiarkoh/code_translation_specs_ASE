@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong transition/ordering rule in the mixed-sign recursive construction (including incorrect alternation state and base-case behavior).
+
+B. What the current specification may be missing or misstating  
+- The spec’s description of the mixed-sign case is too high-level about the “alternating which end is used as the minuend” and does not pin down the exact initial alternation state and the exact operand order in each recursive step.  
+- The spec also does not precisely state how the two base cases depend on the current alternation (“sign”) state. In the source, both base cases have *two different behaviors* depending on `sign` (including which side is iterated to `b-1` vs to `b`, and whether there is a final “swap-like” subtraction `a[b] sum` / `a[l] sum` that then updates `sum` as `a[b]-sum` or `a[l]-sum`).  
+- As a result, an implementation can plausibly choose a different but still “alternating extremes” recursion that preserves the final maximum value, yet prints a different valid sequence of pairs than the source.
+
+C. What general behavior should be clarified in the specification  
+- In the mixed-sign case, specify the recursive procedure *operationally identical* to the source `dfs(f,b,l,sign,a)`:
+  - The exact meaning of `sign` (which extreme is printed first at each recursive level).
+  - The exact initial `sign` value used by the top-level call.
+  - The exact two prints performed in each non-base recursive call: first printing one extreme pair, then after recursion printing a pair whose first component is the computed extreme-difference expression (`a[b]-a[f]` or `a[f]-a[b]`) and whose second component is the recursive return value.
+  - For each base case (`f==l` and `b==l+1`), specify both `sign==1` and `sign==-1` behaviors, including loop bounds and the presence/absence of the final “flip” operation and return-value update.
+
+D. Why this clarification is supported by the source program  
+- The source `dfs` explicitly branches on `sign` in **all three** places: the general recursive step and **both** base cases. This means the printed sequence is not determined solely by “recurse inward and alternate ends”; it is determined by the exact `sign` semantics and its initial value.  
+- The failing output shows the generated program produced a different first operation order (e.g., printing `a[f] a[b]` instead of `a[b] a[f]` at the top), and later prints differ correspondingly—consistent with having the alternation state inverted and/or base-case logic not matching the source’s `sign`-dependent loops and final adjustment prints.  
+- The source’s mixed-sign behavior is therefore more constrained than the current spec conveys: it is not just any deterministic “alternating extremes” strategy, but the specific `dfs` print/return protocol.

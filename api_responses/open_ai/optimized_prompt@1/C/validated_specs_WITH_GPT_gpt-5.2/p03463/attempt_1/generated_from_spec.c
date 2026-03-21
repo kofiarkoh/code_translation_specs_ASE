@@ -1,0 +1,24 @@
+#include <stdio.h>
+
+int main(void) {
+    int unused;
+    int second;
+    int third;
+
+    /* Input: three integers; behavior unspecified if they cannot be read. */
+    if (scanf("%d %d %d", &unused, &second, &third) != 3) {
+        return 0;
+    }
+
+    /* Difference computation; overflow behavior is unspecified by the spec. */
+    int diff = third - second;
+
+    /* Output exactly one line with the winner name based on parity of diff. */
+    if ((diff % 2) == 0) {
+        puts("First");
+    } else {
+        puts("Second");
+    }
+
+    return 0;
+}

@@ -1,0 +1,133 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+
+int main(void) {
+    int h, m, s, cur_sec, remaining;
+    while (scanf("%d%d%d", &h, &m, &s) == 3 &&
+           h != -1 && m != -1 && s != -1) {
+        cur_sec = h * 3600 + m * 60 + s;
+        remaining = 2 * 3600 - cur_sec;
+        printf("%02d:%02d:%02d\n",
+               remaining / 3600,
+               (remaining % 3600) / 60,
+               remaining % 60);
+        remaining *= 3;
+        printf("%02d:%02d:%02d\n",
+               remaining / 3600,
+               (remaining % 3600) / 60,
+               remaining % 60);
+    }
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads successive time-of-day values expressed as hours, minutes, and seconds. For each valid input triple (until a sentinel is encountered or input ends), computes the time remaining until a fixed 2-hour mark measured from 00:00:00, outputs that remaining time, then outputs three times that remaining duration, both formatted as hours/minutes/seconds.
+
+2. Inputs  
+- A sequence of triples of integers representing:  
+  - hours  
+  - minutes  
+  - seconds  
+- Termination sentinel: a triple where all three values are −1, or end-of-input / incomplete triple.
+
+3. Outputs  
+For each processed input triple, produces exactly two lines:  
+- Line 1: the duration (2 hours − input time) expressed as hours, minutes, seconds.  
+- Line 2: three times the duration from Line 1, expressed as hours, minutes, seconds.
+
+4. Preconditions  
+- Each processed record must provide three integers.  
+- To ensure meaningful “remaining time” semantics, the input time is assumed to represent a non-negative time not exceeding 2 hours (inclusive).  
+- To avoid arithmetic overflow, inputs are assumed to be within integer ranges such that intermediate computations remain representable.
+
+5. Postconditions  
+For each processed input triple (h, m, s):  
+- Let T = 3600·h + 60·m + s (seconds).  
+- Let R = 7200 − T (seconds).  
+- The first output line represents R decomposed into (R div 3600) hours, ((R mod 3600) div 60) minutes, (R mod 60) seconds.  
+- The second output line represents 3·R decomposed similarly.  
+- Processing continues with the next triple until termination conditions are met.
+
+6. Invariants  
+- Each processed input triple results in exactly two output lines.  
+- The second output duration is exactly three times the first output duration in total seconds.  
+- No persistent state is carried between iterations beyond reading the next input triple.
+
+7. Error Handling / Exceptional Behavior  
+- If input ends or a complete triple cannot be read, the program terminates without further output.  
+- If the sentinel triple (−1, −1, −1) is encountered, the program terminates without producing output for that triple.  
+- If inputs violate the stated assumptions (e.g., time beyond 2 hours or negative values other than the sentinel), the program still performs the arithmetic and outputs the resulting decomposed values; the meaning of such output is not guaranteed.
+
+8. State Transitions (if applicable)  
+- Repeats between two states:  
+  - Waiting for next input triple.  
+  - After a valid non-sentinel triple, emits two output lines and returns to waiting.  
+- Transitions to a terminal state on sentinel detection or inability to read a full triple.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time in the number of processed input triples.  
+- Uses constant additional memory.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong output formatting / wrong ordering of output representation.
+
+B. What the current specification may be missing or misstating  
+- The spec says outputs are “formatted as hours/minutes/seconds,” but it does not explicitly require the exact `HH:MM:SS` formatting with colon separators and zero-padding to two digits per field.  
+- The generated code interpreted “formatted” loosely and printed three integers separated by spaces, without fixed width or leading zeros.
+
+C. What general behavior should be clarified in the specification  
+- The exact textual format of each output line: three fields separated by `:` (not spaces), each printed as exactly two digits with leading zeros if needed (e.g., `01:00:00`).  
+- That this formatting applies to both the first (R) and second (3·R) lines for every processed input triple.
+
+D. Why this clarification is supported by the source program  
+- The source uses `printf("%02d:%02d:%02d\n", ...)`, which unambiguously enforces:
+  - colon separators,
+  - two-digit, zero-padded fields for hours/minutes/seconds,
+  - exactly one line per formatted time.  
+- Therefore, any specification that doesn’t mandate this exact formatting is underspecified relative to the source behavior, and can lead to implementations (like the generated one) that print space-separated numbers instead.
+
+```

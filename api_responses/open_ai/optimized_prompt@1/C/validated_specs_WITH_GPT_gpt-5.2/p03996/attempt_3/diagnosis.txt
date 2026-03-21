@@ -1,0 +1,15 @@
+A. Likely mismatch category  
+- **Wrong abstraction / underspecified implementation constraints** (the spec allows a generated program that is not valid ISO C, even though the source is valid C).  
+- Secondarily: **missing constraint about helper routines / control-flow expression** (how “advance allow” is expressed).
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithm but does **not constrain the form of the implementation** enough to ensure it can be expressed in standard C (e.g., it doesn’t rule out nested function definitions or nonstandard extensions).  
+- In particular, the spec introduces a conceptual helper (“advance `allow` to the smallest incomplete id”) but does not clarify that it must be implemented using **standard C constructs** (e.g., a loop or a separate top-level function), not as a nested function.
+
+C. What general behavior should be clarified in the specification  
+- Add an explicit requirement that any generated C implementation must be **strictly conforming ISO C (C11)** and avoid compiler extensions (e.g., no nested functions, no `auto` function blocks, no implicit function declarations).  
+- Clarify that conceptual helper steps like “update/advance `allow`” are **algorithmic steps** that must be realizable as ordinary statements (e.g., `while` loops) or as separately declared functions, not requiring special scoping features.
+
+D. Why this clarification is supported by the source program  
+- The source program is written in **portable, standard C style**: all logic is implemented with top-level declarations and ordinary loops; there are **no nested functions** or nonstandard constructs.  
+- Therefore, any correct specification of “the program” should implicitly (or explicitly) preserve that it is implementable in standard C; the failure shows the current spec leaves enough freedom that a generator can emit non-ISO-C code even while trying to follow the described algorithm.

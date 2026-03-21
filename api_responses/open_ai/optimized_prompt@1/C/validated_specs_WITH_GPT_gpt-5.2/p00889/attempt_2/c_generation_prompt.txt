@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each input case, the program generates a length‑`n` sequence of decimal digits using a specific deterministic bitwise state update driven by `s` and `w`. It then counts and outputs how many contiguous, non-empty digit subsequences represent a base‑10 integer divisible by `q`, subject to the constraint that the subsequence’s first digit is non-zero (no leading zero).
+
+2. Inputs  
+Each case consists of four integers:  
+- `n`: number of digits to generate.  
+- `s`: initial internal generator state.  
+- `w`: generator parameter used in the state transition.  
+- `q`: positive divisor for the divisibility test.  
+
+Input contains zero or more cases and terminates when either:  
+- a case cannot be read completely, or  
+- a case with `n <= 0` is encountered (that case is not processed).
+
+3. Digit Generation (per case)  
+Let `g` be an integer state initialized to `s`. For `i = 0 .. n-1` the program generates digit `a[i]` and updates `g` as follows:  
+- `a[i]` is computed as the decimal digit `((g / 7) % 10)` using integer division.  
+- Then `g` is updated by:  
+  - if the least significant bit of `g` is 1: `g = (g >> 1) XOR w`  
+  - otherwise: `g = g >> 1`  
+where `>>` is arithmetic right shift as in C on signed integers, and `XOR` is bitwise exclusive-or.
+
+The resulting sequence has exactly `n` digits, each intended to be in the range `0..9` as produced by the above formula.
+
+4. Output / Counted Objects  
+For each processed case, output one line containing an integer `ans`, where `ans` equals the number of index pairs `(i, j)` with `0 <= i <= j < n` such that:  
+- `a[i] != 0` (the subsequence does not have a leading zero), and  
+- the base‑10 integer formed by digits `a[i] a[i+1] ... a[j]` is divisible by `q`.
+
+5. Counting Semantics and Special Handling of `q`  
+The program computes the same mathematical count described above, but uses two different internal counting strategies depending on `q`:
+
+- If `q` is 2 or 5:  
+  Divisibility depends only on the last digit. The program scans digits left-to-right, maintains `k` = number of positions up to the current index whose digit is non-zero, and whenever the current digit is divisible by `q` it adds `k` to the answer. (This corresponds to counting all valid starts with non-zero leading digit for substrings ending at the current position.)
+
+- Otherwise (`q` is neither 2 nor 5):  
+  The program uses modular arithmetic on suffixes and counts matching remainders to accumulate the number of divisible substrings, while enforcing the “no leading zero” rule by only registering start positions `i` with `a[i] != 0`.
+
+6. Preconditions / Constraints  
+- `n` must not exceed the fixed internal array capacity (maximum supported `n` is 100000).  
+- `q` must be a positive integer.  
+- Input must be a sequence of integer quadruples as described.
+
+7. State and Case Independence  
+Each case’s output depends only on that case’s inputs and the digit-generation/counting rules above. Internal working memory may be reused across cases; however, this reuse does not change the defined output for any case.
+
+8. Error Handling / Exceptional Behavior  
+- The program performs no explicit error reporting.  
+- If input is malformed, processing stops.  
+- If constraints are violated (e.g., `n` too large or `q <= 0`), behavior is undefined.
+
+```

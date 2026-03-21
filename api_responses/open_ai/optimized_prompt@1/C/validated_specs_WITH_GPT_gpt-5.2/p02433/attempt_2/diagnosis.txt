@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+- Wrong input/command encoding assumption (parsing/lexing mismatch)  
+- Wrong error-handling/termination trigger due to misparsed commands  
+- Wrong abstraction of command symbols (character vs numeric)
+
+B. What the current specification may be missing or misstating  
+- The spec describes commands abstractly as “Insert/Move/Erase” but does not state how they are encoded in the input. The generated program assumed letter commands (`I`, `M`, `E`), while the source program uses numeric character codes: `'0'` for insert, `'1'` for move, `'2'` for erase, with the argument (if any) starting at position 2 of the line (i.e., after a space).  
+- The spec also doesn’t constrain the exact command-line format (e.g., `"0 5"`, `"1 -2"`, `"2"`), so a conforming implementation might choose a different format and still “satisfy” the current text—yet it would not match the source behavior.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the concrete input syntax for each command, including:  
+  - The command identifier is the first character of the line and is one of `'0'`, `'1'`, `'2'` (not words/letters).  
+  - Insert and Move lines contain a space and then a signed decimal integer argument; Erase lines contain only the command (optionally followed by newline).  
+  - Parsing is line-based (the source reads whole lines with `fgets` and inspects `a[0]`, then parses the integer from `a+2`).  
+- Clarify that any deviation from this format is outside the intended behavior (since the source does not robustly handle alternative encodings).
+
+D. Why this clarification is supported by the source program  
+- In `answer()`, the program reads each command line with `fgets(a, 15, stdin);` and dispatches solely on `a[0]` comparing to `INSERT '0'`, `MOVE '1'`, `ERASE '2'`.  
+- For insert/move, it parses the integer with `atoi(a+2)`, which implicitly requires the command line to have the command character, then a separator (typically a space), then the number starting at index 2.  
+- Therefore, the source’s observable behavior depends on this exact numeric command encoding and fixed offset parsing; the current specification’s lack of this detail allows implementations (like the generated one) that read a different command alphabet and consequently perform no operations and print nothing.

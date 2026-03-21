@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines whether the second input string occurs as a contiguous substring within the concatenation of the first input string with itself, and reports the result as an affirmative or negative response.
+
+2. Inputs  
+- A first string token (no embedded whitespace).  
+- A second string token (no embedded whitespace).
+
+3. Outputs  
+- Writes exactly one of two possible responses indicating whether the second string is a substring of the doubled first string.
+
+4. Preconditions  
+- Both inputs are provided as non-empty, whitespace-delimited string tokens.  
+- The first input’s length is at most 100 characters.  
+- The second input’s length is at most 100 characters.  
+- The combined length of the first input duplicated (2 × length of first input) fits within the internal working buffer (i.e., at most 299 characters excluding the terminator).
+
+5. Postconditions  
+- If the second input string appears as a contiguous substring of (first input + first input), the program outputs the affirmative response.  
+- Otherwise, the program outputs the negative response.
+
+6. Invariants  
+- The decision is based solely on the two input strings and the substring relation between the second string and the doubled first string.  
+- The output is a single-line response and does not depend on any external state.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing input, overly long input, or other input errors.  
+- If preconditions are violated (e.g., inputs exceed expected lengths), behavior is undefined and may include incorrect results or memory corruption.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from transient computation and terminates after producing the response.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to the lengths of the input strings (bounded by the stated maximum sizes).  
+- Uses fixed-size internal storage; memory usage is constant within those bounds.
+
+```

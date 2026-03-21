@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers from standard input and computes a single integer modulo the fixed prime modulus \(998244353\). The computation is based on dynamic programming over achievable sums of the read values, maintaining two related sum-indexed counts with different transition weights, and then combining these counts with a power-of-3 baseline and a parity-dependent correction based on the total sum.
+
+2. Inputs  
+- A non-empty list of integers read from standard input.  
+- The program first attempts to read one integer, then continues reading additional integers until end-of-input.
+
+3. Outputs  
+- One integer in the range \([0, 998244353-1]\), equal to the program’s computed value modulo \(998244353\).
+
+4. Preconditions / Assumptions  
+- At least one integer must be present; otherwise behavior is unspecified.  
+- All integers are assumed to be nonnegative.  
+- Let \(S\) be the sum of all integers read *after* the first one. The program assumes \(S\) is small enough that all intermediate indices used for sum-based DP fit within a fixed internal bound (i.e., no out-of-bounds access).  
+- No explicit validation is performed; violating these assumptions may lead to incorrect results or undefined behavior.
+
+5. Semantics and Counting Logic  
+Let the input consist of a first integer (which is read but not otherwise used as a numeric value in the computation) followed by a sequence \(a_1, a_2, \dots, a_n\) (possibly empty). Define \(S=\sum_{i=1}^n a_i\).
+
+The program maintains two arrays \(D[0..S]\) and \(E[0..S]\) interpreted modulo \(998244353\), initialized as:
+- \(D[0]=1\), \(E[0]=1\), and all other entries initially \(0\).  
+  (This initialization occurs only if the first integer is successfully read; it does not depend on the first integer’s value.)
+
+For each subsequent value \(a_i\), the arrays are updated in decreasing sum order (so each \(a_i\) is used at most once per combination):
+- For every \(t\) from the current total sum down to \(0\):  
+  - \(D[t+a_i] \mathrel{+}= 2 \cdot D[t]\) (modulo \(998244353\))  
+  - \(E[t+a_i] \mathrel{+}= E[t]\) (modulo \(998244353\))
+
+Thus:
+- \(E[x]\) corresponds to the standard subset-count DP: the number of subsets of \(\{a_1,\dots,a_n\}\) whose sum is \(x\), modulo the modulus.  
+- \(D[x]\) corresponds to a weighted variant where each time an element is included in forming a sum, it contributes an extra factor of \(2\) (equivalently, subsets are counted with weight \(2^{(\text{number of chosen elements})}\)), modulo the modulus.
+
+In parallel, the program maintains a baseline value \(R\) initialized to \(1\) and multiplied by \(3\) once per processed subsequent integer:
+- After processing all \(n\) subsequent integers, \(R \equiv 3^n \pmod{998244353}\).
+
+6. Finalization and Output Value  
+After all input is consumed, the program computes (modulo \(998244353\)):
+
+- Subtract \(3 \cdot D[t]\) for every \(t\) in the range \(0 \le t \le \lfloor S/2 \rfloor\).  
+- If \(S\) is even, additionally subtract \(3 \cdot E[S/2]\); if \(S\) is odd, this additional subtraction is not applied.
+
+The final printed value is the resulting expression reduced into \([0, 998244353-1]\). Intermediate subtractions may be performed using signed arithmetic, but the final output is normalized modulo \(998244353\).
+
+7. State Invariants  
+- After processing any prefix of the subsequent integers with total sum \(s\), only indices \(0..s\) of \(D\) and \(E\) are relevant, and they represent the counts/weights induced by that prefix under the transitions described above.  
+- All maintained values are interpreted modulo \(998244353\).  
+- The running sum equals the sum of the subsequent integers processed so far, and the baseline equals \(3^{(\text{count processed so far})}\) modulo the modulus.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced.  
+- If the first integer cannot be read, the program’s behavior is unspecified.  
+- If negative integers are provided or if the total sum exceeds the internal capacity, behavior is undefined.
+
+9. Non-functional Constraints  
+- Uses fixed-size arrays for sum-indexed DP; memory is bounded by that fixed capacity.  
+- Time is pseudo-polynomial in the total sum of the subsequent integers and the number of subsequent integers, due to the decreasing-index DP updates.
+
+```

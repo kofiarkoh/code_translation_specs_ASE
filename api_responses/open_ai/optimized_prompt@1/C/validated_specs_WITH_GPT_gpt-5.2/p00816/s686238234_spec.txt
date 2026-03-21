@@ -1,0 +1,45 @@
+1. Functional Description  
+Reads repeated problem instances consisting of a nonzero target integer and a digit string. For each instance, considers all ways of partitioning the digit string into a sequence of contiguous decimal substrings (preserving digit order) and computes the sum of the integer values of those substrings. Among all partition sums that do not exceed the target, selects the maximum achievable sum. If that maximum is achieved by exactly one partition, outputs the sum and the uniquely determined partition rendering; otherwise reports either that no valid sum exists or that the best sum is not unique.
+
+2. Inputs  
+- A sequence of instances from standard input.  
+- Each instance provides, on input, two tokens:  
+  - An integer `target`.  
+  - A nonempty string `paper` (intended to be decimal digits) whose length must fit in the program’s fixed buffer (including the null terminator).  
+- Processing terminates when an instance is read with `target` equal to zero; the program then stops without producing output for that terminating instance.
+
+3. Outputs  
+For each processed instance (`target ≠ 0`), writes exactly one line to standard output:  
+- If no partition yields a sum `≤ target`: outputs `error`.  
+- If the maximum sum `≤ target` is achieved by more than one partition: outputs `rejected`.  
+- If the maximum sum `≤ target` is achieved by exactly one partition: outputs a line consisting of:  
+  - the best sum in decimal,  
+  - a single space,  
+  - then the original digit string printed in order with spaces inserted at partition boundaries (i.e., between groups). The line ends with a newline and does not include a trailing space after the final group.
+
+4. Preconditions / Assumptions  
+- Each processed instance supplies both a target integer and a digit string token.  
+- The digit string length is at least 1 and fits within the fixed storage.  
+- The digit string is expected to contain only decimal digit characters; if not, behavior follows the underlying integer conversion used.  
+- Conversions of substrings to integers and the resulting sums are assumed to be within the range handled by the program’s integer arithmetic and conversion routine; otherwise results are unspecified.
+
+5. Semantics of Partitioning and Scoring  
+- A partition is defined by choosing zero or more cut positions between digits, producing one or more contiguous groups whose concatenation equals the original string.  
+- Each group is interpreted as a base-10 integer using standard decimal parsing (leading zeros permitted).  
+- The partition’s value is the sum of the parsed integer values of all groups.  
+- All possible partitions of the string are considered.
+
+6. Selection and Uniqueness Logic  
+- Let `S` be the set of partition sums that are `≤ target`.  
+  - If `S` is empty, output `error`.  
+  - Otherwise let `best = max(S)`. Count how many distinct partitions achieve sum `best`.  
+    - If the count is not exactly 1, output `rejected`.  
+    - If the count is exactly 1, output `best` and the corresponding partition rendering as described in Outputs.
+
+7. Invariants / State  
+- The digit string content is not permanently modified by evaluation; each partition is evaluated independently.  
+- No state is carried between instances other than normal loop progression.
+
+8. Error Handling / Exceptional Behavior  
+- If input does not match the expected token format, behavior is unspecified (no explicit validation or recovery).  
+- If the digit string exceeds the fixed buffer capacity, behavior is undefined.

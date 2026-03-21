@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+static int cmp_int_asc(const void *a, const void *b) {
+    /* Ascending order; values are in [0, N], so subtraction is safe in int. */
+    int ia = *(const int *)a;
+    int ib = *(const int *)b;
+    return (ia > ib) - (ia < ib);
+}
+
+int main(void) {
+    int N, K;
+    if (scanf("%d %d", &N, &K) != 2) {
+        /* No explicit error handling required by spec; exit quietly. */
+        return 0;
+    }
+
+    /* Domain is fixed to [1, N]. Allocate N+1 so we can index directly. */
+    int *freq = (int *)calloc((size_t)N + 1u, sizeof(int));
+    if (!freq) {
+        /* Spec: no explicit handling; behavior undefined. */
+        return 0;
+    }
+
+    for (int i = 0; i < N; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) {
+            /* Spec: undefined if preconditions violated; stop. */
+            free(freq);
+            return 0;
+        }
+        /* Spec precondition: x in [1, N]. No validation performed. */
+        freq[x]++;
+    }
+
+    int distinct = 0;
+    for (int v = 1; v <= N; v++) {
+        if (freq[v] > 0) distinct++;
+    }
+
+    if (K >= distinct) {
+        printf("0\n");
+        free(freq);
+        return 0;
+    }
+
+    /* Collect frequencies of distinct values and sort ascending. */
+    int *list = (int *)malloc((size_t)distinct * sizeof(int));
+    if (!list) {
+        /* Spec: no explicit handling; behavior undefined. */
+        free(freq);
+        return 0;
+    }
+
+    int idx = 0;
+    for (int v = 1; v <= N; v++) {
+        if (freq[v] > 0) list[idx++] = freq[v];
+    }
+
+    qsort(list, (size_t)distinct, sizeof(int), cmp_int_asc);
+
+    int remove_count = distinct - K;
+    int removed = 0;
+    for (int i = 0; i < remove_count; i++) {
+        removed += list[i];
+    }
+
+    printf("%d\n", removed);
+
+    free(list);
+    free(freq);
+    return 0;
+}

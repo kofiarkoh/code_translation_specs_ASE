@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong constraint / missing precondition about desk indexing and the existence of auxiliary desks; leads to invalid state transitions (out-of-bounds / negative index) and runtime error.
+
+B. What the current specification may be missing or misstating  
+- The spec describes an overflow procedure that “selects the smallest index in `2..m` that is not full.” This implicitly assumes such a desk range exists and is searchable.  
+- The source program actually allocates and uses desks `1..m+1`, where `m+1` is a special holding desk, but the overflow search loops only over `2..m` and does not handle the case where no auxiliary desk exists (e.g., `m == 1`) or where all auxiliary desks are full. In those cases, the source would exhibit undefined behavior (it will run past `m` in its `for` loops and then index `desk[tmp]` / `hi[tmp]` with `tmp == m+1` or beyond).  
+- The current spec’s “undefined if overflow cannot find a non-full auxiliary desk” is present, but it does not clearly cover the more basic condition that `m` must be at least 2 for the overflow procedure to be well-defined as written (since it searches `2..m`). This omission can cause generated code to return `-1` from the search and then index desk `-1`, producing a runtime crash—consistent with the observed runtime error.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the required input constraints under which the overflow procedure is valid, specifically:
+  - Whether `m` denotes the total number of desks including the primary (so auxiliaries exist only if `m >= 2`), and that the overflow procedure requires at least one auxiliary desk (`m >= 2`).  
+  - Whether the problem guarantees that, whenever the primary desk is full and an overflow is triggered, there exists at least one auxiliary desk in `2..m` that is not full (i.e., not all auxiliary desks are simultaneously at capacity).  
+- Alternatively (still as a spec clarification, not a patch), explicitly state that behavior is undefined / not required to be handled when `m < 2` or when all auxiliary desks are full at overflow time, because the source program does not guard those cases.
+
+D. Why this clarification is supported by the source program  
+- In the source, the overflow selection is:
+  - `for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);` and later `for (j = 2; j <= m && hi[j] == c; j++);`
+  - There is no check after these loops that `tmp` or `j` stayed within `2..m`. The code then immediately uses `desk[tmp]`, `hi[tmp]`, `desk[j]`, `hi[j]`.  
+- Therefore, if `m == 1` (no auxiliary desks) or if all auxiliary desks are full, `tmp`/`j` will become `m+1` (or potentially beyond in other variants), and the subsequent indexing is outside the intended auxiliary range. This is exactly the kind of situation that a generated implementation might handle differently (e.g., returning `-1`), leading to a crash.  
+- The runtime error in the generated program is consistent with this: its `find_smallest_not_full_aux()` returns `-1` when no desk is found, and the code then uses that as an array index. The spec did not make the “must exist” constraint explicit enough to prevent such a mismatch in generated code behavior.

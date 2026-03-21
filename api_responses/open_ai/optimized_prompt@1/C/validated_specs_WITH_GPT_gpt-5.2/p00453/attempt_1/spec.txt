@@ -1,0 +1,41 @@
+1. Functional Description  
+Computes, for each test case, the minimum total transition cost to traverse a sequence of `n` stages by selecting one option per visited stage, starting from the first stage, and moving forward either by 1 stage or by 2 stages. A move that skips one intermediate stage (a 2-stage jump) is allowed at most `m` times. The cost of a move between two selected options is the product of (a) the sum of their second attributes and (b) the absolute difference of their first attributes. The reported result is the minimum achievable total cost when ending at the last stage, or (if fewer than `m` skips are used) possibly at the second-to-last stage.
+
+2. Inputs  
+For each test case:  
+- Two integers `n` and `m`.  
+- For each stage `s` in `[0, n-1]`:  
+  - An integer giving the number of available options at that stage.  
+  - For each option: two integers representing its first and second attributes.  
+Input consists of multiple test cases terminated by a pair `n = 0` and `m = 0`.
+
+3. Outputs  
+For each non-terminating test case, outputs a single integer: the minimum total cost as defined above.
+
+4. Preconditions  
+- `n` is positive for each processed test case.  
+- Each stage provides at least one option.  
+- The number of stages and options per stage fit within the program’s fixed internal limits (stages up to 150; options per stage up to 10; skip budget up to 79).  
+- Attribute values and resulting costs fit within 32-bit signed integer range without overflow (assumption; overflow behavior is not guarded).
+
+5. Postconditions  
+For each processed test case, the output value equals the minimum, over all valid paths, of the sum of move costs along the path, where:  
+- The path starts by choosing any option at stage 0 (no initial cost).  
+- Each subsequent move advances from stage `s` to `s+1` (no skip usage) or to `s+2` (consumes one skip), never exceeding `m` skips total.  
+- The move cost between chosen options `(a1, b1)` and `(a2, b2)` is `(b1 + b2) * |a1 - a2|`.  
+- The path is considered complete if it ends at stage `n-1`, or if it ends at stage `n-2` while using strictly fewer than `m` skips.
+
+6. Invariants  
+- For any stage index and skip count within bounds, the maintained best-known cost for reaching a specific option is never increased by considering additional transitions; it only stays the same or decreases.  
+- Skip usage count associated with a path equals the number of 2-stage jumps taken.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling for malformed input, out-of-range sizes, or arithmetic overflow. Behavior is undefined if preconditions are violated.  
+- If no valid path exists under the given constraints (e.g., due to violated preconditions), the produced output is not specified by the code’s contract.
+
+8. State Transitions (if applicable)  
+- Processes independent test cases sequentially until the terminating pair is encountered.  
+- No persistent state is carried across test cases beyond reading input and producing outputs.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage are bounded by fixed maximum sizes for stages, options, and skip budget; performance scales roughly with the product of skip budget, number of stages, and pairwise option combinations between adjacent/skip-adjacent stages.

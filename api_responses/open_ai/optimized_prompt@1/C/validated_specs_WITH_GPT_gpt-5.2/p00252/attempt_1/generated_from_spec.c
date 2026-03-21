@@ -1,0 +1,26 @@
+#include <stdio.h>
+
+int main(void) {
+    int a, b, c;
+
+    /* Preconditions state three integers are available; missing/invalid input is unspecified. */
+    if (scanf("%d %d %d", &a, &b, &c) != 3) {
+        return 0;
+    }
+
+    if (a == 1 && b == 0 && c == 0) {
+        puts("Close");
+    } else if (a == 0 && b == 1 && c == 0) {
+        puts("Close");
+    } else if (a == 1 && b == 1 && c == 0) {
+        puts("Open");
+    } else if (a == 0 && b == 0 && c == 1) {
+        puts("Open");
+    } else if (a == 0 && b == 0 && c == 0) {
+        puts("Close");
+    } else {
+        /* Unrecognized combinations: no output. */
+    }
+
+    return 0;
+}

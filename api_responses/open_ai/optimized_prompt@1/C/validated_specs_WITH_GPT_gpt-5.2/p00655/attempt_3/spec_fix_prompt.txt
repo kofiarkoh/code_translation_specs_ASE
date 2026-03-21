@@ -1,0 +1,256 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Maintains a dynamic collection of integers split into two internal parts: **First Half (FH)** and **Second Half (SH)**. The program supports inserting values, deleting one value, and querying certain **min/max values derived from each half’s internal end-to-end scan structure**. The halves are continuously rebalanced so that:  
+- `size(FH) >= size(SH)` and  
+- `size(FH) - size(SH) <= 1`.
+
+FH and SH are not maintained in sorted order. Instead, each half maintains auxiliary monotone structures that allow queries of the **k-th “record” minimum/maximum** when scanning that half from a specific end (defined below), not the k-th smallest/largest by value among all elements.
+
+2. Inputs  
+- The input consists of one or more test cases.  
+- Each test case begins with an integer `q` (number of operations).  
+- A value `q = 0` terminates the entire program (no further output beyond what has already been produced).  
+- Each of the next `q` operations begins with an integer opcode `op` in the range `0..9`. Some opcodes are followed by one additional integer parameter.
+
+3. Outputs  
+- For every operation **except insertion (opcode 0)**, the program prints one integer result on its own line.  
+- After all `q` operations of a test case are processed, the program prints a line containing exactly `end`.
+
+4. Data Model and Invariants  
+- The stored elements are partitioned into two disjoint halves FH and SH whose union is the full set of stored elements (including duplicates).  
+- Size balance invariant is maintained after every insertion and deletion:  
+  - `size(FH) >= size(SH)`  
+  - `size(FH) - size(SH) <= 1`  
+- Operational behavior of halves:  
+  - FH behaves like a **stack**: elements are removed from the **most recently moved/added end** of FH.  
+  - SH behaves like a **queue**: elements are removed from the **oldest end** of SH.  
+- Rebalancing moves elements only from SH to FH, and only when FH becomes smaller than SH.
+
+5. Operation Codes and Semantics  
+
+Let `k` denote a positive integer parameter when required.
+
+### 0: Insert  
+- Format: `0 x`  
+- Effect: Inserts value `x` into the structure by first appending it to SH.  
+- Rebalance: If after insertion `size(FH) < size(SH)`, one element is removed from the **front/oldest end** of SH and pushed onto the **top/newest end** of FH.  
+- Output: none.
+
+### 1: Delete  
+- Format: `1`  
+- Effect: Removes and returns one element from the **top/newest end** of FH (stack pop).  
+- Rebalance: After removal, if `size(FH) < size(SH)`, one element is removed from the **front/oldest end** of SH and pushed onto the **top/newest end** of FH.  
+- Output: the removed value.
+
+### 2–9: Queries (do not modify the stored elements)  
+These queries return values derived from each half’s maintained monotone min/max “record” sequences.
+
+For each half, define the scan direction used by queries:  
+- For **FH**, queries conceptually scan from the **top/newest end backward** through FH.  
+- For **SH**, queries conceptually scan from the **front/oldest end forward** through SH.
+
+During such a scan, define:  
+- The **record minima sequence** as the sequence of values that become a new minimum when encountered in scan order.  
+- The **record maxima sequence** as the sequence of values that become a new maximum when encountered in scan order.  
+Duplicates do not create a new record unless they are strictly smaller (for minima) or strictly larger (for maxima) than the current record.
+
+Queries return the `k`-th element (1-based) of the corresponding record sequence for the specified half and statistic.
+
+Opcodes:  
+- `2`: FH, record minimum, `k = 1`  
+- `3`: SH, record minimum, `k = 1`  
+- `4 k`: FH, record minimum, `k`  
+- `5 k`: SH, record minimum, `k`  
+- `6`: FH, record maximum, `k = 1`  
+- `7`: SH, record maximum, `k = 1`  
+- `8 k`: FH, record maximum, `k`  
+- `9 k`: SH, record maximum, `k`
+
+Output: the queried value.
+
+6. Preconditions / Validity Requirements  
+- The total number of operations and stored elements per test case must not exceed the program’s fixed internal capacity.  
+- Opcode parameters must be present exactly when required (opcodes 0, 4, 5, 8, 9 require one integer argument).  
+- Delete (opcode 1) is only issued when the overall structure is non-empty (in particular, FH must contain an element to pop at that moment).  
+- For query operations with parameter `k`, `k` must be positive and must not exceed the length of the corresponding record sequence for that half/statistic at the time of the query.  
+- All integer values fit in the program’s `int` range.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error checking. If any precondition is violated (empty deletion, out-of-range `k`, capacity overflow, malformed input), behavior is undefined.
+
+8. Test Case Lifecycle / Termination  
+- At the start of each test case, the structure is empty.  
+- After processing exactly `q` operations, the program outputs `end`, discards the current state, and begins reading the next test case’s `q`.  
+- When a test case count of `0` is read, the program terminates immediately.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong ordering rule for the “record min/max” query structures (especially for FH), and likely a wrong transition rule for how those auxiliary structures are updated.
+
+B. What the current specification may be missing or misstating  
+- The spec describes FH queries as “record minima/maxima when scanning FH from the top/newest end backward,” implying the record sequence is defined by the *current* FH contents in that scan order.  
+- In the source, FH’s auxiliary `min[FH]`/`max[FH]` are **not maintained as a monotone deque over the scan order**. Instead, they are maintained as a **simple history stack of prefix extrema in insertion order into FH** (append-only, pop-from-end), i.e., “min so far” and “max so far” as elements are pushed onto FH.  
+- Consequently, `gmin(FH,k)` / `gmax(FH,k)` for `k>1` are **not** “k-th record in a scan of current FH”; they are “k-th from the end of the stored prefix-extrema history,” which corresponds to earlier prefix extrema, not scan-records.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define what the FH query sequences are: they are derived from **prefix minima/maxima over the sequence of pushes into FH** (with pops removing the last element and possibly the last extrema), not from a conceptual scan of FH’s current elements.  
+- Clarify that FH’s auxiliary structures only update by comparing the newly pushed value to the **last stored extrema**, and on pop they only remove extrema if the popped value equals the last extrema. There is no “while-pop to maintain monotonicity” behavior for FH.  
+- More generally: distinguish the two halves’ auxiliary maintenance rules—SH uses a monotone-queue style structure (with while-loops removing dominated tail elements), but FH does not.
+
+D. Why this clarification is supported by the source program  
+- In `add(FH,a)`, the code does:
+  - `if (min_last > a) min_push(a);` and `if (max_last < a) max_push(a);`
+  - No loop to remove previous entries. This is exactly “prefix extrema history,” not a monotone deque of scan-records.
+- In `gmin(FH, th)` it returns `min[FH][ae[FH]-th]` (and similarly for max), i.e., indexing backward into that history stack. That matches “k-th most recent prefix-extremum,” not “k-th record in a scan.”
+- By contrast, in `add(SH,a)` the code uses `while (...) ae--` / `while (...) ze--` before pushing, which *is* monotone-queue maintenance; and `gmin(SH,th)` indexes from the front (`at+th-1`). This asymmetry shows the spec’s unified “record scan” description is too coarse and is incorrect for FH.
+
+```

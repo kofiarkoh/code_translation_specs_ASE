@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each input case, the program deterministically generates a length‑`n` sequence of decimal digits from the provided seed and parameters, then computes and outputs the number of contiguous subsequences (non-empty) whose interpreted base‑10 integer value is divisible by `q`, under the constraint that the subsequence does not have a leading zero.
+
+2. Inputs  
+For each case, four integers:  
+- `n`: number of digits to generate.  
+- `s`: initial generator state (seed).  
+- `w`: generator parameter.  
+- `q`: divisor used for the divisibility test.  
+Input consists of zero or more cases and terminates when a case with `n <= 0` is encountered (that terminating case is not processed).
+
+3. Outputs  
+For each processed case, one integer: the count of contiguous digit subsequences that:  
+- start at an index where the digit is non-zero (no leading zero), and  
+- represent a base‑10 number divisible by `q`.
+
+4. Preconditions  
+- `n` is within the supported bounds such that internal fixed-size storage is not exceeded (implied maximum: `n <= 100000`).  
+- `q` is a positive integer.  
+- The number of distinct tracked remainder states does not exceed the fixed internal capacity used for counting (otherwise behavior is not guaranteed).  
+- Input is well-formed as a sequence of integer quadruples.
+
+5. Postconditions  
+For each processed case:  
+- Exactly one line is produced containing the computed count.  
+- The count equals the number of index pairs `(i, j)` with `0 <= i <= j < n` such that:  
+  - the digit at position `i` is non-zero, and  
+  - the integer formed by digits `i..j` in base 10 is divisible by `q`.
+
+6. Invariants  
+- The generated digit sequence length is exactly `n`, and each digit is in `[0, 9]`.  
+- Only subsequences with a non-zero first digit contribute to the count.  
+- The reported count is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., `n` too large, `q` non-positive, or internal counting capacity exceeded), results are undefined.  
+- Processing stops when input cannot be read as a complete case or when `n <= 0` is encountered.
+
+8. State Transitions (if applicable)  
+- Across cases, no logical state is preserved that affects correctness of subsequent outputs; each case’s result depends only on its own inputs.  
+- Within a case, a deterministic internal generator state evolves from `s` to produce the digit sequence; this state is not exposed externally.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for efficient counting over up to ~100,000 digits per case using bounded memory.  
+- Uses fixed-size internal storage; scalability is limited by these fixed bounds.
+
+```

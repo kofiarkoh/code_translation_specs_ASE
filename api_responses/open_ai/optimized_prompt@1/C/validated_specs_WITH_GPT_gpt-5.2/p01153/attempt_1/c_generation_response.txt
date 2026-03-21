@@ -1,0 +1,63 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+static long long llabs_ll(long long x) { return x < 0 ? -x : x; }
+
+int main(void) {
+    int T;
+    if (scanf("%d", &T) != 1) return 0;
+
+    while (T--) {
+        int n;
+        if (scanf("%d", &n) != 1) return 0;
+
+        long long a[205];
+        for (int i = 1; i <= n; i++) {
+            long long v;
+            if (scanf("%lld", &v) != 1) return 0;
+            a[i] = v;
+            a[i + n] = v; /* duplicate to linearize the circle */
+        }
+
+        if (n <= 1) {
+            printf("0\n");
+            continue;
+        }
+
+        /* dp[i][len] = maximum score for combining the contiguous segment
+           starting at i (1-based in duplicated array) of length len into one segment.
+           len ranges 1..n, i ranges 1..2n.
+           Base: dp[i][1] = 0 (single position already a segment, no score).
+           Transition:
+             dp[i][len] = max over split k (1..len-1):
+               dp[i][k] + dp[i+k][len-k] + abs(a[i+k-1] - a[i+k])
+           where the join boundary is between positions (i+k-1) and (i+k). */
+        static long long dp[205][205];
+        for (int i = 1; i <= 2 * n; i++) {
+            for (int len = 1; len <= n; len++) dp[i][len] = 0;
+        }
+
+        for (int len = 2; len <= n; len++) {
+            for (int i = 1; i + len - 1 <= 2 * n; i++) {
+                long long best = 0;
+                for (int k = 1; k <= len - 1; k++) {
+                    long long join = llabs_ll(a[i + k - 1] - a[i + k]);
+                    long long cand = dp[i][k] + dp[i + k][len - k] + join;
+                    if (cand > best) best = cand;
+                }
+                dp[i][len] = best;
+            }
+        }
+
+        long long ans = 0;
+        for (int start = 1; start <= n; start++) {
+            if (dp[start][n] > ans) ans = dp[start][n];
+        }
+
+        printf("%lld\n", ans);
+    }
+
+    return 0;
+}
+```

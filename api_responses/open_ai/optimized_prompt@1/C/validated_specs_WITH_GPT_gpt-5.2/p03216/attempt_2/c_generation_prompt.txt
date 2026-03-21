@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each query window length \(k\), the program computes a 64-bit integer total obtained by sliding a contiguous window of length \(k\) across the string and, for each window position, counting the number of ordered triples of indices \((a,b,c)\) such that \(a<b<c\), the characters are respectively `D`, `M`, `C`, and all three indices lie within that window. The output for the query is the sum of these per-window triple counts over all window positions.
+
+Equivalently, within any fixed window, the triple count is computed in a left-to-right, order-sensitive way: count `D` occurrences seen so far; when an `M` is encountered, it contributes one `D`–`M` pair for each prior `D`; when a `C` is encountered, it contributes one triple for each previously formed `D`–`M` pair in that same window. Characters other than `D`, `M`, `C` do not contribute.
+
+2. Inputs  
+- An integer \(n\): the intended length of the string.  
+- A string \(s\) (read as a whitespace-delimited token).  
+- An integer \(q\): the number of queries.  
+- \(q\) integers \(k_0,\dots,k_{q-1}\): the window lengths, processed in the given order.
+
+3. Outputs  
+For each query \(k\), print one line containing the computed total (as a signed 64-bit integer) for that window length.
+
+4. Preconditions / Assumptions  
+- The program assumes the input string token has length at least \(n\); it uses only indices \(0\) through \(n-1\). If the token is shorter than \(n\), behavior is undefined due to out-of-bounds access.  
+- The program assumes \(1 \le k \le n\) for each query. If \(k>n\) or \(k\le 0\), behavior is undefined.  
+- The program stores the string in a fixed-size buffer (about \(10^6\) characters) and query lengths in a fixed-size array (capacity 102). Inputs exceeding these capacities cause undefined behavior.  
+- No validation is performed for malformed input.
+
+5. Postconditions / Formal Output Meaning  
+For each query window length \(k\), the program outputs:
+\[
+\sum_{t=0}^{n-k} \#\{(a,b,c)\mid t \le a<b<c \le t+k-1,\ s[a]='D',\ s[b]='M',\ s[c]='C'\}.
+\]
+(Indices are conceptual; the program does not print indices.)
+
+6. Clarified Counting / Order Sensitivity  
+- Triples are counted only when the positions are strictly increasing within the same window; the relative order of characters in the window matters.  
+- The per-window count corresponds to the number of `D`–`M` pairs with the `D` occurring before the `M`, and then counting `C` positions after those pairs. It is not a symmetric combination based only on totals of `D`, `M`, and `C`.  
+- When summing over windows, the same triple of absolute positions may be counted multiple times if it lies in multiple windows; it is counted once per window that contains it.
+
+7. State / Independence Across Queries  
+Each query is computed independently from the same input string; no results are reused across queries other than reading the shared inputs. The program terminates after printing one line per query.
+
+```

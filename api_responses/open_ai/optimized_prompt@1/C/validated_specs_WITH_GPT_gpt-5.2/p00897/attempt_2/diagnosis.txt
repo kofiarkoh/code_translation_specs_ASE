@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+- Wrong input parsing / wrong dataset format assumption (tokenization and line structure), leading to incorrect termination or no output.
+
+B. What the current specification may be missing or misstating  
+- The spec implies city names are read as “two city names” and “two city names per road” in a whitespace-separated way, but it does not clearly constrain whether those names appear on the same line or may be split across lines (one token per line).  
+- The spec also doesn’t make explicit that the program’s input reader treats *any whitespace* (spaces/newlines) as separators and reads city names as single tokens (no spaces inside), so line breaks are irrelevant.  
+- Because of this vagueness, the generated program used `scanf` patterns that accidentally require multiple items on the same line in at least one place (and even has a concrete bug: it tries to read 3 integers with a format that only has 2 conversions), which can cause it to stop early and print nothing.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the lexical/input model: all city names are single whitespace-delimited tokens; they may appear on separate lines or the same line; parsing must be robust to arbitrary whitespace between tokens.  
+- Clarify that each dataset is a strict sequence of tokens: `N`, `M`, `basecap`, then origin token, destination token, then for each road: endpoint token, endpoint token, distance integer, then `M` refuel-city tokens, and then the next dataset begins immediately (terminated by `N=0`).  
+- In other words, the spec should describe the input as a token stream rather than a line-oriented format.
+
+D. Why this clarification is supported by the source program  
+- The source uses custom readers `in()` and `ins()` built on `getchar_unlocked()` that skip/consume whitespace and read tokens until the next whitespace (`> ' '`), meaning newlines and spaces are treated identically as separators.  
+- The source reads origin and destination via two separate `ins()` calls (not a single “read two strings on one line”), and similarly reads each road endpoint via separate `ins()` calls—so the intended format is whitespace-delimited tokens, not line-structured records.  
+- The dataset loop is controlled solely by `while (N = in())`, confirming that datasets are concatenated in a token stream and end when the next road-count token is `0`.

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes a specified number of test cases. For each test case, it reads an integer seed value and produces a fixed-length sequence of 10 derived integers by repeatedly applying a deterministic transformation to the current value. Each test case’s output is labeled with its case number and followed by the 10 generated values, one per line.
+
+2. Inputs  
+- An integer specifying the number of test cases to process.  
+- For each test case, one integer seed value.
+
+3. Outputs  
+For each test case:  
+- A case header containing the 1-based case index.  
+- Exactly 10 integers, each on its own line, representing successive transformed values starting from the provided seed.
+
+4. Preconditions  
+- The initial test-case count is a non-negative integer.  
+- Each test case provides an integer seed value.  
+- Arithmetic operations during transformation (including squaring) must not overflow the integer range of the execution environment; otherwise behavior is not defined by this specification.
+
+5. Postconditions  
+- If the test-case count is N, exactly N case headers are produced.  
+- For each case, exactly 10 transformed values are produced.  
+- Each printed transformed value is an integer in the range 0 to 9999 inclusive.
+
+6. Invariants  
+- Case numbering starts at 1 and increases by 1 per processed test case.  
+- For every processed test case, the number of generated values is always exactly 10.  
+- Within a test case, each next value depends only on the immediately preceding value via the same transformation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as required, the observable behavior is unspecified.  
+- If integer overflow occurs during computation, the observable behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Global processing state transitions from case i to case i+1 after producing the 10 values for case i, until all requested cases are processed.  
+- Within each case, the current value is updated 10 times, producing one output per update.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of test cases, with a fixed amount of work per case (10 iterations).  
+- Memory usage is constant with respect to input size.
+
+```

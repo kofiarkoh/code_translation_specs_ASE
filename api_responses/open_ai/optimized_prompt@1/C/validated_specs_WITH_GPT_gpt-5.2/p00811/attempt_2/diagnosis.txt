@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong abstraction / missing constraint (ordering and search domain restriction), plus a wrong tie/selection rule implied by the source.
+
+B. What the current specification may be missing or misstating  
+- It treats the problem as “maximize \(p\cdot q\) over all primes \(p,q<100000\) satisfying constraints,” allowing any ordering and any pair.  
+- The source does **not** search all pairs: it iterates \(p = \text{pr}[i]\) and only considers \(q\) with index \(\ge i\) (i.e., \(q \ge p\)). This enforces an **ordering constraint** on the pair.  
+- The source’s ratio constraint is applied in the specific direction \(a\cdot q \le p\cdot b\) with \(q\) being the (index-)later prime; swapping \(p,q\) is not treated as equivalent. The current spec implicitly assumes symmetry (“a pair of primes”) and thus the generated code accepts solutions where \(q<p\), which the source would never output.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the program searches only pairs with **\(p \le q\)** (or equivalently, only considers \(q\) from the same-or-later position in the prime list than \(p\)).  
+- Clarify that the constraints and maximization are applied over this **restricted, ordered** set of candidate pairs, not over all unordered prime pairs.  
+- Clarify that the output is an ordered pair \((p,q)\) with \(p\) being the “outer-loop” prime and \(q\) chosen as the largest feasible prime for that \(p\) (via binary search), rather than any maximizing pair from a full Cartesian product.
+
+D. Why this clarification is supported by the source program  
+- The source sets `l=i` before binary searching `j` and later checks `if (l>i ... ) q=pr[l-1];`, which guarantees `l-1 >= i` and therefore `q = pr[l-1] >= pr[i] = p`. So pairs with \(q<p\) are impossible in the source behavior.  
+- The source’s selection compares `pr[i]*pr[l-1] > p*q` and updates `(p,q)` only with such ordered candidates; it never evaluates candidates with `j < i`.  
+- The failing outputs show the generated program choosing very large primes paired with very small primes (e.g., `4999 2`), which is exactly the kind of \(q<p\) solution the source’s `j>=i` restriction would exclude.

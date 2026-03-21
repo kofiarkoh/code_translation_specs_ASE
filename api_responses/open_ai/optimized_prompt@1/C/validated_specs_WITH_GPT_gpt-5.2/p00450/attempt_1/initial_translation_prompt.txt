@@ -1,0 +1,53 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+
+int go[100000];
+
+int main(void)
+{
+	int n;
+	
+	while (scanf("%d", &n), n != 0){
+		int i, j;
+		int cnt;
+		
+		for (i = 0; i < n; i++) scanf("%d", go + i);
+		for (i = 1; i < n; i += 2){
+			if (go[i - 1] != go[i]){
+				for (j = i - 1; j >= 0 && go[j] != go[i]; j--){
+					go[j] = go[i];
+				}
+			}
+		}
+		for (i = cnt = 0; i < n; i++) cnt += !go[i];
+		printf("%d\n", cnt);
+	}
+	
+	return 0;
+}
+```

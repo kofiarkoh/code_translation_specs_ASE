@@ -1,0 +1,219 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <limits.h>
+
+static int64_t max_i64(int64_t a, int64_t b) { return (a > b) ? a : b; }
+
+int main(void) {
+    int N;
+    long long K_in;
+    if (scanf("%d %lld", &N, &K_in) != 2) return 0;
+
+    int *next = (int *)malloc((size_t)N * sizeof(int));
+    int64_t *score = (int64_t *)malloc((size_t)N * sizeof(int64_t));
+    if (!next || !score) return 0;
+
+    for (int i = 0; i < N; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) return 0;
+        /* Specification does not define indexing convention; choose narrowest:
+           assume input is 1-based if it looks like it, else treat as 0-based. */
+        next[i] = x;
+    }
+    /* Heuristic normalization: if all transitions are in [1..N], convert to 0-based. */
+    int all_1_based = 1;
+    for (int i = 0; i < N; i++) {
+        if (next[i] < 1 || next[i] > N) { all_1_based = 0; break; }
+    }
+    if (all_1_based) {
+        for (int i = 0; i < N; i++) next[i] -= 1;
+    }
+
+    for (int i = 0; i < N; i++) {
+        long long s;
+        if (scanf("%lld", &s) != 1) return 0;
+        score[i] = (int64_t)s;
+    }
+
+    int64_t K = (int64_t)K_in; /* move limit is positive per preconditions */
+
+    int *vis = (int *)calloc((size_t)N, sizeof(int));
+    int *pos = (int *)malloc((size_t)N * sizeof(int));
+    int *order = (int *)malloc((size_t)N * sizeof(int));
+    if (!vis || !pos || !order) return 0;
+
+    int64_t ans = INT64_MIN;
+
+    /* Process each node's functional graph component once. */
+    for (int start = 0; start < N; start++) {
+        if (vis[start]) continue;
+
+        int v = start;
+        int t = 0;
+        while (!vis[v]) {
+            vis[v] = 1;
+            pos[v] = t;
+            order[t++] = v;
+            v = next[v];
+        }
+
+        /* If we closed a cycle within this traversal, identify it. */
+        int cycle_start_idx = -1;
+        if (pos[v] < t && order[pos[v]] == v) {
+            cycle_start_idx = pos[v];
+        }
+
+        /* For nodes in this traversal, compute best achievable prefix sum within K moves. */
+        /* We do it by simulating up to (tail_len + cycle_len) steps per node, plus
+           handling large K via cycle sum arithmetic (no iteration up to K). */
+        int tail_len = (cycle_start_idx < 0) ? t : cycle_start_idx;
+        int cycle_len = (cycle_start_idx < 0) ? 0 : (t - cycle_start_idx);
+
+        /* Precompute cycle nodes and their scores in order. */
+        int *cycle_nodes = NULL;
+        int64_t *cycle_scores = NULL;
+        int64_t cycle_sum = 0;
+        if (cycle_len > 0) {
+            cycle_nodes = (int *)malloc((size_t)cycle_len * sizeof(int));
+            cycle_scores = (int64_t *)malloc((size_t)cycle_len * sizeof(int64_t));
+            if (!cycle_nodes || !cycle_scores) return 0;
+            for (int i = 0; i < cycle_len; i++) {
+                int node = order[cycle_start_idx + i];
+                cycle_nodes[i] = node;
+                cycle_scores[i] = score[node];
+                cycle_sum += cycle_scores[i];
+            }
+        }
+
+        /* For each node in this component traversal order, evaluate best score. */
+        for (int idx = 0; idx < t; idx++) {
+            int s = order[idx];
+
+            /* Build the path from s: first go along order until entering cycle, then cycle repeats. */
+            int64_t best = INT64_MIN;
+            int64_t cur = 0;
+
+            /* Determine how many steps until first time we are in the cycle (or end if no cycle). */
+            int steps_to_cycle = 0;
+            if (cycle_len == 0) {
+                /* No cycle detected in this traversal (shouldn't happen in a functional graph
+                   unless we hit previously visited outside this traversal); handle narrowly:
+                   just simulate up to K or until we revisit within this traversal length. */
+                int v2 = s;
+                for (int64_t step = 1; step <= K; step++) {
+                    v2 = next[v2];
+                    cur += score[v2];
+                    best = max_i64(best, cur);
+                    /* Stop if we loop within already known nodes to avoid unbounded simulation. */
+                    if (step >= (int64_t)N) break;
+                }
+                ans = max_i64(ans, best);
+                continue;
+            } else {
+                if (idx < cycle_start_idx) {
+                    steps_to_cycle = cycle_start_idx - idx;
+                } else {
+                    steps_to_cycle = 0; /* already in cycle */
+                }
+            }
+
+            /* Simulate the tail part up to min(K, steps_to_cycle) moves. */
+            int v2 = s;
+            int64_t steps_done = 0;
+            int64_t tail_steps = (K < (int64_t)steps_to_cycle) ? K : (int64_t)steps_to_cycle;
+            for (int64_t step = 0; step < tail_steps; step++) {
+                v2 = next[v2];
+                cur += score[v2];
+                steps_done++;
+                best = max_i64(best, cur);
+            }
+
+            if (steps_done == K) {
+                ans = max_i64(ans, best);
+                continue;
+            }
+
+            /* Now v2 is at the node reached after steps_done moves; it should be in the cycle. */
+            /* Find its index in the cycle. */
+            int cycle_entry = v2;
+            int entry_idx = -1;
+            for (int i = 0; i < cycle_len; i++) {
+                if (cycle_nodes[i] == cycle_entry) { entry_idx = i; break; }
+            }
+            if (entry_idx < 0) {
+                /* Narrow fallback: if not found, just stop. */
+                ans = max_i64(ans, best);
+                continue;
+            }
+
+            int64_t rem = K - steps_done;
+
+            /* Consider taking some steps within the cycle, possibly many loops.
+               We need maximum prefix sum over up to rem steps starting at entry_idx. */
+            if (rem > 0) {
+                /* Precompute prefix sums over one cycle starting at entry_idx. */
+                int64_t *pref = (int64_t *)malloc((size_t)(cycle_len + 1) * sizeof(int64_t));
+                if (!pref) return 0;
+                pref[0] = 0;
+                for (int i = 0; i < cycle_len; i++) {
+                    int j = (entry_idx + i) % cycle_len;
+                    pref[i + 1] = pref[i] + cycle_scores[j];
+                }
+
+                /* Evaluate best for:
+                   - within first partial cycle (1..min(rem, cycle_len))
+                   - if cycle_sum > 0, possibly after full loops plus a partial cycle */
+                int64_t upto = (rem < (int64_t)cycle_len) ? rem : (int64_t)cycle_len;
+                for (int64_t x = 1; x <= upto; x++) {
+                    best = max_i64(best, cur + pref[x]);
+                }
+
+                if (cycle_sum > 0 && rem > (int64_t)cycle_len) {
+                    int64_t full = rem / (int64_t)cycle_len;
+                    int64_t r = rem % (int64_t)cycle_len;
+
+                    /* Best can occur after (full-1) or full loops plus some prefix,
+                       because we must take at least 1 move overall (already ensured). */
+                    int64_t base_loops = full - 1;
+                    if (base_loops < 0) base_loops = 0;
+
+                    /* Try two candidates: using base_loops and base_loops+1 loops (bounded). */
+                    for (int add = 0; add <= 1; add++) {
+                        int64_t loops = base_loops + add;
+                        if (loops > full) continue;
+                        int64_t used = loops * (int64_t)cycle_len;
+                        if (used >= rem) continue;
+                        int64_t remain2 = rem - used;
+                        int64_t upto2 = (remain2 < (int64_t)cycle_len) ? remain2 : (int64_t)cycle_len;
+                        int64_t cur2 = cur + loops * cycle_sum;
+                        for (int64_t x = 1; x <= upto2; x++) {
+                            best = max_i64(best, cur2 + pref[x]);
+                        }
+                    }
+
+                    /* Also consider exactly full loops (no extra partial) if rem is multiple of cycle_len. */
+                    if (r == 0) {
+                        best = max_i64(best, cur + full * cycle_sum);
+                    }
+                }
+
+                free(pref);
+            }
+
+            ans = max_i64(ans, best);
+        }
+
+        free(cycle_nodes);
+        free(cycle_scores);
+    }
+
+    printf("%lld\n", (long long)ans);
+
+    free(next);
+    free(score);
+    free(vis);
+    free(pos);
+    free(order);
+    return 0;
+}

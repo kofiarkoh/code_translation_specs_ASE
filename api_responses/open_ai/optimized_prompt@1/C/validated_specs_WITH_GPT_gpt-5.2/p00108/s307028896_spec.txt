@@ -1,0 +1,43 @@
+1. Functional Description  
+For each dataset, repeatedly transforms an integer sequence into a new sequence where each position becomes the frequency (within the current sequence) of the value currently at that position. Iteration continues until the sequence becomes a fixed point (the transformation produces no change). The program then reports the number of transformations required to reach the fixed point and outputs the fixed-point sequence.
+
+2. Inputs  
+- Zero or more datasets read from standard input.  
+- Each dataset consists of:  
+  - An integer length value.  
+  - If the length is nonzero, exactly that many integers forming the initial sequence.  
+- A length value of zero terminates processing (is not treated as a dataset).
+
+3. Outputs  
+For each processed dataset, written to standard output:  
+- One line containing the number of transformations performed to reach a fixed point.  
+- One line containing the fixed-point sequence values in order, separated by single spaces.
+
+4. Preconditions  
+- For each dataset, the length is within the supported maximum (assumed: 1 to 13 inclusive).  
+- Each sequence element is within the supported value range (assumed: 0 to 100 inclusive).  
+- The iterative process reaches a fixed point in finite time for the given input (termination is assumed; otherwise the program may not finish).
+
+5. Postconditions  
+For each dataset:  
+- The reported sequence is a fixed point of the transformation: applying the frequency-at-position transformation to it yields the same sequence.  
+- The reported transformation count equals the number of transformation applications needed to reach that fixed point starting from the provided initial sequence.
+
+6. Invariants  
+During processing of a dataset:  
+- The sequence length remains constant.  
+- All sequence values remain within the range representable by counts of occurrences in a sequence of that length (i.e., between 0 and the length).  
+- Each transformation step computes values that are consistent with frequencies in the immediately preceding sequence.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, incomplete, or violates the stated preconditions (e.g., length too large, values out of range), behavior is undefined (may produce incorrect output, access invalid memory, or fail to terminate).  
+- If the transformation does not converge to a fixed point, the program may loop indefinitely.
+
+8. State Transitions (if applicable)  
+For each dataset, the program maintains a current sequence state. Each transformation step transitions the state to the next sequence defined by per-position frequency of the prior state’s values. Processing ends when a transition would leave the state unchanged (fixed point reached).
+
+9. Non-functional Constraints (if inferable)  
+- Supports sequences only up to a small fixed maximum length and values within a small fixed range.  
+- Uses bounded memory independent of the number of datasets.  
+- Per transformation step, work is proportional to the sequence length plus the fixed value-range size.

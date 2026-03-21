@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+- Wrong input interpretation / wrong abstraction of participant designators (mapping), leading to a broken transition constraint.
+
+B. What the current specification may be missing or misstating  
+- The spec says the required participant is “one of three possible participants” but does not pin down the *actual* designators used in input. The source program specifically expects characters `'J'`, `'O'`, `'I'` and maps them to three fixed participants.  
+- The spec’s phrase “designated initial participant (the one corresponding to the first of the three designators)” is ambiguous and, as implemented by the generated code, was interpreted as `'A'` being the first designator. In the source, the initial participant is concretely **J** (bit 1), not an abstract “first”.
+
+C. What general behavior should be clarified in the specification  
+- Explicitly define the input alphabet and its mapping to the three participants (e.g., required participant per day is given by characters `J`, `O`, `I`).  
+- Explicitly state which participant is the initially designated one for day 0 (i.e., the day-0 subset must include **J** in addition to the day-0 required participant).  
+- More generally: the spec should not leave the participant naming/mapping abstract if the program behavior depends on concrete characters.
+
+D. Why this clarification is supported by the source program  
+- The source `switch (in[i])` only handles `'J'`, `'O'`, `'I'`, assigning masks `1`, `2`, `4` respectively. Any other character would leave `key` uninitialized (undefined behavior), showing the program is tightly coupled to these exact designators.  
+- The initialization `key_prev = 1; // 最初に鍵を持っているのはJ` and `schedule[1] = 1;` hard-code that the initial participant is the one represented by bit `1`, i.e., **J**.  
+- The failing test uses `JOIJO`; the generated program’s `req_mask` recognizes only `A/B/C`, so it treats all required masks as 0, causing the DP to produce 0—consistent with a spec that failed to constrain the actual input characters/mapping.

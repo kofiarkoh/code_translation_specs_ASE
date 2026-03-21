@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each test case, determines how many cards must remain after performing an optimal sequence of removals. A removal consists of deleting two equal-valued cards that are neighbors under a fixed 5×4 row-major indexing rule. The program searches all removal sequences reachable under its move-generation rules and reports the smallest remaining card count (equivalently, the largest number of removals).
+
+2. Inputs  
+- An integer `n`: the number of test cases.  
+- For each test case, exactly 20 card values, each given as a single digit character (`'0'`–`'9'`), read in row-major order of an implicit 5×4 layout.
+
+3. Outputs  
+- For each test case, one integer on its own line: the minimum number of cards that can remain after performing zero or more valid pair removals.
+
+4. Preconditions / Assumptions  
+- Each test case provides exactly 20 digit characters; they are interpreted as numeric values by subtracting `'0'`.  
+- No validation is performed; behavior is unspecified if the input format deviates.
+
+5. Core Rules and State Model  
+- At any point, the state is an ordered sequence of the remaining cards. The program represents this as the first `L` elements of an array, where `L = 20 − 2×depth` and `depth` is the number of removals already performed.  
+- A move removes exactly two cards and increases `depth` by 1, thus decreasing `L` by 2.  
+- After a removal, the remaining cards keep their relative order and are compacted into the front of the array (no reordering other than deletion/compaction).
+
+6. Valid Removals (Adjacency Definition Used by the Program)  
+A pair of cards at indices `i` and `j` (with `0 ≤ i < j < L`) is removable only if:  
+- The two card values are equal, and  
+- `j` is one of the following *forward* neighbor positions of `i` in the implicit 4-column indexing, subject to bounds and column constraints:  
+  - Right neighbor: `j = i + 1` and `i % 4 < 3`  
+  - Down neighbor: `j = i + 4` and `i < 16`  
+  - Down-right neighbor: `j = i + 5` and `i < 16` and `i % 4 < 3`  
+  - Down-left neighbor: `j = i + 3` and `i < 16` and `i % 4 > 0`  
+Additionally, the neighbor index must satisfy `j < L` (i.e., both cards must lie within the current remaining prefix).  
+No other pairs are considered removable.
+
+7. Search and Optimality Criterion  
+- From a given state, the program enumerates all valid removals according to the rules above, recursively explores the resulting states, and tracks the maximum `depth` reached in any explored path.  
+- The reported result for a test case is `20 − 2×M`, where `M` is the maximum number of removals achievable under these rules. This equals the minimum remaining card count reachable.
+
+8. Termination Behavior  
+- The search terminates when no valid removal exists from a state; such a state may occur before all cards are removed.  
+- The program does not require reaching a state with no moves to update the optimum; it records the best (maximum) removal count observed anywhere in the search.
+
+9. Error Handling / Resource Limits  
+- There is no explicit error handling for malformed input.  
+- The algorithm is an exhaustive recursive search; excessive runtime or stack/resource exhaustion is not handled.
+
+```

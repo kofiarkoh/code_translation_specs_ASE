@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum total taxi fare required to travel from the start town to the destination town in an undirected road network. Travel is modeled as repeatedly (optionally) paying for a taxi in the current town to obtain a fixed “remaining free-move allowance,” and then traversing road segments without additional fare while that allowance remains positive. The program outputs the minimum total fare upon first reaching the destination under these rules.
+
+2. Inputs  
+- Two integers `N` and `K`: the number of towns and the number of undirected roads.  
+- For each town `i` from 1 to `N`: two integers giving the taxi fare and the maximum number of road segments allowed after paying that fare in that town.  
+- For each road: two integers `A` and `B` denoting an undirected connection between towns **using 1-based town numbering** (valid endpoints are in `1..N`). Internally, the program converts these to 0-based indices by subtracting 1.
+
+3. Outputs  
+- If the destination town is reachable from the start under the taxi rules, prints a single integer followed by a newline: the minimum total fare to reach the destination.  
+- If the destination is unreachable, the program terminates normally without printing any route-cost output.
+
+4. Preconditions / Assumptions  
+- `N` is at most 5000.  
+- Road endpoints are provided in 1-based form (`1..N`); if not, behavior is not as specified.  
+- Taxi limits are assumed to be within `0..5000` so that all internal states `(town, remaining)` are within bounds.  
+- The minimum total fare fits in a signed `int`.  
+- Sufficient memory is available for adjacency storage; behavior is undefined if allocation fails.
+
+5. Postconditions / Semantics of a Travel Plan  
+A travel plan starts at internal town `0` (input town `1`) with remaining allowance `0` and total fare `0`, and aims to reach internal town `N−1` (input town `N`). From any state `(t, r)` with accumulated fare `C`, the following actions are allowed:
+
+- **Free road traversal (only if `r > 0`)**: move along any road from `t` to an adjacent town `t'`, producing state `(t', r−1)` with the same fare `C`.  
+- **Purchase taxi in the current town**: pay the current town’s taxi fare `F(t)` and set the remaining allowance to that town’s taxi limit `L(t)`, producing state `(t, L(t))` with fare `C + F(t)`. This action is allowed regardless of the current `r` (including when `r > 0`), and may be taken multiple times.
+
+If a cost is printed, it equals the minimum possible sum of paid taxi fares over all valid travel plans that reach the destination.
+
+6. State Space and Counting Logic  
+- Each explored state is identified by `(current town, remaining free-move allowance)`, where remaining allowance ranges from 0 to 5000 inclusive.  
+- The algorithm maintains the best-known (minimum) total fare for each state and never replaces it with a larger value.  
+- The destination condition is “current town is `N−1`” regardless of remaining allowance; the printed value is the minimum fare among all reachable states with that town. The program prints and stops as soon as it extracts such a destination state at minimum cost.
+
+7. Error Handling / Exceptional Behavior  
+- If the program cannot read the required input values, it terminates with a nonzero exit status and produces no cost output.  
+- If the destination is unreachable, it exits normally without printing a cost.  
+- If inputs violate the stated assumptions (e.g., out-of-range town indices or taxi limits) or if memory allocation fails, behavior is undefined (may crash or produce incorrect results).
+
+8. Termination Behavior  
+- The program terminates after printing the minimum fare upon reaching the destination, or after exhausting all reachable states (in which case it prints nothing).
+
+```

@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (the spec models the constraint as simple “no adjacent occupied seats on a cycle,” but the source counts a different constraint for even \(N\)).
+
+B. What the current specification may be missing or misstating  
+- The specification assumes the only restriction is cyclic non-adjacency among the eight occupied seats.  
+- The source program’s even-\(N\) branch (`calc_even`) does not implement the same “cycle adjacency” model as the odd-\(N\) branch. It pairs seats \(i\) and \(i+N/2\) and enforces constraints across these opposite pairs, using a 3-valued state (`sitdown` in {0,1,2}) rather than a simple previous-bit adjacency state.  
+- As a result, for even \(N\) the source is counting a smaller set of configurations than “no adjacent on the circle,” which is why the generated program overcounts at \(N=20\).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the *actual seating constraint* being counted by the source, especially for even \(N\): whether the forbidden condition is truly “adjacent on the circle,” or instead involves additional/alternative restrictions tied to the antipodal pairing of seats (positions separated by \(N/2\)).  
+- Clarify whether the problem’s geometry is a single cycle of \(N\) seats, or something like two coupled halves / a structure where opposite positions interact (which the even-\(N\) DP strongly suggests).  
+- Clarify that the parity split is not merely an implementation detail: for even \(N\) the transition rules indicate a different combinatorial object than the spec’s cycle-independent-set model.
+
+D. Why this clarification is supported by the source program  
+- In `calc_even_1`, the recursion advances `pos` only up to `N/2-1` and simultaneously assigns `result[pos]` and `result[pos+N/2]`, meaning the state space is built from *pairs of opposite seats*, not a linear/cyclic adjacency scan of all \(N\) positions.  
+- The `sitdown` state takes values 0/1/2 and controls which paired patterns are allowed next; this is incompatible with a pure “previous seat occupied?” adjacency constraint (which would be boolean).  
+- The base case at `pos==N/2-1` returns 2 in one case and 1 in others, reflecting symmetry/duplication handling specific to the paired construction, again not something that arises from the spec’s straightforward cycle DP.  
+- The odd-\(N\) branch (`calc_odd_1`) *does* look like a standard adjacency-avoidance scan with a boolean `sitdown`, reinforcing that the even-\(N\) logic is fundamentally different and must be captured explicitly in the specification rather than waved away as an “implementation detail.”

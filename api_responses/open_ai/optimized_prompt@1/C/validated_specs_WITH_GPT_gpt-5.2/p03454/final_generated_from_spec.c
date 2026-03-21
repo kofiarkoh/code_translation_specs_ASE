@@ -1,0 +1,95 @@
+#include <stdio.h>
+
+#define N 8
+#define MD 1000000007LL
+
+static long long mod_pow(long long a, long long e) {
+    long long r = 1 % MD;
+    a %= MD;
+    while (e > 0) {
+        if (e & 1LL) r = (r * a) % MD;
+        a = (a * a) % MD;
+        e >>= 1LL;
+    }
+    return r;
+}
+
+int main(void) {
+    long long s;
+    if (scanf("%lld", &s) != 1) return 0;
+
+    long long cnt[N + 1];
+    cnt[1] = 9;
+    for (int d = 2; d <= N; d++) cnt[d] = 10LL * cnt[d - 1];
+
+    long long ans = (s - 1) / 8; /* truncates toward zero; intended s>0 */
+
+    /* 5.3 Contributions for digit lengths up to 8 */
+    for (int l1 = 1; l1 <= N; l1++) {
+        /* A) Single-length divisibility contribution */
+        if (l1 != 0 && s % l1 == 0) {
+            long long q = s / l1;
+            if (q <= cnt[l1]) {
+                long long add = cnt[l1] - q + 1;
+                ans = (ans + add) % MD;
+            }
+        }
+
+        /* B) Two-length mixed contribution with progressive reduction */
+        long long s_ = s;
+        for (int l2 = l1 + 1; l2 <= N; l2++) {
+            /* lower = ceil(max(s_ - cnt[l2]*l2, 1) / l1) */
+            long long t = s_ - cnt[l2] * (long long)l2;
+            if (t < 1) t = 1;
+            long long lower = (t + l1 - 1) / l1;
+
+            /* upper = min(floor((s_ - l2)/l1), cnt[l1]) */
+            long long upper = (s_ - l2) / l1;
+            if (upper > cnt[l1]) upper = cnt[l1];
+
+            if (lower <= upper) {
+                for (int r1 = 1; r1 <= l2; r1++) {
+                    long long expr = s_ - (long long)r1 * (long long)l1;
+                    if (expr % l2 == 0) {
+                        /* count x in [lower, upper] with x ≡ r1 (mod l2) */
+                        long long count =
+                            (upper + l2 - r1) / l2 -
+                            ((lower - 1) + l2 - r1) / l2;
+                        ans = (ans + count) % MD;
+                    }
+                }
+            }
+
+            /* Early termination / state update for s_ */
+            if ((s_ / l2) < cnt[l2]) {
+                break;
+            } else {
+                s_ = s_ - cnt[l2] * (long long)l2;
+            }
+        }
+    }
+
+    /* 5.4 Additional contributions for digit lengths greater than 8 via divisors */
+    for (long long a = 1; a <= s / a; a++) {
+        if (a == 0) continue;
+        if (s % a != 0) continue;
+        long long b = s / a;
+
+        if (a > N) {
+            long long term = (9LL * mod_pow(10LL, a - 1)) % MD;
+            term = (term - (b % MD)) % MD;
+            ans = (ans + term) % MD;
+        }
+        if (a != b && b > N) {
+            long long term = (9LL * mod_pow(10LL, b - 1)) % MD;
+            term = (term - (a % MD)) % MD;
+            ans = (ans + term) % MD;
+        }
+    }
+
+    /* 5.5 Final normalization: only one +MD if negative */
+    if (ans < 0) ans += MD;
+
+    printf("%lld\n", ans);
+    return 0;
+}

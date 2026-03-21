@@ -1,0 +1,134 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2028: Gather on the Clock
+// 2017.11.03 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+int a[102];
+int dp[102][102];
+
+int main()
+{
+	int t, n, i, j, k, v, ans;
+	
+	scanf("%d", &t); while (t--) {
+		scanf("%d", &n);
+		for (i = 0; i < n; i++) scanf("%d", a+i);
+		memset(dp, 0, sizeof(dp));
+
+		for (k = 1; k < n; k++) for (i = 0; i < n; i++) for (j = 0; j < k; j++) {
+			int x = i+j+1;
+			if (x >= n) x -= n;
+			v = a[x] - a[i]; if (v < 0) v = -v;
+			v += dp[x][k-j-1] + dp[i][j];
+			if (v > dp[i][k]) dp[i][k] = v;
+		}
+
+		for (ans = 0, i = 0; i < n; i++) if (dp[i][n-1] > ans) ans = dp[i][n-1];
+		printf("%d\n",ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each test case, computes the maximum achievable total “gathering score” over all ways of successively combining all positions arranged in a circle, where each combination step contributes the absolute difference between the values at the two endpoints of the combined segments. The final result is the maximum total score obtainable when all positions have been combined into one segment.
+
+2. Inputs  
+- An integer number of test cases.  
+- For each test case:  
+  - An integer count of positions on a circle.  
+  - A sequence of integer values, one per position, in circular order.
+
+3. Outputs  
+- For each test case, one integer: the maximum total gathering score as defined above.
+
+4. Preconditions  
+- The number of positions is at least 1.  
+- The number of positions does not exceed 102.  
+- All required integers are present in the input.  
+- Integer arithmetic used for scoring does not overflow the implementation’s integer range (assumption, since no checks are performed).
+
+5. Postconditions  
+For each test case, the program outputs a value equal to:  
+- The maximum, over all choices of a starting position and all binary parenthesizations of combining the circularly contiguous positions into a single segment, of the sum of step scores, where:  
+  - Each step combines two already-formed contiguous segments that together form a larger contiguous segment on the circle.  
+  - The step score is the absolute difference between the values at the two boundary positions where the two segments meet (i.e., the two endpoints being “joined” at that step).  
+- If the number of positions is 1, the output is 0.
+
+6. Invariants  
+- For any test case, the computed maximum score for combining any contiguous circular segment of a given length is non-negative.  
+- Extending the considered segment length never decreases the stored maximum score for that same start position and length (it remains the maximum over all valid combination choices for that segment).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/malformed or constraints are violated (e.g., too many positions, arithmetic overflow), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is carried across test cases beyond producing outputs; each test case is processed independently.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows on the order of the cube of the number of positions per test case.  
+- Memory usage grows on the order of the square of the number of positions per test case.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition rule / wrong definition of “join score” (wrong abstraction of what endpoints are used when combining segments on a circle).
+
+B. What the current specification may be missing or misstating  
+The specification describes each combine-step score as “the absolute difference between the values at the two boundary positions where the two segments meet.” That matches the generated code’s interpretation (difference across the split boundary inside the segment).  
+But the source program’s DP transition does **not** use the two positions adjacent at the split boundary. Instead, for a segment starting at `i` of length `k+1`, when splitting into lengths `j+1` and `k-j`, it adds `abs(a[x] - a[i])` where `x` is the **start index of the right subsegment** (i.e., `i + j + 1` modulo `n`) and `i` is the **start index of the whole segment**. So the “join” is between the segment’s start and the right part’s start, not between the two touching boundary elements.
+
+C. What general behavior should be clarified in the specification  
+Clarify precisely which two positions’ values are used to compute the score added when two contiguous subsegments are combined in the DP/parenthesization. In particular, the combine-step score should be defined in terms of the segment decomposition used by the algorithm (which element represents each subsegment when combining), rather than assuming it is always the two adjacent boundary elements at the cut.
+
+D. Why this clarification is supported by the source program  
+In the source transition:
+
+- `x = i + j + 1 (mod n)` selects the first index of the right subsegment.
+- The added score is `abs(a[x] - a[i])`, involving `a[i]` (the start of the whole segment) and `a[x]` (the start of the right subsegment).
+- The subproblem scores combined are `dp[i][j]` and `dp[x][k-j-1]`, confirming that `i` and `x` are the representative indices of the two parts being merged.
+
+This is structurally different from the generated code’s rule `abs(a[i+k-1] - a[i+k])`, which uses the two adjacent elements at the split boundary. The sample failure (10 vs 12) is consistent with this systematic difference in the scoring rule, not a one-off edge case.
+
+```

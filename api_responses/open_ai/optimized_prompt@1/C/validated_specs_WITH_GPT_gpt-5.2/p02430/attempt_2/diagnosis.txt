@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong output formatting / ordering rule (delimiter and punctuation).
+
+B. What the current specification may be missing or misstating  
+The specification describes each line as “the integer value of the bitmask, and the ordered list of indices…”, but it does not specify the exact textual format separating the mask value from the indices. The source program prints the mask value immediately followed by a colon (`:`) before listing indices, whereas the generated program prints the mask value followed by a space (no colon). This indicates the spec is too vague about required punctuation.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact output line format, including:
+- That each line begins with the decimal bitmask value followed immediately by a colon character `:` (no intervening space).
+- That each set-bit index is then printed preceded by a single space.
+- That each line ends with a newline.
+
+D. Why this clarification is supported by the source program  
+In the source, output is produced by:
+- `printf("%d:", pat);` which unconditionally appends `:` directly after the integer mask value.
+- Then for each set bit: `printf(" %d", i);` which ensures a leading space before each index.
+- Finally `putchar('\n');` to terminate the line.  
+This establishes a precise formatting contract that the current specification does not fully capture.

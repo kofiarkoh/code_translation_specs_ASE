@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_ACTIONS 100
+#define MAX_T 100
+#define MAX_K 100
+#define INF 0x3f3f3f3f
+
+typedef struct {
+    int reduction;   /* positive */
+    int gain;        /* nonnegative */
+    int req;         /* nonnegative */
+} Action;
+
+int main(void) {
+    int target, n;
+
+    while (1) {
+        if (scanf("%d %d", &target, &n) != 2) {
+            /* No explicit spec for EOF here; terminate quietly. */
+            return 0;
+        }
+        if (target == 0 && n == 0) break;
+
+        Action a[MAX_ACTIONS];
+        if (n < 0 || n > MAX_ACTIONS) {
+            /* Preconditions violated: undefined behavior allowed. */
+        }
+
+        for (int i = 0; i < n; i++) {
+            if (scanf("%d %d %d", &a[i].reduction, &a[i].gain, &a[i].req) != 3) {
+                /* Malformed/incomplete dataset: terminate immediately, nonzero, no further outputs. */
+                return 1;
+            }
+        }
+
+        /* Bounded-state shortest path over states (T in 0..100, K in 0..100).
+           Terminal condition is T <= 0, which we represent as T == 0 in the DP. */
+        int dist[MAX_T + 1][MAX_K + 1];
+        for (int t = 0; t <= MAX_T; t++) {
+            for (int k = 0; k <= MAX_K; k++) dist[t][k] = INF;
+        }
+
+        /* Resource level starts at 0 (narrowest reasonable interpretation; spec does not provide initial K). */
+        int startT = target;
+        int startK = 0;
+        if (startT < 0) startT = 0;
+        if (startT > MAX_T) {
+            /* Preconditions say behavior undefined; proceed with clamping to keep memory safe. */
+            startT = MAX_T;
+        }
+        dist[startT][startK] = 0;
+
+        /* Bellman-Ford style relaxation over bounded states.
+           Each action reduces T by positive amount, so T is non-increasing; K is capped to 100.
+           This guarantees convergence within finite iterations. */
+        int changed;
+        do {
+            changed = 0;
+            for (int t = 0; t <= MAX_T; t++) {
+                for (int k = 0; k <= MAX_K; k++) {
+                    int d = dist[t][k];
+                    if (d == INF) continue;
+
+                    for (int i = 0; i < n; i++) {
+                        if (a[i].req <= k) {
+                            int nt = t - a[i].reduction;
+                            if (nt <= 0) nt = 0;
+                            else if (nt > MAX_T) nt = MAX_T; /* safety; should not happen for t in range */
+
+                            int nk = k + a[i].gain;
+                            if (nk > MAX_K) nk = MAX_K;
+                            if (nk < 0) nk = 0; /* safety */
+
+                            if (dist[nt][nk] > d + 1) {
+                                dist[nt][nk] = d + 1;
+                                changed = 1;
+                            }
+                        }
+                    }
+                }
+            }
+        } while (changed);
+
+        int ans = INF;
+        for (int k = 0; k <= MAX_K; k++) {
+            if (dist[0][k] < ans) ans = dist[0][k];
+        }
+
+        if (ans == INF) {
+            /* Explicit “no solution” indicator; spec does not mandate exact wording. */
+            puts("no solution");
+        } else {
+            printf("%d\n", ans);
+        }
+    }
+
+    return 0;
+}

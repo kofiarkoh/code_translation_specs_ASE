@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes an integer cost associated with transforming a given binary string into a target alternating-run pattern described by a list of run lengths. The target pattern consists of consecutive runs whose lengths are given in order, with the required bit value alternating between runs. The program selects a starting bit (`'0'` or `'1'`) using the input’s number of `'1'` bits and the run-length list; if both starting bits are considered, it outputs the smaller computed cost.
+
+2. Inputs  
+- `N` and `M` (integers): the length of the bit string and the number of run lengths.  
+- `N` characters, each intended to be `'0'` or `'1'`, read with whitespace skipping (so they may be separated by spaces/newlines).  
+- `M` integers `p[0..M-1]` giving run lengths in order.
+
+3. Outputs  
+- A single integer: the computed cost for the selected starting bit, or the minimum of the two computed costs when both starting bits are evaluated.
+
+4. Preconditions / Assumptions  
+- `N` and `M` must fit the fixed internal arrays (effectively `N ≤ 14`, `M ≤ 14`).  
+- Each of the `N` bit inputs is the character `'0'` or `'1'`.  
+- Run lengths are integers; the intended use is that they are nonnegative and (together with the chosen starting bit) describe a realizable alternating-run pattern for the multiset of bits in the input.  
+- During computation, whenever the algorithm needs to locate a required bit value in the current suffix, such a bit must exist; otherwise behavior is undefined (e.g., may crash due to searching past the string).
+
+5. Target Pattern Semantics  
+- Run `0` has length `p[0]` and uses the chosen starting bit; run `1` has length `p[1]` and uses the opposite bit; and so on, alternating each run.  
+- Runs of length `0` are skipped; skipping a run still toggles the required bit for subsequent runs.
+
+6. Starting-Bit Selection  
+Let `c1` be the number of `'1'` characters in the input string. Let `ce` be the sum of run lengths at even indices (`p[0] + p[2] + ...`).  
+- If `c1 * 2 == N`, the program computes the cost twice—once assuming starting bit `'1'` and once assuming starting bit `'0'`—and outputs the smaller result.  
+- Otherwise, it computes the cost once:
+  - If `ce == c1`, it uses starting bit `'1'`.  
+  - Otherwise, it uses starting bit `'0'`.  
+No additional feasibility checking is performed beyond this selection logic.
+
+7. Cost Computation and State Transition (as Implemented)  
+The cost is computed by processing the string from left to right while consuming the run-length requirements. The algorithm maintains:
+- a pointer to the current suffix of the bit string (initially the whole string),
+- the remaining length of the current run (initially `p[0]`, after skipping any leading zero-length runs),
+- the currently required bit value (`start`), which toggles when moving to the next run.
+
+At each processed position (i.e., for the first character of the current suffix), the algorithm behaves as follows:
+
+- If the overall remaining suffix length is `1`, it returns cost `0`.  
+- If the current run length is `0`, it advances to the next run-length entry and toggles the required bit, without consuming a character position.  
+- Otherwise, if the first character of the current suffix already equals the required bit, it decrements the current run length and advances to the next position (recursing on the suffix starting at the next character) with no added cost.  
+- Otherwise (the first character does not match the required bit), it:
+  - finds the first occurrence of the required bit within the current suffix (at some offset `pos ≥ 0` from the suffix start),
+  - adds `pos` to the total cost,
+  - decrements the current run length,
+  - **mutates the string in place by flipping that found character to the opposite bit value**, and
+  - advances to the next position (recursing on the suffix starting at the next character).
+
+Important clarification: although the cost added is the offset `pos` of the first required bit in the current suffix, the program does **not** perform an explicit “bring-forward” move (no shifting/rotation of the intervening characters and no explicit overwrite of the current position). The only state update in the mismatch case is flipping the located required bit in place, then discarding the current position by advancing the suffix pointer.
+
+8. Termination Behavior  
+- The recursion terminates when the remaining suffix length reaches `1` (returns `0` from that point).  
+- There is a special-case return for suffix length `2` that returns `0` if the first character equals the required bit and `1` otherwise.  
+- For larger lengths, the algorithm proceeds by either consuming a character (advancing the suffix pointer) or skipping zero-length runs (advancing the run-length pointer and toggling the required bit).
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input sizes exceed internal capacities, if bits are not `'0'`/`'1'`, if run lengths are negative, if the run-length list is incompatible with the available bits under the chosen starting bit, or if required bits cannot be found when searched, the program’s behavior is undefined.
+
+```

@@ -1,0 +1,44 @@
+1. Functional Description  
+Computes, for each vertex of an undirected tree, a value derived from the sizes of the connected components obtained by removing that vertex. Specifically, for every vertex, it outputs the multinomial coefficient that counts the number of distinct linear orderings of all vertices such that, when the chosen vertex is fixed as the first element, the relative interleavings of the vertex orderings from each incident component are arbitrary (i.e., only the partition of remaining vertices by component matters, not internal constraints). All results are produced modulo a fixed large prime.
+
+2. Inputs  
+- An integer specifying the number of vertices.  
+- A list of undirected edges connecting pairs of vertex indices, forming a tree.
+
+3. Outputs  
+- For each vertex (in increasing vertex index order), one integer modulo the fixed prime:  
+  \[
+  \frac{n!}{\prod_{C \in \text{components}(V \setminus \{v\})} |C|!} \bmod P
+  \]
+  where the product ranges over all connected components after removing vertex \(v\), and \(P\) is the fixed prime modulus.
+
+4. Preconditions  
+- The vertex count is at least 1 and does not exceed the implementation’s fixed capacity.  
+- The edge list contains exactly \(n-1\) edges.  
+- Vertex indices in edges are within the valid range.  
+- The edges form a connected, acyclic undirected graph (a tree).  
+- The modulus is prime, and all factorial values up to \(n!\) are interpreted modulo this prime.
+
+5. Postconditions  
+- Exactly \(n\) output values are produced.  
+- For each vertex \(v\), the printed value equals the formula in Outputs, computed modulo the prime.  
+- The result for each vertex depends only on the tree structure and \(n\), not on edge input order.
+
+6. Invariants  
+- Throughout computation, each vertex maintains a well-defined subtree size with respect to the current chosen root, and these sizes remain consistent with the current rooting.  
+- Intermediate per-vertex values represent products of factorials of component sizes (or their modular inverses) consistent with the current rooting, always interpreted modulo the prime.  
+- Re-rooting between adjacent vertices preserves the global multiset of component sizes for the whole tree and updates only the two endpoints’ associated component partitions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (non-tree, out-of-range indices, oversized \(n\), etc.), behavior is unspecified.  
+- If the modulus assumptions are violated (e.g., non-prime or factorial terms not invertible modulo the modulus), results are unspecified.
+
+8. State Transitions (if applicable)  
+- The computation conceptually transitions through different choices of the tree root to evaluate the per-vertex formula for all vertices.  
+- For each transition across an edge, the “root” moves from one endpoint to the other, and the associated component-size partition for those two vertices is updated accordingly; after exploring a neighbor, the root is restored to the prior vertex.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of vertices (up to logarithmic factors from modular exponentiation used for inverses).  
+- Memory usage is linear in the number of vertices.  
+- Recursion depth is proportional to tree height; on highly skewed trees this may exceed typical call stack limits.

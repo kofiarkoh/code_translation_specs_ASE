@@ -1,0 +1,34 @@
+1. Functional Description  
+Computes a deterministic integer value derived from a single input integer. The value equals a count (taken modulo a fixed large prime) of certain integer constructions whose total “size” equals the input, where “size” is measured as a sum of products of a positive integer and a decimal-digit-length. The result includes contributions from constructions involving decimal numbers with digit-lengths up to 8 handled explicitly, and additional contributions for larger digit-lengths handled via modular exponentiation.
+
+2. Inputs  
+- One signed integer `s` read from standard input.
+
+3. Outputs  
+- One integer written to standard output: the computed value reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- Input provides exactly one integer value.  
+- To avoid undefined behavior from arithmetic overflow in intermediate signed integer computations, `s` is assumed to be within a range where all intermediate products and subtractions performed by the program remain within the representable range of the platform’s signed integer types.  
+- For the intended counting interpretation, `s` is assumed to be positive.
+
+5. Postconditions  
+- Produces an output `ans` such that:  
+  - `ans` is congruent modulo 1,000,000,007 to the total count computed by the program’s counting rules.  
+  - The printed value is in the range `[0, 1,000,000,006]`.
+
+6. Invariants  
+- All accumulated counts are maintained modulo 1,000,000,007 throughout computation (with a final normalization to a non-negative representative).  
+- The internal table of counts for digit-length `d` (for `d` from 1 to 8) represents the number of positive base-10 integers having exactly `d` digits.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input. If input parsing fails, behavior is unspecified.  
+- If arithmetic overflows occur in intermediate signed computations, behavior is unspecified.  
+- Negative intermediate modular values may occur; the program corrects only the final result to be non-negative modulo 1,000,000,007.
+
+8. State Transitions (if applicable)  
+- No externally visible state is maintained across runs. The program performs a single computation from input to output and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is bounded by a small constant factor for the digit-length–bounded portion (digit lengths up to 8), plus an additional factor proportional to the number of divisors checked up to the square root of `s`.  
+- Uses constant additional memory beyond a small fixed-size table.

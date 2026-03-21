@@ -1,0 +1,394 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#define N_MAX 4
+
+/*                 front  1  2  3  4  5  6 */
+char right[7][7] = { { 0, 0, 0, 0, 0, 0, 0 },   /* top */
+                     { 0, 0, 3, 5, 2, 4, 0 },   /* 1   */
+                     { 0, 4, 0, 1, 6, 0, 3 },   /* 2   */
+                     { 0, 2, 6, 0, 0, 1, 5 },   /* 3   */
+                     { 0, 5, 1, 0, 0, 6, 2 },   /* 4   */
+                     { 0, 3, 0, 6, 1, 0, 4 },   /* 5   */
+                     { 0, 0, 4, 2, 5, 3, 0 } }; /* 6   */
+
+#define RIGHT(top, front)  (right[(int)(top)][(int)(front)])
+#define BOTTOM(top, front) (7 - top)
+#define BACK(top, front)   (7 - front)
+#define LEFT(top, front)   (7 - RIGHT(top, front))
+
+/* ------ */
+
+char height_map[N_MAX * 2 + 1][N_MAX * 2 + 1],
+    top_map[N_MAX * 2 + 1][N_MAX * 2 + 2];
+
+void init()
+{
+    int x, y;
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            height_map[y][x] = top_map[y][x] = 0;
+}
+
+void put(char top, char front)
+{
+    int x = N_MAX, y = N_MAX, newfront, newtop, newx, newy, max;
+
+    while(1)
+    {
+        max = 0;
+
+        /* front */
+        if(height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max)
+            newfront = top, newtop = BACK(top, front),
+                newx = x, newy = y - 1, max = front;
+
+        if(height_map[y + 1][x] < height_map[y][x]
+           && BACK(top, front) > 3 && BACK(top, front) > max)
+            newfront = BOTTOM(top, front), newtop = front,
+                newx = x, newy = y + 1, max = BACK(top, front);
+
+        if(height_map[y][x - 1] < height_map[y][x]
+           && LEFT(top, front) > 3 && LEFT(top, front) > max)
+            newfront = front, newtop = RIGHT(top, front),
+                newx = x - 1, newy = y, max = LEFT(top, front);
+
+        if(height_map[y][x + 1] < height_map[y][x]
+           && RIGHT(top, front) > 3 && RIGHT(top, front) > max)
+            newfront = front, newtop = LEFT(top, front),
+                newx = x + 1, newy = y, max = RIGHT(top, front);
+
+        if(!max)
+            break;
+        else
+            front = newfront, top = newtop, x = newx, y = newy;
+    }
+
+    height_map[y][x]++, top_map[y][x] = top;
+}
+
+void count_and_print()
+{
+    int x, y, count[7];
+
+    for(x = 1; x <= 6; x++)
+        count[x] = 0;
+
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            count[(int)top_map[y][x]]++;
+
+    for(x = 1; x < 6; x++)
+        printf("%d ", count[x]);
+    printf("%d\n", count[x]);
+}
+
+int main(void)
+{
+    int n;
+
+    while(scanf("%d", &n), n)
+    {
+        int t, f;
+
+        init();
+
+        while(n--)
+        {
+            scanf("%d %d", &t, &f);
+            put(t, f);
+        }
+
+        count_and_print();
+    }
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates dropping a sequence of cubes onto a fixed, bounded 2D grid (size \( (2\cdot N\_MAX+1)\times(2\cdot N\_MAX+1) \), with \(N\_MAX=4\), i.e., 9×9). Each cube starts at the grid center and may “roll” across the grid before coming to rest. A roll is allowed only from a cell to an orthogonally adjacent cell whose current stack height is strictly lower than the current cell’s height. Among all allowed directions, the program chooses the single direction whose associated side-face value (as defined by the cube’s current orientation and the direction of motion) is the largest value strictly greater than 3; if no allowed direction has an associated value > 3, rolling stops. The cube is then placed on the current cell, increasing that cell’s stack height by 1 and recording the cube’s upward-facing value for that cell (overwriting any previous recorded top for that cell). After all cubes are processed, it outputs counts of how many grid cells have recorded top values 1 through 6.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer \(n\) (number of cubes).  
+- If \(n=0\), input terminates and no output is produced for that case.  
+- Otherwise, \(n\) lines follow, each containing two integers \(t\) and \(f\): the cube’s initial top (upward-facing) value and initial front value.
+
+3. Cube Labeling / Orientation Model (crucial)  
+- Face labels are the integers 1..6 with fixed opposite pairs: bottom = \(7-\text{top}\), back = \(7-\text{front}\).  
+- In addition, the cube’s left/right relationship is not arbitrary: it is defined by a fixed, globally agreed cube geometry that determines the right face for each valid (top, front) pair. The program uses an explicit mapping RIGHT(top, front) (a lookup table) and derives:  
+  - RIGHT = RIGHT(top, front)  
+  - LEFT = \(7-\)RIGHT(top, front)  
+  - BACK = \(7-\)front  
+  - BOTTOM = \(7-\)top  
+- Therefore, the input pair (top, front) is interpreted with respect to this specific fixed cube labeling; different valid physical cubes/orientation conventions are not interchangeable.
+
+4. Rolling / Movement Rules  
+For each cube, initialize position at the center cell and orientation to the input (top, front). Then repeat:  
+- Consider up to four candidate moves (north, south, west, east). A candidate move in a direction is eligible only if the adjacent cell in that direction has strictly smaller current height than the current cell.  
+- Each direction has an associated “side value” taken from the cube’s current orientation:  
+  - Moving north (toward decreasing row index): associated value = current FRONT face value.  
+  - Moving south (increasing row index): associated value = current BACK face value.  
+  - Moving west (decreasing column index): associated value = current LEFT face value.  
+  - Moving east (increasing column index): associated value = current RIGHT face value.  
+- Among eligible moves, select the one with the maximum associated value subject to the additional requirement that the associated value must be > 3. If no eligible move has associated value > 3, stop rolling.  
+- If a move is selected, update both position and orientation as if the cube is rolled one cell in that direction (the new top and new front are updated deterministically according to the direction and the cube-geometry rules above), and continue the loop.
+
+5. Placement and Recorded State  
+- When rolling stops, the cube is placed on the current cell: that cell’s height increases by 1.  
+- The cell’s recorded top value becomes the cube’s current top value after the final roll sequence (overwriting any previous recorded top at that cell).  
+- Cells never landed on retain recorded top value 0 internally.
+
+6. Outputs  
+For each non-terminating test case, output one line with six integers separated by single spaces: for face values 1,2,3,4,5,6 respectively, the number of grid cells whose recorded top value equals that face value at the end of the test case. (Cells with recorded value 0 are not reported.)
+
+7. Preconditions / Assumptions  
+- Inputs are well-formed and provide \(n\) pairs after each nonzero \(n\).  
+- Each provided top and front value is in 1..6 and corresponds to a valid orientation under the program’s fixed cube geometry (in particular, top and front are distinct and not opposite, and the pair is one for which the fixed RIGHT(top, front) mapping is defined).  
+- The sequence of rolls for every cube remains within the fixed 9×9 grid; otherwise behavior is undefined (the program does not perform bounds checks).
+
+8. Reset and Termination Behavior  
+- For each test case, the grid state (heights and recorded tops) is reset to all zeros before processing cubes.  
+- Processing continues until a test case with \(n=0\) is read, at which point the program terminates.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+#define N_MAX 4
+#define SZ (2 * N_MAX + 1)
+#define CENTER N_MAX
+
+/* Fixed cube geometry mapping: RIGHT(top, front).
+   This table encodes the globally agreed labeling/orientation convention.
+   Indices 1..6 are used; 0 means "undefined" (should not occur per spec). */
+static const int RIGHT_MAP[7][7] = {
+    {0,0,0,0,0,0,0},
+    /* top=1 */ {0,0,3,5,2,4,0},
+    /* top=2 */ {0,4,0,1,6,0,3},
+    /* top=3 */ {0,2,6,0,0,1,5},
+    /* top=4 */ {0,5,1,0,0,6,2},
+    /* top=5 */ {0,3,0,6,1,0,4},
+    /* top=6 */ {0,0,4,2,5,3,0}
+};
+
+typedef struct {
+    int top;
+    int front;
+} Ori;
+
+static int right_face(int top, int front) {
+    return RIGHT_MAP[top][front];
+}
+
+static int left_face(int top, int front) {
+    return 7 - right_face(top, front);
+}
+
+static int back_face(int top, int front) {
+    return 7 - front;
+}
+
+static void roll_north(Ori *o) {
+    /* Move north: associated value is FRONT; cube rolls so FRONT becomes TOP. */
+    int old_top = o->top;
+    int old_front = o->front;
+    o->top = old_front;
+    o->front = 7 - old_top;
+}
+
+static void roll_south(Ori *o) {
+    /* Move south: associated value is BACK; cube rolls so BACK becomes TOP. */
+    int old_top = o->top;
+    int old_front = o->front;
+    o->top = 7 - old_front;
+    o->front = old_top;
+}
+
+static void roll_west(Ori *o) {
+    /* Move west: associated value is LEFT; cube rolls so LEFT becomes TOP.
+       Front stays the same; update top, then front unchanged. */
+    int old_top = o->top;
+    int old_front = o->front;
+    int old_left = left_face(old_top, old_front);
+    o->top = old_left;
+    o->front = old_front;
+}
+
+static void roll_east(Ori *o) {
+    /* Move east: associated value is RIGHT; cube rolls so RIGHT becomes TOP.
+       Front stays the same. */
+    int old_top = o->top;
+    int old_front = o->front;
+    int old_right = right_face(old_top, old_front);
+    o->top = old_right;
+    o->front = old_front;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        int height[SZ][SZ];
+        int rec_top[SZ][SZ];
+
+        for (int r = 0; r < SZ; r++) {
+            for (int c = 0; c < SZ; c++) {
+                height[r][c] = 0;
+                rec_top[r][c] = 0;
+            }
+        }
+
+        for (int i = 0; i < n; i++) {
+            Ori o;
+            int r = CENTER, c = CENTER;
+            scanf("%d %d", &o.top, &o.front);
+
+            for (;;) {
+                int curh = height[r][c];
+
+                int best_dir = -1; /* 0=N,1=S,2=W,3=E */
+                int best_val = -1;
+
+                /* North */
+                if (height[r - 1][c] < curh) {
+                    int val = o.front;
+                    if (val > 3 && val > best_val) {
+                        best_val = val;
+                        best_dir = 0;
+                    }
+                }
+                /* South */
+                if (height[r + 1][c] < curh) {
+                    int val = back_face(o.top, o.front);
+                    if (val > 3 && val > best_val) {
+                        best_val = val;
+                        best_dir = 1;
+                    }
+                }
+                /* West */
+                if (height[r][c - 1] < curh) {
+                    int val = left_face(o.top, o.front);
+                    if (val > 3 && val > best_val) {
+                        best_val = val;
+                        best_dir = 2;
+                    }
+                }
+                /* East */
+                if (height[r][c + 1] < curh) {
+                    int val = right_face(o.top, o.front);
+                    if (val > 3 && val > best_val) {
+                        best_val = val;
+                        best_dir = 3;
+                    }
+                }
+
+                if (best_dir < 0) break;
+
+                if (best_dir == 0) {
+                    r -= 1;
+                    roll_north(&o);
+                } else if (best_dir == 1) {
+                    r += 1;
+                    roll_south(&o);
+                } else if (best_dir == 2) {
+                    c -= 1;
+                    roll_west(&o);
+                } else { /* best_dir == 3 */
+                    c += 1;
+                    roll_east(&o);
+                }
+            }
+
+            height[r][c] += 1;
+            rec_top[r][c] = o.top;
+        }
+
+        int counts[7] = {0,0,0,0,0,0,0};
+        for (int r = 0; r < SZ; r++) {
+            for (int c = 0; c < SZ; c++) {
+                int v = rec_top[r][c];
+                if (v >= 1 && v <= 6) counts[v]++;
+            }
+        }
+
+        printf("%d %d %d %d %d %d\n",
+               counts[1], counts[2], counts[3],
+               counts[4], counts[5], counts[6]);
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00762/p00762_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00762/p00762_sample1_output.txt
+Input:
+2
+1 2
+3 4
+5
+6 5
+2 3
+4 6
+1 5
+3 2
+0
+Expected:
+1 0 0 0 0 0
+2 1 1 0 0 1
+Actual:
+1 0 0 0 0 0
+0 0 0 1 1 3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

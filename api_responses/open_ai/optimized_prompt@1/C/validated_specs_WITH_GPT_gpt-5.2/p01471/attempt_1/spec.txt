@@ -1,0 +1,43 @@
+1. Functional Description  
+Computes the maximum achievable total value from a set of items under a single capacity constraint, where each item may be taken fractionally. Items may have negative weight and/or negative value; the program applies the implied effects of such items on total value and effective capacity and then optimizes the remaining selection to maximize total value.
+
+2. Inputs  
+- An integer count of items.  
+- A numeric capacity value.  
+- For each item: an integer weight and an integer value.
+
+3. Outputs  
+- A single real number: the computed maximum total value achievable under the effective capacity after accounting for special-case items.
+
+4. Preconditions  
+- The number of items does not exceed the fixed internal storage limit (100002).  
+- Input is well-formed and provides all required numbers.  
+- For any item that is considered for fractional selection, its effective weight is non-zero (to avoid undefined value-to-weight ratio).  
+- Assumption (due to lack of explicit handling): the intended problem domain is such that the greedy fractional-knapsack strategy by value density is valid for the remaining items (i.e., linear fractional selection with a single capacity constraint).
+
+5. Postconditions  
+- The output equals the sum of:  
+  - The values of all items with negative weight and positive value, fully included, and  
+  - The optimal value obtainable by selecting fractions of the remaining considered items subject to the resulting effective capacity.  
+- Items with non-negative weight and non-positive value do not affect the result (they are effectively ignored).  
+- For all other items, the solution corresponds to a feasible fractional selection that does not exceed the effective capacity (up to a small numerical tolerance).
+
+6. Invariants  
+- The accumulated total value reflects the contribution of all fully included special-case items plus the contributions of any fractions selected so far.  
+- The effective remaining capacity is updated consistently with any fully included special-case items and with any fractions selected so far.  
+- During fractional selection, no item is taken in a proportion less than 0 or greater than 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., too many items, zero effective weight for a ratio-based item, malformed input), behavior is undefined (may crash, produce incorrect output, or exhibit other unintended behavior).  
+- Floating-point rounding may cause small deviations; the algorithm treats very small remaining capacity as zero.
+
+8. State Transitions (if applicable)  
+- Initial state: total value is zero; effective capacity is the input capacity.  
+- After reading all items: total value and effective capacity may be adjusted by fully including certain items; a set of remaining candidate items is established for fractional optimization.  
+- After optimization: total value is finalized and emitted; program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting the candidate items, typically proportional to the number of candidates times the logarithm of that number.  
+- Uses floating-point arithmetic; results are subject to typical double-precision rounding behavior and a small tolerance when deciding whether remaining capacity is effectively zero.  
+- Memory usage is bounded by storage for up to 100002 candidate items.

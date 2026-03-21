@@ -1,0 +1,35 @@
+1. Functional Description  
+Computes the total number of non-empty subsets of the provided multiset of integers whose arithmetic mean equals a given target value. Subsets are distinguished by the indices of chosen elements (i.e., equal-valued elements at different positions are treated as distinct choices).
+
+2. Inputs  
+- An integer count of elements.  
+- A target integer value representing the desired average.  
+- A sequence of integers of the given count.
+
+3. Outputs  
+- A single integer: the number of non-empty subsets whose average equals the target value.
+
+4. Preconditions  
+- The element count is non-negative.  
+- The target value is non-zero (division by zero is otherwise possible).  
+- The sum of all input elements is non-negative (the computation assumes subset sums are representable over a non-negative range).  
+- The required memory for the internal counting over all subset sizes and sums is available.  
+- The number of qualifying subsets fits within the range of the output integer type (no overflow).
+
+5. Postconditions  
+- The output equals the sum, over all subset sizes \(k \ge 1\), of the number of subsets of size \(k\) whose element-sum equals \(k \times\) (target value).  
+- Only subset sizes \(k\) for which \(k \times\) (target value) is within the achievable non-negative sum range are counted.
+
+6. Invariants  
+- For any prefix of the input sequence, any subset size \(k\), and any non-negative sum \(s\), the internal count associated with these parameters equals the number of ways to choose exactly \(k\) elements from that prefix whose sum is exactly \(s\).  
+- Counts are always non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing/invalid, if the target value is zero, if the total sum is negative, if memory allocation on the stack is not possible, or if arithmetic overflows occur, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no externally observable state beyond producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow with the element count and the total sum of elements; memory usage is proportional to the product of (element count) × (element count) × (total sum + 1).  
+- Uses stack storage for large internal data; may fail for large inputs due to stack limits.

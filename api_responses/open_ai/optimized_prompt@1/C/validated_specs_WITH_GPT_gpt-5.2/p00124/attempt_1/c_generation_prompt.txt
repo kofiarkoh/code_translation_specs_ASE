@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads one or more datasets describing teams and their match results, computes a points total for each team, orders teams by descending points, and outputs each team with its computed points. Processing ends when a dataset size of zero is provided.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer specifying the number of teams.  
+- For each team: a name token and three integers representing wins, losses, and draws.
+
+3. Outputs  
+- For each dataset (except the terminating one), writes to standard output a list of the teams and their computed points, one team per line.  
+- Inserts a single blank line between outputs of consecutive datasets.
+
+4. Preconditions  
+- Each dataset size is non-negative and does not exceed 10.  
+- Each team name fits within 29 characters (excluding terminator) and contains no whitespace.  
+- Each team record provides three integers for wins, losses, and draws.  
+- Input is well-formed and available for all required fields.
+
+5. Postconditions  
+For every non-terminating dataset:  
+- Each team’s points equal (3 × wins) + draws.  
+- The output contains exactly the dataset’s teams, each paired with its computed points.  
+- The output ordering is non-increasing by points (highest points first).  
+- If multiple teams have equal points, their relative order in the output is not guaranteed.
+
+6. Invariants  
+- Across all datasets, the program does not retain or combine team data between datasets; each dataset is processed independently except for the insertion of a blank line between dataset outputs.  
+- The computed points for a team remain constant once computed for that dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, missing, exceeds expected bounds, or names exceed allowed length, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Repeats the following cycle: read dataset size → if zero, terminate; otherwise read team records → compute points → output sorted results → await next dataset.  
+- Maintains a boolean-like state indicating whether any prior dataset has been output, used solely to decide whether to emit a blank line before the next dataset’s output.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 10 teams per dataset.  
+- Time and memory usage are bounded by small fixed limits due to the fixed maximum dataset size.
+
+```

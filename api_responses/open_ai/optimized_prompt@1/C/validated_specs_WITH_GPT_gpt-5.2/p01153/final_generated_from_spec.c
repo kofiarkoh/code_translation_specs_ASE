@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+static int iabs_int(int x) { return x < 0 ? -x : x; }
+
+int main(void) {
+    int t;
+    if (scanf("%d", &t) != 1) return 0;
+
+    while (t--) {
+        int n;
+        if (scanf("%d", &n) != 1) return 0;
+
+        int a[102];
+        for (int i = 0; i < n; i++) {
+            scanf("%d", &a[i]);
+        }
+
+        if (n <= 1) {
+            printf("0\n");
+            continue;
+        }
+
+        /* Duplicate the circle into a linear array of length 2n to handle wraparound segments. */
+        int b[204];
+        for (int i = 0; i < 2 * n; i++) b[i] = a[i % n];
+
+        /* dp[i][len] = maximum score for segment starting at i (in b) of length len.
+           Segment indices are i..i+len-1 in b (linear), representing a circular segment. */
+        int dp[204][103];
+
+        /* Initialize length 1 segments: no merges possible. */
+        for (int i = 0; i < 2 * n; i++) dp[i][1] = 0;
+
+        for (int len = 2; len <= n; len++) {
+            for (int i = 0; i + len - 1 < 2 * n; i++) {
+                int best = 0; /* scores are non-negative; narrowest reasonable init */
+                for (int l1 = 1; l1 <= len - 1; l1++) {
+                    int x = i + l1; /* start of right part in linearized array */
+                    int cand = dp[i][l1] + dp[x][len - l1] + iabs_int(b[i] - b[x]);
+                    if (cand > best) best = cand;
+                }
+                dp[i][len] = best;
+            }
+        }
+
+        int ans = 0;
+        for (int start = 0; start < n; start++) {
+            if (dp[start][n] > ans) ans = dp[start][n];
+        }
+
+        printf("%d\n", ans);
+    }
+
+    return 0;
+}

@@ -1,0 +1,102 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#define BIG_BASE 1000000000U /* 1e9 */
+#define BIG_CAP 4096         /* fixed capacity in base-1e9 limbs */
+
+typedef struct {
+    uint32_t d[BIG_CAP]; /* little-endian limbs */
+    int len;             /* number of used limbs, len>=1 */
+} Big;
+
+static void big_normalize(Big *a) {
+    while (a->len > 1 && a->d[a->len - 1] == 0) a->len--;
+}
+
+static void big_set_u32(Big *a, uint32_t v) {
+    memset(a->d, 0, sizeof(a->d));
+    a->d[0] = v;
+    a->len = 1;
+    big_normalize(a);
+}
+
+static void big_mul_u32(Big *a, uint32_t m) {
+    uint64_t carry = 0;
+    for (int i = 0; i < a->len; i++) {
+        uint64_t prod = (uint64_t)a->d[i] * (uint64_t)m + carry;
+        a->d[i] = (uint32_t)(prod % BIG_BASE);
+        carry = prod / BIG_BASE;
+    }
+    while (carry != 0 && a->len < BIG_CAP) {
+        a->d[a->len++] = (uint32_t)(carry % BIG_BASE);
+        carry /= BIG_BASE;
+    }
+    /* If carry remains and capacity is exceeded, behavior is unspecified per spec. */
+    big_normalize(a);
+}
+
+static uint32_t big_div_u32(Big *a, uint32_t v) {
+    /* Returns remainder; division is exact in intended use. */
+    uint64_t rem = 0;
+    for (int i = a->len - 1; i >= 0; i--) {
+        uint64_t cur = rem * (uint64_t)BIG_BASE + (uint64_t)a->d[i];
+        a->d[i] = (uint32_t)(cur / v);
+        rem = cur % v;
+    }
+    big_normalize(a);
+    return (uint32_t)rem;
+}
+
+static void big_print_dec(const Big *a) {
+    /* Print most significant limb without leading zeros, then others with 9 digits. */
+    int i = a->len - 1;
+    printf("%u", a->d[i]);
+    for (i = i - 1; i >= 0; i--) {
+        printf("%09u", a->d[i]);
+    }
+}
+
+int main(void) {
+    int n, m, r;
+    if (scanf("%d%d%d", &n, &m, &r) != 3) {
+        /* Unspecified behavior per spec; do nothing. */
+        return 0;
+    }
+
+    /* r' = r - n*m in int arithmetic; overflow is undefined per C and per spec. */
+    int rp = r - n * m;
+
+    if (rp < 0) {
+        printf("0\n");
+        return 0;
+    }
+    if (rp == 0) {
+        printf("1\n");
+        return 0;
+    }
+
+    /* For meaningful/safe execution, spec assumes n >= 1; otherwise unspecified. */
+    int a = n + rp - 1;     /* may overflow int: unspecified per spec */
+    int b = n - 1;
+    int c = rp;
+
+    int k = (b < c) ? b : c; /* smaller of (n-1) and r' */
+
+    Big res;
+    big_set_u32(&res, 1);
+
+    /* Compute C(a, k) = product_{i=1..k} (a-k+i)/i */
+    for (int i = 1; i <= k; i++) {
+        int term = a - k + i; /* int arithmetic; overflow unspecified */
+        big_mul_u32(&res, (uint32_t)term);
+        (void)big_div_u32(&res, (uint32_t)i);
+        /* If division is not exact due to unspecified preconditions, output is unspecified. */
+    }
+
+    big_print_dec(&res);
+    putchar('\n');
+    return 0;
+}
+```

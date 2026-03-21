@@ -1,0 +1,305 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXSEG 2000
+#define MAXPTS (MAXSEG * 2)
+
+typedef struct { int x, y; } Pt;
+typedef struct { int a, b; } Seg;
+
+static Pt pts[MAXPTS];
+static int ptCount;
+
+static Seg segs[MAXSEG];
+static int nseg;
+
+static int parentUF[MAXSEG];
+
+static int findUF(int x) {
+    while (parentUF[x] != x) {
+        parentUF[x] = parentUF[parentUF[x]];
+        x = parentUF[x];
+    }
+    return x;
+}
+static void unionUF(int a, int b) {
+    int ra = findUF(a), rb = findUF(b);
+    if (ra != rb) parentUF[rb] = ra;
+}
+
+static int ptEqual(Pt p, Pt q) { return p.x == q.x && p.y == q.y; }
+
+static int getPointIndex(int x, int y) {
+    Pt p = {x, y};
+    for (int i = 0; i < ptCount; i++) {
+        if (ptEqual(pts[i], p)) return i;
+    }
+    pts[ptCount] = p;
+    return ptCount++;
+}
+
+static long long crossLL(Pt a, Pt b, Pt c) {
+    /* cross((b-a),(c-a)) */
+    long long abx = (long long)b.x - a.x;
+    long long aby = (long long)b.y - a.y;
+    long long acx = (long long)c.x - a.x;
+    long long acy = (long long)c.y - a.y;
+    return abx * acy - aby * acx;
+}
+
+static int betweenStrictLL(long long a, long long b, long long v) {
+    /* strict between: min(a,b) < v < max(a,b) */
+    if (a < b) return (a < v && v < b);
+    else return (b < v && v < a);
+}
+
+static int pointStrictlyInSegmentInterior(Pt p, Pt s1, Pt s2) {
+    /* Invariant: never treat endpoints as interior */
+    if (ptEqual(p, s1) || ptEqual(p, s2)) return 0;
+    if (crossLL(s1, s2, p) != 0) return 0;
+    /* collinear: check strict bounding box */
+    if (!betweenStrictLL(s1.x, s2.x, p.x) && s1.x != s2.x) return 0;
+    if (!betweenStrictLL(s1.y, s2.y, p.y) && s1.y != s2.y) return 0;
+    /* For axis-aligned or general collinear, the above needs care:
+       If segment is vertical, x is constant; if horizontal, y is constant.
+       For diagonal, both strict checks must hold. For vertical/horizontal,
+       only the varying coordinate strict check is required. */
+    if (s1.x == s2.x) {
+        return betweenStrictLL(s1.y, s2.y, p.y);
+    } else if (s1.y == s2.y) {
+        return betweenStrictLL(s1.x, s2.x, p.x);
+    } else {
+        return betweenStrictLL(s1.x, s2.x, p.x) && betweenStrictLL(s1.y, s2.y, p.y);
+    }
+}
+
+static int signLL(long long v) { return (v > 0) - (v < 0); }
+
+int main(void) {
+    while (1) {
+        if (scanf("%d", &nseg) != 1) return 0;
+        if (nseg == 0) return 0;
+
+        ptCount = 0;
+        for (int i = 0; i < nseg; i++) parentUF[i] = i;
+
+        /* For each unique point, store up to 5 incident segment indices (precondition). */
+        static int incCount[MAXPTS];
+        static int incSeg[MAXPTS][5];
+        memset(incCount, 0, sizeof(incCount));
+
+        for (int i = 0; i < nseg; i++) {
+            int x1, y1, x2, y2;
+            scanf("%d %d %d %d", &x1, &y1, &x2, &y2);
+            int p1 = getPointIndex(x1, y1);
+            int p2 = getPointIndex(x2, y2);
+            segs[i].a = p1;
+            segs[i].b = p2;
+
+            if (incCount[p1] < 5) incSeg[p1][incCount[p1]++] = i;
+            if (incCount[p2] < 5) incSeg[p2][incCount[p2]++] = i;
+        }
+
+        /* Build connectivity by shared endpoints. */
+        for (int p = 0; p < ptCount; p++) {
+            for (int i = 1; i < incCount[p]; i++) {
+                unionUF(incSeg[p][0], incSeg[p][i]);
+            }
+        }
+
+        /* Compute endpoint multiplicities (how many segment endpoints coincide at each point). */
+        static int endpointMult[MAXPTS];
+        memset(endpointMult, 0, sizeof(endpointMult));
+        for (int i = 0; i < nseg; i++) {
+            endpointMult[segs[i].a]++;
+            endpointMult[segs[i].b]++;
+        }
+
+        /* Group segments by component root; each component stores up to 5 segments (precondition). */
+        static int compCount[MAXSEG];
+        static int compSeg[MAXSEG][5];
+        memset(compCount, 0, sizeof(compCount));
+
+        for (int i = 0; i < nseg; i++) {
+            int r = findUF(i);
+            if (compCount[r] < 5) compSeg[r][compCount[r]++] = i;
+        }
+
+        long long out[10];
+        for (int d = 0; d < 10; d++) out[d] = 0;
+
+        /* Analyze each component. */
+        for (int r = 0; r < nseg; r++) {
+            int k = compCount[r];
+            if (k == 0) continue;
+
+            /* Count "shared endpoints": endpoints with multiplicity > 1, counted per segment endpoint. */
+            int sharedEndpointCount = 0;
+            for (int idx = 0; idx < k; idx++) {
+                int si = compSeg[r][idx];
+                if (endpointMult[segs[si].a] > 1) sharedEndpointCount++;
+                if (endpointMult[segs[si].b] > 1) sharedEndpointCount++;
+            }
+
+            int digit = 1; /* default */
+
+            if (k == 2 && sharedEndpointCount == 2) {
+                digit = 4;
+            } else if (k == 4 && sharedEndpointCount == 6) {
+                digit = 9;
+            } else if (k == 4 && sharedEndpointCount == 8) {
+                /* If any endpoint lies strictly in interior of another segment in component => 8 else 0 */
+                int hasInterior = 0;
+                for (int i = 0; i < k && !hasInterior; i++) {
+                    int si = compSeg[r][i];
+                    Pt e1 = pts[segs[si].a];
+                    Pt e2 = pts[segs[si].b];
+                    for (int j = 0; j < k && !hasInterior; j++) {
+                        int sj = compSeg[r][j];
+                        if (sj == si) continue;
+                        Pt s1 = pts[segs[sj].a];
+                        Pt s2 = pts[segs[sj].b];
+                        if (pointStrictlyInSegmentInterior(e1, s1, s2) ||
+                            pointStrictlyInSegmentInterior(e2, s1, s2)) {
+                            hasInterior = 1;
+                        }
+                    }
+                }
+                digit = hasInterior ? 8 : 0;
+            } else if (k == 3 && sharedEndpointCount == 4) {
+                /* If any endpoint lies strictly in interior of a segment whose both endpoints are shared => 3 else 7 */
+                int hasInterior = 0;
+                for (int i = 0; i < k && !hasInterior; i++) {
+                    int si = compSeg[r][i];
+                    Pt e1 = pts[segs[si].a];
+                    Pt e2 = pts[segs[si].b];
+                    for (int j = 0; j < k && !hasInterior; j++) {
+                        int sj = compSeg[r][j];
+                        if (sj == si) continue;
+                        int a = segs[sj].a, b = segs[sj].b;
+                        if (!(endpointMult[a] > 1 && endpointMult[b] > 1)) continue; /* both endpoints shared */
+                        Pt s1 = pts[a], s2 = pts[b];
+                        if (pointStrictlyInSegmentInterior(e1, s1, s2) ||
+                            pointStrictlyInSegmentInterior(e2, s1, s2)) {
+                            hasInterior = 1;
+                        }
+                    }
+                }
+                digit = hasInterior ? 3 : 7;
+            } else if (k == 5 && sharedEndpointCount == 8) {
+                /* Determine digit 2/5/6 by sidedness of two branch points w.r.t. two junction segments. */
+                /* Build degrees within component for points. */
+                static int deg[MAXPTS];
+                memset(deg, 0, sizeof(deg));
+                for (int i = 0; i < k; i++) {
+                    int si = compSeg[r][i];
+                    deg[segs[si].a]++;
+                    deg[segs[si].b]++;
+                }
+
+                /* Identify the two branch points (deg==1) and the two junction points (deg==3). */
+                int branchPts[2], junctionPts[2];
+                int nb = 0, nj = 0;
+
+                /* Collect unique points in component. */
+                int compPts[10];
+                int np = 0;
+                for (int i = 0; i < k; i++) {
+                    int si = compSeg[r][i];
+                    int pa = segs[si].a, pb = segs[si].b;
+                    int seen = 0;
+                    for (int t = 0; t < np; t++) if (compPts[t] == pa) { seen = 1; break; }
+                    if (!seen) compPts[np++] = pa;
+                    seen = 0;
+                    for (int t = 0; t < np; t++) if (compPts[t] == pb) { seen = 1; break; }
+                    if (!seen) compPts[np++] = pb;
+                }
+
+                for (int i = 0; i < np; i++) {
+                    int p = compPts[i];
+                    if (deg[p] == 1 && nb < 2) branchPts[nb++] = p;
+                    else if (deg[p] == 3 && nj < 2) junctionPts[nj++] = p;
+                }
+
+                /* Find the two junction segments: segments connecting the two junction points to each other? or
+                   segments incident to junction points with both endpoints shared? The spec only implies they
+                   are "junction" segments from endpoint-sharing structure. Narrowest consistent choice:
+                   the two segments that connect the two junction points to the unique degree-2 point(s) are ambiguous.
+                   Instead, use the two segments that are incident to each junction point and are NOT the segment
+                   between the two junction points (if present). If no direct junction-junction segment exists,
+                   use any segment incident to each junction point that is not incident to the other junction point.
+                   This yields two directed lines for sidedness tests. */
+                int segJJ = -1;
+                for (int i = 0; i < k; i++) {
+                    int si = compSeg[r][i];
+                    int a = segs[si].a, b = segs[si].b;
+                    if (nj == 2 && ((a == junctionPts[0] && b == junctionPts[1]) ||
+                                    (a == junctionPts[1] && b == junctionPts[0]))) {
+                        segJJ = si;
+                        break;
+                    }
+                }
+
+                int jSeg[2] = {-1, -1};
+                if (nj == 2) {
+                    for (int j = 0; j < 2; j++) {
+                        int jp = junctionPts[j];
+                        for (int i = 0; i < k; i++) {
+                            int si = compSeg[r][i];
+                            if (si == segJJ) continue;
+                            int a = segs[si].a, b = segs[si].b;
+                            if (a == jp || b == jp) {
+                                int other = (a == jp) ? b : a;
+                                if (other != junctionPts[1 - j]) { jSeg[j] = si; break; }
+                            }
+                        }
+                        if (jSeg[j] == -1) {
+                            /* fallback: any incident segment (excluding segJJ if possible) */
+                            for (int i = 0; i < k; i++) {
+                                int si = compSeg[r][i];
+                                if (si == segJJ) continue;
+                                int a = segs[si].a, b = segs[si].b;
+                                if (a == jp || b == jp) { jSeg[j] = si; break; }
+                            }
+                        }
+                    }
+                }
+
+                /* Compute sidedness of each branch point relative to each junction segment line. */
+                int s1 = 0, s2 = 0;
+                if (nb == 2 && nj == 2 && jSeg[0] != -1 && jSeg[1] != -1) {
+                    for (int j = 0; j < 2; j++) {
+                        int si = jSeg[j];
+                        Pt A = pts[segs[si].a];
+                        Pt B = pts[segs[si].b];
+                        Pt P0 = pts[branchPts[0]];
+                        Pt P1 = pts[branchPts[1]];
+                        int t0 = signLL(crossLL(A, B, P0));
+                        int t1 = signLL(crossLL(A, B, P1));
+                        /* If collinear, treat as 0; otherwise sign indicates side. */
+                        if (j == 0) s1 = (t0 == 0 || t1 == 0) ? 0 : (t0 == t1 ? 1 : -1);
+                        else s2 = (t0 == 0 || t1 == 0) ? 0 : (t0 == t1 ? 1 : -1);
+                    }
+                }
+
+                /* Map to digits 2/5/6 with minimal assumptions:
+                   - If branch points are on opposite sides for both junction lines => 2
+                   - If same side for both => 6
+                   - Otherwise (mixed/collinear/ambiguous) => 5 */
+                if (s1 == -1 && s2 == -1) digit = 2;
+                else if (s1 == 1 && s2 == 1) digit = 6;
+                else digit = 5;
+            } else {
+                digit = 1;
+            }
+
+            out[digit] += k;
+        }
+
+        for (int d = 0; d < 10; d++) {
+            if (d) putchar(' ');
+            printf("%lld", out[d]);
+        }
+        putchar('\n');
+    }
+}

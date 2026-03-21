@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <limits.h>
+
+#define MAXN 101
+
+static long long clamp_ll(long long v, long long lo, long long hi) {
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
+int main(void) {
+    int N;
+    while (scanf("%d", &N) == 1) {
+        if (N == 0) break;
+
+        /* Fixed storage as per specification (at most 101 vertices supported). */
+        long long x[MAXN], y[MAXN];
+
+        for (int i = 0; i < N; i++) {
+            if (scanf("%lld %lld", &x[i], &y[i]) != 2) return 0;
+        }
+
+        long long xmin = LLONG_MAX, xmax = LLONG_MIN;
+        long long ymin = LLONG_MAX, ymax = LLONG_MIN;
+
+        for (int k = 0; k < 4; k++) {
+            long long a, b;
+            if (scanf("%lld %lld", &a, &b) != 2) return 0;
+            if (a < xmin) xmin = a;
+            if (a > xmax) xmax = a;
+            if (b < ymin) ymin = b;
+            if (b > ymax) ymax = b;
+        }
+
+        long long cur = 0;
+        long long win = 0;
+
+        for (int i = 0; i < N; i++) {
+            int j = (i + 1) % N;
+
+            if (x[i] == x[j]) {
+                /* Original contribution */
+                cur += x[i] * (y[i] - y[j]);
+
+                /* Independently clamped contribution */
+                long long a = clamp_ll(x[i], xmin, xmax);
+                long long b = clamp_ll(y[i], ymin, ymax);
+                long long c = clamp_ll(y[j], ymin, ymax);
+                win += a * (b - c);
+            }
+        }
+
+        printf("%lld\n", (long long)(win - cur));
+    }
+
+    return 0;
+}

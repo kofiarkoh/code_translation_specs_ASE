@@ -1,0 +1,67 @@
+#include <stdio.h>
+
+#define MAX_N 13
+#define MAX_VAL 100
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n == 0) break;
+
+        int a[MAX_N];
+        int b[MAX_N];
+
+        for (int i = 0; i < n; i++) {
+            if (scanf("%d", &a[i]) != 1) {
+                /* Malformed/incomplete input: behavior undefined by spec.
+                   Exit to avoid using uninitialized data. */
+                return 0;
+            }
+        }
+
+        int steps = 0;
+
+        for (;;) {
+            int freq[MAX_VAL + 1];
+            for (int v = 0; v <= MAX_VAL; v++) freq[v] = 0;
+
+            /* Count frequencies in current sequence. Values are assumed in [0,100]. */
+            for (int i = 0; i < n; i++) {
+                freq[a[i]]++;
+            }
+
+            /* Build next sequence: per-position frequency of the current value. */
+            for (int i = 0; i < n; i++) {
+                b[i] = freq[a[i]];
+            }
+
+            /* Check fixed point: next equals current. */
+            int same = 1;
+            for (int i = 0; i < n; i++) {
+                if (b[i] != a[i]) {
+                    same = 0;
+                    break;
+                }
+            }
+
+            if (same) {
+                /* No transformation performed in this iteration; fixed point reached. */
+                break;
+            }
+
+            /* Apply transformation. */
+            for (int i = 0; i < n; i++) a[i] = b[i];
+            steps++;
+        }
+
+        /* Output: number of transformations, then fixed-point sequence. */
+        printf("%d\n", steps);
+        for (int i = 0; i < n; i++) {
+            if (i) putchar(' ');
+            printf("%d", a[i]);
+        }
+        putchar('\n');
+    }
+
+    return 0;
+}

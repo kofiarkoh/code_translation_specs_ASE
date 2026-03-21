@@ -1,0 +1,23 @@
+#include <unistd.h>
+#include <stdint.h>
+
+int main(void) {
+    static unsigned char buf[114514];
+
+    ssize_t L = read(0, buf, 114514);
+
+    /* Per specification: no error handling; if L < 2 or read fails, behavior is undefined.
+       We intentionally do not guard against those cases to preserve the specified semantics. */
+
+    ssize_t n = L - 1; /* decrement the read return value */
+    int eq = (buf[0] == buf[n - 1]); /* n-1 == L-2 */
+
+    /* Condition: ((n + eq) & 1) */
+    if (((n + (ssize_t)eq) & 1) != 0) {
+        (void)write(1, "First\n", 6);
+    } else {
+        (void)write(1, "Second\n", 7);
+    }
+
+    return 0;
+}

@@ -1,0 +1,23 @@
+A. Likely mismatch category  
+- Wrong abstraction / wrong transition rule in candidate generation and reachability; plus wrong constraint about which cells are eligible as assignment targets.
+
+B. What the current specification may be missing or misstating  
+- It treats “empty cells” as a special input character (e.g., `.`) and “other characters” as non-traversable, but the source actually treats **any cell that is not `o` as traversable** for movement (including `#`).  
+- It states movement is “down and right”, but the source’s BFS expands using `S[k+1][l]` and `S[k][l+1]` while iterating from a start cell; in grid coordinates this corresponds to **up and right** from the original `o` position (because of the index arithmetic used). So the direction constraint in the spec is likely wrong.  
+- It implies the marked cell remains a marked/non-traversable cell, but the source explicitly does `S[i][j] = '.'` before BFS, meaning the start cell is converted to traversable for pathfinding.  
+- It frames the problem as matching marked cells to “empty cells”, but the source’s candidate targets are **any reachable cells with `dist != -1`**, regardless of whether they were `.` or `#` originally (since BFS only checks `== '.'` after `o` is turned into `.`; `#` is not traversable, but the spec’s generated code also excluded `#` as a target by only enumerating `.` as empties, which is a different notion than the source’s node set and sink connections).
+
+C. What general behavior should be clarified in the specification  
+- Precisely define **which grid characters are traversable** for movement and which cells are eligible as assignment targets (is it all cells, only `.` cells, or something else).  
+- Precisely define the **allowed move directions** in terms of row/column changes (e.g., “increase column and decrease row” vs “increase row and increase column”), not just “down/right”.  
+- Clarify that each `o` cell is **temporarily treated as empty/traversable** during its own reachability computation.  
+- Clarify whether the algorithm requires a **perfect matching of all marked cells** or allows leaving some unassigned; the source builds extra zero-cost edges among “marked nodes” to allow routing flow even when direct assignment edges are missing, which is not captured by the current “pair marked to empty” abstraction.
+
+D. Why this clarification is supported by the source program  
+- Traversability/directions: the BFS transitions are literally
+  - `if (S[k+1][l] == '.') ... q = k*M + l;` (moves to row index `k+1` in the `S` array but maps to cell id `k*M+l`, i.e., one row *up* in the original 1..N indexing), and
+  - `if (S[k][l+1] == '.') ... q = (k-1)*M + l + 1;` (moves right).
+  This is not the same as “down and right” as commonly defined.  
+- Start cell handling: `if (S[i][j] != 'o') continue; else S[i][j] = '.';` shows the `o` cell is converted to `.` before computing distances.  
+- Character semantics: the only check for passability is `== '.'`; since only `o` is rewritten to `.`, other characters (like `#`) remain non-`.` and thus block movement. The spec’s “other characters are non-traversable” is partly aligned for movement, but the spec’s *target set* being “empty cells” is too narrow/underspecified relative to how the flow network is constructed over **all grid cells** (every cell `i` gets an edge to the sink-side node).  
+- Matching/flow model: after creating candidate edges from each `o`-node to up to 100 reachable cells, the source adds a chain of zero-cost edges from a super node to each `o`-node (`N*M+n -> N*M+i`) and also connects **every grid cell** to the sink-side node with capacity 1. This indicates the intended optimization is not simply “match each `o` to a `.` cell” as stated, but a more specific min-cost flow construction that can remain feasible even when some `o` has limited candidates—something the current spec does not capture.

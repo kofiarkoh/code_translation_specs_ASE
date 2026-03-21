@@ -1,0 +1,52 @@
+1. Functional Description  
+Simulates a multi-desk book storage and retrieval process for a set of student requests. For each requested book occurrence (ordered by request position within a student, then by student index), it performs the necessary moves to make that book available at the primary desk, applying a fixed-capacity constraint per desk and a deterministic replacement policy when the primary desk is full. It outputs the total accumulated move cost over all processed requests.
+
+2. Inputs  
+For each test case:  
+- An integer count of auxiliary desks.  
+- An integer capacity per desk (maximum number of books each desk can hold).  
+- An integer number of students.  
+- For each student: an integer count of requested books, followed by that many book identifiers.  
+Test cases repeat until a non-positive auxiliary-desk count is provided.
+
+Assumption: Book identifiers are positive and within a bounded small range.
+
+3. Outputs  
+For each test case, outputs a single integer: the total move cost accumulated while processing all request occurrences under the defined rules.
+
+4. Preconditions  
+- The number of auxiliary desks is within a small fixed bound.  
+- Desk capacity is non-negative and within a small fixed bound.  
+- Total number of requested book occurrences across all students is within a fixed bound.  
+- Book identifiers fall within a fixed bound and are positive.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each test case:  
+- All request occurrences are processed in a total order: increasing request index within a student, breaking ties by increasing student index.  
+- After processing each occurrence, the requested book is present at the primary desk.  
+- The reported total equals the sum of all individual move costs incurred by removals and insertions performed during processing.
+
+6. Invariants  
+- At all times, each book that has been introduced into the system is stored in exactly one desk position.  
+- No desk ever exceeds the configured capacity.  
+- Within each desk, books occupy a contiguous sequence of positions from the front to the current size.  
+- The primary desk is the designated target location for every requested book after its occurrence is processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Behavior is undefined if preconditions are violated (e.g., out-of-range identifiers, exceeding fixed bounds, malformed input).  
+- If capacity is zero, the behavior implied by the code may become invalid due to attempts to store books despite zero capacity; such cases are outside the guaranteed contract.
+
+8. State Transitions (if applicable)  
+For each request occurrence of a book:  
+- The book is removed from its current desk, incurring a cost equal to that desk’s index.  
+- If the primary desk is at capacity, a replacement sequence occurs:  
+  - The requested book is temporarily placed into the first auxiliary desk (lowest index) that is not full, incurring a cost equal to that desk’s index.  
+  - The oldest book at the primary desk (front position) is evicted, incurring a cost equal to the primary desk’s index.  
+  - The evicted book is placed into the first auxiliary desk (lowest index) that is not full after accounting for the temporary placement, incurring a cost equal to that desk’s index.  
+  - The temporary placement is undone so the requested book can be placed at the primary desk; this contributes additional cost equal to the indices of the desks involved as implied by the net effect of the sequence.  
+- The requested book is then placed at the back of the primary desk, incurring a cost equal to the primary desk’s index.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small fixed maximum sizes for desks, capacity, number of requests, and identifier range; uses bounded in-memory storage accordingly.  
+- Produces one output line per test case and does not retain state between test cases beyond what is required to compute that case’s result.

@@ -1,0 +1,82 @@
+#include <stdio.h>
+
+#define MAXN 101
+#define QMAX (MAXN * MAXN)
+
+typedef struct {
+    int x, y;
+} Node;
+
+int main(void) {
+    int w, h;
+    static char grid[MAXN][MAXN];
+    static int c[MAXN][MAXN];
+    static Node q[QMAX];
+
+    while (scanf("%d %d", &w, &h) == 2) {
+        if (w == 0 && h == 0) break;
+
+        int sx = 0, sy = 0; /* last '&' in row-major order */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                char ch;
+                /* leading whitespace skipped */
+                if (scanf(" %c", &ch) != 1) return 0; /* unspecified by spec; just stop */
+                if (ch == '&') {
+                    sx = x;
+                    sy = y;
+                    ch = '.'; /* immediately treated as '.' for comparisons */
+                }
+                grid[y][x] = ch;
+                c[y][x] = 0; /* unreached */
+            }
+        }
+
+        /* Start cell initial cost is 1 (not 0). */
+        c[sy][sx] = 1;
+
+        int head = 0, tail = 0;
+        q[tail++] = (Node){sx, sy};
+
+        while (head != tail) {
+            Node u = q[head++];
+            if (head == QMAX) head = 0;
+
+            int ux = u.x, uy = u.y;
+            int cu = c[uy][ux];
+
+            /* Four orthogonal neighbors */
+            static const int dx[4] = {0, 1, 0, -1};
+            static const int dy[4] = {-1, 0, 1, 0};
+
+            for (int k = 0; k < 4; k++) {
+                int vx = ux + dx[k];
+                int vy = uy + dy[k];
+                if (vx < 0 || vx >= w || vy < 0 || vy >= h) continue;
+
+                int cand = (grid[uy][ux] == grid[vy][vx]) ? cu : (cu + 1);
+
+                if (c[vy][vx] == 0 || cand < c[vy][vx]) {
+                    c[vy][vx] = cand;
+                    q[tail++] = (Node){vx, vy};
+                    if (tail == QMAX) tail = 0;
+                    /* Spec does not define behavior on queue overflow; with limits it should not occur. */
+                }
+            }
+        }
+
+        /* Minimum over boundary cells of c[cell] / 2 (integer division). */
+        int best = 0; /* 0 means unset here; boundary cells should be reached under spec assumptions */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (!(y == 0 || y == h - 1 || x == 0 || x == w - 1)) continue;
+                int val = c[y][x] / 2;
+                if (best == 0 || val < best) best = val;
+            }
+        }
+
+        printf("%d\n", best);
+    }
+
+    return 0;
+}

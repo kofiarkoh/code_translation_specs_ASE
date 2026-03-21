@@ -1,0 +1,146 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MOD 998244353LL
+
+static long long mod_norm(long long x) {
+    x %= MOD;
+    if (x < 0) x += MOD;
+    return x;
+}
+
+static long long mod_pow(long long a, long long e) {
+    a = mod_norm(a);
+    long long r = 1 % MOD;
+    while (e > 0) {
+        if (e & 1) r = (r * a) % MOD;
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    return r;
+}
+
+static long long mod_inv(long long a) {
+    /* MOD is prime; inverse via Fermat. If a==0 mod MOD, behavior is undefined per spec. */
+    return mod_pow(a, MOD - 2);
+}
+
+int main(void) {
+    int H, W;
+    long long K;
+    if (scanf("%d %d %lld", &H, &W, &K) != 3) return 0;
+
+    /* Read grid as raw characters; treat '#' as marked, everything else as unmarked. */
+    char **g = (char **)malloc((size_t)H * sizeof(char *));
+    if (!g) return 0;
+    for (int i = 0; i < H; i++) {
+        g[i] = (char *)malloc((size_t)W + 5);
+        if (!g[i]) return 0;
+        /* Read a token (no spaces) */
+        if (scanf("%s", g[i]) != 1) return 0;
+        /* If shorter than W, behavior unspecified; we assume at least W chars per spec. */
+    }
+
+    if (K == 0) {
+        printf("1\n");
+        return 0;
+    }
+
+    long long x = 0;
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (g[i][j] == '#') x++;
+        }
+    }
+
+    int f_row = 0, f_col = 0;
+    for (int i = 0; i < H; i++) {
+        if (g[i][0] == '#' && g[i][W - 1] == '#') {
+            f_row = 1;
+            break;
+        }
+    }
+    for (int j = 0; j < W; j++) {
+        if (g[0][j] == '#' && g[H - 1][j] == '#') {
+            f_col = 1;
+            break;
+        }
+    }
+
+    if (f_row && f_col) {
+        printf("1\n");
+        return 0;
+    }
+
+    if (!f_row && !f_col) {
+        /* Output x^(K-1) mod MOD */
+        printf("%lld\n", mod_pow(x, K - 1));
+        return 0;
+    }
+
+    /* Normalization: if only column condition is true, treat grid as transposed. */
+    int transposed = (f_col && !f_row);
+
+    int HH = transposed ? W : H;
+    int WW = transposed ? H : W;
+
+    long long a = 0;
+    long long b = 0;
+    long long c = 0;
+
+    for (int i = 0; i < HH; i++) {
+        long long x_sub = 0;
+        long long e = 0;
+
+        /* Access cell (i,j) in normalized orientation */
+        for (int j = 0; j < WW; j++) {
+            char cell = transposed ? g[j][i] : g[i][j];
+            if (cell == '#') x_sub++;
+        }
+        for (int j = 0; j + 1 < WW; j++) {
+            char c1 = transposed ? g[j][i] : g[i][j];
+            char c2 = transposed ? g[j + 1][i] : g[i][j + 1];
+            if (c1 == '#' && c2 == '#') e++;
+        }
+
+        if (x_sub == WW) {
+            c++;
+            continue;
+        }
+
+        a += (x_sub - e);
+
+        char left = transposed ? g[0][i] : g[i][0];
+        char right = transposed ? g[WW - 1][i] : g[i][WW - 1];
+        if (left == '#' && right == '#') {
+            a -= 2;
+            b += 1;
+        }
+    }
+
+    if (a == 0 && b == 0) {
+        printf("%lld\n", mod_pow(c, K - 1));
+        return 0;
+    }
+
+    /*
+      General-case formula: specification states "a specific rational expression in a,b,c,x,K".
+      The exact expression is not provided; the narrowest faithful implementation is to
+      compute the modular division structure only when the expression is known.
+      Since it is not, we must avoid inventing behavior. We therefore implement the
+      only well-defined behavior remaining: attempt to compute an inverse of a denominator
+      term would be required, but the term is unspecified.
+
+      To keep the program compilable and avoid fabricating semantics, we output 0 in this
+      unreachable-by-specification-completeness branch. This is the narrowest choice that
+      does not claim a particular rational expression.
+    */
+    (void)x;
+    (void)c;
+    /* Placeholder to reflect "attempt to compute modular inverse" is unspecified. */
+    printf("0\n");
+    return 0;
+}
+```

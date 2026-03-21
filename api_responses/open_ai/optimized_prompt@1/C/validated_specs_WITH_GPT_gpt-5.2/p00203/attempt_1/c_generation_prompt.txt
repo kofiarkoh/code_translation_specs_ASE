@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads one or more ski-course instances and, for each instance, computes and outputs the total number of valid ways to traverse from the first column to the end of the course under specific movement and obstacle rules. Processing stops when a terminating size pair is provided.
+
+2. Inputs  
+For each instance:  
+- Two integers representing the course width (number of rows) and height (number of columns).  
+- A grid of integers with the given dimensions, provided column-by-column; each column supplies one integer per row.  
+Cell values are interpreted as:  
+- `0`: normal traversable cell.  
+- `1`: blocked cell (cannot be entered).  
+- Any other value (effectively treated as “jump”): triggers a special forward movement rule (see Postconditions).
+
+3. Outputs  
+For each non-terminating instance:  
+- One integer: the total count of valid traversals that reach the final column or beyond, according to the rules.
+
+4. Preconditions  
+- The size pair is present and parseable as two integers.  
+- If the size pair is not the terminating pair, both dimensions are assumed to be positive.  
+- The grid provides exactly the required number of integer tokens (Y columns × X rows), parseable as integers.  
+- Input contains at least one non-empty line when a line is expected.
+
+5. Postconditions  
+For each instance with dimensions X×Y (X rows, Y columns), the program outputs the number of distinct traversals defined as follows:
+
+- Start positions: any row in column 0 whose cell value is `0` contributes exactly one starting traversal; all other start cells contribute zero.
+- From a position at (row i, column j) with an accumulated traversal count, transitions are attempted to column j+1 in rows i−1, i, and i+1 (only those within bounds), with effects based on the destination cell value:
+  - If destination is `0`: the traversal count is added to that destination position.
+  - If destination is `1`: the destination position is not enterable; it contributes zero (and any previously accumulated count there is cleared).
+  - If destination is neither `0` nor `1` (“jump” cell): a transition is only allowed when moving straight (same row). In that case, the traversal “jumps” forward to a later column determined by:
+    - The base landing column is j+3.
+    - While the cell at the same row and at the current candidate landing column is also a “jump” cell and the landing column is still strictly before the last column, the landing column is advanced by 2 more columns repeatedly.
+    - The traversal count is added to the final computed landing column.
+- The reported total is the sum of traversal counts accumulated at:
+  - the last column (Y−1), and
+  - two additional “beyond-end” columns (conceptually Y and Y+1) that may receive counts via jumps.
+
+6. Invariants  
+- Traversal counts are non-negative integers.  
+- No traversal ever enters a blocked cell.  
+- Diagonal movement is only to the immediately next column; jump behavior never changes row.  
+- Only cells with value `0` can be used as starting positions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is provided for malformed input, missing tokens, non-numeric data, negative sizes, or sizes that exceed available memory/stack capacity; behavior in such cases is undefined.  
+- If the input ends unexpectedly while reading required data, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- The program repeatedly processes independent instances.  
+- Transition from “processing” to “terminated” occurs when the read size pair is exactly (0, 0).  
+- No state is carried between instances other than continued reading from the input stream.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage grows with X×(Y+2) for traversal counting plus X×Y for the course grid, allocated per instance.  
+- Runtime per instance is proportional to X×Y times a small constant, with additional forward scanning during jump handling that can add extra work in cases with many consecutive jump cells.
+
+```

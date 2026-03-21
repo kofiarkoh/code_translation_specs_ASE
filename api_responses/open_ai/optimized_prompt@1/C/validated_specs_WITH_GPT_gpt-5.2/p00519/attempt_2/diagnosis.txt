@@ -1,0 +1,15 @@
+A. Likely mismatch category  
+Wrong input interpretation / wrong indexing convention (off-by-one in graph endpoints), leading to wrong reachability and thus wrong termination/output behavior.
+
+B. What the current specification may be missing or misstating  
+- It does not state whether road endpoints in the input are **0-based or 1-based** indices.  
+- It implicitly assumes “town indices identifying an undirected connection” are already valid array indices, but the source program **decrements** each endpoint (`A--; B--;`), meaning the input uses **1-based** town numbering.
+
+C. What general behavior should be clarified in the specification  
+- Explicitly define the input town numbering for roads (and, by extension, what “first town” and “last town” correspond to in the input): the program reads roads as 1..N and converts them to internal 0..N−1.  
+- Clarify that the start is internal town 0 (input town 1) and the destination is internal town N−1 (input town N).  
+- Clarify that if this indexing convention is not followed, behavior is not as specified (it may treat the destination as unreachable and print nothing).
+
+D. Why this clarification is supported by the source program  
+- In the source, each road line is read into `A,B` and then immediately converted with `A--; B--;` before being stored in adjacency lists. This is a strong indicator that the intended input format numbers towns from **1** to **N**.  
+- The generated program does not perform this conversion and therefore builds a different graph (potentially leaving town 0 disconnected and/or misplacing edges), which can cause the destination to appear unreachable and produce no output—matching the observed failure pattern.

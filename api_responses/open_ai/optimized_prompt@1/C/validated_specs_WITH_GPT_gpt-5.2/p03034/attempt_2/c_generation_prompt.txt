@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of signed 64-bit integers and computes the maximum value of a running cumulative sum obtained by repeatedly adding pairs of elements chosen from the sequence according to a fixed step size. For each eligible step size \(d\), the process starts with two pointers at the ends (left at index 0, right at index \(n-1\)), then repeatedly moves the left pointer forward by \(d\) and the right pointer backward by \(d\), adding the two newly pointed-to elements to a cumulative sum. The program reports the maximum cumulative sum observed at any intermediate step, over all eligible step sizes.
+
+2. Inputs  
+- An integer \(n\) (the number of elements).  
+- \(n\) signed 64-bit integers.
+
+3. Outputs  
+- A single signed 64-bit integer: the maximum cumulative sum encountered during the described pairing process across all eligible step sizes.  
+- The output is at least 0.
+
+4. Preconditions / Assumptions  
+- \(0 \le n \le 100010\).  
+- The input provides at least \(n\) integer values.  
+- Each value fits in signed 64-bit range.  
+- Intermediate cumulative sums and the final maximum are assumed not to overflow signed 64-bit arithmetic.  
+- The program is intended to be compilable as C using standard I/O; 64-bit values are read and written using `long long`-compatible formatting (i.e., `%lld`), consistent with the source.
+
+5. Detailed Behavior / Constraints  
+- The program considers step sizes \(d\) satisfying \(1 \le d\) and \(2d < n-1\). If no such \(d\) exists, the result remains 0.  
+- For a fixed \(d\):  
+  - Initialize `s = 0`, `g = n-1`, and cumulative sum `crr = 0`.  
+  - Repeatedly compute `ns = s + d` and `ng = g - d`.  
+  - Terminate the repetition for this \(d\) *before* performing an addition if any of the following holds:  
+    - `ng <= d` (the next right position would be at or to the left of index \(d\)), or  
+    - `ns == ng` (the next positions would coincide), or  
+    - `ns == g` (the next left position would equal the current right position).  
+  - Otherwise, update `s = ns` and `g = ng`, add `a[s] + a[g]` to `crr`, and update the global maximum with the new `crr`.  
+- The reported answer is the maximum value of `crr` observed after any performed pair-addition across all step sizes; the initial value 0 is also a candidate, so negative cumulative sums never reduce the final result.
+
+6. Postconditions  
+- The output equals the maximum cumulative sum reached at any valid iteration step of the above process over all eligible step sizes, or 0 if no iteration step is performed for any step size.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, insufficient, outside stated bounds, or if arithmetic overflows, behavior is unspecified.
+
+```

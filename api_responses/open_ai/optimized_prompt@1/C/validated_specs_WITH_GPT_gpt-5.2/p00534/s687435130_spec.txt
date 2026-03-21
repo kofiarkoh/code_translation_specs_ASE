@@ -1,0 +1,40 @@
+1. Functional Description  
+Computes the minimum total cost to assign each of `n` items (in fixed order) to a distinct element chosen from `m` available elements (also in fixed order), such that assigned elements are strictly increasing in their order. The cost of assigning item `j` to chosen element `i` is the product of the corresponding item value and element value. Outputs the minimum achievable total cost.
+
+2. Inputs  
+- Two integers:  
+  - `n`: number of items to assign.  
+  - `m`: number of available elements to choose from.  
+- A sequence of `n` integers: item values.  
+- A sequence of `m` integers: element values.
+
+3. Outputs  
+- One integer: the minimum total assignment cost under the constraints described.
+
+4. Preconditions  
+- `1 ≤ n ≤ 1000` and `1 ≤ m ≤ 1000`.  
+- Sufficient input values are provided and are valid integers.  
+- To have a feasible assignment, `m ≥ n`. (If not, the program still produces an output, but it does not correspond to a feasible “assign all items” solution.)  
+- The minimum total cost fits within the range of a signed 32-bit integer; otherwise, arithmetic overflow may occur and the result is not defined by this specification.
+
+5. Postconditions  
+- If `m ≥ n` and no overflow occurs, the output equals:  
+  - the minimum, over all strictly increasing index selections `1 ≤ i1 < i2 < ... < in ≤ m`, of  
+    - `sum_{j=1..n} (item_value[j] * element_value[ij])`.
+
+6. Invariants  
+- Each item is assigned to exactly one chosen element.  
+- Chosen elements are distinct and preserve order (the `j`-th item is assigned to an element with a higher index than the element assigned to the `(j-1)`-th item).  
+- The reported cost is the minimum among all assignments satisfying the above constraints (subject to feasibility and no overflow).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid/missing input.  
+- If `m < n`, the program outputs a large sentinel-like value rather than signaling infeasibility.  
+- If integer overflow occurs during cost computation, the output is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no externally visible state beyond its output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to `m * n`.  
+- Memory usage is proportional to `m * n` for internal storage.

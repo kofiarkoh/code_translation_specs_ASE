@@ -1,0 +1,43 @@
+```c
+#include <stdio.h>
+
+int main(void) {
+    int x1, y1, r1;
+    int x2, y2, r2;
+
+    if (scanf("%d %d %d %d %d %d", &x1, &y1, &r1, &x2, &y2, &r2) != 6) {
+        /* Unspecified behavior per specification if input is malformed/insufficient. */
+        return 0;
+    }
+
+    /* Use wider type for intermediate products while still using integer arithmetic only.
+       Specification assumes no overflow for squared computations and sums/differences. */
+    long long dx = (long long)x1 - (long long)x2;
+    long long dy = (long long)y1 - (long long)y2;
+
+    long long d2 = dx * dx + dy * dy;
+
+    long long sum = (long long)r1 + (long long)r2;
+    long long sum2 = sum * sum;
+
+    long long diff = (long long)r1 - (long long)r2;
+    if (diff < 0) diff = -diff;
+    long long diff2 = diff * diff;
+
+    int code;
+    if (d2 > sum2) {
+        code = 4; /* disjoint */
+    } else if (d2 == sum2) {
+        code = 3; /* externally tangent */
+    } else if (d2 > diff2) {
+        code = 2; /* intersect at two points */
+    } else if (d2 == diff2) {
+        code = 1; /* internally tangent */
+    } else {
+        code = 0; /* one strictly inside the other, no intersection */
+    }
+
+    printf("%d\n", code);
+    return 0;
+}
+```

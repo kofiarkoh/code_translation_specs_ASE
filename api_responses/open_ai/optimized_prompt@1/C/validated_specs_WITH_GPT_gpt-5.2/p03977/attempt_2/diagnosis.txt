@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong termination/record-boundary rule (missing edge case about how records start and when parsing stops).
+
+B. What the current specification may be missing or misstating  
+The spec says each record consists of “two non-negative decimal integers separated by at least one non-digit character (< '0')”, and the generated code enforces that by requiring a separator between N and D and by skipping separators before attempting to parse N.  
+But the source program does **not** enforce “at least one separator” between N and D, and it does **not** skip separators before starting a record. Instead, it always attempts to parse N and then D using “read digits until a non-digit (< '0')”, consuming exactly one delimiter after each number, and it continues as long as the next character is a digit.
+
+C. What general behavior should be clarified in the specification  
+- Record parsing is driven by a pointer that, after skipping the initial digit run, processes records only while the current character is a digit (`>= '0'`).  
+- For each record, the program:
+  - Parses N by consuming consecutive digits, then consumes exactly one following non-digit (the first delimiter) as the terminator.
+  - Immediately parses D starting at the next position, again consuming digits until the next non-digit terminator.
+- There is **no requirement** that there be one-or-more delimiters between N and D beyond the single terminator character that ended N; and there is **no general “skip arbitrary separators to find the next record”** behavior. If the current position is not a digit, record processing ends.
+
+D. Why this clarification is supported by the source program  
+- The outer loop condition is `while(buf[sz]>='0')`, so processing stops as soon as the current byte is not a digit; it does not skip forward over separators to find the next record.  
+- N parsing: `char k=buf[sz++]; if(k<'0')break;` consumes digits and stops on the first `< '0'`, leaving `sz` positioned *after* that delimiter.  
+- D parsing is identical and begins immediately after N’s terminator; there is no separate step requiring or skipping “at least one separator” between N and D.  
+- Therefore, a spec that requires explicit separators between N and D and/or allows skipping separators between records can diverge from the source’s actual stop/continue behavior, which is tightly coupled to `buf[sz] >= '0'` at record boundaries.

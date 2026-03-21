@@ -1,0 +1,22 @@
+A. Likely mismatch category  
+Wrong abstraction / underspecified transition and termination rules (missing concrete constants and state-update logic).
+
+B. What the current specification may be missing or misstating  
+- It does not pin down the *actual coordinate system* used by the source (scaled integer coordinates with half-cell offsets), so “bounded square region” and “coarse grid” are too vague to implement.  
+- It omits the *exact initial state*: starting position `(50,0)`, initial direction index `d=0`, initial alternation value `v=1`, and the `wall` flag behavior.  
+- It does not specify the *step size and direction set*: the ray moves by `(±50, ±50)` each step (not an arbitrary “equal diagonal step”).  
+- It does not specify how mirror inputs map to stored segments: token `'x'` creates a segment between `(x,y)` and `(x+1,y)` in grid-index space; otherwise (e.g., `'y'`) between `(x,y)` and `(x,y+1)`.  
+- It does not specify the *alternating mirror-check geometry*: on alternating steps, the code checks different segment orientations using different index formulas involving `x/100`, `(y±50)/100`, etc.  
+- It does not specify the *reflection mapping*: direction changes via a fixed table `tr[2][4]` depending on alternation state.  
+- It is vague/incorrect about termination: boundary termination depends on a `wall` flag that is reset each step and cleared only when a reflection occurs; boundary checks are only applied after at least two iterations and only if `wall` is true.  
+- It does not specify the *special target state* precisely: after at least two iterations, if `(x,y,d)==(100,50,0)` then output is forced to `(75,25)` (not just “a particular position and direction” in the abstract).
+
+C. What general behavior should be clarified in the specification  
+- The exact numeric lattice/units (50/100 scaling), region limits (0..800 checks plus special-case `x==100 && y==50 && d==0`), and when those checks are applied (`i>=2`).  
+- The full per-step update order: toggle alternation, move, set `wall=1`, then conditionally reflect and set `wall=0` if a mirror is hit.  
+- The precise mirror-hit tests (which depend on alternation and use half-cell offsets) and the exact direction-transition table for reflections.  
+- The exact interpretation of mirror type tokens (`'x'` vs “not x”) and how they correspond to horizontal/vertical segments in the internal grid.
+
+D. Why this clarification is supported by the source program  
+- The source hard-codes all of these constants and rules: `mv` defines `(±50,±50)` steps; initialization sets `x=50,y=0,d=0,wall=1`; the loop toggles `v` each iteration; mirror checks use the two distinct index expressions gated by `v`; reflections use `tr[v][d]` and clear `wall`; termination explicitly depends on `i>=2`, the special state `(100,50,0)` mapping to `(75,25)`, and boundary checks `(!x || !y || x==800 || y==800)` only when `wall` is true.  
+- Because the current specification leaves these concrete mechanics unspecified, a generated implementation cannot reproduce outputs like `250 0` for the sample; the mismatch is therefore systemic (missing core semantics), not a one-off edge case.

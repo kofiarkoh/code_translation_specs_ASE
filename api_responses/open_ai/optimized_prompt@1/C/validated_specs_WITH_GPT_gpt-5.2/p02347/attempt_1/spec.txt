@@ -1,0 +1,43 @@
+1. Functional Description  
+Builds an index over a fixed set of 2D points and answers multiple orthogonal range queries. For each query rectangle, it reports the identifiers of all points whose coordinates lie within the rectangle (inclusive), sorted in ascending identifier order, followed by a blank line.
+
+2. Inputs  
+- An integer specifying the number of points.  
+- For each point: two integers representing its x- and y-coordinates.  
+- An integer specifying the number of queries.  
+- For each query: four integers defining an axis-aligned rectangle by x-range and y-range bounds.
+
+3. Outputs  
+For each query:  
+- Zero or more lines, each containing the identifier of a point inside the query rectangle, in strictly nondecreasing order.  
+- A single empty line after the listed identifiers (even if none are listed).
+
+4. Preconditions  
+- The number of points is between 0 and a fixed maximum capacity (inclusive).  
+- The number of queries is nonnegative.  
+- All required input values are present and parseable as integers.  
+- Query bounds are intended to satisfy lower bound ≤ upper bound for both axes; if not, the effective result is unspecified by the program’s contract.
+
+5. Postconditions  
+- Each point is assigned a unique identifier equal to its original input position (0-based).  
+- For each query rectangle [sx, tx] × [sy, ty], the output set equals exactly the set of identifiers of points (from the original input set) whose x is in [sx, tx] and y is in [sy, ty].  
+- The identifiers printed for a query are sorted ascending.  
+- No identifier is printed more than once for a given query.
+
+6. Invariants  
+- The set of points considered for all queries is exactly the initial input set; point coordinates and identifiers do not change across queries.  
+- For any query, the collected identifiers correspond only to points that satisfy the query’s inclusive bounds.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input is missing/malformed, or if the number of points exceeds capacity, behavior is undefined (may crash, produce incorrect output, or exhibit other failures).  
+- If internal recursion depth exceeds system limits (e.g., stack exhaustion), behavior is undefined.
+
+8. State Transitions (if applicable)  
+- After reading points, the program transitions to an indexed state used for all subsequent queries.  
+- For each query, a per-query result buffer is cleared, populated with matching point identifiers, sorted, printed, and then discarded before the next query.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size storage proportional to the maximum point capacity.  
+- Query processing is deterministic for a given input.  
+- Uses recursion; maximum supported input size may be constrained by available call stack.

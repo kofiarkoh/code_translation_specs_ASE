@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given a length `N` and a sequence of `N` nonnegative integer quantities, computes the total number of pairs formed by a left-to-right greedy process. At each position `i`, it first forms as many internal pairs as possible from that position alone (each internal pair consumes 2 units from `A[i]`). Then, if `A[i]` has exactly one unit remaining (i.e., is odd after internal pairing) and the immediate right neighbor `A[i+1]` has at least 2 units available at that moment, it forms exactly one adjacent pair by consuming 1 unit from `A[i]` and 1 unit from `A[i+1]`. The program outputs the final accumulated pair count.
+
+This specification describes the program’s actual behavior; it does not claim global optimality beyond this greedy procedure.
+
+2. Inputs  
+- An integer `N`.  
+- A sequence of `N` integer quantities `A[1]..A[N]`.
+
+3. Outputs  
+- A single integer value: the total number of pairs counted by the procedure.
+
+4. Preconditions / Assumptions  
+- `1 <= N <= 100000`.  
+- Each quantity fits in a signed 64-bit C integer type used by the program (`long long`).  
+- Quantities are assumed to be nonnegative; behavior is unspecified if negative values are provided.  
+- The final count fits in a signed 64-bit `long long`.
+
+5. Pair-Counting Rules (as implemented)  
+- Internal pairing at position `i`: contributes `floor(A[i] / 2)` pairs and conceptually leaves `A[i] mod 2` units at `i`.  
+- Adjacent pairing between `i` and `i+1` (for `i = 1..N-1`): after internal pairing at `i`, if `A[i]` is odd and `A[i+1] > 1`, then exactly one additional pair is formed; this decrements `A[i+1]` by 1 and consumes the remaining 1 unit from `A[i]`. No other adjacent pairing is attempted for that boundary.  
+- After processing boundaries up to `N-1`, internal pairing is also applied to the final position `N` using its (possibly decremented) value.
+
+6. State Transitions / Ordering  
+- Processing is strictly left-to-right from `i = 1` to `N-1`.  
+- The only mutation of the input sequence is that `A[i+1]` may be decremented by 1 when an adjacent pair is formed at boundary `(i, i+1)`. Earlier positions are not revisited.  
+- The running total of pairs only increases.
+
+7. Termination Behavior  
+- The program always terminates after a single pass over the sequence and prints the computed count followed by a newline.
+
+8. I/O and Representation Requirements (to match the source program)  
+- The implementation reads `N` with `scanf("%d", &N)` and reads each quantity with `scanf("%lld", ...)` into a `long long`.  
+- The result is printed as a `long long` using `printf("%lld\n", ans)`.  
+- No explicit error handling is performed for malformed or insufficient input; behavior is unspecified if input operations fail.
+
+9. Non-functional Constraints  
+- Time complexity is linear in `N`.  
+- Memory usage is bounded by storage for up to `100000` 64-bit quantities plus a small constant amount of additional state.
+
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the length of a longest strictly increasing subsequence of a given integer sequence.
+
+2. Inputs  
+- An integer `n`: the number of elements in the sequence.  
+- A sequence of `n` integers.
+
+3. Outputs  
+- A single integer: the length of a longest strictly increasing subsequence in the input sequence.
+
+4. Preconditions  
+- `n` is expected to be at least 1.  
+- `n` is expected to be no greater than 100000.  
+- The input provides at least `n` integers following `n`.  
+- Assumption: the first element of the sequence is not less than -1; otherwise the result may be incorrect.
+
+5. Postconditions  
+- The program outputs an integer `L` such that `L` equals the maximum possible length of any strictly increasing subsequence of the provided sequence (under the stated assumptions).  
+- `1 <= L <= n`.
+
+6. Invariants  
+- At all times during processing, the maintained candidate tail values for increasing subsequences are in non-decreasing order.  
+- The reported length corresponds to the number of candidate subsequence lengths currently represented.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates preconditions (including `n` out of range or the first element less than -1), behavior and/or output correctness is not guaranteed.
+
+8. State Transitions (if applicable)  
+- The computation maintains a single evolving state representing the best-known achievable tail values for increasing subsequences of various lengths; this state is updated once per input element.  
+- The final state determines the single output value (the subsequence length).
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 100000 elements within fixed memory bounds proportional to `n`.  
+- Time complexity is proportional to `n` times the logarithm of `n` (due to repeated searching within the maintained state).
+
+```

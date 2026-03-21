@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Maintains a dynamic sequence of integers that supports insertion, removal, and order-statistic queries over two logical partitions of the sequence: a “first half” and a “second half”. The structure guarantees that the first half has size greater than or equal to the second half, and their sizes differ by at most one. It can return the k-th smallest or k-th largest value within either half, and can remove and return one element from the sequence according to the structure’s defined removal rule.
+
+2. Inputs  
+- One or more test cases.  
+- Each test case begins with an integer count of operations. A count of zero terminates all processing.  
+- Each operation is specified by an operation code, optionally followed by an integer parameter (either a value to insert or an index k for a query), depending on the operation code.
+
+3. Outputs  
+- For each operation that is not an insertion, outputs a single integer result on its own line.  
+- After completing all operations of a test case, outputs a single line containing the literal word `end`.
+
+4. Preconditions  
+- For each test case, the number of operations is non-negative and fits within the implementation’s fixed capacity.  
+- Any query that requests the k-th smallest/largest element within a half uses a positive k that does not exceed the current size of that half.  
+- Any removal operation is only issued when the overall sequence is non-empty.  
+- Inserted and returned integer values fit within the integer range used by the program.
+
+5. Postconditions  
+For each test case, after each operation:  
+- Insertion: the inserted value becomes part of the overall sequence, and the two halves are rebalanced so that:  
+  - size(first half) ≥ size(second half)  
+  - size(first half) − size(second half) ≤ 1  
+- Removal: one value is removed from the overall sequence and printed; the halves are rebalanced to preserve the size constraints above. The removed value is the most recently added element among those currently in the first half (i.e., the “top” element of the first half under the structure’s internal ordering).  
+- Minimum/maximum queries: prints the requested order statistic within the specified half without modifying the sequence:  
+  - “k-th smallest in a half” returns the k-th smallest value among elements currently in that half.  
+  - “k-th largest in a half” returns the k-th largest value among elements currently in that half.
+
+6. Invariants  
+- The overall sequence is partitioned into two halves whose union equals the set of stored elements and which are disjoint.  
+- The size relationship between halves is always maintained:  
+  - size(first half) ≥ size(second half)  
+  - size(first half) − size(second half) ≤ 1  
+- For each half, order-statistic queries (k-th smallest/largest) are consistent with the multiset of values currently contained in that half (including duplicates).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., querying with k out of range, removing from an empty structure, exceeding capacity, or malformed input), behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Start of each test case: the sequence is empty.  
+- Insertion transitions the state by adding one element and possibly moving one element from the second half to the first half to restore balance.  
+- Removal transitions the state by removing one element from the first half and possibly moving one element from the second half to the first half to restore balance.  
+- Query operations do not change state.  
+- End of test case: state is discarded and a new empty state is created for the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for a bounded maximum number of stored elements per test case (fixed upper limit).  
+- Intended to support efficient per-operation performance suitable for large operation counts, using additional memory proportional to the maximum capacity.
+
+```

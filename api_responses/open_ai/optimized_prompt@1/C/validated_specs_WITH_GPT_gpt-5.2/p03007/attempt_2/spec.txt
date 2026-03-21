@@ -1,0 +1,66 @@
+1. Functional Description  
+Reads an integer \(n\) and \(n\) signed 64-bit integers, then prints:  
+- A single integer equal to the final value produced by the program’s fixed subtraction-reduction strategy (this value is the maximum achievable final value under repeated “pick two values \(x,y\), replace them by \(x-y\)” operations).  
+- A deterministic sequence of exactly \(n-1\) ordered pairs \((x,y)\) describing the exact subtraction operations performed by that strategy, in the order printed.
+
+Each printed pair \((x,y)\) denotes an operation that consumes two currently available values equal to \(x\) and \(y\) and produces the new value \(x-y\).
+
+2. Inputs  
+- An integer \(n\).  
+- A list of \(n\) signed 64-bit integers.
+
+3. Outputs  
+- Line 1: an integer (the final value produced by the program’s construction).  
+- Lines 2..\(n\): exactly \(n-1\) lines, each containing two integers \(x\) and \(y\), representing the subtraction operation \(x-y\) in the program-defined order.
+
+4. Preconditions / Assumptions  
+- \(n \ge 2\).  
+- All input values fit in signed 64-bit range.  
+- All intermediate values computed by the program’s sequence, and the final value, are assumed to fit in signed 64-bit range; if overflow occurs, behavior is not defined by the code.  
+- No validation is performed for malformed or insufficient input.
+
+5. Core Computation (deterministic construction)  
+
+5.1 Sorting step  
+The program sorts the input array in nondecreasing (ascending) order before constructing the operations. All subsequent logic refers to this sorted order.
+
+Let the sorted array be \(a[0] \le a[1] \le \dots \le a[n-1]\). Let  
+\[
+S = \sum_{i=0}^{n-1} |a[i]|.
+\]
+
+5.2 Printed maximum value (line 1)  
+The first printed value is:
+- If \(a[0] \ge 0\) (all values are non-negative): \(S - 2\cdot a[0]\).  
+- Else if \(a[n-1] \le 0\) (all values are non-positive): \(S + 2\cdot a[n-1]\) (note \(a[n-1]\le 0\)).  
+- Else (mixed signs: at least one negative and at least one non-negative): \(S\).
+
+5.3 Printed operation sequence (lines 2..n)  
+The program prints a specific sequence of \(n-1\) operations depending on the same three sign-distribution cases:
+
+A) All non-negative case (\(a[0]\ge 0\))  
+- Initialize an accumulator \(x := a[0]\).  
+- For each \(i = 1\) to \(n-2\) (in increasing index order), print the pair \((x, a[i])\) and update \(x := x - a[i]\).  
+- Finally print the pair \((a[n-1], x)\).  
+(After these \(n-1\) operations, the remaining value equals the first printed value.)
+
+B) All non-positive case (\(a[n-1]\le 0\))  
+- Initialize an accumulator \(x := a[n-1]\).  
+- For each \(i = 0\) to \(n-2\) (in increasing index order), print the pair \((x, a[i])\) and update \(x := x - a[i]\).  
+(After these \(n-1\) operations, the remaining value equals the first printed value.)
+
+C) Mixed-sign case (some negative, some non-negative)  
+- The program finds the split index \(l\) such that \(a[l] < 0\) and \(a[l+1] \ge 0\) (i.e., \(l\) is the last index containing a negative value). This is done by a binary-search-like loop and is well-defined under the mixed-sign condition.  
+- It then prints operations using a fixed recursive procedure over the sorted array, conceptually maintaining two moving ends \(f\) (from the left) and \(b\) (from the right), and alternating which end is used as the minuend. The procedure prints pairs in a specific order determined solely by the sorted array and the recursion structure, including two explicit base cases:
+  - Base case when the left end reaches the last negative index (\(f = l\)): it performs a linear chain of subtractions starting from \(a[l]\) and subtracting successive elements on the non-negative side, then performs one final subtraction involving \(a[b]\) (the current right end) and the accumulated result; the exact printed order matches the program’s loop structure.
+  - Base case when the right end is immediately to the right of the last negative (\(b = l+1\)): it performs a linear chain starting from \(a[l+1]\) and subtracting elements on the negative side, then performs one final subtraction involving \(a[l]\) and the accumulated result; again, the printed order matches the program’s loop structure.
+  - Recursive step otherwise: it prints one pair using the current extreme values \(a[f]\) and \(a[b]\) (with the order depending on the current alternating “sign” state), recurses inward on \((f+1, b-1)\) with the alternation flipped, then prints one additional pair combining the difference of the extremes with the recursive result.  
+- The total number of printed pairs in this case is exactly \(n-1\), and executing them as stated reduces the multiset to a single value equal to the first printed value.
+
+6. Validity of the printed operations  
+- The program’s printed pairs are intended to be interpreted as operations on a multiset of currently available values: each pair \((x,y)\) must correspond to two values available at that point, and the operation replaces them with \(x-y\).  
+- The printed sequence is constructed so that this reduction is valid and ends after exactly \(n-1\) operations with one remaining value.
+
+7. Termination and formatting  
+- The program always prints exactly \(n\) lines: one line for the final value and \(n-1\) lines of pairs.  
+- No extra text is printed.

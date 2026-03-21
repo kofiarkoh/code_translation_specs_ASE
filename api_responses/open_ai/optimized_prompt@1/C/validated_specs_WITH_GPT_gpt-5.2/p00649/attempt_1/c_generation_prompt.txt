@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, assigns each of up to 10 axis-aligned rectangles a unique positive integer rank from 1 to N, producing a total order over the rectangles. The order is deterministic and depends only on the rectangles’ normalized corner coordinates. The produced ranks define a sequence in which rectangles are considered “selected” according to a geometric rule based on leftmost position and a recursively derived partitioning of the remaining rectangles.
+
+2. Inputs  
+- Zero or more datasets.  
+- Each dataset begins with an integer N.  
+- If N is nonzero, it is followed by N rectangles, each given by four integers representing two opposite corners.  
+- Input terminates when a dataset begins with N = 0.
+
+3. Outputs  
+For each dataset:  
+- N lines, where line i (0-based by input order) contains the assigned rank of the i-th input rectangle.  
+- A blank line is printed between consecutive datasets.
+
+4. Preconditions  
+- N is within the supported fixed capacity (N ≤ 10).  
+- Each rectangle is specified by four integers; coordinates fit within the integer range.  
+- Rectangles are treated as closed axis-aligned boxes after normalization (min/max per axis).  
+- Assumption: Input contains only nonnegative integers (as negative values are not meaningfully handled by the parser).
+
+5. Postconditions  
+For each dataset with N > 0:  
+- Every rectangle receives exactly one rank in the range [1, N].  
+- All ranks are distinct (a permutation of 1..N).  
+- The output rank for each rectangle is stable for the same input dataset (deterministic).  
+- Rectangle corner coordinates are normalized internally so that for each rectangle: x1 ≤ x2 and y1 ≤ y2 before ordering decisions are made.
+
+6. Invariants  
+- At any point during ordering, a rectangle is either unranked or assigned exactly one rank; once ranked, it is never re-ranked.  
+- The global rank counter increases by exactly 1 per rectangle ranked, and never exceeds N.  
+- The set of ranked rectangles and unranked rectangles always forms a partition of the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If N exceeds the fixed capacity, behavior is undefined (may overwrite memory or produce incorrect output).  
+- Malformed input (missing values, non-numeric tokens, negative numbers) leads to undefined or incorrect behavior.  
+- Degenerate rectangles (zero width and/or height) are accepted; ordering is still produced.
+
+8. State Transitions (if applicable)  
+For each dataset:  
+- Initial state: all rectangles unranked; rank counter = 0.  
+- Transition: repeatedly select an unranked rectangle according to the defined geometric ordering rule and assign the next rank, marking it ranked.  
+- Recursive partitioning transitions: after selecting a rectangle, a subset of remaining rectangles that satisfy a derived positional constraint is fully ranked before ranking the rest.  
+- Terminal state: all N rectangles ranked; rank counter = N; results are emitted.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small N (fixed maximum 10); uses recursion and repeated sorting/partitioning but remains bounded and fast for that size.  
+- Memory usage is constant and small, bounded by fixed-size arrays.  
+- Output is deterministic and independent of runtime environment aside from input content.
+
+```

@@ -1,0 +1,254 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 2354 Fractional Knapsack
+// 2018.3.17 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+// library
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	if (c == '-') {	c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+// library
+
+#define ZERO(a)  (fabs(a)<1e-7)
+
+typedef struct { int w, v; double r; } T;
+T tbl[100002]; int sz;
+
+int cmp(T *a, T *b) { if (fabs(b->r - a->r)<1e-8) return 0; if (a->r <= b->r) return 1; return -1; }
+
+int main()
+{
+	int N, i, w, v;
+	double W, x, ans;
+
+	N = in(), W = in();
+	sz = 0, ans = 0;
+	while (N--) {
+		w = in(), v = in();
+		if (w >= 0 && v <= 0) continue;
+		if (w < 0 && v > 0) ans += v, W -= w;
+		else {
+			if ( w < 0) w = -w, v = -v, ans -= v, W += w; 
+			tbl[sz].w = w, tbl[sz].v = v, tbl[sz++].r = (double)v/w;
+		} 
+	}
+	qsort(tbl, sz, sizeof(T), cmp);
+
+	for (i = 0; i < sz && !ZERO(W); i++) {
+		x = W/tbl[i].w;	if (x > 1) x = 1;
+		W -= x*tbl[i].w, ans += x*tbl[i].v;
+	}
+	printf("%lf\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes the maximum achievable total value from a set of items under a single capacity constraint, where each item may be taken fractionally. Items may have negative weight and/or negative value; the program applies the implied effects of such items on total value and effective capacity and then optimizes the remaining selection to maximize total value.
+
+2. Inputs  
+- An integer count of items.  
+- A numeric capacity value.  
+- For each item: an integer weight and an integer value.
+
+3. Outputs  
+- A single real number: the computed maximum total value achievable under the effective capacity after accounting for special-case items.
+
+4. Preconditions  
+- The number of items does not exceed the fixed internal storage limit (100002).  
+- Input is well-formed and provides all required numbers.  
+- For any item that is considered for fractional selection, its effective weight is non-zero (to avoid undefined value-to-weight ratio).  
+- Assumption (due to lack of explicit handling): the intended problem domain is such that the greedy fractional-knapsack strategy by value density is valid for the remaining items (i.e., linear fractional selection with a single capacity constraint).
+
+5. Postconditions  
+- The output equals the sum of:  
+  - The values of all items with negative weight and positive value, fully included, and  
+  - The optimal value obtainable by selecting fractions of the remaining considered items subject to the resulting effective capacity.  
+- Items with non-negative weight and non-positive value do not affect the result (they are effectively ignored).  
+- For all other items, the solution corresponds to a feasible fractional selection that does not exceed the effective capacity (up to a small numerical tolerance).
+
+6. Invariants  
+- The accumulated total value reflects the contribution of all fully included special-case items plus the contributions of any fractions selected so far.  
+- The effective remaining capacity is updated consistently with any fully included special-case items and with any fractions selected so far.  
+- During fractional selection, no item is taken in a proportion less than 0 or greater than 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., too many items, zero effective weight for a ratio-based item, malformed input), behavior is undefined (may crash, produce incorrect output, or exhibit other unintended behavior).  
+- Floating-point rounding may cause small deviations; the algorithm treats very small remaining capacity as zero.
+
+8. State Transitions (if applicable)  
+- Initial state: total value is zero; effective capacity is the input capacity.  
+- After reading all items: total value and effective capacity may be adjusted by fully including certain items; a set of remaining candidate items is established for fractional optimization.  
+- After optimization: total value is finalized and emitted; program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting the candidate items, typically proportional to the number of candidates times the logarithm of that number.  
+- Uses floating-point arithmetic; results are subject to typical double-precision rounding behavior and a small tolerance when deciding whether remaining capacity is effectively zero.  
+- Memory usage is bounded by storage for up to 100002 candidate items.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 100002
+
+typedef struct {
+    int w;
+    int v;
+    double d; /* value density v / w */
+} Item;
+
+static int cmp_item_desc_density(const void *a, const void *b) {
+    const Item *ia = (const Item *)a;
+    const Item *ib = (const Item *)b;
+    /* Sort by descending density. */
+    if (ia->d > ib->d) return -1;
+    if (ia->d < ib->d) return 1;
+    return 0;
+}
+
+int main(void) {
+    int n;
+    double cap;
+
+    if (scanf("%d", &n) != 1) return 0;
+    if (scanf("%lf", &cap) != 1) return 0;
+
+    /* Fixed internal storage limit per spec; if violated, behavior is undefined.
+       We still allocate fixed-size storage and proceed. */
+    static Item items[MAXN];
+    int m = 0;
+
+    double total = 0.0;
+    double eff_cap = cap;
+
+    for (int i = 0; i < n; i++) {
+        int w, v;
+        if (scanf("%d %d", &w, &v) != 2) return 0;
+
+        if (w < 0 && v > 0) {
+            /* Fully include: increases total value; negative weight increases effective capacity. */
+            total += (double)v;
+            eff_cap -= (double)w; /* subtracting negative adds capacity */
+        } else if (w >= 0 && v <= 0) {
+            /* Ignored per spec. */
+        } else {
+            /* Candidate for fractional optimization.
+               Preconditions state any such item has non-zero effective weight. */
+            items[m].w = w;
+            items[m].v = v;
+            items[m].d = (double)v / (double)w;
+            m++;
+        }
+    }
+
+    qsort(items, (size_t)m, sizeof(items[0]), cmp_item_desc_density);
+
+    /* Greedy fractional knapsack on remaining candidates. */
+    const double EPS = 1e-12;
+    for (int i = 0; i < m; i++) {
+        if (eff_cap <= EPS) break;
+
+        double w = (double)items[i].w;
+        double v = (double)items[i].v;
+
+        if (w <= eff_cap) {
+            /* Take whole item. */
+            total += v;
+            eff_cap -= w;
+        } else {
+            /* Take fraction. */
+            double frac = eff_cap / w; /* precondition implies w != 0 */
+            if (frac < 0.0) frac = 0.0; /* enforce invariant bounds narrowly */
+            if (frac > 1.0) frac = 1.0;
+            total += v * frac;
+            eff_cap = 0.0;
+            break;
+        }
+    }
+
+    /* Output a single real number. */
+    printf("%.10f\n", total);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_output.txt
+Input:
+5 50
+10 60
+20 100
+30 120
+40 240
+50 300
+Expected:
+300.000000
+Actual:
+300.0000000000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

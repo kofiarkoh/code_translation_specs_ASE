@@ -1,0 +1,146 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+
+int main(void)
+{
+	int n;
+	int i, j;
+	int depature;
+	int arrival;
+	int time[24 * 3600];
+	int hour, min, sec;
+	int max;
+	
+	while (1){
+		scanf("%d", &n);
+		if (n == 0){
+			break;
+		}
+
+		memset(time, 0, sizeof(time));
+		
+		for (i = 0; i < n; i++){
+			scanf("%d:%d:%d", &hour, &min, &sec);
+			depature = hour * 3600 + min * 60 + sec;
+			
+			scanf("%d:%d:%d", &hour, &min, &sec);
+			arrival = hour * 3600 + min * 60 + sec;
+
+			for (j = depature; j < arrival; j++){
+				time[j]++;
+			}
+
+		}
+		
+		max = 0;
+		for (i = 0; i < 24 * 3600; i++){
+			if (max < time[i]){
+				max = time[i];
+			}
+		}
+		
+		printf("%d\n", max);
+	}
+	
+	return (0);
+}
+	
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads multiple datasets. For each dataset, it computes the maximum number of intervals that overlap at any second within a single 24-hour day, where each interval contributes to all whole seconds from its start time (inclusive) up to its end time (exclusive). Outputs that maximum overlap for each dataset.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer count of intervals.  
+- If the count is nonzero, it is followed by that many pairs of times-of-day (start time and end time), each expressed as hour, minute, and second components.
+
+3. Outputs  
+- For each non-terminating dataset, one line containing a single integer: the maximum number of simultaneously active intervals at any second of the day.
+
+4. Preconditions  
+- The input is well-formed according to the described dataset structure.  
+- Each time-of-day represents a second within a 24-hour day.  
+- For every interval, the end time is not earlier than the start time, and both lie within the same day (no wrap across midnight).  
+- The number of intervals is nonnegative.
+
+5. Postconditions  
+For each dataset with interval count `n > 0`, the program outputs an integer equal to:  
+- the maximum, over all seconds in the day, of the number of intervals whose start time is less than or equal to that second and whose end time is greater than that second (i.e., active during that second under a start-inclusive, end-exclusive convention).
+
+6. Invariants  
+- Each dataset is processed independently; results do not depend on prior datasets.  
+- Interval contributions are counted per second within the fixed 24-hour range.  
+- The reported maximum is at least 0 and at most the number of intervals in the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed or violates preconditions (e.g., times out of range, end earlier than start, intervals crossing midnight), behavior is unspecified.  
+- If an interval’s end time exceeds the day boundary, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats: read dataset → if count is zero, terminate; otherwise compute and output the dataset’s maximum overlap → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed memory proportional to the number of seconds in a day.  
+- Runtime per dataset grows with the total duration (in seconds) summed across all intervals plus a full-day scan.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Wrong input parsing / format assumption** (tokenization and separators), leading to incorrect state updates and thus wrong output.
+
+B. What the current specification may be missing or misstating  
+- The spec says times are “expressed as hour, minute, and second components,” but it does not clearly constrain **the exact textual format** used in the input.  
+- The generated program assumes six integers separated by whitespace (`scanf("%d %d %d ...")`), while the source program reads times in **colon-delimited `HH:MM:SS` form** using `scanf("%d:%d:%d", ...)`.  
+- The spec also doesn’t explicitly state that each interval is provided as **two `HH:MM:SS` tokens** (start then end) on the same line (though whitespace/newlines are flexible).
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **lexical/input format** of each time-of-day: it is written as `hour:minute:second` with literal `:` separators (e.g., `00:01:30`), and each interval consists of two such time strings.  
+- Clarify that parsing must accept this colon-separated format (not just three integers), because it affects how input is consumed and whether subsequent reads align correctly.
+
+D. Why this clarification is supported by the source program  
+- The source uses `scanf("%d:%d:%d", &hour, &min, &sec);` twice per interval, which only succeeds as intended if the input contains colons between the components.  
+- With the wrong format assumption, reads fail or leave variables uninitialized / input unconsumed, causing the interval counting loop to behave incorrectly and producing outputs like `0` instead of the correct maxima.
+
+```

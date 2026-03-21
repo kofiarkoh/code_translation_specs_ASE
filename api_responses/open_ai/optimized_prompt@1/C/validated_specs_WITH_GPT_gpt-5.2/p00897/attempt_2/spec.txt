@@ -1,0 +1,45 @@
+1. Functional Description  
+Computes the minimum total travel distance between a designated origin city and a designated destination city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”). Travel consumes range equal to road distance. At designated refueling cities, the vehicle’s remaining range is automatically restored to full capacity before any onward travel from that city. If no feasible route exists under these constraints, outputs `-1`.
+
+2. Input Model and Dataset Structure  
+Input is treated as a whitespace-delimited token stream (spaces, newlines, and other ASCII whitespace are equivalent separators). City names are single tokens and therefore cannot contain embedded whitespace. Line boundaries have no semantic meaning.
+
+The input consists of one or more datasets concatenated back-to-back. Each dataset has the following token sequence:
+
+- `N` (integer): number of roads.  
+  - If `N` is `0`, processing terminates and no further output is produced.
+- `M` (integer): number of refueling-city names that follow later in the dataset.
+- `U` (integer): base capacity unit; the actual fuel capacity used by the program is `cap = 10 * U`.
+- `origin` (string token): origin city name.
+- `destination` (string token): destination city name.
+- Repeated `N` times (for each road):  
+  - `cityA` (string token)  
+  - `cityB` (string token)  
+  - `d` (integer): road distance (also the amount of range consumed to traverse the road)
+- Repeated `M` times (for each refueling city):  
+  - `city` (string token): name of a refueling city
+
+City names appearing in roads and in the origin/destination list define the set of known cities for the dataset. Refueling-city tokens that do not match any known city are ignored.
+
+3. Output  
+For each dataset (with `N > 0`), output exactly one line containing a single integer:
+- the minimum achievable total distance from origin to destination under the range/refueling rules; or
+- `-1` if the destination is unreachable under these constraints.
+
+4. Semantics and Constraints  
+- The road network is undirected: each road connects its two endpoint cities in both directions with the same distance.  
+- Travel state is modeled as `(current city, remaining range)`. Initially, the state is `(origin, cap)` with total distance `0`.  
+- If the current city is a refueling city, the remaining range is treated as `cap` for the purpose of taking outgoing roads (i.e., refueling occurs upon being at that city, before traversing the next road).  
+- Traversing a road of distance `d` from city `A` to city `B` is permitted only if the effective remaining range at `A` is at least `d`. The transition results in state `(B, remaining range − d)` and increases total distance by `d`.  
+- The reported minimum is with respect to total distance (sum of road distances), not number of roads or number of refuels.  
+- If origin equals destination, the minimum distance is `0` (the algorithm will return immediately upon reaching the destination state).
+
+5. Assumptions / Limits (as implied by the program)  
+- Inputs are assumed well-formed and provide exactly the required number of tokens per dataset.  
+- City name length must fit within the program’s fixed buffer (up to 16 characters, excluding the terminating null).  
+- The number of distinct cities and the scaled capacity must fit within the program’s internal fixed-size tables; behavior is unspecified if these limits are exceeded.  
+- Road distances and the scaled capacity are assumed to be nonnegative and within representable bounds; behavior is unspecified otherwise.
+
+6. Dataset Independence and Termination  
+- Each dataset is processed independently; no city mappings, refueling flags, or graph data carry over to the next dataset.  
+- Processing stops only when the next dataset’s `N` token is `0`.

@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a count of measurements and then reads that many height values. Classifies each height into one of six predefined ranges and outputs a six-line histogram where each line corresponds to a range and contains a number of markers equal to the count in that range.
+
+2. Inputs  
+- An integer specifying how many height values will follow.  
+- A sequence of that many real-valued heights.
+
+3. Outputs  
+- Six lines of text, one per height range, each consisting of a range label followed by a number of marker characters equal to the number of input heights that fall into that range.
+
+4. Preconditions  
+- The input provides an integer count and at least that many subsequent real-valued height values.  
+- The count is non-negative.  
+- Heights are assumed to be valid real numbers (no missing/invalid tokens).
+
+5. Postconditions  
+- Each input height is counted in exactly one of the following ranges:  
+  1) less than 165.0  
+  2) at least 165.0 and less than 170.0  
+  3) at least 170.0 and less than 175.0  
+  4) at least 175.0 and less than 180.0  
+  5) at least 180.0 and less than 185.0  
+  6) at least 185.0  
+- The output histogram reflects these counts exactly: the number of markers on each line equals the number of heights in the corresponding range.  
+- The total number of markers printed across all lines equals the input count.
+
+6. Invariants  
+- All range counts remain non-negative.  
+- At any point after processing k heights (0 ≤ k ≤ n), the sum of the six range counts equals k.  
+- Range membership is mutually exclusive and collectively exhaustive for all real-valued heights.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or the count is negative, behavior is unspecified (may produce incorrect output or fail to terminate normally).
+
+8. State Transitions (if applicable)  
+- Initializes all range counts to zero.  
+- After each height is read, exactly one range count is incremented.  
+- After all heights are processed, transitions to producing the final histogram output and then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of heights read.  
+- Memory usage is constant aside from input storage for a single height at a time.
+
+```

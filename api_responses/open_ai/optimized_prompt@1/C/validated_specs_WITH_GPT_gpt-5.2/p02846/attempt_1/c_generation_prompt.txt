@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads two time durations and two pairs of per-time-unit values for two entities. Computes and outputs either:
+- an unbounded result (“infinity”) when the entities’ total over the full two-phase duration is equal, or
+- otherwise, a nonnegative integer count derived from the relative per-phase differences and durations, representing how many boundary events occur under the implied two-phase comparison model.
+
+2. Inputs  
+- Two integers: the durations of phase 1 and phase 2.  
+- Two integers: entity A’s per-unit values in phase 1 and phase 2.  
+- Two integers: entity B’s per-unit values in phase 1 and phase 2.
+
+3. Outputs  
+- Either the literal word `infinity` followed by a newline, or  
+- A decimal integer followed by a newline.
+
+4. Preconditions  
+- All six input values are provided and are representable in the program’s integer range.  
+- Intermediate arithmetic used by the computation (products, differences, and derived expressions) does not overflow the program’s integer range.  
+- For the non-`infinity` case, the divisor used in the final ratio computation is nonzero (i.e., the derived denominator is not zero).
+
+5. Postconditions  
+- If the total combined value of entity A over both phases equals that of entity B over both phases, the program outputs `infinity`.  
+- Otherwise, the program outputs:
+  - `0` if a derived “phase-1 advantage” quantity is strictly greater than a derived “phase-2 catch-up” quantity, and  
+  - else a positive odd or even integer computed from the integer quotient of those derived quantities, where the result is even if an exact divisibility condition holds and odd otherwise.
+
+6. Invariants  
+- After a possible normalization step, entity A’s phase-1 per-unit value is less than or equal to entity B’s phase-1 per-unit value.  
+- The output in the non-`infinity` case is always a nonnegative integer.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input.  
+- If arithmetic overflow occurs or if the derived divisor is zero in the non-`infinity` path, behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution. The only state change is internal normalization of the two entities’ per-phase values for computation.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.  
+- Performs a fixed amount of arithmetic and produces exactly one line of output.
+
+```

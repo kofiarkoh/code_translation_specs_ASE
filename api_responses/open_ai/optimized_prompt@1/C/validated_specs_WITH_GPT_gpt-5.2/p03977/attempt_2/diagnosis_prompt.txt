@@ -1,0 +1,244 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Reads a sequence of decimal integer pairs from standard input and, for each pair, computes a derived integer value based on the parity of the first integer, then writes the resulting values as decimal text, one per line, to standard output.
+
+2. Inputs  
+- A byte stream from standard input containing:
+  - An initial run of decimal digits that is ignored.
+  - Zero or more records, each consisting of two non-negative decimal integers separated by at least one non-digit character (any character less than `'0'` in the character set ordering is treated as a separator).
+
+3. Outputs  
+- A byte stream to standard output containing one line per successfully processed record:
+  - Each line is the computed integer rendered in base-10 without leading zeros (except that zero is rendered as a single digit), followed by a newline.
+
+4. Preconditions  
+- The input must fit within the fixed input buffer size (up to 10,000 bytes read).  
+- Each record’s two integers must be representable within the implementation’s signed integer range during parsing and computation.  
+- The computed result for each record must be non-negative (otherwise the textual rendering is not well-defined by the program’s behavior).  
+- Each computed result must have at most 10 decimal digits (otherwise output rendering may overflow the fixed temporary digit buffer).  
+- Total produced output must fit within the fixed output buffer size (up to 20,000 bytes).
+
+5. Postconditions  
+- For each complete record encountered after the initial ignored digit run, exactly one output line is produced.  
+- For a record with parsed integers `(N, D)`, the output value equals:
+  - If `N` is odd: `127*(N-1) + D`  
+  - If `N` is even: `127*N - D`
+
+6. Invariants  
+- Records are processed in input order.  
+- Output lines are emitted in one-to-one correspondence with processed records, preserving order.  
+- Parsing treats any character with code less than `'0'` as a delimiter terminating a number.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., insufficient input structure, overflow, negative computed result, excessive digits, or buffer capacity exceeded), behavior is undefined: output may be incorrect, truncated, or the program may fail.
+
+8. State Transitions (if applicable)  
+- Stateless across invocations.  
+- Within a run, transitions from:
+  - Skipping an initial digit run → processing zero or more records → emitting accumulated output and terminating.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on fixed-size in-memory buffers; does not stream output incrementally.  
+- Time and memory usage are bounded by the fixed buffer sizes and linear in the amount of input processed (up to the input buffer limit).
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <unistd.h>
+
+int main(void) {
+    char inbuf[10000];
+    char outbuf[20000];
+    int inlen = 0;
+    int outlen = 0;
+
+    /* Read up to 10,000 bytes from stdin into a fixed buffer. */
+    {
+        ssize_t r = read(0, inbuf, sizeof(inbuf));
+        if (r <= 0) {
+            return 0;
+        }
+        inlen = (int)r;
+    }
+
+    int i = 0;
+
+    /* Skip an initial run of decimal digits that is ignored. */
+    while (i < inlen && inbuf[i] >= '0') {
+        i++;
+    }
+
+    /* Process zero or more records: two non-negative decimal integers per record.
+       A separator is any character with code < '0'. */
+    while (i < inlen) {
+        int N = 0, D = 0;
+
+        /* Parse N: must start at a digit; otherwise no more complete records. */
+        if (inbuf[i] < '0') {
+            i++;
+            continue;
+        }
+        while (i < inlen && inbuf[i] >= '0') {
+            N = N * 10 + (inbuf[i] - '0');
+            i++;
+        }
+
+        /* Skip at least one separator (< '0') between N and D.
+           If not present, behavior is undefined by spec; we stop parsing. */
+        if (i >= inlen || !(inbuf[i] < '0')) {
+            break;
+        }
+        while (i < inlen && inbuf[i] < '0') {
+            i++;
+        }
+
+        /* Parse D: must start at a digit; otherwise no complete record. */
+        if (i >= inlen || inbuf[i] < '0') {
+            break;
+        }
+        while (i < inlen && inbuf[i] >= '0') {
+            D = D * 10 + (inbuf[i] - '0');
+            i++;
+        }
+
+        /* Compute derived value based on parity of N. */
+        int R;
+        if (N & 1) {
+            R = 127 * (N - 1) + D;
+        } else {
+            R = 127 * N - D;
+        }
+
+        /* Render R as base-10 without leading zeros, followed by newline.
+           Preconditions guarantee non-negative and <= 10 digits. */
+        {
+            char tmp[10];
+            int tlen = 0;
+
+            if (R == 0) {
+                if (outlen < (int)sizeof(outbuf)) outbuf[outlen++] = '0';
+            } else {
+                while (R > 0) {
+                    tmp[tlen++] = (char)('0' + (R % 10));
+                    R /= 10;
+                }
+                while (tlen > 0) {
+                    if (outlen < (int)sizeof(outbuf)) outbuf[outlen++] = tmp[--tlen];
+                }
+            }
+            if (outlen < (int)sizeof(outbuf)) outbuf[outlen++] = '\n';
+        }
+    }
+
+    /* Emit accumulated output in one write (non-streaming). */
+    if (outlen > 0) {
+        (void)write(1, outbuf, (size_t)outlen);
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_output.txt
+Input:
+123 456
+789 1011
+246 135
+0 0
+Expected:
+57123
+128516
+17018
+0
+Actual:
+57123
+128516
+17018
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

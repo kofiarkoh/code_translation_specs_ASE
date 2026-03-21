@@ -1,0 +1,190 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1310: Find the Multiples
+// 2017.10.3 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HASHSIZ 300017
+typedef struct { int b; int v; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash + HASHSIZ;
+
+int lookup(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) return p->v;
+		if (++p == hashend) p = hash;
+	}
+	return 0;
+}
+
+void insert(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) { p->v++; return; }
+		if (++p == hashend) p = hash;
+	}
+	p->b = b, p->v = 1;
+}
+
+int a[100002];
+int b[100002];
+int tr[10][6];
+
+int main()
+{
+	int n, s, w, q, g, i, k, ans;
+
+	tr[0][2] = tr[2][2] = tr[4][2] = tr[6][2] = tr[8][2] = tr[0][5] = tr[5][5] = 1;
+
+    while (scanf("%d%d%d%d", &n, &s, &w, &q) && n > 0) {
+		g = s;
+		for (i = 0; i < n; i++) {
+			a[i] = (g/7) % 10;
+			if (g & 1) g = (g >> 1) ^ w;
+			else g >>= 1;
+		}
+
+		ans = 0;
+		if (q == 2 || q == 5) {
+			for (k = 0, i = 0; i < n; i++) {
+				if (a[i]) k++;
+				if (tr[a[i]][q]) ans += k;
+			}
+		} else {
+			memset(hash, 0, sizeof(hash));
+			for (k = 1, b[n] = 0, i = n-1; i >= 0; i--){
+				b[i] = (k*a[i] + b[i+1]) % q;
+				k = ((k<<3)+(k<<1)) % q;
+			}
+			for (i = 0; i < n; i++) {
+				if (a[i]) insert(b[i]+1);
+				ans += lookup(b[i+1]+1);
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each input case, the program deterministically generates a length‑`n` sequence of decimal digits from the provided seed and parameters, then computes and outputs the number of contiguous subsequences (non-empty) whose interpreted base‑10 integer value is divisible by `q`, under the constraint that the subsequence does not have a leading zero.
+
+2. Inputs  
+For each case, four integers:  
+- `n`: number of digits to generate.  
+- `s`: initial generator state (seed).  
+- `w`: generator parameter.  
+- `q`: divisor used for the divisibility test.  
+Input consists of zero or more cases and terminates when a case with `n <= 0` is encountered (that terminating case is not processed).
+
+3. Outputs  
+For each processed case, one integer: the count of contiguous digit subsequences that:  
+- start at an index where the digit is non-zero (no leading zero), and  
+- represent a base‑10 number divisible by `q`.
+
+4. Preconditions  
+- `n` is within the supported bounds such that internal fixed-size storage is not exceeded (implied maximum: `n <= 100000`).  
+- `q` is a positive integer.  
+- The number of distinct tracked remainder states does not exceed the fixed internal capacity used for counting (otherwise behavior is not guaranteed).  
+- Input is well-formed as a sequence of integer quadruples.
+
+5. Postconditions  
+For each processed case:  
+- Exactly one line is produced containing the computed count.  
+- The count equals the number of index pairs `(i, j)` with `0 <= i <= j < n` such that:  
+  - the digit at position `i` is non-zero, and  
+  - the integer formed by digits `i..j` in base 10 is divisible by `q`.
+
+6. Invariants  
+- The generated digit sequence length is exactly `n`, and each digit is in `[0, 9]`.  
+- Only subsequences with a non-zero first digit contribute to the count.  
+- The reported count is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., `n` too large, `q` non-positive, or internal counting capacity exceeded), results are undefined.  
+- Processing stops when input cannot be read as a complete case or when `n <= 0` is encountered.
+
+8. State Transitions (if applicable)  
+- Across cases, no logical state is preserved that affects correctness of subsequent outputs; each case’s result depends only on its own inputs.  
+- Within a case, a deterministic internal generator state evolves from `s` to produce the digit sequence; this state is not exposed externally.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for efficient counting over up to ~100,000 digits per case using bounded memory.  
+- Uses fixed-size internal storage; scalability is limited by these fixed bounds.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong/underspecified state transition rule (digit generator)  
+- Missing special-case counting rule for certain divisors (q = 2 or q = 5)  
+- Wrong abstraction about “no state preserved across cases” (hash table not reset in one branch)
+
+B. What the current specification may be missing or misstating  
+- The specification says digits are “deterministically generated” from `(s, w)` but does not define the exact generator. The source uses a very specific bitwise/LFSR-like update and derives each digit as `(g/7) % 10` from the evolving state `g`. The generated C used an LCG and `state % 10`, which will generally produce a different digit sequence and therefore different counts.  
+- The specification describes a uniform “count substrings divisible by q with no leading zero” rule, but the source does not implement a single uniform method: it has a distinct counting strategy when `q` is 2 or 5 that is not equivalent to the generic remainder-hash approach used for other `q`.  
+- The specification claims “Across cases, no logical state is preserved,” but in the source the global hash table is only cleared (`memset(hash,0,...)`) in the `q != 2 && q != 5` branch. For `q == 2 || q == 5`, the hash table is not cleared (and not used), so this is harmless; however, it means the “no state preserved” claim is not literally true for all internal state, and a spec that implies all internal structures are reset each case is overstated.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the digit-generation algorithm, including:
+  - how the internal state `g` is initialized from `s`
+  - how each digit is computed from `g` (including the division by 7 and modulo 10)
+  - how `g` transitions each step (conditional on the low bit, using shift and XOR with `w`)  
+- Clarify that the counting algorithm treats `q = 2` and `q = 5` differently (and why), rather than implying a single generic divisibility-counting method for all `q`. This is a behavioral distinction, not just an optimization, because it changes what intermediate quantities are tracked (e.g., suffix remainder table vs. a running “nonzero-start count” accumulation).  
+- Clarify the exact interpretation of “no leading zero”: the source counts substrings starting at positions with `a[i] != 0` and uses that condition in a way that interacts with the chosen counting method (notably in the `q=2/5` branch it counts based on end-digit divisibility and the number of nonzero digits seen so far).
+
+D. Why this clarification is supported by the source program  
+- The source’s digit generator is explicitly:
+  - `a[i] = (g/7) % 10;`
+  - `if (g & 1) g = (g >> 1) ^ w; else g >>= 1;`
+  This is a concrete, non-LCG process; any spec that doesn’t pin this down allows implementations that will not match outputs. The failing sample’s large numeric discrepancies are consistent with “different digit stream ⇒ different substring counts.”  
+- The source has an explicit branch:
+  - `if (q == 2 || q == 5) { ... } else { ... }`
+  and the `q==2/5` branch uses a precomputed `tr[d][q]` table and a running counter `k` of positions with nonzero digits, adding `k` when the current digit makes the number divisible by `q`. This is not described in the current spec, which implies a single general divisibility-by-q counting approach.  
+- The hash table is global and only cleared in the `else` branch (`memset(hash,0,...)`). While it doesn’t affect correctness for `q==2/5` (hash unused there), it contradicts an overly strong “no state preserved” statement and indicates the spec should be careful to describe behaviorally relevant state resets rather than asserting blanket resets.
+
+```

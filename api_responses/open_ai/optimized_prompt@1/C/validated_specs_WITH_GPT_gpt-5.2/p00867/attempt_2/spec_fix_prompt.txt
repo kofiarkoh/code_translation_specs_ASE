@@ -1,0 +1,285 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1288 Digits on the Floor
+// 2018.4.5 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 1002
+
+/* UNION-FIND library */
+int id[MAX], size[MAX];
+void init(int n) { int i; for (i = 0; i < n; i++) id[i] = i, size[i] = 1; }
+int root(int i) { while (i != id[i]) id[i] = id[id[i]], i = id[i]; return i; }
+int connected(int p, int q) { return root(p) == root(q); }
+void unite(int p, int q)
+{
+    int i = root(p), j = root(q); if (i == j) return;
+    if (size[i] < size[j]) id[i] = j, size[j] += size[i]; else id[j] = i, size[i] += size[j];
+}
+
+#define PeqP(a,b)  (((a.x)==(b.x))&&((a.y)==(b.y)))
+typedef struct { int x, y; } PP;
+typedef struct { PP s, e; } SEG;
+typedef struct { char n; SEG u[5]; char p; } T;
+T t[MAX];
+SEG   u[MAX]; int n;
+char  f[MAX][MAX];
+short uid[MAX][MAX];
+short ans[10];
+
+PP vset(int x, int y) { PP r; r.x = x, r.y = y; return r; }
+PP vsub(PP p1, PP p2) { PP r; r.x = p1.x - p2.x, r.y = p1.y - p2.y; return r; }
+PP vmul(PP p1, PP p2) { PP r;
+	r.x = p1.x * p2.x - p1.y * p2.y, r.y = p1.x * p2.y + p1.y * p2.x; return r; }
+int dot(PP a, PP b) { return a.x * b.x + a.y * b.y; };
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+void check256(T *id)
+{
+	int i, j, k1, k2;
+	PP p0[2], p1[2], p2[2];
+	PP p;
+
+	j = 0;
+	for (i = 0; i < id->n; i++) {
+		if (f[id->u[i].s.x][id->u[i].s.y] == 1) {
+			p0[j] = id->u[i].s, p1[j++] = id->u[i].e;
+		} else if (f[id->u[i].e.x][id->u[i].e.y] == 1) {
+			p0[j] = id->u[i].e, p1[j++] = id->u[i].s;
+		}
+	}
+	for (i = 0; i < id->n; i++) {
+		if      (!PeqP(id->u[i].s, p0[0]) && PeqP(id->u[i].e, p1[0]))
+			p2[0] = id->u[i].s;
+		else if (!PeqP(id->u[i].e, p0[0]) && PeqP(id->u[i].s, p1[0]))
+			p2[0] = id->u[i].e;
+		if      (!PeqP(id->u[i].s, p0[1]) && PeqP(id->u[i].e, p1[1]))
+			p2[1] = id->u[i].s;
+		else if (!PeqP(id->u[i].e, p0[1]) && PeqP(id->u[i].s, p1[1]))
+			p2[1] = id->u[i].e;
+	}
+	p = vmul(vsub(p0[0],p1[0]), vset(0,1));
+	k1 = dot(vsub(p2[0], p1[0]), p);
+
+	p = vmul(vsub(p0[1],p1[1]), vset(0,1));
+	k2 = dot(vsub(p2[1], p1[1]), p);
+
+	if      (k1 > 0 && k2 > 0) ans[2]++;
+	else if (k1 < 0 && k2 < 0) ans[5]++;
+	else                       ans[6]++;
+}
+
+int pOnSeg(PP p, SEG u)
+{
+	int x1 = u.s.x, y1 = u.s.y, x2 = u.e.x, y2 = u.e.y;
+	int d;
+
+	if (PeqP(p, u.s) || PeqP(p, u.e)) return 0;
+	if (x1 > x2) { d = x1, x1 = x2, x2 = d; d = y1, y1 = y2, y2 = d; }
+	return x1 <= p.x && p.x <= x2 &&
+		((y1 <= y2 && y1 <= p.y && p.y <= y2) ||
+		(y1 > y2 && y2 <= p.y && p.y <= y1))
+		&& (p.y - y1)*(x2 - x1) == (y2 - y1)*(p.x - x1);
+}
+
+void check08(T *id)
+{
+	int i, j;
+	for (i = 1; i <= n; i++) if (root(i) == i) {
+		for (j = 0; j < id->n; j++) {
+			if (pOnSeg(u[i].s, id->u[j])) { ans[8]++; return; }
+			if (pOnSeg(u[i].e, id->u[j])) { ans[8]++; return; }
+		}
+	}
+	ans[0]++;
+}
+
+void check37(T *id)
+{
+	int i, j;
+
+	for (i = 0; i < id->n; i++) {
+		if (f[id->u[i].s.x][id->u[i].s.y] > 1 && f[id->u[i].e.x][id->u[i].e.y] > 1) {
+			for (j = 1; j <= n; j++) if (root(j) == j) {
+				if (pOnSeg(u[j].s, id->u[i])) { ans[3]++; return; }
+				if (pOnSeg(u[j].e, id->u[i])) { ans[3]++; return; }
+			}
+		}
+	}
+	ans[7]++;
+}
+
+int main()
+{
+	int i, j, k, s;
+	int x1, y1, x2, y2;
+
+	while (n = in()) {
+		memset(ans, 0, sizeof(ans));
+		memset(t, 0, sizeof(T)*(n+1));
+		memset(f, 0, sizeof(f));
+		memset(uid, 0, sizeof(uid));
+		init(n+1);
+
+		for (i = 1; i <= n; i++) {
+			x1 = in(), y1 = in(), x2 = in(), y2 = in();
+			u[i].s.x = x1, u[i].s.y = y1;
+			u[i].e.x = x2, u[i].e.y = y2;
+			if (f[x1][y1]) unite(uid[x1][y1], i);
+			else uid[x1][y1] = i;
+			f[x1][y1]++;
+			if (f[x2][y2]) unite(uid[x2][y2], i);
+			else uid[x2][y2] = i;
+			f[x2][y2]++;
+		}
+		for (i = 1; i <= n; i++) {
+			j = root(i);
+			k = t[j].n++, t[j].u[k] = u[i];
+			if (f[u[i].s.x][u[i].s.y] > 1) t[j].p++;
+			if (f[u[i].e.x][u[i].e.y] > 1) t[j].p++;
+		}
+
+		s = 0;
+		for (i = 1; i <= n; i++) if (t[i].n >= 2) {
+			s += t[i].n;
+			if      (t[i].n == 2 && t[i].p == 2) ans[4]++;
+			else if (t[i].n == 4 && t[i].p == 6) ans[9]++;
+			else if (t[i].n == 4 && t[i].p == 8) check08(t+i);
+			else if (t[i].n == 5 && t[i].p == 8) check256(t+i);
+			else if (t[i].n == 3 && t[i].p == 4) check37(t+i);
+		}
+		s += ans[4] + ans[3] + ans[8];
+		ans[1] = n-s;
+		printf("%d", ans[0]);
+		for (i = 1; i < 10; i++) printf(" %d", ans[i]);
+		putchar('\n');
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description
+Reads multiple datasets describing a set of straight line segments on an integer grid. For each dataset, classifies each segment into exactly one digit category (0–9) based solely on the connectivity pattern formed by shared endpoints and on whether any segment endpoint lies strictly on the interior of another segment within the same connected component. Outputs the counts of segments classified as each digit.
+
+2. Inputs
+For each dataset:
+- An integer specifying the number of segments.
+- For each segment: four integers giving the coordinates of its two endpoints on a bounded integer grid.
+
+Datasets repeat until a terminating dataset with segment count equal to zero.
+
+3. Outputs
+For each dataset:
+- A single line containing 10 non-negative integers: the number of segments classified as digit 0, then 1, …, 9.
+
+4. Preconditions
+- All endpoint coordinates are integers within a fixed maximum grid range supported by the program.
+- The number of segments does not exceed the program’s fixed maximum capacity.
+- Each connected component formed by “segments sharing an endpoint” contains at most 5 segments; otherwise behavior is not guaranteed (the program only stores up to 5 segments per component).
+- Input is well-formed and provides all required integers for each dataset.
+
+5. Postconditions
+For each dataset:
+- Every input segment contributes to exactly one of the 10 reported counts.
+- The sum of the 10 reported counts equals the number of input segments.
+- Classification is determined as follows (per connected component of segments that are linked by shared endpoints):
+  - Components with exactly 2 segments and exactly 2 endpoints that are shared by more than one segment contribute all their segments to digit 4.
+  - Components with exactly 4 segments and exactly 6 such shared endpoints contribute all their segments to digit 9.
+  - Components with exactly 4 segments and exactly 8 such shared endpoints:
+    - If any segment endpoint in the component lies strictly in the interior of another segment in the same component, all segments in the component are classified as digit 8.
+    - Otherwise, all segments in the component are classified as digit 0.
+  - Components with exactly 5 segments and exactly 8 such shared endpoints contribute all their segments to exactly one of digits 2, 5, or 6, determined by the relative sidedness (orientation) of two specific “branch” points with respect to two “junction” segments implied by the component’s endpoint-sharing structure.
+  - Components with exactly 3 segments and exactly 4 such shared endpoints:
+    - If any segment endpoint in the component lies strictly in the interior of a segment whose both endpoints are shared (degree > 1), all segments in the component are classified as digit 3.
+    - Otherwise, all segments in the component are classified as digit 7.
+  - All remaining segments (including isolated segments and segments in components not matching any of the above patterns) are classified as digit 1.
+
+6. Invariants
+- Endpoint-sharing connectivity is an equivalence relation over segments: each segment belongs to exactly one connected component.
+- “Shared endpoint” status of a point depends only on how many segment endpoints coincide at that point within the dataset.
+- The interior-point test never treats a segment’s own endpoints as lying in the interior of that segment.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting or recovery is performed.
+- If preconditions are violated (e.g., coordinates out of range, too many segments, or a component containing more than 5 segments), results are undefined (may be incorrect or may corrupt memory).
+
+8. State Transitions (if applicable)
+- For each dataset, internal state (counts, connectivity, endpoint multiplicities, and per-component summaries) is reset before processing.
+- Processing transitions from “uninitialized for dataset” → “segments read and connectivity built” → “components analyzed and counts accumulated” → “counts output”.
+- Terminates when the dataset segment count is zero.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage bounded by compile-time limits for number of segments and coordinate range.
+- Per-dataset time is bounded by a small constant factor times the number of segments, plus per-component checks that are bounded due to the assumed maximum of 5 segments per component.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (component-level vs segment-level classification), plus a missing constraint about which components are eligible for digit patterns.
+
+B. What the current specification may be missing or misstating  
+- The specification claims “classifies each segment into exactly one digit category … per connected component,” and then describes component patterns as if *all segments in a matching component* are assigned that digit.  
+- The source program does **not** classify every component of size ≤ 5 into some digit by default. It only recognizes a small set of component “templates” (by `(t[i].n, t[i].p)` and extra geometric checks). Anything else is treated as digit **1** (via `ans[1] = n - s`).  
+- The failing case is a single connected component of 5 segments in a chain. The current spec’s 5-segment rule (“5 segments and 8 shared endpoints ⇒ 2/5/6”) is too broad as a general statement about 5-segment components; it doesn’t emphasize that only a very specific endpoint-sharing structure (captured by `t[i].p == 8` and the internal logic of `check256`) qualifies. A 5-segment component with a different `p` value is not 2/5/6 in the source.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that digit recognition is **template-based**: only components whose `(number of segments n, shared-endpoint incidence count p)` match one of the hardcoded cases are classified as digits other than 1.  
+- Clarify the exact meaning of `p`: it is the count, over all segment endpoints in the component, of endpoints that occur at a point used by more than one segment in the entire dataset (i.e., multiplicity > 1), counted with multiplicity per endpoint occurrence.  
+- Clarify that components not matching any template (including many connected components with 3–5 segments) contribute their segments to digit **1**, regardless of being connected.
+
+D. Why this clarification is supported by the source program  
+- In `main`, only components with `t[i].n >= 2` are examined, and only these exact conditions trigger non-1 digits:  
+  - `(2,2)→4`, `(4,6)→9`, `(4,8)→0/8`, `(5,8)→2/5/6`, `(3,4)→3/7`.  
+  Components with other `(n,p)` pairs are ignored in the digit-specific logic.  
+- After processing recognized templates, the program computes `ans[1] = n - s`, where `s` is the number of segments accounted for by recognized templates (plus some adjustments). This makes digit **1** the catch-all for *all remaining segments*, including those in connected components of size >1 that simply don’t match a template.  
+- Therefore, the spec’s broad statement that “classification is based on connectivity pattern … and interior-point tests” is incomplete: the source uses a **restricted set of patterns**, not a general classification of all connected components.
+
+```

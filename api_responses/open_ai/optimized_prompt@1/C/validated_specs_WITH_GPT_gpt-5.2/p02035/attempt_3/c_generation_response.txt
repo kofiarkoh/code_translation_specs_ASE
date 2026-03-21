@@ -1,0 +1,130 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MAXN 2010
+
+static int n, m;
+static int64_t fac[MAXN + 1];
+static int64_t ifac[MAXN + 1];
+
+static int64_t mod_norm(int64_t x) {
+    if (m == 0) return x; /* avoid division by zero in %; behavior otherwise unspecified */
+    x %= (int64_t)m;
+    if (x < 0) x += (int64_t)m;
+    return x;
+}
+
+static int64_t mod_mul(int64_t a, int64_t b) {
+    /* Use 64-bit multiplication; assumes inputs are already reduced to [0, m-1] typically. */
+    if (m == 0) return a * b;
+    return (a * b) % (int64_t)m;
+}
+
+static int64_t mod_pow(int64_t a, int64_t e) {
+    if (m == 0) {
+        /* Degenerate: no modulus; compute in 64-bit with wraparound as per signed overflow UB,
+           but we avoid UB by using unsigned and casting back. */
+        uint64_t base = (uint64_t)a;
+        uint64_t res = 1;
+        while (e > 0) {
+            if (e & 1) res = res * base;
+            base = base * base;
+            e >>= 1;
+        }
+        return (int64_t)res;
+    }
+
+    int64_t mod = (int64_t)m;
+    a %= mod;
+    if (a < 0) a += mod;
+
+    int64_t r = 1 % mod;
+    while (e > 0) {
+        if (e & 1) r = (r * a) % mod;
+        a = (a * a) % mod;
+        e >>= 1;
+    }
+    return r;
+}
+
+static void precompute_factorials(void) {
+    if (m == 0) {
+        /* Still fill arrays deterministically without modulus. */
+        fac[0] = 1;
+        for (int i = 1; i <= MAXN; i++) fac[i] = fac[i - 1] * i;
+        ifac[MAXN] = mod_pow(fac[MAXN], (int64_t)m - 2); /* m==0 => exponent -2 */
+        for (int i = MAXN; i >= 1; i--) ifac[i - 1] = ifac[i] * i;
+        return;
+    }
+
+    fac[0] = 1 % (int64_t)m;
+    for (int i = 1; i <= MAXN; i++) fac[i] = (fac[i - 1] * i) % (int64_t)m;
+
+    /* Fermat-style inversion as specified: x^(m-2) mod m */
+    ifac[MAXN] = mod_pow(fac[MAXN], (int64_t)m - 2);
+    for (int i = MAXN; i >= 1; i--) {
+        ifac[i - 1] = (ifac[i] * i) % (int64_t)m;
+    }
+}
+
+static int64_t C(int a, int b) {
+    if (a < 0 || b < 0 || b > a) return 0;
+    if (a > MAXN) {
+        /* Specification implies no validation; return 0 to avoid out-of-bounds. */
+        return 0;
+    }
+    if (m == 0) {
+        /* Without modulus, this routine is not meaningfully defined by the spec;
+           keep a deterministic placeholder using precomputed arrays. */
+        return fac[a] * ifac[b] * ifac[a - b];
+    }
+    return mod_mul(fac[a], mod_mul(ifac[b], ifac[a - b]));
+}
+
+int main(void) {
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    precompute_factorials();
+
+    int64_t ans = 0;
+
+    for (int i = 1; i <= n - 1; i++) {
+        int ni = n - i;
+
+        int64_t subtotal = 0;
+        for (int j = 0; j <= ni - 1; j++) {
+            int64_t comb = C(ni, j);
+
+            int64_t pow2 = mod_pow(2, (int64_t)(ni - j));
+            int64_t base = pow2 - 1;
+            base = mod_norm(base);
+
+            int64_t term = mod_mul(comb, mod_pow(base, (int64_t)i));
+
+            if ((j & 1) == 0) {
+                subtotal += term;
+            } else {
+                subtotal -= term;
+            }
+            if (m != 0) subtotal %= (int64_t)m;
+        }
+        subtotal = mod_norm(subtotal);
+
+        int64_t ways = C(n, i);
+
+        int64_t e1 = (int64_t)i * (int64_t)(i - 1) / 2;
+        int64_t e2 = (int64_t)ni * (int64_t)(ni - 1) / 2;
+
+        int64_t factor = mod_mul(ways, mod_mul(mod_pow(2, e1), mod_pow(2, e2)));
+        int64_t add = mod_mul(factor, subtotal);
+
+        ans += add;
+        if (m != 0) ans %= (int64_t)m;
+    }
+
+    ans = mod_norm(ans);
+    printf("%lld\n", (long long)ans);
+    return 0;
+}
+```

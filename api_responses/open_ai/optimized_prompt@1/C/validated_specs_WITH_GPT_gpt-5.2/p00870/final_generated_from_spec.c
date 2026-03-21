@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAXN 12
+#define MAXMASK (1 << MAXN)
+#define MAXPAT 21          /* up to 20 chars + '\0' */
+#define MAXTEXT 5001       /* up to 5000 chars + '\0' */
+
+static int patlen[MAXN];
+static char pat[MAXN][MAXPAT];
+
+static char textbuf[MAXTEXT];
+static int L;
+
+/* reachable[P][S] as boolean; P up to 5000, S up to 4095 */
+static unsigned char reachable[MAXTEXT][MAXMASK];
+
+static int match_at(int pos, int k) {
+    int len = patlen[k];
+    if (pos + len > L) return 0;
+    /* exact, case-sensitive match */
+    return (memcmp(textbuf + pos, pat[k], (size_t)len) == 0);
+}
+
+int main(void) {
+    int n, m;
+
+    while (scanf("%d %d", &n, &m) == 2) {
+        if (n == 0 && m == 0) break;
+
+        /* Read patterns */
+        for (int i = 0; i < n; i++) {
+            if (scanf("%20s", pat[i]) != 1) return 0;
+            patlen[i] = (int)strlen(pat[i]);
+        }
+
+        /* Read and concatenate text fragments */
+        textbuf[0] = '\0';
+        L = 0;
+        for (int i = 0; i < m; i++) {
+            char frag[MAXTEXT];
+            if (scanf("%5000s", frag) != 1) return 0;
+
+            size_t flen = strlen(frag);
+            if (flen > 0) {
+                unsigned char last = (unsigned char)frag[flen - 1];
+                if (last < (unsigned char)' ') {
+                    frag[flen - 1] = '\0';
+                    flen--;
+                }
+            }
+
+            /* Undefined behavior if exceeds MAXTEXT per spec; we do not add extra handling. */
+            memcpy(textbuf + L, frag, flen);
+            L += (int)flen;
+            textbuf[L] = '\0';
+        }
+
+        /* Clear reachability table for this dataset */
+        /* Only need positions 0..L and masks 0..(1<<n)-1, but clearing full fixed table is simplest. */
+        memset(reachable, 0, sizeof(reachable));
+
+        int fullMask = (n == 0) ? 0 : ((1 << n) - 1);
+
+        /* Initial state: (0, empty) reachable */
+        reachable[0][0] = 1;
+
+        /* Forward propagation scanning P = 0..L-1 */
+        for (int P = 0; P <= L - 1; P++) {
+            for (int S = 0; S <= fullMask; S++) {
+                if (!reachable[P][S]) continue;
+
+                /* Try to append one unused pattern k */
+                for (int k = 0; k < n; k++) {
+                    int bit = 1 << k;
+                    if (S & bit) continue;
+                    if (match_at(P, k)) {
+                        int P2 = P + patlen[k];
+                        int S2 = S | bit;
+                        reachable[P2][S2] = 1;
+                    }
+                }
+            }
+        }
+
+        /* Count positions P in 0..L where (P, FULL) reachable */
+        int count = 0;
+        for (int P = 0; P <= L; P++) {
+            if (reachable[P][fullMask]) count++;
+        }
+
+        printf("%d\n", count);
+    }
+
+    return 0;
+}

@@ -1,0 +1,60 @@
+```c
+#include <stdio.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+
+/* Fixed-size tables as implied by the specification.
+   The exact bounds are not specified; we choose a conservative size typical for such DP.
+   Behavior is undefined if inputs exceed these bounds, per specification. */
+#define MAXN 2005
+#define MAXM 2005
+#define MAXNM (MAXN + MAXM + 5)
+
+static int64_t dp[MAXN][MAXM];
+static int64_t dq[MAXN][MAXM];
+static int64_t pow2[MAXNM];
+static int64_t inv2[MAXNM];
+
+int main(void) {
+    int64_t n, m;
+    if (scanf("%lld%lld", &n, &m) != 2) {
+        /* Undefined behavior per spec on invalid input; return without printing. */
+        return 0;
+    }
+
+    /* Precompute pow2 and inv2 for x = 0..(n+m) (inclusive). */
+    int64_t nm = n + m;
+    pow2[0] = 1;
+    inv2[0] = 1;
+    const int64_t inv_of_2 = (MOD + 1) / 2; /* 1/2 mod MOD */
+
+    for (int64_t x = 1; x <= nm; x++) {
+        pow2[x] = (pow2[x - 1] * 2) % MOD;
+        inv2[x] = (inv2[x - 1] * inv_of_2) % MOD;
+    }
+
+    /* DP fill:
+       dp[i][0] remains whatever global initialization provides (0).
+       dq[i][0] is treated as 0 (also global initialization). */
+    for (int64_t i = 0; i <= n; i++) {
+        for (int64_t j = 1; j <= m; j++) {
+            if (i == 0) {
+                dp[0][j] = 1;
+            } else {
+                int64_t term1 = ((j + 1) % MOD) * (dp[i - 1][j] % MOD) % MOD;
+                int64_t term2 = (dq[i - 1][j - 1] % MOD) * (pow2[j - 1] % MOD) % MOD;
+                dp[i][j] = (term1 + term2) % MOD;
+            }
+
+            int64_t add = (dp[i][j] % MOD) * (j % MOD) % MOD;
+            add = add * (inv2[j] % MOD) % MOD;
+            dq[i][j] = (dq[i][j - 1] + add) % MOD;
+        }
+    }
+
+    /* Print dp[n][m] modulo MOD as signed decimal with newline. */
+    printf("%lld\n", (long long)(dp[n][m] % MOD));
+    return 0;
+}
+```

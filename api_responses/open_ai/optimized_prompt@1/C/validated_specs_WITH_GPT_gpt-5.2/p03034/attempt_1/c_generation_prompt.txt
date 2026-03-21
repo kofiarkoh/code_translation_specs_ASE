@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum cumulative sum obtainable by repeatedly selecting symmetric pairs of elements from an input sequence, where the left index advances by a fixed positive step and the right index retreats by the same step, starting from the ends. The result is the maximum over all eligible step sizes and all valid numbers of pair selections.
+
+2. Inputs  
+- An integer specifying the number of elements in the sequence.  
+- A sequence of signed 64-bit integers of that length.
+
+3. Outputs  
+- A single signed 64-bit integer: the maximum cumulative sum achievable under the pairing process described.
+
+4. Preconditions  
+- The provided length is non-negative and does not exceed the fixed internal capacity (100010).  
+- The input contains at least that many integer values.  
+- Values fit within signed 64-bit range.  
+- Assumption: Intermediate cumulative sums and the final maximum do not overflow signed 64-bit arithmetic.
+
+5. Postconditions  
+- If no valid pairing step size exists (i.e., the length is less than 4), the output is 0.  
+- Otherwise, the output equals:  
+  - the maximum, over all step sizes \( d \) such that \( 1 \le d \) and \( 2d < n-1 \), of  
+  - the maximum prefix sum of the sequence of pair-sums formed by repeatedly adding the elements at indices \( d, 2d, 3d, \dots \) from the left and \( n-1-d, n-1-2d, n-1-3d, \dots \) from the right, stopping before the two sides meet, cross, or violate the code’s stopping constraints.  
+- The reported maximum is never negative (it is at least 0).
+
+6. Invariants  
+- The reported maximum is monotonically non-decreasing as the computation progresses.  
+- For any fixed step size, the cumulative sum considered is the sum of a contiguous prefix of the generated pair sequence for that step size (i.e., sums after 1 pair, 2 pairs, … up to the last valid pair).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, insufficient input data, out-of-range length, or arithmetic overflow; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-run computation with no externally visible state beyond the output).
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the input length up to a fixed maximum capacity.  
+- Runtime grows with the number of step sizes and the number of valid pair selections per step size (sub-quadratic in typical cases, but dependent on input length).
+
+```

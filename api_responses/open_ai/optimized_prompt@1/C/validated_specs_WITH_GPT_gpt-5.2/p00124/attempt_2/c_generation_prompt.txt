@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads one or more datasets describing teams and their match results, computes a points total for each team, orders teams by descending points, and outputs each team with its computed points. Processing ends when a dataset size of zero is provided.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer `n` specifying the number of teams.  
+- If `n` is zero, the program terminates without producing output for that dataset.  
+- For each of the `n` teams: a name token (no whitespace) followed by three integers representing wins, losses, and draws.
+
+3. Outputs  
+- For each non-terminating dataset, writes `n` lines to standard output.  
+- Each output line is exactly: the team name, then a comma, then the computed points as a decimal integer, then a newline. No additional spaces or text are printed on the line.  
+- Inserts exactly one blank line between the outputs of consecutive non-terminating datasets (i.e., a single extra newline before the first line of the next dataset’s results). No blank line is printed before the first dataset’s output.
+
+4. Preconditions / Assumptions  
+- `n` is non-negative and does not exceed 10.  
+- Each team name fits within 29 characters (excluding the terminating null) and contains no whitespace.  
+- Each team record provides three integers for wins, losses, and draws.  
+- Input is well-formed and available for all required fields.
+
+5. Computation and Ordering  
+- For each team, points are computed as: `(3 × wins) + draws`. (Losses do not affect the points.)  
+- Teams are sorted in non-increasing order by points (highest points first).  
+- If multiple teams have equal points, their relative order in the output is the same as their relative order in the input (i.e., ties are not reordered).
+
+6. Dataset Independence and State  
+- Each dataset is processed independently; team data are not carried over between datasets.  
+- The only cross-dataset state is whether any prior dataset has been printed, used solely to decide whether to emit the blank line separator.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, missing, exceeds expected bounds, or names exceed allowed length, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+```

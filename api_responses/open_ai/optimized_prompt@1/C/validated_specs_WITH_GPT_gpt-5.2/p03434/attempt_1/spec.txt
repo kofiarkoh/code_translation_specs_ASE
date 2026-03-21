@@ -1,0 +1,41 @@
+1. Functional Description  
+Reads a sequence of integers, orders them in nondecreasing order, then computes the difference between two accumulated sums formed by alternately assigning the largest remaining value to the first sum and the next largest remaining value to the second sum. Outputs the resulting difference (first sum minus second sum).
+
+2. Inputs  
+- An integer count of elements.  
+- A sequence of that many signed 64-bit integers.
+
+3. Outputs  
+- A single signed 64-bit integer: the computed difference between the two alternating sums.
+
+4. Preconditions  
+- The element count is nonnegative.  
+- The provided sequence contains exactly the declared number of integers.  
+- All input values are strictly less than a fixed sentinel value (1e18) to ensure correct ordering behavior.  
+- Sufficient memory is available for temporary storage during sorting.  
+- The total of assigned values fits within the signed 64-bit integer range (no overflow in accumulation).
+
+5. Postconditions  
+- The output equals:  
+  - Let the multiset of inputs be sorted in nondecreasing order.  
+  - Starting from the largest element and moving downward, assign elements alternately to SumA, then SumB, then SumA, etc.  
+  - Output is SumA − SumB.  
+- The input sequence is internally reordered into nondecreasing order before the computation (not externally observable except through the output).
+
+6. Invariants  
+- Each input element contributes to exactly one of the two sums.  
+- The assignment alternates strictly between the two sums when traversing from largest to smallest, with the first sum receiving the largest element.  
+- The number of elements assigned to the first sum is either equal to or exactly one greater than the number assigned to the second sum.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or incomplete input; behavior is undefined if inputs are missing or malformed.  
+- No explicit handling for memory allocation failure; behavior is undefined if required memory cannot be obtained.  
+- If any input value is greater than or equal to the sentinel value, ordering and thus the final result are not guaranteed.  
+- If arithmetic overflow occurs during accumulation, the result is not defined by this specification.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run batch computation with no persistent state across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting: O(N log N).  
+- Additional memory usage is O(N) due to temporary storage during sorting.

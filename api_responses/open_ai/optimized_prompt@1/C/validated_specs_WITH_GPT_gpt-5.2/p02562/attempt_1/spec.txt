@@ -1,0 +1,55 @@
+1. Functional Description  
+Reads an integer matrix of size N×N and an integer K, then selects an integer T (0 ≤ T ≤ N·K) and a set of exactly T matrix positions such that:  
+- No row contains more than K selected positions.  
+- No column contains more than K selected positions.  
+- The sum of the selected matrix values is maximized over all feasible choices of T and positions.  
+
+Outputs the maximum achievable sum and one corresponding N×N marking of selected positions.
+
+2. Inputs  
+- An integer N.  
+- An integer K.  
+- An N×N grid of integers representing weights/values.
+
+3. Outputs  
+- A single integer value: the maximum achievable sum under the constraints described above.  
+- N lines, each a length-N character sequence, where each character is either:  
+  - ‘X’ indicating the position is selected, or  
+  - ‘.’ indicating the position is not selected.  
+
+4. Preconditions  
+- N is within the fixed internal capacity supported by the program (implied by static array bounds), and N ≥ 1.  
+- K ≥ 0.  
+- The input provides exactly N×N integers after N and K.  
+- Sufficient memory is available for internal allocations.  
+- The computed optimal sum fits within signed 64-bit range.
+
+5. Postconditions  
+- The first output number equals the maximum possible sum of selected entries among all selections that satisfy:  
+  - at most K selections per row,  
+  - at most K selections per column,  
+  - and any total number of selections T between 0 and N·K (chosen to maximize the sum).  
+- The printed N×N marking corresponds to a feasible selection achieving that maximum sum:  
+  - The number of ‘X’ in each row is ≤ K.  
+  - The number of ‘X’ in each column is ≤ K.  
+  - The total number of ‘X’ equals the maximizing T used to achieve the printed maximum sum.  
+  - The sum of matrix values at ‘X’ positions equals the printed maximum sum.
+
+6. Invariants  
+- The selection represented by the final marking never exceeds K selections in any row or column.  
+- Each marked position corresponds to a unique matrix cell; no cell is selected more than once.  
+- The reported maximum sum is consistent with the final marking (same objective value).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit input validation or recovery is performed; malformed or insufficient input results in undefined behavior.  
+- If internal memory allocation fails, behavior is undefined.  
+- If the internal optimization detects an infeasible or ill-posed condition for a tested total selection count, that count is treated as not producing a valid candidate; the program still produces an output based on other counts (including possibly selecting zero positions).  
+- If all positive selection counts are treated as invalid candidates, the program outputs a maximum sum of 0 and a marking with no selections.
+
+8. State Transitions (if applicable)  
+- The program evaluates candidate totals T from 1 through N·K, tracking the best objective value and the corresponding T.  
+- It then recomputes a selection for the best T and transitions from an “unselected” marking (all ‘.’) to a final marking by setting exactly the chosen positions to ‘X’.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows at least superlinearly with N and with the range of tested totals up to N·K, due to solving an internal optimization for each candidate T and once more for the best T.  
+- Memory usage is bounded by fixed-size arrays sized for the maximum supported N plus additional dynamically allocated working storage proportional to the internal graph size derived from N.

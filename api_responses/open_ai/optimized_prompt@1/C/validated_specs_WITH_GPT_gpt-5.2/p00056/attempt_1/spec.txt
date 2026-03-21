@@ -1,0 +1,39 @@
+1. Functional Description  
+Reads a sequence of integers and, for each nonzero integer, outputs the number of unordered pairs of prime numbers whose sum equals that integer. Processing stops when a zero is read or when input is exhausted.
+
+2. Inputs  
+- A stream of signed integers provided sequentially.
+
+3. Outputs  
+- For each input integer that is nonzero and within the supported range, one integer is written representing the count of prime pairs summing to the input value.
+
+4. Preconditions  
+- Each processed input value is assumed to be within the inclusive range where primality is precomputed (0 through 50000).  
+- Sufficient memory is available for an internal fixed-size primality table.
+
+5. Postconditions  
+- For each processed input value `n` (nonzero, within range), the program outputs the number of pairs `(p, q)` such that:  
+  - `p` and `q` are prime numbers,  
+  - `p + q = n`,  
+  - `p <= q` (i.e., each unordered pair is counted once).  
+- No output is produced for the terminating zero.
+
+6. Invariants  
+- The internal primality classification for all integers in the supported range remains constant throughout processing.  
+- For any processed `n`, the reported count is nonnegative and does not exceed the number of integers in `[2, floor(n/2)]`.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read as an integer, processing terminates with no further output.  
+- Behavior is undefined if a nonzero input value is negative or exceeds the supported precomputed range (may result in invalid memory access or incorrect results).  
+- No explicit error messages are produced.
+
+8. State Transitions (if applicable)  
+- Initial state: primality table is initialized once.  
+- Repeated state: for each successfully read integer:  
+  - If the value is zero, transition to termination.  
+  - Otherwise, compute and output the corresponding prime-pair count, then continue reading the next integer.  
+- Termination state: reached on zero input or end of readable input.
+
+9. Non-functional Constraints (if inferable)  
+- Supports inputs only up to a fixed maximum value (50000) due to fixed-size precomputation.  
+- Uses a fixed amount of memory proportional to the maximum supported value.

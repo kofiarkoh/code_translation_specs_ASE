@@ -1,0 +1,31 @@
+1. Functional Description  
+Given an undirected weighted graph and a list of designated (“required”) vertices, compute the minimum total travel cost to visit all required vertices exactly once in some order. The travel cost between two consecutive required vertices in the visiting order is the length of the shortest path between those two vertices in the full graph. The route may start at any required vertex and ends at the last visited required vertex; there is no requirement to return to the start.
+
+2. Inputs  
+The program reads from standard input, in this order:  
+- Three integers `N`, `M`, `R`: the number of vertices, the number of edges, and the number of required vertices.  
+- `R` integers giving the required vertex indices.  
+- `M` edges, each as three integers `A B C` describing an undirected edge between vertices `A` and `B` with weight `C`. If multiple edges between the same pair appear, only the smallest weight among them is used.
+
+3. Outputs  
+- A single integer printed to standard output: the minimum, over all permutations of the required vertices, of the sum of shortest-path distances between consecutive vertices in that permutation.
+
+4. Preconditions / Assumptions  
+- Vertex indices in the required list and in edges are intended to be in the range `1..N`.  
+- Supported limits are `N ≤ 200` and `R ≤ 8` (the program uses fixed-size arrays sized accordingly).  
+- Edge weights are assumed to make shortest-path computation meaningful for the intended use (the program does not detect negative cycles).  
+- No explicit validation is performed; behavior is undefined if inputs violate the supported limits or index ranges, or if arithmetic overflows occur.
+
+5. Semantics and Edge Cases  
+- The program treats the graph as undirected.  
+- Distances are computed for all vertex pairs using an all-pairs shortest-path procedure.  
+- If two vertices are disconnected, their distance remains a large sentinel value; such disconnections can cause the reported minimum to also be that sentinel value.  
+- The visiting order must include each required vertex exactly once; the start vertex is chosen implicitly by the permutation (no extra cost is added before the first required vertex).  
+- The output is the minimum total cost among all possible visiting orders.
+
+6. Implementation/Structure Constraints (as implied by the source)  
+- The intended implementation is standard-conforming C (no reliance on nonstandard extensions such as nested function definitions).  
+- The permutation search is performed by a separate, file-scope depth-first search routine that uses shared state (e.g., global/static arrays/variables) to track required vertices, used flags, the distance table, and the current best result.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error handling for malformed input, out-of-range indices, oversized parameters, or unreachable/ill-defined shortest paths; results are not guaranteed to be meaningful in such cases.

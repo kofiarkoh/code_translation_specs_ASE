@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Determines whether the input sequence induces a valid “completion” order of category IDs under the program’s internal reverse-processing and counting rules. The program constructs a singly linked list of distinct categories in the order of their first appearance when scanning the sequence from the end (with category `0` as the fixed head), computes a capped count for each listed category, and then validates that the list’s traversal order is consistent with the rule that, after an initial prefix of automatically completed nodes, each next node to be completed must be the smallest category ID not yet completed. It prints an affirmative result if and only if this validation succeeds; otherwise it prints a negative result.
+
+2. Inputs  
+- Integer `n`: used as the initial count for category `0` and as the threshold value for the initial “automatic completion” prefix.  
+- Integer `m`: the maximum category ID; categories are indexed from `0` through `m` inclusive.  
+- Integer `q`: the length of the sequence.  
+- A sequence of `q` integers `a[1..q]`, each intended to be a category ID.
+
+3. Outputs  
+- Prints exactly one line:
+  - `"Yes\n"` if the sequence passes the program’s validation, or
+  - `"No\n"` if it fails.
+
+4. Preconditions / Assumptions  
+- `m >= 0` and `q >= 0`. (The program does not guard against negative values.)  
+- Every `a[i]` is within `[0, m]`.  
+- Sufficient memory is available for arrays sized proportional to `m + q`.  
+- No explicit validation is performed; violating these assumptions yields undefined behavior (e.g., out-of-bounds access).  
+- The behavior is defined by a strictly conforming ISO C program using ordinary control flow (e.g., loops and conditionals) and top-level declarations only; no compiler extensions are required to express any step.
+
+5. Derived List and Count Computation (as performed by the program)  
+- The program allocates an array of `m+1` node records, one per category ID `i` in `[0, m]`. Each node has:
+  - `id = i`,
+  - an integer `count` (initially `0` for all nodes except `count[0] = n`),
+  - `prev`/`next` pointers used to form a linked list.
+- The linked list is built by scanning the input sequence from position `q` down to `1`, maintaining a tail pointer `p` that initially points to node `0`. For each `x = a[i]`:
+  - If `count[x]` is currently `0`, node `x` is appended to the list tail: its `prev` is set to the current tail `p`, the current tail’s `next` is set to `x`, and the tail pointer `p` becomes `x`. (Thus, each category is appended at most once, at its first encounter in the reverse scan.)
+  - Then `count[x]` is updated as:  
+    `count[x] = min(count[x] + 1, count[prev(x)])`,  
+    where `prev(x)` is the node recorded in `x.prev` (as set when `x` was appended).  
+- After this reverse pass, the program traverses the linked list starting at node `0` and following `next` pointers until `NULL`. This traversal order is the order used for validation.
+
+6. Validation / Acceptance Logic  
+- The program maintains:
+  - a boolean array `complete[0..m]` (initially all false), and
+  - an integer `allow` (initially `0`) representing the smallest category ID in `[0, m]` that is not yet marked complete.
+- Validation proceeds in two phases while traversing the linked list from its head:
+  1. **Automatic prefix completion:** While the current node exists and its `count` equals `n`, the program marks that node’s `id` as complete, then advances `allow` upward until it points to an ID not yet complete, and moves to the next node.
+  2. **Ordered completion check:** For each remaining node in the list (in order), the program requires that the node’s `id` equals the current `allow`. If not, it prints `"No\n"` and terminates immediately. If it matches, it marks that `id` complete, advances `allow` upward until it points to an ID not yet complete, and continues to the next node.
+- If the traversal reaches the end of the list without a mismatch, the program prints `"Yes\n"`.
+
+7. Edge Conditions / Clarifications  
+- Only categories that appear in the constructed linked list are ever validated as list nodes; categories never appended to the list are not directly checked as nodes.  
+- The value of `allow` is always advanced by repeatedly incrementing it while `complete[allow]` is true; this is an algorithmic step realizable with standard C statements (e.g., a `while` loop).  
+- Acceptance does not require that all category IDs `0..m` become complete; it depends solely on whether the linked-list traversal satisfies the program’s completion rules.
+
+8. Termination Behavior  
+- On the first validation failure, the program prints `"No\n"` and exits immediately.  
+- Otherwise, it prints `"Yes\n"` after finishing the traversal.  
+- No other output is produced.
+
+```

@@ -1,0 +1,149 @@
+#include <stdio.h>
+#include <limits.h>
+
+#define MAXN 205
+#define MAXR 1005
+
+/* Use a large sentinel value for unreachable states/distances. */
+#define INF 1000000000
+
+static int min_int(int a, int b) { return (a < b) ? a : b; }
+
+int main(void) {
+    int N, M;
+
+    while (scanf("%d %d", &N, &M) == 2) {
+        if (N == 0) break;
+
+        /* Adjacency matrices for the two categories:
+           L: edges with type 'L'
+           S: edges with type != 'L' (non-'L') */
+        static int distL[MAXN][MAXN];
+        static int distS[MAXN][MAXN];
+
+        /* Initialize distances */
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                distL[i][j] = (i == j) ? 0 : INF;
+                distS[i][j] = (i == j) ? 0 : INF;
+            }
+        }
+
+        /* Read edges; last one of same category between same endpoints overwrites earlier ones. */
+        for (int e = 0; e < M; e++) {
+            int a, b, c;
+            char t;
+            if (scanf("%d %d %d %c", &a, &b, &c, &t) != 4) return 0;
+            a--; b--;
+            if (t == 'L') {
+                distL[a][b] = c;
+                distL[b][a] = c;
+            } else {
+                distS[a][b] = c;
+                distS[b][a] = c;
+            }
+        }
+
+        /* Floyd-Warshall for each category independently */
+        for (int k = 0; k < N; k++) {
+            for (int i = 0; i < N; i++) {
+                int dik = distL[i][k];
+                if (dik >= INF) continue;
+                for (int j = 0; j < N; j++) {
+                    int dkj = distL[k][j];
+                    if (dkj >= INF) continue;
+                    int nd = dik + dkj;
+                    if (nd < distL[i][j]) distL[i][j] = nd;
+                }
+            }
+        }
+        for (int k = 0; k < N; k++) {
+            for (int i = 0; i < N; i++) {
+                int dik = distS[i][k];
+                if (dik >= INF) continue;
+                for (int j = 0; j < N; j++) {
+                    int dkj = distS[k][j];
+                    if (dkj >= INF) continue;
+                    int nd = dik + dkj;
+                    if (nd < distS[i][j]) distS[i][j] = nd;
+                }
+            }
+        }
+
+        int R;
+        if (scanf("%d", &R) != 1) return 0;
+
+        static int req[MAXR];
+        for (int i = 0; i < R; i++) {
+            int x;
+            if (scanf("%d", &x) != 1) return 0;
+            req[i] = x - 1; /* convert to 0-based */
+        }
+
+        if (R == 1) {
+            printf("0\n");
+            continue;
+        }
+
+        /* DP arrays: dp_prev[v] corresponds to dp[k][v], dp_cur[v] to dp[k+1][v]. */
+        static int dp_prev[MAXN];
+        static int dp_cur[MAXN];
+
+        for (int v = 0; v < N; v++) dp_prev[v] = INF;
+        dp_prev[req[0]] = 0;
+
+        for (int k = 0; k < R - 1; k++) {
+            for (int v = 0; v < N; v++) dp_cur[v] = INF;
+
+            int a = req[k];
+            int b = req[k + 1];
+
+            /* Transition:
+               For all j, i:
+                 dp[k+1][i] = min(dp[k+1][i],
+                                 dp[k][j] + distL(a,j) + distS(j,i) + distL(i,b))
+               Additionally, when i==j:
+                 dp[k+1][i] = min(dp[k+1][i], dp[k][j] + distL(a,b))
+            */
+            for (int j = 0; j < N; j++) {
+                int base = dp_prev[j];
+                if (base >= INF) continue;
+
+                int daj = distL[a][j];
+                if (daj >= INF) {
+                    /* Still allow the direct L-only move when i==j? It depends only on distL(a,b),
+                       but the specification says it is considered "when i==j" in addition.
+                       Since i==j is possible for this j, we can apply it here regardless of daj. */
+                }
+
+                /* Direct L-only option (applies to i==j) */
+                if (distL[a][b] < INF) {
+                    int cand = base + distL[a][b];
+                    if (cand < dp_cur[j]) dp_cur[j] = cand;
+                }
+
+                /* Three-part option */
+                if (daj >= INF) continue; /* cannot reach j from a via L-only segment */
+
+                for (int i = 0; i < N; i++) {
+                    int dji = distS[j][i];
+                    if (dji >= INF) continue;
+                    int dib = distL[i][b];
+                    if (dib >= INF) continue;
+
+                    int cand = base + daj + dji + dib;
+                    if (cand < dp_cur[i]) dp_cur[i] = cand;
+                }
+            }
+
+            for (int v = 0; v < N; v++) dp_prev[v] = dp_cur[v];
+        }
+
+        int ans = INF;
+        for (int v = 0; v < N; v++) ans = min_int(ans, dp_prev[v]);
+
+        printf("%d\n", ans);
+    }
+
+    return 0;
+}

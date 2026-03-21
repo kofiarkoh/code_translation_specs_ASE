@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdint.h>
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        /* Undefined behavior per spec if input is malformed; just exit. */
+        return 0;
+    }
+
+    /* Fixed-size storage as implied by constraints (n <= 20, a[i] <= 20). */
+    int a[20];
+    int t[20][20];
+    int v[20][20];
+
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &a[i]) != 1) return 0;
+        for (int k = 0; k < a[i]; k++) {
+            if (scanf("%d %d", &t[i][k], &v[i][k]) != 2) return 0;
+            /* Targets are 1-based in input; keep as-is and adjust when used. */
+        }
+    }
+
+    int best = 0;
+
+    /* Enumerate all subsets of {1..n}. Use unsigned to make shifts well-defined. */
+    uint32_t limit = (n >= 32) ? 0u : (1u << (uint32_t)n);
+    for (uint32_t mask = 0; mask < limit; mask++) {
+        int ok = 1;
+
+        for (int i = 0; i < n && ok; i++) {
+            if (((mask >> (uint32_t)i) & 1u) == 0u) continue; /* entity i not selected */
+
+            for (int k = 0; k < a[i]; k++) {
+                int target = t[i][k] - 1; /* convert to 0-based */
+                int asserted = v[i][k];
+
+                /* Per preconditions, target is in [0..n-1] and asserted is 0/1. */
+                int in_subset = (int)((mask >> (uint32_t)target) & 1u);
+                if (in_subset != asserted) {
+                    ok = 0;
+                    break;
+                }
+            }
+        }
+
+        if (ok) {
+            /* Count bits in mask (n <= 20, so simple loop is fine). */
+            int cnt = 0;
+            for (int i = 0; i < n; i++) {
+                cnt += (int)((mask >> (uint32_t)i) & 1u);
+            }
+            if (cnt > best) best = cnt;
+        }
+    }
+
+    printf("%d\n", best);
+    return 0;
+}

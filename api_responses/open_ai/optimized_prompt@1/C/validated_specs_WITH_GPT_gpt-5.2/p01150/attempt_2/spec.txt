@@ -1,0 +1,37 @@
+1. Functional Description  
+For each provided nonzero integer \(N\), computes the number of distinct ways to seat eight distinct individuals in \(N\) fixed positions arranged on a circle, under the constraint that no two occupied positions are adjacent on the circle (adjacency is cyclic, so position 0 is adjacent to position \(N-1\)). The program counts all valid choices of 8 positions satisfying the constraint and then counts all assignments of the 8 distinct individuals to those positions. One result is printed per input value; processing ends at a terminating zero.
+
+2. Inputs  
+- A sequence of integers \(N\), each denoting the number of seats/positions on the circle.  
+- Input terminates when a value of 0 is encountered.  
+- If input cannot be read as an integer, processing stops (no output for that unreadable item).
+
+3. Outputs  
+- For each nonzero input \(N\), outputs a single nonnegative integer: the number of valid seatings of eight distinct individuals satisfying the non-adjacency constraint on a circle of size \(N\).
+
+4. Preconditions / Assumptions  
+- \(N\) is treated as an integer; the program is intended for \(N \ge 0\).  
+- The implementation uses fixed-size internal tables indexed by position up to \(N-1\); behavior is only defined for values of \(N\) that do not exceed the internal capacity (see Exceptional Behavior).  
+- The computed total is printed as a signed 64-bit integer; if the true value exceeds that range, overflow may occur.
+
+5. Postconditions / Counting Semantics  
+For each processed nonzero \(N\):  
+- If \(N \le 16\), the output is 0 (the program does not count any arrangements in this case).  
+- If \(N > 16\), the output equals:  
+  - \(8!\) multiplied by the number of valid 0/1 occupancy patterns of length \(N\) on a cycle with exactly eight 1s such that no two 1s are adjacent cyclically.  
+- The factor \(8!\) reflects that the eight individuals are distinct and any permutation of them over the chosen occupied seats is counted.
+
+6. Interpretation of “Distinct”  
+- Seat positions are considered labeled/fixed by index; different sets of occupied indices are counted as different even if one is a rotation or reflection of another.  
+- The eight individuals are distinct; swapping two individuals in the same occupied set produces a different seating.
+
+7. Parity Handling (Clarification of Internal Case Split)  
+- The program computes the number of valid occupancy patterns using different internal recurrences depending on whether \(N\) is odd or even.  
+- This parity split is an implementation detail for counting the same cyclic non-adjacency constraint; it does not introduce any additional seating constraint beyond “exactly eight occupied seats” and “no two occupied seats are adjacent on the circle.”
+
+8. State Transitions  
+- Repeats per input value: read \(N\) → if \(N=0\) terminate → reset internal memoization → compute count (0 if \(N \le 16\), otherwise as above) → print result → continue.
+
+9. Exceptional / Undefined Behavior  
+- If \(N\) exceeds the maximum supported by the program’s fixed-size memoization arrays, behavior is undefined (may produce incorrect results or access invalid memory).  
+- If the true count does not fit in signed 64-bit range, the printed value may be incorrect due to overflow.

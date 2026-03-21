@@ -1,0 +1,177 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+/* {1,2,3} -> ... -> {3,2,1} */
+int next_permutation(int arr[],int n) {
+	int target;
+	int i;
+	int temp;
+	for (i = n - 2; i >= 0; i--) {
+		if (arr[i] < arr[i + 1]) break;
+	}
+	if (i < 0) return 0;
+	target = i;
+
+	for (i = 0; target + i + 1 < n - i - 1; i++) {
+		temp = arr[target + 1 + i];
+		arr[target + 1 + i] = arr[n - 1 - i];
+		arr[n - i - 1] = temp;
+	}
+
+	for (i = target + 1; i < n; i++) {
+		if (arr[i] > arr[target]) break;
+	}
+	temp = arr[i];
+	arr[i] = arr[target];
+	arr[target] = temp;
+	return 1;
+}
+
+/*
+ 1
+4025
+ 3
+*/
+int connect[12][4] = {
+	/* {pos, h/w, pos, h/w} */
+	{0, 1, 1, 1},
+	{0, 0, 2, 0},
+	{0, 1, 3, 1},
+	{0, 0, 4, 0},
+
+	{1, 0, 2, 1},
+	{2, 1, 3, 0},
+	{3, 0, 4, 1},
+	{4, 1, 1, 0},
+
+	{5, 1, 1, 1},
+	{5, 0, 4, 0},
+	{5, 1, 3, 1},
+	{5, 0, 4, 0}
+};
+
+int main(void) {
+	int hw[6][2];
+	int i;
+	int permutation[6] = {0, 1, 2, 3, 4, 5};
+	int rotate;
+	for (i = 0; i < 6; i++) {
+		if (scanf("%d%d", &hw[i][0], &hw[i][1]) != 2) return 1;
+	}
+	do {
+		for (rotate = 0; rotate < (1 << 6); rotate++) {
+			int ng = 0;
+			for (i = 0; i < 12; i++) {
+				int len1 = hw[permutation[connect[i][0]]][connect[i][1] ^ ((rotate >> connect[i][0]) & 1)];
+				int len2 = hw[permutation[connect[i][2]]][connect[i][3] ^ ((rotate >> connect[i][2]) & 1)];
+				if (len1 != len2) {
+					ng = 1;
+					break;
+				}
+			}
+			if (!ng) {
+				puts("yes");
+				return 0;
+			}
+		}
+	} while (next_permutation(permutation, 6));
+	puts("no");
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether six given rectangles can be assigned to the six faces of a rectangular box (cuboid), with each rectangle optionally rotated, such that all shared edges between adjacent faces have equal lengths. Prints an affirmative result if at least one assignment and set of rotations satisfies all required edge-length equalities; otherwise prints a negative result.
+
+2. Inputs  
+- Six pairs of integers, each pair representing the two side lengths of one rectangle.
+
+3. Outputs  
+- A single line indicating whether a valid cuboid-face assignment exists (affirmative) or not (negative).  
+- Program exit status indicating success when a result is produced, or failure if input cannot be read.
+
+4. Preconditions  
+- Exactly six rectangles are provided as input, each with two integer side lengths.  
+- Side lengths are assumed to be meaningful as edge lengths (typically non-negative); the program does not enforce positivity.
+
+5. Postconditions  
+- If the program outputs the affirmative result, then there exists:
+  - a one-to-one assignment of the six input rectangles to the six cuboid faces, and
+  - an independent choice per face of whether to swap its two side lengths (rotation),
+  such that every required adjacency between faces has matching edge lengths.  
+- If the program outputs the negative result, then no such assignment and rotation choices exist among all possibilities considered.
+
+6. Invariants  
+- Each candidate configuration always uses each of the six input rectangles exactly once.  
+- For any candidate configuration, each face uses exactly one of the two possible orientations of its rectangle (unrotated or rotated).  
+- A configuration is considered valid only if all specified adjacent-face edge comparisons are equalities.
+
+7. Error Handling / Exceptional Behavior  
+- If the six rectangle pairs cannot be fully read from input, the program terminates early with a non-zero exit status and produces no affirmative/negative result line.  
+- No other error conditions are explicitly handled.
+
+8. State Transitions (if applicable)  
+- The program transitions from “searching” to “accepted” upon finding the first valid configuration, immediately producing the affirmative output and terminating.  
+- If all configurations are exhausted without success, it transitions to “rejected,” produces the negative output, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- The search is exhaustive over all assignments of six rectangles to six faces and all independent rotation choices per face; runtime is bounded by a fixed constant factor for this input size.  
+- Memory usage is constant with respect to input size (fixed-size storage for six rectangles and internal bookkeeping).
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong output formatting / wrong ordering/casing rule (I/O contract mismatch)
+
+B. What the current specification may be missing or misstating  
+- The specification says “prints an affirmative result” / “prints a negative result” but does not constrain the exact literal strings (including case) that must be printed.  
+- The generated program prints `YES`/`NO`, while the source prints lowercase `yes`/`no`.
+
+C. What general behavior should be clarified in the specification  
+- The exact required output tokens must be specified precisely, including capitalization and newline behavior (e.g., output must be exactly `yes\n` or `no\n`).  
+- More generally: the spec should treat the output as a strict judge-facing protocol, not a semantic “affirmative/negative” message.
+
+D. Why this clarification is supported by the source program  
+- The source program uses `puts("yes");` and `puts("no");`, which unambiguously defines the required output strings as lowercase `yes`/`no` followed by a newline.  
+- Since the program is intended for automated judging, any deviation in case (e.g., `YES`/`NO`) changes observable behavior even if the underlying decision logic is correct.
+
+```

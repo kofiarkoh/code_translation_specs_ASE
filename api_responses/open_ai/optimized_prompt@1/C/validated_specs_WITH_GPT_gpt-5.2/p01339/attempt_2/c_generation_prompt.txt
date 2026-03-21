@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+The program reads a directed graph, decomposes it into strongly connected components (SCCs), derives a component-level “next” pointer for each SCC using a specific overwrite rule based on vertex order and edge insertion order, then performs a single forward pass over SCC indices to combine per-component values. It outputs a single integer equal to the resulting product modulo 1,000,000,007.
+
+2. Inputs  
+- Integer `N`: number of vertices.  
+- Integer `M`: number of directed edges.  
+- `M` pairs `(s, d)`: a directed edge from `s` to `d`.  
+Vertex labels in the input are 1-based; the program converts them to 0-based internally.
+
+3. Outputs  
+- One line containing a single integer: the computed value modulo 1,000,000,007.
+
+4. Preconditions / Assumptions  
+- `1 ≤ N ≤ 1002`.  
+- `M ≥ 0`, and exactly `M` edge pairs are provided.  
+- Each endpoint `s, d` is within `[1, N]`.  
+- Input consists of nonnegative decimal integers separated by non-digit characters (whitespace/newlines are sufficient).  
+- Sufficient memory is available for adjacency storage; otherwise behavior is undefined.  
+- The computed value is defined by the program’s selection rules below; it is not necessarily an invariant “graph property” if multiple vertices in the same SCC have outgoing edges (because the program intentionally uses an overwrite-based selection).
+
+5. SCC Decomposition  
+- The program computes SCCs using a two-pass DFS method (Kosaraju).  
+- Each vertex is assigned a component index `cmp[v]` in the order components are discovered during the second pass. Component indices range from `0` to `k-1`, where `k` is the number of SCCs.
+
+6. Construction of the component “next” relation (`nx`)  
+- An array `nx[0..k-1]` is initialized to “undefined” (represented as `-1`).  
+- For each vertex `i` from `0` to `N-1` in increasing order:  
+  - If `i` has at least one outgoing edge, let `j` be the destination of the *first stored outgoing edge* of `i`. “First stored” means the earliest edge for that source vertex in the input order (edges are appended as read).  
+  - Then set `nx[cmp[i]] = cmp[j]`, overwriting any previous value for that component.  
+- Consequence: if multiple vertices in the same SCC have outgoing edges, the final `nx` for that SCC is determined by the *largest-indexed* vertex in that SCC that has at least one outgoing edge, and by that vertex’s earliest-read outgoing edge.
+
+7. Per-component combination logic and processing order  
+- Arrays `dp[0..k-1]` (initially all zero) and `ans` (initially 1) are used.  
+- Components are processed once in increasing component index order `i = 0..k-1`. For each component `i`:
+  - Update `dp[i]` as follows: if `dp[i]` is nonzero, increment it by 1; otherwise set it to 2. (Thus, the first time a component is processed it becomes 2; if it has already accumulated a value from earlier merges, it is incremented before further use.)
+  - If `nx[i]` is undefined (`< 0`) or `nx[i] == i` (self-loop at the component level), multiply `ans = (ans * dp[i]) mod 1,000,000,007`.
+  - Otherwise (defined and points to a different component `t = nx[i]`), merge forward into `dp[t]`:
+    - If `dp[t]` is nonzero, set `dp[t] = (dp[t] * dp[i]) mod 1,000,000,007`;
+    - else set `dp[t] = dp[i]`.
+- After all components are processed, the program outputs `ans`.
+
+8. Edge Cases / Termination  
+- Vertices with no outgoing edges do not directly set `nx` for their SCC.  
+- SCCs for which no vertex ever sets `nx` remain with `nx` undefined and therefore contribute directly to `ans` when processed.  
+- The program processes exactly one graph instance, prints the result, and terminates normally. No explicit error handling is performed; malformed input or allocation failure leads to undefined behavior.
+
+```

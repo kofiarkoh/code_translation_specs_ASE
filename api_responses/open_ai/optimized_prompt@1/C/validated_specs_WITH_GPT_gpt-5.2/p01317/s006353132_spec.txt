@@ -1,0 +1,52 @@
+1. Functional Description  
+For each dataset, compute the minimum total cost to follow a required sequence of locations in the given order on an undirected graph whose edges belong to one of two cost categories. Travel between each consecutive pair of required locations is evaluated using precomputed shortest-path distances within each category, and the total cost is the sum of the chosen step costs over the sequence.
+
+For each step from required location `a` to the next required location `b`, the program allows either:  
+- a three-part route consisting of an `'L'`-only segment from `a` to some node `j`, then a non-`'L'`-only segment from `j` to some node `i`, then an `'L'`-only segment from `i` to `b`; or  
+- a direct `'L'`-only route from `a` to `b` (handled as a separate option in the dynamic program, not as a general three-part route).
+
+2. Inputs  
+Each dataset (repeated until termination) consists of:  
+- Two integers `N` and `M`: number of locations and number of connections. Input terminates when `N` is zero (the value of `M` on that line is ignored).  
+- `M` connection records. Each record contains: two endpoint location identifiers, a nonnegative integer cost, and a single character type. The type character `'L'` denotes the `'L'` cost category; any other character denotes the non-`'L'` cost category. Connections are undirected. If multiple connections of the same category exist between the same endpoints, the last one read overwrites earlier ones.  
+- An integer `R`: the length of the required visit sequence.  
+- `R` location identifiers giving the required sequence in order.
+
+3. Outputs  
+For each dataset, print one line containing a single integer: the minimum total cost computed by the program to traverse the required sequence under the movement rules described above. If no valid traversal exists, the program prints its internal large sentinel value (it does not print a special message).
+
+4. Preconditions / Assumptions  
+- All location identifiers in the input (both in connection records and in the required sequence) are 1-based and lie in `1..N`.  
+- `R >= 1`.  
+- `N <= 205` and `R <= 1005`.  
+- Costs and path sums are assumed not to overflow 32-bit signed integer arithmetic when combined with the program’s internal “large value” sentinel used for unreachable states.  
+- The program does not validate input; violations of these assumptions yield undefined behavior.
+
+5. Semantics and Edge Cases  
+- The program treats the two edge categories independently. It computes, for every pair of locations `(u,v)`, the minimum cost to travel from `u` to `v` using only `'L'` edges, and separately the minimum cost using only non-`'L'` edges. If no such path exists for a category, that pair remains effectively unreachable for that category.  
+- The required sequence is converted from 1-based to 0-based indices internally.  
+- The traversal cost is accumulated over the `R-1` consecutive required pairs. The algorithm maintains a dynamic program over steps; the final answer is the minimum value over all end states after processing the last required location.  
+- If `R == 1`, no travel is needed and the program outputs 0.
+
+6. Dynamic Programming Semantics (clarified)  
+Let `req[k]` be the `k`-th required location (0-based, `k = 0..R-1`). The program maintains `dp[k][v]` for `k = 0..R-1` and `v = 0..N-1` with the following meaning:
+
+- `dp[k][v]` is the minimum total cost accumulated after having processed required locations up through `req[k]`, where `v` is a free state index representing a chosen node carried forward to the next transition. This state index is **not** interpreted as “already having traveled from `req[k]` to `v`”; the cost to go from the current required location to the chosen departure node is explicitly charged in the next step’s transition.
+
+Initialization:  
+- `dp[0][req[0]] = 0`, and all other `dp[0][v]` are set to the sentinel “unreachable” value.
+
+Transition for each step `k -> k+1` (for `k = 0..R-2`):  
+- For all nodes `j` and `i`, the program considers a three-part route and updates:
+  - `dp[k+1][i]` with  
+    `dp[k][j] + distL(req[k], j) + distS(j, i) + distL(i, req[k+1])`,  
+    where `distL` is the all-pairs shortest-path distance using only `'L'` edges and `distS` is the all-pairs shortest-path distance using only non-`'L'` edges.
+- Additionally, when `i == j`, the program also allows a direct `'L'`-only move from `req[k]` to `req[k+1]` and updates:
+  - `dp[k+1][i]` with  
+    `dp[k][j] + distL(req[k], req[k+1])`.
+
+Finalization:  
+- The reported answer is `min_v dp[R-1][v]`.
+
+7. Error Handling / Exceptional Behavior  
+No explicit error handling is performed. Malformed input, out-of-range identifiers, or values exceeding internal bounds may cause incorrect results or undefined behavior.

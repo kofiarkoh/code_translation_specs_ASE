@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong ordering rule for the “record min/max” query structures (especially for FH), and likely a wrong transition rule for how those auxiliary structures are updated.
+
+B. What the current specification may be missing or misstating  
+- The spec describes FH queries as “record minima/maxima when scanning FH from the top/newest end backward,” implying the record sequence is defined by the *current* FH contents in that scan order.  
+- In the source, FH’s auxiliary `min[FH]`/`max[FH]` are **not maintained as a monotone deque over the scan order**. Instead, they are maintained as a **simple history stack of prefix extrema in insertion order into FH** (append-only, pop-from-end), i.e., “min so far” and “max so far” as elements are pushed onto FH.  
+- Consequently, `gmin(FH,k)` / `gmax(FH,k)` for `k>1` are **not** “k-th record in a scan of current FH”; they are “k-th from the end of the stored prefix-extrema history,” which corresponds to earlier prefix extrema, not scan-records.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define what the FH query sequences are: they are derived from **prefix minima/maxima over the sequence of pushes into FH** (with pops removing the last element and possibly the last extrema), not from a conceptual scan of FH’s current elements.  
+- Clarify that FH’s auxiliary structures only update by comparing the newly pushed value to the **last stored extrema**, and on pop they only remove extrema if the popped value equals the last extrema. There is no “while-pop to maintain monotonicity” behavior for FH.  
+- More generally: distinguish the two halves’ auxiliary maintenance rules—SH uses a monotone-queue style structure (with while-loops removing dominated tail elements), but FH does not.
+
+D. Why this clarification is supported by the source program  
+- In `add(FH,a)`, the code does:
+  - `if (min_last > a) min_push(a);` and `if (max_last < a) max_push(a);`
+  - No loop to remove previous entries. This is exactly “prefix extrema history,” not a monotone deque of scan-records.
+- In `gmin(FH, th)` it returns `min[FH][ae[FH]-th]` (and similarly for max), i.e., indexing backward into that history stack. That matches “k-th most recent prefix-extremum,” not “k-th record in a scan.”
+- By contrast, in `add(SH,a)` the code uses `while (...) ae--` / `while (...) ze--` before pushing, which *is* monotone-queue maintenance; and `gmin(SH,th)` indexes from the front (`at+th-1`). This asymmetry shows the spec’s unified “record scan” description is too coarse and is incorrect for FH.

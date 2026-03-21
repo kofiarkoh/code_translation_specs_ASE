@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+int main(void) {
+    long long x, y;
+
+    while (scanf("%lld %lld", &x, &y) == 2) {
+        /* Specification states abs must be representable; overflow is undefined.
+           We therefore use a straightforward absolute value computation. */
+        long long a = (x < 0) ? -x : x;
+        long long b = (y < 0) ? -y : y;
+
+        long long s = a + b;
+        long long t;
+
+        if (s == 1) {
+            t = 1;
+        } else if ((a & 1LL) && (b & 1LL)) {
+            t = s - 1;
+        } else if (((a & 1LL) == 0) && ((b & 1LL) == 0)) {
+            t = s;
+        } else if (a != 0 && b != 0) {
+            t = s;
+        } else {
+            /* Exactly one of a, b is zero here (since s != 1 already handled). */
+            t = s + 1;
+        }
+
+        printf("%lld\n", t);
+    }
+
+    return 0;
+}

@@ -1,0 +1,37 @@
+```c
+#include <stdio.h>
+
+static long long llmin(long long x, long long y) {
+    return (x < y) ? x : y;
+}
+
+int main(void) {
+    long long n;
+    long long k;
+
+    if (scanf("%lld %lld", &n, &k) != 2) {
+        return 0; /* Unspecified behavior on malformed/missing input; exit quietly. */
+    }
+
+    for (long long i = 0; i < k; i++) {
+        long long a, b;
+        if (scanf("%lld %lld", &a, &b) != 2) {
+            return 0; /* Unspecified behavior; stop if input is missing/malformed. */
+        }
+
+        /* da = min(a, n + 1 - a), db = min(b, n + 1 - b) */
+        long long da = llmin(a, (n + 1) - a);
+        long long db = llmin(b, (n + 1) - b);
+
+        /* m = min(da, db) */
+        long long m = llmin(da, db);
+
+        /* output ((m - 1) mod 3) + 1 */
+        long long out = ((m - 1) % 3) + 1;
+
+        printf("%lld\n", out);
+    }
+
+    return 0;
+}
+```

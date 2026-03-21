@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, over a rectangular character grid, the sum across all maximal 4-neighbor connected regions formed by allowing adjacency only between cells with different characters. For each such region, it multiplies the number of cells containing the dot character by the number of cells containing any other character, and outputs the total sum of these products.
+
+2. Inputs  
+- Two integers: grid height and grid width.  
+- A sequence of height text rows representing the grid contents, each providing at least width characters.
+
+3. Outputs  
+- A single non-negative integer equal to:  
+  \[
+  \sum_{\text{region } R} \bigl(\#\text{dot cells in }R\bigr)\times\bigl(\#\text{non-dot cells in }R\bigr)
+  \]
+  where regions are maximal sets of cells connected via 4-neighbor steps that always move between cells with different characters.
+
+4. Preconditions  
+- Height and width are provided successfully.  
+- 0 ≤ height ≤ 512 and 0 ≤ width ≤ 512.  
+- Each of the height grid rows is provided successfully and contains at least width characters.  
+- The total number of cells (height × width) does not exceed 512 × 512.
+
+5. Postconditions  
+- If all inputs are successfully read and preconditions hold, the program outputs exactly one line containing the computed total as a 64-bit unsigned value.  
+- Every grid cell is assigned to exactly one region under the “different-character 4-neighbor connectivity” rule used for region formation.
+
+6. Invariants  
+- Region membership is consistent: within a region, any two cells are connected by a path of 4-neighbor moves where each move crosses between unequal characters.  
+- Regions are maximal: no cell outside a region can be added without violating the connectivity rule.  
+- For each region, the counted dot and non-dot totals equal the number of cells in that region partitioned by whether the cell character is a dot.
+
+7. Error Handling / Exceptional Behavior  
+- If reading the dimensions fails, the program terminates with a non-zero exit status and produces no defined output.  
+- If reading any grid row fails, the program terminates with a non-zero exit status and produces no defined output.  
+- Behavior is undefined if the preconditions on bounds or row lengths are violated.
+
+8. State Transitions (if applicable)  
+- Initial state: no regions assigned; per-region dot/non-dot counts are zero.  
+- After region assignment: each cell is labeled with a region identifier.  
+- After counting: each region has accumulated dot and non-dot cell counts.  
+- Final state: the total sum is computed from per-region counts and emitted.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the grid size (bounded by fixed maximum dimensions).  
+- Execution time is proportional to the number of grid cells, up to constant factors.
+
+```

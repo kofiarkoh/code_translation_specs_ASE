@@ -1,0 +1,27 @@
+A. Likely mismatch category  
+- Wrong transition/update rule (core arithmetic) and wrong ordering rule (sort key).  
+- Also a missing/incorrect early-failure condition tied to the distinguished entity’s “limit” check during accumulation.
+
+B. What the current specification may be missing or misstating  
+- It does not precisely define the numeric recurrence used to update `ans`. The generated code invented a formula involving `y*rem/(a0-y)+1`, but the source updates `ans` using a different expression that depends on two derived values per entity:  
+  - `k = a[i] - d[0]` (a “turn weight”)  
+  - `t = ceil((h[i] - d[i]) / (a[0] - d[i]))` (a “multiplier” derived from `h[i], d[i], a[0]`)  
+  and then uses `ans += turn * t - k` while iterating in sorted order.  
+- The specification’s “derived ratios” description is too vague and appears to have been interpreted incorrectly. The source sorts by comparing `t1/k1` vs `t2/k2` (implemented as `t1*k2 > t2*k1`), not by any ratio involving `d[i]` or `a0-d[i]`.  
+- The spec does not capture the initial pre-accumulation step where `turn` and part of `ans` are updated before sorting, including a conditional addition based on `s[i] > s[0]`.
+
+C. What general behavior should be clarified in the specification  
+- The exact derived quantities for each relevant entity and how they are computed, including the ceiling division formula and which original parameters participate.  
+- The two-phase accumulation:
+  1) an initial pass that increases `turn` by `k` and may increase `ans` by `k` depending on a comparison of the entities’ fourth parameters (`s[i] > s[0]`), while also collecting `(t, k)` pairs;  
+  2) a sorted processing pass that updates `ans` by `ans += turn * t - k`, checks failure against `h[0]` after each update, then decreases `turn` by `k`.  
+- The exact sort comparator: ordering by the ratio `t/k` (with cross-multiplication), and the fact that the comparator in the source is not a standard three-way comparator (it returns only a boolean), which may affect tie-handling/ordering assumptions.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly computes:
+  - `k = a[i] - d[0]` and skips entities with `k <= 0`.  
+  - Early unsatisfiable condition: if `a[0] <= d[i]` for any relevant entity, output `-1`.  
+  - `t = ((h[i] - d[i] + a[0] - 1) / (a[0] - d[i]))`, i.e., a ceiling division dependent on `h[i], d[i], a[0]`.  
+  - Initial accumulation: `turn += k; if (s[i] > s[0]) ans += k;`  
+  - Sorted accumulation: `ans += turn*tbl[i].a - tbl[i].d; if (h[0] <= ans) fail; turn -= tbl[i].d;`  
+- None of these concrete computations (especially the ceiling division, the `s[i] > s[0]` contribution, and the `turn*t - k` update) are captured precisely in the current specification, which allowed the generated program to implement a materially different algorithm and therefore miss the `-1` outcome on the sample.

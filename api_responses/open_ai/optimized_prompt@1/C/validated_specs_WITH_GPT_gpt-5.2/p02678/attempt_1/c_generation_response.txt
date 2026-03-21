@@ -1,0 +1,69 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int to;
+    int next;
+} Edge;
+
+int main(void) {
+    int N, M;
+    if (scanf("%d %d", &N, &M) != 2) {
+        /* Undefined behavior per spec on input failure; just exit. */
+        return 0;
+    }
+
+    /* Adjacency list: head[1..N], edges[0..2*M-1] */
+    int *head = (int *)malloc((size_t)(N + 1) * sizeof(int));
+    Edge *edges = (Edge *)malloc((size_t)(2LL * (long long)M) * sizeof(Edge));
+    int *pred = (int *)malloc((size_t)(N + 1) * sizeof(int));
+    int *q = (int *)malloc((size_t)(N + 1) * sizeof(int));
+
+    for (int i = 1; i <= N; i++) head[i] = -1;
+
+    int ec = 0;
+    for (int i = 0; i < M; i++) {
+        int a, b;
+        if (scanf("%d %d", &a, &b) != 2) {
+            /* Undefined behavior per spec; stop. */
+            return 0;
+        }
+        /* Add a->b */
+        edges[ec].to = b;
+        edges[ec].next = head[a];
+        head[a] = ec++;
+        /* Add b->a */
+        edges[ec].to = a;
+        edges[ec].next = head[b];
+        head[b] = ec++;
+    }
+
+    /* Initialize predecessors: -1 for unreached, pred[1]=0 for root. */
+    for (int i = 1; i <= N; i++) pred[i] = -1;
+    if (N >= 1) pred[1] = 0;
+
+    /* BFS from vertex 1; each vertex enqueued at most once. */
+    int qh = 0, qt = 0;
+    if (N >= 1) q[qt++] = 1;
+
+    while (qh < qt) {
+        int u = q[qh++];
+        for (int e = head[u]; e != -1; e = edges[e].next) {
+            int v = edges[e].to;
+            if (pred[v] == -1) {
+                pred[v] = u;      /* assigned once, never changed */
+                q[qt++] = v;      /* enqueued once */
+            }
+        }
+    }
+
+    /* Output: affirmative completion line, then predecessors for 2..N. */
+    puts("Yes");
+    for (int i = 2; i <= N; i++) {
+        printf("%d\n", pred[i]);
+    }
+
+    return 0;
+}
+```

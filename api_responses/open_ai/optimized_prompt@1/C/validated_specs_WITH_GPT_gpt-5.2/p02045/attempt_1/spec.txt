@@ -1,0 +1,48 @@
+1. Functional Description  
+For each dataset, computes and outputs the minimum total travel cost over a sequence of points, where the cost between each consecutive pair is the lesser of:  
+- the direct Manhattan distance between the two points, and  
+- an alternative cost that allows “escaping” to a given axis-aligned rectangle from the first point (with a one-unit discount if the first point is outside the rectangle) and then “entering” from the rectangle to the second point.  
+The total is the sum of these per-segment minimum costs across the entire sequence.
+
+2. Inputs  
+For each dataset:  
+- An integer specifying the number of segments (equivalently, one less than the number of points).  
+- Four integers defining an axis-aligned rectangle by two x-bounds and two y-bounds.  
+- A sequence of (number of segments + 1) 2D integer points, in order.  
+Datasets repeat until input ends or a non-positive segment count is encountered.
+
+3. Outputs  
+For each dataset, outputs a single integer: the computed minimum total cost for traversing the point sequence under the described per-segment cost rule.
+
+4. Preconditions  
+- The segment count is positive for a dataset to be processed.  
+- Exactly four integers are provided to define the rectangle for each processed dataset.  
+- Exactly (segment count + 1) points are provided for each processed dataset.  
+- The segment count does not exceed 127 (to fit the fixed internal storage).  
+- The rectangle bounds are assumed to represent a valid rectangle with lower/upper ordering on each axis (i.e., x-min ≤ x-max and y-min ≤ y-max); otherwise behavior is still defined by “distance outside the interval” using the given bounds, but may not match an intended geometric rectangle.
+
+5. Postconditions  
+For each processed dataset:  
+- The program outputs the sum, over all consecutive point pairs, of the minimum of:  
+  - Manhattan distance between the two points, and  
+  - (distance from the first point to the rectangle, reduced by 1 if that distance is positive) plus (distance from the second point to the rectangle).  
+- The output value is non-negative.
+
+6. Invariants  
+- The total cost is accumulated as a sum of non-negative per-segment costs.  
+- For any point, its “distance to the rectangle” is zero if the point lies within or on the rectangle boundary; otherwise it equals the Manhattan distance to the nearest point on the rectangle.  
+- The “escape discount” applies only to the first point of a segment and only when that point lies outside the rectangle; it reduces that point’s rectangle-distance contribution by exactly 1, but never below zero.
+
+7. Error Handling / Exceptional Behavior  
+- If required input values for a dataset (rectangle bounds or any point) are missing or cannot be read, the program terminates immediately with a non-zero exit status and produces no further output.  
+- If the initial segment count cannot be read, the program terminates normally with zero exit status.  
+- If a non-positive segment count is read, processing stops and the program terminates normally with zero exit status.
+
+8. State Transitions (if applicable)  
+- Repeats a cycle of: read dataset header → read rectangle → read points → compute and output result.  
+- Terminates when input ends, a non-positive segment count is encountered, or an input read error occurs.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for points, limiting the maximum supported segment count to 127.  
+- Time per dataset is linear in the number of segments.  
+- All computations are performed using integer arithmetic; results are subject to integer range limits of the execution environment.

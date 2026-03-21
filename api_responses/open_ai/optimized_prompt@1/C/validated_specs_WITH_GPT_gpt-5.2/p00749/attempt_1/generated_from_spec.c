@@ -1,0 +1,242 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXW 256
+#define MAXH 256
+#define MAXC (MAXW*MAXH)
+
+static char grid[MAXH][MAXW + 1];
+static int comp_id[MAXH][MAXW];
+
+typedef struct {
+    int used;
+    char sym;
+
+    int mass;              /* number of cells */
+    long long moment2;     /* sum of (2*x+1) over cells; "half-cell offset" via doubled coordinates */
+
+    int min2;              /* min of (2*x) over cells */
+    int max2;              /* max of (2*x+2) over cells; footprint interval is (min2, max2) in doubled coords */
+
+    int parent;            /* component directly beneath (supporting parent), or -1 */
+} Comp;
+
+static Comp comps[MAXC];
+static int ncomps;
+
+static int qx[MAXC], qy[MAXC];
+
+static int inb(int x, int y, int w, int h) {
+    return (x >= 0 && x < w && y >= 0 && y < h);
+}
+
+int main(void) {
+    int w, h;
+
+    while (scanf("%d", &w) == 1) {
+        if (w <= 0) break;
+        if (scanf("%d", &h) != 1) break;
+
+        for (int y = 0; y < h; y++) {
+            if (scanf("%s", grid[y]) != 1) grid[y][0] = '\0';
+        }
+
+        /* Determine empty character as the first character in the grid that is used for empties.
+           The specification says there is a single designated empty character but does not name it.
+           Narrow interpretation: treat '.' as empty if present; otherwise treat the most frequent
+           character as empty; if still ambiguous, default to '.'.
+        */
+        int freq[256];
+        memset(freq, 0, sizeof(freq));
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                unsigned char c = (unsigned char)grid[y][x];
+                freq[c]++;
+            }
+        }
+        unsigned char empty = (unsigned char)'.';
+        if (freq[(unsigned char)'.'] == 0) {
+            int bestc = -1, bestf = -1;
+            for (int c = 0; c < 256; c++) {
+                if (freq[c] > bestf) {
+                    bestf = freq[c];
+                    bestc = c;
+                }
+            }
+            if (bestc >= 0) empty = (unsigned char)bestc;
+        }
+
+        /* init */
+        for (int y = 0; y < h; y++)
+            for (int x = 0; x < w; x++)
+                comp_id[y][x] = -1;
+
+        ncomps = 0;
+        memset(comps, 0, sizeof(comps));
+
+        /* Build components by symbol equality + orthogonal connectivity */
+        for (int y0 = 0; y0 < h; y0++) {
+            for (int x0 = 0; x0 < w; x0++) {
+                if (comp_id[y0][x0] != -1) continue;
+                unsigned char c = (unsigned char)grid[y0][x0];
+                if (c == empty) continue;
+
+                int cid = ncomps++;
+                comps[cid].used = 1;
+                comps[cid].sym = (char)c;
+                comps[cid].mass = 0;
+                comps[cid].moment2 = 0;
+                comps[cid].min2 = 0x3fffffff;
+                comps[cid].max2 = -0x3fffffff;
+                comps[cid].parent = -1;
+
+                int qh = 0, qt = 0;
+                qx[qt] = x0; qy[qt] = y0; qt++;
+                comp_id[y0][x0] = cid;
+
+                while (qh < qt) {
+                    int x = qx[qh], y = qy[qh]; qh++;
+                    /* accumulate */
+                    comps[cid].mass += 1;
+                    comps[cid].moment2 += (long long)(2 * x + 1);
+                    if (2 * x < comps[cid].min2) comps[cid].min2 = 2 * x;
+                    if (2 * x + 2 > comps[cid].max2) comps[cid].max2 = 2 * x + 2;
+
+                    /* neighbors */
+                    static const int dx[4] = {1, -1, 0, 0};
+                    static const int dy[4] = {0, 0, 1, -1};
+                    for (int k = 0; k < 4; k++) {
+                        int nx = x + dx[k], ny = y + dy[k];
+                        if (!inb(nx, ny, w, h)) continue;
+                        if (comp_id[ny][nx] != -1) continue;
+                        if ((unsigned char)grid[ny][nx] != c) continue;
+                        comp_id[ny][nx] = cid;
+                        qx[qt] = nx; qy[qt] = ny; qt++;
+                    }
+                }
+            }
+        }
+
+        /* Establish support parent: component directly beneath (if any).
+           Narrow interpretation: if any cell of component has a non-empty cell directly below
+           belonging to a different component, then that below component is the parent.
+           If multiple different below components exist, behavior is unspecified by spec; we pick
+           the first encountered.
+        */
+        for (int cid = 0; cid < ncomps; cid++) comps[cid].parent = -1;
+
+        for (int y = 0; y < h - 1; y++) {
+            for (int x = 0; x < w; x++) {
+                int a = comp_id[y][x];
+                if (a < 0) continue;
+                int b = comp_id[y + 1][x];
+                if (b < 0) continue;
+                if (a == b) continue;
+                if (comps[a].parent == -1) comps[a].parent = b;
+            }
+        }
+
+        /* Find root (component with no parent). Preconditions say single effective root. */
+        int root = -1;
+        for (int cid = 0; cid < ncomps; cid++) {
+            if (comps[cid].used && comps[cid].parent == -1) {
+                root = cid;
+                break;
+            }
+        }
+
+        /* Build child lists for postorder traversal */
+        static int head[MAXC], next_edge[MAXC], to_edge[MAXC];
+        int ecount = 0;
+        for (int i = 0; i < ncomps; i++) head[i] = -1;
+
+        for (int cid = 0; cid < ncomps; cid++) {
+            int p = comps[cid].parent;
+            if (p >= 0) {
+                to_edge[ecount] = cid;
+                next_edge[ecount] = head[p];
+                head[p] = ecount;
+                ecount++;
+            }
+        }
+
+        /* Postorder traversal from root to aggregate children into parent after validation.
+           If root is -1 (no components), treat as STABLE (vacuously).
+        */
+        int stable = 1;
+        if (root != -1) {
+            static int stack[MAXC], itstack[MAXC], post[MAXC];
+            int sp = 0, postn = 0;
+
+            /* iterative DFS to produce postorder */
+            stack[sp] = root;
+            itstack[sp] = head[root];
+            sp++;
+
+            static unsigned char seen[MAXC];
+            memset(seen, 0, (size_t)ncomps);
+
+            seen[root] = 1;
+
+            while (sp > 0) {
+                int v = stack[sp - 1];
+                int *itp = &itstack[sp - 1];
+                int e = *itp;
+                if (e == -1) {
+                    post[postn++] = v;
+                    sp--;
+                    continue;
+                }
+                *itp = next_edge[e];
+                int u = to_edge[e];
+                if (!seen[u]) {
+                    seen[u] = 1;
+                    stack[sp] = u;
+                    itstack[sp] = head[u];
+                    sp++;
+                }
+            }
+
+            /* Aggregation arrays (start with own mass/moment) */
+            static long long agg_moment2[MAXC];
+            static long long agg_mass[MAXC];
+            for (int cid = 0; cid < ncomps; cid++) {
+                agg_mass[cid] = comps[cid].mass;
+                agg_moment2[cid] = comps[cid].moment2;
+            }
+
+            /* Validate in postorder: children already aggregated into themselves, then check child,
+               then add to parent if stable. Root is also checked but not added further.
+               Condition: aggregated COM strictly within own footprint interval.
+               Using doubled coordinates:
+                 COM2 = agg_moment2 / agg_mass (rational).
+                 Strictly inside (min2, max2) means:
+                   agg_moment2 > agg_mass * min2  AND  agg_moment2 < agg_mass * max2
+               (since min2/max2 are boundaries in doubled coords).
+            */
+            for (int i = 0; i < postn && stable; i++) {
+                int v = post[i];
+
+                long long m = agg_mass[v];
+                long long mom2 = agg_moment2[v];
+                long long min2 = comps[v].min2;
+                long long max2 = comps[v].max2;
+
+                if (!(mom2 > m * min2 && mom2 < m * max2)) {
+                    stable = 0;
+                    break;
+                }
+
+                int p = comps[v].parent;
+                if (p >= 0) {
+                    agg_mass[p] += agg_mass[v];
+                    agg_moment2[p] += agg_moment2[v];
+                }
+            }
+        }
+
+        puts(stable ? "STABLE" : "UNSTABLE");
+    }
+
+    return 0;
+}

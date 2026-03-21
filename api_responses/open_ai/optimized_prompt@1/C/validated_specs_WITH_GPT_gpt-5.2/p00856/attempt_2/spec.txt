@@ -1,0 +1,44 @@
+1. Functional Description  
+For each game instance, computes the probability of reaching the goal (remaining distance becomes zero) within a limited number of turns in a one-piece, dice-driven race on a linear board of length `N`. Movement is determined by a fair six-sided die and uses a “bounce back” rule when overshooting. Certain board positions impose either an extra lost turn or a reset to the start. The computed value is the probability of eventual success starting from the initial state (at the start, with remaining distance `N`) and with exactly `T` turns available.
+
+2. Inputs  
+For each instance (repeated until a terminating instance is encountered):  
+- `N`: nonnegative integer board length (distance from start to goal).  
+- `T`: nonnegative integer number of available turns.  
+- `L`: nonnegative integer count of “lose-extra-turn” squares.  
+- `B`: nonnegative integer count of “back-to-start” squares.  
+- `L` integers: board positions (measured from the start) that are “lose-extra-turn” squares.  
+- `B` integers: board positions (measured from the start) that are “back-to-start” squares.  
+Processing terminates when the four leading integers are all zero.
+
+3. Outputs  
+For each non-terminating instance, outputs a single floating-point number: the probability of reaching the goal under the program’s rules starting from remaining distance `N` with `T` turns.
+
+4. Preconditions / Assumptions  
+- The program uses fixed-size tables indexed by remaining distance and remaining turns; inputs are assumed to keep these indices within bounds (implied: `0 ≤ N ≤ 100` and `0 ≤ T ≤ 100`).  
+- Special-square positions are assumed to be valid indices for the internal board array and consistent with the board coordinate system (positions measured from the start). Out-of-range positions lead to undefined behavior.  
+- The input provides exactly `L` and `B` positions as declared.  
+- If a position is listed in both special-square lists, the later marking in the input overwrites the earlier one; since “back-to-start” positions are read after “lose-extra-turn” positions, “back-to-start” takes precedence when both are specified for the same position.
+
+5. Game State and Success/Failure Conditions  
+- A state is represented by `(r, t)` where `r` is the remaining distance to the goal and `t` is the remaining number of turns.  
+- Success state: `r == 0` (probability 1 from that state, regardless of `t`).  
+- Failure state: `r > 0` and `t <= 0` (probability 0 from that state).
+
+6. Movement and Special-Square Semantics  
+From a state with `r > 0` and `t > 0`:
+- A die outcome `d ∈ {1,2,3,4,5,6}` is chosen uniformly (probability `1/6` each).  
+- Compute the new remaining distance using the bounce rule: `r' = |r − d|`.  
+- Determine the piece’s board position from the start after the move as `pos = N − r'`.  
+- The square effect is determined by the special marking at board position `pos` (not by `r'` directly):
+  - Normal square (no marking): transition to `(r', t − 1)`.  
+  - “Lose-extra-turn” square: transition to `(r', t − 2)` (the move consumes one turn plus one additional lost turn).  
+  - “Back-to-start” square: transition to `(N, t − 1)` (remaining distance resets to full length; only one turn is consumed for the move).
+
+7. Additional Base-Case Behavior  
+- If `t == 1` and `r <= 6` (and `r > 0`), the program returns probability `1/6` directly for that state, reflecting that success can occur only by rolling exactly `r` on the final turn; special-square effects are not applied in this base case.
+
+8. Computation Model  
+- The probability is computed via recursion with memoization over `(r, t)` states, using the transition rules above and uniform averaging over die outcomes.  
+- No explicit error handling is performed; invalid inputs may cause incorrect results or memory errors.  
+- Output formatting uses the default `%lf` floating-point printing behavior.

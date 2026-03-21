@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value that is the median of the multiset consisting of all contiguous subarray medians of a given integer array, using the “upper median” convention for even-length subarrays (i.e., the larger of the two middle elements after sorting the subarray).
+
+2. Inputs  
+- An integer `n`: the length of the array.  
+- A sequence of `n` integers: the array elements.
+
+3. Outputs  
+- One integer: the median (upper median) of the multiset of medians of all `n(n+1)/2` contiguous subarrays.
+
+4. Preconditions  
+- `n > 0`.  
+- All array elements are within the inclusive range `[1, 1,000,000,000]`.  
+- Sufficient memory is available for internal working storage proportional to `n`.
+
+5. Postconditions  
+- The printed value `x` satisfies: at least half of all contiguous subarrays have median (upper median) greater than or equal to `x`, and fewer than half have median (upper median) greater than or equal to `x+1`.  
+- Equivalently, `x` is the upper median of the multiset of all contiguous subarray medians.
+
+6. Invariants  
+- During computation, the candidate output value is maintained within a closed integer interval, and the final output is the greatest value in that interval that still meets the “at least half of subarrays have median ≥ candidate” criterion.  
+- The internal counting step for a candidate threshold `m` returns the number of contiguous subarrays whose median (upper median) is greater than or equal to `m`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range values, or allocation failure; behavior is undefined if preconditions are violated or memory cannot be allocated.
+
+8. State Transitions (if applicable)  
+- No externally visible state is maintained across program runs.  
+- Internally, reusable working storage may persist across calls within the same process, but it is reinitialized for each candidate evaluation and does not affect the final result beyond enabling computation.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is approximately `O(n log n log V)`, where `V` is the value range searched for the answer.  
+- Additional memory usage is `O(n)`.
+
+```

@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 100
+#define MAXR 100
+#define MAXT 100
+
+static int N, T;
+static int board[MAXN]; /* 0 normal, 1 lose-extra-turn, 2 back-to-start */
+static double memo[MAXR + 1][MAXT + 1];
+static unsigned char vis[MAXR + 1][MAXT + 1];
+
+static int iabs_int(int x) { return x < 0 ? -x : x; }
+
+static double solve(int r, int t) {
+    int d;
+
+    if (r == 0) return 1.0;
+    if (t <= 0) return 0.0;
+
+    /* Preconditions imply r<=100 and t<=100 for safe indexing. */
+    if (vis[r][t]) return memo[r][t];
+    vis[r][t] = 1;
+
+    memo[r][t] = 0.0;
+    for (d = 1; d <= 6; d++) {
+        int rp = iabs_int(r - d);
+
+        /* Landing square is associated with rp; board is indexed by position.
+           Preconditions imply special-square positions are within 0..99.
+           If rp is out of 0..99, behavior is undefined per spec; we do not guard. */
+        if (board[rp] == 2) {
+            memo[r][t] += solve(N, t - 1) / 6.0;
+        } else if (board[rp] == 1) {
+            memo[r][t] += solve(rp, t - 2) / 6.0;
+        } else {
+            memo[r][t] += solve(rp, t - 1) / 6.0;
+        }
+    }
+
+    return memo[r][t];
+}
+
+int main(void) {
+    int a, b, c, d;
+    while (scanf("%d %d %d %d", &a, &b, &c, &d) == 4) {
+        int i, pos;
+
+        if (a == 0 && b == 0 && c == 0 && d == 0) break;
+
+        N = a;
+        T = b;
+
+        for (i = 0; i < MAXN; i++) board[i] = 0;
+
+        /* Mark lose-extra-turn squares first. */
+        for (i = 0; i < c; i++) {
+            if (scanf("%d", &pos) != 1) return 0;
+            board[pos] = 1;
+        }
+
+        /* Mark back-to-start squares; precedence overwrites. */
+        for (i = 0; i < d; i++) {
+            if (scanf("%d", &pos) != 1) return 0;
+            board[pos] = 2;
+        }
+
+        for (i = 0; i <= MAXR; i++) {
+            int j;
+            for (j = 0; j <= MAXT; j++) {
+                vis[i][j] = 0;
+                memo[i][j] = 0.0;
+            }
+        }
+
+        printf("%lf\n", solve(N, T));
+    }
+    return 0;
+}

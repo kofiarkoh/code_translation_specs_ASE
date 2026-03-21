@@ -1,0 +1,41 @@
+1. Functional Description  
+Determines whether a directed graph contains at least one directed cycle. The graph is constructed from provided vertex and directed edge data, then a single integer result is produced indicating cyclicity.
+
+2. Inputs  
+- An integer number of vertices.  
+- An integer number of directed edges.  
+- A sequence of directed edges, each given as an ordered pair: source vertex index and target vertex index.
+
+3. Outputs  
+- A single integer:
+  - `1` if the directed graph contains a directed cycle.
+  - `0` if the directed graph is acyclic.
+
+4. Preconditions  
+- The number of vertices is non-negative.  
+- The number of edges is non-negative.  
+- Each edge’s source and target vertex indices are within the valid range `[0, number_of_vertices - 1]`.  
+- Sufficient memory is available to allocate the graph representation and auxiliary working storage.  
+- Input provides at least the required number of integers to describe the graph.
+
+5. Postconditions  
+- The output is `1` iff the input graph contains a directed cycle; otherwise the output is `0`.  
+- The constructed graph contains exactly the provided directed edges (including duplicates and self-loops, if any).  
+- The cycle-checking operation may modify internal auxiliary per-vertex bookkeeping used during the check; no guarantee is made that such bookkeeping remains unchanged after the check.
+
+6. Invariants  
+- The graph has a fixed vertex count equal to the input vertex count.  
+- For each vertex, its outgoing-edge collection size equals the number of edges added with that vertex as source.  
+- Each stored edge preserves the provided target vertex index.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range vertex indices, or memory allocation failure. Behavior is undefined under these conditions (may crash, produce incorrect output, or exhibit other failures).
+
+8. State Transitions (if applicable)  
+- After graph construction, the graph transitions from “empty” (no edges) to “populated” (contains all input edges).  
+- During cycle detection, per-vertex internal bookkeeping transitions through states representing “unprocessed”, “removed/processed”, and updated dependency counts; these transitions are not externally observable except through the final cyclic/acyclic result.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of vertices times a vertex-scan step plus total edge processing during removals; worst-case grows on the order of vertices squared plus edges.  
+- Memory usage is proportional to the number of vertices plus the number of edges.  
+- Allocated memory is not released before program termination.

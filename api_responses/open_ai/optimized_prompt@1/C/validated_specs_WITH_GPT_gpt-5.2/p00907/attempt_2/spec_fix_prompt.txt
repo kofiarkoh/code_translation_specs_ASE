@@ -1,0 +1,161 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1328 Find the Outlier
+// 2018.2.9 bal4u
+
+#include <stdio.h>
+
+int n;
+double v[10];
+
+double calc(int x, int k)
+{
+	int i, j;
+	double t, s;
+
+	s = 0;
+	for (i = 0; i < n; i++) if (i != k && i != x) {
+        t = v[i];
+		for (j = 0; j < n; j++) {
+			if (j != i && j != k && j != x)	t = (t*(k-j)) /(i-j);
+		}
+        s += t;
+	}
+	return s;
+}
+ 
+int main()
+{
+	int d, i, j;
+	double t;
+
+	while (scanf("%d", &d) && d) {
+		n = d+3;
+		for (i = 0; i < n; i++) scanf("%lf", v+i);
+		for (i = 0; i < n; i++) {
+			for (j = 0; ; j++) {
+				if (j == n) goto done;
+				if (j != i) {
+					t = calc(i, j) - v[j];
+					if (t < -0.1 || t > 0.1) break;
+				}
+			}
+		}
+done:	printf("%d\n", i);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each dataset, identifies and reports the index of a single value in a sequence that is inconsistent with the existence of a degree‑`d` polynomial passing through the remaining values (within a fixed tolerance). The reported index is the first index (smallest) that can be deemed an outlier under this criterion.
+
+2. Inputs  
+- Repeated datasets.  
+- Each dataset begins with an integer `d`.  
+- If `d` is nonzero, it is followed by `d + 3` real numbers representing a sequence of sampled values at consecutive integer positions (implicitly indexed from `0` to `d+2`).  
+- Input terminates when a dataset begins with `d = 0`.
+
+3. Outputs  
+- For each non-terminating dataset, outputs one integer: the index (0-based) of the detected outlier value.
+
+4. Preconditions  
+- `d > 0` for each processed dataset.  
+- Exactly `d + 3` real values are provided for each dataset.  
+- `d + 3` does not exceed 10.  
+- Assumption (implied by intended problem): there exists at least one index that satisfies the outlier criterion described in Postconditions.
+
+5. Postconditions  
+For each dataset, the program outputs an index `i` such that:  
+- There exists at least one other index `j` (`j != i`) for which the value at `j` differs by more than `0.1` from the value predicted at `j` by the unique degree‑`d` polynomial interpolating all points except indices `i` and `j`.  
+- For every index `i'` smaller than `i`, and for every `j` with `j != i'`, the value at `j` differs by at most `0.1` from the value predicted at `j` by the unique degree‑`d` polynomial interpolating all points except indices `i'` and `j`.  
+In other words, `i` is the smallest index that cannot be made consistent (within tolerance `0.1`) with all other points under the “remove two points, predict one of them from the rest” degree‑`d` interpolation test.
+
+6. Invariants  
+- Within a dataset, the sequence length is fixed at `n = d + 3`.  
+- All index reasoning is over the fixed range `[0, n-1]`.  
+- The tolerance used to judge inconsistency is constant at `0.1` for all datasets and all comparisons.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing values, or out-of-range `d`. Behavior is undefined if preconditions are violated.  
+- If no index satisfies the outlier criterion (contrary to the stated assumption), the produced output is not guaranteed to be meaningful.
+
+8. State Transitions (if applicable)  
+- The program processes datasets sequentially until a terminating `d = 0` is encountered.  
+- For each dataset, internal state is reset to reflect the new `d` and associated sequence values; no state is carried over between datasets beyond normal control progression.
+
+9. Non-functional Constraints (if inferable)  
+- Operates on at most 10 values per dataset.  
+- Uses floating-point arithmetic; results depend on floating-point precision and the fixed comparison tolerance `0.1`.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition/selection rule (the quantifiers in the outlier criterion are reversed), plus a wrong abstraction of what it means for an index to be “consistent”.
+
+B. What the current specification may be missing or misstating  
+The spec currently says an index `i` is the outlier if **there exists** some `j != i` such that `j` is inconsistent with the degree‑`d` interpolant built from all points except `i` and `j`. That makes “outlier” mean “can cause at least one mismatch somewhere,” which is far too weak.
+
+In the source, the chosen `i` is the first index for which **no** choice of partner `j` can make the remaining points mutually consistent: for a candidate `i`, the program searches for a `j` such that **all** other points (excluding `i` and `j`) predict `v[j]` within tolerance; only if such a `j` exists does it move on to the next `i`. If for a given `i` every `j` fails that “all others agree with `j`” check, then that `i` is reported.
+
+So the spec’s “∃j with mismatch” should instead reflect the source’s “for all j, there exists a mismatch (among the other points)” structure.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact logical condition used to accept/reject a candidate index `i`:
+
+- For each candidate `i` (in increasing order), the program tries to find some index `j != i` that can be “explained” by a degree‑`d` polynomial fitted to the remaining `d+1` points (all indices except `i` and `j`), i.e., the predicted value at `j` matches the actual `v[j]` within tolerance.  
+- If such a `j` exists, then `i` is considered *not* the outlier and the search continues.  
+- The reported outlier is the first `i` for which **no** such `j` exists.
+
+Equivalently, the outlier is the smallest `i` such that for every `j != i`, the interpolation-from-others prediction at `j` differs from `v[j]` by more than `0.1`.
+
+D. Why this clarification is supported by the source program  
+In `main`, for fixed `i`, the inner loop over `j`:
+
+- Computes `t = calc(i, j) - v[j]`, where `calc(i,j)` sums Lagrange terms over all indices except `i` and `j`, i.e., it predicts the value at `j` from the remaining points.  
+- If `|t| <= 0.1`, it does **not** break; it continues trying other `j`.  
+- It breaks out of the `j` loop only when it finds a `j` with `|t| > 0.1` (a failure for that `j`).  
+- If it reaches `j == n` (meaning it never found any failing `j`, i.e., all `j != i` were within tolerance), it `goto done` and outputs that `i`.
+
+Thus, the program’s decision is based on whether there exists a `j` that *fails* (causing a break) versus whether all `j` *pass* (causing `j==n` and termination). This is the opposite of the current spec’s “outlier if there exists a failing `j`,” and it explains why the generated program selects different indices.
+
+```

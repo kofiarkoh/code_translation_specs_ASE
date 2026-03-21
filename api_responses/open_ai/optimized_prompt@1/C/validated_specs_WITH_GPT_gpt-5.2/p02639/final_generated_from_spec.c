@@ -1,0 +1,25 @@
+#include <stdio.h>
+
+int main(void) {
+    int a, b, c, d, e;
+
+    /* Preconditions state exactly five integers can be read successfully. */
+    if (scanf("%d %d %d %d %d", &a, &b, &c, &d, &e) != 5) {
+        /* Unspecified behavior per spec; choose to do nothing. */
+        return 0;
+    }
+
+    if (a == 0) {
+        putchar('1');
+    } else if (b == 0) {
+        putchar('2');
+    } else if (c == 0) {
+        putchar('3');
+    } else if (d == 0) {
+        putchar('4');
+    } else if (e == 0) {
+        putchar('5');
+    }
+
+    return 0;
+}

@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for cube orientation (and thus wrong move selection and final top values).
+
+B. What the current specification may be missing or misstating  
+- The spec treats the cube as a “standard labeled cube” with only opposite-face constraints, implying the remaining faces can be inferred up to arbitrary choice. In the source, however, the cube’s full adjacency (which face is to the right given a particular top and front) is fixed by an explicit lookup table (`right[top][front]`).  
+- The spec does not state that the input `(top, front)` refers to a specific, globally fixed cube labeling/geometry (i.e., a unique mapping of all faces around the cube), not merely any physically consistent orientation.  
+- Because of that, an implementation derived from the spec may choose a different left/right assignment (or a different interpretation of “front”), producing different side values during movement and different resulting top faces.
+
+C. What general behavior should be clarified in the specification  
+- The cube is not an abstract die with only opposite pairs; it is a specifically labeled cube with a fixed right-face function for every valid `(top, front)` pair. The movement rules depend on that exact mapping.  
+- The meaning of “front” must be tied to the program’s coordinate system and to the cube’s fixed labeling: when considering a move in each of the four grid directions, the “candidate value” compared against `> 3` is a particular face value determined by the cube’s current `(top, front)` via the same mapping as the source (including how `back`, `left`, `right`, and `bottom` are derived).  
+- In other words: clarify that the cube’s orientation updates are governed by the source’s `RIGHT(top, front)` table (and derived `LEFT/BACK/BOTTOM`), not by an arbitrary reconstruction from opposites.
+
+D. Why this clarification is supported by the source program  
+- The source never reconstructs the cube from opposite pairs alone. It encodes the cube’s geometry with `right[7][7]` and uses:
+  - `RIGHT(top, front)` from the table,
+  - `LEFT(top, front) = 7 - RIGHT(top, front)`,
+  - `BACK(top, front) = 7 - front`,
+  - `BOTTOM(top, front) = 7 - top`.
+- The move decision compares direction-specific face values (`front`, `BACK(top,front)`, `LEFT(top,front)`, `RIGHT(top,front)`) against `> 3` and chooses the maximum. If an implementation uses a different left/right assignment (or a different “front” axis convention), those compared values change, so the chosen path and final `top` recorded in `top_map` change—exactly the kind of discrepancy seen in the failing outputs.

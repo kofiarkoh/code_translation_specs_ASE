@@ -1,0 +1,129 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int N, a[401];
+long long dp[401][401] = {}, sum[401];
+const long long sup = (long long)1 << 60;
+
+long long recursion(int l, int r)
+{
+	if (dp[l][r] != 0 || l == r) return dp[l][r];
+	else dp[l][r] = sup;
+	
+	int k;
+	long long tmp;
+	for (k = l + 1; k <= r; k++) {
+		tmp = recursion(l, k - 1) + recursion(k, r);
+		if (tmp < dp[l][r]) dp[l][r] = tmp;
+	}
+	dp[l][r] += sum[r] - sum[l-1];
+	return dp[l][r];
+}
+
+int main()
+{
+	int i;
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d", &(a[i]));
+	for (i = 1, sum[0] = 0; i <= N; i++) sum[i] = sum[i-1] + a[i];
+	printf("%lld\n", recursion(1, N));
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes and outputs the minimum total cost to iteratively merge a sequence of `N` items into a single item, where each merge combines two adjacent groups and incurs a cost equal to the sum of values in the merged group. The total cost is the sum of costs of all merges, and the program returns the minimum possible total over all valid merge orders that preserve adjacency.
+
+2. Inputs  
+- An integer `N`: the number of items in the sequence.  
+- A sequence of `N` integers: the values associated with each item, in order.
+
+3. Outputs  
+- A single integer value representing the minimum achievable total merge cost for the entire sequence.
+
+4. Preconditions  
+- `N` is within the supported fixed capacity of the program (assumed `1 ≤ N ≤ 400`).  
+- Exactly `N` item values are provided.  
+- The minimum total merge cost fits within a signed 64-bit integer range.  
+- Item values and their cumulative sums fit within a signed 64-bit integer range during computation.
+
+5. Postconditions  
+- The output equals the minimum, over all ways of repeatedly merging adjacent groups until one group remains, of the sum of merge costs, where each merge cost equals the sum of values in the newly formed group.  
+- If `N = 1`, the output is `0`.
+
+6. Invariants  
+- For any contiguous subsequence, the computed cost (when defined) corresponds to the minimum total merge cost to reduce that subsequence to one group using only adjacent merges within that subsequence.  
+- The sum of values for any contiguous subsequence is consistent with the input sequence order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for invalid or missing input, out-of-range `N`, or arithmetic overflow; behavior is unspecified in such cases.  
+- If the input cannot be read as required, the produced output is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no externally observable state beyond its output.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for sequences up to a fixed maximum size (400 items).  
+- Uses a quadratic-sized internal table; time cost grows cubically with `N` in the worst case.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Missing constraint / incomplete implementation detail in the specification (C I/O formatting requirements), leading to a build/compilation mismatch rather than an algorithmic mismatch.
+
+B. What the current specification may be missing or misstating  
+The specification describes the computation but does not constrain the generated C implementation to use only headers/format specifiers that are actually included/available. The generated program uses `SCNd64`/`PRId64` macros but does not include `<inttypes.h>`, causing compilation failure. The source program avoids this entirely by using plain `int` input and `%lld` output.
+
+C. What general behavior should be clarified in the specification  
+Clarify the required C-level I/O contract for integer types and formatting, e.g.:
+- Whether inputs are read as `int` (as in the source) versus fixed-width `int64_t`.
+- What exact `scanf`/`printf` format strings are used (or, more generally, that the implementation must compile under standard C with the necessary headers if using format macros).
+- That the output is printed as a `long long` using `%lld` (matching the source), or otherwise specify the exact portability requirements if fixed-width types are intended.
+
+D. Why this clarification is supported by the source program  
+The source code concretely uses:
+- `scanf("%d", &N)` and `scanf("%d", &a[i])` (so item values are read as `int`, not `int64_t` via `SCNd64`).
+- `printf("%lld\n", recursion(1, N))` (so output formatting is explicitly `%lld` with a newline).
+Because the source’s behavior includes “successfully compiles and runs with these standard headers and format strings,” a specification that omits these constraints can lead to generated code that fails to compile even if the high-level algorithm matches.
+
+```

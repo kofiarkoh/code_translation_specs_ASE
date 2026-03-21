@@ -1,0 +1,48 @@
+1. Functional Description  
+Computes, for each dataset, the minimum total travel cost to visit a given sequence of required locations in order, in a graph where each connection is either of one cost type or the other. Travel between consecutive required locations may include an intermediate “transfer” location, with the constraint that the first and last legs of that segment use the first cost type and the middle leg uses the second cost type; alternatively, a direct first-type-only travel between the two required locations is allowed.
+
+2. Inputs  
+For each dataset (repeated until a terminating dataset is provided):  
+- A pair of integers: number of locations and number of connections.  
+- A list of connections, each providing: two endpoint locations, a nonnegative cost, and a type indicator selecting one of two cost types.  
+- An integer giving the length of the required visit sequence.  
+- A sequence of required locations of that length.
+
+3. Outputs  
+For each dataset:  
+- A single integer: the minimum achievable total cost to traverse the required sequence under the allowed movement rules.
+
+4. Preconditions  
+- The terminating condition is a dataset whose number of locations is zero.  
+- Location indices provided in the input are within the declared number of locations.  
+- The required sequence length is at least 1.  
+- The number of locations does not exceed 205, and the required sequence length does not exceed 1005.  
+- Costs are such that the intended “infinite/unreachable” sentinel arithmetic does not overflow the integer range (assumption).
+
+5. Postconditions  
+- The output value equals the minimum, over all choices of intermediate transfer locations for each consecutive pair in the required sequence, of the sum of segment costs where each segment cost is the minimum of:  
+  - (a) minimum first-type cost from current required location to some transfer location  
+    + minimum second-type cost from that transfer location to the next segment’s chosen transfer location  
+    + minimum first-type cost from that next transfer location to the next required location, or  
+  - (b) minimum first-type cost directly between the two required locations (only applicable when the transfer location is the same on both sides of the segment).  
+- If no valid traversal exists under these rules, the output is a large sentinel value representing “unreachable” (assumption: this is acceptable as a result).
+
+6. Invariants  
+- For each cost type independently, the stored pairwise costs between locations represent the minimum achievable cost using only connections of that type (including zero cost from a location to itself).  
+- During computation over the required sequence, the maintained partial costs represent the minimum total cost to have completed the first k required visits and to be positioned at a specific transfer location for the next segment boundary.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- Malformed input, out-of-range indices, or violations of size limits lead to undefined behavior.  
+- Unreachable paths are represented by a large numeric sentinel and may be printed as such.
+
+8. State Transitions (if applicable)  
+- For each dataset, the computation transitions from:  
+  - initial state with unknown pairwise costs,  
+  - to a state where minimum pairwise costs for each type are established,  
+  - to a dynamic-programming state that advances one required visit at a time, updating the minimum total cost for each possible transfer location,  
+  - to a final state where the minimum over all transfer locations after the last required visit is selected and output.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is cubic in the number of locations plus quadratic in the number of locations per step of the required sequence.  
+- Memory usage is bounded by storage for two square cost matrices over locations and a rectangular table over required-sequence length by locations.

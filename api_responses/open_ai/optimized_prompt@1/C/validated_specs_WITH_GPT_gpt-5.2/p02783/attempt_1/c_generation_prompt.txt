@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the smallest integer greater than or equal to the quotient of two provided integers (i.e., the ceiling of the division of the first integer by the second), under the assumption of non-negative inputs.
+
+2. Inputs  
+- Two integers provided via standard input: a dividend and a divisor.
+
+3. Outputs  
+- One integer written to standard output: the ceiling of (dividend ÷ divisor), followed by a line terminator.
+
+4. Preconditions  
+- Exactly two integers are available on input.  
+- The divisor is non-zero.  
+- Assumption (required for correctness of “ceiling” interpretation): the dividend and divisor are non-negative integers.
+
+5. Postconditions  
+- If the dividend is exactly divisible by the divisor, the output equals the exact integer quotient.  
+- Otherwise, the output equals the integer quotient rounded up to the next integer (ceiling).
+
+6. Invariants  
+- The produced result is an integer.  
+- Under the non-negative input assumption, the result is the minimal integer value such that (result × divisor) is greater than or equal to the dividend.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the divisor is zero, behavior is undefined (division by zero).  
+- If input does not contain two valid integers, behavior is unspecified.  
+- If intermediate arithmetic overflows the integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- None; the program is stateless aside from consuming input and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+
+```

@@ -1,0 +1,25 @@
+A. Likely mismatch category  
+- **Wrong abstraction / wrong counting rule**, plus **missing transition/termination details** for the digit-length–bounded (≤8) part and the “large digit-length” (≥9) part.
+
+B. What the current specification may be missing or misstating  
+- It treats the computation as counting “constructions” in a **multiplicative/exponentiation** way (e.g., `cnt[d]^k`), but the source program’s updates are **linear/arithmetic** in `cnt[d]` and in quotient ranges, not exponential.  
+- It does not capture that the program counts solutions to **linear equations involving digit lengths and numeric values**, with **tight bounds** on the numeric values by digit length (e.g., `1..9`, `1..99`, …, `1..99999999`), and with **case splits** depending on whether digit lengths are ≤8 or >8.  
+- It omits the program’s key structure:  
+  - an initial offset `ans = (s - 1) / 8`  
+  - a nested enumeration over **pairs of digit lengths** `(l1, l2)` with a running remainder-like variable `s_` that is decreased by `cnt[l2]*l2` and can break early  
+  - an inner enumeration over `r1` with a modular congruence condition and counting via **floor-division differences** over an interval `[lower, upper]`  
+  - a final divisor loop that adds terms of the form `9*10^(d-1) - (other factor)` (i.e., **subtractive linear terms**), not exponentiated counts.
+
+C. What general behavior should be clarified in the specification  
+- The spec should precisely describe that the program is counting (modulo 1e9+7) the number of **integer pairs/tuples** satisfying certain **linear constraints** derived from `s`, where:  
+  - “digit length” is used only to impose **upper bounds** on the allowed integer values (`cnt[len]`), not to create independent choices multiplied together.  
+  - For lengths `1..8`, the program performs an explicit bounded count using **range computations** (`lower/upper`) and **congruence filtering** (`(s_ - r1*l1) % l2 == 0`).  
+  - For lengths `>8`, the program does **divisor-based corrections** using `9*10^(len-1)` and subtracting the paired divisor, rather than counting sequences via exponentiation.  
+- The spec should also clarify the **control flow/termination** in the `(l1,l2)` loops: the role of `s_`, the decrement by `cnt[l2]*l2`, and the early `break` condition `if (s_/l2 < cnt[l2]) break;`.
+
+D. Why this clarification is supported by the source program  
+- Nowhere in the source does it compute `cnt[d]^k` or any product over “positions”; the only exponentiation (`power`) is used in the **final divisor loop** to compute `10^(len-1)` for large digit lengths, and even there the added quantity is `power(10, len-1)*9 - (other)`, i.e., **linear** in the count of `len`-digit numbers, not exponential.  
+- The main counting mass comes from:  
+  - `if (s % l1 == 0 && cnt[l1] >= s / l1) ans += cnt[l1] - s/l1 + 1;` (a **linear interval size**)  
+  - the `(l1,l2,r1)` block that computes `lower` and `upper` and then adds a **count of integers in an arithmetic progression within a bounded interval** using floor divisions.  
+- The presence of `s_` being reduced by `cnt[l2]*l2` and the break condition based on `s_/l2 < cnt[l2]` shows the algorithm depends on a **progressive reduction and early termination**, which the current spec does not describe and which a generator would not infer from the vague “constructions” wording.

@@ -1,0 +1,41 @@
+1. Functional Description  
+Processes one or more test cases. For each test case, it simulates placing a sequence of labeled six-faced cubes onto a bounded 2D grid starting from the grid center. Each cube is placed by repeatedly “rolling” it to an adjacent cell that is strictly lower in stack height, choosing among eligible moves the one associated with the largest visible side value greater than 3. After no such move is possible, the cube is stacked on the current cell and its upward-facing value is recorded for that cell. After all cubes in the test case are placed, it reports how many grid cells have each possible upward-facing value (1 through 6).
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer specifying how many cubes follow.  
+- For each cube: two integers specifying the cube’s initial upward-facing value and initial forward-facing value.  
+- Input terminates when the test-case cube count is zero.
+
+3. Outputs  
+For each non-terminating test case, outputs one line containing six non-negative integers: the number of grid cells whose recorded upward-facing value equals 1, 2, 3, 4, 5, and 6, respectively.
+
+4. Preconditions  
+- Each cube’s provided upward-facing and forward-facing values are valid face labels in the range 1..6 and represent a physically consistent orientation of a standard labeled cube (i.e., not the same face and not opposite faces).  
+- The number of cubes in a test case is such that all simulated movements and placements remain within the fixed grid bounds.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each test case:  
+- Exactly the specified number of cubes have been placed, each increasing the stack height of exactly one grid cell by 1.  
+- Each grid cell stores the upward-facing value of the most recently placed cube at that cell; cells never used remain at value 0.  
+- The reported counts equal the number of grid cells (within the fixed grid) whose stored upward-facing value is 1..6 at the end of the test case.
+
+6. Invariants  
+- Stack heights per grid cell are non-negative integers and only increase by 1 per cube placement at the final resting cell.  
+- The cube’s orientation during movement always remains a valid cube orientation consistent with standard opposite-face relationships.  
+- A cube move, when it occurs, always goes to an orthogonally adjacent cell with strictly smaller current stack height than the source cell.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (invalid orientations, out-of-range values, malformed input, or movements exceeding grid bounds), behavior is undefined (may produce incorrect results or access invalid memory).  
+- If the input ends unexpectedly, results are unspecified.
+
+8. State Transitions (if applicable)  
+Per test case:  
+- State is reset to an empty grid (all heights zero; all recorded upward-facing values zero).  
+- For each cube, the state transitions by: (a) zero or more moves that change the cube’s position and orientation without changing grid heights, followed by (b) a placement that increments the destination cell’s height and overwrites that cell’s recorded upward-facing value.  
+- After processing all cubes, the state is summarized into the six output counts and then discarded when the next test case begins.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed-size square grid of side length 2·N_MAX+1 (here, 9×9), so memory usage is constant.  
+- Runtime per test case is proportional to the number of cubes times the number of moves each cube performs; moves are bounded by the grid size under the stated preconditions.

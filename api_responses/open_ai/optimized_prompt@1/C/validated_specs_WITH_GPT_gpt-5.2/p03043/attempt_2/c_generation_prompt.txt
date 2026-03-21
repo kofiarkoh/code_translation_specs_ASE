@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads two integers \(N\) and \(K\), constructs \(N\) integer denominators based on a shared power-of-two scaling process, then computes and prints a single real-valued result equal to the sum of reciprocals of those denominators.
+
+2. Inputs  
+- Two integers read from standard input (whitespace-separated):  
+  - \(N\): number of terms (used as an array length and as a multiplicative factor in denominators).  
+  - \(K\): threshold used to determine the required power-of-two scaling.
+
+3. Outputs  
+- One real number written to standard output: the computed value formatted in fixed-point notation with exactly 12 digits after the decimal point, using `long double` formatting. No trailing newline is printed.
+
+4. Preconditions / Assumptions  
+- \(N > 0\) (the program allocates an array of length \(N\) and later divides by a value derived from it).  
+- Input is well-formed and successfully read by `scanf("%d%d", ...)`; otherwise behavior is unspecified.  
+- Intermediate integer computations do not overflow the `int` type, including repeated doubling of the scaling factor and multiplication by \(N\).  
+- Sufficient stack space exists for an array of \(N\) integers.
+
+5. Denominator Construction (Core Logic)  
+- The program maintains a single integer scaling variable `multi`, initialized to 1, that is reused across all indices.  
+- For each index \(i\) from \(N\) down to \(1\), it increases `multi` by repeatedly doubling it while the strict inequality \(K > \text{multi} \cdot i\) holds. After this loop ends, the denominator for that index is set to:  
+  \[
+  \text{denom}_i = \text{multi} \cdot N
+  \]
+- Because `multi` is not reset between indices, the scaling factor used for smaller \(i\) is never less than the scaling factor used for larger \(i\) (it is monotone non-decreasing as \(i\) decreases).  
+- The stopping condition is strict: the loop stops when \(K \le \text{multi} \cdot i\). (If \(K\) is already \(\le \text{multi}\cdot i\), no doubling occurs for that \(i\).)
+
+6. Computation of the Printed Value  
+- Let \(\text{denom}_1\) denote the denominator constructed for index \(i=1\) (this is the value stored in the first array element).  
+- The program computes:
+  \[
+  S = \sum_{i=1}^{N} \frac{\text{denom}_1}{\text{denom}_i}
+  \]
+  using `long double` accumulation, and then prints:
+  \[
+  \frac{S}{\text{denom}_1}
+  \]
+- Algebraically, the printed value equals:
+  \[
+  \sum_{i=1}^{N} \frac{1}{\text{denom}_i}
+  \]
+  where each \(\text{denom}_i\) is an integer multiple of \(N\) as constructed above.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If \(N \le 0\), if input is invalid, or if integer overflow occurs during scaling or multiplication, behavior is undefined.
+
+8. Termination Behavior  
+- The program always terminates after producing the single formatted number, assuming the preconditions hold.
+
+```

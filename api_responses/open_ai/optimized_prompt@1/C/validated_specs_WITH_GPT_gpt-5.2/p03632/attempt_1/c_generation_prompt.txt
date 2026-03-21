@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes the length of the overlap between two closed integer intervals and outputs that overlap length as a non-negative integer.
+
+2. Inputs  
+- Four integers representing two closed intervals: first interval endpoints and second interval endpoints.
+
+3. Outputs  
+- A single integer equal to the size (length) of the intersection of the two intervals, measured in the same units as the integer line.
+
+4. Preconditions  
+- All four input integers are within an implementation-defined bounded domain that supports indexing a fixed range of 0 through 100 inclusive.  
+- Each interval’s start is less than or equal to its end.  
+- The program receives all required input values.
+
+5. Postconditions  
+- If the two intervals do not overlap, the output is 0.  
+- If the two intervals overlap, the output equals the number of integer units covered by their intersection (i.e., for intersection \[L, R\], output is R − L).  
+
+6. Invariants  
+- The computed overlap count is never negative.  
+- The output depends only on the two input intervals.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate the preconditions (e.g., endpoints outside the supported range or malformed input), behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no persistent state across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Operates over a fixed, small bounded domain (0–100), implying constant-time and constant-memory usage relative to input size.
+
+```

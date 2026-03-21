@@ -1,0 +1,62 @@
+1. Functional Description  
+Reads two binary strings and outputs a binary string `S` that is **not a subsequence of at least one** of the two inputs. The program constructs `S` to have **minimum possible length** under its internal state/transition model, and if multiple minimum-length answers exist, it outputs one deterministically by a fixed tie-breaking rule.
+
+2. Inputs  
+- Two strings over the alphabet `{ '0', '1' }`, read as whitespace-delimited tokens from standard input (one token per string).
+
+3. Outputs  
+- A string over `{ '0', '1' }` written to standard output, followed by a newline.
+
+4. Preconditions / Assumptions  
+- Each input token is intended to be non-empty and contain only `'0'` and `'1'`.  
+- Each string length is at most 4000 characters.  
+- Sufficient memory is available for tables whose size is proportional to the product of the two lengths (plus linear “next occurrence” tables).
+
+5. Core Semantics (as implemented)  
+
+5.1 Cursor/state meaning  
+- The computation uses a state `(i, j)` where `i` and `j` are indices into the two strings representing the current cursor positions.  
+- From a state `(i, j)`, appending a bit `c ∈ {0,1}` advances each cursor to the index of the **next occurrence** of `c` at or after the current cursor, or to a designated end index if no such occurrence exists.
+
+5.2 Next-occurrence transition  
+- For each string and each cursor position `p`, define `next_c(p)` as:
+  - the smallest index `q > p` such that the character at `q` equals `c`, if such a position exists;
+  - otherwise, the string’s end index (a sentinel representing “no further match”).  
+- The transition for appending `c` from `(i, j)` is exactly:
+  - `(i, j) → ( next_c_in_A(i), next_c_in_B(j) )`  
+  with no additional increment beyond what `next_c` returns.
+
+5.3 Objective minimized by the DP  
+- Let `L(i, j)` be the minimal length of a binary string that, when processed from state `(i, j)` using the transition rule above, reaches the terminal state `(endA, endB)`.  
+- The program computes `L(0, 0)` and outputs a corresponding string achieving that length.
+
+5.4 Terminal condition and recurrence  
+- The only explicit terminal/base condition is:
+  - `L(endA, endB) = 0`.  
+- For all other states, the recurrence is:
+  - `L(i, j) = 1 + min( L(next_0(i), next_0(j)), L(next_1(i), next_1(j)) )`.  
+- Because missing-next transitions map to the end index, reaching `(endA, endB)` (and thus termination) occurs only through these transitions; there is no separate “stop immediately when a character is missing” rule.
+
+5.5 Relationship to subsequences  
+- The produced string `S` is guaranteed to be **not a subsequence of at least one** input string.  
+- Minimality is with respect to the program’s cursor/transition model above: among all binary strings that are not a subsequence of at least one input, the program outputs one with minimum length as determined by `L(0,0)`.
+
+6. Reconstruction and Tie-breaking  
+- The output is reconstructed greedily from `(0,0)` using the computed `L` values:
+  - At each state, output `'0'` if choosing `'0'` yields an optimal step, i.e., if  
+    `L(i,j) = 1 + L(next_0(i), next_0(j))`.  
+  - Otherwise, output `'1'` if it yields an optimal step, i.e., if  
+    `L(i,j) = 1 + L(next_1(i), next_1(j))`.  
+- This implies deterministic tie-breaking: when both choices are optimal, `'0'` is chosen.  
+- Reconstruction continues by moving to the chosen next state and stops when the terminal state `(endA, endB)` is reached (at which point no further characters are output).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed for malformed input, missing tokens, non-binary characters, or lengths exceeding the supported maximum; behavior is unspecified in such cases.  
+- No explicit handling is provided for I/O failures.
+
+8. State Transitions (Program-level)  
+- Single-run behavior: read two strings, compute the result, output it, and terminate. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Intended for lengths up to 4000.  
+- Uses precomputed next-occurrence tables and a memoized dynamic program over pairs of cursor positions; memory and time scale on the order of the product of the two input lengths (plus linear preprocessing).

@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes a sequence of datasets, each containing an 8×8 grid of binary cell states and a starting coordinate. For each dataset, it performs a chain reaction starting at the given coordinate: the starting cell is cleared, and any cell containing a marked state within a Manhattan distance of 1 to 3 in any of the four cardinal directions from any cleared cell is recursively cleared as well. After the reaction stabilizes, it outputs the resulting 8×8 grid for that dataset, preceded by a dataset label.
+
+2. Inputs  
+- An integer specifying the number of datasets.  
+- For each dataset:  
+  - 8 lines representing an 8×8 grid, where each line provides 8 characters interpreted as cell states (expected to include at least the characters representing “marked” and “cleared”).  
+  - An integer x-coordinate for the starting cell.  
+  - An integer y-coordinate for the starting cell.
+
+3. Outputs  
+For each dataset:  
+- A header identifying the dataset by 1-based index.  
+- 8 lines representing the final 8×8 grid after the chain reaction.
+
+4. Preconditions  
+- The dataset count is non-negative and the input provides exactly the required number of datasets.  
+- Each grid line contains at least 8 characters usable as cell states.  
+- The starting coordinates refer to positions within the grid’s valid coordinate range (assumed to be 1 through 8 inclusive for both axes).  
+- Cell states use a convention where one character denotes “marked” and another denotes “cleared”; the chain reaction only propagates through cells in the “marked” state.
+
+5. Postconditions  
+For each dataset after processing:  
+- The starting cell is in the “cleared” state.  
+- Any cell that is reachable from the starting cell by repeatedly moving from a cleared cell to another cell that is:  
+  - in the “marked” state at the time it is considered, and  
+  - located 1, 2, or 3 steps away in a straight line along a cardinal direction,  
+  is also set to the “cleared” state.  
+- No other cells are modified.  
+- The output grid reflects these modifications.
+
+6. Invariants  
+- Grid dimensions remain 8×8 for all datasets.  
+- Cell states only transition from “marked” to “cleared”; no cell transitions from “cleared” to “marked.”  
+- Propagation never considers or modifies positions outside the valid grid coordinate range.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input, overly long lines, or out-of-range coordinates. Behavior in such cases is undefined.  
+- If the starting coordinate is outside the valid grid range, memory outside the intended grid region may be accessed, leading to undefined behavior.
+
+8. State Transitions (if applicable)  
+Per dataset:  
+- Initial state: grid as provided by input.  
+- Transition: apply chain reaction clearing as described in Postconditions.  
+- Final state: stabilized grid where no additional “marked” cells exist within 1–3 steps in cardinal directions from any cleared cell that was part of the reaction.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursion; maximum recursion depth is bounded by the number of grid cells (at most 64) under valid inputs.  
+- Runtime per dataset is bounded by a small constant factor times the number of cells, given the fixed grid size.
+
+```

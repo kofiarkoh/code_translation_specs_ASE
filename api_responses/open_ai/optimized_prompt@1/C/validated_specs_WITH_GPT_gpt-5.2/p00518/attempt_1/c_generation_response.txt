@@ -1,0 +1,80 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD 10007
+
+/* Map participant designators to bit positions:
+   - The "designated initial participant" is the one corresponding to the first
+     of the three designators. We interpret the three supported designators as
+     'A', 'B', 'C' with 'A' being the initial participant.
+   - If input contains other characters, behavior is unspecified per spec. */
+static int req_mask(char c) {
+    if (c == 'A') return 1 << 0;
+    if (c == 'B') return 1 << 1;
+    if (c == 'C') return 1 << 2;
+    return 0; /* unspecified input -> unspecified behavior; keep narrow */
+}
+
+int main(void) {
+    int N;
+    char s[1005];
+
+    if (scanf("%d", &N) != 1) return 0;
+    if (scanf("%1004s", s) != 1) return 0;
+
+    /* State: dp[mask] = number of valid sequences up to current day
+       ending with daily subset == mask. Masks range 1..7 (non-empty). */
+    int dp[8] = {0};
+    int ndp[8] = {0};
+
+    if (N <= 0) {
+        /* For N == 0, there is exactly one sequence of length 0 (empty sequence). */
+        printf("1\n");
+        return 0;
+    }
+
+    /* Day 0: subset must include required participant and initial participant ('A'). */
+    {
+        int required = req_mask(s[0]);
+        int initial = 1 << 0; /* 'A' */
+        int must = required | initial;
+
+        for (int mask = 1; mask < 8; mask++) {
+            if ((mask & must) == must) {
+                dp[mask] = 1;
+            }
+        }
+    }
+
+    /* Days 1..N-1: enforce required participant and overlap with previous day. */
+    for (int day = 1; day < N; day++) {
+        int required = req_mask(s[day]);
+
+        for (int i = 0; i < 8; i++) ndp[i] = 0;
+
+        for (int prev = 1; prev < 8; prev++) {
+            int ways = dp[prev];
+            if (ways == 0) continue;
+
+            for (int cur = 1; cur < 8; cur++) {
+                if ((cur & required) == 0) continue;      /* must include required */
+                if ((cur & prev) == 0) continue;          /* must overlap */
+                ndp[cur] += ways;
+                ndp[cur] %= MOD;
+            }
+        }
+
+        for (int i = 0; i < 8; i++) dp[i] = ndp[i];
+    }
+
+    int ans = 0;
+    for (int mask = 1; mask < 8; mask++) {
+        ans += dp[mask];
+        ans %= MOD;
+    }
+
+    printf("%d\n", ans);
+    return 0;
+}
+```

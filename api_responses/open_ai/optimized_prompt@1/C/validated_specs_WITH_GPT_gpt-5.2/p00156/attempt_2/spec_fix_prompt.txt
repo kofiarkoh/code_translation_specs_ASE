@@ -1,0 +1,163 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int x[200000],y[200000];
+int main(){
+  int min,i,j,nx,ny,t,r,w,h;
+  char m[101][101];
+  int X[]={0,1, 0,-1};
+  int Y[]={1,0,-1, 0};
+  while(scanf("%d %d",&w,&h),w||h){
+    int c[101][101]={0};
+    for(i=0;i<h;i++){
+      for(j=0;j<w;j++){
+	scanf(" %c",&m[i][j]);
+	if(m[i][j]=='&'){
+	  m[i][j]='.';
+	  y[0]=i;
+	  x[t=0]=j;
+	  c[i][j]=1;
+	}
+      }
+    }
+    for(r=1;r-t;t++){
+      for(i=0;i<4;i++){
+	nx=x[t]+X[i];
+	ny=y[t]+Y[i];
+	if(nx<0||w<=nx||ny<0||h<=ny)continue;
+	if(m[y[t]][x[t]]==m[ny][nx]){
+	  if(c[y[t]][x[t]]<c[ny][nx]||0==c[ny][nx]){
+	    c[ny][nx]=c[y[t]][x[t]];
+	    x[r  ]=nx;
+	    y[r++]=ny;
+	  }
+	}
+	else{
+	  if(c[y[t]][x[t]]+1<c[ny][nx]||0==c[ny][nx]){
+	    c[ny][nx]=c[y[t]][x[t]]+1;
+	    x[r  ]=nx;
+	    y[r++]=ny;
+	  }
+	}
+      }
+    }
+    /*for(i=0;i<h;i++){
+      for(j=0;j<w;j++)printf("%d",c[i][j]);
+      printf("\n");
+      }*/
+    min=w;
+    for(i=0;i<w;i++){
+      if(c[0  ][i]/2<min)min=c[0  ][i]/2;
+      if(c[h-1][i]/2<min)min=c[h-1][i]/2;
+    }
+    for(i=0;i<h;i++){
+      if(c[i][0  ]/2<min)min=c[i][0  ]/2;
+      if(c[i][w-1]/2<min)min=c[i][w-1]/2;
+    }
+    printf("%d\n",min);
+  }
+  return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each provided rectangular grid, computes the minimum number of “terrain changes” required to reach any boundary cell from a designated start cell, where moving to an orthogonally adjacent cell costs 0 if the destination cell has the same terrain as the current cell and costs 1 if it differs. The reported value is half of that minimum cost using integer division.
+
+2. Inputs  
+- Repeated test cases.  
+- Each test case provides:  
+  - Two integers: grid width and grid height.  
+  - A grid of height rows and width columns of single-character cell values, containing exactly one designated start marker.  
+- Termination occurs when both width and height are zero.
+
+3. Outputs  
+- For each test case, outputs a single integer: the minimum over all boundary cells of (minimum terrain-change cost from the start to that boundary cell) divided by 2 using integer division.
+
+4. Preconditions  
+- Width and height are within the supported fixed maximum (at most 101 each).  
+- The grid contains exactly one start marker.  
+- All grid characters are valid cell values; the start marker is treated as a normal cell of a specific terrain for movement-cost purposes (see assumptions in Postconditions).  
+- The input provides enough characters to fill the grid for each test case.
+
+5. Postconditions  
+- For every cell in the grid, a minimum terrain-change cost from the start to that cell is well-defined and finite (the grid is fully connected under orthogonal moves).  
+- The produced output equals:  
+  - Let cost(p) be the minimum number of times a move crosses between different cell characters along any orthogonal path from the start to boundary cell p, where the start cell’s marker is treated as a normal cell with the same terrain as the “empty” terrain character.  
+  - Output is min over all boundary cells p of ⌊cost(p) / 2⌋.
+
+6. Invariants  
+- Movement is only between orthogonally adjacent in-bounds cells.  
+- The computed cost for any cell never increases once a lower cost has been established.  
+- All costs are non-negative integers.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., missing start marker, dimensions exceeding limits, malformed input), behavior is undefined (may produce incorrect output or access invalid memory).
+
+8. State Transitions (if applicable)  
+- The program processes independent test cases until the terminating dimensions are read.  
+- For each test case, internal state is reinitialized and does not carry over to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 101×101 due to fixed-size storage.  
+- Uses fixed-size work queues sized for up to 200,000 entries; exceeding this through unexpected behavior would be unsafe.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong input interpretation / wrong start-marker handling (missing constraint), leading to uninitialized start coordinates and undefined behavior.
+
+B. What the current specification may be missing or misstating  
+- The specification assumes a particular start marker (implicitly “S” in the generated code), but the source program uses `'&'` as the start marker.  
+- The specification’s statement “the start marker is treated as a normal cell of a specific terrain” is directionally right, but it is underspecified/incorrect about *which* marker character appears in input and how it is converted for traversal.  
+- The spec also implies the start always exists (“exactly one”), but does not make explicit that failing to detect it will leave the algorithm without a valid start state; the generated code then proceeds with `sx,sy = -1` and writes/reads out of bounds.
+
+C. What general behavior should be clarified in the specification  
+- Precisely define the start marker character as it appears in the input grid (in the source: `'&'`, not `'S'`).  
+- Specify that upon reading the grid, the start marker cell is converted to `'.'` (empty terrain) before running the cost propagation.  
+- Clarify that the algorithm’s initialization depends on locating that marker; if it is not found, behavior is undefined (or, if you want a defined behavior, it must be specified explicitly).
+
+D. Why this clarification is supported by the source program  
+- The source scans each cell and checks `if(m[i][j]=='&')`, then immediately does `m[i][j]='.';` and initializes the BFS state (`x[t=0]=j; y[0]=i; c[i][j]=1;`). This shows both the exact marker (`'&'`) and the exact conversion (`'.'`).  
+- There is no alternative start symbol handling in the source. Therefore any specification that does not pin down `'&'` (and the conversion to `'.'`) is incomplete/incorrect relative to the source behavior.  
+- The source’s correct initialization depends on finding `'&'`; the generated program’s failure (garbage output) is consistent with not finding the marker and then using invalid start coordinates, which the source program would not do when given valid inputs containing `'&'`.
+
+```

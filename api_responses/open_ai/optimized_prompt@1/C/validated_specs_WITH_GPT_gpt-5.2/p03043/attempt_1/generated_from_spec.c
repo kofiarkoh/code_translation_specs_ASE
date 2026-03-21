@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void) {
+    int N, K;
+    if (scanf("%d %d", &N, &K) != 2) {
+        /* Unspecified behavior on invalid input; exit quietly. */
+        return 0;
+    }
+
+    /* Preconditions state N > 0, K >= 0; otherwise behavior is undefined. */
+    long long *den = (long long *)malloc((size_t)N * sizeof(long long));
+    if (!den) {
+        /* No explicit error handling required; exit quietly. */
+        return 0;
+    }
+
+    /*
+      Construct per-index scaling factors m_i (power of two) with:
+        - m_i * i >= K
+        - m_i minimal power of two satisfying above
+        - monotonicity constraint induced by reuse of scaling state:
+          when moving from larger i to smaller i, chosen power of two is never reduced.
+      We implement this by iterating i from N down to 1, maintaining a single scaling
+      state m that only ever increases (via doubling).
+    */
+    long long m = 1;
+    for (int i = N; i >= 1; --i) {
+        /* Ensure m * i >= K by repeated doubling; overflow is undefined per spec. */
+        while (m * (long long)i < (long long)K) {
+            m *= 2;
+        }
+        den[i - 1] = m * (long long)N; /* denominator_i = m_i * N */
+    }
+
+    /* Sum reciprocals as real-valued quantity. */
+    double sum = 0.0;
+    for (int i = 0; i < N; ++i) {
+        sum += 1.0 / (double)den[i];
+    }
+
+    /* Fixed decimal precision (narrow interpretation: 10 digits after decimal). */
+    printf("%.10f\n", sum);
+
+    free(den);
+    return 0;
+}

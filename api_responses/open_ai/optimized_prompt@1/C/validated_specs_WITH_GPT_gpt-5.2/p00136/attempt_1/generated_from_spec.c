@@ -1,0 +1,50 @@
+#include <stdio.h>
+
+static void print_markers(int count) {
+    /* Prints exactly 'count' marker characters ('*') with no trailing spaces. */
+    for (int i = 0; i < count; i++) {
+        putchar('*');
+    }
+}
+
+int main(void) {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        /* Unspecified behavior per spec if input is missing/malformed. */
+        return 0;
+    }
+
+    int c1 = 0, c2 = 0, c3 = 0, c4 = 0, c5 = 0, c6 = 0;
+
+    for (int i = 0; i < n; i++) {
+        double h;
+        if (scanf("%lf", &h) != 1) {
+            /* Unspecified behavior per spec if input is missing/malformed. */
+            return 0;
+        }
+
+        if (h < 165.0) {
+            c1++;
+        } else if (h < 170.0) {
+            c2++;
+        } else if (h < 175.0) {
+            c3++;
+        } else if (h < 180.0) {
+            c4++;
+        } else if (h < 185.0) {
+            c5++;
+        } else {
+            c6++;
+        }
+    }
+
+    /* Output: six lines, each "label" followed by markers equal to the count. */
+    fputs("<165.0 ", stdout);  print_markers(c1); putchar('\n');
+    fputs("165.0-169.9 ", stdout); print_markers(c2); putchar('\n');
+    fputs("170.0-174.9 ", stdout); print_markers(c3); putchar('\n');
+    fputs("175.0-179.9 ", stdout); print_markers(c4); putchar('\n');
+    fputs("180.0-184.9 ", stdout); print_markers(c5); putchar('\n');
+    fputs(">=185.0 ", stdout); print_markers(c6); putchar('\n');
+
+    return 0;
+}

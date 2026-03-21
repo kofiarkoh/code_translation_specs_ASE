@@ -1,0 +1,23 @@
+A. Likely mismatch category  
+Wrong counting rule / wrong closed-form formula (missing factorial factors in the per-component contribution).
+
+B. What the current specification may be missing or misstating  
+The spec claims the per-vertex value is
+\[
+n!\cdot \prod_i \frac{1}{s_i!\,s_i}\pmod P
+\]
+where \(s_i\) are component sizes after removing \(v\).  
+But the source program’s DP (`tans`) only ever multiplies by inverses of subtree sizes (`fp` divides by `tS[s]`) and multiplies child contributions (`fc` multiplies `tans[s] *= tans[t]`). There is **no multiplication by any factorial or inverse factorial of component sizes** anywhere in the source DP/rerooting logic. The only factorial computed is the global \(p=n!\), multiplied at the very end.
+
+So the spec’s inclusion of \(\prod_i 1/(s_i!)\) is not supported by the source; it appears to be an over-interpretation of the DP.
+
+C. What general behavior should be clarified in the specification  
+Clarify the exact mathematical quantity computed from component sizes: the output depends on component sizes via **size factors only** (products of inverses of component sizes, and possibly an additional global factor), and **does not include factorial-of-component-size terms**. In other words, the spec should precisely state whether the per-component contribution is \(1/s_i\) versus \(1/(s_i!\,s_i)\), and how the global \(n!\) factor interacts with that.
+
+D. Why this clarification is supported by the source program  
+- `tS[x]` is maintained as a subtree size (initialized to 1, accumulated by `tS[s] += tS[child]`, adjusted during rerooting by subtract/add).  
+- `tans[x]` is initialized to 1 and updated only by:
+  - multiplying by child `tans` values (`fc`), and
+  - dividing/multiplying by subtree sizes via modular inverses (`fp` divides by `tS[s]`, `ip` multiplies by `tS[s]`), plus corresponding inverse operations during rerooting (`ic` divides by `tans[child]`).
+- There is no code path that introduces factorials of `tS` or any combinatorial term like `invfact[tS]`.  
+- The only factorial is `p = n! mod M` computed in `main` and multiplied as `ANS[v] * p % M`. This indicates the DP result `ANS[v]` is meant to be multiplied by \(n!\), but the DP itself encodes only size-based denominators, not \(\prod s_i!\).

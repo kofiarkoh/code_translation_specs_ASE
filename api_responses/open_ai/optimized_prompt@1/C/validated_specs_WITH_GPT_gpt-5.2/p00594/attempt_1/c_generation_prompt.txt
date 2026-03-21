@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple datasets. For each dataset, determines whether there exists a value that occurs more than half of the dataset size. If such a value exists, outputs that value; otherwise outputs a fixed “no majority” message.
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer size.  
+- If the size is nonzero, it is followed by that many integers (the dataset elements).  
+- A size of zero terminates processing.
+
+3. Outputs  
+For each non-terminating dataset, exactly one line to standard output:  
+- The majority value (an element occurring strictly more than half the time), if one exists.  
+- Otherwise, a fixed message indicating no such value exists.
+
+4. Preconditions  
+- Each dataset size is an integer in the range 1 to 1,000,000 inclusive.  
+- Each dataset provides exactly the declared number of integer elements.  
+- All input integers are such that comparing and ordering them is well-defined and does not overflow internal arithmetic used for ordering (assumption needed due to subtraction-based comparison).  
+
+5. Postconditions  
+For each processed dataset of size `n` with multiset of values `S`:  
+- If there exists a value `v` in `S` with count(`v`) > `n/2`, the program outputs one such `v`.  
+- If no value in `S` has count greater than `n/2`, the program outputs the “no majority” message.  
+- If multiple values could satisfy the condition (theoretically), the output is one of them; however, for strict “more than half,” at most one value can satisfy it.
+
+6. Invariants  
+- For a given dataset, the reported candidate value (if any) is always a value that appears in the dataset.  
+- The computed maximum frequency for the dataset is at least 1 and at most `n`.  
+- The decision criterion is strictly “more than half,” not “at least half.”
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, premature end of input, or out-of-range dataset sizes. Behavior is unspecified in these cases.  
+- If integer ordering arithmetic overflows during comparison, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats: read dataset size → if zero, terminate; else read dataset elements → produce one output line → proceed to next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the dataset size, with an upper bound supporting up to 1,000,000 integers.  
+- Time per dataset is dominated by ordering the elements and then scanning for the highest frequency.
+
+```

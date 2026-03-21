@@ -1,0 +1,73 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+/*
+Specification-driven interpretation:
+
+We must decide whether the implied completion order matches strictly increasing
+order starting from the smallest not-yet-completed category.
+
+Given only the provided spec, the narrowest consistent operationalization is:
+- We process the observed sequence of q category selections in order.
+- A category becomes "completed" the first time it is encountered in the sequence.
+  (This yields an "implied completion sequence" derived from the input.)
+- Acceptance condition: whenever a category completes (i.e., first encounter),
+  it must equal the current "next required category" (smallest incomplete index).
+- After completing a category, advance next_required to the smallest index not yet completed.
+- If any completion happens out of order, print the negative decision and exit early.
+- Otherwise, after processing all q inputs, print the affirmative decision.
+
+Notes:
+- Categories are numbered 0..m inclusive, so there are (m+1) categories.
+- No explicit invalid-input handling is required; behavior is undefined if preconditions fail.
+*/
+
+int main(void) {
+    int n, m, q;
+    if (scanf("%d %d %d", &n, &m, &q) != 3) {
+        /* Undefined by spec; return without producing extra output. */
+        return 0;
+    }
+
+    (void)n; /* Capacity constraint mentioned but no further operational rule is specified. */
+
+    /* completed[i] == 1 iff category i has completed already. */
+    unsigned char *completed = (unsigned char *)calloc((size_t)m + 1u, 1u);
+    if (!completed) {
+        /* Undefined by spec; may crash or misbehave. */
+        return 0;
+    }
+
+    int next_required = 0;
+
+    for (int i = 0; i < q; i++) {
+        int x;
+        if (scanf("%d", &x) != 1) {
+            /* Undefined by spec; stop silently. */
+            free(completed);
+            return 0;
+        }
+
+        if (!completed[x]) {
+            /* x completes now; must match next_required */
+            if (x != next_required) {
+                printf("NO\n");
+                free(completed);
+                return 0;
+            }
+            completed[x] = 1;
+
+            /* advance next_required to smallest incomplete */
+            while (next_required <= m && completed[next_required]) {
+                next_required++;
+            }
+        }
+        /* If already completed, no state transition (invariant: completed at most once). */
+    }
+
+    printf("YES\n");
+    free(completed);
+    return 0;
+}
+```

@@ -1,0 +1,14 @@
+A. Likely mismatch category  
+Missing constraint / wrong assumption about allowed implementation details (memory management / required headers), i.e., the spec is not constraining the generated program to be self-contained and compile under the same assumptions as the source.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the algorithmic behavior but does not constrain *how* auxiliary storage (the powers-of-two table) is allocated. The generated code chose dynamic allocation (`malloc`/`free`), which introduces an additional requirement: including `<stdlib.h>`.  
+- The source program does not use dynamic allocation at all; it uses fixed-size static arrays (`static int p2[N];`). The current spec doesn’t reflect that the intended implementation is fixed-memory and header-minimal, so a generator can legally choose `malloc` and then fail to compile if it omits the header.
+
+C. What general behavior should be clarified in the specification  
+- Clarify whether the implementation must avoid dynamic memory allocation and instead use fixed-size arrays bounded by `N` (as the source does), or, if dynamic allocation is permitted, clarify that the program must include the necessary standard headers and remain valid ISO C (no implicit declarations).  
+- More generally: specify compilation/portability constraints (e.g., “must compile as C11 with standard headers; no implicit function declarations”) and whether auxiliary arrays are bounded by `N` and can be statically allocated.
+
+D. Why this clarification is supported by the source program  
+- The source includes only `<stdio.h>` and `<string.h>` and relies exclusively on statically allocated storage (`static int p2[N];`, static bitset arrays). There is no `malloc`/`free` usage, so no need for `<stdlib.h>`.  
+- Therefore, a faithful spec should either (1) constrain implementations to the same fixed-memory approach (preventing `malloc` from being introduced), or (2) explicitly require correct inclusion of headers if alternative allocation strategies are allowed. The failure indicates the current spec leaves this under-specified.

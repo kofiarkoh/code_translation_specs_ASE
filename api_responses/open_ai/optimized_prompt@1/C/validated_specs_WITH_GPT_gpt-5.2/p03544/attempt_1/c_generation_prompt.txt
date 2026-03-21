@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a single integer and outputs the corresponding term of a sequence defined by:  
+- Term(0) = 2  
+- Term(1) = 1  
+- For n ≥ 2: Term(n) = Term(n−1) + Term(n−2)  
+
+2. Inputs  
+- One integer value representing the requested index `n` of the sequence.
+
+3. Outputs  
+- One signed 64-bit integer value: the sequence term at index `n`, followed by a line break.
+
+4. Preconditions  
+- The input contains a valid integer.  
+- `n` is within the range where the program’s internal fixed-size storage is sufficient (i.e., `0 ≤ n ≤ 99`).  
+- `n` is non-negative.  
+- The computed value for the given `n` fits within a signed 64-bit integer.
+
+5. Postconditions  
+- If the preconditions hold, exactly one sequence value corresponding to index `n` is produced on standard output.  
+- No other externally visible effects are produced.
+
+6. Invariants  
+- For all computed indices `i` in `[2, n]`, the maintained sequence values satisfy: Term(i) = Term(i−1) + Term(i−2).  
+- Base terms remain: Term(0) = 2 and Term(1) = 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, or if `n` violates the stated bounds, behavior is unspecified (may produce incorrect output or fail).  
+- If arithmetic overflow occurs, behavior is unspecified with respect to mathematical correctness.
+
+8. State Transitions (if applicable)  
+- Stateless beyond local computation: reads input once, computes the requested term, outputs once, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows linearly with `n`.  
+- Uses a fixed upper bound on stored terms (capacity for 100 terms).
+
+```

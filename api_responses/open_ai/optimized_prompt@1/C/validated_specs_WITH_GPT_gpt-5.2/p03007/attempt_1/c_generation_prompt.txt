@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers and outputs:  
+- A single integer equal to the maximum value achievable by repeatedly replacing two chosen current values \(x, y\) with the value \(x - y\) until only one value remains.  
+- A sequence of exactly \(n-1\) ordered pairs \((x, y)\) describing one concrete sequence of such operations that attains the printed maximum, where each pair denotes an operation “replace \(x\) and \(y\) by \(x-y\)”.
+
+2. Inputs  
+- An integer \(n\).  
+- A list of \(n\) signed 64-bit integers.
+
+3. Outputs  
+- Line 1: the maximum achievable final value after \(n-1\) subtraction operations.  
+- Lines 2..\(n\): \(n-1\) pairs of integers, each representing one subtraction operation in the order performed.
+
+4. Preconditions  
+- \(n \ge 2\).  
+- All input values fit in signed 64-bit range.  
+- The maximum achievable result and all intermediate values produced by the described operation sequence fit in signed 64-bit range (otherwise behavior is not defined by the code).  
+
+5. Postconditions  
+- Exactly \(n\) lines are produced: one maximum value line and \(n-1\) operation lines.  
+- The operation lines define a valid reduction of the multiset of the \(n\) input values to a single value by repeatedly applying \(x-y\) to two currently available values.  
+- The final value obtained by executing the printed operations equals the first printed value.  
+- The first printed value equals:
+  - \(\sum_i |a_i|\) if the input contains at least one negative and at least one non-negative value,  
+  - \(\sum_i |a_i| - 2\cdot \min(a_i)\) if all values are non-negative,  
+  - \(\sum_i |a_i| + 2\cdot \max(a_i)\) if all values are non-positive.  
+
+6. Invariants  
+- Each printed operation consumes two currently available values and produces exactly one new value equal to their difference.  
+- Across the \(n-1\) operations, the total count of available values decreases by exactly 1 per operation, ending with exactly one value.  
+- The printed maximum is consistent with the sign-distribution cases described in Postconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input, or out-of-range values.  
+- If preconditions are violated (e.g., \(n<2\), arithmetic overflow), the observable behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Abstract state: a multiset of “currently available” values.  
+- Initial state: the multiset equals the input values.  
+- Transition per printed pair \((x, y)\): remove one occurrence of \(x\) and one occurrence of \(y\) from the multiset, then insert \(x-y\).  
+- Terminal state: after \(n-1\) transitions, the multiset contains one value equal to the printed maximum.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting: \(O(n \log n)\).  
+- Additional working memory is \(O(n)\) for storing the input values and producing the operation sequence.
+
+```

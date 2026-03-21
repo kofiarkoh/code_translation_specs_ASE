@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define MOD 1000000007u
+/* Fixed maximum supported total sum.
+   The specification states this is bounded such that indices remain in-bounds.
+   We choose a conservative fixed bound typical for subset-sum DP. */
+#define MAXS 200000u
+
+int main(void) {
+    uint32_t a;
+    if (scanf("%u", &a) != 1) {
+        /* Initial integer missing: output unspecified by spec; do nothing. */
+        return 0;
+    }
+
+    static uint32_t D[MAXS + 1];
+    static uint32_t E[MAXS + 1];
+
+    /* After reading the initial integer, initialize a single distinguished
+       subset-sum count at that value. */
+    if (a <= MAXS) {
+        E[a] = 1u;
+    }
+    D[0] = 1u;
+
+    uint32_t S = 0;
+    uint32_t n = 0;
+    uint32_t pow3 = 1u;
+
+    uint32_t v;
+    while (scanf("%u", &v) == 1) {
+        n++;
+        pow3 = (uint64_t)pow3 * 3u % MOD;
+
+        /* Update subset-sum counts in descending order to avoid reuse within step. */
+        if (S + v > MAXS) {
+            /* Preconditions violated: behavior undefined. We proceed without guarding. */
+        }
+        uint32_t newS = S + v;
+        uint32_t i = newS;
+        while (1) {
+            if (i >= v) {
+                uint32_t from = i - v;
+
+                uint32_t addD = D[from];
+                uint32_t curD = D[i];
+                uint32_t sumD = curD + addD;
+                if (sumD >= MOD) sumD -= MOD;
+                D[i] = sumD;
+
+                uint32_t addE = E[from];
+                uint32_t curE = E[i];
+                uint32_t sumE = curE + addE;
+                if (sumE >= MOD) sumE -= MOD;
+                E[i] = sumE;
+            }
+            if (i == 0) break;
+            i--;
+        }
+        S = newS;
+    }
+
+    uint32_t half = S / 2u;
+
+    uint32_t sumD = 0u;
+    for (uint32_t x = 0; x <= half; x++) {
+        sumD += D[x];
+        if (sumD >= MOD) sumD -= MOD;
+    }
+
+    uint32_t res = pow3;
+
+    /* res = 3^n - 3 * sum_{x=0..floor(S/2)} D[x] (mod MOD) */
+    uint32_t term = (uint64_t)3u * sumD % MOD;
+    res = (res + MOD - term) % MOD;
+
+    /* Additional correction: subtract 3 * E[S/2] iff S even. */
+    if ((S & 1u) == 0u) {
+        uint32_t term2 = (uint64_t)3u * E[half] % MOD;
+        res = (res + MOD - term2) % MOD;
+    }
+
+    printf("%u\n", res);
+    return 0;
+}

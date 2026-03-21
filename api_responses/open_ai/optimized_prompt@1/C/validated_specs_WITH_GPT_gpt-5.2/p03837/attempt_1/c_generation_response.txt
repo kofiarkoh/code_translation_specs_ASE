@@ -1,0 +1,110 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int u;          /* 0-based */
+    int v;          /* 0-based */
+    long long w;    /* non-negative */
+} Edge;
+
+int main(void) {
+    int n, m;
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    /* Narrow interpretation: n,m are non-negative as per preconditions. */
+    if (n < 0 || m < 0) return 0;
+
+    Edge *edges = NULL;
+    if (m > 0) {
+        edges = (Edge *)malloc((size_t)m * sizeof(Edge));
+        if (!edges) return 0; /* unspecified behavior; just exit */
+    }
+
+    /* Distance table: use long long; spec says no overflow for chosen type. */
+    long long *dist = NULL;
+    if (n > 0) {
+        dist = (long long *)malloc((size_t)n * (size_t)n * sizeof(long long));
+        if (!dist) return 0;
+    }
+
+    /* Use a large "infinity" that still allows safe addition under the spec's
+       "no overflow" precondition. */
+    const long long INF = (LLONG_MAX / 4);
+
+    /* Initialize distances */
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            dist[(size_t)i * (size_t)n + (size_t)j] = (i == j) ? 0 : INF;
+        }
+    }
+
+    /* Read edges; for shortest paths, keep minimum weight among parallel edges. */
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        long long w;
+        if (scanf("%d %d %lld", &a, &b, &w) != 3) return 0;
+
+        /* Input is 1-based; spec says endpoints are valid. */
+        int u = a - 1;
+        int v = b - 1;
+
+        edges[i].u = u;
+        edges[i].v = v;
+        edges[i].w = w;
+
+        if (n > 0) {
+            long long *duv = &dist[(size_t)u * (size_t)n + (size_t)v];
+            long long *dvu = &dist[(size_t)v * (size_t)n + (size_t)u];
+            if (w < *duv) *duv = w;
+            if (w < *dvu) *dvu = w;
+        }
+    }
+
+    /* All-pairs shortest paths: Floyd-Warshall, O(n^3) */
+    for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
+            long long dik = dist[(size_t)i * (size_t)n + (size_t)k];
+            if (dik == INF) continue;
+            for (int j = 0; j < n; j++) {
+                long long dkj = dist[(size_t)k * (size_t)n + (size_t)j];
+                if (dkj == INF) continue;
+                long long cand = dik + dkj;
+                long long *dij = &dist[(size_t)i * (size_t)n + (size_t)j];
+                if (cand < *dij) *dij = cand;
+            }
+        }
+    }
+
+    /* Count edges not used by any shortest path in the specified sense.
+       Per spec: for an input edge record (u,v,w) in that direction, it is "used"
+       if exists source s such that dist[s][u] + w == dist[s][v].
+       Graph is undirected for distances, but the "unused" test is directional
+       as given by the input record. */
+    int unused = 0;
+    for (int e = 0; e < m; e++) {
+        int u = edges[e].u;
+        int v = edges[e].v;
+        long long w = edges[e].w;
+
+        int used = 0;
+        for (int s = 0; s < n; s++) {
+            long long dsu = dist[(size_t)s * (size_t)n + (size_t)u];
+            long long dsv = dist[(size_t)s * (size_t)n + (size_t)v];
+            if (dsu == INF || dsv == INF) continue;
+            if (dsu + w == dsv) {
+                used = 1;
+                break;
+            }
+        }
+        if (!used) unused++;
+    }
+
+    printf("%d\n", unused);
+
+    free(dist);
+    free(edges);
+    return 0;
+}
+```

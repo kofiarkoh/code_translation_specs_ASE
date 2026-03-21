@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <stdint.h>
+
+#define PRIME_LIMIT 100000
+
+static int primes[100000]; /* enough for all primes < 100000 (there are 9592) */
+static int prime_count = 0;
+
+static void generate_primes(void) {
+    /* Sieve of Eratosthenes for primes strictly less than 100000 */
+    static unsigned char is_composite[PRIME_LIMIT];
+    int i, j;
+
+    is_composite[0] = 1;
+    is_composite[1] = 1;
+
+    for (i = 2; i * (int64_t)i < PRIME_LIMIT; i++) {
+        if (!is_composite[i]) {
+            for (j = i * i; j < PRIME_LIMIT; j += i) {
+                is_composite[j] = 1;
+            }
+        }
+    }
+
+    for (i = 2; i < PRIME_LIMIT; i++) {
+        if (!is_composite[i]) primes[prime_count++] = i;
+    }
+}
+
+int main(void) {
+    generate_primes();
+
+    for (;;) {
+        int m_in, a_in, b_in;
+        if (scanf("%d %d %d", &m_in, &a_in, &b_in) != 3) {
+            /* Stop immediately if a full triple cannot be read */
+            break;
+        }
+        if ( (m_in | a_in | b_in) == 0 ) {
+            /* Terminating triple */
+            break;
+        }
+
+        int best_p = 0, best_q = 0;
+        int64_t best_prod = 0;
+
+        /* Widen to 64-bit for comparisons as specified */
+        int64_t m = (int64_t)m_in;
+        int64_t a = (int64_t)a_in;
+        int64_t b = (int64_t)b_in;
+
+        /* Search order: increasing p, and for each p, increasing q starting at p (p <= q) */
+        for (int i = 0; i < prime_count; i++) {
+            int p = primes[i];
+
+            for (int j = i; j < prime_count; j++) {
+                int q = primes[j];
+
+                int64_t prod = (int64_t)p * (int64_t)q;
+                if (prod > m) {
+                    /* For fixed p, prod increases with q, so no later q will satisfy p*q <= m */
+                    break;
+                }
+
+                /* Second constraint: a*q <= p*b, evaluated in 64-bit */
+                if (a * (int64_t)q <= (int64_t)p * b) {
+                    if (prod > best_prod) {
+                        best_prod = prod;
+                        best_p = p;
+                        best_q = q;
+                    }
+                    /* Do not update on ties, per specification */
+                }
+            }
+        }
+
+        printf("%d %d\n", best_p, best_q);
+    }
+
+    return 0;
+}

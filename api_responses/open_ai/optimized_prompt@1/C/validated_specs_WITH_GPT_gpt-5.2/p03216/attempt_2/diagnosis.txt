@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong transition/update rule in the sliding-window counting (i.e., incorrect abstraction for how to update counts when the window moves).
+
+B. What the current specification may be missing or misstating  
+The specification describes the *mathematical quantity* being summed correctly, but it does not constrain *how* the count must be maintained across sliding windows. In particular, it leaves room for an implementation that treats the window’s triple count as something that can be updated by subtracting “outgoing character contributions” using only aggregate counts (e.g., `#M`, `#C`, `#MC`, etc.). The failing result (even becoming negative) indicates that such aggregate-based removal rules are not valid for this problem because the count depends on **relative order** inside the window, not just totals.
+
+C. What general behavior should be clarified in the specification  
+Clarify that, for each window, the counted value is the number of ordered triples **based on positional order within that window**, and that when sliding the window, removing the leftmost character cannot in general be expressed solely via global aggregates like `#M`, `#C`, or `#MC` unless the maintained state is specifically designed to preserve the necessary order information. In other words: the spec should make explicit that the computation is fundamentally about **prefix-ordered accumulation** (counting `D` before `M`, then those pairs before `C`) rather than symmetric combination counts.
+
+D. Why this clarification is supported by the source program  
+The source program’s state (`d`, `m`, `dm`, `ans`) is updated in a very particular way:
+
+- It counts `dm` as “number of (D before M) pairs” by scanning left-to-right and doing `dm += d` when seeing an `M`.  
+- It counts triples by doing `ans += dm` when seeing a `C`.  
+- When sliding, it updates by:
+  - If a `D` leaves: `dm -= m; d--;` (removing that `D` only affects pairs where the `M` is still in-window, and the source uses the current `m` for that).
+  - If an `M` leaves: `m--;` (notably, it does **not** attempt to directly subtract triple contributions involving that `M` via aggregate formulas).
+  - Then it adds the entering character using the same left-to-right accumulation logic.
+
+This shows the intended invariant is tied to a directional scan/order-sensitive accumulation, and that “removal effects” are handled in a constrained way (only adjusting `dm` when a `D` leaves, not trying to subtract all triples involving the outgoing symbol via aggregate combinatorics). The generated program’s more aggressive removal formulas (e.g., subtracting `Dcnt*Ccnt` for an outgoing `M`) are not justified by the source’s behavior and can break the order-dependent counting, producing incorrect (even negative) totals.

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each provided positive integer value, the number of distinct seatings of eight distinct individuals around a circular arrangement of size equal to the provided value, subject to the constraint that no two of the eight individuals occupy adjacent seats (with adjacency taken cyclically, so the first and last seats are adjacent). The computed count is output for each input value until a terminating value is encountered.
+
+2. Inputs  
+- A sequence of integers, each representing the total number of seats in a circular arrangement.  
+- Input terminates when a value of zero is encountered.
+
+3. Outputs  
+- For each nonzero input value, outputs a single nonnegative integer: the number of valid seatings of eight distinct individuals satisfying the non-adjacency constraint on a circle of the given size.
+
+4. Preconditions  
+- Each processed input value is an integer that fits within the implementation’s integer range.  
+- The intended problem domain is values large enough to make the count meaningful; behavior for very large values is limited by internal fixed-size storage (see Error Handling / Exceptional Behavior).
+
+5. Postconditions  
+For each processed nonzero input value:  
+- If the value is less than or equal to 16, the output is 0.  
+- If the value is greater than 16, the output equals:  
+  - (number of ways to choose 8 non-adjacent seats on a cycle of the given size) × (number of permutations of 8 distinct individuals).  
+- The permutation factor is 8! (i.e., all assignments of the eight distinct individuals to the chosen seats are counted).
+
+6. Invariants  
+- Exactly eight seats are occupied in every counted arrangement.  
+- No counted arrangement contains two occupied seats that are adjacent on the circle.  
+- The count treats the circle as having fixed seat positions (i.e., rotations are not factored out); distinct seat indices yield distinct arrangements.
+
+7. Error Handling / Exceptional Behavior  
+- Input parsing stops when no further integer can be read; no explicit error message is produced.  
+- The program assumes the seat count does not exceed an internal maximum supported by fixed-size tables; if exceeded, behavior is undefined (may produce incorrect results or access invalid memory).  
+- The computed result is produced in a signed 64-bit integer; if the true count exceeds this range, overflow may occur and the output is not guaranteed to be correct.
+
+8. State Transitions (if applicable)  
+- Repeats the following per input value: read value → if zero then terminate; else compute and output the corresponding count → proceed to next value.  
+- Internal memoization state is reset between successive input values.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memoization to avoid recomputation, yielding time proportional to the size of the memoized state space for a given input rather than exponential in the number of seats.  
+- Memory usage is bounded by fixed-size internal tables independent of the input stream length.
+
+```

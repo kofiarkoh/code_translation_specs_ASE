@@ -1,0 +1,27 @@
+#include <stdio.h>
+
+int main(void) {
+    int N;
+    int A, B;
+
+    if (scanf("%d %d %d", &N, &A, &B) != 3) {
+        /* Output unspecified by specification on input failure. */
+        return 0;
+    }
+
+    /* Preconditions state N is non-negative; k is in [0, 11]. */
+    int k = N % 12;
+
+    for (int t = 1; t <= k; ++t) {
+        if (t & 1) {
+            /* odd t: (A, B) -> (A - B, B) */
+            A = A - B;
+        } else {
+            /* even t: (A, B) -> (A, A + B) */
+            B = A + B;
+        }
+    }
+
+    printf("%d %d", A, B);
+    return 0;
+}

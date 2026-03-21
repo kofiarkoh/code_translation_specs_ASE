@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each problem instance, the minimum achievable total cost of assigning all demand points to a chosen subset of facilities subject to facility capacity limits. The total cost is the sum of:  
+- a fixed opening cost for each chosen facility, and  
+- an assignment cost for each demand point to a facility, where the assignment cost is based on Manhattan distance with a nonnegative offset determined by an optimized shared parameter.  
+Outputs the minimum total cost over all facility subsets for which a feasible assignment exists.
+
+2. Inputs  
+For each instance (repeated until termination):  
+- An integer count of demand points.  
+- An integer count of facilities and an integer scaling factor.  
+- For each demand point: two integers representing its coordinates.  
+- For each facility: two integers representing its coordinates, an integer capacity, and an integer fixed opening cost.
+
+3. Outputs  
+For each instance:  
+- One integer: the minimum total cost among all feasible choices of facility subset and assignments.
+
+4. Preconditions  
+- The input stream contains complete instances in the expected order and numeric form.  
+- The number of demand points is within the supported fixed limits (at most 101).  
+- The number of facilities is within the supported fixed limits (at most 5).  
+- Facility capacities and the scaling factor are such that intermediate arithmetic fits within signed 32-bit integer range (assumption; not checked).  
+- Termination is indicated by a demand-point count of zero.
+
+5. Postconditions  
+For each non-terminating instance, the program outputs a value equal to:  
+- the minimum, over all subsets of facilities, of  
+  - (sum of fixed opening costs of facilities in the subset)  
+  + (minimum feasible total assignment cost of assigning every demand point to exactly one facility in the subset, respecting facility capacities)  
+  + (an additional term proportional to the scaling factor, the number of chosen facilities, and an optimized integer offset parameter),  
+where each demand-to-facility assignment cost equals the nonnegative part of (Manhattan distance between the demand point and facility minus the chosen offset parameter).  
+If a subset cannot support assigning all demand points within capacities, that subset is excluded from the minimum.
+
+6. Invariants  
+- Each demand point is assigned to at most one facility, and in the computed optimum it is assigned to exactly one facility when a feasible solution exists for the chosen subset.  
+- For any chosen facility, the number of assigned demand points does not exceed its capacity.  
+- Assignment costs are always nonnegative.  
+- The reported answer is the minimum over all facility subsets that admit a feasible full assignment.
+
+7. Error Handling / Exceptional Behavior  
+- If, for a given facility subset, it is impossible to assign all demand points within the subset’s capacities, that subset is skipped and does not contribute to the final minimum.  
+- No explicit handling is provided for malformed input, out-of-range sizes, or integer overflow; behavior is undefined in those cases.  
+- If no subset is feasible, the program will still output a numeric value derived from its internal initialization (assumption: problem instances guarantee at least one feasible subset).
+
+8. State Transitions (if applicable)  
+- Processes instances sequentially until a terminating instance is read.  
+- For each instance, iterates over all facility subsets; for each subset, evaluates feasibility and cost and updates the current best answer.  
+- After outputting the answer for an instance, all per-instance state is effectively discarded and recomputed for the next instance.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows exponentially with the number of facilities (evaluates all subsets), and polynomially with the number of demand points for each subset evaluation.  
+- Uses fixed-size internal storage, limiting maximum supported demand points and facilities as stated in Preconditions.
+
+```

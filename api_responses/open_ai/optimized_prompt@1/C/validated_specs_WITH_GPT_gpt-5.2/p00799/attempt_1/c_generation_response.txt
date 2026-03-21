@@ -1,0 +1,109 @@
+```c
+#include <stdio.h>
+
+#define MAX_DEVICES 128
+#define MAX_CYCLE_PAIRS 256
+#define MAX_QUEUE 4096
+
+typedef struct {
+    int a[MAX_CYCLE_PAIRS];
+    int c[MAX_CYCLE_PAIRS];
+    int len;        /* number of (active,charge) pairs */
+    int idx;        /* current pair index */
+    int state;      /* 0=active, 1=charging */
+    int rem;        /* remaining time in current state (non-negative) */
+} Device;
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n <= 0) break;
+
+        int T;
+        if (scanf("%d", &T) != 1) return 0;
+
+        Device dev[MAX_DEVICES];
+
+        /* Read per-device cyclic sequences of (active, charging) pairs.
+           Sequence terminated by a non-positive value (the first value of a pair). */
+        for (int i = 0; i < n; i++) {
+            dev[i].len = 0;
+            dev[i].idx = 0;
+            dev[i].state = 0;
+
+            for (;;) {
+                int x;
+                if (scanf("%d", &x) != 1) return 0;
+                if (x <= 0) break;
+                int y;
+                if (scanf("%d", &y) != 1) return 0;
+
+                /* Specification assumes all durations used are positive. */
+                if (dev[i].len < MAX_CYCLE_PAIRS) {
+                    dev[i].a[dev[i].len] = x;
+                    dev[i].c[dev[i].len] = y;
+                    dev[i].len++;
+                } else {
+                    /* Out of supported bounds => undefined behavior per spec.
+                       We still consume input but do not store beyond capacity. */
+                }
+            }
+
+            /* Initialize to active with first active duration. */
+            dev[i].rem = dev[i].a[0];
+        }
+
+        int q[MAX_QUEUE];
+        int qh = 0, qt = 0; /* circular queue indices; empty when qh==qt */
+
+        long long misses = 0;
+
+        for (int t = 0; t < T; t++) {
+            /* Step 1: progress active devices; those reaching 0 enter charging and are enqueued. */
+            for (int i = 0; i < n; i++) {
+                if (dev[i].state == 0) {
+                    if (dev[i].rem > 0) dev[i].rem--;
+                    if (dev[i].rem == 0) {
+                        dev[i].state = 1; /* charging */
+                        dev[i].rem = dev[i].c[dev[i].idx];
+
+                        /* Enqueue in FCFS order of entry into charging. */
+                        q[qt] = i;
+                        qt = (qt + 1) % MAX_QUEUE;
+                        /* If queue overflows, behavior is undefined per spec. */
+                    }
+                }
+            }
+
+            /* Step 2: determine serviced device (front of queue, if any). */
+            int serviced = -1;
+            if (qh != qt) serviced = q[qh];
+
+            /* Step 3: count misses: charging devices not serviced this time unit. */
+            for (int i = 0; i < n; i++) {
+                if (dev[i].state == 1 && i != serviced) {
+                    misses++;
+                }
+            }
+
+            /* Step 4: progress serviced device's charging by one time unit; if completes, dequeue and switch to active. */
+            if (serviced != -1) {
+                if (dev[serviced].rem > 0) dev[serviced].rem--;
+                if (dev[serviced].rem == 0) {
+                    /* Charging complete: dequeue and advance cycle. */
+                    qh = (qh + 1) % MAX_QUEUE;
+
+                    dev[serviced].state = 0; /* active */
+                    dev[serviced].idx++;
+                    if (dev[serviced].idx >= dev[serviced].len) dev[serviced].idx = 0;
+                    dev[serviced].rem = dev[serviced].a[dev[serviced].idx];
+                }
+            }
+        }
+
+        printf("%lld\n", misses);
+    }
+
+    return 0;
+}
+```
