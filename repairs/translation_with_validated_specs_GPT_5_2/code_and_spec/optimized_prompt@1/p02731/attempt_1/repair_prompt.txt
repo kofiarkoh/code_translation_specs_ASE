@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer value, computes one third of it as a real number, then computes the cube of that one-third value, and outputs the resulting real number.
+
+2. Inputs  
+- One integer value from standard input.
+
+3. Outputs  
+- One real-number value written to standard output representing \((l/3)^3\), displayed with 12 digits after the decimal point, followed by a newline.
+
+4. Preconditions  
+- Standard input provides a syntactically valid integer within the representable range of the program’s integer type.
+
+5. Postconditions  
+- If the input is successfully read, the program outputs a real number equal to \((l/3)^3\) as computed in floating-point arithmetic.
+
+6. Invariants  
+- No persistent state is maintained beyond the single computation; the program’s behavior depends only on the provided input value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing or invalid, behavior is unspecified (the output may be incorrect or indeterminate).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no externally observable state transitions beyond producing its single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses floating-point arithmetic; results may be subject to rounding/precision limits of the underlying floating-point representation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main ()
+{
+    double x,y;
+    int l;
+    scanf("%d", &l);
+    y=l/3.0;
+    x=y*y*y;
+    printf("%.12lf\n", x);
+}
+=== C CODE END ===

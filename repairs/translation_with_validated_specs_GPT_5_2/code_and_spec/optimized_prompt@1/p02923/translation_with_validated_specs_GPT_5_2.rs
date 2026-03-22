@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Spec allows linear space; store the sequence.
+    let mut h: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        h.push(v);
+    }
+
+    // If n is 0 or 1, output must be 0 (also matches the C loop behavior).
+    let mut best: i64 = 0;
+    let mut count: i64 = 0;
+
+    for i in 0..n.saturating_sub(1) {
+        if h[i + 1] <= h[i] {
+            count += 1;
+        } else {
+            count = 0;
+        }
+        if best < count {
+            best = count;
+        }
+    }
+
+    print!("{best}\n");
+}

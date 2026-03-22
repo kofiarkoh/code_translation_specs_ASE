@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior for missing/invalid input is unspecified by the spec,
+    // so we simply attempt to parse three integers and otherwise do nothing.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    if a == 1 && b == 0 && c == 0 {
+        print!("Close\n");
+    } else if a == 0 && b == 1 && c == 0 {
+        print!("Close\n");
+    } else if a == 1 && b == 1 && c == 0 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 1 {
+        print!("Open\n");
+    } else if a == 0 && b == 0 && c == 0 {
+        print!("Close\n");
+    }
+}

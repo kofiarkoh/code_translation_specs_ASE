@@ -1,0 +1,102 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut grid: Vec<Vec<i32>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let s = it.next().unwrap();
+        let mut row = Vec::with_capacity(w);
+        for b in s.as_bytes().iter().take(w) {
+            row.push((b - b'0') as i32);
+        }
+        grid.push(row);
+    }
+
+    // Enumerate all horizontal cut configurations via bitmask over (h-1) gaps.
+    // For each configuration, compute minimal vertical cuts greedily.
+    let mut best: i32 = i32::MAX;
+
+    let max_mask = if h >= 2 { 1usize << (h - 1) } else { 1usize };
+    for mask in 0..max_mask {
+        // Build group id per row based on horizontal cuts.
+        // group_count = number of horizontal blocks.
+        let mut group_id = vec![0usize; h];
+        let mut g = 0usize;
+        for r in 0..h {
+            group_id[r] = g;
+            if r + 1 < h {
+                if ((mask >> r) & 1) == 1 {
+                    g += 1;
+                }
+            }
+        }
+        let group_count = g + 1;
+
+        // Horizontal cuts count is number of set bits in mask.
+        let horizontal_cuts = mask.count_ones() as i32;
+
+        // Greedy vertical cuts:
+        // Maintain current accumulated ones per horizontal group for the current vertical segment.
+        let mut acc = vec![0i32; group_count];
+        let mut vertical_cuts = 0i32;
+
+        // If at any column a single-column contribution exceeds k for some group,
+        // this horizontal partition is infeasible; skip (spec allows unspecified behavior,
+        // but we keep it narrow and just ignore this partition).
+        let mut feasible = true;
+
+        for c in 0..w {
+            // Count ones in this column per group.
+            let mut add = vec![0i32; group_count];
+            for r in 0..h {
+                add[group_id[r]] += grid[r][c];
+            }
+
+            // If any group has more than k ones in this single column, impossible for this mask.
+            if add.iter().any(|&x| x > k) {
+                feasible = false;
+                break;
+            }
+
+            // If adding this column would violate k in any group, we must cut before this column.
+            let mut need_cut = false;
+            for i in 0..group_count {
+                if acc[i] + add[i] > k {
+                    need_cut = true;
+                    break;
+                }
+            }
+
+            if need_cut {
+                vertical_cuts += 1;
+                // Start new segment at this column.
+                acc.clone_from(&add);
+            } else {
+                for i in 0..group_count {
+                    acc[i] += add[i];
+                }
+            }
+        }
+
+        if !feasible {
+            continue;
+        }
+
+        let total = horizontal_cuts + vertical_cuts;
+        if total < best {
+            best = total;
+        }
+    }
+
+    println!("{}", best);
+}
+```

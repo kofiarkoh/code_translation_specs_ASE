@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads successive sets of six real numbers representing a 2×2 linear system with two unknowns and outputs the corresponding solution pair (x, y) for each set, assuming the system is solvable.
+
+2. Inputs  
+- A stream of real-number sextuples per case: (a, b, c, d, e, f), interpreted as the coefficients and constants of two linear equations:  
+  - a·x + b·y = c  
+  - d·x + e·y = f  
+- Input continues until end-of-input.
+
+3. Outputs  
+- For each complete input sextuple, outputs one line containing two real numbers: the computed solution (x, y), each rounded to three digits after the decimal point.
+
+4. Preconditions  
+- Each case provides six valid real numbers.  
+- a ≠ 0.  
+- e − (b·d)/a ≠ 0 (equivalently, the system is not singular under the computation’s required divisions).  
+- Values are such that intermediate computations and results are representable as finite real numbers.
+
+5. Postconditions  
+For each processed case, the program outputs values (x, y) that satisfy the given system of equations within the rounding applied to the printed output, provided the preconditions hold.
+
+6. Invariants  
+- Each output line corresponds to exactly one successfully read sextuple of input values.  
+- The program does not retain state between cases that affects subsequent solutions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., division by zero or non-finite arithmetic), the produced output is undefined or may contain non-finite values, and execution may exhibit runtime-dependent behavior.  
+- If end-of-input occurs, processing stops without additional output.
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read one sextuple → compute solution → output solution, until end-of-input is reached, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Processes cases sequentially in a streaming manner with constant memory usage per case.  
+- Output numeric precision is fixed to three digits after the decimal point.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <math.h>
+int main(void){
+    double a,b,c,d,e,f,aa,bb,cc,x,y,bai;
+    while(scanf("%lf %lf %lf %lf %lf %lf",&a,&b,&c,&d,&e,&f)!=EOF){
+        bai=d/a;
+        aa=a*bai;
+        bb=b*bai;
+        cc=c*bai;
+        y=(f-cc)/(e-bb);
+        x=(c-b*y)/a;
+        printf("%.3f %.3f\n",x,y);
+    }
+        
+        
+        
+        
+    
+    
+    
+}
+=== C CODE END ===

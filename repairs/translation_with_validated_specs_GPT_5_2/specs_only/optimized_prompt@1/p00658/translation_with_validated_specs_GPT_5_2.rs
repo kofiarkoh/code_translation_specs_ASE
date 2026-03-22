@@ -1,0 +1,610 @@
+use std::io::{self, Read};
+use std::process;
+
+const MAX_HW: usize = 50;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Outcome {
+    Cleared,
+    DeathByHole,
+    DeathByBlock,
+    DeathByWalkingGoal,
+    GaveUp,
+}
+
+impl Outcome {
+    fn as_str(self) -> &'static str {
+        match self {
+            Outcome::Cleared => "Game Over : Cleared",
+            Outcome::DeathByHole => "Game Over : Death by Hole",
+            Outcome::DeathByBlock => "Game Over : Death by Block",
+            Outcome::DeathByWalkingGoal => "Game Over : Death by Walking Goal",
+            Outcome::GaveUp => "Game Over : Gave Up",
+        }
+    }
+}
+
+fn dec_countdown(ch: &mut char) {
+    *ch = match *ch {
+        '3' => '2',
+        '2' => '1',
+        '1' => '.',
+        _ => *ch,
+    };
+}
+
+fn dir_from_token(tok: &str) -> i32 {
+    // Only 'R' as first character means right; anything else means left.
+    if tok.as_bytes().first().copied() == Some(b'R') {
+        1
+    } else {
+        -1
+    }
+}
+
+fn in_bounds(x: i32, y: i32, w: i32, h: i32) -> bool {
+    x >= 0 && x < w && y >= 0 && y < h
+}
+
+fn cell_at(grid: &Vec<Vec<char>>, x: i32, y: i32, w: i32, h: i32) -> char {
+    // Row immediately below the grid is solid '#'.
+    if y == h {
+        '#'
+    } else if in_bounds(x, y, w, h) {
+        grid[y as usize][x as usize]
+    } else {
+        // Specification only defines implicit solid boundary below the grid.
+        // For other out-of-bounds, treat as solid to avoid inventing behavior.
+        '#'
+    }
+}
+
+fn check_terminal(
+    grid: &Vec<Vec<char>>,
+    px: i32,
+    py: i32,
+    goal_x: i32,
+    goal_y: i32,
+    w: i32,
+    h: i32,
+) -> Option<Outcome> {
+    // Priority order as specified.
+    let below = cell_at(grid, px, py + 1, w, h);
+    if below == 'G' {
+        return Some(Outcome::Cleared);
+    }
+    if below == 'B' {
+        return Some(Outcome::DeathByHole);
+    }
+    if cell_at(grid, px, py, w, h) != '.' {
+        return Some(Outcome::DeathByBlock);
+    }
+    if in_bounds(goal_x, goal_y, w, h) {
+        if grid[goal_y as usize][goal_x as usize] != 'G' {
+            return Some(Outcome::DeathByWalkingGoal);
+        }
+    } else {
+        // If goal coords somehow out of bounds (shouldn't happen), treat as "no longer contains 'G'".
+        return Some(Outcome::DeathByWalkingGoal);
+    }
+    None
+}
+
+fn apply_hole_removal(grid: &mut Vec<Vec<char>>, w: i32, h: i32) -> bool {
+    let mut changed = false;
+    // For every cell that has 'B' directly below it, if itself not '.', it becomes '.'
+    for y in 0..h {
+        for x in 0..w {
+            let below = cell_at(grid, x, y + 1, w, h);
+            if below == 'B' {
+                let cy = y as usize;
+                let cx = x as usize;
+                if grid[cy][cx] != '.' {
+                    grid[cy][cx] = '.';
+                    changed = true;
+                }
+            }
+        }
+    }
+    changed
+}
+
+fn apply_player_fall(grid: &Vec<Vec<char>>, px: i32, py: &mut i32, w: i32, h: i32) -> bool {
+    let mut changed = false;
+    while cell_at(grid, px, *py + 1, w, h) == '.' {
+        *py += 1;
+        changed = true;
+        // Bottom boundary at y==h is '#', so loop terminates.
+        if *py > h {
+            break;
+        }
+    }
+    changed
+}
+
+fn apply_block_fall(grid: &mut Vec<Vec<char>>, w: i32, h: i32) -> bool {
+    let mut changed = false;
+
+    // Process blocks; move each to lowest reachable row under the rule.
+    // We iterate from bottom-1 up to top to reduce interference, but still compute per current grid.
+    for y in (0..h).rev() {
+        for x in 0..w {
+            let ch = grid[y as usize][x as usize];
+            if ch == '.' {
+                continue;
+            }
+
+            let mut ny = y;
+            loop {
+                let next_y = ny + 1;
+                if next_y >= h {
+                    break; // cannot fall into implicit boundary row
+                }
+
+                // Need down-left, down, down-right all '.' (where in bounds for diagonals).
+                let down = grid[next_y as usize][x as usize];
+                if down != '.' {
+                    break;
+                }
+                if x - 1 >= 0 {
+                    if grid[next_y as usize][(x - 1) as usize] != '.' {
+                        break;
+                    }
+                }
+                if x + 1 < w {
+                    if grid[next_y as usize][(x + 1) as usize] != '.' {
+                        break;
+                    }
+                }
+
+                ny = next_y;
+            }
+
+            if ny != y {
+                grid[y as usize][x as usize] = '.';
+                grid[ny as usize][x as usize] = ch;
+                changed = true;
+            }
+        }
+    }
+
+    changed
+}
+
+fn stabilize(
+    grid: &mut Vec<Vec<char>>,
+    px: i32,
+    py: &mut i32,
+    w: i32,
+    h: i32,
+) {
+    loop {
+        let mut any = false;
+        if apply_hole_removal(grid, w, h) {
+            any = true;
+        }
+        if apply_player_fall(grid, px, py, w, h) {
+            any = true;
+        }
+        if apply_block_fall(grid, w, h) {
+            any = true;
+        }
+        if !any {
+            break;
+        }
+    }
+}
+
+fn cmd_moveto(
+    grid: &Vec<Vec<char>>,
+    px: &mut i32,
+    py: i32,
+    w: i32,
+    n_1based: i32,
+) -> Option<(i32, i32)> {
+    // Returns Some((oldx, oldy)) if moved, else None.
+    if n_1based < 1 || n_1based > w {
+        return None;
+    }
+    let dest_x = n_1based - 1;
+    if grid[py as usize][dest_x as usize] != '.' {
+        return None;
+    }
+
+    let start_x = *px;
+    if dest_x == start_x {
+        // Move succeeds trivially; still counts as successful MOVETO for countdown decrement.
+        let oldx = *px;
+        *px = dest_x;
+        return Some((oldx, py));
+    }
+
+    let step = if dest_x > start_x { 1 } else { -1 };
+    let mut x = start_x + step;
+    while (step == 1 && x <= dest_x) || (step == -1 && x >= dest_x) {
+        // Supported: cell below is not '.'
+        let below = cell_at(grid, x, py + 1, w, py + 1 /* dummy */);
+        // The above call is wrong; use proper height via separate function.
+        // Kept as comment to avoid accidental use.
+        let _ = below;
+        x += step;
+    }
+
+    // Proper supported check with height not available here; pass via cell_at with h.
+    None
+}
+
+fn moveto(
+    grid: &mut Vec<Vec<char>>,
+    px: &mut i32,
+    py: i32,
+    w: i32,
+    h: i32,
+    n_1based: i32,
+) -> bool {
+    if n_1based < 1 || n_1based > w {
+        return false;
+    }
+    let dest_x = n_1based - 1;
+    if grid[py as usize][dest_x as usize] != '.' {
+        return false;
+    }
+
+    let oldx = *px;
+    let oldy = py;
+
+    if dest_x != oldx {
+        let step = if dest_x > oldx { 1 } else { -1 };
+        let mut x = oldx + step;
+        while (step == 1 && x <= dest_x) || (step == -1 && x >= dest_x) {
+            if cell_at(grid, x, py + 1, w, h) == '.' {
+                return false;
+            }
+            x += step;
+        }
+    } else {
+        // Still need support at destination (included in "including the destination").
+        if cell_at(grid, dest_x, py + 1, w, h) == '.' {
+            return false;
+        }
+    }
+
+    *px = dest_x;
+
+    // Decrement countdown tile directly below player's previous position.
+    let by = oldy + 1;
+    if by >= 0 && by < h {
+        let cx = oldx as usize;
+        let cy = by as usize;
+        dec_countdown(&mut grid[cy][cx]);
+    }
+    true
+}
+
+fn push(grid: &mut Vec<Vec<char>>, px: i32, py: i32, w: i32, h: i32, dir: i32) {
+    let adj_x = px + dir;
+    if !in_bounds(adj_x, py, w, h) {
+        return;
+    }
+    if grid[py as usize][adj_x as usize] == '.' {
+        return;
+    }
+
+    // Find contiguous run of non-'.' starting at adj_x.
+    let mut run: Vec<i32> = Vec::new();
+    let mut x = adj_x;
+    while in_bounds(x, py, w, h) && grid[py as usize][x as usize] != '.' {
+        if grid[py as usize][x as usize] == 'C' {
+            return; // disallowed if any 'C' in run
+        }
+        run.push(x);
+        x += dir;
+    }
+
+    // Must be followed somewhere by a '.' cell (i.e., first '.' after run must exist in bounds).
+    if !in_bounds(x, py, w, h) {
+        return;
+    }
+    if grid[py as usize][x as usize] != '.' {
+        return;
+    }
+
+    // Process from farthest to nearest.
+    for &bx in run.iter().rev() {
+        let ch = grid[py as usize][bx as usize];
+        if ch == '.' || ch == 'C' {
+            continue;
+        }
+
+        let mut cur_x = bx;
+        let mut next_x = cur_x + dir;
+
+        if !in_bounds(next_x, py, w, h) {
+            // Out of bounds: removed.
+            grid[py as usize][cur_x as usize] = '.';
+            continue;
+        }
+        if grid[py as usize][next_x as usize] != '.' {
+            continue; // immediately blocked
+        }
+
+        // Move at least one step.
+        grid[py as usize][cur_x as usize] = '.';
+        cur_x = next_x;
+
+        // Sliding across multiple cells.
+        loop {
+            let candidate_next = cur_x + dir;
+            if !in_bounds(candidate_next, py, w, h) {
+                // Sliding would go out of bounds: removed (not placed back).
+                // Current position is not placed either per "effectively removed" when sliding would go out of bounds.
+                // Interpreting narrowly: if the next step would go out, stop and keep at cur_x.
+                // But spec says "If sliding would go out of bounds, the block is effectively removed".
+                // That implies attempting to continue sliding and leaving grid removes it.
+                // We only attempt to continue if conditions allow; if they do and next is out, remove.
+                // Here, we are at a point where we are considering continuing; if allowed, remove.
+                // So decide based on conditions below; handle after computing allow.
+            }
+
+            // Need next horizontal cell empty to continue.
+            if !in_bounds(candidate_next, py, w, h) {
+                // We'll decide removal only if sliding conditions would allow continuation.
+                let below_cur = cell_at(grid, cur_x, py + 1, w, h);
+                let below_next = cell_at(grid, cur_x, py + 1, w, h);
+                let _ = (below_cur, below_next);
+            }
+
+            if !in_bounds(candidate_next, py, w, h) {
+                // Determine if we would attempt to slide further.
+                let below_candidate = cell_at(grid, cur_x, py + 1, w, h);
+                let ice_ok = ch == 'I' || below_candidate == 'I';
+                let support_ok = below_candidate != '.';
+                if ice_ok && support_ok {
+                    // Would slide out of bounds => removed.
+                    return;
+                } else {
+                    break;
+                }
+            }
+
+            if grid[py as usize][candidate_next as usize] != '.' {
+                break;
+            }
+
+            let below_candidate = cell_at(grid, candidate_next, py + 1, w, h);
+            let ice_ok = ch == 'I' || below_candidate == 'I';
+            let support_ok = below_candidate != '.';
+            if !(ice_ok && support_ok) {
+                break;
+            }
+
+            // Continue sliding one step.
+            cur_x = candidate_next;
+        }
+
+        // Place block at final position.
+        grid[py as usize][cur_x as usize] = ch;
+    }
+}
+
+fn pull(grid: &mut Vec<Vec<char>>, px: &mut i32, py: i32, w: i32, h: i32, dir: i32) {
+    if *px == 0 || *px == w - 1 {
+        return; // rejects pulling at edges
+    }
+    let dest_x = *px + dir;
+    let opp_x = *px - dir;
+    if !in_bounds(dest_x, py, w, h) || !in_bounds(opp_x, py, w, h) {
+        return;
+    }
+    if grid[py as usize][dest_x as usize] != '.' {
+        return;
+    }
+    let pulled = grid[py as usize][opp_x as usize];
+    if pulled == '.' || pulled == 'C' {
+        return;
+    }
+
+    let oldx = *px;
+    let oldy = py;
+
+    // Move player.
+    *px = dest_x;
+
+    // Pull block into player's previous cell.
+    grid[py as usize][oldx as usize] = pulled;
+    grid[py as usize][opp_x as usize] = '.';
+
+    // Decrement countdown tile directly below player's previous position.
+    let by = oldy + 1;
+    if by >= 0 && by < h {
+        dec_countdown(&mut grid[by as usize][oldx as usize]);
+    }
+}
+
+fn climb(grid: &mut Vec<Vec<char>>, px: &mut i32, py: &mut i32, w: i32, h: i32, dir: i32) {
+    let target_x = *px + dir;
+    let target_y = *py - 1;
+    let above_cur_y = *py - 1;
+
+    if !in_bounds(target_x, *py, w, h) {
+        return;
+    }
+    if !in_bounds(*px, above_cur_y, w, h) || !in_bounds(target_x, target_y, w, h) {
+        return;
+    }
+
+    // Adjacent cell on current row in direction must be non-'.'
+    if grid[*py as usize][target_x as usize] == '.' {
+        return;
+    }
+    // Two cells above current position and above target column must be '.'
+    if grid[above_cur_y as usize][*px as usize] != '.' {
+        return;
+    }
+    if grid[target_y as usize][target_x as usize] != '.' {
+        return;
+    }
+
+    let oldx = *px;
+    let oldy = *py;
+
+    *px = target_x;
+    *py = target_y;
+
+    // Decrement countdown tile directly below player's previous position.
+    let by = oldy + 1;
+    if by >= 0 && by < h {
+        dec_countdown(&mut grid[by as usize][oldx as usize]);
+    }
+}
+
+fn getdown(grid: &mut Vec<Vec<char>>, px: &mut i32, py: &mut i32, w: i32, h: i32, dir: i32) {
+    let side_x = *px + dir;
+    let dest_x = *px + dir;
+    let dest_y = *py + 1;
+
+    if !in_bounds(side_x, *py, w, h) || !in_bounds(dest_x, dest_y, w, h) {
+        return;
+    }
+    if grid[*py as usize][side_x as usize] != '.' {
+        return;
+    }
+    if grid[dest_y as usize][dest_x as usize] != '.' {
+        return;
+    }
+
+    let oldx = *px;
+    let oldy = *py;
+
+    *px = dest_x;
+    *py = dest_y;
+
+    // Decrement countdown tile at player's previous cell.
+    dec_countdown(&mut grid[oldy as usize][oldx as usize]);
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let h_opt = it.next();
+        if h_opt.is_none() {
+            break;
+        }
+        let height: i32 = h_opt.unwrap().parse().unwrap();
+        let width: i32 = it.next().unwrap().parse().unwrap();
+        if height == 0 && width == 0 {
+            break;
+        }
+
+        // Fixed storage limit assumption; still allocate exactly.
+        if height as usize > MAX_HW || width as usize > MAX_HW {
+            // Specification doesn't define behavior; choose narrow: still attempt to proceed safely by clamping read.
+            // But input is assumed well-formed; so just proceed with allocation.
+        }
+
+        let mut grid: Vec<Vec<char>> = vec![vec!['.'; width as usize]; height as usize];
+        let mut px: i32 = 0;
+        let mut py: i32 = 0;
+        let mut goal_x: i32 = 0;
+        let mut goal_y: i32 = 0;
+
+        for y in 0..height {
+            let row = it.next().unwrap();
+            // Each input row must have exactly width characters (assumed).
+            let chars: Vec<char> = row.chars().collect();
+            for x in 0..width {
+                let ch = chars[x as usize];
+                if ch == 'S' {
+                    px = x;
+                    py = y;
+                    grid[y as usize][x as usize] = '.';
+                } else {
+                    grid[y as usize][x as usize] = ch;
+                }
+                if ch == 'G' {
+                    goal_x = x;
+                    goal_y = y;
+                }
+            }
+        }
+
+        let command_num: usize = it.next().unwrap().parse().unwrap();
+        let mut outcome: Option<Outcome> = None;
+
+        for _ in 0..command_num {
+            let action = it.next().unwrap();
+            let param = it.next().unwrap();
+
+            // Always read commands; only execute if not game over.
+            if outcome.is_none() {
+                // Check terminal before executing each command.
+                outcome = check_terminal(&grid, px, py, goal_x, goal_y, width, height);
+            }
+
+            let mut executed = false;
+
+            if outcome.is_none() {
+                match action {
+                    "MOVETO" => {
+                        let n: i32 = param.parse().unwrap_or(0);
+                        executed = moveto(&mut grid, &mut px, py, width, height, n);
+                    }
+                    "PUSH" => {
+                        let dir = dir_from_token(param);
+                        push(&mut grid, px, py, width, height, dir);
+                        executed = true; // command considered executed even if no effect; updates still apply per spec after each executed command
+                    }
+                    "PULL" => {
+                        let dir = dir_from_token(param);
+                        pull(&mut grid, &mut px, py, width, height, dir);
+                        executed = true;
+                    }
+                    "GETDOWN" => {
+                        let dir = dir_from_token(param);
+                        getdown(&mut grid, &mut px, &mut py, width, height, dir);
+                        executed = true;
+                    }
+                    "CLIMB" => {
+                        let dir = dir_from_token(param);
+                        climb(&mut grid, &mut px, &mut py, width, height, dir);
+                        executed = true;
+                    }
+                    _ => {
+                        // Immediate termination with nonzero exit status and no further outputs.
+                        process::exit(1);
+                    }
+                }
+
+                // Check terminal after executing a command (before automatic updates).
+                outcome = check_terminal(&grid, px, py, goal_x, goal_y, width, height);
+
+                // After each command that is executed while not over, apply automatic updates to stability (if still not over).
+                if executed && outcome.is_none() {
+                    stabilize(&mut grid, px, &mut py, width, height);
+                    // Check terminal after automatic updates.
+                    outcome = check_terminal(&grid, px, py, goal_x, goal_y, width, height);
+                }
+            } else {
+                // If already game over, still must validate action name per spec? Spec says terminate immediately
+                // if action name not supported; it doesn't condition on game over, so still enforce.
+                match action {
+                    "MOVETO" | "PUSH" | "PULL" | "GETDOWN" | "CLIMB" => {}
+                    _ => process::exit(1),
+                }
+            }
+        }
+
+        let final_outcome = outcome.unwrap_or(Outcome::GaveUp);
+        outputs.push(final_outcome.as_str().to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+    if !outputs.is_empty() {
+        print!("\n");
+    }
+}

@@ -1,0 +1,125 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Specification says all strings are read as whitespace-delimited tokens.
+    // The trimming rule for text fragments ("if its last character has ASCII code
+    // less than space, remove it") is therefore only observable for tokens that
+    // may include such a trailing control character (e.g., '\r' if the tokenization
+    // doesn't strip it). Rust's split_whitespace() would strip it, so we implement
+    // our own tokenization that splits only on ASCII whitespace *except* it keeps
+    // '\r' as part of a token (so it can be trimmed by the rule).
+    //
+    // We treat: ' ', '\n', '\t', '\x0b', '\x0c' as delimiters; we do NOT treat '\r'
+    // as a delimiter so that CRLF inputs can produce tokens ending with '\r'.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+
+    let mut idx = 0usize;
+    let mut next_token = || -> Option<Vec<u8>> {
+        while idx < bytes.len() {
+            let b = bytes[idx];
+            if b == b' ' || b == b'\n' || b == b'\t' || b == 0x0b || b == 0x0c {
+                idx += 1;
+            } else {
+                break;
+            }
+        }
+        if idx >= bytes.len() {
+            return None;
+        }
+        let start = idx;
+        while idx < bytes.len() {
+            let b = bytes[idx];
+            if b == b' ' || b == b'\n' || b == b'\t' || b == 0x0b || b == 0x0c {
+                break;
+            }
+            idx += 1;
+        }
+        Some(bytes[start..idx].to_vec())
+    };
+
+    let mut out = String::new();
+
+    loop {
+        let n_tok = match next_token() {
+            None => break,
+            Some(t) => t,
+        };
+        let m_tok = match next_token() {
+            None => break,
+            Some(t) => t,
+        };
+
+        let n: usize = std::str::from_utf8(&n_tok).unwrap().parse().unwrap();
+        let m: usize = std::str::from_utf8(&m_tok).unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let t = next_token().unwrap_or_default();
+            patterns.push(t);
+        }
+
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let mut frag = next_token().unwrap_or_default();
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            text.extend_from_slice(&frag);
+        }
+
+        let l = text.len();
+        let masks = 1usize << n;
+        let full_mask = masks - 1;
+
+        // dp[(pos * masks) + mask] == 1 means reachable.
+        let mut dp: Vec<u8> = vec![0u8; (l + 1) * masks];
+        dp[0] = 1;
+
+        for p in 0..l {
+            let base = p * masks;
+            for s in 0..masks {
+                if dp[base + s] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let lenk = pat.len();
+                    if p + lenk > l {
+                        continue;
+                    }
+                    if text[p..p + lenk] == pat[..] {
+                        let np = p + lenk;
+                        let ns = s | bit;
+                        dp[np * masks + ns] = 1;
+                    }
+                }
+            }
+        }
+
+        let mut count = 0usize;
+        for p in 0..=l {
+            if dp[p * masks + full_mask] != 0 {
+                count += 1;
+            }
+        }
+
+        out.push_str(&count.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

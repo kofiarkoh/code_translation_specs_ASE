@@ -1,0 +1,109 @@
+use std::io::{self, Read};
+
+const BASE: usize = 300;
+const DBASE: usize = 600;
+
+fn main() {
+    // Read entire stdin (fast enough and preserves C's token-based parsing intent).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in() function:
+    // - It assumes the next character is a digit (no skipping whitespace).
+    // - It keeps consuming digits until it sees a character < '0' (not until > '9').
+    //   This matches the original code's `while (c >= '0')`.
+    fn in_c_style(bytes: &[u8], idx: &mut usize) -> i32 {
+        let mut n: i32 = 0;
+        // If input is exhausted, behave benignly (C would read EOF; not specified).
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut c = bytes[*idx];
+        *idx += 1;
+
+        loop {
+            // (c & 0xf) is the C trick used; keep it exactly.
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+
+            if *idx >= bytes.len() {
+                break;
+            }
+            c = bytes[*idx];
+            *idx += 1;
+
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    let n = in_c_style(bytes, &mut idx) as usize;
+    let x = in_c_style(bytes, &mut idx) as i32;
+    let y = in_c_style(bytes, &mut idx) as i32;
+
+    // dp[101][BASE+2][DBASE+2], initialized to -1
+    let mut dp = vec![vec![vec![-1i32; DBASE + 2]; BASE + 2]; 101];
+    dp[0][0][BASE] = 0;
+
+    for i in 0..n {
+        let a = in_c_style(bytes, &mut idx) as i32;
+        let b = in_c_style(bytes, &mut idx) as i32;
+        let c = in_c_style(bytes, &mut idx) as i32;
+        let d = in_c_style(bytes, &mut idx) as i32;
+
+        for j in 0..=BASE {
+            for k in 0..=DBASE {
+                let cur = dp[i][j][k];
+                if cur < 0 {
+                    continue;
+                }
+
+                // carry over
+                if dp[i + 1][j][k] < cur {
+                    dp[i + 1][j][k] = cur;
+                }
+
+                // if (x >= j + a && dp[i+1][j+a][k-b] < dp[i][j][k]) ...
+                // Note: C code does not bounds-check k-b; it relies on input/logic to keep it valid.
+                // We preserve behavior for valid cases; for invalid indices, we skip to avoid panic.
+                let ja = j as i32 + a;
+                let kb = k as i32 - b;
+                if x >= ja && ja >= 0 && kb >= 0 {
+                    let ja_u = ja as usize;
+                    let kb_u = kb as usize;
+                    if ja_u < BASE + 2 && kb_u < DBASE + 2 && dp[i + 1][ja_u][kb_u] < cur {
+                        dp[i + 1][ja_u][kb_u] = cur;
+                    }
+                }
+
+                // if (dp[i+1][j][k+c] < dp[i][j][k]+d) ...
+                let kc = k as i32 + c;
+                if kc >= 0 {
+                    let kc_u = kc as usize;
+                    if kc_u < DBASE + 2 {
+                        let val = cur.wrapping_add(d);
+                        if dp[i + 1][j][kc_u] < val {
+                            dp[i + 1][j][kc_u] = val;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut ans: i32 = 0;
+    let x_u = if x < 0 { 0 } else { x as usize };
+    for j in 0..=x_u.min(BASE) {
+        for k in 0..=600usize {
+            let v = dp[n][j][k];
+            if ans < v && (y + BASE as i32) >= k as i32 {
+                ans = v;
+            }
+        }
+    }
+
+    print!("{ans}\n");
+}

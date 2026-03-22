@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Read};
+
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// Emulate the original K&R-style C function:
+// p(n) uses global i,t and returns t-2 after counting divisors in a peculiar way.
+fn p(mut n: i32) -> i32 {
+    unsafe {
+        I = 2;
+        T = 2;
+        // C loop condition: i * i <= n, with i and n as (likely) signed int.
+        // Use i64 for the multiplication to avoid Rust overflow panics; this matches
+        // typical C behavior for values within int range and avoids UB in Rust.
+        while (I as i64) * (I as i64) <= n as i64 {
+            // C: n%i?:t++;
+            // This is GNU extension: (n % i) ? : (t++)
+            // i.e., if (n % i) != 0 => value is (n % i), no increment
+            // else => increment t.
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
+        }
+        T - 2
+    }
+}
+
+fn main() {
+    // Read all input; C uses scanf("%d", &l) in a loop.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    // C: for (; scanf("%d",&l), u=l; ) { ... }
+    // The loop continues only if scanf succeeds; we mimic by iterating over ints.
+    while let Some(tok) = it.next() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let mut u: i32 = l;
+
+        // for (; p(l); l--);
+        while p(l) != 0 {
+            l = l.wrapping_sub(1);
+        }
+
+        // for (; p(u); u++);
+        while p(u) != 0 {
+            u = u.wrapping_add(1);
+        }
+
+        // printf("%d\n", u - l);
+        let diff = u.wrapping_sub(l);
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}
+```

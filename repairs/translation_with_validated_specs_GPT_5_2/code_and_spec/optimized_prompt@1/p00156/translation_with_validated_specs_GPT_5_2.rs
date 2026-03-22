@@ -1,0 +1,150 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // We must mimic C's scanf(" %c") which reads a single non-whitespace character.
+    // split_whitespace() is NOT equivalent because it groups consecutive non-whitespace
+    // characters into one token (e.g., a row like "..&.." without spaces would be one token).
+    // So we implement a byte-level scanner that can read ints and non-whitespace chars.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut sc = Scanner::new(&input);
+
+    let mut out = String::new();
+
+    loop {
+        let w = match sc.next_usize() {
+            Some(v) => v,
+            None => break,
+        };
+        let h = match sc.next_usize() {
+            Some(v) => v,
+            None => break,
+        };
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        let mut grid = vec![vec!['\0'; w]; h];
+        let mut cost = vec![vec![0i32; w]; h];
+
+        // Per spec: last '&' in row-major order is used as start.
+        let mut start: Option<(usize, usize)> = None;
+
+        for y in 0..h {
+            for x in 0..w {
+                let ch = sc.next_non_ws_char().unwrap(); // input well-formed per spec
+                if ch == '&' {
+                    grid[y][x] = '.';
+                    cost[y][x] = 1;
+                    start = Some((y, x));
+                } else {
+                    grid[y][x] = ch;
+                }
+            }
+        }
+
+        // Spec says at least one '&' exists; if not, behavior is undefined in C.
+        // We avoid panicking: if missing, just output 0 (arbitrary but non-crashing).
+        let Some((sy, sx)) = start else {
+            out.push_str("0\n");
+            continue;
+        };
+
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+        q.push_back((sy, sx));
+
+        let dirs: [(isize, isize); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+        while let Some((uy, ux)) = q.pop_front() {
+            let cu = cost[uy][ux];
+            for (dx, dy) in dirs {
+                let nx = ux as isize + dx;
+                let ny = uy as isize + dy;
+                if nx < 0 || ny < 0 || nx >= w as isize || ny >= h as isize {
+                    continue;
+                }
+                let vx = nx as usize;
+                let vy = ny as usize;
+
+                let candidate = if grid[uy][ux] == grid[vy][vx] { cu } else { cu + 1 };
+                let cv = cost[vy][vx];
+                if cv == 0 || candidate < cv {
+                    cost[vy][vx] = candidate;
+                    q.push_back((vy, vx));
+                }
+            }
+        }
+
+        let mut min_val: i32 = w as i32; // matches C's initialization min=w
+
+        for x in 0..w {
+            min_val = min_val.min(cost[0][x] / 2);
+            min_val = min_val.min(cost[h - 1][x] / 2);
+        }
+        for y in 0..h {
+            min_val = min_val.min(cost[y][0] / 2);
+            min_val = min_val.min(cost[y][w - 1] / 2);
+        }
+
+        out.push_str(&format!("{min_val}\n"));
+    }
+
+    print!("{out}");
+}
+
+struct Scanner<'a> {
+    s: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Scanner<'a> {
+    fn new(s: &'a [u8]) -> Self {
+        Self { s, i: 0 }
+    }
+
+    fn skip_ws(&mut self) {
+        while self.i < self.s.len() && self.s[self.i].is_ascii_whitespace() {
+            self.i += 1;
+        }
+    }
+
+    fn next_usize(&mut self) -> Option<usize> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.s[self.i] == b'-' {
+            sign = -1;
+            self.i += 1;
+        }
+        let mut val: usize = 0;
+        let mut any = false;
+        while self.i < self.s.len() && self.s[self.i].is_ascii_digit() {
+            any = true;
+            val = val * 10 + (self.s[self.i] - b'0') as usize;
+            self.i += 1;
+        }
+        if !any {
+            return None;
+        }
+        if sign < 0 {
+            // Dimensions are non-negative in this problem; treat negative as None.
+            None
+        } else {
+            Some(val)
+        }
+    }
+
+    fn next_non_ws_char(&mut self) -> Option<char> {
+        self.skip_ws();
+        if self.i >= self.s.len() {
+            return None;
+        }
+        let b = self.s[self.i];
+        self.i += 1;
+        Some(b as char) // input is ASCII per problem context
+    }
+}

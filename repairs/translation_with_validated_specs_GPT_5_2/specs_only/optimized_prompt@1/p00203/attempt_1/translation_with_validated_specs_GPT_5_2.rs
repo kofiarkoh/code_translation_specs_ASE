@@ -1,0 +1,111 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let x_opt = it.next();
+        if x_opt.is_none() {
+            break; // Undefined by spec; we just stop if no more tokens.
+        }
+        let x: usize = x_opt.unwrap().parse().unwrap();
+        let y: usize = it.next().unwrap().parse().unwrap();
+
+        if x == 0 && y == 0 {
+            break;
+        }
+
+        // Grid is provided column-by-column: for each column, one integer per row.
+        // Store as grid[row][col].
+        let mut grid: Vec<Vec<i64>> = vec![vec![0; y]; x];
+        for col in 0..y {
+            for row in 0..x {
+                grid[row][col] = it.next().unwrap().parse().unwrap();
+            }
+        }
+
+        // Counts for columns 0..=y+1 (two beyond-end columns).
+        let mut dp: Vec<Vec<u128>> = vec![vec![0u128; y + 2]; x];
+
+        // Start positions: any row in column 0 whose cell value is 0 contributes 1.
+        for row in 0..x {
+            if grid[row][0] == 0 {
+                dp[row][0] = 1;
+            }
+        }
+
+        // Process transitions from columns 0..y-1 (only real grid columns as sources).
+        for col in 0..y {
+            for row in 0..x {
+                let ways = dp[row][col];
+                if ways == 0 {
+                    continue;
+                }
+
+                // Attempt transitions to column col+1 in rows row-1, row, row+1 (within bounds).
+                let next_col = col + 1;
+                if next_col >= y {
+                    // There is no destination cell in the grid; spec only defines transitions
+                    // based on destination cell value, so we do nothing here.
+                    continue;
+                }
+
+                let r_start = if row == 0 { 0 } else { row - 1 };
+                let r_end = if row + 1 >= x { x - 1 } else { row + 1 };
+
+                for dest_row in r_start..=r_end {
+                    let v = grid[dest_row][next_col];
+                    if v == 0 {
+                        dp[dest_row][next_col] = dp[dest_row][next_col].wrapping_add(ways);
+                    } else if v == 1 {
+                        // Blocked: not enterable; contributes zero and clears any previously accumulated count.
+                        dp[dest_row][next_col] = 0;
+                    } else {
+                        // Jump cell: only allowed when moving straight (same row).
+                        if dest_row != row {
+                            continue;
+                        }
+
+                        // Base landing column is col+3 (note: based on source column col, not next_col).
+                        let mut land = col + 3;
+
+                        // While landing is still strictly before the last column and the landing cell is also a jump cell,
+                        // advance by 2 repeatedly.
+                        if y > 0 {
+                            let last_col = y - 1;
+                            while land < last_col {
+                                // land is within 0..y-1 here, so grid access is valid.
+                                let lv = grid[row][land];
+                                if lv != 0 && lv != 1 {
+                                    land += 2;
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Add to the final computed landing column.
+                        // Landing may be y or y+1 (beyond-end), which are valid dp columns.
+                        if land <= y + 1 {
+                            dp[row][land] = dp[row][land].wrapping_add(ways);
+                        }
+                        // If land > y+1, spec does not define behavior; we ignore it (narrowest reasonable).
+                    }
+                }
+            }
+        }
+
+        // Reported total is sum at last column (y-1) and beyond-end columns y and y+1.
+        let mut total: u128 = 0;
+        let last = y - 1;
+        for row in 0..x {
+            total = total.wrapping_add(dp[row][last]);
+            total = total.wrapping_add(dp[row][y]);
+            total = total.wrapping_add(dp[row][y + 1]);
+        }
+
+        println!("{}", total);
+    }
+}

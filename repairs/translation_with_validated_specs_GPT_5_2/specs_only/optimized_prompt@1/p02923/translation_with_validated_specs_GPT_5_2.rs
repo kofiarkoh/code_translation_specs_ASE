@@ -1,0 +1,42 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Unspecified behavior if missing; exit quietly.
+    };
+
+    // Space usage is linear in n as required by the specification.
+    let mut h: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        h.push(v);
+    }
+
+    if n <= 1 {
+        println!("0");
+        return;
+    }
+
+    // current: length (in adjacent comparisons) of the current suffix run where h[k+1] <= h[k]
+    // best: maximum such length seen so far
+    let mut current: usize = 0;
+    let mut best: usize = 0;
+
+    for i in 0..(n - 1) {
+        if h[i + 1] <= h[i] {
+            current += 1;
+            if current > best {
+                best = current;
+            }
+        } else {
+            current = 0;
+        }
+    }
+
+    println!("{}", best);
+}

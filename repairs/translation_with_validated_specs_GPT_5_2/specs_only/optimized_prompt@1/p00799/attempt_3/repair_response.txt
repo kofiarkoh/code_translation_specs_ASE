@@ -1,0 +1,138 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Pair {
+    u: i64,
+    c: i64,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum State {
+    Active,
+    Charging,
+}
+
+struct Device {
+    cycle: Vec<Pair>,
+    idx: usize, // current cycle index
+    state: State,
+    rem: i64, // remaining time in current state
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: i64 = n_tok.parse().unwrap();
+        let _lim_read: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
+        if n <= 0 {
+            break;
+        }
+
+        let lim = _lim_read;
+        let n_usize = n as usize;
+
+        let mut devices: Vec<Device> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let mut cycle: Vec<Pair> = Vec::new();
+            loop {
+                let u: i64 = it.next().unwrap().parse().unwrap();
+                if u <= 0 {
+                    break;
+                }
+                let c: i64 = it.next().unwrap().parse().unwrap();
+                cycle.push(Pair { u, c });
+            }
+            let first = cycle[0];
+            devices.push(Device {
+                cycle,
+                idx: 0,
+                state: State::Active,
+                rem: first.u,
+            });
+        }
+
+        if lim <= 0 {
+            outputs.push("0".to_string());
+            continue;
+        }
+
+        // Queue: fixed-size circular buffer of capacity 102 with overwrite-on-wrap.
+        // We model the classic C implementation:
+        //   int q[102], head=0, tail=0;
+        //   enqueue: q[tail]=x; tail=(tail+1)%102;
+        //   dequeue: head=(head+1)%102;
+        //   empty: head==tail;
+        // There is no full detection; overwriting happens when tail laps head.
+        const QCAP: usize = 102;
+        let mut qbuf: [usize; QCAP] = [0; QCAP];
+        let mut qhead: usize = 0;
+        let mut qtail: usize = 0;
+
+        let mut misses: i128 = 0;
+
+        for _t in 1..=lim {
+            // Snapshot which devices were charging at the start of the time unit.
+            let mut was_charging: Vec<bool> = vec![false; n_usize];
+            for i in 0..n_usize {
+                was_charging[i] = devices[i].state == State::Charging;
+            }
+
+            // (A) Advance active devices and enqueue new chargers.
+            for i in 0..n_usize {
+                if devices[i].state == State::Active {
+                    devices[i].rem -= 1;
+                    if devices[i].rem == 0 {
+                        devices[i].state = State::Charging;
+                        devices[i].rem = devices[i].cycle[devices[i].idx].c;
+
+                        qbuf[qtail] = i;
+                        qtail = (qtail + 1) % QCAP;
+                    }
+                }
+            }
+
+            // (B) If queue empty after (A), nothing happens.
+            if qhead == qtail {
+                continue;
+            }
+
+            let front = qbuf[qhead];
+
+            // Miss counting: among devices that were already charging before (A),
+            // every such device contributes 1 miss unless it is the queue-front device.
+            for i in 0..n_usize {
+                if was_charging[i] && i != front {
+                    misses += 1;
+                }
+            }
+
+            // (C) Service the queue front for one unit.
+            devices[front].rem -= 1;
+            if devices[front].rem == 0 {
+                // Dequeue
+                qhead = (qhead + 1) % QCAP;
+
+                // Switch to active, advance cycle index, set remaining active time.
+                devices[front].state = State::Active;
+                devices[front].idx = (devices[front].idx + 1) % devices[front].cycle.len();
+                devices[front].rem = devices[front].cycle[devices[front].idx].u;
+            }
+        }
+
+        outputs.push(misses.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

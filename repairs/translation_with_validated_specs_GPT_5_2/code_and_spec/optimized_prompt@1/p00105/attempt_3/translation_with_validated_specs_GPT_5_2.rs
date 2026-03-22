@@ -1,0 +1,91 @@
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+const WDMAX: usize = 31;
+
+#[derive(Clone)]
+struct IndexEntry {
+    pgnum: [i32; PGMAX],
+    tm: i32,
+    str_: String,
+}
+
+fn main() {
+    // Tokenize stdin like scanf("%s %d"): whitespace-delimited.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut idx: Vec<IndexEntry> = Vec::new();
+
+    while let Some(w_tok) = it.next() {
+        let p_tok = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p: i32 = match p_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Follow SPEC: word identity is exact string comparison of the read token.
+        // (C would have UB on overflow; we do not truncate here.)
+        let w = w_tok;
+
+        let mut found = false;
+        for entry in idx.iter_mut() {
+            if entry.str_ == w {
+                // SPEC: out-of-range is UB in C; keep Rust safe by ignoring.
+                if (0..PGMAX as i32).contains(&p) {
+                    entry.pgnum[p as usize] = 1;
+                }
+                entry.tm += 1;
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            if idx.len() >= MAX {
+                // Exceeding MAX is UB in C; keep defined behavior by dropping extras.
+                continue;
+            }
+            let mut entry = IndexEntry {
+                pgnum: [0; PGMAX],
+                tm: 0,
+                str_: w.to_string(),
+            };
+            if (0..PGMAX as i32).contains(&p) {
+                entry.pgnum[p as usize] = 1;
+            }
+            entry.tm += 1;
+            idx.push(entry);
+        }
+    }
+
+    idx.sort_by(|a, b| a.str_.cmp(&b.str_));
+
+    let mut out = String::new();
+    for entry in &idx {
+        out.push_str(&entry.str_);
+        out.push('\n');
+
+        let mut k: i32 = 0;
+        for j in 0..PGMAX {
+            if entry.pgnum[j] == 1 {
+                if k == entry.tm - 1 {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                    k += 1;
+                }
+            }
+        }
+        // If tm is larger than the number of present pages encountered, no newline is forced,
+        // matching the specified behavior.
+    }
+
+    print!("{out}");
+}

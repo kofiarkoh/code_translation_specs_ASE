@@ -1,0 +1,37 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; no explicit error handling per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Specification states behavior is undefined for n <= 0; we do not add handling.
+    let mut b: Vec<i64> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        // b[i] = x[i] - i (1-based)
+        let idx1: i64 = (i as i64) + 1;
+        b.push(x - idx1);
+    }
+
+    // Sort derived values; multiset preserved, only reordered.
+    b.sort();
+
+    // The minimizing integer m is any median of b.
+    // For odd n, unique median; for even n, any integer between the two middle values works.
+    // Choose lower median to stay within integer domain.
+    let m = b[(n - 1) / 2];
+
+    // Compute sum of absolute deviations; precondition says no overflow occurs.
+    let mut sum: i64 = 0;
+    for &v in &b {
+        sum += (v - m).abs();
+    }
+
+    print!("{}", sum);
+}

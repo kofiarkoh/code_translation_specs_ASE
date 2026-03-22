@@ -1,0 +1,52 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as signed integers (C: long).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // In the C code, scanf expects exactly 3 longs; if fewer are provided,
+    // behavior is undefined. Here we unwrap to mirror "must be present".
+    let mut x: [i64; 3] = [
+        it.next().unwrap().parse::<i64>().unwrap(),
+        it.next().unwrap().parse::<i64>().unwrap(),
+        it.next().unwrap().parse::<i64>().unwrap(),
+    ];
+
+    if x[0] % 2 == 0 || x[1] % 2 == 0 || x[2] % 2 == 0 {
+        // puts adds a newline.
+        println!("0");
+    } else {
+        // C uses: int m, max=0; and compares max < X[i] (with X[i] as long).
+        // This means if all X[i] <= 0, m is never initialized (UB in C).
+        // We emulate the intended behavior for normal inputs by selecting the
+        // first index with the maximum value, starting from max=0.
+        let mut max_val: i64 = 0;
+        let mut m: usize = 0;
+        let mut m_set = false;
+
+        for i in 0..3 {
+            if max_val < x[i] {
+                max_val = x[i];
+                m = i;
+                m_set = true;
+            }
+        }
+
+        // If m was never set (all x[i] <= 0), C has undefined behavior.
+        // We choose to keep m=0 in that case (deterministic fallback).
+        if !m_set {
+            m = 0;
+        }
+
+        x[m] = 1;
+
+        // C's long multiplication may overflow (UB). Use wrapping to emulate
+        // typical two's-complement wraparound behavior.
+        let prod = x[0].wrapping_mul(x[1]).wrapping_mul(x[2]);
+
+        // printf("%ld", ...) prints without a trailing newline.
+        print!("{}", prod);
+    }
+}

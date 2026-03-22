@@ -1,0 +1,145 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, for each dataset, the minimum number of independent “chains” needed to cover a set of time-stamped tasks located on nodes of a weighted undirected graph, where a task may be followed by another task if travel time between their locations is no more than the time difference between them.
+
+2. Inputs  
+For each dataset (repeated until a terminating dataset is encountered):  
+- An integer count of graph nodes.  
+- An integer count of undirected weighted edges.  
+- An integer count of tasks.  
+- For each edge: two node indices and a nonnegative travel cost.  
+- For each task: a node index (task location) and an integer time value.
+
+3. Outputs  
+For each dataset, outputs a single integer: the minimum number of chains required to schedule all tasks under the feasibility rule described above.
+
+4. Preconditions  
+- Node count is within the fixed supported limit (at most 102).  
+- Task count is within the fixed supported limit (at most 1000).  
+- All referenced node indices are within the node range.  
+- Edge costs and task times are such that shortest-path sums fit within the program’s integer range.  
+- The terminating condition is a dataset whose node count is zero.
+
+5. Postconditions  
+For each non-terminating dataset:  
+- The output equals the minimum number of disjoint sequences that collectively include every task exactly once, where within each sequence, each task (except the first) is feasible to perform immediately after its predecessor given shortest travel time between their locations and the difference in their time values.
+
+6. Invariants  
+- Shortest-path distances used for feasibility are the minimum travel costs implied by the given edges (or treated as unreachable if no path exists).  
+- A feasibility relation between two distinct tasks exists only if the predecessor can reach the successor’s location within the successor’s time minus the predecessor’s time.  
+- Each task belongs to exactly one chain in the computed minimum chain cover.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed for malformed input, out-of-range values, or capacity overruns; behavior is unspecified in such cases.  
+- Unreachable node pairs are treated as infeasible for task-to-task transitions.
+
+8. State Transitions (if applicable)  
+- Processes datasets sequentially until the terminating dataset is read.  
+- For each dataset, constructs shortest-path distances, derives task-to-task feasibility, computes a maximum set of feasible predecessor–successor links without conflicts, and outputs the resulting minimum chain count.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage; maximum supported sizes are bounded as noted in Preconditions.  
+- Time complexity is dominated by all-pairs shortest paths over nodes and by matching over tasks; intended for moderate node counts and up to about 1000 tasks.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2251 Merry Christmas
+// 2018.3.6 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 2002
+short hi[MAX], to[MAX][MAX];
+char  seen[MAX];
+short match[MAX];
+
+int bpm(int u)
+{
+	int i, v;
+
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i];
+		if (seen[v]) continue;
+		seen[v] = 1;
+		if (match[v] < 0 || bpm(match[v])) {
+			match[u] = v, match[v] = u;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+#define INF 0x1010
+int dist[102][102];
+int p[1002], t[1002];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int N, M, L, u, v, d, k;
+
+	while (N = in()) {
+		M = in(), L = in();
+		memset(dist, INF, sizeof(dist));
+		for (k = 0; k < N; k++) dist[k][k] = 0;
+		for (k = 0; k < M; k++) {
+			u = in(), v = in(), d = in();
+			dist[u][v] = dist[v][u] = d;
+		}
+		for (k = 0; k < N; k++) {
+			for (u = 0; u < N; u++) if (dist[u][k] != INF) {
+				for (v = 0; v < N; v++) if (dist[k][v] != INF) {
+					d = dist[u][k] + dist[k][v];
+					if (dist[u][v] > d) dist[u][v] = d;
+				}
+			}
+		}
+
+		memset(hi, 0, sizeof(hi));
+		for (k = 0; k < L; k++) p[k] = in(), t[k] = in();
+		for (u = 0; u < L; u++) for (v = 0; v < L; v++) if (u != v) {
+			if (dist[p[u]][p[v]] <= t[v]-t[u]) to[u][hi[u]++] = v+L;
+		}
+
+	    memset(match, -1, L << 2);
+		k = L;
+		for (u = 0; u < L; u++) {
+			memset(seen, 0, L << 1);
+			if (bpm(u)) k--;
+		}
+		printf("%d\n", k);
+	}
+	return 0;
+}
+=== C CODE END ===

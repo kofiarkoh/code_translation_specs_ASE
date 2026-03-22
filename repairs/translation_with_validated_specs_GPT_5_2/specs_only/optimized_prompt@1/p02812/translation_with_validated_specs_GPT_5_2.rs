@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap();
+
+    if n < 3 {
+        println!("0");
+        return;
+    }
+
+    // Consider only the first n characters as specified.
+    // Preconditions guarantee s has at least n characters.
+    let bytes = s.as_bytes();
+    let mut i: usize = 0;
+    let mut count: usize = 0;
+
+    while i + 2 < n {
+        if bytes[i] == b'A' && bytes[i + 1] == b'B' && bytes[i + 2] == b'C' {
+            count += 1;
+            i += 3; // non-overlapping: skip past this occurrence
+        } else {
+            i += 1;
+        }
+    }
+
+    println!("{}", count);
+}

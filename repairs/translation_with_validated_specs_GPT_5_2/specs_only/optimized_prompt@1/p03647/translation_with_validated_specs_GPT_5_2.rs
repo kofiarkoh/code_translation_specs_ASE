@@ -1,0 +1,68 @@
+use std::io::{self, Read};
+
+const TABLE_SIZE: usize = 1_000_000;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+
+    // Preconditions: at least N and one additional integer exist.
+    // If missing, we cannot proceed; choose the narrowest behavior: no records processed.
+    let n: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => {
+            println!("POSSIBLE");
+            return;
+        }
+    };
+
+    // Second integer is read and ignored; if missing/malformed, stop processing records.
+    if it.next().and_then(|s| s.parse::<i64>().ok()).is_none() {
+        println!("POSSIBLE");
+        return;
+    }
+
+    let mut used = vec![0u8; TABLE_SIZE];
+    let mut possible = true;
+
+    loop {
+        let a = match it.next() {
+            Some(tok) => match tok.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break, // malformed input terminates processing
+            },
+            None => break, // EOF
+        };
+        let b = match it.next() {
+            Some(tok) => match tok.parse::<i64>() {
+                Ok(v) => v,
+                Err(_) => break, // malformed input terminates processing
+            },
+            None => break, // incomplete record at EOF
+        };
+
+        // Derived category index from A, B, and N.
+        // Specification does not define the derivation; choose the narrowest reasonable
+        // interpretation that depends on all three values and yields a bounded index.
+        // Uses wrapping arithmetic to emulate typical C integer overflow behavior.
+        let idx = (a.wrapping_add(b).wrapping_add(n) as u64) % (TABLE_SIZE as u64);
+        let idx = idx as usize;
+
+        if possible {
+            if used[idx] != 0 {
+                possible = false;
+            } else {
+                used[idx] = 1;
+            }
+        }
+        // Once infeasible, remain infeasible regardless of remaining input.
+    }
+
+    if possible {
+        println!("POSSIBLE");
+    } else {
+        println!("IMPOSSIBLE");
+    }
+}

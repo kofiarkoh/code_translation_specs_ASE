@@ -1,0 +1,44 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let m: i64 = it.next().unwrap().parse().unwrap();
+
+    // Store sequences 1-indexed to mirror the C code.
+    let mut x: Vec<i64> = vec![0; (n as usize) + 1];
+    let mut y: Vec<i64> = vec![0; (m as usize) + 1];
+
+    for i in 1..=n as usize {
+        x[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 1..=m as usize {
+        y[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Compute aggregated pairwise-difference sum for x.
+    // Note: Like C, we use signed remainder behavior; values may be negative.
+    let mut t: i64 = 0;
+    for i in 1..=n {
+        let xi = x[i as usize];
+        let term = (i - 1) * xi - (n - i) * xi;
+        t = (t + term) % MOD;
+    }
+
+    // Compute aggregated pairwise-difference sum for y.
+    let mut k: i64 = 0;
+    for i in 1..=m {
+        let yi = y[i as usize];
+        let term = (i - 1) * yi - (m - i) * yi;
+        k = (k + term) % MOD;
+    }
+
+    let ans = (t * k) % MOD;
+    print!("{ans}\n");
+}

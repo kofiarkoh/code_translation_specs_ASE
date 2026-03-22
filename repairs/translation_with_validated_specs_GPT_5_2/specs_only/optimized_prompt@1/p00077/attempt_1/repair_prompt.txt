@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of whitespace-delimited text tokens from standard input and writes a transformed version of each token to standard output. Within each token, any occurrence of a repetition marker causes the immediately following character to be repeated a specified number of times; all other characters are copied through unchanged. Each input token produces exactly one output line.
+
+2. Inputs  
+- Zero or more whitespace-delimited tokens from standard input.  
+- Each token is treated independently.
+
+3. Outputs  
+- For each input token, one line is written to standard output containing the transformed token followed by a line terminator.
+
+4. Preconditions  
+- Each input token length does not exceed the fixed internal buffer capacity (assumption: at most 99 characters).  
+- Any repetition marker within a token is followed by:
+  - a single decimal digit character indicating the repeat count, and
+  - at least one additional character to be repeated.  
+- The repeat count digit represents a non-negative integer in the range 0–9.
+
+5. Postconditions  
+For each input token:  
+- The output line equals the input token with every repetition marker sequence replaced as follows:  
+  - A repetition marker, followed by a digit `d`, followed by a character `c`, is replaced by `c` repeated `d` times.  
+- Characters not part of such a marker sequence appear in the output in the same order as in the input.  
+- A line terminator is emitted after processing each token.
+
+6. Invariants  
+- Processing of one token does not depend on previous tokens; no cross-token state is preserved.  
+- Output for a token is produced in left-to-right order relative to the token’s interpretation under the marker rule.
+
+7. Error Handling / Exceptional Behavior  
+- If an input token exceeds the internal buffer capacity, behavior is undefined (may corrupt memory or crash).  
+- If a repetition marker is not followed by a digit and a subsequent character as required, behavior is undefined (may read beyond the token and produce incorrect output or crash).  
+- End-of-input cleanly terminates processing without additional output beyond what has already been produced.
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read next token → transform and output one line → read next token, until end-of-input.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum token size (assumed 99 characters plus terminator).  
+- Time and output size per token are proportional to the token length plus the total number of repeated characters requested.
+```

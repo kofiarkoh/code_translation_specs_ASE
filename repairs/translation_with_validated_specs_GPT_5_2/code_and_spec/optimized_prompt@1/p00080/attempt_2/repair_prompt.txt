@@ -1,0 +1,75 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0384]: cannot assign twice to immutable variable `x`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_and_spec/optimized_prompt@1/p00080/attempt_1/translation_with_validated_specs_GPT_5_2.rs:30:13
+   |
+30 |             x = px - (px * px * px - qf) / (3.0 * px * px);
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ cannot assign twice to immutable variable
+   |
+help: consider making this binding mutable
+   |
+25 |         let mut x: f64;
+   |             +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0384`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-5;
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    for tok in input.split_whitespace() {
+        let q: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Unspecified beyond input failure; stop processing.
+        };
+
+        if q == -1 {
+            break; // Sentinel: terminate without output.
+        }
+
+        // Spec: intended for positive q; behavior for q <= 0 is unspecified.
+        let qf = q as f64;
+
+        // p0 = q/2 as double
+        let mut px = qf / 2.0;
+        let x: f64;
+
+        // Do-while loop: must execute at least once, and print the final x
+        // produced when the loop terminates.
+        loop {
+            x = px - (px * px * px - qf) / (3.0 * px * px);
+            px = x;
+
+            if (x * x * x - qf).abs() < EPS * qf {
+                break;
+            }
+        }
+
+        // Exactly one line per processed integer, with exactly six digits after decimal.
+        println!("{:.6}", x);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

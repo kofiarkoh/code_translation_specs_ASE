@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum total value achievable by selecting a subset of the given items such that the total weight does not exceed the provided weight limit. Each item may be selected at most once.
+
+2. Inputs  
+- An integer count of items.  
+- An integer nonnegative weight limit.  
+- For each item: an integer weight and an integer value.
+
+3. Outputs  
+- On success: a single integer representing the maximum achievable total value under the weight limit.  
+- On a specific internal failure case: a diagnostic message indicating an error.  
+- On input read failure: no guaranteed output.
+
+4. Preconditions  
+- The item count does not exceed the fixed maximum supported by the program (128).  
+- Each item’s value is nonnegative and does not exceed the fixed maximum value index supported by the program (112344).  
+- The sum of selected item values of interest is within the supported maximum value index (112344).  
+- Weights and the weight limit are such that intermediate computations of accumulated weights fit within the integer range.  
+- Input is well-formed and provides all required integers.
+
+5. Postconditions  
+- If the program produces a numeric result, it equals the greatest integer V such that there exists a subset of the items with total value exactly V and total weight ≤ weight limit.  
+- The printed value is within the supported value range [0, 112344].
+
+6. Invariants  
+- For every value total within the supported range, the program maintains a best-known (minimum) achievable total weight for that value using some subset of the items processed so far, or a sentinel indicating “not achievable within the tracked bounds.”  
+- The best-known achievable weight for value 0 is always 0.
+
+7. Error Handling / Exceptional Behavior  
+- If any required input integer cannot be read, the program terminates with a nonzero exit status and does not guarantee any output.  
+- If no value total within the supported range is found with achievable weight ≤ weight limit (which should not occur under normal assumptions, since value 0 is always achievable), the program outputs an error message and terminates successfully.
+
+8. State Transitions (if applicable)  
+- Initial state: no items processed; only value 0 is considered achievable with weight 0.  
+- After processing k items (0 ≤ k ≤ item count): the tracked achievable minimum weights reflect subsets drawn only from the first k items.  
+- Final state: after all items are processed, the program selects the largest value total whose tracked minimum weight is within the weight limit and outputs it.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed memory usage dominated by an internal table sized for 112345 value totals.  
+- Runtime grows proportionally to (item count × 112345), independent of the weight limit magnitude.  
+- Supports at most 128 items and value totals up to 112344.
+```

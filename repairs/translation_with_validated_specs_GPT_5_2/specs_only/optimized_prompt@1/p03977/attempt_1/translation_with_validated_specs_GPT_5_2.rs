@@ -1,0 +1,79 @@
+use std::io::{self, Read, Write};
+
+fn main() {
+    // Read up to 10,000 bytes. The spec says the program does not use the returned byte count
+    // and relies on the buffer contents being sufficient for parsing.
+    let mut input = vec![0u8; 10_000];
+    let _ = io::stdin().read(&mut input);
+
+    let mut i: usize = 0;
+
+    // Initial skip: consume an initial run of bytes >= '0', then consume exactly one byte < '0'.
+    while i < input.len() && input[i] >= b'0' {
+        i += 1;
+    }
+    if i < input.len() {
+        i += 1; // consume the terminator byte (< '0')
+    }
+
+    let mut out: Vec<u8> = Vec::with_capacity(20_000);
+
+    // Process records only while the current byte at the start of a record is digit-like (>= '0').
+    while i < input.len() && input[i] >= b'0' {
+        // Parse N
+        let mut n: i32 = 0;
+        while i < input.len() && input[i] >= b'0' {
+            let digit = (input[i].wrapping_sub(b'0')) as i32;
+            n = n * 10 + digit;
+            i += 1;
+        }
+        if i < input.len() {
+            i += 1; // consume terminator byte (< '0')
+        }
+
+        // Parse D
+        let mut d: i32 = 0;
+        while i < input.len() && input[i] >= b'0' {
+            let digit = (input[i].wrapping_sub(b'0')) as i32;
+            d = d * 10 + digit;
+            i += 1;
+        }
+        if i < input.len() {
+            i += 1; // consume terminator byte (< '0')
+        }
+
+        // Compute ans (assumed non-negative and no overflow per spec).
+        let ans: i32 = if (n & 1) != 0 {
+            let n2 = n - 1;
+            127 * n2 + d
+        } else {
+            127 * n - d
+        };
+
+        // Render ans in base-10 without sign, using repeated %10 and /=10.
+        // The spec assumes ans is non-negative and fits within a 10-digit temp buffer.
+        let mut x: i32 = ans;
+        let mut tmp = [0u8; 10];
+        let mut len: usize = 0;
+
+        if x == 0 {
+            tmp[0] = b'0';
+            len = 1;
+        } else {
+            while x != 0 && len < tmp.len() {
+                let digit = (x % 10) as u8;
+                tmp[len] = b'0' + digit;
+                len += 1;
+                x /= 10;
+            }
+        }
+
+        // Digits were collected in reverse.
+        for k in (0..len).rev() {
+            out.push(tmp[k]);
+        }
+        out.push(b'\n');
+    }
+
+    let _ = io::stdout().write_all(&out);
+}

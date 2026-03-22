@@ -1,0 +1,89 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // No explicit error handling required by spec.
+    };
+    let k: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(v) = it.next() {
+            a.push(v.parse::<i64>().unwrap());
+        } else {
+            // Spec: no explicit error handling; insufficient input => undefined.
+            // We return to keep code safe/compilable.
+            return;
+        }
+    }
+
+    // Apply up to K iterations, stopping early if all values become N.
+    for _ in 0..k {
+        // Early termination condition: pointwise maximal (all N).
+        if a.iter().all(|&x| x == n as i64) {
+            break;
+        }
+
+        // Difference array for range add; length n+1 to allow r+1 decrement.
+        let mut diff = vec![0i32; n + 1];
+
+        for (j, &aj) in a.iter().enumerate() {
+            // Preconditions assume non-negative aj; if violated, behavior is undefined.
+            // We still compute with a narrow interpretation: negative yields empty/odd ranges.
+            let reach = aj;
+
+            // Compute inclusive range [l, r] in 0-based indices, clamped to [0, n-1].
+            let mut l = j as i64 - reach;
+            let mut r = j as i64 + reach;
+
+            if l < 0 {
+                l = 0;
+            }
+            let n1 = n as i64 - 1;
+            if r > n1 {
+                r = n1;
+            }
+
+            if l <= r {
+                let li = l as usize;
+                let ri = r as usize;
+                diff[li] += 1;
+                if ri + 1 < diff.len() {
+                    diff[ri + 1] -= 1;
+                }
+            }
+        }
+
+        // Prefix sum to build next array; values are in [0, N] by construction.
+        let mut next = vec![0i64; n];
+        let mut cur: i32 = 0;
+        for i in 0..n {
+            cur += diff[i];
+            next[i] = cur as i64;
+        }
+
+        a = next;
+    }
+
+    // Output final sequence, space-separated, newline-terminated.
+    let mut out = String::new();
+    for i in 0..n {
+        if i > 0 {
+            out.push(' ');
+        }
+        out.push_str(&a[i].to_string());
+    }
+    out.push('\n');
+    print!("{out}");
+}
+```

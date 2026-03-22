@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads integers one at a time. For each nonzero integer `x`, finds:
+- the greatest prime number `L` such that `L ≤ x`, and
+- the least prime number `U` such that `U ≥ x`,  
+then outputs the difference `U - L` on its own line.
+
+Input value `0` is a sentinel that terminates the program’s processing loop and produces no output.
+
+2. Inputs  
+- A stream of signed integers read sequentially.
+- Processing stops when a `0` is read. End-of-input may also stop processing (see Error Handling).
+
+3. Outputs  
+- For each nonzero input integer `x` that is processed, outputs one signed integer equal to `U - L`, where `L` and `U` are the nearest primes at or below/at or above `x` respectively.
+
+4. Preconditions / Assumptions for Defined, Terminating Behavior  
+- Each processed input value is a nonzero integer representable in the program’s integer type.  
+- To guarantee termination and meaningful results, each processed input value is at least `2`. (Values `≤ 1` are not handled as a normal case by the algorithm and may not terminate.)  
+- To avoid arithmetic overflow/undefined behavior during primality testing, values examined during the search and the trial-divisor loop must be such that the expression `i * i` does not overflow the integer type.
+
+5. Postconditions  
+For each processed input integer `x` meeting the preconditions:  
+- `L` is the largest prime with `L ≤ x`.  
+- `U` is the smallest prime with `U ≥ x`.  
+- The program outputs exactly `U - L`.  
+- If `x` is prime, then `L = U = x` and the output is `0`.
+
+6. Algorithmic/Logical Notes (clarifying counting and search behavior)  
+- Primality is determined by trial division over integers `i` starting at `2` while `i * i ≤ n`, counting how many divisors in that range divide `n`. A number is treated as prime exactly when no such divisors are found.  
+- To find `L`, the program decrements from `x` until a prime is reached (including `x` itself).  
+- To find `U`, the program increments from `x` until a prime is reached (including `x` itself).
+
+7. Error Handling / Exceptional Behavior  
+- Reading stops when `0` is encountered; no output is produced for that `0`.  
+- If input ends or a read fails, the program does not have explicit error handling; behavior is not specified by the code (it may terminate or continue with indeterminate state).  
+- If the preconditions are violated (e.g., `x ≤ 1` but nonzero, or arithmetic overflow occurs), behavior is not guaranteed to terminate or be meaningful; overflow yields undefined behavior in C.
+
+8. State Transitions / Termination  
+- Repeats: read next integer → if it is `0`, terminate; otherwise compute `L` and `U` and print `U - L` → read next integer.
+```

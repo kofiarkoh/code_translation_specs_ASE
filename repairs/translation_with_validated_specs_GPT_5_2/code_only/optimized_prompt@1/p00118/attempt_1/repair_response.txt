@@ -1,0 +1,116 @@
+```rust
+use std::io::{self, Read};
+
+fn dfs(i: usize, j: usize, h: usize, w: usize, grid: &Vec<Vec<u8>>, area_id: &mut Vec<Vec<i32>>) {
+    // Down
+    if i + 1 < h {
+        let ni = i + 1;
+        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni as i32) * (w as i32) + (j as i32) {
+            area_id[ni][j] = area_id[i][j];
+            dfs(ni, j, h, w, grid, area_id);
+        }
+    }
+    // Up
+    if i >= 1 {
+        let ni = i - 1;
+        if grid[i][j] == grid[ni][j] && area_id[ni][j] == (ni as i32) * (w as i32) + (j as i32) {
+            area_id[ni][j] = area_id[i][j];
+            dfs(ni, j, h, w, grid, area_id);
+        }
+    }
+    // Right
+    if j + 1 < w {
+        let nj = j + 1;
+        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i as i32) * (w as i32) + (nj as i32) {
+            area_id[i][nj] = area_id[i][j];
+            dfs(i, nj, h, w, grid, area_id);
+        }
+    }
+    // Left
+    if j >= 1 {
+        let nj = j - 1;
+        if grid[i][j] == grid[i][nj] && area_id[i][nj] == (i as i32) * (w as i32) + (nj as i32) {
+            area_id[i][nj] = area_id[i][j];
+            dfs(i, nj, h, w, grid, area_id);
+        }
+    }
+}
+
+fn main() {
+    // Token-based input to emulate scanf("%d %d") and scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let h_opt = it.next();
+        if h_opt.is_none() {
+            break; // no more input
+        }
+        let h: usize = h_opt.unwrap().parse().unwrap();
+        let w: usize = it.next().unwrap().parse().unwrap();
+
+        if h == 0 && w == 0 {
+            break;
+        }
+
+        // area_id initialization: area_id[i][j] = i * W + j
+        let mut area_id = vec![vec![0i32; w]; h];
+        for i in 0..h {
+            for j in 0..w {
+                area_id[i][j] = (i as i32) * (w as i32) + (j as i32);
+            }
+        }
+
+        // area_num[128*128] = 0
+        let mut area_num = vec![0u8; 128 * 128];
+
+        // Read grid rows (scanf("%s", str[i]))
+        // In C, rows are NUL-terminated strings; we only need first W chars for comparisons.
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+        for _ in 0..h {
+            let s = it.next().unwrap_or("");
+            let bytes = s.as_bytes();
+            let mut row = vec![0u8; w];
+            for j in 0..w {
+                row[j] = if j < bytes.len() { bytes[j] } else { 0u8 };
+            }
+            grid.push(row);
+        }
+
+        // Run DFS from every cell (as in the C code)
+        for i in 0..h {
+            for j in 0..w {
+                dfs(i, j, h, w, &grid, &mut area_id);
+            }
+        }
+
+        // Mark used area ids
+        for i in 0..h {
+            for j in 0..w {
+                let idx = area_id[i][j] as usize;
+                if idx < area_num.len() {
+                    area_num[idx] = 1;
+                }
+            }
+        }
+
+        // Count unique areas among indices i*W+j for i<H, j<W
+        let mut cnt: i32 = 0;
+        for i in 0..h {
+            for j in 0..w {
+                let idx = i * w + j;
+                if area_num[idx] == 1 {
+                    cnt += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```

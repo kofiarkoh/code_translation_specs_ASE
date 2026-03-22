@@ -1,0 +1,80 @@
+use std::io::{self, Read};
+
+fn main() {
+    // C globals:
+    // m[1<<18]; *p;
+    // In C, global/static storage is zero-initialized.
+    let mut m = vec![0i32; 1 << 18];
+    let mut p_idx: usize = 0;
+
+    // Read all input like scanf would consume from stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // scanf("%d%*d",&n);
+    // If it fails, n is uninitialized in C; but typical judge inputs provide it.
+    let mut n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => return,
+    };
+    // %*d: read and discard one int if present
+    let _ = it.next();
+
+    // for (...; ~scanf("%d%d",&a,&b); p-m&&*p?n=0:++*p) ...
+    // In C, scanf returns number of assigned items; for "%d%d" it's 2 on success,
+    // EOF (-1) on end. The loop condition is bitwise NOT of that return value.
+    // ~(-1) == 0 => stop; ~2 != 0 => continue.
+    loop {
+        // emulate scanf("%d%d",&a,&b)
+        let a_opt = it.next();
+        let b_opt = it.next();
+        if a_opt.is_none() || b_opt.is_none() {
+            // EOF / incomplete => scanf would not return 2; treat as EOF termination.
+            break;
+        }
+        let a: i32 = a_opt.unwrap().parse().unwrap_or(0);
+        let b: i32 = b_opt.unwrap().parse().unwrap_or(0);
+
+        // Body:
+        // p = m + (a-1 ? (b-n ? 0 : a) : b);
+        //
+        // Note: In C, the conditional operator uses "!= 0" truthiness.
+        // Also, pointer arithmetic is in elements.
+        let offset: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 { 0 } else { a }
+        } else {
+            b
+        };
+
+        // Convert to index. The original C has undefined behavior if offset is out of bounds.
+        // We clamp into range to avoid Rust panics while keeping deterministic behavior.
+        // (No external spec; this is a best-effort emulation.)
+        let mut idx = offset as i64;
+        if idx < 0 {
+            idx = 0;
+        } else if idx >= (m.len() as i64) {
+            idx = (m.len() as i64) - 1;
+        }
+        p_idx = idx as usize;
+
+        // Iteration expression:
+        // p-m && *p ? n=0 : ++*p
+        //
+        // p-m is nonzero iff p != m (i.e., idx != 0).
+        // *p is the current cell value.
+        if p_idx != 0 && m[p_idx] != 0 {
+            n = 0;
+        } else {
+            // ++*p with C signed int overflow is UB; use wrapping add to be robust.
+            m[p_idx] = m[p_idx].wrapping_add(1);
+        }
+    }
+
+    // puts(n?"IMPOSSIBLE":"POSSIBLE");
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}

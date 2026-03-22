@@ -1,0 +1,53 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches typical scanf behavior for well-formed input;
+    // unspecified behavior for malformed input per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // scanf("%d", &N) => 32-bit signed in C; we parse as i64 then cast to usize.
+    let n_i64: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // unspecified by spec; keep minimal behavior
+    };
+    let n: usize = n_i64 as usize;
+
+    // Read A[1..N] as long long (signed 64-bit).
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    let mut ans: i64 = 0;
+
+    if n == 0 {
+        // Not possible per preconditions (N >= 1), but keep safe.
+        println!("0");
+        return;
+    }
+
+    // Process i = 1..N-1 (0-based: 0..n-1)
+    for i in 0..(n - 1) {
+        // Internal pairing at i
+        ans += a[i] / 2;
+        a[i] %= 2;
+
+        // Adjacent pairing if A[i] is odd and A[i+1] > 1 at that moment
+        if a[i] == 1 && a[i + 1] > 1 {
+            ans += 1;
+            a[i] = 0;
+            a[i + 1] -= 1;
+        }
+    }
+
+    // Final position internal pairing using possibly decremented value
+    ans += a[n - 1] / 2;
+
+    // Print as long long with newline
+    println!("{}", ans);
+}
+```

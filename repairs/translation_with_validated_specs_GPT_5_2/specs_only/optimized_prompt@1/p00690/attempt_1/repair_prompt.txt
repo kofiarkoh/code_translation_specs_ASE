@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, computes a maximum-total-length route in an undirected weighted graph under the constraint that no edge is traversed more than once (i.e., the route is an edge-simple trail). The program outputs the maximum achievable total length and one corresponding sequence of vertices in traversal order that attains that length.
+
+2. Inputs  
+For each dataset:  
+- An integer `n`: the number of vertices.  
+- An integer `m`: the number of edges.  
+- `m` edge descriptions, each consisting of two endpoint vertex labels and an integer length.  
+Datasets repeat until a dataset with `n = 0` is encountered; at that point the program terminates (the value of `m` on that terminating line is read but not otherwise used).
+
+3. Outputs  
+For each dataset, the program prints exactly two lines:  
+- Line 1: a single integer, the maximum total length among all valid routes.  
+- Line 2: a vertex sequence for one maximum-length route, printed as vertex labels separated by single spaces (no extra tokens on the line).
+
+4. Preconditions / Assumptions  
+- Vertex labels appearing in edges are intended to be in the range `1..n`.  
+- The number of edges does not exceed the program’s fixed internal capacity (up to 25 edges).  
+- The maximum number of vertices in the reported route must fit the program’s fixed internal storage (up to 12 vertex labels).  
+- Input is well-formed according to the dataset structure above.
+
+5. Route Validity and Optimization Criteria  
+- A route is a sequence of vertices where each consecutive pair is connected by an input edge.  
+- No individual edge may be used more than once in the route; vertices may repeat as long as edges do not.  
+- The total length of a route is the sum of the lengths of the traversed edges.  
+- The reported maximum length is the greatest total length over all such routes in the dataset.  
+- The reported vertex sequence corresponds to a route whose total length equals the reported maximum.
+
+6. Tie-breaking / Selection Among Multiple Optima  
+- If multiple routes achieve the same maximum total length, the program may output any one of them; it updates the stored answer only when it finds a strictly larger total length.
+
+7. Edge Cases  
+- If no route with at least one edge is found (e.g., the graph has no usable edges), the maximum length reported is `0`. In this case, the vertex sequence line is not meaningfully defined by the program’s guarantees (the code still attempts to print a starting vertex label).
+
+8. State and Exploration Behavior  
+- For each dataset, all edges are initially marked unused.  
+- During exploration, an edge is temporarily marked used when included in the current partial route and is unmarked when backtracking, ensuring no explored partial route repeats an edge.  
+- The program exhaustively explores all possible edge-simple routes starting from each available edge in both directions, maintaining the best (maximum-length) route found so far.
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If capacity limits are exceeded or inputs violate assumptions, behavior is unspecified.
+```

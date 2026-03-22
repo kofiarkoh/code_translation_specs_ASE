@@ -1,0 +1,127 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer `n` and then reads `n` real-valued height measurements. Each height is classified into exactly one of six fixed numeric ranges. After all heights are processed, the program prints a six-line histogram showing, for each range, how many heights fell into that range.
+
+2. Inputs  
+- An integer `n` indicating how many height values follow.  
+- Exactly `n` floating-point height values.
+
+3. Classification Rules (Bins)  
+Each height is counted in exactly one of the following mutually exclusive ranges:  
+1) `h < 165.0`  
+2) `165.0 ≤ h < 170.0`  
+3) `170.0 ≤ h < 175.0`  
+4) `175.0 ≤ h < 180.0`  
+5) `180.0 ≤ h < 185.0`  
+6) `h ≥ 185.0`
+
+4. Outputs (Exact Format)  
+- The program prints exactly six lines, in order, corresponding to bins 1 through 6.  
+- Each line begins with the fixed label `k:` where `k` is the bin number (`1:` through `6:`).  
+- Immediately after the colon, the program prints zero or more `*` characters, with no spaces or other characters in between. The number of `*` characters equals the count of heights classified into that bin.  
+- Each of the six lines ends with a newline.
+
+5. Preconditions / Assumptions  
+- The input provides an integer `n` followed by at least `n` valid floating-point tokens.  
+- `n` is assumed to be non-negative.  
+- No validation is performed on the numeric values beyond being readable as floating-point numbers.
+
+6. Postconditions / Counting Properties  
+- After processing all inputs, the sum of the six bin counts equals `n`.  
+- If `n` is zero, the program still prints the six labeled lines, each with no `*` characters.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or `n` is negative, behavior is unspecified.
+
+8. State Transitions  
+- Initializes six counters to zero.  
+- For each of the `n` heights read, increments exactly one counter according to the classification rules.  
+- After reading all heights, prints the histogram lines and terminates normally.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(void){
+
+int n,ca=0,cb=0,cc=0,cd=0,ce=0,cf=0;
+double h;
+
+scanf("%d",&n);
+for(int i=1; i<=n; i++){
+scanf("%lf",&h);
+if(h<165.0){
+ca++;
+}
+else if(h>=165.0&&h<170.0){
+cb++;
+}
+else if(h>=170.0&&h<175.0){
+cc++;
+}
+else if(h>=175.0&&h<180.0){
+cd++;
+}
+else if(h>=180.0&&h<185.0){
+ce++;
+}
+else if(h>=185.0){
+cf++;
+}
+}
+
+printf("1:");
+for(int i=0;i<ca;i++){
+printf("*");
+}
+printf("\n");
+printf("2:");
+for(int i=0;i<cb;i++){
+printf("*");
+}
+printf("\n");
+printf("3:");
+for(int i=0;i<cc;i++){
+printf("*");
+}
+printf("\n");
+printf("4:");
+for(int i=0;i<cd;i++){
+printf("*");
+}
+printf("\n");
+printf("5:");
+for(int i=0;i<ce;i++){
+printf("*");
+}
+printf("\n");
+printf("6:");
+for(int i=0;i<cf;i++){
+printf("*");
+}
+printf("\n");
+
+return 0;
+}
+=== C CODE END ===

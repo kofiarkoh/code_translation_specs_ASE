@@ -1,0 +1,32 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+
+    // Specification: no explicit error handling; behavior unspecified if preconditions fail.
+    // We implement the described linear downward scan with constant extra memory.
+    let mut count: i64 = 0;
+    let mut ans: i64 = 0;
+
+    let mut i = if a < b { a } else { b };
+    while i >= 1 {
+        if a % i == 0 && b % i == 0 {
+            count += 1;
+            if count == c {
+                ans = i;
+                break;
+            }
+        }
+        i -= 1;
+    }
+
+    println!("{}", ans);
+}
+```

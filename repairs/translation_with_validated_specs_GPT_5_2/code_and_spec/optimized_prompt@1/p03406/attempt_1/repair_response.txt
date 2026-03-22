@@ -1,0 +1,115 @@
+```rust
+use std::io::{self, Read};
+
+const N: usize = 16;
+const M: usize = 16;
+const N_: usize = 1 << N;
+const MD: i64 = 1_000_000_007;
+
+fn init() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+    // vv[i] = modular inverse of i (for i>=1), computed via the same recurrence as the C code.
+    // ff[i] = i! mod MD
+    // gg[i] = (i!)^{-1} mod MD
+    let mut vv = vec![0i64; N_];
+    let mut ff = vec![0i64; N_];
+    let mut gg = vec![0i64; N_];
+
+    ff[0] = 1;
+    gg[0] = 1;
+    for i in 1..N_ {
+        if i == 1 {
+            vv[i] = 1;
+        } else {
+            let r = (MD as usize) % i;
+            // vv[i] = vv[i - (MD % i)] * (MD / i + 1) mod MD
+            vv[i] = (vv[i - r] * ((MD as i64) / (i as i64) + 1)) % MD;
+        }
+        ff[i] = (ff[i - 1] * (i as i64)) % MD;
+        gg[i] = (gg[i - 1] * vv[i]) % MD;
+    }
+    (vv, ff, gg)
+}
+
+fn choose(n: i32, k: i32, ff: &[i64], gg: &[i64]) -> i64 {
+    // Spec: if k > n => 0. Otherwise, for 0 <= n <= 2^16, standard nCk mod MD.
+    if k > n {
+        return 0;
+    }
+    // Preconditions guarantee n,k are within precomputed range when used.
+    let n = n as usize;
+    let k = k as usize;
+    (((ff[n] * gg[k]) % MD) * gg[n - k]) % MD
+}
+
+fn main() {
+    let ( _vv, ff, gg) = init();
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut aa = vec![0i32; M];
+    for h in 0..m {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        aa[h] = ((1usize << n) as i32) - v;
+    }
+
+    let size = 1usize << n;
+    let mut dp = vec![0i64; N_]; // keep same max size as C; only [0..size) used
+    dp[0] = 1;
+
+    // Process h from m-1 down to 0, b from (2^n-1) down to 0, in-place.
+    for hh in (0..m).rev() {
+        for b in (0..size).rev() {
+            let x = dp[b];
+            if x == 0 {
+                continue;
+            }
+            for i in 0..n {
+                if (b & (1usize << i)) == 0 {
+                    let bp = b | (1usize << i);
+                    let add = (x * choose(aa[hh] - (b as i32), ((1usize << i) - 1) as i32, &ff, &gg)) % MD;
+                    dp[bp] = (dp[bp] + add) % MD;
+                }
+            }
+        }
+    }
+
+    // Final aggregation with alternating sign.
+    let mut ans: i64 = 0;
+    for b in 0..size {
+        let mut x = dp[b];
+        if x == 0 {
+            continue;
+        }
+        let mut n_rem: i32 = ((1usize << n) - 1 - b) as i32;
+        let mut cnt: i32 = n as i32;
+        for i in 0..n {
+            if (b & (1usize << i)) == 0 {
+                x = (x * choose(n_rem, (1usize << i) as i32, &ff, &gg)) % MD;
+                n_rem -= (1usize << i) as i32;
+                cnt += 1;
+            }
+        }
+        if cnt % 2 == 0 {
+            ans = (ans + x) % MD;
+        } else {
+            ans = (ans - x) % MD;
+        }
+    }
+
+    // Final scaling: multiply by ff[1<<i] * 2 for each i.
+    for i in 0..n {
+        ans = (ans * ff[1usize << i]) % MD;
+        ans = (ans * 2) % MD;
+    }
+
+    if ans < 0 {
+        ans += MD;
+    }
+    println!("{}", ans);
+}
+```

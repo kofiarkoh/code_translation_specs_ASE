@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads two 64-bit signed integers \(N\) and \(K\) and outputs a single integer computed as follows:  
+- If \(K\) is odd, output \(\left\lfloor \frac{N}{K} \right\rfloor^3\).  
+- If \(K\) is even, output \(\left\lfloor \frac{N}{K} \right\rfloor^3 + \left\lfloor \frac{N + K/2}{K} \right\rfloor^3\).  
+
+This value corresponds to the count of ordered triples \((a,b,c)\) with \(1 \le a,b,c \le N\) such that \(a+b+c\) is divisible by \(K\), under the usual interpretation for nonnegative \(N\) and positive \(K\).
+
+2. Inputs  
+- Two signed 64-bit integers \(N\) and \(K\) read from standard input, separated by whitespace.
+
+3. Outputs  
+- A single signed 64-bit integer written to standard output, followed by a newline.
+
+4. Preconditions / Assumptions  
+- \(K \ne 0\).  
+- \(N \ge 0\).  
+- The mathematical result and all intermediate products fit within the range of a signed 64-bit integer (to avoid overflow).  
+- Input is present and parseable as two signed 64-bit integers.  
+- C environment assumption: the program uses the C `long long` type for \(N\) and \(K\) and performs I/O using `scanf`/`printf` with the `%lld` conversion specifier (i.e., it does not rely on `<inttypes.h>` format macros).
+
+5. Postconditions / Computation Details  
+- Integer division is truncating division as in C for `long long` (for the stated preconditions, this matches floor division).  
+- Let \(x = \left\lfloor \frac{N}{K} \right\rfloor\).  
+  - If \(K\) is odd, the output is \(x^3\).  
+  - If \(K\) is even, let \(y = \left\lfloor \frac{N + K/2}{K} \right\rfloor\); the output is \(x^3 + y^3\).  
+- Under the stated assumptions, the output equals the number of ordered triples \((a,b,c)\) with \(1 \le a,b,c \le N\) satisfying \((a+b+c) \bmod K = 0\).
+
+6. Invariants  
+- Under the preconditions (notably \(N \ge 0\) and no overflow), the produced count is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing/invalid, if \(K=0\), if \(N<0\), or if intermediate/final arithmetic overflows signed 64-bit range, behavior is unspecified by this specification.
+
+8. State Transitions  
+- None; the program performs a single computation and terminates.
+
+9. Non-functional Constraints  
+- Runs in constant time and constant memory with respect to \(N\) and \(K\).
+```

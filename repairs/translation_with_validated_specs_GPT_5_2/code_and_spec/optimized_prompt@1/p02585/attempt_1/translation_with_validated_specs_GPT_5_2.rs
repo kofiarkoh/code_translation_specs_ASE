@@ -1,0 +1,112 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // 1-based indexing to mirror the C code and avoid off-by-one mistakes.
+    let mut p = vec![0usize; n + 1];
+    let mut c = vec![0i64; n + 1];
+
+    for i in 1..=n {
+        p[i] = it.next().unwrap().parse::<usize>().unwrap();
+    }
+    for i in 1..=n {
+        c[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+
+    // Semantics per spec: choose any start node, take between 1 and K moves,
+    // each move goes to the unique next node and adds destination score.
+    //
+    // Implementation: standard cycle decomposition approach:
+    // For each start, consider the path until cycle, and within the cycle.
+    // Complexity O(N^2) worst-case (N starts * O(N) traversal), matching constraints.
+
+    let mut ans: i64 = i64::MIN / 4;
+
+    // Temporary arrays reused per start to keep memory O(N).
+    let mut dist = vec![0i64; n + 1]; // step index when first visited (1-based), 0 = unvisited
+    let mut tmp = vec![0i64; n + 1];  // accumulated score upon first landing on node at its dist
+
+    for start in 1..=n {
+        // reset per start
+        for j in 1..=n {
+            dist[j] = 0;
+            tmp[j] = 0;
+        }
+
+        // Walk until we either exceed K moves or detect a cycle.
+        // We model "landing" scores: from current node j, next is p[j], add c[p[j]].
+        let mut j = start;
+        dist[j] = 1; // starting node is "at step 1" before any move; matches C's bookkeeping.
+        let mut step: i64 = 1;
+        let mut best_prefix: i64 = i64::MIN / 4;
+
+        while step <= k && dist[p[j]] == 0 {
+            step += 1;
+            let nxt = p[j];
+            dist[nxt] = step;
+            tmp[nxt] = tmp[j] + c[nxt];
+            if tmp[nxt] > best_prefix {
+                best_prefix = tmp[nxt];
+            }
+            j = nxt;
+        }
+
+        // If we already considered all possible moves (step > K), or the cycle sum is non-positive,
+        // then the best answer for this start is just the best prefix found so far.
+        //
+        // The C code uses:
+        //   if (k > K || tmp[j] + C[P[j]] <= tmp[P[j]]) ...
+        // Here, `step` corresponds to C's `k`, and `j` is the last node before closing the cycle.
+        if step > k || tmp[j] + c[p[j]] <= tmp[p[j]] {
+            if best_prefix > ans {
+                ans = best_prefix;
+            }
+            continue;
+        }
+
+        // We have a positive-sum cycle reachable within K moves.
+        // Determine cycle period and cycle total sum ("loop").
+        let period: i64 = dist[j] - dist[p[j]] + 1;
+        let loop_sum: i64 = tmp[j] + c[p[j]] - tmp[p[j]];
+
+        // Now, for each node in the cycle, compute the best achievable score by taking
+        // as many full cycles as possible within K, plus the prefix to that node.
+        //
+        // This mirrors the C code's arithmetic-only dependence on K (no iterating up to K).
+        j = p[j]; // enter the cycle at p[previous j]
+
+        // For a node v in the cycle, dist[v] is the step index when first reached.
+        // Remaining moves available from that first reach to total K moves is (K - dist[v] + 1).
+        // Number of full cycles we can add is floor(remaining / period).
+        let add_cycles = (k - dist[j] + 1) / period;
+        tmp[j] += loop_sum * add_cycles;
+        if tmp[j] > best_prefix {
+            best_prefix = tmp[j];
+        }
+
+        let cycle_start = j;
+        while p[j] != cycle_start {
+            let nxt = p[j];
+            let add_cycles_nxt = (k - dist[nxt] + 1) / period;
+            tmp[nxt] += loop_sum * add_cycles_nxt;
+            if tmp[nxt] > best_prefix {
+                best_prefix = tmp[nxt];
+            }
+            j = nxt;
+        }
+
+        if best_prefix > ans {
+            ans = best_prefix;
+        }
+    }
+
+    // Output exactly one integer and newline.
+    println!("{ans}");
+}

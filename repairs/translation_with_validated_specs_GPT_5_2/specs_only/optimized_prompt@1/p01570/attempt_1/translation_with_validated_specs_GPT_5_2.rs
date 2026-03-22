@@ -1,0 +1,99 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n_opt = it.next();
+    if n_opt.is_none() {
+        // Narrowest reasonable behavior: no input => no output.
+        return;
+    }
+    let n: usize = n_opt.unwrap().parse().unwrap();
+
+    let mut weight: Vec<i128> = vec![0; n];
+    let mut parent: Vec<i32> = vec![-1; n];
+    let mut children: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut roots: Vec<usize> = Vec::new();
+
+    for i in 0..n {
+        let w: i128 = it.next().unwrap().parse().unwrap();
+        let p: i32 = it.next().unwrap().parse().unwrap();
+        weight[i] = w;
+        parent[i] = p;
+    }
+
+    for i in 0..n {
+        let p = parent[i];
+        if p == -1 {
+            roots.push(i);
+        } else {
+            // Preconditions guarantee p is in [0, n-1].
+            children[p as usize].push(i);
+        }
+    }
+
+    // Postorder evaluation without recursion to avoid stack overflow on deep trees.
+    // State: 0 = not visited, 1 = entered (children scheduled), 2 = done.
+    let mut state: Vec<u8> = vec![0; n];
+    let mut s: Vec<i128> = vec![0; n];
+    let mut dp: Vec<i128> = vec![0; n];
+
+    for &r in &roots {
+        if state[r] != 0 {
+            continue;
+        }
+        let mut stack: Vec<(usize, u8)> = Vec::new();
+        stack.push((r, 0));
+
+        while let Some((u, phase)) = stack.pop() {
+            if phase == 0 {
+                if state[u] == 2 {
+                    continue;
+                }
+                state[u] = 1;
+                stack.push((u, 1));
+                for &v in &children[u] {
+                    if state[v] == 0 {
+                        stack.push((v, 0));
+                    }
+                }
+            } else {
+                // All descendants of u have been evaluated (per preconditions: forest, no cycles).
+                let mut subtotal: i128 = weight[u];
+                let mut dp_sum: i128 = 0;
+
+                // Collect child subtree sums for sorting by non-increasing s[child].
+                let mut child_sums: Vec<i128> = Vec::with_capacity(children[u].len());
+                for &v in &children[u] {
+                    subtotal += s[v];
+                    dp_sum += dp[v];
+                    child_sums.push(s[v]);
+                }
+
+                // Minimizing permutation: sort by non-increasing subtree sum.
+                child_sums.sort_by(|a, b| b.cmp(a));
+
+                // Compute min over permutations: sum_{k=0}^{d-1} s[pi(k)] * k
+                // with k starting at 0.
+                let mut order_cost: i128 = 0;
+                for (k, sv) in child_sums.iter().enumerate() {
+                    order_cost += (*sv) * (k as i128);
+                }
+
+                s[u] = subtotal;
+                dp[u] = dp_sum + order_cost;
+                state[u] = 2;
+            }
+        }
+    }
+
+    let mut ans: i128 = 0;
+    for &r in &roots {
+        ans += dp[r];
+    }
+
+    print!("{}", ans);
+}

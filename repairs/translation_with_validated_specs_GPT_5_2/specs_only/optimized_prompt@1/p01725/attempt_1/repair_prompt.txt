@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Evaluates a single arithmetic expression consisting of non-negative integers, binary operators (addition, subtraction, multiplication), and parentheses. Operator precedence is treated as unknown: the program considers a fixed set of 13 possible precedence/associativity schemes for the three operators, evaluates the expression under each scheme (while always respecting parentheses), and outputs the maximum resulting value.
+
+2. Inputs  
+- One expression provided as a single contiguous token (no embedded whitespace).  
+- The expression may contain:
+  - Non-negative integer literals (base-10).
+  - Parentheses for grouping.
+  - Binary operators: addition, subtraction, multiplication.
+
+3. Outputs  
+- One signed integer value: the maximum evaluation result among the 13 considered operator-ordering schemes.
+
+4. Preconditions  
+- The input expression is syntactically valid under the following assumptions:
+  - Parentheses are balanced and properly nested.
+  - Operators are binary and appear only between two valid subexpressions.
+  - No unary operators are present.
+  - The expression contains at least one integer literal.
+- All intermediate and final results fit within the signed 64-bit integer range.
+
+5. Postconditions  
+- The printed value equals:  
+  max over the 13 predefined operator precedence/associativity schemes of (value of the expression evaluated under that scheme, with parentheses enforced).  
+- Parenthesized subexpressions are evaluated as grouped units in all schemes.
+
+6. Invariants  
+- During each evaluation scheme:
+  - The expression is interpreted deterministically according to that scheme’s operator ordering rules and the explicit parentheses.
+  - Only the three supported binary operators are applied, and only to integer operands.
+  - The computed result for a given scheme is a single integer value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If the input violates the preconditions (e.g., malformed expression, unexpected characters, unbalanced parentheses, missing operands/operators), behavior is undefined (may crash or produce an arbitrary result).  
+- If 64-bit signed integer overflow occurs, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond computing and tracking the running maximum across the 13 evaluation schemes.
+
+9. Non-functional Constraints (if inferable)  
+- The expression length is bounded by a small fixed maximum (on the order of a few hundred characters).  
+- Runtime is proportional to the expression size multiplied by 13 (a small constant factor).  
+- Memory usage is bounded by fixed-size internal buffers proportional to the maximum expression length.
+```

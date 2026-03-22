@@ -1,0 +1,157 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    edge_to: [i32; 100],
+    edge_cost: [i32; 100],
+    edge_size: i32,
+    cost: i32,
+    visited: i32,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            edge_to: [0; 100],
+            edge_cost: [0; 100],
+            edge_size: 0,
+            cost: 0,
+            visited: 0,
+        }
+    }
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+
+    fn getchar_unlocked(&mut self) -> i32 {
+        if self.idx >= self.buf.len() {
+            // Emulate C getchar_unlocked() returning EOF (-1)
+            -1
+        } else {
+            let c = self.buf[self.idx] as i32;
+            self.idx += 1;
+            c
+        }
+    }
+
+    // Mirrors the C get_uint() exactly:
+    // - returns the first non-digit byte value (or EOF) if the first char isn't a digit
+    // - otherwise parses consecutive digits into an int
+    fn get_uint(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        let mut c: i32 = self.getchar_unlocked();
+        if c < 48 || 57 < c {
+            return c;
+        }
+        while 47 < c && c < 58 {
+            // Use wrapping to emulate C signed overflow behavior as closely as possible.
+            n = n.wrapping_mul(10).wrapping_add(c & 0xf);
+            c = self.getchar_unlocked();
+        }
+        n
+    }
+}
+
+fn put_uint(out: &mut Vec<u8>, mut n: i32) {
+    if n == 0 {
+        out.push(b'0');
+        return;
+    }
+    // C code assumes non-negative; if negative occurs, C would print garbage-ish due to %/div.
+    // We preserve behavior as best as possible by mimicking the same loop on i32.
+    let mut buf = [0u8; 11];
+    let mut i: usize = 0;
+    while n != 0 {
+        let digit = (n % 10) + ('0' as i32);
+        buf[i] = digit as u8;
+        i += 1;
+        n /= 10;
+    }
+    while i != 0 {
+        i -= 1;
+        out.push(buf[i]);
+    }
+}
+
+fn dijkstra_noheap(nodes: &mut [Node], n: i32) {
+    for i in 0..(n as usize) {
+        nodes[i].cost = -1;
+        nodes[i].visited = 0;
+    }
+    nodes[0].cost = 0;
+
+    loop {
+        let mut next_idx: Option<usize> = None;
+        for i in 0..(n as usize) {
+            let it = &nodes[i];
+            if it.visited != 0 || it.cost < 0 {
+                continue;
+            }
+            match next_idx {
+                None => next_idx = Some(i),
+                Some(j) => {
+                    if it.cost < nodes[j].cost {
+                        next_idx = Some(i);
+                    }
+                }
+            }
+        }
+
+        let Some(ni) = next_idx else { break };
+        nodes[ni].visited = 1;
+
+        // C copies the whole struct: Node u = *next;
+        let u = nodes[ni];
+
+        for i in 0..(u.edge_size as usize) {
+            let to = u.edge_to[i] as usize;
+            let cost = u.cost.wrapping_add(u.edge_cost[i]); // wrap like C int
+            if nodes[to].cost < 0 || cost < nodes[to].cost {
+                nodes[to].cost = cost;
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let n = sc.get_uint();
+
+    // C uses VLA: Node node[n]; uninitialized. We use zeroed nodes; edge_size is set for each u.
+    // This is the closest safe Rust equivalent; relying on uninitialized memory would be UB in Rust.
+    let mut nodes = vec![Node::default(); n.max(0) as usize];
+
+    for _ in 0..(n.max(0) as usize) {
+        let u = sc.get_uint() as usize;
+        let k = sc.get_uint();
+        nodes[u].edge_size = k;
+        for j in 0..(k as usize) {
+            nodes[u].edge_to[j] = sc.get_uint();
+            nodes[u].edge_cost[j] = sc.get_uint();
+        }
+    }
+
+    dijkstra_noheap(&mut nodes, n);
+
+    let mut out: Vec<u8> = Vec::new();
+    for i in 0..(n.max(0) as usize) {
+        put_uint(&mut out, i as i32);
+        out.push(b' ');
+        put_uint(&mut out, nodes[i].cost);
+        out.push(b'\n');
+    }
+
+    print!("{}", String::from_utf8_lossy(&out));
+}
+```

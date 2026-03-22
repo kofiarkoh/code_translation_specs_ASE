@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification assumes a single whitespace-delimited token exists.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // No explicit error handling per spec; if missing/shorter than 3 chars, behavior is undefined.
+    let token = input.split_whitespace().next().unwrap();
+
+    // The spec talks about "characters" and intends exactly three; we interpret this as bytes
+    // (ASCII-like usage). This matches typical constant-time, constant-memory intent.
+    let b = token.as_bytes();
+
+    let mut m: i32 = 0;
+    if b[0] == b'o' {
+        m += 1;
+    }
+    if b[1] == b'o' {
+        m += 1;
+    }
+    if b[2] == b'o' {
+        m += 1;
+    }
+
+    let score = 700 + 100 * m;
+    println!("{score}");
+}
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer limit and a collection of integer pairs. It computes a non-negative aggregate value derived from the first elements of the pairs that are strictly less than the limit, by selecting a subset of those pairs that minimizes the aggregate. If there are not enough qualifying pairs, the result is zero.
+
+2. Inputs  
+- An integer `n` representing a limit.  
+- An integer `m` representing the number of pairs provided.  
+- `m` pairs of integers `(x, y)`, where only `x` influences the computed result.
+
+3. Outputs  
+- A single integer value representing the computed aggregate.
+
+4. Preconditions  
+- `m` is within the fixed storage capacity for the pair list (at most 999, given the indexing used).  
+- The input provides at least `m` integer pairs.  
+- `n` and the first elements of pairs are such that the computed differences and their sum fit within the range of the integer type used.
+
+5. Postconditions  
+Let `S` be the multiset of values `(n - x)` for each input pair whose first element `x` is strictly less than `n`. Let `q = |S|` be the number of such qualifying pairs.  
+- If `q <= 1`, the output is `0`.  
+- If `q >= 2`, the output equals the sum of the smallest `(q - 1)` values in `S`.
+
+6. Invariants  
+- Only pairs with first element strictly less than the limit contribute to the result.  
+- The output is always greater than or equal to zero under the stated preconditions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, insufficient input, or out-of-range values. Behavior is undefined if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond its execution.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage for up to 999 pairs (due to indexing).  
+- Time cost grows quadratically with the number of pairs due to ordering operations on derived values.
+```

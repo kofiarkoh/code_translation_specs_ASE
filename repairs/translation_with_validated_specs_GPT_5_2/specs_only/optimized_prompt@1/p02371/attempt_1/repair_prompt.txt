@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an undirected, weighted tree and outputs the total weight of its weighted diameter: the maximum, over all pairs of vertices, of the sum of edge weights along the unique simple path connecting the pair.
+
+2. Inputs  
+- An integer `n`: the number of vertices.  
+- Exactly `n − 1` undirected edges.  
+- Each edge is given by two vertex indices and an integer edge weight.
+
+3. Outputs  
+- A single integer: the diameter length (maximum path-weight sum) of the tree.
+
+4. Preconditions / Assumptions  
+- `n` is positive and within the program’s fixed array capacities.  
+- Exactly `n − 1` edges are provided.  
+- Vertex indices are assumed to be **0-based**, i.e., in the range `[0, n−1]`.  
+- The input graph is a tree (connected and acyclic), so there is a unique simple path between any two vertices.  
+- The diameter length and intermediate accumulated path sums fit in the C `int` range; otherwise behavior is unspecified.
+
+5. Computation Semantics (as implemented)  
+- The program builds an adjacency structure for the undirected tree by storing each input edge in both directions.  
+- It performs two depth-first traversals that rely on the tree property and a visited marker:
+  1. Start from vertex `0`, traverse the tree, and compute for each reached vertex the sum of edge weights along the unique path from `0` to that vertex. Track the maximum such distance; if multiple vertices attain the same maximum, the selected endpoint is the one with the greatest vertex index (due to the scan order used to pick it).
+  2. Start from that selected endpoint and traverse again, computing path sums from it; the maximum distance found in this second traversal is printed as the diameter length.
+
+6. Traversal/Distance Invariants  
+- During each DFS traversal, each vertex is visited at most once (enforced by a visited array).  
+- When a vertex is visited, its stored distance equals the sum of edge weights along the unique tree path from the traversal’s start vertex to that vertex.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input violates the assumptions (e.g., indices out of range, not a tree, too large for fixed arrays, or integer overflow), the program’s behavior and output are unspecified.
+
+8. Termination Behavior  
+- For valid tree inputs within capacity, the program terminates after completing the two DFS traversals and printing the resulting diameter length.
+
+9. Non-functional Constraints  
+- Uses statically allocated arrays; inputs exceeding those bounds are unsupported.  
+- For valid tree inputs, runtime is linear in the number of vertices and edges.
+```

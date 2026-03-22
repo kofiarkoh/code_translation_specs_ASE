@@ -1,0 +1,203 @@
+use std::io::{self, Read};
+
+const M: i64 = 1_000_000_007;
+
+fn mbk(mut a: i64, mut n: i64, m: i64) -> i64 {
+    // C: int mbk(long long a,int n,int m)
+    // Here we keep everything in i64; n is non-negative in this program (m-2).
+    let mut res: i64 = 1;
+    a %= m;
+    while n != 0 {
+        if (n & 1) != 0 {
+            res = (res * a) % m;
+        }
+        a = (a * a) % m;
+        n >>= 1;
+    }
+    res
+}
+
+fn inv(a: i64, m: i64) -> i64 {
+    // Fermat inverse mod prime, matching C: mbk((long long)a,m-2,m)
+    mbk(a, m - 2, m)
+}
+
+struct Solver {
+    // Arrays sized to match the C globals.
+    ta: Vec<i32>,
+    nt: Vec<i32>,
+    to: Vec<i32>,
+    t_s: Vec<i64>,
+    tu: Vec<i32>,
+    ans: Vec<i64>,
+    tans: Vec<i64>,
+}
+
+impl Solver {
+    fn new() -> Self {
+        // C sizes:
+        // ta[200010], tu[200010], ANS[200020], tans[200020]
+        // nt[400010], to[400010], tS[400010]
+        Self {
+            ta: vec![0; 200_010],
+            nt: vec![0; 400_010],
+            to: vec![0; 400_010],
+            t_s: vec![0; 400_010],
+            tu: vec![0; 200_010],
+            ans: vec![0; 200_020],
+            tans: vec![0; 200_020],
+        }
+    }
+
+    // sが親でtから帰ってきた時の処理
+    fn fc(&mut self, s: usize, t: usize) {
+        self.tans[s] = (self.tans[s] * self.tans[t]) % M;
+    }
+    // fcの逆処理
+    fn ic(&mut self, s: usize, t: usize) {
+        let inv_t = inv(self.tans[t], M);
+        self.tans[s] = (self.tans[s] * inv_t) % M;
+    }
+    // すべての子の処理が終わった時の処理
+    fn fp(&mut self, s: usize) {
+        let inv_ts = inv(self.t_s[s] % M, M);
+        self.tans[s] = (self.tans[s] * inv_ts) % M;
+    }
+    // fpの逆処理
+    fn ip(&mut self, s: usize) {
+        self.tans[s] = (self.tans[s] * (self.t_s[s] % M)) % M;
+    }
+
+    fn tdp(&mut self, s: usize) {
+        self.tu[s] = 1;
+        let mut i = self.ta[s];
+        while i != -1 {
+            let idx = i as usize;
+            let v = self.to[idx] as usize;
+            if self.tu[v] != 0 {
+                i = self.nt[idx];
+                continue;
+            }
+            self.tdp(v);
+            self.fc(s, v);
+            self.t_s[s] += self.t_s[v];
+            i = self.nt[idx];
+        }
+        self.fp(s);
+    }
+
+    fn chrt(&mut self, s: usize, t: usize) {
+        self.ip(s);
+        self.ic(s, t);
+        self.ip(t);
+
+        self.t_s[s] -= self.t_s[t];
+        self.t_s[t] += self.t_s[s];
+
+        self.fp(s);
+        self.fc(t, s);
+        self.fp(t);
+    }
+
+    fn atdp(&mut self, s: usize) {
+        self.tu[s] = 2;
+        self.ans[s] = self.tans[s];
+
+        let mut i = self.ta[s];
+        while i != -1 {
+            let idx = i as usize;
+            let v = self.to[idx] as usize;
+            if self.tu[v] == 2 {
+                i = self.nt[idx];
+                continue;
+            }
+            self.chrt(s, v);
+            self.atdp(v);
+            self.chrt(v, s);
+            i = self.nt[idx];
+        }
+    }
+
+    fn at_dp(&mut self, v: usize, a: &[i32], b: &[i32]) {
+        let i_root: usize = 1;
+
+        // Initialize per C:
+        // for(i=0;i<v;i++)ta[i+I]=-1;
+        for i in 0..v {
+            self.ta[i + i_root] = -1;
+        }
+        // for(i=0;i<v;i++)tS[i+I]=1;
+        for i in 0..v {
+            self.t_s[i + i_root] = 1;
+        }
+        // for(i=0;i<v;i++)tans[i+I]=1;
+        for i in 0..v {
+            self.tans[i + i_root] = 1;
+        }
+        // Note: tu[] is global in C and defaults to 0; we ensure it's 0 for used nodes.
+        for i in 0..v {
+            self.tu[i + i_root] = 0;
+        }
+
+        // Build adjacency in the same packed-edge style as C.
+        // for(i=0;i<v-1;i++){
+        //   nt[i]=ta[to[i+v-1]=a[i]];
+        //   nt[i+v-1]=ta[to[i]=b[i]];
+        //   ta[a[i]]=i;
+        //   ta[b[i]]=i+v-1;
+        // }
+        for i in 0..(v - 1) {
+            let ai = a[i] as usize;
+            let bi = b[i] as usize;
+
+            let idx1 = i; // edge index i
+            let idx2 = i + (v - 1); // edge index i+v-1
+
+            self.to[idx2] = a[i];
+            self.nt[idx1] = self.ta[ai];
+
+            self.to[idx1] = b[i];
+            self.nt[idx2] = self.ta[bi];
+
+            self.ta[ai] = idx1 as i32;
+            self.ta[bi] = idx2 as i32;
+        }
+
+        self.tdp(i_root);
+        self.atdp(i_root);
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a = vec![0i32; 200_010];
+    let mut b = vec![0i32; 200_010];
+    for i in 0..(n.saturating_sub(1)) {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut p: i64 = 1;
+    for i in 1..=n as i64 {
+        p = (p * i) % M;
+    }
+
+    let mut solver = Solver::new();
+    solver.at_dp(n, &a, &b);
+
+    let mut out = String::new();
+    for i in 0..n {
+        let val = (solver.ans[i + 1] * p) % M;
+        out.push_str(&format!("{val}\n"));
+    }
+    print!("{out}");
+}

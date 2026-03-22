@@ -1,0 +1,101 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-delimited tokens (matches scanf("%s") behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Spec precondition: n <= 12
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            let bytes = s.as_bytes().to_vec();
+            lens.push(bytes.len());
+            patterns.push(bytes);
+        }
+
+        // Concatenate m fragments; if last char has ASCII < ' ', remove it before concatenation.
+        // Note: with split_whitespace(), such control chars are not present as token terminators,
+        // but we still implement the specified trimming rule on the token itself.
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let mut frag = it.next().unwrap().as_bytes().to_vec();
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            text.extend_from_slice(&frag);
+        }
+
+        let l_s = text.len();
+        let loop_mask = 1usize << n;
+        let full = loop_mask - 1;
+
+        // flag[pos][mask] is reachable (boolean).
+        // C uses char flag[5001][4096]; we use Vec<Vec<u8>> for safe indexing.
+        let mut flag = vec![vec![0u8; loop_mask]; l_s + 1];
+
+        // Propagation: scan positions 0..L-1, subsets 0..(2^n - 1).
+        // Special case: at i=0, j=0 is treated as reachable even if flag[0][0] is 0.
+        for i in 0..l_s {
+            for j in 0..loop_mask {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l > l_s {
+                        continue; // cannot match past end of text
+                    }
+                    if text[i..i + l] == patterns[k][..] {
+                        let pat = j | mask;
+                        flag[i + l][pat] = 1;
+                    }
+                }
+            }
+        }
+
+        // Count positions P where (P, FULL) is reachable.
+        let mut cnt: i32 = 0;
+        for i in 0..=l_s {
+            cnt += flag[i][full] as i32;
+        }
+
+        println!("{cnt}");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

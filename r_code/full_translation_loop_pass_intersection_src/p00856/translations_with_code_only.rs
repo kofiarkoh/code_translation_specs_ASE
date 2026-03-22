@@ -1,0 +1,109 @@
+use std::io::{self, Read};
+
+const ONE_SIXTH: f64 = 1.0 / 6.0;
+
+fn myabs(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
+}
+
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 100],
+    memo: &mut [[f64; 101]; 101],
+) -> f64 {
+    // Base cases first: prevents negative indexing and matches C control flow.
+    if rest == 0 {
+        return 1.0;
+    }
+    if turn <= 0 {
+        return 0.0;
+    }
+    if turn == 1 && rest <= 6 {
+        return ONE_SIXTH;
+    }
+
+    // Now it's safe to memoize: here turn >= 2, so 0..=100 indexing is valid for typical inputs.
+    // (C assumes inputs keep indices within bounds; we still guard to avoid panics.)
+    if turn >= 0 {
+        let tu = turn as usize;
+        if tu <= 100 && memo[rest][tu] != f64::MAX {
+            return memo[rest][tu];
+        }
+    }
+
+    let mut acc = 0.0;
+    for i in 1..=6 {
+        let next_pos = myabs(rest as i32 - i) as usize;
+
+        // C uses sq[N-next_pos]. If next_pos > N, that's UB in C.
+        // For performance and to avoid recursion blow-up, we clamp to "empty" (0) when out of range.
+        let idx_i32 = n as i32 - next_pos as i32;
+        let cell = if (0..(sq.len() as i32)).contains(&idx_i32) {
+            sq[idx_i32 as usize]
+        } else {
+            0u8
+        };
+
+        match cell {
+            0 => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+            b'L' => acc += ONE_SIXTH * solve(next_pos, turn - 2, n, sq, memo),
+            b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+            _ => {}
+        }
+    }
+
+    if turn >= 0 {
+        let tu = turn as usize;
+        if tu <= 100 {
+            memo[rest][tu] = acc;
+        }
+    }
+    acc
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(n_s) = it.next() else { break };
+        let n: usize = n_s.parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let lcnt: usize = it.next().unwrap().parse().unwrap();
+        let bcnt: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && t == 0 && lcnt == 0 && bcnt == 0 {
+            break;
+        }
+
+        let mut sq = [0u8; 100];
+        let mut memo = [[f64::MAX; 101]; 101];
+
+        for _ in 0..lcnt {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            if pos < sq.len() {
+                sq[pos] = b'L';
+            }
+        }
+        for _ in 0..bcnt {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            if pos < sq.len() {
+                sq[pos] = b'B';
+            }
+        }
+
+        // C arrays are sized for N,T up to 100. Avoid panics if input violates that.
+        let n0 = n.min(100);
+        let t0 = t.min(100);
+
+        let ret = solve(n0, t0, n0, &sq, &mut memo);
+        out.push_str(&format!("{:.6}\n", ret)); // matches printf("%lf\n")
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,133 @@
+```rust
+use std::cmp::max;
+use std::io::{self, Read};
+
+const D_SIZE_MAX: usize = 205;
+
+fn f_move(row: &mut i32, col: &mut i32, w: i32) -> i32 {
+    // C comment says "右下移動" but code moves up-right: row--, col++
+    *row -= 1;
+    *col += 1;
+
+    if *row < 0 {
+        return -1;
+    }
+    if *col >= w {
+        return -1;
+    }
+    0
+}
+
+fn f_get_add(
+    mass: &[[i32; D_SIZE_MAX]; D_SIZE_MAX],
+    row: usize,
+    col: usize,
+    row2: usize,
+    col2: usize,
+) -> i32 {
+    let mut add = mass[row][col];
+    if row == row2 && col == col2 {
+        return add;
+    }
+    add += mass[row2][col2];
+    add
+}
+
+fn main() {
+    // Read entire stdin; C uses fgets/fscanf mix, but token-based parsing matches for integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Width/height: C does sscanf("%d%d", &siH, &siW)
+    let si_h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // no input
+    };
+    let si_w: usize = it.next().unwrap().parse().unwrap();
+
+    // Mass grid
+    let mut mass = [[0i32; D_SIZE_MAX]; D_SIZE_MAX];
+    for i in 0..si_h {
+        for j in 0..si_w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // DP counts: [row][col][distance]
+    // In C: static int si3Cnt[205][205][410]; zero-initialized then memset to 0.
+    let mut cnt = vec![
+        vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX];
+        D_SIZE_MAX
+    ];
+
+    // Initial
+    cnt[0][0][0] = mass[0][0];
+
+    let w_i32 = si_w as i32;
+    let h_i32 = si_h as i32;
+
+    // Loop by number of moves
+    for step in 0..(si_w + si_h - 2) {
+        // First person's starting position for this diagonal
+        let (mut row1, mut col1): (i32, i32) = if step < si_h {
+            (step as i32, 0)
+        } else {
+            let r = si_h as i32 - 1;
+            (r, step as i32 - r)
+        };
+
+        loop {
+            // Second person's position loop
+            let mut row2 = row1;
+            let mut col2 = col1;
+
+            let mut j: usize = 0;
+            loop {
+                // All indices used below are assumed in-bounds by the original C logic.
+                // We keep the same structure; if input violates assumptions, C would have UB.
+                let r1 = row1 as usize;
+                let c1 = col1 as usize;
+                let r2 = row2 as usize;
+                let c2 = col2 as usize;
+
+                // down, down
+                let add = f_get_add(&mass, r1 + 1, c1, r2 + 1, c2);
+                let v = cnt[r1][c1][j] + add;
+                cnt[r1 + 1][c1][j] = max(cnt[r1 + 1][c1][j], v);
+
+                // down, right
+                let add = f_get_add(&mass, r1 + 1, c1, r2, c2 + 1);
+                let v = cnt[r1][c1][j] + add;
+                cnt[r1 + 1][c1][j + 1] = max(cnt[r1 + 1][c1][j + 1], v);
+
+                // right, down
+                if j > 0 {
+                    let add = f_get_add(&mass, r1, c1 + 1, r2 + 1, c2);
+                    let v = cnt[r1][c1][j] + add;
+                    cnt[r1][c1 + 1][j - 1] = max(cnt[r1][c1 + 1][j - 1], v);
+                }
+
+                // right, right
+                let add = f_get_add(&mass, r1, c1 + 1, r2, c2 + 1);
+                let v = cnt[r1][c1][j] + add;
+                cnt[r1][c1 + 1][j] = max(cnt[r1][c1 + 1][j], v);
+
+                // Next position for second person
+                if f_move(&mut row2, &mut col2, w_i32) != 0 {
+                    break;
+                }
+                j += 1;
+            }
+
+            // Next position for first person
+            if f_move(&mut row1, &mut col1, w_i32) != 0 {
+                break;
+            }
+        }
+    }
+
+    let ans = cnt[si_h - 1][si_w - 1][0];
+    print!("{ans}\n");
+}
+```

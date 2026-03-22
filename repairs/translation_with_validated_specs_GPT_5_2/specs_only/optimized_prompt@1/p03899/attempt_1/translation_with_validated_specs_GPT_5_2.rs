@@ -1,0 +1,97 @@
+use std::cmp::max;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        a.push(it.next().unwrap().parse().unwrap());
+    }
+
+    // DP invariant:
+    // dp_prev[j] = maximum weighted sum selecting exactly (t-1) elements with last at j.
+    // dp_cur[j]  = maximum weighted sum selecting exactly t elements with last at j.
+    //
+    // Transition for t >= 2:
+    // dp_cur[j] = t * A[j] + max_{i in [j-(m+1), j-1]} dp_prev[i]
+    //
+    // For t == 1:
+    // dp_cur[j] = 1 * A[j]
+    //
+    // We use a monotonic deque to maintain the sliding window maximum of dp_prev.
+
+    const NEG_INF: i64 = i64::MIN / 4;
+
+    let mut dp_prev = vec![NEG_INF; n];
+    let mut dp_cur = vec![NEG_INF; n];
+
+    // t = 1
+    for j in 0..n {
+        dp_cur[j] = a[j]; // 1 * A[j]
+    }
+    std::mem::swap(&mut dp_prev, &mut dp_cur);
+
+    for t in 2..=k {
+        // Reset current layer.
+        for v in dp_cur.iter_mut() {
+            *v = NEG_INF;
+        }
+
+        let mut deq: VecDeque<usize> = VecDeque::new();
+
+        for j in 0..n {
+            // Window for predecessor indices i: [j-(m+1), j-1]
+            // Add candidate i = j-1 into deque before computing dp_cur[j].
+            if j >= 1 {
+                let i = j - 1;
+
+                // Maintain decreasing dp_prev values in deque.
+                while let Some(&back) = deq.back() {
+                    if dp_prev[back] <= dp_prev[i] {
+                        deq.pop_back();
+                    } else {
+                        break;
+                    }
+                }
+                deq.push_back(i);
+            }
+
+            // Remove indices < j-(m+1)
+            let left = j.saturating_sub(m + 1);
+            while let Some(&front) = deq.front() {
+                if front < left {
+                    deq.pop_front();
+                } else {
+                    break;
+                }
+            }
+
+            if let Some(&best_i) = deq.front() {
+                // Use wrapping_mul to emulate typical fixed-width integer behavior if overflow occurs.
+                let weighted = (t as i64).wrapping_mul(a[j]);
+                dp_cur[j] = dp_prev[best_i].wrapping_add(weighted);
+            } else {
+                // No valid predecessor; dp_cur[j] remains meaningless per spec.
+            }
+        }
+
+        std::mem::swap(&mut dp_prev, &mut dp_cur);
+    }
+
+    // Answer: maximum over dp_prev[j] for the final layer (t = k).
+    let mut ans = NEG_INF;
+    for &v in &dp_prev {
+        ans = max(ans, v);
+    }
+
+    print!("{}", ans);
+}

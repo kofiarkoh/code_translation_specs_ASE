@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a short string and computes a score equal to a base value plus an increment for each occurrence of the character `o` within the first three characters of the input. Outputs the computed score.
+
+2. Inputs  
+- A single whitespace-delimited string token intended to represent exactly three characters.
+
+3. Outputs  
+- One integer value followed by a line break: the computed score.
+
+4. Preconditions  
+- The provided input token contains at least three characters.  
+- The input token fits within the available storage for the string (including its terminator).  
+  - Assumption: the intended use is a three-character token; longer tokens may violate memory safety.
+
+5. Postconditions  
+- Let `m` be the count of positions among the first three characters of the input whose value is `o`.  
+- The program outputs the integer `700 + 100 * m`.  
+- The output is one of: 700, 800, 900, or 1000.
+
+6. Invariants  
+- The count `m` is always an integer in the range 0 to 3 inclusive.  
+- The computed score is always `700 + 100 * m`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, shorter than three characters, or longer than the storage allows, behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained; execution is a single read–compute–write operation and then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+```

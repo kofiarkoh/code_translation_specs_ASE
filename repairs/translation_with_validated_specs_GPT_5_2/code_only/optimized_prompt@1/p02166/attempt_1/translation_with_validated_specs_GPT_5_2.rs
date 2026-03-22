@@ -1,0 +1,67 @@
+use std::io::{self, Read};
+
+fn dfs(a: &mut [i32], n: usize) {
+    // Mirrors the C logic exactly:
+    // int t = a[n];
+    // while (a[t] != -1) { temp = a[t]; a[t] = -1; t = temp; }
+    let mut t = a[n] as usize;
+    while a[t] != -1 {
+        let temp = a[t] as usize;
+        a[t] = -1;
+        t = temp;
+    }
+}
+
+fn main() {
+    // Read entire stdin, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse::<i32>().unwrap() as usize,
+        None => return,
+    };
+    let k: i32 = it.next().unwrap().parse::<i32>().unwrap();
+
+    // C uses global int a[100010]; and indexes from 1..=n.
+    // We'll allocate n+1 and keep a[0] unused.
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse::<i32>().unwrap();
+    }
+
+    if n as i32 == k {
+        let x = a[1] - 1;
+        let mut flag: i32 = 1;
+        for i in 1..=n {
+            // (a[i]-i+n)%n == x, with C's signed % behavior.
+            let lhs = (a[i] - i as i32 + n as i32) % (n as i32);
+            if lhs == x {
+                flag &= 1;
+            } else {
+                flag &= 0;
+            }
+        }
+        if flag != 0 {
+            print!("Yes\n");
+        } else {
+            print!("No\n");
+        }
+    } else {
+        let mut cnt: i32 = 0;
+        for i in 1..=n {
+            if a[i] != -1 {
+                dfs(&mut a, i);
+                cnt += 1;
+            }
+        }
+        // puts((n-cnt)%2&&k%2?"No":"Yes");
+        let cond = ((n as i32 - cnt) % 2 != 0) && (k % 2 != 0);
+        if cond {
+            print!("No\n");
+        } else {
+            print!("Yes\n");
+        }
+    }
+}

@@ -1,0 +1,80 @@
+use std::cmp::Ordering;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn bfs_farthest(start: usize, adj: &[Vec<usize>]) -> (usize, i32) {
+    let n = adj.len();
+    // Depths are "positive depth exactly once"; use 0 as unvisited sentinel.
+    let mut depth = vec![0i32; n];
+    let mut q = VecDeque::new();
+
+    depth[start] = 1;
+    q.push_back(start);
+
+    let mut far_v = start;
+    let mut far_d = 1i32;
+
+    while let Some(v) = q.pop_front() {
+        let dv = depth[v];
+        if dv > far_d {
+            far_d = dv;
+            far_v = v;
+        }
+        for &to in &adj[v] {
+            if depth[to] == 0 {
+                depth[to] = dv + 1;
+                q.push_back(to);
+            }
+        }
+    }
+
+    (far_v, far_d)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut adj = vec![Vec::<usize>::new(); n];
+
+    // Exactly n-1 edges; indices are 1-based in input, mapped to 0-based.
+    for _ in 0..n.saturating_sub(1) {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let u = a - 1;
+        let v = b - 1;
+        adj[u].push(v);
+        adj[v].push(u);
+    }
+
+    // "Additional logarithmic factors due to internal ordering of edge records":
+    // sort adjacency lists to emulate deterministic ordered traversal.
+    for nbrs in &mut adj {
+        nbrs.sort_unstable_by(|x, y| {
+            if x < y {
+                Ordering::Less
+            } else if x > y {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
+    }
+
+    // First traversal from an arbitrary start vertex (0).
+    let (s, _) = bfs_farthest(0, &adj);
+    // Second traversal from s; diameter length D is maximum depth value (in vertices).
+    let (_, d) = bfs_farthest(s, &adj);
+
+    if d % 3 == 0 {
+        println!("Second");
+    } else {
+        println!("First");
+    }
+}

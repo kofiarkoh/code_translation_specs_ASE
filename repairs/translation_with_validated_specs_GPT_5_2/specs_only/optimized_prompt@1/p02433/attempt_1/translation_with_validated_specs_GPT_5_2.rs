@@ -1,0 +1,183 @@
+use std::io::{self, Read};
+use std::process;
+
+/// C-like atoi on a substring: skips leading ASCII whitespace, parses optional sign and digits,
+/// stops at first non-digit, returns 0 if no digits. Saturation/overflow behavior is not specified
+/// by the spec; inputs are assumed within C int range.
+fn atoi_c_like(s: &str) -> i32 {
+    let bytes = s.as_bytes();
+    let mut i = 0;
+
+    while i < bytes.len() && bytes[i].is_ascii_whitespace() {
+        i += 1;
+    }
+
+    let mut sign: i32 = 1;
+    if i < bytes.len() {
+        if bytes[i] == b'+' {
+            i += 1;
+        } else if bytes[i] == b'-' {
+            sign = -1;
+            i += 1;
+        }
+    }
+
+    let mut any = false;
+    let mut acc: i32 = 0;
+    while i < bytes.len() {
+        let b = bytes[i];
+        if !b.is_ascii_digit() {
+            break;
+        }
+        any = true;
+        let d = (b - b'0') as i32;
+        acc = acc * 10 + d;
+        i += 1;
+    }
+
+    if !any {
+        0
+    } else {
+        acc * sign
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Node {
+    prev: Option<usize>,
+    next: Option<usize>,
+    val: i32,
+    is_end: bool,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut lines = input.lines();
+
+    let q_line = match lines.next() {
+        Some(l) => l,
+        None => return,
+    };
+    let q = atoi_c_like(q_line);
+    let q_usize = if q < 0 { 0 } else { q as usize };
+
+    // Conceptual doubly linked list with a distinguished internal end-marker node.
+    // We model nodes in a Vec with stable indices; removed nodes are left as tombstones
+    // (unreachable from the list), which preserves semantics without unsafe code.
+    let mut nodes: Vec<Node> = Vec::new();
+
+    // Create end marker as the only initial node; it is also the front.
+    let end_idx = 0usize;
+    nodes.push(Node {
+        prev: None,
+        next: None,
+        val: 0,
+        is_end: true,
+    });
+
+    let mut front: usize = end_idx;
+    let mut cursor: usize = end_idx;
+
+    for _ in 0..q_usize {
+        let line = match lines.next() {
+            Some(l) => l,
+            None => break, // unspecified; keep narrow behavior: stop processing if missing lines
+        };
+
+        let cmd = line.as_bytes().get(0).copied().unwrap_or(b'\0') as char;
+
+        match cmd {
+            '0' => {
+                // Parse from index 2 (ignore index 1).
+                let arg = if line.len() >= 2 { &line[2..] } else { "" };
+                let v = atoi_c_like(arg);
+
+                let new_idx = nodes.len();
+                let prev = nodes[cursor].prev;
+                nodes.push(Node {
+                    prev,
+                    next: Some(cursor),
+                    val: v,
+                    is_end: false,
+                });
+
+                // Link into list before cursor.
+                nodes[cursor].prev = Some(new_idx);
+                if let Some(p) = prev {
+                    nodes[p].next = Some(new_idx);
+                } else {
+                    // Inserted at front.
+                    front = new_idx;
+                }
+
+                cursor = new_idx;
+            }
+            '1' => {
+                let arg = if line.len() >= 2 { &line[2..] } else { "" };
+                let off = atoi_c_like(arg);
+
+                if off < 0 {
+                    let mut steps = (-off) as i32;
+                    while steps > 0 {
+                        if cursor == front {
+                            print!("Cursor is already front.\n");
+                            process::exit(1);
+                        }
+                        cursor = nodes[cursor].prev.expect("cursor not at front implies prev exists");
+                        steps -= 1;
+                    }
+                } else if off > 0 {
+                    let mut steps = off as i32;
+                    while steps > 0 {
+                        match nodes[cursor].next {
+                            Some(n) => cursor = n,
+                            None => {
+                                print!("Cursor has no next.\n");
+                                process::exit(1);
+                            }
+                        }
+                        steps -= 1;
+                    }
+                }
+            }
+            '2' => {
+                if nodes[cursor].is_end {
+                    // No change.
+                } else {
+                    let prev = nodes[cursor].prev;
+                    let next = nodes[cursor].next.expect("non-end node must have a successor");
+
+                    // Unlink cursor.
+                    if let Some(p) = prev {
+                        nodes[p].next = Some(next);
+                    } else {
+                        // Removing front.
+                        front = next;
+                    }
+                    nodes[next].prev = prev;
+
+                    // Cursor becomes successor.
+                    cursor = next;
+
+                    // Tombstone the removed node (not required, but avoids accidental reuse).
+                    nodes[cursor].prev = nodes[cursor].prev; // no-op; keep cursor valid
+                }
+            }
+            _ => {
+                // Unspecified; do nothing (narrowest behavior without inventing handling).
+            }
+        }
+    }
+
+    // Output remaining non-marker integers from front to back.
+    let mut idx = front;
+    loop {
+        if nodes[idx].is_end {
+            break;
+        }
+        println!("{}", nodes[idx].val);
+        idx = nodes[idx].next.expect("non-end node must have next");
+    }
+}

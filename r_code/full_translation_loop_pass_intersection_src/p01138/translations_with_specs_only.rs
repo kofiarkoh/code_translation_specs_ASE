@@ -1,0 +1,68 @@
+use std::io::{self, Read};
+
+fn time_to_sec(h: i32, m: i32, s: i32) -> usize {
+    (h as usize) * 3600 + (m as usize) * 60 + (s as usize)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // The sample likely uses timestamps like "HH:MM:SS". split_whitespace() alone
+    // leaves "HH:MM:SS" intact, causing parse() to fail. Normalize separators.
+    let normalized: String = input
+        .chars()
+        .map(|c| if c == ':' { ' ' } else { c })
+        .collect();
+
+    let mut it = normalized.split_whitespace();
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(tok) = it.next() else { break };
+        let n: usize = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Unspecified malformed input; stop deterministically.
+        };
+        if n == 0 {
+            break;
+        }
+
+        // Difference array for half-open intervals [start, end) over seconds in a day.
+        // Use 86401 to allow end == 86400 as a sentinel boundary.
+        let mut diff = vec![0i32; 86401];
+
+        for _ in 0..n {
+            let sh: i32 = it.next().unwrap().parse().unwrap();
+            let sm: i32 = it.next().unwrap().parse().unwrap();
+            let ss: i32 = it.next().unwrap().parse().unwrap();
+            let eh: i32 = it.next().unwrap().parse().unwrap();
+            let em: i32 = it.next().unwrap().parse().unwrap();
+            let es: i32 = it.next().unwrap().parse().unwrap();
+
+            let start = time_to_sec(sh, sm, ss);
+            let end = time_to_sec(eh, em, es);
+
+            if start < end {
+                // Preconditions guarantee bounds; keep direct indexing.
+                diff[start] += 1;
+                diff[end] -= 1;
+            }
+        }
+
+        let mut cur = 0i32;
+        let mut maxv = 0i32;
+        for t in 0..86400 {
+            cur += diff[t];
+            if cur > maxv {
+                maxv = cur;
+            }
+        }
+
+        outputs.push(maxv.to_string());
+    }
+
+    if !outputs.is_empty() {
+        print!("{}", outputs.join("\n"));
+    }
+}

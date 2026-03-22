@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the maximum achievable total score over at most a given number of moves on a directed graph where each node has exactly one outgoing edge and each node has an associated score gained upon landing on it. A move consists of transitioning from the current node to its designated next node and adding the destination node’s score to the running total. The result is the maximum total score obtainable by choosing an arbitrary starting node and performing between 1 and the move limit moves.
+
+2. Inputs  
+- An integer representing the number of nodes.  
+- An integer representing the maximum number of moves allowed.  
+- A sequence of node-to-node transitions defining, for each node, its unique next node.  
+- A sequence of integer scores, one per node, representing the score gained when landing on that node.
+
+3. Outputs  
+- A single integer value: the maximum total score achievable under the rules described.
+
+4. Preconditions  
+- The number of nodes does not exceed 5000.  
+- The move limit is a positive integer.  
+- Each transition target is a valid node index within the node set.  
+- Input provides exactly the required counts of transitions and scores.  
+- The maximum achievable score fits within a signed 64-bit integer.
+
+5. Postconditions  
+- The output equals the maximum, over all starting nodes, of the maximum prefix sum obtainable along the walk induced by repeatedly following transitions for up to the move limit moves, where the sum includes the scores of visited destination nodes for each move.  
+- At least one move is taken in the evaluated walks (i.e., zero-move score is not considered).
+
+6. Invariants  
+- For any fixed starting node, the considered walk always follows the unique outgoing transition from the current node.  
+- The accumulated score after a given number of moves equals the sum of the scores of the nodes landed on in those moves.  
+- The reported maximum is the maximum over all starting nodes of the best score found for that start within the move limit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for malformed input, out-of-range transitions, non-positive move limits, or arithmetic overflow; behavior is unspecified if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- State is the current node.  
+- Each move deterministically transitions from the current node to its designated next node.  
+- The score state updates by adding the score of the destination node on each transition.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to the number of nodes.  
+- Runtime is proportional to the square of the number of nodes in the worst case, with additional dependence on the move limit only through arithmetic (not iteration up to the move limit).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main()
+{
+	int i, N, K, P[5001], C[5001];
+	scanf("%d %d", &N, &K);
+	for (i = 1; i <= N; i++) scanf("%d", &(P[i]));
+	for (i = 1; i <= N; i++) scanf("%d", &(C[i]));
+
+	int j, k, dist[5001], period;
+	long long ans = -(1 << 30), tmp[5001], max, loop;
+	for (i = 1; i <= N; i++) {
+		for (j = 1; j <= N; j++) {
+			dist[j] = 0;
+			tmp[j] = 0;
+		}
+		for (k = 1, j = i, dist[j] = k, max = -(1 << 30); k <= K && dist[P[j]] == 0; j = P[j]) {
+			dist[P[j]] = ++k;
+			tmp[P[j]] = tmp[j] + C[P[j]];
+			if (tmp[P[j]] > max) max = tmp[P[j]];
+		}
+		if (k > K || tmp[j] + C[P[j]] <= tmp[P[j]]) {
+			if (max > ans) ans = max;
+			continue;
+		}
+		period = dist[j] - dist[P[j]] + 1;
+		loop = tmp[j] + C[P[j]] - tmp[P[j]];
+		j = P[j];
+		tmp[j] += loop * ((K - dist[j] + 1) / period);
+		if (tmp[j] > max) max = tmp[j];
+		for (k = j; P[j] != k; j = P[j]) {
+			tmp[P[j]] += loop * ((K - dist[P[j]] + 1) / period);
+			if (tmp[P[j]] > max) max = tmp[P[j]];
+		}
+		if (max > ans) ans = max;
+	}
+
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

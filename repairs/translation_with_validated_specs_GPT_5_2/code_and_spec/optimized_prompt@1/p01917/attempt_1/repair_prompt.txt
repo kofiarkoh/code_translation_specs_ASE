@@ -1,0 +1,113 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the minimum non-negative increase required to the first value of exactly one of three given sequences so that, after applying a rank-based scoring rule and summing scores from all three sequences, the first element’s total score is not strictly exceeded by more than seven other elements’ total scores. If no such increase is possible under the considered adjustments, reports that outcome.
+
+2. Inputs  
+- An integer count of elements.  
+- A list of integer score values indexed by a “number of strictly greater elements” count.  
+- Three sequences of integers, each of length equal to the element count.
+
+3. Outputs  
+- Either:
+  - A single non-negative integer representing the minimum required increase to the first element of one chosen sequence to satisfy the condition, or  
+  - A fixed message indicating no qualifying increase was found.
+
+4. Preconditions  
+- The element count is non-negative and does not exceed the fixed internal capacity (assumed ≤ 110).  
+- The score list is defined for all possible “strictly greater count” values from 0 up to element count − 1.  
+- All required integers are present in the input.  
+- Integer arithmetic used for comparisons and differences does not overflow (assumption).
+
+5. Postconditions  
+- If an integer is output, it is the minimum over all considered modifications of:
+  - choosing one of the three sequences, and
+  - increasing only its first element to match either another element in that same sequence or that value plus one (and strictly greater than the original first element),
+  such that in the resulting total-score ranking, at most seven elements have a strictly greater total score than the first element.  
+- If the fixed message is output, then no considered modification satisfies the “at most seven strictly greater” condition.
+
+6. Invariants  
+- For any sequence evaluation, each element’s derived score depends only on how many elements in that same sequence are strictly greater than it, mapped through the provided score list.  
+- Total score per element is the sum of the three derived scores (with one sequence possibly using a modified first element for evaluation).  
+- The first element’s original value in each sequence is restored after evaluating modifications for that sequence.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid or incomplete input; behavior is undefined if preconditions are violated.  
+- No explicit handling for arithmetic overflow.
+
+8. State Transitions (if applicable)  
+- Temporarily modifies the first element of one chosen sequence during evaluation of candidate increases, then restores it to its original value before moving to the next choice.  
+- Maintains a running best (minimum) required increase across all evaluated candidates.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small fixed maximum sizes (bounded by internal arrays).  
+- Deterministic: same input yields the same output.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define min(p,q)((p)<(q)?(p):(q))
+
+//自分より真に大きいのが7人以下
+//取る点としては、nかn+1だけを考慮すればよい
+
+int n;
+int s[110],t[110];
+int a[3][110],x[110];
+
+void f(int*p){
+	for(int i=0;i<n;i++){
+		int cnt=0;
+		for(int j=0;j<n;j++)if(p[j]>p[i])cnt++;
+		t[i]=x[cnt];
+	}
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%d",x+i);
+	for(int i=0;i<n;i++)scanf("%d%d%d",a[0]+i,a[1]+i,a[2]+i);
+	int ans=1000;
+	for(int k=0;k<3;k++){
+		for(int i=0;i<n;i++)s[i]=0;
+		for(int kk=0;kk<3;kk++)if(kk!=k){
+			f(a[kk]);
+			for(int i=0;i<n;i++)s[i]+=t[i];
+		}
+
+		int ori=a[k][0];
+		for(int i=1;i<n;i++){
+			for(int d=0;d<2;d++)if(a[k][i]+d>ori){
+				a[k][0]=a[k][i]+d;
+				f(a[k]);
+				int cnt=0;
+				for(int j=0;j<n;j++)if(s[j]+t[j]>s[0]+t[0])cnt++;
+				if(cnt<=7)ans=min(ans,a[k][0]-ori);
+			}
+		}
+		a[k][0]=ori;
+	}
+	if(ans==1000)puts("Saiko");
+	else printf("%d\n",ans);
+}
+=== C CODE END ===

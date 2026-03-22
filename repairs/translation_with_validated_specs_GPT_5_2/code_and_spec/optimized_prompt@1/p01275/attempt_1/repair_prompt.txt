@@ -1,0 +1,167 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, for each problem instance, the minimum number of allowed rotation operations required to transform an initial sequence of decimal digits into a target sequence of decimal digits, and outputs that minimum.
+
+2. Inputs  
+- Repeated problem instances, each consisting of:  
+  - An integer length `n` (terminates when `n` is zero).  
+  - Two digit sequences of length `n`, representing the initial and target states.
+
+3. Outputs  
+- For each non-terminating instance, outputs a single non-negative integer: the minimum number of operations needed to reach the target from the initial sequence under the allowed operation model.
+
+4. Preconditions  
+- `n` is within the supported fixed maximum length (assumed `1 <= n <= 10`).  
+- The two provided sequences each contain at least `n` characters.  
+- Each of the first `n` characters of both sequences is a decimal digit (`0`–`9`).  
+- The input stream is well-formed according to the above instance structure.
+
+5. Postconditions  
+- If the initial and target sequences are identical over the first `n` digits, the output is `0`.  
+- Otherwise, the output equals the minimum number of operations required to make all digit-wise differences (modulo 10) between initial and target become zero, where an operation is defined as:  
+  - Choose an index `p` (0-based) such that the current difference at `p` is non-zero.  
+  - Let `k` be that non-zero difference value (1–9).  
+  - Choose any index `i` with `p <= i < n`.  
+  - Apply a rotation that decreases the differences at all positions `j` in `[p, i]` by `k` modulo 10 (equivalently, adds `10 - k` modulo 10), making the difference at `p` become zero.  
+- The reported minimum is taken over all valid sequences of such operations.
+
+6. Invariants  
+- Throughout the computation for an instance, each position’s difference value is always in the range `0`–`9` (interpreted modulo 10).  
+- Any operation performed always makes the leftmost non-zero difference position become zero immediately after that operation.  
+- The accumulated operation count for any explored transformation path equals the number of operations applied along that path.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (e.g., non-digits, `n` exceeding the fixed capacity, missing data), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- For each instance, the state is the vector of digit-wise differences modulo 10.  
+- A transition consists of selecting the leftmost non-zero position `p` and an end index `i >= p`, then updating the difference vector by subtracting the value at `p` from all positions in `[p, i]` modulo 10, and incrementing the operation count by 1.  
+- A terminal state is reached when all differences are zero; the instance result is the minimum operation count among all terminal states reachable via valid transitions.
+
+9. Non-functional Constraints (if inferable)  
+- Supports only sequences up to a small fixed maximum length (assumed 10).  
+- Uses exhaustive exploration of possible operation choices; runtime may grow rapidly with `n` and the digit configuration, but is bounded by the small maximum length.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 2157
+  Title:
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+int n;
+int min_;
+
+find_not_zero(char *diff,int start)
+{
+  int i;
+  for(i=start;i<n;i++)
+    if(diff[i])
+      return(i);
+  return(-1);
+}
+
+is_zero(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    if(diff[i])
+      return(0);
+  return(-1);
+}
+
+
+void dump(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    printf("%d|",diff[i]);
+  printf("\n");
+}
+
+void rotate_count(char *diff,int acc)
+{
+  int i,cnt=0,pos,offs;
+  char diff2[10];
+
+  //dump(diff);
+  pos=0;
+  pos=find_not_zero(diff,pos);
+
+  if(pos==-1)
+    {
+      if(min_>acc)
+	min_=acc;
+      return;
+    }
+  offs=diff[pos];
+  memcpy(diff2,diff,10);
+  for(i=pos;i<n;i++)
+    {
+      diff2[i]=diff2[i]+10-offs;
+      diff2[i] %= 10;
+      rotate_count(diff2,acc+1);
+    }
+}
+
+void calc_diff(char *init,char *unlock,char *diff,int n)
+{
+  int i;
+  char d;
+
+  for(i=0;i<n;i++)
+    {
+      d = unlock[i]-init[i];
+      if(d<0)
+	d+=10;
+      diff[i]=d;
+    }
+}
+main()
+{
+  int i;
+
+  char d,count,st,nn;
+  char init[10],unlock[10],diff[10];
+
+  while(scanf("%d",&n) && n)
+    {    
+      scanf("%s %s",init,unlock);
+      if(0==memcmp(init,unlock,n))
+            printf("0\n");
+      else
+	{
+	  min_=99;
+	  calc_diff(init,unlock,diff,n);
+	  rotate_count(diff,0);
+	  printf("%d\n",min_);
+	}
+    }
+  return(0);
+}
+=== C CODE END ===

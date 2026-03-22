@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse two whitespace-delimited strings.
+    // If missing/malformed input, behavior is unspecified by the spec; we simply return.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let mut it = input.split_whitespace();
+    let a = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
+    let b = match it.next() {
+        Some(s) => s.as_bytes().to_vec(),
+        None => return,
+    };
+
+    let n = a.len();
+    let m = b.len();
+
+    // DP table: (n+1) x (m+1) lengths of LCS for prefixes.
+    // Memory proportional to product of lengths, as required.
+    let mut dp = vec![vec![0usize; m + 1]; n + 1];
+
+    for i in 0..n {
+        for j in 0..m {
+            if a[i] == b[j] {
+                dp[i + 1][j + 1] = dp[i][j] + 1;
+            } else {
+                let up = dp[i][j + 1];
+                let left = dp[i + 1][j];
+                dp[i + 1][j + 1] = if up >= left { up } else { left };
+            }
+        }
+    }
+
+    // Reconstruct one LCS deterministically.
+    // Tie-breaking rule (fixed internal choice):
+    // - If characters match, take the match and move diagonally.
+    // - Otherwise, move to the neighbor with the larger dp value.
+    // - If equal, prefer moving "up" (decrement i) over "left" (decrement j).
+    // This yields deterministic output for a given input pair.
+    let mut i = n;
+    let mut j = m;
+    let mut out_rev: Vec<u8> = Vec::with_capacity(dp[n][m]);
+
+    while i > 0 && j > 0 {
+        if a[i - 1] == b[j - 1] {
+            out_rev.push(a[i - 1]);
+            i -= 1;
+            j -= 1;
+        } else {
+            let up = dp[i - 1][j];
+            let left = dp[i][j - 1];
+            if up >= left {
+                i -= 1;
+            } else {
+                j -= 1;
+            }
+        }
+    }
+
+    out_rev.reverse();
+
+    // Output exactly the LCS characters, with no required terminator/separator.
+    // If LCS length is zero, output nothing.
+    let _ = io::stdout().write_all(&out_rev);
+}
+
+use std::io::Write;
+```

@@ -1,0 +1,35 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification provides no defined behavior for invalid input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed maximum capacity is 100,009; behavior is undefined if exceeded.
+    // We still allocate based on n to keep the program compilable and simple.
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Right-to-left pass; elements to the right are never modified.
+    // Each element may be decremented by at most 1, only when it is the left member
+    // of the currently examined adjacent pair.
+    if n >= 2 {
+        for i in (0..(n - 1)).rev() {
+            if a[i] > a[i + 1] {
+                a[i] -= 1;
+            }
+            if a[i] > a[i + 1] {
+                print!("No");
+                return;
+            }
+        }
+    }
+
+    print!("Yes");
+}

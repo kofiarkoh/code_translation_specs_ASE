@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Matches `int railroad[10] = {};` (zero-initialized).
+    let mut railroad = [0i32; 10];
+    let mut i: i32 = 0;
+
+    // Read entire stdin and parse whitespace-separated integers, like scanf("%d", ...).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    for tok in input.split_whitespace() {
+        // If parsing fails, C's scanf would stop; here we just stop as well.
+        let car: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if car == 0 {
+            // C code: i--; printf("%d\n", railroad[i]);
+            // Note: In C, underflow/out-of-bounds is undefined; we emulate the same
+            // indexing behavior by using wrapping arithmetic and unchecked indexing.
+            i = i.wrapping_sub(1);
+            let idx = i as usize;
+
+            // Use get_unchecked to avoid Rust bounds checks (C would not check).
+            // This is necessary to preserve C's potential UB behavior as closely as possible.
+            let val = unsafe { *railroad.get_unchecked(idx) };
+            print!("{}\n", val);
+        } else {
+            // C code: railroad[i] = car; i++;
+            let idx = i as usize;
+            unsafe {
+                *railroad.get_unchecked_mut(idx) = car;
+            }
+            i = i.wrapping_add(1);
+        }
+    }
+}

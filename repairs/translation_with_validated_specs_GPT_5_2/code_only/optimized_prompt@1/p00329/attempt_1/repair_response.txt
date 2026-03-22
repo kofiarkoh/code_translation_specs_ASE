@@ -1,0 +1,166 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 1005;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn gc(&mut self) -> u8 {
+        // C code assumes enough input; if not, getchar_unlocked() would return EOF (-1).
+        // Here we return 0 on EOF to avoid panic; AOJ inputs are well-formed.
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
+        }
+    }
+    fn in_nonneg(&mut self) -> i32 {
+        // Mirrors C's in(): reads a non-negative integer, assuming first char is a digit.
+        let mut n: i32 = 0;
+        let mut c = self.gc();
+        loop {
+            n = n * 10 + ((c & 0x0f) as i32);
+            c = self.gc();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn outs(s: &str, out: &mut String) {
+    out.push_str(s);
+    out.push('\n');
+}
+
+fn out_num(mut n: i64, out: &mut String) {
+    // C's out() prints positive integer; if n==0 it would print just '\n'.
+    if n == 0 {
+        out.push('\n');
+        return;
+    }
+    let mut buf = [0u8; 40];
+    let mut i = 0usize;
+    while n != 0 {
+        let d = (n % 10) as u8;
+        buf[i] = b'0' + d;
+        i += 1;
+        n /= 10;
+    }
+    while i > 0 {
+        i -= 1;
+        out.push(buf[i] as char);
+    }
+    out.push('\n');
+}
+
+fn bpm(
+    u: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    matchv: &mut [i32; MAX],
+    mark: i32,
+) -> bool {
+    seen[u] = mark;
+    for i in 0..hi[u] {
+        let v = to[u][i] as usize;
+        let w = matchv[v];
+        if w < 0 || (seen[w as usize] != mark && bpm(w as usize, hi, to, seen, matchv, mark)) {
+            matchv[v] = u as i32;
+            matchv[u] = v as i32;
+            return true;
+        }
+    }
+    false
+}
+
+fn bipartite_matching(
+    m: usize,
+    hi: &[usize; MAX],
+    to: &[[i32; MAX]; MAX],
+    seen: &mut [i32; MAX],
+    matchv: &mut [i32; MAX],
+    mark: &mut i32,
+) -> i32 {
+    for x in matchv.iter_mut() {
+        *x = -1;
+    }
+    let mut max = 0i32;
+    for u in 0..m {
+        if matchv[u] < 0 {
+            *mark += 1;
+            if bpm(u, hi, to, seen, matchv, *mark) {
+                max += 1;
+            }
+        }
+    }
+    max
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let mut hi = [0usize; MAX];
+    let mut to = [[0i32; MAX]; MAX];
+    let mut seen = [0i32; MAX];
+    let mut matchv = [-1i32; MAX];
+    let mut mark: i32 = 1;
+
+    let n_in = sc.in_nonneg();
+    let n = (n_in - 1) as usize;
+
+    for i in 0..n {
+        for j in 0..n {
+            let c1 = sc.gc();
+            if (c1 & 1) != 0 {
+                let idx = hi[j];
+                to[j][idx] = (n + i) as i32;
+                hi[j] += 1;
+            }
+            let _ = sc.gc(); // consume the second character (as in C)
+        }
+    }
+
+    let mut out = String::new();
+
+    if bipartite_matching(n, &hi, &to, &mut seen, &mut matchv, &mut mark) < n as i32 {
+        outs("no", &mut out);
+    } else {
+        outs("yes", &mut out);
+        for i in 0..n {
+            // match[match[i]] = -1; match[i] = -1;
+            let mi = matchv[i];
+            if mi >= 0 {
+                matchv[mi as usize] = -1;
+            }
+            matchv[i] = -1;
+
+            mark += 1;
+            let _ = bpm(i, &hi, &to, &mut seen, &mut matchv, mark);
+
+            // hi[i] = 0; to[i][hi[i]++] = match[i];
+            hi[i] = 0;
+            to[i][0] = matchv[i];
+            hi[i] = 1;
+
+            // out(match[i]-N+1);
+            let val = (matchv[i] as i64) - (n as i64) + 1;
+            out_num(val, &mut out);
+        }
+    }
+
+    print!("{out}");
+}
+```

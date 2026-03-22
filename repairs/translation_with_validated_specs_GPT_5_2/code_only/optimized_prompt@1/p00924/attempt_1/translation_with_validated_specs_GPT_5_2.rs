@@ -1,0 +1,87 @@
+use std::io::{self, Read};
+
+fn solve(bit: &mut [u8], runlen: &mut [i32], len: usize, runlenlen: usize, start: u8) -> i32 {
+    if len == 1 {
+        return 0;
+    }
+    if runlen[0] == 0 {
+        let next_start = if start == b'1' { b'0' } else { b'1' };
+        return solve(bit, &mut runlen[1..], len, runlenlen - 1, next_start);
+    }
+    if len == 2 {
+        if bit[0] == start {
+            return 0;
+        } else {
+            return 1;
+        }
+    } else if bit[0] == start {
+        runlen[0] -= 1;
+        return solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+    } else if start == b'0' {
+        // C uses strchr(bit,'0') on a non-NUL-terminated array; it relies on the fact
+        // that a matching char exists before any NUL. Here we emulate the intended
+        // behavior by searching within the current slice.
+        let pos = bit
+            .iter()
+            .position(|&c| c == b'0')
+            .expect("C code assumes a matching '0' exists");
+        runlen[0] -= 1;
+        bit[pos] = b'1';
+        return pos as i32 + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+    } else {
+        // start == '1'
+        let pos = bit
+            .iter()
+            .position(|&c| c == b'1')
+            .expect("C code assumes a matching '1' exists");
+        runlen[0] -= 1;
+        bit[pos] = b'0';
+        return pos as i32 + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+    }
+}
+
+fn main() {
+    // Tokenize like scanf with whitespace skipping.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut b = vec![0u8; n];
+    let mut c1: i32 = 0;
+    for i in 0..n {
+        let tok = it.next().unwrap();
+        let ch = tok.as_bytes()[0];
+        b[i] = ch;
+        if ch == b'1' {
+            c1 += 1;
+        }
+    }
+
+    let mut p = vec![0i32; m];
+    let mut ce: i32 = 0;
+    for i in 0..m {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        p[i] = v;
+        if (i & 1) == 0 {
+            ce += v;
+        }
+    }
+
+    let ret: i32;
+    if c1 * 2 == n as i32 {
+        let mut b1 = b.clone();
+        let mut p1 = p.clone();
+        let ret1 = solve(&mut b, &mut p, n, m, b'1');
+        let ret2 = solve(&mut b1, &mut p1, n, m, b'0');
+        ret = if ret1 < ret2 { ret1 } else { ret2 };
+    } else if ce == c1 {
+        ret = solve(&mut b, &mut p, n, m, b'1');
+    } else {
+        ret = solve(&mut b, &mut p, n, m, b'0');
+    }
+
+    print!("{}\n", ret);
+}

@@ -1,0 +1,109 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+const INF: i32 = 1000;
+
+#[derive(Clone, Copy)]
+struct Action {
+    reduction: i32, // a[i] (positive)
+    gain: i32,      // e[i] (nonnegative)
+    req: i32,       // r[i] (nonnegative)
+}
+
+fn search(
+    t: i32,
+    k: usize,
+    actions: &[Action],
+    memo: &mut [[i32; 101]; 101],
+) -> i32 {
+    if t <= 0 {
+        return 0;
+    }
+    // Spec precondition: t is within 0..=100; behavior outside is undefined.
+    let t_usize = t as usize;
+
+    // C memo encoding:
+    // 0 => uncomputed
+    // >0 => stored value is (ret + 1)
+    if memo[t_usize][k] > 0 {
+        return memo[t_usize][k] - 1;
+    }
+
+    let mut ret = INF;
+    // Mark as "in progress" with INF+1 (matches C; not strictly needed for acyclic t,
+    // but preserves semantics).
+    memo[t_usize][k] = INF + 1;
+
+    for &act in actions {
+        if (k as i32) >= act.req {
+            let mut next_k = (k as i32) + act.gain;
+            if next_k > 100 {
+                next_k = 100;
+            }
+            let candidate = search(t - act.reduction, next_k as usize, actions, memo) + 1;
+            if candidate < ret {
+                ret = candidate;
+            }
+        }
+    }
+
+    memo[t_usize][k] = ret + 1;
+    ret
+}
+
+fn main() {
+    // Read entire stdin; parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let d_opt = it.next();
+        let n_opt = it.next();
+        if d_opt.is_none() || n_opt.is_none() {
+            break; // no more complete datasets
+        }
+        let d: i32 = d_opt.unwrap().parse().unwrap();
+        let n: usize = n_opt.unwrap().parse().unwrap();
+
+        if d == 0 && n == 0 {
+            break;
+        }
+
+        let mut actions = Vec::with_capacity(n);
+        for _ in 0..n {
+            let a = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1), // incomplete/malformed dataset
+            };
+            let e = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1),
+            };
+            let r = match it.next() {
+                Some(v) => v.parse::<i32>().unwrap(),
+                None => process::exit(1),
+            };
+            actions.push(Action {
+                reduction: a,
+                gain: e,
+                req: r,
+            });
+        }
+
+        let mut memo = [[0i32; 101]; 101];
+        let ret = search(d, 0, &actions, &mut memo);
+
+        if ret == INF {
+            out.push_str("NA\n");
+        } else {
+            out.push_str(&format!("{ret}\n"));
+        }
+    }
+
+    print!("{out}");
+}
+```

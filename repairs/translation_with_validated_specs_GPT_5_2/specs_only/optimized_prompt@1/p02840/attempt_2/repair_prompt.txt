@@ -1,0 +1,174 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02840/p02840_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02840/p02840_sample1_output.txt
+Input:
+10 5 3
+Expected:
+160
+Actual:
+150
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::{max, min};
+use std::collections::BTreeMap;
+use std::io::{self, Read};
+
+fn floor_div(a: i64, b: i64) -> i64 {
+    // b must be > 0
+    let mut q = a / b;
+    let r = a % b;
+    if r != 0 && ((r > 0) != (b > 0)) {
+        q -= 1;
+    }
+    q
+}
+
+fn ceil_div(a: i64, b: i64) -> i64 {
+    // b must be > 0
+    let mut q = a / b;
+    let r = a % b;
+    if r != 0 && ((r > 0) == (b > 0)) {
+        q += 1;
+    }
+    q
+}
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let x: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+
+    // Special cases per specification
+    if x == 0 && d == 0 {
+        println!("1");
+        return;
+    }
+    if d == 0 {
+        // Possible sums are kX for k=0..N; distinct count is N+1
+        println!("{}", n + 1);
+        return;
+    }
+    if x == 0 {
+        // Distinct sums are D * t where t is sum of distinct indices; t ranges 0..N(N-1)/2
+        let nn = n as i128;
+        let ans = (nn * (nn - 1) / 2 + 1) as i128;
+        println!("{}", ans);
+        return;
+    }
+
+    // General case:
+    // Any subset of size m has sum:
+    //   m*X + D * (sum of chosen indices)
+    // Let s be sum of indices; for fixed m, s ranges over an interval [L(m), R(m)] with step 1:
+    //   L(m) = m(m-1)/2
+    //   R(m) = m(2N - m - 1)/2
+    // Then sums for fixed m are:
+    //   m*X + D*s = D*(s + m*(X/D)) + m*(X%D)
+    // We group by r = m*(X mod D) mod D, and count distinct values of q = s + m*floor(X/D)
+    // across all m with same r, where q ranges over an interval.
+    //
+    // To make modulo behavior well-defined and consistent, normalize D to be positive.
+    let mut dd = d;
+    let mut xx = x;
+    if dd < 0 {
+        dd = -dd;
+        xx = -xx;
+    }
+
+    // Euclidean division: xx = a*dd + b, with 0 <= b < dd
+    let a = floor_div(xx, dd);
+    let b = xx - a * dd; // in [0, dd)
+
+    // Map remainder r -> list of intervals [l, r] in q-space (inclusive)
+    let mut mp: BTreeMap<i64, Vec<(i64, i64)>> = BTreeMap::new();
+
+    for m in 0..=n {
+        // Compute L(m), R(m) in i128 to avoid intermediate overflow (precondition says no overflow overall)
+        let mm = m as i128;
+        let nn = n as i128;
+
+        let l_s = (mm * (mm - 1)) / 2;
+        let r_s = (mm * (2 * nn - mm - 1)) / 2;
+
+        // q = s + m*a, so interval shifts by m*a
+        let shift = (m as i128) * (a as i128);
+        let l_q = l_s + shift;
+        let r_q = r_s + shift;
+
+        // remainder class r = (m*b) mod dd
+        let r = if dd == 0 {
+            0
+        } else {
+            // b in [0,dd), m>=0, so product non-negative; use i128 then mod
+            let prod = (m as i128) * (b as i128);
+            (prod % (dd as i128)) as i64
+        };
+
+        mp.entry(r)
+            .or_default()
+            .push((l_q as i64, r_q as i64));
+    }
+
+    // For each remainder class, merge intervals and sum their lengths
+    let mut ans: i128 = 0;
+    for (_r, mut intervals) in mp {
+        intervals.sort_by(|(l1, r1), (l2, r2)| l1.cmp(l2).then(r1.cmp(r2)));
+
+        let mut cur_l: i64 = 0;
+        let mut cur_r: i64 = -1;
+        let mut first = true;
+
+        for (l, r) in intervals {
+            if first {
+                cur_l = l;
+                cur_r = r;
+                first = false;
+                continue;
+            }
+            if l <= cur_r + 1 {
+                cur_r = max(cur_r, r);
+            } else {
+                ans += (cur_r as i128) - (cur_l as i128) + 1;
+                cur_l = l;
+                cur_r = r;
+            }
+        }
+        if !first {
+            ans += (cur_r as i128) - (cur_l as i128) + 1;
+        }
+    }
+
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

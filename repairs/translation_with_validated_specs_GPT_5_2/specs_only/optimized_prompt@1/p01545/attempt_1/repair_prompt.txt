@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes a single integer value derived from a sequence of `n` integers in the range `1..n`. The computed value equals the total sum of `1..n` minus the maximum achievable sum of a strictly increasing subsequence formed from the given sequence (where the subsequence’s score is the sum of its selected values).
+
+2. Inputs  
+- An integer `n` (sequence length).  
+- A sequence of `n` integers, each intended to represent a value in `1..n`.
+
+3. Outputs  
+- One signed 64-bit integer:  
+  `sum(1..n) - maxSumIncreasingSubsequence`,  
+  where `maxSumIncreasingSubsequence` is the maximum possible sum of values from a subsequence whose values are strictly increasing.
+
+4. Preconditions  
+- `n` is non-negative and small enough that `sum(1..n)` fits in signed 64-bit range.  
+- Exactly `n` integers are provided after `n`.  
+- Each sequence value `x` satisfies `1 <= x <= n`.  
+- Input is well-formed as non-negative decimal integers separated by non-digit delimiters.
+
+5. Postconditions  
+- The output equals:  
+  - `S = n(n+1)/2`, minus  
+  - `M`, the maximum over all subsequences of the input whose values are strictly increasing, of the sum of the values in that subsequence.  
+- If no valid increasing subsequence exists under the preconditions (e.g., `n = 0`), `M` is treated as `0`, and the output is `0`.
+
+6. Invariants  
+- For every value `v` in `1..n`, an internal stored value represents the maximum sum of a strictly increasing subsequence that ends with value exactly `v`, considering the processed prefix of the input.  
+- The maximum over any value interval can be obtained consistently from the internal state and reflects the processed prefix only.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., out-of-range values, insufficient input, malformed input, or `n` exceeding internal capacity), behavior is undefined and may include incorrect results or memory errors.
+
+8. State Transitions (if applicable)  
+- After reading each input value `x`, the internal state is updated so that the best subsequence-sum ending at `x` becomes `x + (maximum best subsequence-sum ending at any value in 1..x-1)`.  
+- After all `n` values are processed, the final result is computed from the internal state and emitted; no further state is preserved.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is `O(n log n)` with respect to `n`.  
+- Memory usage is `O(n)` (bounded by a fixed internal capacity sufficient for `n` up to a specific limit implied by the allocated storage).
+```

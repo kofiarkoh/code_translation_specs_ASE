@@ -1,0 +1,32 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; C code uses gets() which reads a line up to newline.
+    // We take the first line (without the trailing newline), matching the intended behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let line = input.lines().next().unwrap_or("");
+
+    // Fixed-size run counts for byte values 0..=255, like `char c[256]` in C.
+    // Note: The C code indexes by `c[B[i]]` where B is a byte string; this is byte-based.
+    let mut counts = [0u32; 256];
+
+    let bytes = line.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if i == 0 || b != bytes[i - 1] {
+            counts[b as usize] += 1;
+        }
+    }
+
+    let out = if counts[b'o' as usize] < counts[b'x' as usize] {
+        "x"
+    } else {
+        "o"
+    };
+
+    // Exactly one line with a single character.
+    println!("{out}");
+}
+```

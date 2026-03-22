@@ -1,0 +1,18 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+
+    let mut it = input.split_whitespace();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    // Per spec, overflow/underflow is undefined; use normal i32 arithmetic.
+    let expr = a - 2 * b;
+    let out = if expr > 0 { expr } else { 0 };
+
+    // Match C output formatting: no trailing newline.
+    print!("{out}");
+}

@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the sum of all integers in the inclusive range from 1 to a given upper bound whose decimal digit-sum (considering up to the five least significant decimal digits) lies within a given inclusive range, and outputs that total.
+
+2. Inputs  
+- An integer upper bound.  
+- Two integers defining an inclusive lower and upper bound for an acceptable digit-sum range.
+
+3. Outputs  
+- A single integer: the total sum of all integers between 1 and the upper bound (inclusive) whose computed digit-sum is within the specified digit-sum range (inclusive).
+
+4. Preconditions  
+- All three input integers are provided and are representable in the integer type used by the program.  
+- The computed total sum fits within the integer type used by the program (no overflow).  
+- Assumption: The intended domain is such that considering only the five least significant decimal digits is sufficient (e.g., the upper bound does not exceed 99,999), otherwise the digit-sum used by the program ignores higher-order digits.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \sum_{i=1}^{N} i \quad \text{for all } i \text{ such that } A \le \text{digitSum5}(i) \le B
+  \]
+  where digitSum5(i) is the sum of the five least significant decimal digits of i (missing higher digits treated as 0).
+
+6. Invariants  
+- The accumulated total at any point equals the sum of all previously considered integers in the range starting at 1 that satisfy the digit-sum condition.  
+- Only integers within the inclusive range from 1 to the provided upper bound are ever considered for inclusion.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input. If inputs are not successfully provided, behavior is unspecified.  
+- No protection against integer overflow; if overflow occurs, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state beyond the execution of the program. The only state change is the accumulation of the running total during execution, culminating in a single output.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows linearly with the upper bound (one pass over the range).  
+- Uses constant additional memory.
+```

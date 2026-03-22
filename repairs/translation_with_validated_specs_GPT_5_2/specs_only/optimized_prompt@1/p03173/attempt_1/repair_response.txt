@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<i32>().unwrap() as usize,
+        None => return, // Unspecified behavior if missing; just exit.
+    };
+
+    // 1-indexed arrays to match the specification.
+    let mut a = vec![0i64; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse::<i32>().unwrap() as i64;
+    }
+
+    if n <= 1 {
+        println!("0");
+        return;
+    }
+
+    // Prefix sums: ps[i] = sum_{1..i} a[i]
+    let mut ps = vec![0i64; n + 1];
+    for i in 1..=n {
+        ps[i] = ps[i - 1] + a[i];
+    }
+
+    let sum_lr = |l: usize, r: usize, ps: &Vec<i64>| -> i64 { ps[r] - ps[l - 1] };
+
+    // DP: cost[l][r] for 1 <= l <= r <= n
+    // Use i64; specification guarantees representable in signed 64-bit.
+    let mut dp = vec![vec![0i64; n + 1]; n + 1];
+
+    // Length from 2 to n
+    for len in 2..=n {
+        for l in 1..=n - len + 1 {
+            let r = l + len - 1;
+            let interval_sum = sum_lr(l, r, &ps);
+
+            // Initialize with a large value; avoid overflow by using a conservative bound.
+            let mut best = i64::MAX / 4;
+
+            // Split point k: l < k <= r, meaning [l..k-1] and [k..r]
+            for k in (l + 1)..=r {
+                let cand = dp[l][k - 1] + dp[k][r] + interval_sum;
+                if cand < best {
+                    best = cand;
+                }
+            }
+            dp[l][r] = best;
+        }
+    }
+
+    println!("{}", dp[1][n]);
+}
+```

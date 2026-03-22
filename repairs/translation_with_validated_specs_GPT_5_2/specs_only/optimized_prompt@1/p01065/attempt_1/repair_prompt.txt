@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum total reward obtainable by processing a sequence of items using dynamic programming. For each item, exactly one of three choices may be applied: do nothing, apply a “trade” choice that consumes some of a limited resource and decreases an internal balance index, or apply a “reward” choice that increases the internal balance index and adds reward. The reported result is the maximum reward among all plans whose total consumed resource does not exceed the given limit and whose final balance index satisfies a bound derived from the input.
+
+2. Inputs  
+- An integer `n`: number of items.  
+- Two integers `x` and `y`:  
+  - `x` is the maximum allowed total resource consumption.  
+  - `y` is a parameter used to constrain the final balance index (see “Balance representation and final constraint”).  
+- For each of the `n` items, four non-negative integers `a, b, c, d` describing the available choices for that item:  
+  - Trade choice: consumes `a` units of resource and decreases the balance index by `b`.  
+  - Reward choice: increases the balance index by `c` and increases total reward by `d`.
+
+3. Outputs  
+- A single integer: the maximum total reward achievable under the program’s feasibility rules. If no feasible plan yields a positive reward, the output is `0`.
+
+4. Balance representation and final constraint  
+- The program tracks a “balance” as an **index** `k` in a fixed range `0..600`, with an internal baseline offset `BASE = 300`.  
+- The initial balance index is `k = BASE` (i.e., `300`).  
+- After all items are processed, a plan is considered acceptable only if its final balance index `k` satisfies:  
+  - `k <= BASE + y` (equivalently, `y + 300 >= k`).  
+  This is an **upper bound** on the final balance index in the program’s representation (not a lower bound).
+
+5. State and transitions  
+- State is defined by:  
+  - how many items have been processed (`i` from `0` to `n`),  
+  - total resource consumed so far (`j`),  
+  - current balance index (`k`).  
+- The DP value for a state is the maximum total reward achievable for that state; unreachable states are treated as invalid.  
+- For each item `i` with parameters `a, b, c, d`, from any reachable state `(i, j, k)` the program considers:  
+  1) No-op: `(i+1, j, k)` with the same reward.  
+  2) Trade: allowed only if `j + a <= x`; transitions to `(i+1, j+a, k-b)` with the same reward.  
+  3) Reward: transitions to `(i+1, j, k+c)` with reward increased by `d`.  
+- The program assumes all accessed balance indices remain within the representable index range `0..600`; it does not perform explicit bounds checks for `k-b` or `k+c`.
+
+6. Result selection  
+- After processing all `n` items, the program takes the maximum DP reward over all states with:  
+  - `0 <= j <= x`, and  
+  - `0 <= k <= 600` and `k <= BASE + y`.  
+- The printed answer is that maximum, or `0` if all acceptable states have non-positive reward (the DP is initialized so that `0` is always achievable via all no-ops).
+
+7. Preconditions / constraints implied by the program  
+- `n` must be at most `100`.  
+- `x` must be at most `300` to fit the DP’s resource dimension.  
+- Inputs should be such that every balance index reached by any considered transition stays within `0..600`; otherwise behavior is undefined (out-of-bounds access).  
+- All inputs are expected to be non-negative integers in the required quantity; malformed or missing input leads to undefined behavior.
+
+8. Error handling / exceptional behavior  
+- No explicit error handling is performed. If inputs violate the implied bounds above, the program may produce incorrect results or exhibit undefined behavior.
+```

@@ -1,0 +1,144 @@
+use std::io::{self, Read};
+
+const PRIME: i64 = 10_000_000_019;
+
+fn llswap(a: &mut i64, b: &mut i64) {
+    let c = *a;
+    *a = *b;
+    *b = c;
+}
+
+fn llsankaku(x: i64) -> i64 {
+    ((1 + x) * x) / 2
+}
+
+fn calcul(mut p: i64, mut q: i64, mut z: i64, out_r: &mut i64, out_b: &mut i64) -> i64 {
+    let mut swapped = false;
+    let mut cnt: i64 = 0;
+    *out_r = 0;
+    *out_b = 0;
+
+    if p < q {
+        swapped = true;
+        llswap(&mut p, &mut q);
+    }
+
+    let mut i: i64 = 0;
+    while z >= 0 {
+        let w = z / q;
+        cnt += w + 1;
+        *out_r += i * (w + 1);
+        *out_b += llsankaku(w);
+        z -= p;
+        i += 1;
+    }
+
+    if swapped {
+        llswap(out_r, out_b);
+    }
+    cnt
+}
+
+fn calc(p: i64, q: i64, k: i64, out_r: &mut i64, out_b: &mut i64) {
+    let mut st: i64 = 0;
+    let mut fi: i64 = PRIME * 2000;
+    while st <= fi {
+        let te = (st + fi) / 2;
+        let c = calcul(p, q, te, out_r, out_b);
+        if c == k {
+            break;
+        }
+        if c < k {
+            st = te + 1;
+        }
+        if c > k {
+            fi = te - 1;
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Point {
+    xz: i64,
+    yz: i64,
+}
+
+fn vector_minus(a: Point, b: Point) -> Point {
+    Point {
+        xz: a.xz - b.xz,
+        yz: a.yz - b.yz,
+    }
+}
+
+fn crossproduct(a: Point, b: Point) -> i64 {
+    a.xz * b.yz - a.yz * b.xz
+}
+
+fn ispossible(r: i64, b: i64, k: i64) -> bool {
+    let mut st: i64 = 1;
+    let mut fi: i64 = PRIME - 1;
+
+    let mut zr: i64 = 0;
+    let mut zb: i64 = 0;
+
+    // These are intentionally left uninitialized in the C code until set by branches.
+    // We mirror that behavior by keeping them as locals that will be assigned before use
+    // under the program's assumed control-flow/monotonicity conditions.
+    let mut fr: i64 = 0;
+    let mut fb: i64 = 0;
+    let mut sr: i64 = 0;
+    let mut sb: i64 = 0;
+
+    while st <= fi {
+        let te = (st + fi) / 2;
+        calc(te, PRIME - te, k, &mut zr, &mut zb);
+
+        if zr <= r && zb <= b {
+            return true;
+        }
+        if zr > r && zb > b {
+            return false;
+        }
+        if zr > r {
+            st = te + 1;
+            sr = zr;
+            sb = zb;
+        } else {
+            fi = te - 1;
+            fr = zr;
+            fb = zb;
+        }
+    }
+
+    // Is (r,b) on/above the directed line through (fr,fb)->(sr,sb)?
+    let tg = Point { xz: r, yz: b };
+    let l1 = Point { xz: fr, yz: fb };
+    let l2 = Point { xz: sr, yz: sb };
+    crossproduct(vector_minus(l2, l1), vector_minus(tg, l1)) >= 0
+}
+
+fn solve(r: i64, b: i64) -> i64 {
+    let mut st: i64 = 0;
+    let mut fi: i64 = 2_222_222;
+    while st <= fi {
+        let te = (st + fi) / 2;
+        if ispossible(r, b, te) {
+            st = te + 1;
+        } else {
+            fi = te - 1;
+        }
+    }
+    fi
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let r: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // -1 : empty box
+    let ans = solve(r, b) - 1;
+    print!("{ans}\n");
+}

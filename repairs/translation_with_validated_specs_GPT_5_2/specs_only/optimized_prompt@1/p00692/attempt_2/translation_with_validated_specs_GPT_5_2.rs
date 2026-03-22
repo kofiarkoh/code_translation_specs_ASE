@@ -1,0 +1,101 @@
+use std::io::{self, Read};
+
+fn dfs(cards: &[u8; 20], len: usize, depth: usize, best: &mut usize) {
+    if depth > *best {
+        *best = depth;
+    }
+
+    for i in 0..len {
+        let v = cards[i];
+
+        // Helper to try a removal of (i, j) if valid.
+        let mut try_remove = |j: usize| {
+            if j < len && cards[j] == v {
+                let mut next = *cards;
+                let mut k = 0usize;
+                for idx in 0..len {
+                    if idx != i && idx != j {
+                        next[k] = cards[idx];
+                        k += 1;
+                    }
+                }
+                dfs(&next, len - 2, depth + 1, best);
+            }
+        };
+
+        // Right neighbor: j = i + 1 and i % 4 < 3
+        if i % 4 < 3 {
+            try_remove(i + 1);
+        }
+        // Down neighbor: j = i + 4 and i < 16
+        if i < 16 {
+            try_remove(i + 4);
+        }
+        // Down-right neighbor: j = i + 5 and i < 16 and i % 4 < 3
+        if i < 16 && i % 4 < 3 {
+            try_remove(i + 5);
+        }
+        // Down-left neighbor: j = i + 3 and i < 16 and i % 4 > 0
+        if i < 16 && i % 4 > 0 {
+            try_remove(i + 3);
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // The spec says each card is a single digit character '0'..'9' and no validation is done.
+    // Inputs may be provided without whitespace between digits, so we must read digit characters
+    // directly rather than relying on split_whitespace().
+    let mut bytes = input.bytes();
+
+    // Parse n as an integer from the byte stream (skipping non-digits).
+    let mut n: usize = 0;
+    loop {
+        match bytes.next() {
+            None => return, // unspecified input; exit quietly
+            Some(b) if b.is_ascii_digit() => {
+                n = (b - b'0') as usize;
+                while let Some(b2) = bytes.next() {
+                    if b2.is_ascii_digit() {
+                        n = n * 10 + (b2 - b'0') as usize;
+                    } else {
+                        break;
+                    }
+                }
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    let mut out = String::new();
+
+    for case_idx in 0..n {
+        let mut cards = [0u8; 20];
+        for i in 0..20 {
+            // Find next digit character; behavior is unspecified if missing.
+            let d = loop {
+                match bytes.next() {
+                    Some(b) if b.is_ascii_digit() => break b,
+                    Some(_) => continue,
+                    None => break b'0', // narrow fallback to keep program running on malformed input
+                }
+            };
+            cards[i] = d.wrapping_sub(b'0');
+        }
+
+        let mut best = 0usize;
+        dfs(&cards, 20, 0, &mut best);
+        let remaining = 20usize - 2usize * best;
+
+        out.push_str(&remaining.to_string());
+        if case_idx + 1 < n {
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}

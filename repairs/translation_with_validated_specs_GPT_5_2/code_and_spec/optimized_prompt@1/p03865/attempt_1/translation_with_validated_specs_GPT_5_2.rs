@@ -1,0 +1,37 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-size buffer as in the C code.
+    let mut buf = [0u8; 114_514];
+
+    // The spec requires a single unbuffered read and no explicit error handling.
+    // In C, read() may return -1; here we approximate by treating any read error
+    // as yielding 0 bytes (which leads to undefined behavior per spec anyway).
+    let l: usize = match io::stdin().read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => 0,
+    };
+
+    // C semantics:
+    // n = L; n--; then uses buf[0] and buf[n-1] (i.e., buf[L-2]).
+    // If L < 2, behavior is undefined in C; in Rust we must avoid OOB,
+    // so we mimic "no explicit error handling" by producing an arbitrary
+    // but deterministic result without panicking.
+    if l < 2 {
+        // Undefined behavior case per spec; choose an arbitrary output.
+        print!("Second\n");
+        return;
+    }
+
+    let n = l - 1;
+    let eq: usize = if buf[0] == buf[n - 1] { 1 } else { 0 };
+
+    // Preserve C operator precedence: (n + eq) & 1
+    let cond = (n + eq) & 1;
+
+    if cond != 0 {
+        print!("First\n");
+    } else {
+        print!("Second\n");
+    }
+}

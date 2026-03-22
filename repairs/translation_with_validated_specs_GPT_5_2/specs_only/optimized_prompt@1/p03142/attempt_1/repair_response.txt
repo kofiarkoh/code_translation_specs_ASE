@@ -1,0 +1,132 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+use std::process;
+
+const MAX_NODES: usize = 200_000;
+const MAX_EDGES: usize = 400_000;
+
+// Specific non-zero exit status for allocation failure (chosen as a stable, explicit value).
+const EXIT_ALLOC_FAIL: i32 = 2;
+// Non-zero exit status for input read/parse failure.
+const EXIT_INPUT_FAIL: i32 = 1;
+
+fn main() {
+    // Read entire stdin; if this fails, terminate early with non-zero status.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(EXIT_INPUT_FAIL);
+    }
+
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+        Some(v) => v,
+        None => process::exit(EXIT_INPUT_FAIL),
+    };
+    let extra: isize = match it.next().and_then(|s| s.parse::<isize>().ok()) {
+        Some(v) => v,
+        None => process::exit(EXIT_INPUT_FAIL),
+    };
+
+    // Total edges = (n - 1 + extra). Specification says this is non-negative.
+    // If n == 0, preconditions are violated; we keep behavior narrow and just treat as input failure.
+    if n == 0 {
+        process::exit(EXIT_INPUT_FAIL);
+    }
+    let base = (n - 1) as isize;
+    let m_isize = base.saturating_add(extra);
+    if m_isize < 0 {
+        process::exit(EXIT_INPUT_FAIL);
+    }
+    let m: usize = m_isize as usize;
+
+    // Enforce fixed internal capacities as per non-functional constraints.
+    if n > MAX_NODES || m > MAX_EDGES {
+        // Specification does not define behavior for capacity violations; choose narrow behavior:
+        // terminate early with non-zero status and no further guaranteed output.
+        process::exit(EXIT_INPUT_FAIL);
+    }
+
+    // Allocate storage. If allocation fails, terminate immediately with a specific non-zero status.
+    // In Rust, allocation failure typically aborts; we attempt to use fallible allocations where possible.
+    let mut out_adj: Vec<Vec<usize>> = match Vec::try_with_capacity(n + 1) {
+        Ok(v) => v,
+        Err(_) => process::exit(EXIT_ALLOC_FAIL),
+    };
+    out_adj.resize_with(n + 1, Vec::new);
+
+    let mut indeg: Vec<u32> = match Vec::try_with_capacity(n + 1) {
+        Ok(v) => v,
+        Err(_) => process::exit(EXIT_ALLOC_FAIL),
+    };
+    indeg.resize(n + 1, 0);
+
+    // Read exactly m edges; if not fully readable, terminate early with non-zero status.
+    for _ in 0..m {
+        let u: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
+            None => process::exit(EXIT_INPUT_FAIL),
+        };
+        let v: usize = match it.next().and_then(|s| s.parse::<usize>().ok()) {
+            Some(v) => v,
+            None => process::exit(EXIT_INPUT_FAIL),
+        };
+
+        // No validation for out-of-range node numbers; behavior is undefined if violated.
+        // We still must avoid panics to keep behavior closer to "undefined" rather than "guaranteed crash".
+        // If out of range, we exit early (narrowest safe behavior).
+        if u > n || v > n || u == 0 || v == 0 {
+            process::exit(EXIT_INPUT_FAIL);
+        }
+
+        // Store outgoing adjacency and update indegree.
+        // Use wrapping add to emulate non-increasing invariant and avoid panic on overflow;
+        // preconditions imply counts fit, but this preserves C-like behavior if violated.
+        out_adj[u].push(v);
+        indeg[v] = indeg[v].wrapping_add(1);
+    }
+
+    // Trigger predecessor for each node; 0 means none recorded.
+    let mut trigger: Vec<usize> = match Vec::try_with_capacity(n + 1) {
+        Ok(v) => v,
+        Err(_) => process::exit(EXIT_ALLOC_FAIL),
+    };
+    trigger.resize(n + 1, 0);
+
+    // Frontier initialized with nodes that are initially incoming-free.
+    let mut q: VecDeque<usize> = VecDeque::new();
+    for v in 1..=n {
+        if indeg[v] == 0 {
+            q.push_back(v);
+        }
+    }
+
+    // Iterative removal process.
+    while let Some(u) = q.pop_front() {
+        // Apply outgoing edges: decrement indegree of targets; when it reaches zero, record trigger and enqueue.
+        for &v in &out_adj[u] {
+            // Decrement without underflow panics; if indeg is already 0 (preconditions violated),
+            // wrapping_sub emulates low-level behavior.
+            let new_deg = indeg[v].wrapping_sub(1);
+            indeg[v] = new_deg;
+
+            if new_deg == 0 {
+                // Record trigger only when node becomes newly incoming-free due to processing of a predecessor.
+                // Once recorded, never changed; each node enqueued exactly when it reaches zero.
+                if trigger[v] == 0 {
+                    trigger[v] = u;
+                }
+                q.push_back(v);
+            }
+        }
+    }
+
+    // Output trigger for each node in increasing order, one per line.
+    let mut out = String::new();
+    for v in 1..=n {
+        out.push_str(&format!("{}\n", trigger[v]));
+    }
+    print!("{out}");
+}
+```

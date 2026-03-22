@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo \(998244353\), a cumulative count derived from subsequences of the input array whose element-sums are tracked up to a target \(s\).
+
+The program maintains two related quantities for each prefix ending at index \(i\) and each sum \(j \in [0,s]\):
+
+- \(dp0(i,j)\): a count of “sum-\(j\) subsequence constructions” available after processing elements \(A[0..i]\). These constructions are formed by:
+  - carrying forward all constructions from the previous prefix,
+  - optionally appending \(A[i]\) to any previously available construction (when the resulting sum does not exceed \(s\)),
+  - and additionally injecting new base contributions at every index \(i\): one contribution to sum \(0\), and (if \(A[i]\le s\)) one contribution to sum \(A[i]\).
+
+- \(dp1(i,j)\): the prefix-accumulated total of \(dp0\) over indices, defined as
+  \[
+  dp1(i,j) = \sum_{k=0}^{i} dp0(k,j) \pmod{998244353}.
+  \]
+
+The final output is \(dp1(n-1, s)\), i.e., the sum (over all prefix endpoints) of the number of sum-\(s\) constructions available at that endpoint, reduced modulo \(998244353\).
+
+This is not merely the number of subsequences with sum \(s\); it is an index-accumulated total that counts the sum-\(s\) constructions repeatedly across prefixes according to the above recurrence, including the per-index base injections.
+
+2. Inputs  
+- Integer \(n\): number of elements.  
+- Integer \(s\): target sum bound.  
+- A sequence \(A[0..n-1]\) of \(n\) integers.
+
+3. Outputs  
+- A single integer: \(dp1(n-1,s)\) modulo \(998244353\), as defined above.
+
+4. Preconditions / Assumptions  
+- \(n \ge 1\).  
+- \(s \ge 0\).  
+- All input values are present and parse as integers.  
+- Each \(A[i]\) is assumed to be non-negative; otherwise the program’s sum-indexing logic may access invalid indices (undefined behavior).  
+- Sufficient memory is available for storage proportional to \(n \cdot (s+1)\).
+
+5. State Transition / Counting Rules (Semantics)  
+Let \(mod = 998244353\). For all \(i\) and \(j\), all counts are taken modulo \(mod\). Only sums \(j\in[0,s]\) are represented; any transition that would create a sum \(>s\) is ignored.
+
+Initialization (at \(i=0\)):  
+- \(dp0(0,0)=1\) and \(dp1(0,0)=1\).  
+- If \(A[0]\le s\), then \(dp0(0,A[0])=1\) and \(dp1(0,A[0])=1\).  
+- All other \(dp0(0,j)\) and \(dp1(0,j)\) are \(0\).
+
+For each \(i=1..n-1\):  
+- Start from the previous \(dp0\) and extend by optionally adding \(A[i]\):
+  \[
+  dp0(i,j) \mathrel{+}= dp0(i-1,j)
+  \]
+  \[
+  \text{if } j + A[i] \le s,\quad dp0(i, j + A[i]) \mathrel{+}= dp0(i-1,j)
+  \]
+- Inject base contributions at every index:
+  \[
+  dp0(i,0) \mathrel{+}= 1
+  \]
+  \[
+  \text{if } A[i]\le s,\quad dp0(i,A[i]) \mathrel{+}= 1
+  \]
+- Accumulate across indices:
+  \[
+  dp1(i,j) = dp1(i-1,j) + dp0(i,j)
+  \]
+
+6. Termination / I/O Behavior  
+- Reads \(n\), \(s\), then \(n\) integers.  
+- Prints exactly one integer followed by a newline.  
+- No explicit error handling is performed; if preconditions are violated, behavior is undefined.
+```

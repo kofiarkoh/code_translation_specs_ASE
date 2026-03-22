@@ -1,0 +1,206 @@
+use std::io::{self, Read};
+
+const MAXQ: usize = 5000;
+
+#[derive(Copy, Clone, Default)]
+struct Que {
+    t: i32,
+    k: i32,
+    c: i32,
+}
+
+static mut QUE: [Que; MAXQ] = [Que { t: 0, k: 0, c: 0 }; MAXQ];
+static mut QSIZE: usize = 0;
+
+#[inline]
+fn parent(i: usize) -> usize {
+    i >> 1
+}
+#[inline]
+fn left(i: usize) -> usize {
+    i << 1
+}
+#[inline]
+fn right(i: usize) -> usize {
+    (i << 1) + 1
+}
+
+// Uses global heap arrays like the C code. This is safe here because the program is single-threaded.
+fn min_heapify(i: usize) {
+    unsafe {
+        let l = left(i);
+        let r = right(i);
+        let mut smallest = if l < QSIZE && QUE[l].t < QUE[i].t { l } else { i };
+        if r < QSIZE && QUE[r].t < QUE[smallest].t {
+            smallest = r;
+        }
+        if smallest != i {
+            let tmp = QUE[i];
+            QUE[i] = QUE[smallest];
+            QUE[smallest] = tmp;
+            min_heapify(smallest);
+        }
+    }
+}
+
+fn deq() -> Option<(i32, i32)> {
+    unsafe {
+        if QSIZE == 0 {
+            return None;
+        }
+        let k = QUE[0].k;
+        let c = QUE[0].c;
+        QSIZE -= 1;
+        QUE[0] = QUE[QSIZE];
+        if QSIZE > 0 {
+            min_heapify(0);
+        }
+        Some((k, c))
+    }
+}
+
+fn enq(k: i32, t: i32, c: i32) {
+    unsafe {
+        let mut i = QSIZE;
+        QSIZE += 1;
+        QUE[i] = Que { t, k, c };
+        while i > 0 {
+            let ii = parent(i);
+            if QUE[ii].t > QUE[i].t {
+                let tmp = QUE[i];
+                QUE[i] = QUE[ii];
+                QUE[ii] = tmp;
+                i = ii;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Tbl {
+    len: usize,
+    to: [i32; 102],
+    c: [i32; 102],
+}
+impl Default for Tbl {
+    fn default() -> Self {
+        Self {
+            len: 0,
+            to: [0; 102],
+            c: [0; 102],
+        }
+    }
+}
+
+fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
+    let mut node = [[-1i32; 3]; 102];
+
+    unsafe { QSIZE = 0; }
+    node[start][2] = 0;
+    enq(start as i32, 0, 2);
+
+    while let Some((s_i32, c_i32)) = deq() {
+        let s = s_i32 as usize;
+        let c = c_i32 as usize;
+
+        if s == goal {
+            if c != 1 {
+                break;
+            }
+        }
+
+        let p = &tbl[s];
+        for i in 0..p.len {
+            let s2 = p.to[i] as usize;
+            let f2 = p.c[i];
+
+            // k = node[s][c] + f2; (i32 arithmetic like C)
+            let k1 = node[s][c].wrapping_add(f2);
+            if c != 1 {
+                if node[s2][c] < 0 || k1 < node[s2][c] {
+                    node[s2][c] = k1;
+                    enq(s2 as i32, k1, c as i32);
+                }
+            }
+
+            if c > 0 {
+                let c2 = c - 1;
+                let k2 = node[s][c];
+                if node[s2][c2] < 0 || k2 < node[s2][c2] {
+                    node[s2][c2] = k2;
+                    enq(s2 as i32, k2, c2 as i32);
+                }
+            }
+        }
+    }
+
+    let g0 = node[goal][0];
+    let g2 = node[goal][2];
+    if g0 >= 0 && g2 >= 0 {
+        if g0 <= g2 { g0 } else { g2 }
+    } else if g0 >= 0 {
+        g0
+    } else {
+        g2
+    }
+}
+
+fn main() {
+    // Read all input, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let size_opt = it.next();
+        if size_opt.is_none() {
+            break;
+        }
+        let size: usize = size_opt.unwrap().parse::<i32>().unwrap() as usize;
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if size == 0 {
+            break;
+        }
+
+        let mut tbl = vec![Tbl::default(); size];
+        let start = 0usize;
+        let goal = size - 1;
+
+        for _ in 0..m {
+            let mut a: i32 = it.next().unwrap().parse().unwrap();
+            let mut b: i32 = it.next().unwrap().parse().unwrap();
+            let c: i32 = it.next().unwrap().parse().unwrap();
+            a -= 1;
+            b -= 1;
+            let au = a as usize;
+            let bu = b as usize;
+
+            {
+                let p = &mut tbl[au];
+                let idx = p.len;
+                p.to[idx] = b;
+                p.c[idx] = c;
+                p.len += 1;
+            }
+            {
+                let p = &mut tbl[bu];
+                let idx = p.len;
+                p.to[idx] = a;
+                p.c[idx] = c;
+                p.len += 1;
+            }
+        }
+
+        let ans = search(&tbl, size, start, goal);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

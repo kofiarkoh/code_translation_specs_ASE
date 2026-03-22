@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all available stdin; behavior is undefined if input cannot be read.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Take the first line (up to '\n' or end). If no line exists, behavior is undefined;
+    // we proceed with an empty line in that case.
+    let mut line = input.splitn(2, '\n').next().unwrap_or("");
+
+    // Handle possible Windows line ending: remove trailing '\r' if present.
+    if line.ends_with('\r') {
+        line = &line[..line.len() - 1];
+    }
+
+    // Fixed internal storage capacity assumption: at most 199 characters.
+    // If exceeded, behavior is undefined; we do not enforce or handle it.
+    // Also assumes characters are in a countable range; we use u8 bytes as indices.
+    let bytes = line.as_bytes();
+
+    // Fixed-size run counts for all possible byte values.
+    let mut runs = [0u32; 256];
+
+    // Scan left-to-right, counting runs of each byte value.
+    let mut prev: Option<u8> = None;
+    for &b in bytes {
+        if prev != Some(b) {
+            runs[b as usize] = runs[b as usize].wrapping_add(1);
+            prev = Some(b);
+        }
+    }
+
+    let o_runs = runs[b'o' as usize];
+    let x_runs = runs[b'x' as usize];
+
+    let out = if o_runs < x_runs { 'x' } else { 'o' };
+    println!("{out}");
+}

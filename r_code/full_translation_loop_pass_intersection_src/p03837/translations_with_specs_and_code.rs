@@ -1,0 +1,76 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a: Vec<usize> = Vec::with_capacity(m);
+    let mut b: Vec<usize> = Vec::with_capacity(m);
+    let mut c: Vec<i64> = Vec::with_capacity(m);
+
+    for _ in 0..m {
+        let ai: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let bi: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+        let ci: i64 = it.next().unwrap().parse().unwrap();
+        a.push(ai);
+        b.push(bi);
+        c.push(ci);
+    }
+
+    // Match C behavior: initialize to 1_000_000_000 for non-diagonal.
+    // Use i64 to avoid overflow in additions under the spec's "no overflow" precondition.
+    let inf: i64 = 1_000_000_000;
+    let mut dist = vec![vec![inf; n]; n];
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Multiple edges: keep minimum weight for APSP graph.
+    for i in 0..m {
+        let u = a[i];
+        let v = b[i];
+        let w = c[i];
+        if w < dist[u][v] {
+            dist[u][v] = w;
+        }
+        if w < dist[v][u] {
+            dist[v][u] = w;
+        }
+    }
+
+    // Floyd–Warshall
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                let cand = dist[i][k] + dist[k][j];
+                if cand < dist[i][j] {
+                    dist[i][j] = cand;
+                }
+            }
+        }
+    }
+
+    // Count edges not used by any shortest-path relation as in the C code:
+    // edge i is "used" if exists j with dist[j][a[i]] + c[i] == dist[j][b[i]].
+    // Note: This checks only the a->b direction (as in the C code/spec).
+    let mut ans: i64 = m as i64;
+    for i in 0..m {
+        let mut used = false;
+        for j in 0..n {
+            if dist[j][a[i]] + c[i] == dist[j][b[i]] {
+                used = true;
+                break;
+            }
+        }
+        if used {
+            ans -= 1;
+        }
+    }
+
+    print!("{ans}\n");
+}

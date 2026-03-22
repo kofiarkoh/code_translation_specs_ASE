@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each provided positive integer, computes and outputs the number of distinct representations of that integer as a sum of one to four positive perfect squares, where representations are counted without regard to order (i.e., the sequence of square roots is non-decreasing).
+
+2. Inputs  
+- A sequence of integers provided via standard input.  
+- Processing continues until a terminating value of zero is encountered.
+
+3. Outputs  
+- For each non-zero input integer, outputs a single integer: the count of unordered representations of the input as a sum of 1–4 positive squares.
+
+4. Preconditions  
+- Each input value fits within the range of the integer type used by the program.  
+- The input stream contains integers in a form the program can read.  
+- To avoid arithmetic overflow during square computations, the input value is small enough that squaring candidate integers remains within the integer range.
+
+5. Postconditions  
+For each processed input integer \(n > 0\), the program outputs the number of tuples \((a_1, a_2, a_3, a_4)\) such that:  
+- \(a_1, a_2, a_3, a_4\) are positive integers,  
+- \(a_1 \le a_2 \le a_3 \le a_4\),  
+- There exists \(k \in \{1,2,3,4\}\) with \(n = a_1^2 + a_2^2 + \dots + a_k^2\).  
+Each valid non-decreasing representation is counted exactly once.
+
+6. Invariants  
+- Only representations using positive square terms are counted (no zero terms).  
+- Order does not create distinct representations; only non-decreasing sequences are considered.  
+- No representation uses more than four square terms.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input reading fails (e.g., non-integer data or end-of-file), the program terminates without further output.  
+- If integer overflow occurs during internal arithmetic (e.g., squaring), behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Repeatedly transitions from “waiting for next integer” to “compute and output count” for each non-zero integer.  
+- Transitions to “terminated” upon reading zero or upon input read failure/end-of-file.
+
+9. Non-functional Constraints (if inferable)  
+- Uses recursion with a maximum depth corresponding to four square terms; stack usage is bounded accordingly.  
+- Runtime grows with the number of candidate square roots up to the input’s square root and may be significant for large inputs.
+```

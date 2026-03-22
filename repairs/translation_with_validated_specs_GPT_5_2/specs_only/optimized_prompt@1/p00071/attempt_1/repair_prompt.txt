@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes a sequence of datasets. Each dataset provides a text grid and a starting coordinate. The program performs a recursive “explosion” (chain reaction) on the **interior cells addressed by coordinates (x,y) with 1 ≤ x ≤ 8 and 1 ≤ y ≤ 8**: it sets the starting cell to the cleared character `'0'`, then for each cleared cell it looks outward in each of the four cardinal directions up to 3 steps; any interior cell encountered that contains the marked character `'1'` is recursively exploded (cleared and used as a new source). After the reaction completes, the program prints a dataset label and then prints the resulting grid rows.
+
+2. Inputs  
+- First line: an integer `N`, the number of datasets.  
+- For each dataset (in order):  
+  - **9 lines of grid text**, read verbatim as C strings (each line must be null-terminated by the input line ending). These lines are stored such that the first character of each line is placed at internal column index 1. The program does not validate line length; it relies on the input to provide lines that fit the fixed buffer.  
+  - One line containing an integer `sx` (starting x-coordinate).  
+  - One line containing an integer `sy` (starting y-coordinate).
+
+3. Outputs  
+For each dataset `n` from 1 to `N`:  
+- A header line exactly of the form:  
+  `Data n:`  
+- Then **8 lines** corresponding to stored grid rows **1 through 8**, printed exactly as the stored C strings starting at column index 1 (i.e., the program prints each row from its first stored character through its terminating `'\0'`).  
+  - Note: the printed row width is whatever the input line length was (up to the terminator); it is not forced to 8 characters.
+
+4. Preconditions / Assumptions  
+- `N` is present and the input contains exactly `N` datasets in the format above.  
+- Each of the 9 grid lines per dataset fits into the available storage (no bounds checking is performed).  
+- The explosion logic is intended to operate on the interior coordinate range 1..8 for both axes. If `sx` or `sy` is outside 1..8, the program may access memory outside the intended interior and behavior is undefined.  
+- Cell states relevant to the explosion are the characters `'1'` (marked) and `'0'` (cleared). Other characters may appear in the grid text; they are preserved unless overwritten by the explosion at an interior coordinate.
+
+5. Explosion / Chain-Reaction Semantics  
+Within a dataset, define the interior as positions (x,y) with 1 ≤ x ≤ 8 and 1 ≤ y ≤ 8. The explosion is applied as follows:  
+- Exploding a cell at (px,py) immediately sets that interior position to `'0'` (even if it was not `'1'`).  
+- From (px,py), for each of the four cardinal directions, the program examines positions at distances 1, 2, and 3 along that direction, stopping early in that direction if the next position would leave the interior range 1..8.  
+- If an examined interior position currently contains `'1'`, the program recursively explodes that position.  
+- Only cells that are explicitly exploded are modified (set to `'0'`); no other characters are changed.
+
+6. Termination and Ordering  
+- The process terminates because the interior is finite and each recursive explosion sets a cell to `'0'`, preventing repeated re-explosion via the `'1'` check.  
+- The order of exploration is fixed: directions are processed in the sequence left, up, right, down; within a direction, distances are processed from 1 to 3. This ordering can affect the recursion call order but not the final set of cleared interior cells under the stated rules.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Malformed input, missing lines, non-integer coordinate lines, overly long grid lines, or out-of-range coordinates can lead to undefined behavior (including buffer overflow or invalid memory access).
+```

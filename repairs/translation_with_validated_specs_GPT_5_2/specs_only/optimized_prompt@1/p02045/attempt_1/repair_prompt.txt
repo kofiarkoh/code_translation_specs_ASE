@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, the program computes and outputs a total travel cost over an ordered sequence of points. For each consecutive pair of points, it adds the smaller of:  
+- the direct Manhattan distance between the two points, and  
+- an alternative “via-rectangle” cost equal to:  
+  - the Manhattan distance from the first point to an axis-aligned rectangle, reduced by 1 if that first-point distance is positive, plus  
+  - the Manhattan distance from the second point to the same rectangle (with no discount).  
+The dataset’s result is the sum of these per-segment minima over all consecutive point pairs.
+
+2. Inputs  
+The input consists of zero or more datasets. Each dataset has:  
+- An integer `N` (the number of segments). The dataset is processed only if `N > 0`.  
+- Four integers `A B C D` defining the rectangle *in this input order*, where:  
+  - the rectangle’s x-interval is `[A, C]`  
+  - the rectangle’s y-interval is `[B, D]`  
+- A sequence of exactly `N + 1` points, each given as two integers `(x, y)`, in traversal order.  
+Datasets repeat until end-of-file is reached or a non-positive `N` is read.
+
+3. Outputs  
+For each processed dataset, the program outputs one line containing a single integer: the computed total cost for that dataset.
+
+4. Preconditions / Assumptions  
+- A dataset is processed only when `N` is successfully read and `N > 0`.  
+- For each processed dataset, the rectangle line must contain four readable integers and the point list must contain exactly `N + 1` readable point pairs; otherwise the program terminates immediately with a non-zero exit status.  
+- `N` must be at most 127 to fit the program’s fixed internal arrays; behavior is undefined if this limit is exceeded.  
+- The program does not require `A ≤ C` or `B ≤ D`; if the bounds are “reversed,” the rectangle-distance computation still follows the same comparisons against `A`, `C`, `B`, and `D` as written (which may not correspond to a conventional rectangle).
+
+5. Cost Definitions and Edge Cases  
+- Manhattan distance between points `(x1, y1)` and `(x2, y2)` is `|x1 - x2| + |y1 - y2|`.  
+- Distance from a point `(x, y)` to the rectangle defined by x-interval `[A, C]` and y-interval `[B, D]` is computed as:  
+  - add `A - x` if `x < A`, else add `x - C` if `x > C`, else add 0 for the x part; and  
+  - add `B - y` if `y < B`, else add `y - D` if `y > D`, else add 0 for the y part.  
+  (This yields 0 when the point lies within or on the boundary, and otherwise the Manhattan distance to the nearest point on the rectangle under the program’s bound interpretation.)  
+- The “escape discount” applies only to the first point of each segment: if its rectangle-distance is positive, that contribution is reduced by exactly 1; it is never reduced below 0. The second point receives no discount.  
+- Each segment cost is the minimum of the direct Manhattan distance and the via-rectangle cost as defined above; the total is the sum over all `N` segments.
+
+6. Termination and Error Handling  
+- If the initial `N` cannot be read (EOF before reading it), the program terminates normally with exit status 0 and produces no further output.  
+- If a non-positive `N` is read, processing stops and the program terminates normally with exit status 0.  
+- If, for a dataset that has started (i.e., `N > 0` was read), the rectangle or any required point cannot be read, the program terminates immediately with a non-zero exit status and produces no further output.
+
+7. Non-functional / Computational Notes  
+- Processing time per dataset is linear in `N`.  
+- All computations use integer arithmetic and are subject to the integer range limits of the execution environment.
+```

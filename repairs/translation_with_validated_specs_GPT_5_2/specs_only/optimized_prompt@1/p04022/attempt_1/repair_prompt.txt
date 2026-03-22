@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads `n` positive integers and computes an aggregate count based on grouping the inputs by their values after removing all perfect-cube factors. For each input value, the program first reduces it by dividing out every prime-cube factor (`p^3`) as many times as possible. It then attempts to pair each distinct reduced value `v` with a “cube-complement” value `g(v)` such that `v * g(v)` is a perfect cube. Each distinct value (or paired complement set) contributes to the final count according to the rules in Section 5.
+
+2. Inputs  
+- An integer `n`: the number of values.  
+- A sequence of `n` integers.
+
+3. Outputs  
+- A single integer: the computed count described in Section 5.
+
+4. Preconditions / Assumptions  
+- `0 ≤ n ≤ 100000` (fits the program’s fixed internal arrays).  
+- Each input value is a positive integer representable in signed 64-bit (`long long`).  
+- The program’s factor handling is based on trial division by primes up to 2221 and an exact-square test using integer arithmetic. After removing all factors of primes ≤ 2221, any remaining factor is assumed to be either:
+  - `1`, or
+  - a prime, or
+  - a square of a prime.  
+  If an input violates this assumption (e.g., leaves a remaining factor with two different large primes), the program may treat it as “unclassifiable” as described below, and the output is otherwise unspecified relative to the intended mathematical problem.
+- The program is self-contained and performs perfect-square checks using an integer square-root routine (binary search and exact multiplication), with no reliance on floating-point math or external math libraries.
+
+5. Postconditions / Computation Semantics  
+Define `f(x)` as the value obtained from `x` by repeatedly dividing by `p^3` for every prime `p` while divisible (i.e., removing all perfect-cube factors). Let `S` be the multiset `{ f(x_i) }`.
+
+The program computes `R` as follows:
+
+A. Classification failure during initial reduction  
+After removing all factors of primes ≤ 2221 from a working copy `t` of the input, if the remaining `t` is greater than `100000` and is **not** a perfect square (as determined by integer arithmetic), then this input is treated as unclassifiable for complement pairing and contributes `1` directly to `R`. Such values are not included in later grouping/pairing.
+
+B. Grouping of classifiable reduced values  
+All other reduced values `w = f(x)` are collected, sorted, and grouped by equality to obtain counts `count(v)` for each distinct reduced value `v`.
+
+C. Contribution rules over distinct reduced values  
+Each distinct reduced value is processed at most once, using a “processed” mark to avoid double counting.
+
+- Special case `v = 1`: if `1` occurs among the reduced values, it contributes exactly `1` to `R` (regardless of how many times it occurs).
+
+- For `v ≠ 1`: the program attempts to construct a complement `g(v)` intended to satisfy that `v * g(v)` is a perfect cube. This construction is based on prime exponents modulo 3, using trial division by primes ≤ 2221 and then handling any remaining factor with the same “> 100000 perfect square” logic as in (A).  
+  During this construction, if an intermediate product exceeds a fixed internal magnitude threshold (`10^10`), the complement construction is considered to have failed.
+
+  The contribution is then determined as:
+
+  1) If complement construction fails, or if the computed `g(v)` is not present among the distinct reduced values, then all occurrences of `v` contribute to `R`:
+     - add `count(v)` to `R`.
+
+  2) If `g(v)` is present and `g(v) ≠ v`, then the pair `{v, g(v)}` contributes once:
+     - add `max(count(v), count(g(v)))` to `R`,
+     - and both `v` and `g(v)` are marked processed so neither is counted again.
+
+  (The program does not implement a separate rule for the case `g(v) = v` beyond the general logic; in practice, values that are their own complement under this scheme are handled by the same presence/absence and processed-mark mechanism.)
+
+6. Invariants / Ordering and Tie Handling  
+- Reduction removes all cube factors for primes ≤ 2221 by repeated division; the reduced value `f(x)` is what is used for grouping.  
+- Grouping and pairing depend only on multiplicities of distinct reduced values, not on original input order.  
+- Distinct reduced values are processed in increasing numeric order (due to sorting), but the final result is order-independent because processed marks prevent double counting.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced.  
+- If `n` exceeds internal capacity or inputs are malformed, behavior is undefined.  
+- If complement construction overflows the program’s internal threshold (`10^10`) or the remaining-factor assumptions are violated, the program falls back to counting occurrences as unpairable as described, and overall correctness relative to the ideal mathematical intent is not guaranteed.
+
+8. High-Level State Transitions  
+- Generate primes up to 2221.  
+- For each input: compute cube-reduced value; either count it immediately as unclassifiable or store it for later.  
+- Sort stored reduced values and compress into `(value, count)` groups.  
+- For each unprocessed group: handle `1`, otherwise attempt complement pairing and accumulate `R`.  
+- Output `R` and terminate.
+```

@@ -1,0 +1,90 @@
+```rust
+use std::io::{self, Read};
+
+const INF: i64 = 0x3f3f3f3f3f3f3f3f;
+
+fn ft_update(ft: &mut [i64], mut i: usize, n: usize, x: i64) {
+    while i < n {
+        if x < ft[i] {
+            ft[i] = x;
+        }
+        i |= i + 1;
+    }
+}
+
+fn ft_query(ft: &[i64], mut i: isize) -> i64 {
+    let mut x = INF;
+    while i >= 0 {
+        let ui = i as usize;
+        if ft[ui] < x {
+            x = ft[ui];
+        }
+        // i = (i & (i + 1)) - 1, written to match the C code's sequence.
+        i = (i & (i + 1)) - 1;
+    }
+    x
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+    let mut cur: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1; // 0-based
+    let t: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1; // 0-based
+
+    // dp is zero-initialized per spec (and as in C static storage).
+    let mut dp = vec![0i64; n];
+
+    // Fenwick-like prefix-min structures, initialized to +INF.
+    let mut ft1 = vec![INF; n];
+    let mut ft2 = vec![INF; n];
+
+    // Seed using target position t.
+    ft_update(&mut ft1, t as usize, n, -t);
+    ft_update(&mut ft2, (n as i64 - 1 - t) as usize, n, t);
+
+    let mut d: i64 = 0;
+
+    for _ in 0..q {
+        let next: i64 = it.next().unwrap().parse::<i64>().unwrap() - 1; // 0-based
+
+        let step = (cur - next).abs();
+        d += step;
+
+        // best_candidate_at_next = min( query(ft1,next)+next, query(ft2,mirror)-next )
+        let cand1 = ft_query(&ft1, next as isize) + next;
+        let cand2 = ft_query(&ft2, (n as i64 - 1 - next) as isize) - next;
+        let best = if cand1 < cand2 { cand1 } else { cand2 };
+
+        // x := best - |prev-next|
+        let x = best - step;
+
+        // Relax dp at previous position.
+        let prev_idx = cur as usize;
+        if x < dp[prev_idx] {
+            dp[prev_idx] = x;
+        }
+
+        // Insert relaxed value into both structures at previous position.
+        ft_update(&mut ft1, prev_idx, n, x - cur);
+        ft_update(&mut ft2, (n as i64 - 1 - cur) as usize, n, x + cur);
+
+        cur = next;
+    }
+
+    // M := min dp[r]
+    let mut m = INF;
+    for &v in &dp {
+        if v < m {
+            m = v;
+        }
+    }
+
+    let ans = m + d;
+    print!("{ans}\n");
+}
+```

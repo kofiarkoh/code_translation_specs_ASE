@@ -1,0 +1,111 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+The program reads two phase durations and two pairs of per-phase values for entities A and B. It compares the entities’ time-weighted totals over the two phases and outputs either:
+- the literal `infinity` if the two entities’ combined totals over both phases are exactly equal, or
+- otherwise, a nonnegative integer computed from time-weighted per-phase differences after a normalization step that may swap A and B.
+
+2. Inputs  
+Six signed integers, read as C `long long` values, in this order:
+- `T1`, `T2`: durations of phase 1 and phase 2  
+- `A1`, `A2`: A’s values in phase 1 and phase 2  
+- `B1`, `B2`: B’s values in phase 1 and phase 2  
+
+Input is read using `scanf` with the `%lld` conversion specifier (whitespace-separated in any standard way).
+
+3. Outputs  
+Exactly one line printed using `printf`:
+- `infinity` followed by a newline, or  
+- a decimal integer followed by a newline.
+
+4. Preconditions / Assumptions  
+- All six values are present in the input and are representable as C `long long`.  
+- All intermediate arithmetic performed by the program (products, sums, differences, and derived expressions) is assumed not to overflow the `long long` range; if overflow occurs, behavior follows C’s rules for signed overflow (i.e., is undefined).  
+- No validation is performed; behavior is unspecified if inputs are missing or malformed.
+
+5. Computation and Postconditions  
+
+5.1 Total-equality check  
+Compute:
+- `TotalA = A1*T1 + A2*T2`  
+- `TotalB = B1*T1 + B2*T2`  
+If `TotalA == TotalB`, output `infinity` and terminate.
+
+5.2 Normalization (possible swap)  
+If `A1 > B1`, swap A’s and B’s values for both phases (swap `A1` with `B1` and also swap `A2` with `B2`).  
+After this step, `A1 <= B1` holds.
+
+5.3 Derived quantities and integer result  
+After any swap, define:
+- `X = (B1 - A1) * T1`  
+- `Y = (A2 - B2) * T2`
+
+Then:
+- If `X > Y`, output `0`.  
+- Otherwise, let `D = Y - X` and compute using C integer division/remainder on `long long`:
+  - If `X % D == 0`, output `2 * (X / D)`.  
+  - Else, output `2 * (X / D) + 1`.
+
+6. Notes on edge conditions  
+- In the non-`infinity` path, the program may evaluate `X / D` and `X % D`. If `D == 0`, this causes division/modulo by zero and the program’s behavior is undefined (the program does not guard against this case).  
+- Apart from the `infinity` case, the output is the integer produced by the above rules (intended to be nonnegative under the program’s assumed arithmetic conditions).
+
+7. Implementation/I-O Contract Clarification  
+- A conforming C implementation consistent with this specification uses `long long` for all six inputs and uses `%lld` with `scanf`/`printf` (as in the source), requiring only `<stdio.h>`.  
+- The specification does not require use of `int64_t` or `SCNd64`/`PRId64` macros.
+
+8. State / Termination  
+- The program is stateless aside from local variables.  
+- It prints exactly one line and then terminates normally, except in cases of undefined behavior (e.g., signed overflow or division by zero).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main()
+{
+	long long T[3], A[3], B[3];
+	scanf("%lld %lld", &(T[1]), &(T[2]));
+	scanf("%lld %lld", &(A[1]), &(A[2]));
+	scanf("%lld %lld", &(B[1]), &(B[2]));
+	if (A[1] * T[1] + A[2] * T[2] == B[1] * T[1] + B[2] * T[2]) {
+		printf("infinity\n");
+		fflush(stdout);
+		return 0;
+	}
+	
+	if (A[1] > B[1]) {
+		A[1] += B[1];
+		B[1] = A[1] - B[1];
+		A[1] -= B[1];
+		A[2] += B[2];
+		B[2] = A[2] - B[2];
+		A[2] -= B[2];
+	}
+	if ((B[1] - A[1]) * T[1] > (A[2] - B[2]) * T[2]) printf("0\n");
+	else if ((B[1] - A[1]) * T[1] % ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) == 0) printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2);
+	else printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2 + 1);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

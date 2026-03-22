@@ -1,0 +1,42 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all stdin, then take the first whitespace-delimited token.
+    // Specification: no explicit error handling; missing input is undefined.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let token = input.split_whitespace().next().unwrap();
+
+    // Fixed 256-value domain. Specification assumes all characters map into [0,255].
+    // We interpret "character values" as raw bytes of the token.
+    let bytes = token.as_bytes();
+
+    // Count frequencies.
+    let mut freq = [0usize; 256];
+    for &b in bytes {
+        freq[b as usize] += 1;
+    }
+
+    // Build run contributions without materializing the expanded sequence.
+    // A run is over consecutive character values (v, v+1, ...) with no gaps,
+    // and repeats of the same value extend the run by their frequency.
+    let mut total: usize = 0;
+    let mut current_run_len: usize = 0;
+
+    for v in 0..256usize {
+        let f = freq[v];
+        if f == 0 {
+            if current_run_len != 0 {
+                total += current_run_len.min(3);
+                current_run_len = 0;
+            }
+        } else {
+            current_run_len += f;
+        }
+    }
+    if current_run_len != 0 {
+        total += current_run_len.min(3);
+    }
+
+    println!("{}", total);
+}

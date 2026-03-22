@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for given nonnegative integers \(n\) and \(k\), the number of ways to express \(n\) as a sum of positive integers where each summand is at most \(k\), with order of summands not significant (i.e., integer partitions with maximum part size \(k\)). The result is reported modulo \(1{,}000{,}000{,}007\).
+
+2. Inputs  
+- Two integers \(n\) and \(k\) provided via standard input.
+
+3. Outputs  
+- A single integer written to standard output: the computed count modulo \(1{,}000{,}000{,}007\).
+
+4. Preconditions  
+- Input must contain two integers.  
+- \(0 \le n \le 1000\).  
+- \(0 \le k \le 1000\).  
+(If these bounds are violated, behavior is not defined by the program’s contract.)
+
+5. Postconditions  
+- The output equals the number of integer partitions of \(n\) using parts in the range \([1, k]\), reduced modulo \(1{,}000{,}000{,}007\).  
+- Special cases implied:  
+  - If \(n = 0\), the output is 1 for any \(k \ge 0\).  
+  - If \(k = 0\), the output is 1 iff \(n = 0\), otherwise 0.
+
+6. Invariants  
+- All computed counts are maintained modulo \(1{,}000{,}000{,}007\) and therefore remain within \([0, 1{,}000{,}000{,}006]\).  
+- For any valid \(k\) and \(n\), the reported value depends only on \(k\), \(n\), and the fixed modulus.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read, the program does not guarantee a meaningful result (it may proceed with unspecified values).  
+- No explicit error messages are produced for invalid or missing input.
+
+8. State Transitions (if applicable)  
+- Initializes an internal table of partition counts once per execution, then produces exactly one output and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed amount of memory proportional to the product of the maximum supported \(k\) and \(n\) (bounded by the compiled limits).  
+- Runtime is bounded by a precomputation over all \(k \in [0,1000]\) and \(n \in [0,1000]\), independent of the specific input values within those bounds.
+```

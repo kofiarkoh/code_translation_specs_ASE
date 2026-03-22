@@ -1,0 +1,108 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Processes one or more test cases. For each test case, it evaluates a sequence of queries over a rooted structure of `N` nodes labeled `1..N` with a designated root `1`. Each non-root node has a specified parent. Queries are of two kinds: one kind marks a node, and the other kind asks, for a given node, which marked node is reached by repeatedly moving from the node to its parent until a marked node is encountered. The program outputs the sum of the answers to all such “ask” queries.
+
+2. Inputs  
+For each test case:  
+- An integer `N`: number of nodes.  
+- An integer `Q`: number of queries.  
+- For each node `k` in `2..N`: an integer giving the parent of node `k`.  
+- `Q` queries, each consisting of:  
+  - A query type character.  
+  - An integer node index.
+
+Multiple test cases may be provided; input terminates when a test case with `N = 0` is encountered.
+
+3. Outputs  
+For each test case, outputs a single integer value: the sum, over all “ask” queries in that test case, of the node index returned by the query’s ancestor search.
+
+4. Preconditions  
+- `1 <= N <= 100000` and `0 <= Q <= 100000`.  
+- Node indices appearing in parent definitions and queries are within `1..N`.  
+- The parent relation defines a rooted structure where repeatedly following parents from any node eventually reaches node `1`.  
+- Query types are either:  
+  - a “mark” operation, or  
+  - an “ask” operation (any non-mark type is treated as ask).  
+- Assumption required for defined behavior: for every ask query on node `x`, at the time it is evaluated, there exists at least one marked node on the ancestor chain from `x` to `1` (inclusive).
+
+5. Postconditions  
+For each test case:  
+- The printed value equals the sum of results of all ask queries, where each ask query’s result is the first marked node encountered when walking from the queried node upward through parents (including the node itself), at the time of that query in the original order.  
+- Mark queries affect which nodes are considered marked for subsequent queries in the same test case.
+
+6. Invariants  
+- Node `1` is always considered marked throughout the test case.  
+- Marking is cumulative: a node may be marked multiple times; it remains considered marked as long as the number of marks applied to it minus the number of corresponding removals (conceptually) is positive.  
+- The parent relation is fixed within a test case and does not change due to queries.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is malformed, indices are out of range, the parent relation does not lead to the root, or an ask query has no marked ancestor, behavior is undefined (may loop indefinitely or produce incorrect output).
+
+8. State Transitions (if applicable)  
+Within each test case, the abstract state is the multiset of marked nodes (with node `1` permanently marked).  
+- Mark query on node `x`: increases the mark count of `x` by 1.  
+- Ask query on node `x`: does not change state; it returns the nearest marked ancestor of `x` (including `x`) and adds that node index to the running sum.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 100000 nodes and 100000 queries per test case within fixed memory bounds proportional to these limits.  
+- Uses 64-bit accumulation for the output sum to avoid overflow for typical constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int P[100005],M[100005],v[100005],i,j,N,Q,t;
+long long r;
+char q[100005];
+
+
+int main()
+{
+	for(;scanf("%d%d",&N,&Q),N;)
+	{
+		for(i=r=0;i<N;P[i]=i,M[i]=0,i++);
+		M[1]=1;
+		for(i=2;i<=N;P[i]=t,i++)
+			scanf("%d\n",&t);
+		for(i=0;i<Q;i++)
+		{
+			scanf("%c %d\n",&q[i],&v[i]);
+			if(q[i]=='M')M[v[i]]++;
+		}
+		for(i=Q-1;i>=0;i--)
+		{
+			if(q[i]=='M')
+				M[v[i]]--;
+			else
+			{
+				for(t=v[i];!M[t];)
+					t=P[t];
+				r+=t;
+			}
+		}
+		printf("%lld\n",r);
+	}
+	return 0;
+}
+=== C CODE END ===

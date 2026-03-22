@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each category index from 1 through a given upper bound, the maximum value obtainable among vertices assigned to that category, where each vertex’s value is derived from:  
+- the shortest-path distance from a designated source vertex to that vertex in an undirected weighted graph,  
+- the shortest-path distance from the source to a corresponding “paired” vertex in a second layer of the same graph,  
+- a per-vertex parameter, and  
+- a per-vertex offset parameter.  
+The program outputs one maximum value per category index.
+
+2. Inputs  
+- Three integers:  
+  - number of vertices (n)  
+  - number of undirected edges (m)  
+  - number of categories to report (k)  
+- Three sequences of n integers each (total 3n integers), interpreted as per-vertex parameters:  
+  - a per-vertex value used to define a cross-layer edge weight  
+  - a per-vertex category index  
+  - a per-vertex additive term used in the final score  
+- m triples describing undirected weighted edges between vertices: two 1-based vertex indices and a nonnegative edge weight (assumption: weights are nonnegative for shortest-path correctness).
+
+3. Outputs  
+- Exactly k lines, each containing a signed 64-bit integer.  
+- Line i (1-based) is the maximum computed score among all vertices whose category index equals i; if no vertex belongs to category i, a sentinel very negative value is printed (see Postconditions).
+
+4. Preconditions  
+- n > 0, k > 0.  
+- All referenced vertex indices in edges are within 1..n.  
+- All category indices are within 1..k (otherwise behavior includes out-of-bounds memory access).  
+- Edge weights and derived path sums fit within signed 64-bit range without overflow (assumption).  
+- Edge weights are nonnegative (assumption required for the shortest-path results to be valid).  
+- Sufficient memory is available for all allocations (otherwise behavior is undefined; see Error Handling).
+
+5. Postconditions  
+- Defines an implicit directed graph with 2n vertices formed as follows:  
+  - Two layers: base vertices 0..n-1 and paired vertices n..2n-1, where paired vertex of i is i+n.  
+  - For each original undirected edge (a,b,w), adds directed edges a→b and b→a with weight w in the base layer, and similarly (a+n)→(b+n) and (b+n)→(a+n) in the paired layer.  
+  - For each vertex i, adds a directed edge i→(i+n) with weight (S − p[i]), where S is a fixed constant greater than 1e9.  
+- Computes shortest-path distances from source vertex 0 to every vertex in this 2n-vertex directed graph.  
+- For each original vertex i, computes a score:  
+  score(i) = (S − dist(i+n)) − dist(i) + t[i],  
+  where dist(x) is the computed shortest-path distance to vertex x.  
+- For each category j in 1..k, outputs the maximum score(i) over all vertices i with category c[i] = j.  
+- If no vertex has category j, the output for j remains the initialized sentinel value: a large-magnitude negative 64-bit integer.
+
+6. Invariants  
+- The maintained priority-based worklist always contains candidate (vertex, distance) pairs; extracted candidates with distance greater than the current best-known distance for that vertex do not affect results.  
+- Best-known distances never increase during computation.  
+- For each category index, the reported value is the maximum of the scores of all processed vertices belonging to that category (or the sentinel if none).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting.  
+- If input is malformed, category indices are out of range, memory allocation fails, or arithmetic overflows occur, behavior is undefined (may crash or produce incorrect output).  
+- If negative edge weights are provided, the computed distances (and thus outputs) are not guaranteed to be correct.
+
+8. State Transitions (if applicable)  
+- Builds an internal graph state from the input.  
+- Transitions from “uninitialized distances” to “finalized shortest-path distances” via iterative relaxation until the worklist is empty.  
+- Transitions from “unset per-category maxima” to “final per-category maxima” by aggregating per-vertex scores.  
+- Produces output and terminates; no persistent state is retained.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by shortest-path computation on 2n vertices and O(n + m) edges (up to constant-factor expansion), with additional logarithmic factors from the priority structure.  
+- Memory usage is O(n + m) for graph storage, distances, and the priority structure.
+```

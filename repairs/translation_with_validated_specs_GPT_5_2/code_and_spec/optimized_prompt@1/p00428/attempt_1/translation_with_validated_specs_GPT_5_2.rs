@@ -1,0 +1,48 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // Unspecified behavior in spec; we just stop if input ends.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Compute column sums while reading; no need to store the full matrix.
+        // Spec allows any approach as long as behavior matches.
+        let mut cnt: Vec<i64> = vec![0; m];
+        for _ in 0..n {
+            for j in 0..m {
+                let v: i64 = it.next().unwrap().parse().unwrap();
+                cnt[j] += v;
+            }
+        }
+
+        // Order columns by non-increasing sum; tie-break by smaller index first.
+        // This matches the spec's stable tie-breaking requirement.
+        let mut idx: Vec<usize> = (0..m).collect();
+        idx.sort_by(|&a, &b| cnt[b].cmp(&cnt[a]).then_with(|| a.cmp(&b)));
+
+        for (k, &col) in idx.iter().enumerate() {
+            if k > 0 {
+                out.push(' ');
+            }
+            out.push_str(&(col + 1).to_string());
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

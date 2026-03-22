@@ -1,0 +1,84 @@
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+const INF: i32 = 1_001_001_001;
+
+fn main() {
+    // Read entire stdin, split by whitespace (matches scanf("%d") / scanf("%s") behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    let mut sx: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut sy: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut gx: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+    let mut gy: isize = it.next().unwrap().parse::<isize>().unwrap() - 1;
+
+    // Grid: passable iff '.'. Any other char is blocked.
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Spec says each row provides at least width characters; we trust input.
+        grid.push(row);
+    }
+
+    // Distances.
+    let mut dist = vec![vec![INF; w]; h];
+
+    // Start is reachable in 0 moves unconditionally (even if blocked), per spec and C code.
+    let sxu = sx as usize;
+    let syu = sy as usize;
+    dist[sxu][syu] = 0;
+
+    // C uses a fixed-size ring queue (capacity 1001001) with undefined behavior on overflow.
+    // Here we use VecDeque; for valid inputs (per spec precondition about capacity),
+    // behavior matches.
+    let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+    q.push_back((sxu, syu));
+
+    let dx: [isize; 4] = [1, 0, -1, 0];
+    let dy: [isize; 4] = [0, 1, 0, -1];
+
+    while let Some((x, y)) = q.pop_front() {
+        let curd = dist[x][y];
+        for dir in 0..4 {
+            for step in 1..=k {
+                let nx = x as isize + step as isize * dx[dir];
+                let ny = y as isize + step as isize * dy[dir];
+
+                if nx < 0 || nx >= h as isize || ny < 0 || ny >= w as isize {
+                    break;
+                }
+                let nxu = nx as usize;
+                let nyu = ny as usize;
+
+                if grid[nxu][nyu] != b'.' {
+                    break;
+                }
+
+                // Must satisfy dist[nx][ny] >= dist[x][y] + 1 to proceed; otherwise break.
+                let nd = curd + 1;
+                if dist[nxu][nyu] < nd {
+                    break;
+                }
+                // If equal, continue scanning further in this direction but don't enqueue.
+                if dist[nxu][nyu] == nd {
+                    continue;
+                }
+
+                dist[nxu][nyu] = nd;
+                q.push_back((nxu, nyu));
+            }
+        }
+    }
+
+    let gxu = gx as usize;
+    let gyu = gy as usize;
+    let ans = if dist[gxu][gyu] == INF { -1 } else { dist[gxu][gyu] };
+    print!("{ans}\n");
+}

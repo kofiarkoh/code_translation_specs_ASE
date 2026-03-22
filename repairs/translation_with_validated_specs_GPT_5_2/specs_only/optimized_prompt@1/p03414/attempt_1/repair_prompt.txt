@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Given a directed graph with `n` vertices and `m` directed edges (in input order), the program classifies each edge as either **`same`** or **`diff`**.
+
+The classification is based on strongly connected components (SCCs) and on whether an edge is the only “direct” way to realize reachability under the program’s checks:
+
+### A) Edges whose endpoints are in different SCCs (inter-SCC edges)  
+Let `S = SCC(u)` and `T = SCC(v)` with `S != T`. Consider the SCC condensation graph (a DAG) whose nodes are SCCs and whose arcs are induced by original edges that go from one SCC to another.
+
+An original inter-SCC edge `u -> v` is classified **`diff`** if **either** of the following holds:
+
+1) **Parallel SCC-arc duplication:** there is more than one original edge whose endpoints lie in the same ordered SCC pair `(S, T)` (i.e., multiple original edges induce the same condensation-graph arc from `S` to `T`). In that case, all such original edges for that ordered SCC pair are marked **`diff`**.
+
+2) **Existence of a longer SCC-level route:** in the condensation graph, there exists a directed path from `S` to `T` that uses at least one intermediate SCC (i.e., a path of length ≥ 2). If so, the original edge(s) inducing `S -> T` are marked **`diff`**.
+
+If neither condition holds, the inter-SCC edge is classified **`same`**.
+
+Notes on what “longer SCC-level route” means in this program:
+- It is evaluated on the condensation DAG using the SCC indices produced by the SCC computation.
+- The program’s check corresponds to whether `T` is reachable from `S` via at least two condensation arcs (not merely via the direct arc `S -> T`).
+
+### B) Edges whose endpoints are in the same SCC (intra-SCC edges)  
+For an edge `u -> v` with `SCC(u) == SCC(v)`, the edge is classified **`diff`** if there exists a directed path from `u` to `v` that stays within that SCC and **does not use the edge being classified**. If no such alternative path exists, it is classified **`same`**.
+
+2. Inputs  
+- Two integers `n` and `m`.  
+- Then `m` pairs of integers `(u, v)`, each denoting a directed edge from `u` to `v`.  
+- Vertex labels in the input are **1-based**; the program internally converts them to 0-based indices.
+
+3. Outputs  
+- Exactly `m` lines, in the same order as the input edges.  
+- For each edge, print either **`same`** or **`diff`** (lowercase), followed by a newline.
+
+4. Preconditions / Constraints  
+- `1 ≤ n ≤ 1000`.  
+- `0 ≤ m ≤ 200000`.  
+- Each endpoint `u, v` is an integer in `[1, n]`.  
+- Multiple edges and self-loops may appear; they are handled by the rules above.  
+- No explicit validation is performed; if the input violates these constraints or is malformed/incomplete, behavior is unspecified.
+
+5. Algorithmic Semantics and Edge Cases (clarifications)  
+- SCCs are computed over the full directed graph; every vertex belongs to exactly one SCC.  
+- Inter-SCC classification depends only on SCC membership and reachability in the condensation DAG (including detection of multiple original edges between the same ordered SCC pair).  
+- Intra-SCC classification explicitly excludes the edge under test when searching for an alternative path from its source to its destination within the SCC.
+
+6. Program Structure / Compilation Model (Non-functional Requirement)  
+- The implementation is a single, standard-conforming ISO C program.  
+- It must compile cleanly under a standard C11 compilation mode (e.g., `-std=c11`) without relying on compiler-specific extensions.  
+- **All functions, including any helper routines and any callback functions (such as comparators passed to library routines), must be defined at file scope; nested function definitions are not permitted.**  
+- `main` has a standard C signature and the program performs a single batch run: read input, compute classifications, print results, then terminate.
+```

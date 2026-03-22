@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an undirected graph with vertices labeled from 1 through N and computes a spanning forest rooted at vertex 1 over the vertices reachable from 1. It then reports success and, for each vertex 2..N, outputs the chosen predecessor vertex that first discovered it during the traversal, or a sentinel value indicating it was not reached.
+
+2. Inputs  
+- An integer N: number of vertices.  
+- An integer M: number of undirected edges.  
+- M pairs of integers (a, b): each pair denotes an undirected edge between vertices a and b.
+
+3. Outputs  
+- A single affirmative line indicating completion.  
+- Then N−1 lines, one per vertex i from 2 to N, each containing:  
+  - the predecessor of i in the computed traversal tree if i is reachable from vertex 1, or  
+  - a sentinel value (−1) if i is not reachable from vertex 1.
+
+4. Preconditions  
+- 1 ≤ N ≤ 131072 (so internal fixed-size storage is sufficient).  
+- 0 ≤ M (no explicit upper bound enforced, but must be feasible for memory/time).  
+- Each edge endpoint a and b is an integer in [1, N].  
+- Sufficient memory is available to store all edges and traversal structures.
+
+5. Postconditions  
+- For vertex 1, the stored predecessor value is 0.  
+- For every vertex v in [2, N]:  
+  - If v is reachable from 1, the output for v is some u in [1, N] such that (u, v) is an input edge and u is reachable from 1.  
+  - If v is not reachable from 1, the output for v is −1.  
+- For every reachable vertex v ≠ 1, following predecessor links repeatedly from v eventually reaches vertex 1 (i.e., the predecessor relation forms a tree over the reachable vertices).
+
+6. Invariants  
+- Each vertex is assigned a predecessor at most once; once assigned, it is never changed.  
+- A vertex is enqueued for processing at most once.  
+- Any vertex with a non-negative predecessor value is reachable from vertex 1.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for invalid input, out-of-range vertex labels, or input read failures; behavior is undefined in those cases.  
+- No explicit handling for memory allocation failure; behavior is undefined if allocation fails.  
+- Always prints the affirmative completion line regardless of graph connectivity.
+
+8. State Transitions (if applicable)  
+- Vertex state transitions with respect to reachability from 1:  
+  - Initially: all vertices are “unreached” (predecessor = −1), except vertex 1 which is “reached” (predecessor = 0).  
+  - Upon first discovery from a reached vertex: a vertex transitions from “unreached” to “reached” and is assigned a predecessor.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of vertices plus edges, assuming sufficient memory.  
+- Memory usage grows with N and M due to stored adjacency information and traversal bookkeeping.
+```

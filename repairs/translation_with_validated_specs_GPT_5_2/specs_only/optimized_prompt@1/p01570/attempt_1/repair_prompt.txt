@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each rooted tree in a forest, a value defined by aggregating node weights over the tree with an order-dependent cost, and outputs the sum of these values over all roots. For each node, its contribution depends on the total weights of its child subtrees and is minimized by processing heavier child subtrees earlier (ties arbitrary).
+
+2. Inputs  
+- An integer `N`: number of nodes.  
+- For each node `i` in `[0, N-1]`:
+  - An integer weight.  
+  - An integer parent reference, either:
+    - `-1` indicating the node is a root, or
+    - an integer in `[0, N-1]` indicating the node’s parent.
+
+3. Outputs  
+- A single integer value: the sum, over all roots, of the computed tree value for that root.
+
+4. Preconditions  
+- `N` is non-negative and does not exceed the implementation’s fixed maximum capacity.  
+- Each non-root node’s parent reference is within `[0, N-1]`.  
+- The parent references define a forest (i.e., no cycles are present and every node is reachable from exactly one root via parent links).  
+- Sufficient memory is available for internal storage proportional to `N`.
+
+5. Postconditions  
+- The program outputs:  
+  \[
+  \sum_{r \in Roots} dp[r]
+  \]
+  where for every node `u`:
+  - Let `children(u)` be the set of children of `u`.  
+  - Let `s[u]` be the total weight in the subtree rooted at `u`:
+    \[
+    s[u] = weight(u) + \sum_{v \in children(u)} s[v]
+    \]
+  - Let `dp[u]` be:
+    \[
+    dp[u] = \sum_{v \in children(u)} dp[v] \;+\; \min_{\pi} \sum_{k=0}^{d-1} s[\pi(k)] \cdot k
+    \]
+    where `d` is the number of children and the minimum is taken over all permutations `\pi` of the children.  
+  - The minimizing permutation is achieved by ordering children by non-increasing `s[child]` (ties may be in any order without changing the minimum when equal).
+
+6. Invariants  
+- For every node `u`, after its value is computed:
+  - `s[u]` equals the sum of weights in `u`’s subtree.  
+  - `dp[u]` equals the subtree cost defined in the postconditions and depends only on the subtree rooted at `u`.  
+- The final output equals the sum of `dp` values of all roots and is independent of the order in which roots are processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., invalid parent indices, cycles, exceeding capacity, or memory allocation failure), behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Each node transitions from “not yet evaluated” to “evaluated” exactly once, after all of its descendants have been evaluated.  
+- Each root transitions the corresponding tree from “unprocessed” to “processed,” after which its `dp` value is added to the global sum.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting child-subtree totals per node; overall cost is proportional to the sum over nodes of (number of children × log(number of children)).  
+- Memory usage is linear in `N` plus storage for all parent-child relationships.
+```

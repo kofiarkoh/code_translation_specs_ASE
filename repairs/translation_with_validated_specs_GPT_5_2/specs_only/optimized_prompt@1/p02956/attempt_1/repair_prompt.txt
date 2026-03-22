@@ -1,0 +1,118 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads `N` integer pairs `(a_i, b_i)` and computes a single integer `ans` modulo `Mod = 998244353`. The result is a deterministic function of the multiset of input pairs and is independent of the input order. The computation is defined by a fixed sequence of coordinate-compression steps, stable grouping by equal values, and four accumulation sweeps that use powers of two and rank-count queries over previously processed groups.
+
+2. Inputs  
+- An integer `N`.  
+- `N` pairs of integers `(a_i, b_i)`.
+
+3. Output  
+- One integer `ans` in `[0, Mod-1]`, printed as a decimal integer followed by a newline, equal to the value computed by the rules below modulo `Mod`.
+
+4. Preconditions / Constraints  
+- `1 ≤ N ≤ 200000`.  
+- Each `a_i` and `b_i` fits in a 32-bit signed integer as read by `scanf("%d")`.  
+- Sufficient memory is available for arrays of size `O(N)`.  
+- No explicit validation is performed; if input is malformed or `N` exceeds the supported bound, behavior is unspecified.
+
+5. Definitions and Data Normalization (Coordinate Compression)  
+The program transforms the input pairs into two integer labels used for subsequent counting:
+
+5.1. Compress the first component into “A-group IDs”  
+- Sort all pairs by `a` in nondecreasing order. (When `a` values are equal, the relative order among them is not specified and may depend on the sorting procedure.)  
+- Scan the sorted list from left to right, partitioning it into maximal contiguous groups of equal `a`.  
+- Assign each such group a 1-based group identifier `AID` in increasing scan order (first group gets `AID = 1`, next `AID = 2`, etc.). Let `m` be the total number of distinct `a` values (i.e., the number of groups).  
+- For every element in a group, replace its stored fields so that:
+  - the “key” becomes the original `b` value, and
+  - the “id” becomes the assigned `AID`.
+
+5.2. Compress the second component into “B-ranks”  
+- Sort the resulting list by the current “key” (which is the original `b`) in nondecreasing order.  
+- Scan left to right, partitioning into maximal contiguous groups of equal `b`.  
+- Assign each such group a 1-based rank `BRank` in increasing scan order.  
+- For every element in a group, replace its “key” with `BRank`.  
+After this step, each element is represented as `(BRank, AID)` where `BRank ∈ [1..(#distinct b)]` and `AID ∈ [1..m]`.
+
+6. Modular Powers  
+Let `pow[k] = 2^k mod Mod` for `k = 0..N`, with `pow[0] = 1`.
+
+7. Accumulator Initialization  
+Initialize:
+- `ans = ((pow[N] - 1) * N) mod Mod`, interpreted modulo `Mod` (i.e., `pow[N] - 1` is taken modulo `Mod`).
+
+8. Fenwick-Count Based Sweeps Grouped by `BRank`  
+The program uses a Fenwick tree (BIT) over indices `1..m` that stores counts of processed elements by `AID`. All BIT counts start at 0.
+
+8.1. Forward sweep (increasing index), grouped by equal `BRank`  
+- Process the array in its current order (which is sorted by `BRank`), in contiguous groups of equal `BRank`.  
+- Let a group occupy positions `[i, j)` (0-based, `j` is the first index after the group). For each element `t` in this group with `AID = id`:
+  - Let `L = count of previously processed elements with AID < id` (BIT prefix sum up to `id-1`).  
+  - Let `R = count of previously processed elements with AID ≥ id` among the `i` elements processed before the group, i.e. `R = i - (BIT prefix sum up to id) + (BIT value at id)`; equivalently as implemented: `R = i - (BIT prefix sum up to id)` when using `BIT prefix sum up to id` and `BIT prefix sum up to id-1` consistently; the program’s effective exponent is `i - (prefix sum up to id)` computed as `i - sum_BIT(id)`, but since it queries `sum_BIT(id)` via `sum_BIT(BIT, d[j].id)` only through `sum_BIT(BIT, d[j].id)`’s decomposition, the implemented term is exactly `pow[i - sum_BIT(BIT, id)]`.  
+  - Add `pow[L] + pow[i - sum_BIT(BIT, id)]` to `ans` (modulo `Mod`), where `sum_BIT(BIT, id)` is the BIT prefix sum up to `id`.  
+- After summing these per-element contributions, apply a group correction:
+  - Subtract `pow[i] * (j - i)` from `ans` modulo `Mod`.  
+- Then update the BIT by adding 1 at index `AID` for every element in the group.  
+- Continue with the next `BRank` group.
+
+8.2. Backward sweep (decreasing index), grouped by equal `BRank`  
+- Reset the BIT counts to 0.  
+- Process the array from right to left, again in contiguous groups of equal `BRank`.  
+- Let a group occupy positions `(j, i]` (0-based, `j` is the last index before the group). For each element `t` in this group with `AID = id`:
+  - Let `L = count of already processed elements (to the right) with AID < id` (BIT prefix sum up to `id-1`).  
+  - Let `R = count of already processed elements (to the right) with AID ≥ id` among the `N - i - 1` elements processed so far on the right, computed as `(N - i - 1) - (BIT prefix sum up to id)`.  
+  - Add `pow[L] + pow[(N - i - 1) - sum_BIT(BIT, id)]` to `ans` modulo `Mod`.  
+- After summing these per-element contributions, apply a group correction:
+  - Subtract `pow[N - i - 1] * (i - j)` from `ans` modulo `Mod`.  
+- Then update the BIT by adding 1 at index `AID` for every element in the group.  
+- Continue with the next `BRank` group to the left.
+
+9. Swap Roles and Apply Additional Group Corrections  
+After the two BIT-based sweeps, the program swaps the two stored fields of every element, turning each element from `(BRank, AID)` into `(AID, BRank)`, and then sorts the array by the new “key” (which is `AID`) in nondecreasing order.
+
+On this sorted-by-`AID` array, it performs two additional correction-only passes (no BIT):
+
+9.1. Forward correction grouped by equal `AID`  
+- Scan left to right in contiguous groups of equal `AID`.  
+- For a group occupying positions `[i, j)`, subtract `pow[i] * (j - i)` from `ans` modulo `Mod`.
+
+9.2. Backward correction grouped by equal `AID`  
+- Scan right to left in contiguous groups of equal `AID`.  
+- For a group occupying positions `(j, i]`, subtract `pow[N - i - 1] * (i - j)` from `ans` modulo `Mod`.
+
+10. Modulo Semantics and Finalization  
+- All additions/subtractions to `ans` are performed modulo `Mod` (with intermediate values allowed to be negative before reduction, but the final printed value is reduced modulo `Mod` as produced by the program’s arithmetic).  
+- The program terminates after printing `ans` and flushing stdout.
+
+11. Properties / Invariances (as implied by the computation)  
+- The output is invariant under permutation of the input pairs (because the program sorts and groups by values).  
+- The output depends on the equality pattern of `a` values and `b` values and on how the induced `AID` labels interleave when the data are ordered by `b` (and symmetrically through the later corrections when ordered by `a`).  
+- The computation uses only comparisons for ordering and equality of the original integer values; it does not use their magnitudes beyond their relative order and equality.
+```

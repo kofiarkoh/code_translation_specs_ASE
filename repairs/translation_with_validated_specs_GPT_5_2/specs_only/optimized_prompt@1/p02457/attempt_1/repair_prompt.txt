@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Maintains an in-memory ordered set of integers under a sequence of queries. Supports: inserting a value if absent, testing membership, deleting a value if present, and outputting all stored values within a given inclusive range in ascending order. After each insert query, outputs the current set size.
+
+2. Inputs  
+- An integer specifying the number of queries.  
+- A sequence of that many queries, each consisting of:  
+  - A command code in {0,1,2,3}.  
+  - For command 0 (insert): one integer value.  
+  - For command 1 (find): one integer value.  
+  - For command 2 (delete): one integer value.  
+  - For command 3 (dump/range output): two integer values defining a range [L, R].
+
+3. Outputs  
+- For each insert command: one line containing the current number of stored elements after processing the command.  
+- For each find command: one line containing `1` if the value is present, otherwise `0`.  
+- For each dump command: zero or more lines, each containing one stored value that lies within the specified inclusive range, in ascending order.  
+- Delete commands produce no direct output.
+
+4. Preconditions  
+- The declared number of queries is non-negative.  
+- The input provides exactly the required number of commands and associated integers.  
+- The number of successful insertions never exceeds the number of queries (so storage sized to the query count is sufficient).  
+- For correct behavior of range output and lower-bound computations, the maintained collection is assumed to be sorted in non-decreasing order and accessed only through the provided operations.  
+- Assumption to avoid undefined behavior: range output is only requested when the set is non-empty, and lower-bound computations are not invoked in a way that requires inspecting an element before the start of the stored region.
+
+5. Postconditions  
+After processing each query:  
+- The stored collection contains no duplicate values.  
+- The stored collection is in non-decreasing order.  
+- Insert (command 0):  
+  - If the value was absent, it is added and the size increases by 1.  
+  - If the value was already present, the collection is unchanged.  
+  - The printed size equals the resulting size.  
+- Find (command 1):  
+  - Prints `1` iff the value is present in the collection at the time of the query; otherwise prints `0`.  
+- Delete (command 2):  
+  - If the value was present, it is removed and the size decreases by 1.  
+  - If the value was absent, the collection is unchanged.  
+- Dump (command 3):  
+  - Outputs exactly the elements v currently in the collection such that L ≤ v ≤ R, each on its own line, in ascending order.  
+  - Does not modify the collection.
+
+6. Invariants  
+- Size is always between 0 and the maximum storage capacity (inclusive).  
+- The first “size” elements of storage represent the entire set; elements beyond that are irrelevant.  
+- Within the stored region, values are sorted in non-decreasing order.  
+- No value appears more than once in the stored region.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, invalid command codes, or capacity overflow. Behavior is unspecified if preconditions are violated.  
+- If dump is invoked on an empty set or if lower-bound logic is forced to inspect outside the valid stored region, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+State consists of (current set contents, current size).  
+- Command 0: transitions to either (S ∪ {x}, size+1) if x ∉ S, or unchanged if x ∈ S.  
+- Command 1: no state change.  
+- Command 2: transitions to either (S \ {x}, size−1) if x ∈ S, or unchanged if x ∉ S.  
+- Command 3: no state change.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is proportional to the number of queries (fixed allocation sized to that count).  
+- Operations are intended to be efficient on sorted data (membership and position computations are logarithmic in set size; insert/delete require shifting elements and are linear in set size).
+```

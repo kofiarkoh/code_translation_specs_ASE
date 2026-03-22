@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses 1-based indexing for A[1..=N+1], B[1..=N], and also touches B[0], B[N+1].
+    // Allocate with a little extra room.
+    let mut a = vec![0i64; n + 3];
+    let mut b = vec![0i64; n + 3];
+
+    for i in 1..=n + 1 {
+        a[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+    for i in 1..=n {
+        b[i] = it.next().unwrap().parse::<i64>().unwrap();
+    }
+    b[0] = 0;
+    b[n + 1] = 0;
+
+    // Use i64 to match C's long long. In typical contest settings this won't overflow.
+    // If it did, C signed overflow is UB; we keep normal i64 arithmetic.
+    let mut s: i64 = 0;
+
+    for i in 1..=n + 1 {
+        let take1 = if a[i] > b[i - 1] { b[i - 1] } else { a[i] };
+        s += take1;
+        a[i] = if a[i] > b[i - 1] { a[i] - b[i - 1] } else { 0 };
+
+        let take2 = if a[i] > b[i] { b[i] } else { a[i] };
+        s += take2;
+        b[i] = if a[i] > b[i] { 0 } else { b[i] - a[i] };
+    }
+
+    print!("{}\n", s);
+}

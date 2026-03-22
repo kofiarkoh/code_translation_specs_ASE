@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single integer and outputs an integer derived from dividing the input by 11 and adjusting based on the input’s remainder modulo 11. The output is always one of three values determined by whether the remainder is 0, greater than 6, or otherwise.
+
+2. Inputs  
+- One signed integer value.
+
+3. Outputs  
+- One signed integer value written to standard output, followed by a line terminator.
+
+4. Preconditions  
+- The input stream provides a valid integer representable in the program’s integer range.  
+- The computed output value is representable in the program’s integer range (in particular, doubling the quotient and adding up to 2 does not overflow).
+
+5. Postconditions  
+Let \( q \) be the integer quotient of the input divided by 11 using truncation toward zero, and let \( r \) be the remainder such that \( \text{input} = 11q + r \). The program outputs:  
+- \( 2q \) if \( r = 0 \)  
+- \( 2q + 2 \) if \( r > 6 \)  
+- \( 2q + 1 \) otherwise
+
+6. Invariants  
+- Exactly one output value is produced.  
+- The output is always an integer in the set \( \{2q, 2q+1, 2q+2\} \) for the quotient \( q \) defined above.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the input is missing or not a valid integer, behavior is unspecified (the program may produce no output or an arbitrary output).  
+- If arithmetic overflows occur, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond reading the input and producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to the input value.
+```

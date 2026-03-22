@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads integer values from standard input and, for each value, computes a real-valued approximation related to the cube root of that integer using an iterative Newton–Raphson method. Processing continues sequentially until a termination value is encountered or end-of-input is reached.
+
+2. Inputs  
+- A sequence of integers read from standard input.  
+- The sentinel value `-1` indicates termination and is not processed.
+
+3. Outputs  
+- For each processed input integer, outputs exactly one line containing the final computed approximation formatted as a decimal floating-point number with **exactly six digits after the decimal point**.
+
+4. Preconditions / Input Assumptions  
+- Input is assumed to be well-formed as a sequence of integers.  
+- The computation is intended for **positive** integers \( q > 0 \). (For \( q \le 0 \), the program’s numeric behavior is not defined by this specification.)
+
+5. Computation and Termination Criterion  
+For each input integer \( q \neq -1 \):  
+- Initialize the iteration with  
+  \[
+  p_0 = q/2 \text{ (as a double)}
+  \]
+- Repeatedly update using the Newton step for solving \( x^3 = q \):  
+  \[
+  x = p - \frac{p^3 - q}{3p^2}
+  \]
+  then set \( p \leftarrow x \), and continue iterating until the stopping condition holds:
+  \[
+  |x^3 - q| < \varepsilon \cdot q
+  \]
+  where \( \varepsilon = 10^{-5} \).  
+- The value printed is the final \( x \) produced when the loop terminates (not an arbitrary value merely satisfying the inequality).
+
+6. Processing Rules / State Transitions  
+- Repeatedly attempt to read the next integer.  
+- If end-of-input occurs, terminate.  
+- If the read integer is `-1`, terminate without producing output for it.  
+- Otherwise, perform the iteration described above, print the formatted result, and continue reading the next integer.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed such that an integer cannot be read, behavior is unspecified beyond termination of further processing due to input failure.  
+- For non-positive \( q \), the iteration may not be meaningful and may fail to terminate or produce invalid floating-point results; such cases are outside the guaranteed behavior of this specification.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-5
+
+int main (void) {
+    int q;
+    double px, x;
+    while (scanf("%d", &q) != EOF && q != -1) {
+        px = (double)q / 2;
+        do {
+            x = px - (px*px*px - q) / (3*px*px);
+            px = x;
+        } while (fabs(x*x*x - q) >= EPS * q);
+        printf("%.6lf\n", x);
+    }
+    return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,156 @@
+```rust
+use std::cmp::max;
+use std::io::{self, Read};
+
+const D_SIZE_MAX: usize = 205;
+
+fn main() {
+    // Read entire stdin as whitespace-separated integers (matches C's fscanf/sscanf behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return, // no input
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+
+    // Grid values.
+    let mut mass = vec![vec![0i32; w]; h];
+    for i in 0..h {
+        for j in 0..w {
+            mass[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // The original C uses a fixed maximum and a 3D array:
+    // si3Cnt[row][col][dist], where dist is the difference between the two agents' columns
+    // at the same time step (equivalently, difference in their "diagonal index" positions).
+    //
+    // Spec note: This DP uses 0 as the default/unreachable value, so negative cell values
+    // can break correctness (as stated in the specification).
+    let mut cnt = vec![vec![vec![0i32; D_SIZE_MAX * 2]; D_SIZE_MAX]; D_SIZE_MAX];
+
+    // Initial state: both at (0,0), time step 0.
+    cnt[0][0][0] = mass[0][0];
+
+    // Helper: move along an anti-diagonal (row--, col++).
+    let mut move_diag = |row: &mut i32, col: &mut i32, w_i32: i32| -> bool {
+        *row -= 1;
+        *col += 1;
+        if *row < 0 || *col >= w_i32 {
+            return false;
+        }
+        true
+    };
+
+    // Helper: add value(s) for the two agents' next cells, without double-counting if same cell.
+    let get_add = |r1: usize, c1: usize, r2: usize, c2: usize, mass: &Vec<Vec<i32>>| -> i32 {
+        let mut add = mass[r1][c1];
+        if r1 == r2 && c1 == c2 {
+            return add;
+        }
+        add += mass[r2][c2];
+        add
+    };
+
+    let steps = w + h - 2;
+    let w_i32 = w as i32;
+
+    // Iterate by synchronized time step i (number of moves already made).
+    for i in 0..steps {
+        // Enumerate all positions (row,col) with row+col == i, in the same order as C:
+        // start at (min(i,h-1), i-min(i,h-1)) and move along anti-diagonal.
+        let (mut row1, mut col1) = if i < h {
+            (i as i32, 0i32)
+        } else {
+            let r = (h - 1) as i32;
+            (r, (i as i32) - r)
+        };
+
+        loop {
+            // Second agent starts at same diagonal position; j counts how far along the diagonal
+            // the second agent is relative to the first (in C, j increments as row2--, col2++).
+            let (mut row2, mut col2) = (row1, col1);
+            let mut j: usize = 0;
+
+            loop {
+                // Current DP value for this pair state.
+                let cur = cnt[row1 as usize][col1 as usize][j];
+
+                // Transitions correspond to each agent moving either Down or Right.
+                // Indices are safe because the C code relies on fixed-size arrays; here we rely
+                // on the problem's preconditions (dimensions within supported maximum).
+                //
+                // Down/Down
+                {
+                    let add = get_add(
+                        (row1 + 1) as usize,
+                        col1 as usize,
+                        (row2 + 1) as usize,
+                        col2 as usize,
+                        &mass,
+                    );
+                    let dst = &mut cnt[(row1 + 1) as usize][col1 as usize][j];
+                    *dst = max(*dst, cur + add);
+                }
+
+                // Down/Right
+                {
+                    let add = get_add(
+                        (row1 + 1) as usize,
+                        col1 as usize,
+                        row2 as usize,
+                        (col2 + 1) as usize,
+                        &mass,
+                    );
+                    let dst = &mut cnt[(row1 + 1) as usize][col1 as usize][j + 1];
+                    *dst = max(*dst, cur + add);
+                }
+
+                // Right/Down (only if j > 0 in the C code)
+                if j > 0 {
+                    let add = get_add(
+                        row1 as usize,
+                        (col1 + 1) as usize,
+                        (row2 + 1) as usize,
+                        col2 as usize,
+                        &mass,
+                    );
+                    let dst = &mut cnt[row1 as usize][(col1 + 1) as usize][j - 1];
+                    *dst = max(*dst, cur + add);
+                }
+
+                // Right/Right
+                {
+                    let add = get_add(
+                        row1 as usize,
+                        (col1 + 1) as usize,
+                        row2 as usize,
+                        (col2 + 1) as usize,
+                        &mass,
+                    );
+                    let dst = &mut cnt[row1 as usize][(col1 + 1) as usize][j];
+                    *dst = max(*dst, cur + add);
+                }
+
+                // Advance second agent along the diagonal; if out of bounds, stop.
+                if !move_diag(&mut row2, &mut col2, w_i32) {
+                    break;
+                }
+                j += 1;
+            }
+
+            // Advance first agent along the diagonal; if out of bounds, stop.
+            if !move_diag(&mut row1, &mut col1, w_i32) {
+                break;
+            }
+        }
+    }
+
+    // Final answer: both at bottom-right with zero diagonal offset.
+    let ans = cnt[h - 1][w - 1][0];
+    print!("{ans}\n");
+}
+```

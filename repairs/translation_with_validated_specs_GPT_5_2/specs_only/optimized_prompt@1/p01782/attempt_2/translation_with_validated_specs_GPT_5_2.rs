@@ -1,0 +1,198 @@
+use std::io::{self, Read};
+
+fn char_index(b: u8) -> usize {
+    match b {
+        b'A'..=b'Z' => (b - b'A') as usize,
+        b'a'..=b'z' => 26 + (b - b'a') as usize,
+        _ => 0, // Unspecified for invalid input; keep total.
+    }
+}
+
+#[derive(Clone)]
+struct Edge {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: i64,
+}
+
+#[derive(Clone)]
+struct Mcmf {
+    g: Vec<Vec<Edge>>,
+}
+
+impl Mcmf {
+    fn new(n: usize) -> Self {
+        Self { g: vec![Vec::new(); n] }
+    }
+
+    fn add_edge(&mut self, fr: usize, to: usize, cap: i32, cost: i64) {
+        let rev_to = self.g[to].len();
+        let rev_fr = self.g[fr].len();
+        self.g[fr].push(Edge { to, rev: rev_to, cap, cost });
+        self.g[to].push(Edge { to: fr, rev: rev_fr, cap: 0, cost: -cost });
+    }
+
+    fn min_cost_flow(&mut self, s: usize, t: usize, mut f: i32) -> i64 {
+        // Successive shortest augmenting path with potentials (Johnson).
+        // Costs are i64; no overflow checks per spec; use wide enough type.
+        let n = self.g.len();
+        let mut h = vec![0i64; n];
+        let mut dist = vec![0i64; n];
+        let mut prev_v = vec![0usize; n];
+        let mut prev_e = vec![0usize; n];
+
+        let mut res = 0i64;
+        while f > 0 {
+            dist.fill(i64::MAX / 4);
+            dist[s] = 0;
+
+            // Dijkstra with O(n^2) (N is assumed small).
+            let mut used = vec![false; n];
+            for _ in 0..n {
+                let mut v = None;
+                let mut best = i64::MAX / 4;
+                for i in 0..n {
+                    if !used[i] && dist[i] < best {
+                        best = dist[i];
+                        v = Some(i);
+                    }
+                }
+                let v = match v {
+                    Some(v) => v,
+                    None => break,
+                };
+                used[v] = true;
+                for (ei, e) in self.g[v].iter().enumerate() {
+                    if e.cap <= 0 {
+                        continue;
+                    }
+                    let nd = dist[v] + e.cost + h[v] - h[e.to];
+                    if nd < dist[e.to] {
+                        dist[e.to] = nd;
+                        prev_v[e.to] = v;
+                        prev_e[e.to] = ei;
+                    }
+                }
+            }
+
+            // Under the spec, a perfect matching is always feasible, so t should be reachable.
+            if dist[t] >= i64::MAX / 8 {
+                break; // Unspecified if infeasible; just stop.
+            }
+
+            for v in 0..n {
+                if dist[v] < i64::MAX / 8 {
+                    h[v] += dist[v];
+                }
+            }
+
+            let mut d = f;
+            let mut v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                let cap = self.g[pv][pe].cap;
+                if cap < d {
+                    d = cap;
+                }
+                v = pv;
+            }
+
+            f -= d;
+            res += (h[t]) * (d as i64);
+
+            v = t;
+            while v != s {
+                let pv = prev_v[v];
+                let pe = prev_e[v];
+                let rev = self.g[pv][pe].rev;
+                self.g[pv][pe].cap -= d;
+                self.g[v][rev].cap += d;
+                v = pv;
+            }
+        }
+        res
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut grid = vec![vec![0usize; n]; n];
+    for i in 0..n {
+        let s = it.next().unwrap();
+        let b = s.as_bytes();
+        for j in 0..n {
+            grid[i][j] = char_index(b[j]);
+        }
+    }
+
+    // Encode 52D lexicographic minimization of (-c0..-c51) as a single scalar min-cost:
+    // Use base B = n+1, and weight for character k: cost = -B^(51-k).
+    // Then minimizing total cost is equivalent to lexicographically minimizing the 52D vector.
+    // (Because each count is in [0..n], so no carry between digits in base B.)
+    let base: i64 = (n as i64) + 1;
+    let mut pow = vec![1i64; 52];
+    for i in 1..52 {
+        pow[i] = pow[i - 1] * base;
+    }
+    // weight[k] = -base^(51-k)
+    let mut weight = [0i64; 52];
+    for k in 0..52 {
+        weight[k] = -pow[51 - k];
+    }
+
+    // Build assignment as min-cost max-flow:
+    // source -> rows (cap 1, cost 0)
+    // rows -> cols (cap 1, cost weight[char])
+    // cols -> sink (cap 1, cost 0)
+    let s = 2 * n;
+    let t = 2 * n + 1;
+    let mut mcmf = Mcmf::new(2 * n + 2);
+
+    for i in 0..n {
+        mcmf.add_edge(s, i, 1, 0);
+    }
+    for j in 0..n {
+        mcmf.add_edge(n + j, t, 1, 0);
+    }
+    for i in 0..n {
+        for j in 0..n {
+            let k = grid[i][j];
+            mcmf.add_edge(i, n + j, 1, weight[k]);
+        }
+    }
+
+    let _ = mcmf.min_cost_flow(s, t, n as i32);
+
+    // Extract matching from residual graph: used edges are those row->col with cap==0.
+    let mut counts = [0usize; 52];
+    for i in 0..n {
+        for e in &mcmf.g[i] {
+            if e.to >= n && e.to < 2 * n && e.cost != 0 && e.cap == 0 {
+                let j = e.to - n;
+                let k = grid[i][j];
+                counts[k] += 1;
+                break;
+            }
+        }
+    }
+
+    let mut out = String::with_capacity(n + 1);
+    for idx in 0..52 {
+        let ch = if idx < 26 {
+            (b'A' + idx as u8) as char
+        } else {
+            (b'a' + (idx as u8 - 26)) as char
+        };
+        for _ in 0..counts[idx] {
+            out.push(ch);
+        }
+    }
+    out.push('\n');
+    print!("{out}");
+}

@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, determines whether there exists a smallest-size set of distinct people (size 1 through 5) such that:  
+- Every group contains at least one person from the set, and  
+- Considering only the chosen people, the groups form a single connected component under the relation “two chosen people are connected if they appear together in at least one group (possibly via a chain of such co-appearances).”  
+If such a set exists, outputs its size and the names in that set; otherwise outputs that no solution exists.
+
+2. Inputs  
+For each dataset:  
+- An integer count of candidate people.  
+- An integer count of groups.  
+- A list of candidate people names (strings). Duplicate names may appear.  
+- For each group: an integer count of listed names followed by that many names (strings).  
+Datasets repeat until a terminating dataset with a non-positive candidate count is encountered.
+
+3. Outputs  
+Per dataset:  
+- If no valid set of size 1–5 exists: a single line indicating impossibility.  
+- Otherwise:  
+  - A line containing the size of the selected set.  
+  - Then one line per selected person, printing their name.  
+Between consecutive datasets’ outputs, a blank line is emitted.
+
+4. Preconditions  
+- The number of distinct candidate people is at most 20.  
+- The number of groups is at most 22.  
+- Each name length fits within the fixed internal storage limits.  
+- Each group lists at most 20 names.  
+- All names referenced in groups are assumed to be among the candidate people; otherwise behavior is not reliably defined by the program’s contract.
+
+5. Postconditions  
+For each dataset:  
+- If a solution is printed, the printed set satisfies:  
+  - Coverage: every group contains at least one printed person.  
+  - Connectivity: all printed people are mutually connected via co-membership in groups when restricted to printed people.  
+  - Minimality by size: no solution exists with fewer printed people (within sizes 1–5).  
+- If “Impossible” is printed, then no set of size 1–5 satisfies both coverage and connectivity.
+
+6. Invariants  
+- Candidate people are treated as a set of unique names; repeated candidate names do not create additional distinct people.  
+- Group membership is evaluated only with respect to the unique candidate people.  
+- The selected set size, if any, is always between 1 and 5 inclusive.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit recovery for malformed input, out-of-range sizes, overly long names, or group names not present among candidates. Under such conditions, results are unspecified.  
+- If the number of distinct candidates exceeds 20, correctness is not guaranteed.
+
+8. State Transitions (if applicable)  
+- The program processes datasets sequentially. For each new dataset, all accumulated state from the previous dataset is discarded and recomputed from the new input.
+
+9. Non-functional Constraints (if inferable)  
+- Searches only for solutions of size up to 5; larger solutions are intentionally not considered.  
+- Runtime is bounded by enumerating combinations of up to 5 out of at most 20 candidates, multiplied by the number of groups, which is feasible for the stated limits.
+```

@@ -1,0 +1,141 @@
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Req {
+    stu: i32,
+    seq: i32,
+    id: usize,
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        if m <= 0 {
+            break;
+        }
+
+        // Desks are 1..=m plus initial holding desk m+1.
+        // Fixed bounds per spec/C: m is small (<= 11 addressable), ids <= 100, total req <= ~5000.
+        let m_usize = m as usize;
+        let holding = m_usize + 1;
+        let desk_count = holding + 1; // index 0 unused
+
+        let mut desk: Vec<Vec<usize>> = vec![Vec::new(); desk_count];
+        let mut book_loc: Vec<(usize, usize)> = vec![(0, 0); 101]; // (desk_index, position), 0 means unseen
+
+        let mut reqs: Vec<Req> = Vec::new();
+
+        for stu in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                reqs.push(Req {
+                    stu: stu as i32,
+                    seq: seq as i32,
+                    id,
+                });
+
+                // First-seen book goes to holding desk (m+1), not capacity-limited.
+                if book_loc[id].0 == 0 {
+                    let pos = desk[holding].len();
+                    desk[holding].push(id);
+                    book_loc[id] = (holding, pos);
+                }
+            }
+        }
+
+        // Global processing order: by seq, then by stu.
+        reqs.sort_by(|a, b| a.seq.cmp(&b.seq).then(a.stu.cmp(&b.stu)));
+
+        let mut ans: i64 = 0;
+
+        for r in reqs {
+            let id = r.id;
+            let (from, pos) = book_loc[id];
+
+            // A) Remove requested book from its current desk, shifting left and updating positions.
+            {
+                let d = &mut desk[from];
+                // Update positions for books after removed position.
+                for idx in (pos + 1)..d.len() {
+                    let bid = d[idx];
+                    book_loc[bid].1 -= 1;
+                }
+                d.remove(pos);
+            }
+            ans += from as i64;
+
+            // B) Overflow procedure if primary desk is full (before inserting id into primary).
+            if desk[1].len() == c {
+                // 1) Choose smallest non-full auxiliary desk tmp in 2..=m.
+                let mut tmp = 2usize;
+                while tmp <= m_usize && desk[tmp].len() == c {
+                    tmp += 1;
+                }
+                // Undefined behavior if not found; we follow spec/C and do not guard.
+                desk[tmp].push(id);
+                ans += tmp as i64;
+
+                // 2) Evict front book from primary desk.
+                let id2 = desk[1][0];
+                {
+                    let d1 = &mut desk[1];
+                    // Update positions for books after index 0.
+                    for idx in 1..d1.len() {
+                        let bid = d1[idx];
+                        book_loc[bid].1 -= 1;
+                    }
+                    d1.remove(0);
+                }
+                ans += 1;
+
+                // 3) Choose smallest non-full auxiliary desk j in 2..=m (after above changes).
+                let mut j = 2usize;
+                while j <= m_usize && desk[j].len() == c {
+                    j += 1;
+                }
+                // Insert id2 at back, except if j == tmp then one slot earlier (overwriting the temp id).
+                let mut insert_pos = desk[j].len();
+                if j == tmp {
+                    insert_pos = insert_pos.saturating_sub(1);
+                }
+                if insert_pos == desk[j].len() {
+                    desk[j].push(id2);
+                } else {
+                    desk[j][insert_pos] = id2;
+                }
+                book_loc[id2] = (j, insert_pos);
+
+                ans += (j + tmp) as i64;
+
+                // Cancel the temporary insertion of id into tmp.
+                // In the C code this is `hi[tmp]--`; here we pop the last element.
+                desk[tmp].pop();
+            }
+
+            // C) Insert requested book into primary desk at back.
+            let pos1 = desk[1].len();
+            desk[1].push(id);
+            book_loc[id] = (1, pos1);
+            ans += 1;
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

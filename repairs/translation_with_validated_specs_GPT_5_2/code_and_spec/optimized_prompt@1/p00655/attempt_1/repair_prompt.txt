@@ -1,0 +1,222 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Maintains a dynamic multiset of integers stored in two internal parts: **First Half (FH)** and **Second Half (SH)**. The program supports inserting values, deleting one value, and querying values derived from auxiliary min/max tracking structures maintained separately for FH and SH. The halves are continuously rebalanced so that:  
+- `size(FH) >= size(SH)` and  
+- `size(FH) - size(SH) <= 1`.
+
+FH and SH are not kept sorted. Query results are **not** the k-th smallest/largest element. Instead, each half maintains its own min/max tracking sequences with different update rules (FH uses prefix-extrema history; SH uses monotone-queue style structures).
+
+2. Inputs  
+- The input consists of one or more test cases.  
+- Each test case begins with an integer `q` (number of operations).  
+- A value `q = 0` terminates the entire program.  
+- Each of the next `q` operations begins with an integer opcode `op` in the range `0..9`. Some opcodes are followed by one additional integer parameter.
+
+3. Outputs  
+- For every operation **except insertion (opcode 0)**, the program prints one integer on its own line.  
+- After all `q` operations of a test case are processed, the program prints a line containing exactly `end`.
+
+4. Data Model and Invariants  
+- The stored elements are partitioned into two disjoint halves FH and SH whose union is the full multiset of stored elements (duplicates allowed).  
+- Size balance invariant is maintained after every insertion and deletion:  
+  - `size(FH) >= size(SH)`  
+  - `size(FH) - size(SH) <= 1`  
+- Operational behavior of halves:  
+  - **FH behaves like a stack**: deletions remove from the most recently added/moved end of FH.  
+  - **SH behaves like a queue**: rebalancing removals take from the oldest end of SH.  
+- Rebalancing moves elements only from SH to FH, and only when FH becomes smaller than SH.
+
+5. Operation Codes and Semantics  
+
+Let `k` denote a positive integer parameter when required.
+
+### 0: Insert  
+- Format: `0 x`  
+- Effect: Appends value `x` to SH.  
+- Rebalance: If after insertion `size(FH) < size(SH)`, remove one element from the **front/oldest end** of SH and push it onto the **top/newest end** of FH.  
+- Output: none.
+
+### 1: Delete  
+- Format: `1`  
+- Effect: Removes and returns one element from the **top/newest end** of FH.  
+- Rebalance: After removal, if `size(FH) < size(SH)`, remove one element from the **front/oldest end** of SH and push it onto the **top/newest end** of FH.  
+- Output: the removed value.
+
+### 2–9: Queries (do not modify the stored elements)  
+These queries return values from min/max tracking sequences maintained for each half. The meaning of “k-th” depends on the half:
+
+#### FH query sequences (prefix-extrema history over pushes into FH)  
+Consider the sequence of values currently in FH in the order they were pushed onto FH (including values moved from SH during rebalancing). FH maintains:  
+- a **prefix-min history**: whenever a pushed value is strictly smaller than the last stored prefix minimum, it is appended to the history; otherwise nothing is appended.  
+- a **prefix-max history**: whenever a pushed value is strictly larger than the last stored prefix maximum, it is appended to the history; otherwise nothing is appended.  
+When an element is popped from FH, the last entry of the prefix-min history is removed **only if** the popped value equals that last stored prefix minimum; similarly for prefix-max history.
+
+For FH queries with parameter `k`, the program returns the **k-th most recent** entry in the corresponding history (1-based from the end of the history):  
+- `k = 1` returns the current prefix minimum/maximum for FH,  
+- larger `k` returns earlier recorded prefix extrema (in reverse chronological order of when they were recorded).
+
+#### SH query sequences (monotone-queue minima/maxima over SH in queue order)  
+Consider SH in its queue order from **front/oldest** to **back/newest**. SH maintains:  
+- a structure that can return the minimum among the first `t` elements for increasing `t` (maintained by removing dominated larger values from the back when appending), and  
+- a structure that can return the maximum among the first `t` elements for increasing `t` (maintained by removing dominated smaller values from the back when appending).  
+When an element is removed from the front of SH (during rebalancing), the front of these structures is advanced if it equals the removed value.
+
+For SH queries with parameter `k`, the program returns the value corresponding to the **k-th position** (1-based) in these maintained monotone sequences as stored from front to back.
+
+#### Opcode mapping  
+- `2`: FH, prefix-min history, `k = 1`  
+- `3`: SH, monotone-min structure, `k = 1`  
+- `4 k`: FH, prefix-min history, `k`  
+- `5 k`: SH, monotone-min structure, `k`  
+- `6`: FH, prefix-max history, `k = 1`  
+- `7`: SH, monotone-max structure, `k = 1`  
+- `8 k`: FH, prefix-max history, `k`  
+- `9 k`: SH, monotone-max structure, `k`
+
+Output: the queried value.
+
+6. Preconditions / Validity Requirements  
+- The total number of operations and stored elements per test case must not exceed the program’s fixed internal capacity.  
+- Opcode parameters must be present exactly when required (opcodes 0, 4, 5, 8, 9 require one integer argument).  
+- Delete (opcode 1) is only issued when FH is non-empty at that moment.  
+- For query operations with parameter `k`, `k` must be positive and must not exceed the current length of the corresponding tracked sequence being indexed (FH’s prefix-extrema history for that statistic, or SH’s maintained monotone sequence for that statistic).  
+- All integer values fit in the program’s `int` range.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit error checking. If any precondition is violated (empty deletion, out-of-range `k`, capacity overflow, malformed input), behavior is undefined.
+
+8. Test Case Lifecycle / Termination  
+- At the start of each test case, the structure is empty.  
+- After processing exactly `q` operations, the program outputs `end`, discards the current state, and begins reading the next test case’s `q`.  
+- When a test case count of `0` is read, the program terminates immediately.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+=== C CODE END ===

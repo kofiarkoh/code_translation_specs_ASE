@@ -1,0 +1,54 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes; input is well-formed per spec (non-negative decimal integers).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<usize>().unwrap(),
+        None => return, // No input; unspecified, but do nothing.
+    };
+
+    // Fenwick tree (BIT) for prefix maximums over values 1..=n.
+    // bit[i] stores max over a range; query gives max over 1..=idx.
+    let mut bit = vec![0i64; n + 1];
+
+    fn bit_update(bit: &mut [i64], mut idx: usize, val: i64) {
+        let n = bit.len() - 1;
+        while idx <= n {
+            if val > bit[idx] {
+                bit[idx] = val;
+            }
+            idx += idx & (!idx + 1);
+        }
+    }
+
+    fn bit_query(bit: &[i64], mut idx: usize) -> i64 {
+        let mut res = 0i64;
+        while idx > 0 {
+            if bit[idx] > res {
+                res = bit[idx];
+            }
+            idx &= idx - 1;
+        }
+        res
+    }
+
+    for _ in 0..n {
+        let x: usize = it.next().unwrap().parse::<usize>().unwrap();
+        // Preconditions guarantee 1 <= x <= n.
+        let best_before = if x > 1 { bit_query(&bit, x - 1) } else { 0 };
+        let dp = best_before + x as i64;
+        bit_update(&mut bit, x, dp);
+    }
+
+    let m = bit_query(&bit, n);
+    let s = (n as i64) * ((n as i64) + 1) / 2;
+
+    // Per spec: if n == 0, M is treated as 0 and output is 0.
+    // This formula already yields 0 in that case.
+    let ans = s - m;
+    print!("{ans}");
+}

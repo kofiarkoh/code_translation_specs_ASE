@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer specifying how many test cases to process. For each test case, it reads an integer seed value and generates a sequence of exactly 10 integers by repeatedly updating the current value with a fixed arithmetic transformation. For each test case, the program prints a case header labeled with a 1-based case number, followed by the 10 generated values, one per line.
+
+2. Inputs  
+- An integer `N` indicating the number of test cases.  
+- Then `N` integer seed values, one per test case.
+
+3. Outputs  
+For each test case `i` (1-based):  
+- A header line of the form `Case i:`.  
+- Exactly 10 subsequent lines, each containing one integer produced by the transformation described below.  
+The seed itself is not printed unless it appears as a result of the transformation.
+
+4. Transformation / Generation Rule  
+Let `x` be the current integer value, initialized to the seed for the test case. Repeat the following update exactly 10 times; after each update, print the new value of `x`:
+- Compute the square of the current value.  
+- Discard the last two decimal digits of that square using integer division by 100.  
+- Keep only the next four decimal digits (the least significant four digits of the divided result) using modulo 10000.
+
+Equivalently, each iteration performs:
+- `x = ((x * x) / 100) % 10000`  
+using integer arithmetic (truncating toward zero as in C integer division).
+
+This corresponds to extracting the four decimal digits in positions 3 through 6 from the right of `x*x` (after removing the two least significant digits).
+
+5. Preconditions / Assumptions  
+- `N` is assumed to be an integer. If `N <= 0`, no test cases are processed and no output is produced.  
+- Each test case is assumed to provide an integer seed value readable by the program.  
+- The computation uses C `int` arithmetic; if `x * x` overflows the `int` range, behavior is not defined by this specification.  
+- No validation is performed for malformed or missing input; if required inputs cannot be read, behavior is unspecified.
+
+6. Postconditions  
+- If the test-case count is `N > 0`, exactly `N` case headers are printed, numbered from 1 to `N`.  
+- For each processed test case, exactly 10 transformed values are printed.  
+- Each printed value is the updated `x` after applying the full transformation for that iteration.
+
+7. Invariants and State Progression  
+- Case numbering starts at 1 and increases by 1 per processed test case.  
+- Within each test case, the program performs exactly 10 update-and-print iterations, where each iteration’s input is the previous iteration’s output.  
+- Processing proceeds sequentially from case 1 through case `N`, terminating after completing all requested cases.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main(){
+	int count=0,counter;
+	int a,b,c;
+	int i,j,k;
+	int x,y[8];
+	int cter;
+	
+	scanf("%d",&counter);
+	while(counter>count){
+		scanf("%d",&x);
+		cter=10;
+		c=0;
+		printf("Case %d:\n",count+1);
+		while(c<cter){
+			
+			x*=x;
+			x/=100;
+			x%=10000;
+			c++;
+			printf("%d\n",x);
+		}
+		count++;
+	}
+	return 0;
+}
+=== C CODE END ===

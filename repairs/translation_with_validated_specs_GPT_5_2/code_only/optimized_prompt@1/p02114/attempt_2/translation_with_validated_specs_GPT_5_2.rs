@@ -1,0 +1,76 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Tokenize like scanf: %d then repeated " %c" (skips whitespace, reads one char).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C: char d[300][300] = {}; (zero-initialized)
+    let mut d = vec![vec![0u8; 300]; 300];
+
+    // Important: " %c" reads a single character, not a whole token.
+    // But split_whitespace gives us each row as a token like "oxooo".
+    // So we must fill from each row string's bytes.
+    for i in 0..n {
+        let row = it.next().unwrap_or("");
+        let bytes = row.as_bytes();
+        for j in 0..n {
+            d[i + 1][j + 1] = *bytes.get(j).unwrap_or(&0);
+        }
+    }
+
+    let xdir: [i32; 4] = [1, 0, -1, 0];
+    let ydir: [i32; 4] = [0, 1, 0, -1];
+
+    let mut x = vec![0i32; 100_010];
+    let mut y = vec![0i32; 100_010];
+
+    let mut c: i32 = 0;
+
+    for i in 0..n {
+        for j in 0..n {
+            if d[i + 1][j + 1] == b'x' {
+                continue;
+            }
+
+            // Start a flood fill from any non-'x' cell, but only expand through 'o' cells.
+            let mut t: usize = 0;
+            y[0] = (i + 1) as i32;
+            x[0] = (j + 1) as i32;
+            d[i + 1][j + 1] = b'x';
+            c += 1;
+
+            let mut r: usize = 1;
+            while r != t {
+                for k in 0..4 {
+                    let ny = y[t] + ydir[k];
+                    let nx = x[t] + xdir[k];
+
+                    // Matches C's behavior assuming indices stay within the 300x300 buffer.
+                    let nyu = ny as usize;
+                    let nxu = nx as usize;
+
+                    // C: if(d[ny][nx]-'o')continue;
+                    if d[nyu][nxu].wrapping_sub(b'o') != 0 {
+                        continue;
+                    }
+
+                    y[r] = ny;
+                    x[r] = nx;
+                    d[nyu][nxu] = b'x';
+                    r += 1;
+                }
+                t += 1;
+            }
+        }
+    }
+
+    let ans = (c - 1) / 3;
+    print!("{ans}\n");
+}

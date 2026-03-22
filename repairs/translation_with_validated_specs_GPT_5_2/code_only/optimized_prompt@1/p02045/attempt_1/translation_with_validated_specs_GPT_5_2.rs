@@ -1,0 +1,103 @@
+use std::io::{self, Read};
+
+static mut A: i32 = 0;
+static mut B: i32 = 0;
+static mut C: i32 = 0;
+static mut D: i32 = 0;
+
+fn nigeru(x: i32, y: i32, is_src: bool) -> i32 {
+    // Mirrors the C logic exactly, using i32 arithmetic.
+    // Note: C's signed overflow is UB; we assume inputs keep computations in range.
+    let mut cost: i32 = 0;
+    unsafe {
+        if x < A {
+            cost += A - x;
+        }
+        if C < x {
+            cost += x - C;
+        }
+        if y < B {
+            cost += B - y;
+        }
+        if D < y {
+            cost += y - D;
+        }
+    }
+    if is_src && cost > 0 {
+        cost -= 1;
+    }
+    cost
+}
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if n <= 0 {
+            break;
+        }
+
+        // Read A, B, C, D; on failure, exit with code 1 (as in C).
+        let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        let d: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        unsafe {
+            A = a;
+            B = b;
+            C = c;
+            D = d;
+        }
+
+        // C uses fixed arrays of size 128 and reads indices 0..=N.
+        // We keep the same capacity; if N > 127, C would overflow (UB).
+        // Here we still allocate 128 and will panic on out-of-bounds; we do not "fix" UB.
+        let mut x = [0i32; 128];
+        let mut y = [0i32; 128];
+
+        for i in 0..=n as usize {
+            let xi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => std::process::exit(1),
+            };
+            let yi: i32 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => std::process::exit(1),
+            };
+            x[i] = xi;
+            y[i] = yi;
+        }
+
+        let mut mikakosi: i32 = 0;
+        for i in 1..=n as usize {
+            let naka = (x[i - 1] - x[i]).abs() + (y[i - 1] - y[i]).abs();
+            let simakaze = nigeru(x[i - 1], y[i - 1], true) + nigeru(x[i], y[i], false);
+            mikakosi += if naka < simakaze { naka } else { simakaze };
+        }
+
+        print!("{mikakosi}\n");
+    }
+}

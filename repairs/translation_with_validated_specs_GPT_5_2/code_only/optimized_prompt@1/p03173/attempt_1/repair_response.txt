@@ -1,0 +1,58 @@
+```rust
+use std::io::{self, Read};
+
+const SUP: i64 = 1i64 << 60;
+
+fn recursion(l: usize, r: usize, dp: &mut Vec<Vec<i64>>, sum: &Vec<i64>) -> i64 {
+    // Mirrors: if (dp[l][r] != 0 || l == r) return dp[l][r];
+    // Note: dp is zero-initialized; for l==r it returns 0 (base case).
+    if dp[l][r] != 0 || l == r {
+        return dp[l][r];
+    } else {
+        dp[l][r] = SUP;
+    }
+
+    for k in (l + 1)..=r {
+        let tmp = recursion(l, k - 1, dp, sum) + recursion(k, r, dp, sum);
+        if tmp < dp[l][r] {
+            dp[l][r] = tmp;
+        }
+    }
+
+    // dp[l][r] += sum[r] - sum[l-1];
+    dp[l][r] += sum[r] - sum[l - 1];
+    dp[l][r]
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // a[1..=N], sum[0..=N], dp[0..=N][0..=N]
+    let mut a = vec![0i64; n + 1];
+    for i in 1..=n {
+        if let Some(v) = it.next() {
+            a[i] = v.parse::<i64>().unwrap();
+        }
+    }
+
+    let mut sum = vec![0i64; n + 1];
+    sum[0] = 0;
+    for i in 1..=n {
+        sum[i] = sum[i - 1] + a[i];
+    }
+
+    let mut dp = vec![vec![0i64; n + 1]; n + 1];
+
+    let ans = recursion(1, n, &mut dp, &sum);
+    print!("{ans}\n");
+    // stdout is flushed on program exit; explicit fflush not needed.
+}
+```

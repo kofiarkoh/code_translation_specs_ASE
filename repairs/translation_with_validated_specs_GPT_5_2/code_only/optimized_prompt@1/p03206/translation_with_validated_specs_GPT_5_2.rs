@@ -1,0 +1,24 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, like scanf would consume from it.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Mimic `scanf("%d", &n)` behavior: parse the first integer token if present.
+    // If parsing fails (no integer), C would leave `n` uninitialized (UB). Here we default to 0.
+    let n: i32 = input.split_whitespace().next().and_then(|t| t.parse().ok()).unwrap_or(0);
+
+    if n == 25 {
+        print!("Christmas\n");
+    }
+    if n == 24 {
+        print!("Christmas Eve\n");
+    }
+    if n == 23 {
+        print!("Christmas Eve Eve\n");
+    }
+    if n == 22 {
+        print!("Christmas Eve Eve Eve\n");
+    }
+}

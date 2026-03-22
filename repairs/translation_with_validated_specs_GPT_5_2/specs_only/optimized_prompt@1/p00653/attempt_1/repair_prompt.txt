@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Maintains a mutable 2D grid of integer values and answers multiple range queries. For each query specifying an axis-aligned rectangular subregion of the grid, it returns the minimum value contained in that subregion.
+
+2. Inputs  
+- A sequence of test cases. Each test case provides:  
+  - Two positive integers: number of rows and number of columns of the grid.  
+  - A non-negative integer: number of queries.  
+  - Exactly (rows × columns) integer cell values defining the initial grid contents.  
+  - For each query: four integers defining a rectangle by two corner coordinates (top-left and bottom-right), using 0-based row/column indexing.  
+- Test case sequence terminates when the provided row count is non-positive.  
+
+3. Outputs  
+- For each query in each test case, outputs one integer: the minimum grid value within the specified rectangle.
+
+4. Preconditions  
+- For each test case:  
+  - Row and column counts are positive and small enough that internal storage limits are not exceeded.  
+  - The grid provides exactly the required number of cell values.  
+  - Each query’s rectangle coordinates satisfy:  
+    - 0 ≤ topRow ≤ bottomRow < rows  
+    - 0 ≤ leftCol ≤ rightCol < cols  
+- Sufficient memory is available for internal structures.
+
+5. Postconditions  
+- For every query, the printed value equals:  
+  - min { grid[r][c] | topRow ≤ r ≤ bottomRow and leftCol ≤ c ≤ rightCol }.  
+- The grid values remain unchanged throughout query answering (no updates occur after initialization).
+
+6. Invariants  
+- At all times after initialization, the internal representation corresponds to the current grid such that the minimum over any rectangular region of the grid can be derived consistently from it.  
+- Query evaluation does not modify the grid’s logical contents.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range coordinates, memory allocation failure, or internal capacity overflow. Behavior is unspecified in such cases.
+
+8. State Transitions (if applicable)  
+- For each test case:  
+  - State is created and populated from the provided grid values.  
+  - A sequence of queries is answered against that fixed state.  
+  - State is discarded before processing the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to support many queries efficiently after a one-time preprocessing/build during initialization.  
+- Uses a fixed-size global backing store, implying an upper bound on supported grid dimensions.
+```

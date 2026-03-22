@@ -1,0 +1,53 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; undefined behavior on invalid input is acceptable per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Build adjacency list for an undirected graph.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        adj[a].push(b);
+        adj[b].push(a);
+    }
+
+    // predecessor:
+    // -1 => unreached
+    //  0 => vertex 1 (root)
+    // >0 => predecessor vertex id
+    let mut pred: Vec<i32> = vec![-1; n + 1];
+    if n >= 1 {
+        pred[1] = 0;
+    }
+
+    // BFS traversal from vertex 1; each vertex enqueued at most once.
+    let mut q: VecDeque<usize> = VecDeque::new();
+    if n >= 1 {
+        q.push_back(1);
+    }
+
+    while let Some(u) = q.pop_front() {
+        for &v in &adj[u] {
+            if pred[v] == -1 {
+                pred[v] = u as i32;
+                q.push_back(v);
+            }
+        }
+    }
+
+    // Output: affirmative completion line, then predecessors for vertices 2..N.
+    let mut out = String::new();
+    out.push_str("Yes\n");
+    for i in 2..=n {
+        out.push_str(&format!("{}\n", pred[i]));
+    }
+    print!("{out}");
+}

@@ -1,0 +1,120 @@
+```rust
+use std::io::{self, Read};
+
+const MN: usize = 205;
+const INF: i32 = 100_000_000;
+// C's memset(0x0f) on int yields 0x0f0f0f0f = 252_645_135
+const INIT_VAL: i32 = 0x0f0f0f0f;
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let _m: usize = it.next().unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m = _m;
+
+        // Matrices: S for non-'L', L for 'L'
+        let mut s_mat = vec![vec![INIT_VAL; n]; n];
+        let mut l_mat = vec![vec![INIT_VAL; n]; n];
+        for i in 0..n {
+            s_mat[i][i] = 0;
+            l_mat[i][i] = 0;
+        }
+
+        for _ in 0..m {
+            let x_in: usize = it.next().unwrap().parse().unwrap();
+            let y_in: usize = it.next().unwrap().parse().unwrap();
+            let cost: i32 = it.next().unwrap().parse().unwrap();
+            let t: &str = it.next().unwrap();
+            let x = x_in - 1;
+            let y = y_in - 1;
+            if t.as_bytes()[0] == b'L' {
+                l_mat[x][y] = cost;
+                l_mat[y][x] = cost;
+            } else {
+                s_mat[x][y] = cost;
+                s_mat[y][x] = cost;
+            }
+        }
+
+        let r: usize = it.next().unwrap().parse().unwrap();
+        let mut req = vec![0usize; r];
+        for i in 0..r {
+            let v_in: usize = it.next().unwrap().parse().unwrap();
+            req[i] = v_in - 1; // 0-based
+        }
+
+        // Floyd-Warshall independently on both categories.
+        for k in 0..n {
+            for i in 0..n {
+                // Keep local copies to reduce indexing overhead a bit.
+                let sik = s_mat[i][k];
+                let lik = l_mat[i][k];
+                for j in 0..n {
+                    // i32 arithmetic matches C int behavior under the spec's no-overflow assumption.
+                    let cand_s = sik + s_mat[k][j];
+                    if cand_s < s_mat[i][j] {
+                        s_mat[i][j] = cand_s;
+                    }
+                    let cand_l = lik + l_mat[k][j];
+                    if cand_l < l_mat[i][j] {
+                        l_mat[i][j] = cand_l;
+                    }
+                }
+            }
+        }
+
+        // DP: dp[k][v] for k=0..r-1, v=0..n-1
+        let mut dp = vec![vec![INIT_VAL; n]; r];
+        dp[0][req[0]] = 0;
+
+        for k in 0..(r.saturating_sub(1)) {
+            for i in 0..n {
+                for j in 0..n {
+                    let base = dp[k][j];
+                    let cand = base + l_mat[req[k]][j] + s_mat[j][i] + l_mat[i][req[k + 1]];
+                    if cand < dp[k + 1][i] {
+                        dp[k + 1][i] = cand;
+                    }
+                    if i == j {
+                        let cand2 = base + l_mat[req[k]][req[k + 1]];
+                        if cand2 < dp[k + 1][i] {
+                            dp[k + 1][i] = cand2;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Final answer: min over dp[r-1][v], but if r==1 output 0 per spec.
+        let ans = if r == 1 {
+            0
+        } else {
+            let mut best = INF;
+            for i in 0..n {
+                if dp[r - 1][i] < best {
+                    best = dp[r - 1][i];
+                }
+            }
+            best
+        };
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

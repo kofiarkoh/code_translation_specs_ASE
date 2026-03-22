@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the result of repeatedly applying a one-dimensional “influence spread” transformation to an integer sequence of length N, up to K iterations, with early termination when the sequence becomes pointwise maximal.  
+In one transformation step, each position j contributes +1 to every position i whose distance from j is at most the value at position j in the previous sequence. The new value at each position i is the total number of contributing positions j. The final sequence after the performed iterations is output.
+
+2. Inputs  
+- An integer N: the sequence length.  
+- An integer K: the maximum number of transformation iterations to perform.  
+- A sequence of N integers: the initial values.
+
+3. Outputs  
+- A sequence of N integers: the values after applying the transformation for T iterations, where T is the number of iterations actually performed (0 ≤ T ≤ K), printed in order and separated by single spaces, terminated by a newline.
+
+4. Preconditions  
+- 1 ≤ N ≤ 200000.  
+- K ≥ 0.  
+- The input provides at least N + 2 integers in total (N, K, and N sequence values).  
+- To avoid out-of-bounds behavior, each initial sequence value is assumed to be non-negative.
+
+5. Postconditions  
+Let A⁰ be the initial sequence. For each iteration t ≥ 1, define Aᵗ such that for every position i in [1..N]:  
+- Aᵗ[i] = |{ j in [1..N] : |i − j| ≤ Aᵗ⁻¹[j] }|.  
+The program outputs Aᵀ where:  
+- T = min(K, the first t such that Aᵗ[i] = N for all i, if such a t occurs; otherwise K).  
+Additionally, for all i, the output value satisfies 0 ≤ Aᵀ[i] ≤ N.
+
+6. Invariants  
+- Throughout execution after initialization, the maintained sequence length remains N.  
+- After each completed transformation step, every sequence element is an integer in [0, N].  
+- The number of performed iterations never exceeds K.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed or insufficient input.  
+- If preconditions are violated (e.g., N out of range, negative sequence values), behavior is undefined (may include incorrect results or memory errors).
+
+8. State Transitions (if applicable)  
+- State is the current sequence A.  
+- Transition: A ← F(A), where F is the transformation defined in Postconditions.  
+- The transition is applied repeatedly up to K times, but stops early if the current sequence becomes pointwise equal to N (i.e., all positions have value N).
+
+9. Non-functional Constraints (if inferable)  
+- Designed to operate within fixed-size memory bounds consistent with N up to 200000.  
+- Execution time grows approximately linearly with N per performed iteration, for up to K iterations (or fewer with early termination).
+```

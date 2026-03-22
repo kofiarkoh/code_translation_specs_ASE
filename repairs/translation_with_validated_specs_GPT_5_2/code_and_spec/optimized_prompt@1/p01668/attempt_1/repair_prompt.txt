@@ -1,0 +1,155 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, modulo a fixed large prime, the number of length‑`N` digit sequences representing integers in the inclusive range between a given lower bound and upper bound (after left‑padding the lower bound with leading zeros to match the upper bound’s length) such that the digit sequence contains a given digit pattern as a contiguous substring. The substring match is required to start at or after the first position where the padded lower bound may introduce leading zeros (i.e., it is not allowed to start strictly before that position if it would rely on those padded zeros).
+
+2. Inputs  
+- Three non-empty strings over decimal digits:  
+  - Lower bound value.  
+  - Upper bound value.  
+  - Pattern value to be matched as a contiguous substring.
+
+3. Outputs  
+- A single non-negative integer: the count of valid numbers in the specified range whose digit representation (with length equal to the upper bound’s length) contains the pattern as a contiguous substring, reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- All three inputs consist only of characters ‘0’–‘9’.  
+- The upper bound’s digit length is at most 10,000.  
+- The pattern’s digit length is at most 500.  
+- The lower bound’s digit length is at most the upper bound’s digit length.  
+- The numeric value of the (padded) lower bound is less than or equal to the numeric value of the upper bound (otherwise the result is not meaningfully defined by the code’s contract).  
+
+5. Postconditions  
+- Let `N` be the number of digits in the upper bound. Let the lower bound be left‑padded with leading zeros to length `N`.  
+- The output equals the number of integers `X` such that:  
+  - `X` is representable as an `N`-digit sequence (allowing leading zeros),  
+  - `lower_bound_padded ≤ X ≤ upper_bound`, and  
+  - the `N`-digit sequence of `X` contains the pattern as a contiguous substring starting at some index `s` satisfying `s ≥ (N − original_lower_bound_length)`.  
+- The reported value is the above count modulo 1,000,000,007.
+
+6. Invariants  
+- All counts are maintained and reported modulo 1,000,000,007.  
+- The range constraints are always interpreted with respect to the `N`-digit, leading-zero-allowed representation.
+
+7. Error Handling / Exceptional Behavior  
+- If the three required inputs are not successfully read, the program terminates with a non-zero exit status and produces no defined numeric output.  
+- No other explicit error reporting is performed; behavior is undefined if preconditions are violated (e.g., excessive lengths or non-digit characters).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is proportional to `N * M` with fixed small constant factors due to internal caching; it requires space on the order of `N * M` states.  
+- Intended to run in time proportional to the number of cached states times a small digit-iteration factor, suitable for the stated maximum sizes.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+#define MOD_BY 1000000007
+
+int add(int a,int b) {
+	int r=a+b;
+	if(r>=MOD_BY)r-=MOD_BY;
+	return r;
+}
+
+/*
+int mul(int a,int b) {
+	return (int)(((long long)a*(long long)b)%MOD_BY);
+}
+*/
+
+int N,M;
+int existPos;
+char A[10240];
+char B[10240];
+char C[512];
+
+int memo[10002][502][2][2];
+int numberOfNumber[10002][2][2];
+
+int getNumberOfNumber(int pos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+	if(pos>=N)return 1;
+	if(numberOfNumber[pos][ueFlag][sitaFlag]>0)return numberOfNumber[pos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		ret=add(ret,getNumberOfNumber(pos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+	}
+
+	numberOfNumber[pos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int search(int pos,int seqPos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+
+	if(seqPos>=M)return getNumberOfNumber(pos,ueFlag,sitaFlag);
+	if(pos>=N)return 0;
+	if(memo[pos][seqPos][ueFlag][sitaFlag]>0)return memo[pos][seqPos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		if(seqPos==0) {
+			ret=add(ret,search(pos+1,0,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+		if((!sitaFlag || i!=imin || existPos<=pos) && seqPos<M && C[seqPos]==i) {
+			ret=add(ret,search(pos+1,seqPos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+	}
+
+	memo[pos][seqPos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int main(void) {
+	int Alen,Blen;
+	int i;
+	if(scanf("%s%s%s",A,B,C)!=3)return 1;
+	Alen=strlen(A);
+	Blen=strlen(B);
+	if(Alen<Blen) {
+		for(i=0;i<Alen;i++)A[Blen-i-1]=A[Alen-i-1];
+		for(i=0;i<Blen-Alen;i++)A[i]='0';
+	}
+	N=Blen;
+	M=strlen(C);
+	existPos=Blen-Alen;
+	for(i=0;i<N;i++) {
+		A[i]-='0';
+		B[i]-='0';
+	}
+	for(i=0;i<M;i++)C[i]-='0';
+	printf("%d\n",search(0,0,1,1));
+	return 0;
+}
+=== C CODE END ===

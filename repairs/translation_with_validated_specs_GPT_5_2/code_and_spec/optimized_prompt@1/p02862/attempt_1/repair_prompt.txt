@@ -1,0 +1,105 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the number of distinct sequences of two allowed move types that reach a target point with nonnegative integer coordinates, under the constraint that each move increases the coordinate sum by 3 and increases each coordinate by either 1 or 2. The result is reported modulo a fixed large prime.
+
+2. Inputs  
+- Two integers representing the target coordinates.
+
+3. Outputs  
+- A single nonnegative integer: the count of valid move sequences to reach the target, reduced modulo the fixed prime.  
+- Outputs `0` when the target is unreachable under the allowed moves.
+
+4. Preconditions  
+- The two input integers are successfully provided.  
+- The target coordinates are assumed to be within a range that keeps all required combinatorial values within the precomputed limit (i.e., the derived total number of moves does not exceed the fixed maximum supported size).
+
+5. Postconditions  
+- If the target is reachable, the output equals the binomial coefficient corresponding to choosing how many moves are of one type among the total moves, modulo the fixed prime.  
+- If the target is not reachable, the output is `0`.
+
+6. Invariants  
+- All combinatorial computations are performed modulo the fixed prime.  
+- For supported sizes, factorials and modular inverses used for binomial coefficients are consistent with modular arithmetic under the fixed prime.
+
+7. Error Handling / Exceptional Behavior  
+- If the target coordinate sum is not divisible by 3, outputs `0`.  
+- If the derived counts of required move types are negative, outputs `0`.  
+- Behavior is undefined if the required precomputation size exceeds the fixed supported maximum (may lead to incorrect results or memory errors).  
+- No explicit handling is provided for malformed input.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and modular inverses once per execution before producing the final count.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the fixed precomputation limit plus constant-time query evaluation.  
+- Memory usage is proportional to the fixed precomputation limit due to stored tables.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+const int MAX = 1000001;
+const int MOD = 1000000007;
+
+long long fac[1000001], finv[1000001], inv[1000001];
+void COMinit() {
+    fac[0] = fac[1] = 1;
+    finv[0] = finv[1] = 1;
+    inv[1] = 1;
+    for (int i = 2; i < MAX; i++){
+        fac[i] = fac[i - 1] * i % MOD;
+        inv[i] = MOD - inv[MOD%i] * (MOD / i) % MOD;
+        finv[i] = finv[i - 1] * inv[i] % MOD;
+    }
+}
+
+long long COM(int n, int k){
+    if (n < k) return 0;
+    if (n < 0 || k < 0) return 0;
+    return fac[n] * (finv[k] * finv[n - k] % MOD) % MOD;
+}
+int main(void){
+    int x, y;
+    scanf("%d%d", &x, &y);
+    int n;
+    if((x + y) % 3 != 0){
+        printf("0\n");
+        return 0;
+    }
+    n = (x + y)/3;
+
+    int x_, y_;
+    x_ = x - n;
+    y_ = y - n;
+
+    if(x_ < 0 || y_ < 0){
+        printf("0\n");
+        return 0;
+    }
+
+    COMinit();
+    printf("%lld\n", COM(x_+y_, x_)% MOD);
+    return 0;
+
+}
+=== C CODE END ===

@@ -1,0 +1,40 @@
+use std::io::{self, Read};
+
+const NUM_MAX: usize = 1000;
+const K_MAX: usize = 1000;
+const MOD: u64 = 1_000_000_007;
+
+fn init_pdp() -> Vec<Vec<u64>> {
+    // pdp[i][j] = number of partitions of j using parts in 1..=i (order doesn't matter), mod MOD
+    let mut pdp = vec![vec![0u64; NUM_MAX + 1]; K_MAX + 1];
+    pdp[0][0] = 1;
+
+    for i in 1..=K_MAX {
+        for j in 0..=NUM_MAX {
+            let mut v = pdp[i - 1][j];
+            if j >= i {
+                v = (v + pdp[i][j - i]) % MOD;
+            }
+            pdp[i][j] = v;
+        }
+    }
+    pdp
+}
+
+fn main() {
+    // The C code reads a single line and then sscanf's two ints; if input is missing/invalid,
+    // behavior is not defined. We similarly do minimal parsing without explicit error reporting.
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+
+    let mut it = input.split_whitespace();
+    let n: usize = it.next().unwrap_or("0").parse().unwrap_or(0);
+    let k: usize = it.next().unwrap_or("0").parse().unwrap_or(0);
+
+    let pdp = init_pdp();
+
+    // Per spec, inputs are within [0, 1000]. Outside that range, behavior is undefined in C.
+    // We index directly to preserve that assumption.
+    let ans = pdp[k][n] as u32;
+    print!("{ans}\n");
+}

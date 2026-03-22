@@ -1,0 +1,105 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    from: usize,
+    to: usize,
+    w: i64,
+}
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut rev_adj: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        let c: i64 = it.next().unwrap().parse().unwrap();
+        edges.push(Edge { from: u, to: v, w: c });
+        // Reverse adjacency for reachability-to-N computation.
+        rev_adj[v].push(u);
+    }
+
+    // Compute which nodes can reach N (in the original graph) via reverse BFS/DFS from N.
+    let mut can_reach_n = vec![false; n + 1];
+    if n >= 1 {
+        let mut q = VecDeque::new();
+        can_reach_n[n] = true;
+        q.push_back(n);
+        while let Some(x) = q.pop_front() {
+            for &p in &rev_adj[x] {
+                if !can_reach_n[p] {
+                    can_reach_n[p] = true;
+                    q.push_back(p);
+                }
+            }
+        }
+    }
+
+    // We want maximum path weight. Use Bellman-Ford style relaxation for maximum.
+    // Sentinel for "no path": a very large negative integer value.
+    // Keep it far from i64::MIN to avoid accidental underflow on addition in typical cases.
+    let neg_inf: i64 = -9_000_000_000_000_000_000i64;
+
+    let mut dist = vec![neg_inf; n + 1];
+    if n >= 1 {
+        dist[1] = 0;
+    }
+
+    // Relax edges up to N-1 times.
+    for _ in 0..n.saturating_sub(1) {
+        let mut changed = false;
+        for e in &edges {
+            let du = dist[e.from];
+            if du == neg_inf {
+                continue;
+            }
+            // Contract assumes sums fit in i64; no explicit overflow handling required.
+            let cand = du + e.w;
+            if cand > dist[e.to] {
+                dist[e.to] = cand;
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+
+    // Detect if there is a reachable positive cycle that can still reach N:
+    // If any edge can still be relaxed (improved) from a node reachable from 1 (dist != neg_inf),
+    // and the destination can reach N, then the maximum is unbounded.
+    let mut infinite = false;
+    for e in &edges {
+        let du = dist[e.from];
+        if du == neg_inf {
+            continue; // not reachable from 1 under current best-known values
+        }
+        let cand = du + e.w;
+        if cand > dist[e.to] && can_reach_n[e.to] {
+            infinite = true;
+            break;
+        }
+    }
+
+    if infinite {
+        print!("inf");
+    } else {
+        // If N is unreachable, this prints the sentinel-like large negative number as specified.
+        print!("{}", dist[n]);
+    }
+}
+```

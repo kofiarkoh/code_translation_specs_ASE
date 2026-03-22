@@ -1,0 +1,168 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-10;
+
+#[derive(Clone, Copy, Debug)]
+struct PtI {
+    x: i64,
+    y: i64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PtF {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct SegI {
+    a: PtI,
+    b: PtI,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Event {
+    // position along reference segment (0..1) used for ordering
+    t: f64,
+    // two-state values (assumed 0/1 by spec)
+    cat: i64,
+    lab: i64,
+}
+
+fn cross_i64(ax: i64, ay: i64, bx: i64, by: i64) -> i128 {
+    (ax as i128) * (by as i128) - (ay as i128) * (bx as i128)
+}
+
+fn sub_i64(a: PtI, b: PtI) -> (i64, i64) {
+    (a.x - b.x, a.y - b.y)
+}
+
+fn to_f(p: PtI) -> PtF {
+    PtF {
+        x: p.x as f64,
+        y: p.y as f64,
+    }
+}
+
+// Computes proper intersection between segments p->p2 and q->q2.
+// Returns parameter t along p->p2 (0..1) if they intersect strictly in the interior of both segments.
+// Uses floating-point with EPS threshold as per spec.
+fn proper_intersection_t(p: PtI, p2: PtI, q: PtI, q2: PtI) -> Option<f64> {
+    // Use robust-ish integer cross products for parallel/collinear detection,
+    // but compute intersection parameters in f64 to match spec's floating-point behavior.
+    let (rx, ry) = sub_i64(p2, p);
+    let (sx, sy) = sub_i64(q2, q);
+
+    let rxs = cross_i64(rx, ry, sx, sy);
+    if rxs == 0 {
+        // Parallel or collinear: spec does not define; treat as no proper intersection.
+        return None;
+    }
+
+    let (qpx, qpy) = sub_i64(q, p);
+    let qpxr = cross_i64(qpx, qpy, rx, ry);
+    let qpxs = cross_i64(qpx, qpy, sx, sy);
+
+    // t = (q - p) x s / (r x s)
+    // u = (q - p) x r / (r x s)
+    let denom = rxs as f64;
+    let t = (qpxs as f64) / denom;
+    let u = (qpxr as f64) / denom;
+
+    // Strictly interior of both segments: EPS away from endpoints.
+    if t > EPS && t < 1.0 - EPS && u > EPS && u < 1.0 - EPS {
+        Some(t)
+    } else {
+        None
+    }
+}
+
+// Program rule for whether an event matches the current state.
+// The spec does not provide the exact rule; the narrowest reasonable two-state rule
+// implied by "category/label combination" is to compare their XOR to the current state.
+fn matches_state(cat: i64, lab: i64, state: i64) -> bool {
+    ((cat ^ lab) & 1) == (state & 1)
+}
+
+fn eval(events: &[Event], init_state: i64) -> i64 {
+    let mut state = init_state & 1;
+    let mut changes: i64 = 0;
+    for e in events {
+        if !matches_state(e.cat, e.lab, state) {
+            changes += 1;
+            state ^= 1;
+        }
+    }
+    changes
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    for _case in 0..t {
+        let ax: i64 = it.next().unwrap().parse().unwrap();
+        let ay: i64 = it.next().unwrap().parse().unwrap();
+        let bx: i64 = it.next().unwrap().parse().unwrap();
+        let by: i64 = it.next().unwrap().parse().unwrap();
+        let ref_seg = SegI {
+            a: PtI { x: ax, y: ay },
+            b: PtI { x: bx, y: by },
+        };
+
+        let n: usize = it.next().unwrap().parse().unwrap();
+        let mut events: Vec<Event> = Vec::new();
+        events.reserve(n.min(100_000));
+
+        for _ in 0..n {
+            let x1: i64 = it.next().unwrap().parse().unwrap();
+            let y1: i64 = it.next().unwrap().parse().unwrap();
+            let x2: i64 = it.next().unwrap().parse().unwrap();
+            let y2: i64 = it.next().unwrap().parse().unwrap();
+            let cat: i64 = it.next().unwrap().parse().unwrap();
+            let lab: i64 = it.next().unwrap().parse().unwrap();
+
+            let s = SegI {
+                a: PtI { x: x1, y: y1 },
+                b: PtI { x: x2, y: y2 },
+            };
+
+            if let Some(tpos) = proper_intersection_t(ref_seg.a, ref_seg.b, s.a, s.b) {
+                events.push(Event {
+                    t: tpos,
+                    cat,
+                    lab,
+                });
+            }
+        }
+
+        // Sort by intersection position along reference segment.
+        // If ties/near-ties occur, ordering may be inconsistent as per spec.
+        events.sort_by(|a, b| {
+            if a.t < b.t {
+                Ordering::Less
+            } else if a.t > b.t {
+                Ordering::Greater
+            } else {
+                Ordering::Equal
+            }
+        });
+
+        let ans0 = eval(&events, 0);
+        let ans1 = eval(&events, 1);
+        let ans = ans0.min(ans1);
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,114 @@
+use std::io::{self, Read};
+
+fn next_permutation(arr: &mut [i32]) -> i32 {
+    let n = arr.len() as i32;
+    let mut i: i32;
+
+    // Find rightmost position where arr[i] < arr[i+1]
+    i = n - 2;
+    while i >= 0 {
+        if arr[i as usize] < arr[(i + 1) as usize] {
+            break;
+        }
+        i -= 1;
+    }
+    if i < 0 {
+        return 0;
+    }
+    let target = i;
+
+    // Reverse suffix [target+1, n)
+    i = 0;
+    while target + i + 1 < n - i - 1 {
+        let a = (target + 1 + i) as usize;
+        let b = (n - 1 - i) as usize;
+        arr.swap(a, b);
+        i += 1;
+    }
+
+    // Find first element in suffix greater than arr[target]
+    i = target + 1;
+    while i < n {
+        if arr[i as usize] > arr[target as usize] {
+            break;
+        }
+        i += 1;
+    }
+
+    // In the C code, i is assumed to be in-bounds here.
+    // We keep the same behavior; if it were out of bounds, C would be UB.
+    let iu = i as usize;
+    let tu = target as usize;
+    arr.swap(iu, tu);
+
+    1
+}
+
+fn main() {
+    // Read all input, parse as i32 like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut hw = [[0i32; 2]; 6];
+    for i in 0..6 {
+        let a = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => std::process::exit(1),
+        };
+        let b = match it.next() {
+            Some(v) => v.parse::<i32>().unwrap(),
+            None => std::process::exit(1),
+        };
+        hw[i][0] = a;
+        hw[i][1] = b;
+    }
+
+    // connect[12][4]
+    let connect: [[usize; 4]; 12] = [
+        [0, 1, 1, 1],
+        [0, 0, 2, 0],
+        [0, 1, 3, 1],
+        [0, 0, 4, 0],
+        [1, 0, 2, 1],
+        [2, 1, 3, 0],
+        [3, 0, 4, 1],
+        [4, 1, 1, 0],
+        [5, 1, 1, 1],
+        [5, 0, 4, 0],
+        [5, 1, 3, 1],
+        [5, 0, 4, 0],
+    ];
+
+    let mut permutation: [i32; 6] = [0, 1, 2, 3, 4, 5];
+
+    loop {
+        for rotate in 0..(1u32 << 6) {
+            let mut ng = false;
+            for i in 0..12 {
+                let p1 = permutation[connect[i][0]] as usize;
+                let idx1 = connect[i][1] ^ (((rotate >> connect[i][0]) & 1) as usize);
+                let len1 = hw[p1][idx1];
+
+                let p2 = permutation[connect[i][2]] as usize;
+                let idx2 = connect[i][3] ^ (((rotate >> connect[i][2]) & 1) as usize);
+                let len2 = hw[p2][idx2];
+
+                if len1 != len2 {
+                    ng = true;
+                    break;
+                }
+            }
+            if !ng {
+                print!("yes\n");
+                return;
+            }
+        }
+
+        if next_permutation(&mut permutation) == 0 {
+            break;
+        }
+    }
+
+    print!("no\n");
+}

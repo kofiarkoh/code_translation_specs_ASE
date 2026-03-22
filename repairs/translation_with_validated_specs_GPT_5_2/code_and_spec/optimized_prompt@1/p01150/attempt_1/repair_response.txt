@@ -1,0 +1,171 @@
+```rust
+use std::io::{self, Read};
+
+const FACT8: i64 = 40320;
+const N_OF_PRINCES: usize = 8;
+
+// Memo dimensions follow the C code: memo[70][9][3][3].
+// We use u32 like the C "unsigned int". Note: 0 is also used as "not computed",
+// so if a true subproblem count is 0, it will be recomputed (same as C).
+type Memo = [[[[u32; 3]; 3]; 9]; 70];
+
+fn calc_odd_1(
+    n: usize,
+    pos: usize,
+    princes: usize,
+    sitdown: usize,
+    zero_sitdown: usize,
+    memo: &mut Memo,
+) -> u32 {
+    let cached = memo[pos][princes][sitdown][zero_sitdown];
+    if cached != 0 {
+        return cached;
+    }
+
+    let ret: u32;
+    if princes == 0 {
+        ret = 1;
+    } else if pos == n - 1 && princes > 1 {
+        ret = 0;
+    } else if pos == n - 1 && princes == 1 {
+        // last position: can place the final 1 only if it doesn't touch pos 0 and pos n-2
+        if zero_sitdown == 0 && sitdown == 0 {
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {
+        let mut sum = 0u32;
+
+        // Place 1 at pos only if previous wasn't 1.
+        if sitdown == 0 {
+            sum = sum.wrapping_add(calc_odd_1(n, pos + 1, princes - 1, 1, zero_sitdown, memo));
+        }
+        // Place 0 at pos.
+        sum = sum.wrapping_add(calc_odd_1(n, pos + 1, princes, 0, zero_sitdown, memo));
+
+        ret = sum;
+    }
+
+    memo[pos][princes][sitdown][zero_sitdown] = ret;
+    ret
+}
+
+fn calc_odd(n: usize, memo: &mut Memo) -> u32 {
+    // Two cases for x[0]: 1 or 0, tracked via zero_sitdown.
+    let mut ret = 0u32;
+    // x[0] = 1
+    ret = ret.wrapping_add(calc_odd_1(n, 1, N_OF_PRINCES - 1, 1, 1, memo));
+    // x[0] = 0
+    ret = ret.wrapping_add(calc_odd_1(n, 1, N_OF_PRINCES, 0, 0, memo));
+    ret
+}
+
+fn calc_even_1(
+    n: usize,
+    pos: usize,
+    princes: usize,
+    sitdown: usize,
+    zero_sitdown: usize,
+    memo: &mut Memo,
+) -> u32 {
+    let cached = memo[pos][princes][sitdown][zero_sitdown];
+    if cached != 0 {
+        return cached;
+    }
+
+    let half = n / 2;
+    let last = half - 1;
+
+    let ret: u32;
+    if princes == 0 {
+        ret = 1;
+    } else if pos == last && princes > 1 {
+        ret = 0;
+    } else if pos == last && princes == 1 {
+        // Closing the cycle between last pair and pair 0, and also counting the two
+        // symmetric choices at the last pair when allowed (as in the C code).
+        if zero_sitdown == 0 && sitdown == 0 {
+            ret = 2;
+        } else if (zero_sitdown == 2 || zero_sitdown == 0) && (sitdown == 1 || sitdown == 0) {
+            ret = 1;
+        } else if (zero_sitdown == 1 || zero_sitdown == 0) && (sitdown == 2 || sitdown == 0) {
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {
+        let mut sum = 0u32;
+
+        // Choose (1,0) for this pair if previous pair wasn't (1,0).
+        if sitdown == 0 || sitdown == 2 {
+            sum = sum.wrapping_add(calc_even_1(n, pos + 1, princes - 1, 1, zero_sitdown, memo));
+        }
+        // Choose (0,1) for this pair if previous pair wasn't (0,1).
+        if sitdown == 0 || sitdown == 1 {
+            sum = sum.wrapping_add(calc_even_1(n, pos + 1, princes - 1, 2, zero_sitdown, memo));
+        }
+        // Choose (0,0) always.
+        sum = sum.wrapping_add(calc_even_1(n, pos + 1, princes, 0, zero_sitdown, memo));
+
+        ret = sum;
+    }
+
+    memo[pos][princes][sitdown][zero_sitdown] = ret;
+    ret
+}
+
+fn calc_even(n: usize, memo: &mut Memo) -> u32 {
+    // Three cases for pair 0: (1,0), (0,1), (0,0), tracked via zero_sitdown.
+    let mut ret = 0u32;
+
+    // pair 0 = (1,0)
+    ret = ret.wrapping_add(calc_even_1(n, 1, N_OF_PRINCES - 1, 1, 1, memo));
+    // pair 0 = (0,1)
+    ret = ret.wrapping_add(calc_even_1(n, 1, N_OF_PRINCES - 1, 2, 2, memo));
+    // pair 0 = (0,0)
+    ret = ret.wrapping_add(calc_even_1(n, 1, N_OF_PRINCES, 0, 0, memo));
+
+    ret
+}
+
+fn main() {
+    // Read all input; stop processing on unreadable token (spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let n_i32: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        if n_i32 == 0 {
+            break;
+        }
+        let n = n_i32 as usize;
+
+        // Spec-defined behavior only for N <= 70; we still avoid panics by guarding memo indexing.
+        // If N > 70, behavior is undefined per spec; we do not attempt to "fix" it.
+        let mut memo: Memo = [[[[0u32; 3]; 3]; 9]; 70];
+
+        let ret: i64 = if n <= 16 {
+            0
+        } else if (n & 1) == 1 {
+            // Odd N: cyclic non-adjacency with exactly 8 ones.
+            let patterns = calc_odd(n, &mut memo) as i64;
+            FACT8.wrapping_mul(patterns)
+        } else {
+            // Even N: paired-half constraint as described in the spec.
+            let patterns = calc_even(n, &mut memo) as i64;
+            FACT8.wrapping_mul(patterns)
+        };
+
+        out.push_str(&format!("{ret}\n"));
+    }
+
+    print!("{out}");
+}
+```

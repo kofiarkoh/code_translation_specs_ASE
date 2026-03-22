@@ -1,0 +1,210 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads two rooted **binary** trees encoded as single whitespace-delimited strings in a fixed concrete format and produces a new tree string representing their recursive “sum”. At each node position where **both** input trees have a non-empty node, the output contains a node whose integer value is the sum of the two input node values, and whose left and right children are obtained by recursively summing the corresponding left and right subtrees. If, at some position, **either** input has an empty subtree, then the output subtree at that position is empty and recursion does not continue below that position. Consequently, the output tree’s shape is the structural intersection of the two input trees.
+
+2. Tree String Representation (Concrete Format and How It Is Interpreted)  
+- The program treats each (sub)tree as a **whole substring** and decomposes a non-empty node by locating the node’s **top-level** bracketed value and splitting the string around it.  
+- A **non-empty node** is expected to have the form:  
+  `<left_part>[<value>]<right_part>`  
+  where:
+  - `<left_part>` is the complete encoding of the left subtree **including its outer parentheses**, and is expected to be either `()` or `(<...>)`.
+  - `<right_part>` is the complete encoding of the right subtree **including its outer parentheses**, and is expected to be either `()` or `(<...>)`.
+  - `<value>` is a decimal integer in text form (optionally signed) that begins immediately after the `[` and is interpreted using C’s `atoi` (i.e., parsing stops at the first non-numeric character such as `]`).
+- An **empty subtree** is encoded **exactly** as the two-character string `()`. Emptiness is determined solely by the subtree substring length being exactly 2.
+
+3. Node Decomposition / Parsing Rule (Top-Level Split)  
+For any input substring representing a (sub)tree, the program identifies the node’s value and its left/right subtree substrings as follows:  
+- It scans the entire substring from left to right while maintaining a single nesting counter that is incremented on `[` and `(` and decremented on `]` and `)`.  
+- The node’s value is taken from the first `[` encountered when this counter is 0 (i.e., the “outermost” `[` for that node). The left subtree substring is defined as **all characters before** that `[` (its length may be 2 for `()` or longer for `(<...>)`).  
+- The right subtree substring is defined as **all characters after** the matching `]` that returns the counter from 1 back to 0 for that bracketed value (i.e., the `]` paired with the selected `[`).
+
+4. Recursion and Subtree Handling  
+- When combining two nodes, the program first decomposes each node string into `(left_subtree_string, value, right_subtree_string)` using the rule above.  
+- For each side (left and right) independently:
+  - If either corresponding subtree string is empty (length 2, i.e., exactly `()`), the combined subtree for that side is empty in the output (represented as `()`), and no further recursion occurs on that side.
+  - Otherwise, the program removes exactly one outer pair of parentheses from each subtree string (i.e., it recurses on the inside of `(<...>)`) and recursively combines those inner strings to produce the combined subtree content. That combined content is then re-wrapped in parentheses when forming the parent node’s output.
+
+5. Output Construction / Formatting Semantics  
+- Each combined non-empty node is emitted in the exact format:  
+  `(<combined_left>)[<sum>](<combined_right>)`  
+  where `<combined_left>` and `<combined_right>` are the recursively produced subtree contents (possibly empty, in which case the parentheses are still present, yielding `()`).
+- The program always prints the final combined tree string followed by a newline.
+
+6. Inputs  
+- Two whitespace-delimited strings read from standard input, each assumed to be a well-formed tree encoding consistent with the decomposition rules above.  
+- The program reads exactly two such strings and ignores any additional input.
+
+7. Assumptions, Constraints, and Undefined Behavior  
+- No validation is performed. Inputs are assumed to be properly balanced and nested with respect to `(` `)` and `[` `]` in a way that makes the top-level split unambiguous and yields left/right parts that are parenthesized subtree encodings.  
+- Integer parsing uses `atoi`; values outside the range of `int` or otherwise not representable lead to undefined/implementation-defined behavior as in C.  
+- The program uses fixed-size internal buffers for the two inputs and the constructed output; if an input string exceeds the input buffer capacity or the constructed output exceeds the output buffer capacity, behavior is undefined.  
+- Deep recursion may overflow the call stack; behavior is undefined in that case.
+
+8. Execution/Termination Behavior  
+- The program reads two tree strings, recursively constructs the combined tree in an internal buffer, prints it as one line, and terminates normally.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+A2740
+title:Rooted Tree for Misawa-san
+@kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+char input_tree[2][100000];
+char ans[100000];
+char *ap;
+char zeros[1]="\0";
+
+typedef struct  {
+  char *sptr;
+  int  len;
+} mystr_;
+
+void display(mystr_ *str)
+{
+  int i;
+  for(i=0;i<str->len;i++)
+    printf("%c",str->sptr[i]);
+#ifdef DEBUG
+  printf("{%d}",str->len);
+#endif
+  printf("\n");
+}
+
+void analyze_tree(mystr_ *in,mystr_ *left,mystr_ *right,int *val)
+{
+  char *p;
+  int lv,i;
+
+  left->sptr = p = in->sptr;
+
+  for(i=0,lv=0;i<in->len;i++)
+    {
+      if(p[i]=='[')
+	{
+	if(lv==0)
+	  {
+	    left->len=i;
+	    *val = atoi(p+i+1);
+	  }
+	
+	
+	  lv++;
+	}
+      else if(p[i]==']')
+	{
+	  if(lv==1)
+	    {
+	      right->sptr=&p[i+1];
+	      right->len =in->len-i-1;
+	    }
+	  lv--;
+	}
+      else if(p[i]=='(')
+	lv++;
+      else if(p[i]==')')
+	lv--;
+    }
+}
+
+int is_empty_tree(mystr_ *in)
+{
+  if(in->len==2)
+    return(1);
+  else
+    return(0);
+}
+
+void remove_paren(mystr_ *in)
+{
+  in->len  -= 2;
+  in->sptr ++;
+}
+
+
+void add_tree(mystr_ *in1,mystr_ *in2,mystr_ *out)
+{
+  mystr_ stree[2][2],sstree[2];
+  int v[2],val,le,i;
+
+  analyze_tree(in1,&stree[0][0],&stree[0][1],&v[0]);
+  analyze_tree(in2,&stree[1][0],&stree[1][1],&v[1]);
+  val = v[0]+v[1];
+
+  if(is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]))
+    {
+      sstree[0].sptr=zeros;
+      sstree[0].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][0]);
+      remove_paren(&stree[1][0]);
+      add_tree(&stree[0][0],&stree[1][0],&sstree[0]);
+    }
+  if(is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]))
+    {
+      sstree[1].sptr=zeros;
+      sstree[1].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][1]);
+      remove_paren(&stree[1][1]);
+      add_tree(&stree[0][1],&stree[1][1],&sstree[1]);
+    }
+
+  out->sptr=ap;
+
+  sprintf(ap,"(%.*s)[%d](%.*s)",sstree[0].len,sstree[0].sptr,val,
+	  sstree[1].len,sstree[1].sptr);
+
+  while(*ap)
+    ap++;
+  out->len=ap - out->sptr;
+
+}
+
+int main()
+{
+  char *l,*r;
+  int llen,rlen,val;
+  mystr_ tree[3],ltree,rtree;
+  
+  scanf("%s",&(input_tree[0][0]));
+  tree[0].sptr=&(input_tree[0][0]);
+  tree[0].len =strlen(&(input_tree[0][0]));
+  scanf("%s",&(input_tree[1][0]));
+  tree[1].sptr=&(input_tree[1][0]);
+  tree[1].len =strlen(&(input_tree[1][0]));
+  ap=&ans[0];
+
+  add_tree(&tree[0],&tree[1],&tree[2]);
+  display(&tree[2]);
+
+  return(0);
+}
+=== C CODE END ===

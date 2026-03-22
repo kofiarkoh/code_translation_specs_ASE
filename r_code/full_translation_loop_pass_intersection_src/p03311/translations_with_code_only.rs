@@ -1,0 +1,85 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as signed integers (like scanf("%ld", ...)).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses a VLA `long a[n]`. In Rust, use Vec.
+    // If n <= 0, the C code has undefined behavior (negative/zero VLA, loops, qsort).
+    // We emulate the most reasonable behavior: create an empty vec for n <= 0.
+    let nn = if n > 0 { n as usize } else { 0usize };
+    let mut a: Vec<i64> = vec![0; nn];
+
+    for i in 0..nn {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        // a[i] -= i+1; with C signed overflow being UB; use wrapping to emulate typical 2's complement.
+        a[i] = v.wrapping_sub((i as i64).wrapping_add(1));
+    }
+
+    // qsort with cmpnum: ascending numeric order.
+    a.sort_unstable();
+
+    // all += a[i] - a[0] for i=1..n-1
+    let mut all: i64 = 0;
+    if nn > 0 {
+        for i in 1..nn {
+            all = all.wrapping_add(a[i].wrapping_sub(a[0]));
+        }
+    }
+
+    let mut sadness: i64 = all;
+    let mut minv: i64 = all;
+    let mut level: i64 = if nn > 0 { a[0] } else { 0 };
+
+    // The C loop reads a[i+1] even when i == n-1 (out of bounds) => undefined behavior.
+    // To preserve intended behavior, iterate only while i+1 < n.
+    let mut i: usize = 0;
+    while i + 1 < nn {
+        if a[i + 1] == level {
+            i += 1;
+            continue;
+        }
+        let width: i64 = (i as i64).wrapping_add(1);
+        let n_minus_2w: i64 = n.wrapping_sub(width.wrapping_mul(2));
+        if n_minus_2w <= 0 {
+            break;
+        }
+
+        let mut height: i64 = a[i + 1].wrapping_sub(a[i]);
+        let delta = height.wrapping_mul(n_minus_2w);
+
+        if delta <= sadness {
+            level = a[i + 1];
+            sadness = sadness.wrapping_sub(delta);
+            minv = sadness;
+        } else {
+            // height = sadness/(n-width*2); in C, division truncates toward zero.
+            height = sadness / n_minus_2w;
+            level = level.wrapping_add(height);
+            let sub = height.wrapping_mul(n_minus_2w);
+            sadness = sadness.wrapping_sub(sub);
+
+            if sadness <= minv {
+                minv = sadness;
+            }
+
+            // sadness = -(sadness-(n-width*2));
+            sadness = (sadness.wrapping_sub(n_minus_2w)).wrapping_neg();
+            if sadness <= minv {
+                minv = sadness;
+            }
+            break;
+        }
+
+        i += 1;
+    }
+
+    print!("{}\n", minv);
+}

@@ -1,0 +1,33 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let a = it.next().unwrap();
+    let b = it.next().unwrap();
+
+    // Preconditions say both strings have length exactly n; no extra validation.
+    let a_bytes = a.as_bytes();
+    let b_bytes = b.as_bytes();
+
+    // Find maximal k in [0, n] such that suffix of A of length k == prefix of B of length k.
+    let mut best_k: usize = 0;
+    for k in 0..=n {
+        let mut ok = true;
+        for i in 0..k {
+            if a_bytes[n - k + i] != b_bytes[i] {
+                ok = false;
+                break;
+            }
+        }
+        if ok {
+            best_k = k;
+        }
+    }
+
+    let l = 2usize * n - best_k;
+    print!("{}", l);
+}

@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an initial count and then processes that many subsequent test cases. For each test case, it computes a 1-based normalized value equivalent to the input value reduced modulo a positive modulus, and outputs the result on its own line.
+
+2. Inputs  
+- An integer count indicating how many test cases follow.  
+- For each test case: two integers:  
+  - a value to be normalized  
+  - a modulus used for normalization
+
+3. Outputs  
+- For each test case, one integer written as a separate line: the normalized value in the range 1 through the modulus (inclusive), assuming a positive modulus.
+
+4. Preconditions  
+- The initial count is provided and is an integer.  
+- For each test case, two integers are provided.  
+- The modulus for each test case is a positive integer (greater than 0).  
+- The total number of provided test cases is at least the initial count.
+
+5. Postconditions  
+- If the preconditions hold, exactly as many output lines are produced as the initial count.  
+- For each test case with inputs (value, modulus), the output is an integer `r` such that:  
+  - `1 <= r <= modulus`  
+  - `r` is congruent to `value` modulo `modulus` (i.e., `r` represents `value` reduced into the 1..modulus range).
+
+6. Invariants  
+- The number of remaining test cases decreases by one per processed test case until completion.  
+- Each produced output corresponds to exactly one consumed test case.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input does not satisfy the preconditions, behavior is unspecified.  
+- If a modulus is zero or negative, behavior is unspecified (may result in invalid arithmetic).
+
+8. State Transitions (if applicable)  
+- State consists of the remaining test case count.  
+- Transition: after each test case is read and one result is output, the remaining count is decremented by one.  
+- Terminal state: when the remaining count reaches zero, the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time and output volume scale linearly with the number of test cases.  
+- Uses constant additional memory aside from input/output buffering.
+```

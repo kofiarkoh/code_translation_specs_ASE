@@ -1,0 +1,233 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the minimum total travel distance between a designated origin city and a designated destination city in an undirected weighted road network, subject to a maximum travel range (“fuel capacity”). Travel consumes range equal to road distance. At designated refueling cities, the vehicle’s remaining range is automatically restored to full capacity before any onward travel from that city. If no feasible route exists under these constraints, outputs `-1`.
+
+2. Input Model and Dataset Structure  
+Input is treated as a whitespace-delimited token stream (spaces, newlines, and other ASCII whitespace are equivalent separators). City names are single tokens and therefore cannot contain embedded whitespace. Line boundaries have no semantic meaning.
+
+The input consists of one or more datasets concatenated back-to-back. Each dataset has the following token sequence:
+
+- `N` (integer): number of roads.  
+  - If `N` is `0`, processing terminates and no further output is produced.
+- `M` (integer): number of refueling-city names that follow later in the dataset.
+- `U` (integer): base capacity unit; the actual fuel capacity used by the program is `cap = 10 * U`.
+- `origin` (string token): origin city name.
+- `destination` (string token): destination city name.
+- Repeated `N` times (for each road):  
+  - `cityA` (string token)  
+  - `cityB` (string token)  
+  - `d` (integer): road distance (also the amount of range consumed to traverse the road)
+- Repeated `M` times (for each refueling city):  
+  - `city` (string token): name of a refueling city
+
+City names appearing in roads and in the origin/destination list define the set of known cities for the dataset. Refueling-city tokens that do not match any known city are ignored.
+
+3. Output  
+For each dataset (with `N > 0`), output exactly one line containing a single integer:
+- the minimum achievable total distance from origin to destination under the range/refueling rules; or
+- `-1` if the destination is unreachable under these constraints.
+
+4. Semantics and Constraints  
+- The road network is undirected: each road connects its two endpoint cities in both directions with the same distance.  
+- Travel state is modeled as `(current city, remaining range)`. Initially, the state is `(origin, cap)` with total distance `0`.  
+- If the current city is a refueling city, the remaining range is treated as `cap` for the purpose of taking outgoing roads (i.e., refueling occurs upon being at that city, before traversing the next road).  
+- Traversing a road of distance `d` from city `A` to city `B` is permitted only if the effective remaining range at `A` is at least `d`. The transition results in state `(B, remaining range − d)` and increases total distance by `d`.  
+- The reported minimum is with respect to total distance (sum of road distances), not number of roads or number of refuels.  
+- If origin equals destination, the minimum distance is `0` (the algorithm will return immediately upon reaching the destination state).
+
+5. Assumptions / Limits (as implied by the program)  
+- Inputs are assumed well-formed and provide exactly the required number of tokens per dataset.  
+- City name length must fit within the program’s fixed buffer (up to 16 characters, excluding the terminating null).  
+- The number of distinct cities and the scaled capacity must fit within the program’s internal fixed-size tables; behavior is unspecified if these limits are exceeded.  
+- Road distances and the scaled capacity are assumed to be nonnegative and within representable bounds; behavior is unspecified otherwise.
+
+6. Dataset Independence and Termination  
+- Each dataset is processed independently; no city mappings, refueling flags, or graph data carry over to the next dataset.  
+- Processing stops only when the next dataset’s `N` token is `0`.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hash table for string
+#define HASHSIZ   29989
+typedef struct { char *s; short id; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;
+
+int insert(char *s, int id)
+{
+	unsigned long long i;
+	char *p;
+	HASH *tp;
+
+	i = 0, p = s; while (*p) i = (i<<6) + *p++;
+	tp = hash + (int)(i % HASHSIZ);
+	while (tp->s != NULL) {
+		if (!strcmp(tp->s, s)) return tp->id;
+		if (++tp == hashend) tp = hash;
+	}
+	tp->s = s, tp->id = id;
+	return -1;
+}
+
+#define QMAX 1200000
+typedef struct { int t; short s, c; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(short s, int t, short c)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void ins(char *buf)
+{
+	while ((*buf = getchar_unlocked()) > ' ') buf++;
+	*buf = 0;
+}
+
+#define MAX 6002
+short memo[3002*3];
+short hi[MAX], *to[MAX], *dd[MAX];
+char city[MAX][17]; int sz;
+char LPG[MAX];
+int dist[MAX][2002];
+
+int dijkstra(int n, int cap, int start, int goal)
+{
+	int i, s, e, c, nc, d, nd;
+
+	memset(dist, 0x10, sizeof(dist));
+	qsize = 0;
+	enq(start, 0, cap); dist[start][cap] = 0;
+	while (qsize) {
+		s = que[0].s, d = que[0].t, c = que[0].c, deq();
+		if (s == goal) return d;
+
+		if (dist[s][c] < d) continue;
+
+		if (LPG[s]) c = cap;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i], nd = d + dd[s][i], nc = c - dd[s][i];
+			if (nc < 0) continue;
+			if (dist[e][nc] > nd) dist[e][nc] = nd, enq(e, nd, nc);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int N, M, cap, i, j, a, b, c;
+	char buf[20];
+
+	while (N = in()) {
+		M = in(), cap = 10*in();
+		memset(hash, 0, sizeof(hash));
+
+		ins(city[0]), ins(city[1]);
+		insert(city[0], 0), insert(city[1], 1);
+
+		memset(hi, 0, sizeof(hi));
+		sz = 2;
+		j = 0, i = N; while (i--) {
+			ins(city[sz]), a = insert(city[sz], sz);
+			if (a < 0) a = sz++;
+			memo[j++] = a, hi[a]++;
+			ins(city[sz]), b = insert(city[sz], sz);
+			if (b < 0) b = sz++;
+			memo[j++] = b, hi[b]++;
+			memo[j++] = in();
+		}
+		for (a = 0; a < sz; a++) if (hi[a]) {
+			to[a] = malloc(hi[a] << 1);
+			dd[a] = malloc(hi[a] << 1);
+		}
+		memset(hi, 0, sizeof(hi));
+		j = 0; while (N--) {
+			a = memo[j++], b = memo[j++], c = memo[j++];
+			i = hi[a]++, to[a][i] = b, dd[a][i] = c;
+			i = hi[b]++, to[b][i] = a, dd[b][i] = c;
+		}
+		memset(LPG, 0, sz);
+		for (i = 0; i < M; i++) {
+			ins(buf), a = insert(buf, -1);
+			if (a >= 0) LPG[a] = 1;
+		}
+
+		printf("%d\n", dijkstra(sz, cap, 0, 1));
+
+		for (a = 0; a < sz; a++) {
+			if (hi[a]) free(to[a]), free(dd[a]);
+		}
+	}
+	return 0;
+}
+=== C CODE END ===

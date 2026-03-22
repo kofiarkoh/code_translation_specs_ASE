@@ -1,0 +1,294 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each test case, the program computes a real-valued label for each node by solving a given linear system. It then builds a directed capacitated network whose edge costs are the absolute differences between the labels of the edge endpoints. Using this network, it determines the minimum total cost required to send a specified amount of flow from a given source node to a given sink node. If the required amount of flow cannot be sent, it reports that the task is impossible.
+
+2. Inputs  
+For each run:  
+- An integer number of test cases.  
+
+For each test case:  
+- An integer node count.  
+- A source node index and a sink node index.  
+- A nonnegative integer required flow amount.  
+- A square integer coefficient matrix and an integer right-hand-side vector defining a linear system with the node count as dimension.  
+- For each node, a list of outgoing neighbor node indices, followed by a nonnegative integer capacity for each listed outgoing edge.
+
+3. Outputs  
+For each test case:  
+- If it is possible to send the required flow from source to sink, outputs the minimum achievable total cost as a real number.  
+- Otherwise, outputs a single line indicating impossibility.
+
+4. Preconditions  
+- Node count does not exceed the fixed internal maximum supported by the program.  
+- Source and sink indices are valid node indices.  
+- The linear system is solvable with a unique solution (i.e., the coefficient matrix is nonsingular).  
+- The total number of nodes and the total number of edges per node fit within the program’s fixed internal limits for graph representation and priority queue usage.  
+- All capacities and the required flow amount are integers that fit within the program’s integer range and are not negative.  
+- The input is well-formed and provides exactly the required values in the expected order.
+
+5. Postconditions  
+For each test case, assuming preconditions hold:  
+- Let the unique solution of the linear system define a real label for each node.  
+- Let each directed edge have the given capacity and a nonnegative cost equal to the absolute difference between the labels of its endpoints.  
+- If there exists a feasible flow of value equal to the required amount from source to sink respecting capacities, the program outputs the minimum possible total cost among all such feasible flows.  
+- If no such feasible flow exists, the program outputs impossibility.
+
+6. Invariants  
+- Edge costs used for optimization are nonnegative and derived solely from the solved node labels.  
+- During optimization, the maintained residual network always represents the current feasible partial shipment and remaining capacity to augment it.  
+- The accumulated reported cost (when feasible) equals the sum over all shipped units of the costs of the edges they traverse, minimized over all feasible shipments of the required value.
+
+7. Error Handling / Exceptional Behavior  
+- If the required flow cannot be routed from source to sink under the given capacities, the program outputs impossibility.  
+- If the linear system does not have a unique solution, the program’s subsequent behavior is not defined by a checked contract (it proceeds without reporting an error).  
+- If internal memory allocation fails or internal fixed-size limits are exceeded, behavior is unspecified (no explicit recovery or diagnostic is guaranteed).
+
+8. State Transitions (if applicable)  
+Per test case:  
+- Initial state: empty network and unset node labels.  
+- After solving the linear system: node labels become defined.  
+- After reading connectivity and capacities: the directed capacitated cost network becomes defined.  
+- During optimization: the residual capacities are updated as flow is augmented until either the required flow is fully sent (success) or no further augmentation is possible (failure).  
+- Final state: either a minimum cost value is produced (success) or impossibility is reported (failure); all per-test-case allocated graph storage is released.
+
+9. Non-functional Constraints (if inferable)  
+- Supports only up to a fixed maximum number of nodes and relies on fixed-size working storage for several arrays.  
+- Uses floating-point arithmetic for costs and linear-system solving; results are subject to floating-point rounding and a small internal tolerance when comparing values.  
+- Time and memory usage scale with the number of nodes, edges, and required flow augmentations; no real-time guarantees are implied.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1095 KND Factory
+// 2018.3.7 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define QMAX 1000
+typedef struct { int s; double t; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int s, double t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+#define EPS 1e-8
+#define INF 0x01010101
+#define MAX 105
+typedef struct { int to, rev; int cap; double cost; } E;
+E *edge[MAX]; int hi[MAX], lim[MAX];
+int V;				// 頂点数
+double potential[MAX], min_cost[MAX];
+int prevv[MAX], preve[MAX];
+
+void check_lim(int a)
+{
+	if (hi[a] < lim[a]) return;
+	if (lim[a] == 0) {
+		lim[a] = 32, hi[a] = 0;
+		edge[a] = malloc(sizeof(E) *lim[a]);
+	} else if (hi[a] == lim[a]) {
+		int k = lim[a];
+		if (k > 128) k = 128;
+		lim[a] += k;
+		edge[a] = realloc(edge[a], sizeof(E) *lim[a]);
+	}
+}
+
+void add_edge(int from, int to, int cap, double cost)
+{
+	int f, t;
+	E *ep;
+
+	check_lim(from), check_lim(to);
+	f = hi[from]++, t = hi[to]++;
+	ep = &edge[from][f], ep->to = to, ep->cap = cap, ep->cost = cost, ep->rev = t; 
+	ep = &edge[to][t], ep->to = from, ep->cap = 0, ep->cost = -cost, ep->rev = f;
+}
+
+double minCostFlow(int S, int T, int F)
+{
+	int i, s, ns, k;
+	double t, nt, ret;
+	E *ep;
+
+	ret = 0;
+	memset(potential, 0, sizeof(potential));
+
+	while (F > 0) {
+		for (i = 0; i < V; i++) min_cost[i] = INF;
+		qsize = 0;
+		enq(S, 0), min_cost[S] = 0;
+  
+		while (qsize) {
+			s = que[0].s, t = que[0].t, deq();
+			if (min_cost[s] < t) continue;
+
+			for (i = 0; i < hi[s]; i++) {
+				ep = &edge[s][i], ns = ep->to;
+				nt = t + ep->cost + potential[s] - potential[ns];
+				if(ep->cap > 0 && min_cost[ns] > nt + EPS) {
+					min_cost[ns] = nt;
+					prevv[ns] = s, preve[ns] = i;
+					enq(ns, nt);
+				}
+			}
+		}
+		if (min_cost[T] == INF) return -1;
+		for (s = 0; s < V; s++) potential[s] += min_cost[s];
+
+		k = F;
+		for (s = T; s != S; s = prevv[s]) {
+			ep = &edge[prevv[s]][preve[s]];
+			if (k > ep->cap) k = ep->cap;
+		}
+		F -= k;
+
+		ret += k * potential[T];
+		for (s = T; s != S; s = prevv[s]) {
+			ep = &edge[prevv[s]][preve[s]];
+			ep->cap -= k;
+			edge[s][ep->rev].cap += k;
+		}
+	}
+	return ret;
+}
+
+// AX=C
+#define N 105
+int A[N][N], C[N]; double B[N][N]; double X[N];
+
+int gauss_jordan(int n)
+{
+	int i, j, k, pivot;
+	double t;
+
+	for (i = 0; i < n; i++) for (j = 0; j < n; j++) B[i][j] = A[i][j];
+	for (i = 0; i < n; i++) B[i][n] = C[i];
+
+	for (i = 0; i < n; i++) {
+		pivot = i;
+		for (j = i; j < n; j++) {
+			if (fabs(B[j][i]) > fabs(B[pivot][i])) pivot = j;
+		}
+		for (j = 0; j <= n; j++) {					// swap(B[i],B[pivot]);
+			t = B[i][j], B[i][j] = B[pivot][j], B[pivot][j] = t;
+		}
+		if (fabs(B[i][i]) < EPS) return 0;			// error
+
+		for (j = i+1; j <= n; j++) B[i][j] /= B[i][i];
+		for (j = 0; j < n; j++) if (i != j) {
+	        for (k = i+1; k <= n; k++) B[j][k] -= B[j][i]*B[i][k];
+		}
+	}
+	for (i = 0; i < n; i++) X[i] = B[i][n];
+	return 1;
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	if (c == '-') {
+		c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked();
+		while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int d[105];
+
+int Vmax;
+int main()
+{
+	int T, n, s, t, F, i, j, M;
+	double ans;
+
+	T = in();
+	while (T--) {
+		memset(hi, 0, sizeof(hi)), memset(lim, 0, sizeof(lim));
+
+		n = in(), s = in(), t = in(), F = in();
+		for (i = 0; i < n; i++) {
+			for (j = 0; j < n; j++) A[i][j] = in();
+			C[i] = in();
+		}
+
+		gauss_jordan(n);
+		for (i = 0; i < n; i++) {
+			M = in();
+			for (j = 0; j < M; j++) d[j] = in();
+			for (j = 0; j < M; j++) add_edge(i, d[j], in(), fabs(X[i]-X[d[j]]));
+		}
+
+		V = n;
+		ans = minCostFlow(s, t, F);
+		if (ans < 0) puts("impossible");
+		else printf("%.10lf\n", ans);
+	
+		for (i = 0; i < V; i++) if (lim[i]) free(edge[i]);
+	}
+	return 0;
+}
+=== C CODE END ===

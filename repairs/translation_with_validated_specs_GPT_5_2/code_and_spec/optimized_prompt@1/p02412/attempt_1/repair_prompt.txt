@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Repeatedly processes pairs of integers and, for each pair, computes the number of distinct unordered triples of different integers chosen from the range 1 through the given upper bound whose sum equals the given target. Processing stops when a terminating pair is provided.
+
+2. Inputs  
+- A sequence of integer pairs:  
+  - An upper bound value.  
+  - A target sum value.  
+- A terminating pair consisting of two zeros.
+
+3. Outputs  
+- For each non-terminating input pair, outputs a single integer: the count of distinct unordered triples of pairwise distinct integers in the range [1, upper bound] whose sum equals the target.
+
+4. Preconditions  
+- Each input pair is available and consists of two integers.  
+- The upper bound is assumed to be non-negative.  
+- The computed count is assumed to fit within the integer range of the execution environment.
+
+5. Postconditions  
+For each processed (non-terminating) input pair (n, x):  
+- The program outputs the number of sets {a, b, c} such that:  
+  - 1 ≤ a, b, c ≤ n  
+  - a, b, c are all different  
+  - a + b + c = x  
+- No output is produced for the terminating pair (0, 0).
+
+6. Invariants  
+- During processing of a given input pair, the accumulated count corresponds to the number of ordered permutations of valid triples encountered so far; the final reported value corresponds to the unordered triple count.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is defined for malformed input, missing input, or input conversion failures.  
+- No explicit handling is defined for arithmetic overflow.
+
+8. State Transitions (if applicable)  
+- Repeats in a “waiting for next pair” state.  
+- On receiving a non-terminating pair, transitions to “compute and output result,” then returns to waiting for the next pair.  
+- On receiving the terminating pair (0, 0), transitions to “terminated” and exits.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows cubically with the upper bound per processed pair.  
+- Uses constant additional memory aside from a fixed set of scalar variables.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h> 
+
+int main() {
+  int n,x;
+  int b,i,j,k,a;
+
+  while(1) {
+    scanf("%d %d",&n,&x);   
+    b = 0;
+    if( n == 0 && x == 0){
+      break;
+    }
+    for(k = 1; k <= n ; k++) {
+
+
+      for(j = 1; j <= n ; j++) {
+
+	for(i = 1; i <= n; i++) {
+	  
+	  if(i == j || j == k || i ==k) {
+	    
+	  }else{
+	    a = i + j + k;
+	    if(a == x) {
+	     
+	      b += 1;
+ 
+	    }
+	  }
+	  
+	}//i
+	
+      }//j
+
+    }//k
+    printf("%d\n",b/6);
+  }
+
+
+  return 0;
+}
+=== C CODE END ===

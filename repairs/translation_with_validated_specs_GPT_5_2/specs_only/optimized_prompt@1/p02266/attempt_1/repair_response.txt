@@ -1,0 +1,68 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire input as bytes; process as a character stream.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Position index advances by 1 per input character processed (including ignored chars).
+    let mut pos: i64 = 0;
+
+    // Stack of positions of unmatched downward slopes.
+    let mut downs: Vec<i64> = Vec::new();
+
+    // Stack of formed regions: (left_boundary_position, area).
+    // Maintained so that areas can be merged when a new region encloses earlier ones.
+    let mut regions: Vec<(i64, i64)> = Vec::new();
+
+    // Total trapped area across all regions.
+    let mut total_area: i64 = 0;
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                // Downward slope: push unmatched boundary at current position.
+                downs.push(pos);
+            }
+            '/' => {
+                // Upward slope: if possible, close a region and merge enclosed regions.
+                if let Some(left) = downs.pop() {
+                    let mut area = pos - left; // width-based area per spec's implied behavior
+                    // Merge any previously formed regions entirely within [left, pos].
+                    while let Some(&(r_left, r_area)) = regions.last() {
+                        if r_left > left {
+                            area += r_area;
+                            regions.pop();
+                        } else {
+                            break;
+                        }
+                    }
+                    regions.push((left, area));
+                    total_area += area;
+                }
+            }
+            '_' => {
+                // Flat: no state change other than position advance.
+            }
+            _ => {
+                // Any other character: ignored for terrain semantics; only advances position.
+            }
+        }
+        pos += 1;
+    }
+
+    // Output:
+    // Line 1: total trapped area.
+    // Line 2: number of regions followed by each region area in left-to-right order.
+    println!("{}", total_area);
+
+    let mut areas: Vec<i64> = regions.into_iter().map(|(_, a)| a).collect();
+    // regions are already in left-to-right order due to stack/merge discipline.
+    print!("{}", areas.len());
+    for a in areas.drain(..) {
+        print!(" {}", a);
+    }
+    println!();
+}
+```

@@ -1,0 +1,97 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Node {
+    prev: Option<usize>,
+    next: Option<usize>,
+    id: usize,
+    count: i32,
+}
+
+fn main() {
+    // Read all input (matches C scanf behavior for whitespace-separated ints).
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // a[1..=q], with a[0] unused (as in the C code).
+    let mut a = vec![0usize; q + 1];
+    for i in 1..=q {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Allocate nodes 0..=m.
+    let mut d = vec![
+        Node {
+            prev: None,
+            next: None,
+            id: 0,
+            count: 0
+        };
+        m + 1
+    ];
+    for i in 0..=m {
+        d[i].id = i;
+    }
+
+    // Build linked list by reverse scan.
+    let mut p: usize = 0; // tail pointer, initially node 0
+    d[0].count = n;
+
+    for i in (1..=q).rev() {
+        let x = a[i];
+
+        if d[x].count == 0 {
+            d[x].prev = Some(p);
+            d[p].next = Some(x);
+            p = x;
+        }
+
+        // In the C program, prev is guaranteed to be set when count[x] is updated:
+        // - if x==0, prev is never read because count[0] starts at n and thus the append branch doesn't run.
+        // - otherwise, the first time x is seen, it is appended and prev is set.
+        let prev_idx = d[x].prev.expect("precondition violated: prev must exist here");
+        let capped = d[prev_idx].count;
+        let new_count = d[x].count + 1;
+        d[x].count = if new_count < capped { new_count } else { capped };
+    }
+
+    // Validation traversal from head (node 0).
+    let mut complete = vec![false; m + 1];
+    let mut allow: usize = 0;
+
+    let mut cur: Option<usize> = Some(0);
+
+    // Phase 1: automatic prefix completion while count == n.
+    while let Some(idx) = cur {
+        if d[idx].count != n {
+            break;
+        }
+        complete[d[idx].id] = true;
+        while allow <= m && complete[allow] {
+            allow += 1;
+        }
+        cur = d[idx].next;
+    }
+
+    // Phase 2: ordered completion check.
+    while let Some(idx) = cur {
+        if d[idx].id != allow {
+            print!("No\n");
+            return;
+        }
+        complete[allow] = true;
+        while allow <= m && complete[allow] {
+            allow += 1;
+        }
+        cur = d[idx].next;
+    }
+
+    print!("Yes\n");
+}
+```

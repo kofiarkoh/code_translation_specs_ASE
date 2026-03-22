@@ -1,0 +1,118 @@
+use std::io::{self, Read};
+
+const MAXN: usize = 2010;
+
+fn mod_norm(x: i128, m: i64) -> i64 {
+    let m128 = m as i128;
+    let mut r = x % m128;
+    if r < 0 {
+        r += m128;
+    }
+    r as i64
+}
+
+fn mod_add(a: i64, b: i64, m: i64) -> i64 {
+    mod_norm(a as i128 + b as i128, m)
+}
+
+fn mod_sub(a: i64, b: i64, m: i64) -> i64 {
+    mod_norm(a as i128 - b as i128, m)
+}
+
+fn mod_mul(a: i64, b: i64, m: i64) -> i64 {
+    mod_norm(a as i128 * b as i128, m)
+}
+
+fn mod_pow(mut base: i64, mut exp: i64, m: i64) -> i64 {
+    // Assumes m > 0. For m == 1, everything is 0; this still works.
+    let mut res: i64 = 1 % m;
+    base = mod_norm(base as i128, m);
+    while exp > 0 {
+        if (exp & 1) == 1 {
+            res = mod_mul(res, base, m);
+        }
+        base = mod_mul(base, base, m);
+        exp >>= 1;
+    }
+    res
+}
+
+fn mod_inv(a: i64, m: i64) -> i64 {
+    // Preconditions assume m is prime and a != 0 (mod m), so inverse exists.
+    mod_pow(a, m - 2, m)
+}
+
+fn comb(n: i32, k: i32, fact: &[i64], inv_fact: &[i64], m: i64) -> i64 {
+    // Out-of-range binomial coefficients contribute 0.
+    if n < 0 || k < 0 || k > n {
+        return 0;
+    }
+    let n = n as usize;
+    let k = k as usize;
+    mod_mul(fact[n], mod_mul(inv_fact[k], inv_fact[n - k], m), m)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: i64 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Precompute factorials up to MAXN under modulus m.
+    // Preconditions: n <= 2010, m prime > 2010, factorials nonzero mod m.
+    let mut fact = vec![0i64; MAXN + 1];
+    let mut inv_fact = vec![0i64; MAXN + 1];
+    fact[0] = 1 % m;
+    for i in 1..=MAXN {
+        fact[i] = mod_mul(fact[i - 1], i as i64, m);
+    }
+    inv_fact[MAXN] = mod_inv(fact[MAXN], m);
+    for i in (0..MAXN).rev() {
+        inv_fact[i] = mod_mul(inv_fact[i + 1], (i as i64) + 1, m);
+    }
+
+    // Compute:
+    // sum_{i=1}^{n-1} C(n,i) * 2^{C(i,2)} * 2^{C(n-i,2)} *
+    //   sum_{j=0}^{n-i-1} (-1)^j * C(n-i, j) * (2^{(n-i-j)} - 1)^i
+    // all modulo m, normalized to [0, m-1].
+    let mut ans: i64 = 0;
+    for i in 1..=n - 1 {
+        let ni = n - i;
+
+        let c_ni2 = (i as i64) * ((i - 1) as i64) / 2;
+        let c_nmi2 = (ni as i64) * ((ni - 1) as i64) / 2;
+
+        let term_pref = mod_mul(
+            comb(n, i, &fact, &inv_fact, m),
+            mod_mul(mod_pow(2, c_ni2, m), mod_pow(2, c_nmi2, m), m),
+            m,
+        );
+
+        let mut inner: i64 = 0;
+        // j from 0 to n-i-1 inclusive
+        for j in 0..=ni - 1 {
+            let choose = comb(ni, j, &fact, &inv_fact, m);
+            let pow_part = mod_sub(mod_pow(2, (ni - j) as i64, m), 1 % m, m);
+            let val = mod_mul(choose, mod_pow(pow_part, i as i64, m), m);
+
+            if (j & 1) == 0 {
+                inner = mod_add(inner, val, m);
+            } else {
+                inner = mod_sub(inner, val, m);
+            }
+        }
+
+        ans = mod_add(ans, mod_mul(term_pref, inner, m), m);
+    }
+
+    // Normalize to [0, m-1] and print.
+    ans = mod_norm(ans as i128, m);
+    print!("{}", ans);
+}

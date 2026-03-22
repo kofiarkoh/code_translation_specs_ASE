@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a count and a sequence of truth-like tokens, then computes a left-associative binary reduction over the sequence using the rule: the result is false only when the left operand is true and the right operand is false; otherwise the result is true. Outputs the final reduced truth value.
+
+2. Inputs  
+- An integer specifying the number of tokens to read.  
+- A sequence of that many tokens, each providing at least one character; only the first character of each token is used as the token’s value.
+
+3. Outputs  
+- On successful processing, writes a single character representing the final reduced truth value, followed by a line terminator.
+
+4. Preconditions  
+- The input provides the integer count and at least that many subsequent tokens.  
+- The count is at least 2 (the computation requires at least two tokens).  
+- The count does not exceed the program’s internal fixed storage capacity for tokens.  
+- Tokens intended to represent truth values use the characters `T` and `F` (other characters are accepted but will be treated as “not `T`” / “not `F`” per the reduction rule).
+
+5. Postconditions  
+- If all required inputs are successfully read and preconditions hold, the program outputs:  
+  - `F` iff there exists an index `k` (1 ≤ k < N) such that the reduced value of the prefix up to `k-1` is `T` and the k-th token is `F`; otherwise outputs `T`.  
+  Equivalently, the output is the result of repeatedly applying the binary rule from left to right across the N token values.
+
+6. Invariants  
+- After reading, the stored sequence length equals the provided count.  
+- During reduction, the intermediate result is always either `T` or `F`.
+
+7. Error Handling / Exceptional Behavior  
+- If the initial count cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If any token cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If the count is less than 2 or exceeds internal storage capacity, behavior is not defined by the program (no explicit handling).
+
+8. State Transitions (if applicable)  
+- States: Start → (Input Read Failure → Terminate Error) or (Inputs Read → Reduced Result Computed → Output Written → Terminate Success).  
+- On any token read failure: Inputs Read (partial) → Terminate Error.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of tokens.  
+- Uses fixed-size internal storage; maximum supported token count is bounded by that storage.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+char souti(char a, char b) {
+	return a == 'T' && b == 'F' ? 'F' : 'T';
+}
+
+int N;
+char P[114514];
+
+int main(void) {
+	int i;
+	char notomamiko;
+	if (scanf("%d", &N) != 1) return 1;
+	for (i = 0; i < N; i++) {
+		char hoge[4];
+		if (scanf("%3s", hoge) != 1) return 1;
+		P[i] = hoge[0];
+	}
+	notomamiko = souti(P[0], P[1]);
+	for (i = 2; i < N; i++) {
+		notomamiko = souti(notomamiko, P[i]);
+	}
+	printf("%c\n", notomamiko);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,25 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then take the first whitespace-delimited token (like scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let token = input.split_whitespace().next().unwrap_or("");
+
+    // Apply the same arithmetic as the C code:
+    // if 'D'..='Z' => -3, else +23 (wrap for 'A','B','C' under intended precondition).
+    let mut out = String::with_capacity(token.len());
+    for b in token.bytes() {
+        let transformed = if b >= b'D' && b <= b'Z' {
+            b.wrapping_sub(3)
+        } else {
+            b.wrapping_add(23)
+        };
+        out.push(transformed as char);
+    }
+
+    print!("{out}\n");
+}
+```

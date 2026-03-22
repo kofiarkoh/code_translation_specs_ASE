@@ -1,0 +1,99 @@
+use std::io::{self, Read};
+
+fn remove2(cards: &[u8; 20], out: &mut [u8; 20], m1: usize, m2: usize) {
+    let mut j = 0usize;
+    for i in 0..20usize {
+        if i != m1 && i != m2 {
+            out[j] = cards[i];
+            j += 1;
+        }
+    }
+    // Tail contents are irrelevant; callers only read the first L = 20 - 2*depth.
+}
+
+fn solve(buf: &[u8; 20], depth: i32, max_depth: &mut i32) {
+    let last = (20 - 2 * depth) as usize;
+
+    for i in 0..last {
+        // Down neighbor: j = i + 4
+        if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 4);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Right neighbor: j = i + 1
+        if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 1);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Down-right neighbor: j = i + 5
+        if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 5);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Down-left neighbor: j = i + 3
+        if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 3);
+            solve(&out, depth + 1, max_depth);
+        }
+    }
+
+    if depth > *max_depth {
+        *max_depth = depth;
+    }
+}
+
+fn main() {
+    // The C code uses scanf("%c ", ...) which effectively reads the next
+    // non-whitespace character each time. Using split_whitespace() is NOT
+    // equivalent when the 20 digits are provided without spaces (e.g. "0123...").
+    // So we scan raw bytes and pick digit characters.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+
+    let mut idx = 0usize;
+    let mut next_non_ws = |data: &[u8], idx: &mut usize| -> Option<u8> {
+        while *idx < data.len() && data[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= data.len() {
+            None
+        } else {
+            let b = data[*idx];
+            *idx += 1;
+            Some(b)
+        }
+    };
+
+    let n = {
+        // Parse integer n from bytes (skipping leading whitespace).
+        while idx < input.len() && input[idx].is_ascii_whitespace() {
+            idx += 1;
+        }
+        let mut val: usize = 0;
+        while idx < input.len() && !input[idx].is_ascii_whitespace() {
+            let b = input[idx];
+            // Per spec, no validation; assume digits for n.
+            val = val * 10 + (b - b'0') as usize;
+            idx += 1;
+        }
+        val
+    };
+
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        for j in 0..20 {
+            let b = next_non_ws(&input, &mut idx).expect("unexpected EOF");
+            // Per spec, each card is a digit character.
+            buf[j] = b - b'0';
+        }
+
+        let mut max_depth: i32 = 0;
+        solve(&buf, 0, &mut max_depth);
+        let remaining = 20 - (max_depth as i32) * 2;
+        println!("{}", remaining);
+    }
+}

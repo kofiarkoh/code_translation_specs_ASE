@@ -1,0 +1,32 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, like scanf would consume tokens separated by whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // In the C code, failing scanf would leave variables uninitialized (UB),
+    // but we assume valid input as typical for such tasks.
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    // a[101] with 1-based indexing; a[0] unused.
+    let mut a = [0i32; 101];
+    for i in 1..=n {
+        a[i as usize] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut count: i32 = 0;
+    let mut i: i32 = 2;
+    while i <= n {
+        if a[i as usize] == a[(i - 1) as usize] {
+            count += 1;
+            i += 1; // matches the extra i++ inside the C if-block
+        }
+        i += 1; // matches the for-loop increment
+    }
+
+    print!("{}\n", count);
+    // stdout is line-buffered on terminals; explicit flush to mirror fflush(stdout).
+    io::Write::flush(&mut io::stdout()).unwrap();
+}

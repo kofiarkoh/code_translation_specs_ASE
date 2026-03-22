@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Generates and outputs a sequence of positive integers of length *n*. Each iteration outputs the current sequence value, then updates the next value to be the smallest (by a specific selection rule) among a fixed set of candidate integers greater than the printed value, where the selection rule minimizes the ratio: (candidate value) / (sum of its decimal digits). Ties are resolved by keeping the earliest candidate encountered under the program’s evaluation order.
+
+2. Inputs  
+- One integer *n* read from standard input, representing the number of sequence elements to output.
+
+3. Outputs  
+- Writes exactly *n* lines to standard output.  
+- Each line contains one positive integer: the current sequence value for that iteration.
+
+4. Preconditions  
+- Input *n* is successfully provided and representable in the program’s integer range.  
+- *n* is non-negative.  
+- All intermediate values computed during execution (including candidate values and digit-sum computations) remain within the representable ranges of the program’s integer and floating-point types.
+
+5. Postconditions  
+- If *n = 0*, no output is produced.  
+- If *n > 0*, exactly *n* positive integers are output.  
+- The first output value is 1.  
+- For each iteration *k* (0-based), let *p* be the value printed on that iteration. The next internal sequence value becomes one of the following candidates, all strictly greater than *p*:  
+  - *p + 1*  
+  - For each decimal scale 10, 100, 1000, … up to 10^15: the largest integer less than the next multiple of that scale above *(p + 1)* (i.e., a number ending in all 9s at that scale).  
+  Among these candidates, the chosen next value minimizes (value / digit-sum(value)) as evaluated in real arithmetic; if multiple candidates yield the same minimum under the program’s comparisons, the one encountered first by the program’s evaluation order is chosen.
+
+6. Invariants  
+- Every printed value is a positive integer.  
+- Each subsequent internal sequence value is strictly greater than the value printed in the same iteration.  
+- The digit-sum used in the ratio is the sum of base-10 digits of the candidate value and is positive for all candidates considered.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/invalid, or if arithmetic overflows/underflows occur, or if floating-point anomalies affect comparisons, behavior is unspecified with respect to this specification (it may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- State consists of the current sequence value, initially 1.  
+- On each iteration: output current value; then transition to a new current value selected from the candidate set described above based on minimizing value/digit-sum(value).
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows linearly with *n*, with a fixed amount of work per iteration (a constant number of candidate evaluations and digit-sum computations).  
+- Memory usage is constant with respect to *n*.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int S(long int x){
+	int r=0;
+	while(x>0){r+=x%10;x/=10;}
+	return r;
+}
+
+int main(){
+  long int n,i,j,x=1,y,r,s;
+  double m,o;
+  scanf("%ld",&n);
+  for(i=0;i<n;i++){
+    printf("%ld\n",x);
+    r=++x;
+  	m=(double)x/S(x);
+  	for(j=0,s=10;j<15;j++,s*=10L){
+  		y=s*(x/s+1)-1;o=(double)y/S(y);
+  		if(o<m){m=o;r=y;}
+  	}
+    x=r;
+  }
+}
+=== C CODE END ===

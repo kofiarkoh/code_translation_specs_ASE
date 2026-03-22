@@ -1,0 +1,68 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+
+    // Use 1-based indexing to mirror the C code and avoid off-by-one mistakes.
+    let mut a = vec![0i32; n + 1];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Early termination condition per spec: stop when all values are N.
+    // The C code uses `min < N` as a proxy; we preserve that behavior.
+    let mut min_val: i32 = 0;
+
+    // Difference array B is sized N+2 so we can safely access B[N+1].
+    let mut b = vec![0i32; n + 2];
+
+    for _step in 1..=k {
+        if min_val >= n as i32 {
+            break;
+        }
+
+        min_val = n as i32;
+        // Reset B[1..=N+1] to 0 (C resets 1..=N+1; index 0 unused).
+        for x in b.iter_mut().take(n + 2).skip(1) {
+            *x = 0;
+        }
+
+        // Build range-add difference array:
+        // each position j contributes +1 to i in [j - A[j], j + A[j]] clipped to [1, N].
+        for i in 1..=n {
+            let ai = a[i] as i64; // precondition: non-negative, but keep wide for arithmetic
+            let ii = i as i64;
+            let nn = n as i64;
+
+            let l = (ii - ai).max(1);
+            let r = (ii + ai).min(nn);
+
+            b[l as usize] += 1;
+            b[(r + 1) as usize] -= 1; // r+1 is in [2..=N+1]
+        }
+
+        // Prefix sum to obtain new A, track minimum.
+        let mut tmp: i32 = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
+            }
+        }
+    }
+
+    // Output exactly as C: values separated by single spaces, newline at end.
+    let mut out = String::new();
+    for i in 1..n {
+        out.push_str(&format!("{} ", a[i]));
+    }
+    out.push_str(&format!("{}\n", a[n]));
+    print!("{out}");
+}

@@ -1,0 +1,85 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Card {
+    c: char,
+    val: i32,
+    num: usize, // original input position
+}
+
+fn partition(a: &mut [Card], p: isize, r: isize) -> isize {
+    let x = a[r as usize].val;
+    let mut i = p - 1;
+
+    for j in p..r {
+        if a[j as usize].val <= x {
+            i += 1;
+            a.swap(i as usize, j as usize);
+        }
+    }
+    a.swap((i + 1) as usize, r as usize);
+    i + 1
+}
+
+fn quicksort(a: &mut [Card], p: isize, r: isize) {
+    if p < r {
+        let q = partition(a, p, r);
+        quicksort(a, p, q - 1);
+        quicksort(a, q + 1, r);
+    }
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens.
+    // This matches the C scanf behavior for " %c%d" (whitespace before char allowed).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<Card> = Vec::with_capacity(n);
+
+    for i in 0..n {
+        let c_token = it.next().unwrap();
+        let c = c_token.chars().next().unwrap();
+        let val: i32 = it.next().unwrap().parse().unwrap();
+        a.push(Card { c, val, num: i });
+    }
+
+    // Spec says behavior is unspecified for n <= 0; we follow the C behavior for n==0
+    // by simply not calling quicksort on an invalid range.
+    if n >= 1 {
+        quicksort(&mut a, 0, (n as isize) - 1);
+    }
+
+    // Stability check as specified: find i<j with equal keys but inverted original positions.
+    let mut not_stable = false;
+    for i in 0..n.saturating_sub(1) {
+        for j in (i + 1)..n {
+            if a[i].val == a[j].val && a[i].num > a[j].num {
+                not_stable = true;
+                break;
+            }
+        }
+        if not_stable {
+            break;
+        }
+    }
+
+    let mut out = String::new();
+    if not_stable {
+        out.push_str("Not stable\n");
+    } else {
+        out.push_str("Stable\n");
+    }
+    for card in &a {
+        out.push(card.c);
+        out.push(' ');
+        out.push_str(&card.val.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

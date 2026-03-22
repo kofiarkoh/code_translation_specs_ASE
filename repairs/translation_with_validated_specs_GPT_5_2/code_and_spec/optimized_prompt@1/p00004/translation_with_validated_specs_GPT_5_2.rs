@@ -1,0 +1,50 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated real numbers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    loop {
+        // Stop cleanly if we can't read a full sextuple.
+        let a: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let b: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let c: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let d: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let e: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let f: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+
+        // Same computation as the C code (Gaussian elimination style):
+        // bai = d/a
+        // y = (f - c*bai) / (e - b*bai)
+        // x = (c - b*y) / a
+        let bai = d / a;
+        let bb = b * bai;
+        let cc = c * bai;
+
+        let y = (f - cc) / (e - bb);
+        let x = (c - b * y) / a;
+
+        println!("{:.3} {:.3}", x, y);
+    }
+}

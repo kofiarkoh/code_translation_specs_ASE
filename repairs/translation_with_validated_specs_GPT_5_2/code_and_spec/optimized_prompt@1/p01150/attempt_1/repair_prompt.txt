@@ -1,0 +1,283 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each provided nonzero integer \(N\), the program computes a count of seatings of eight distinct individuals into \(N\) labeled positions arranged in a circle. The count is obtained by first counting certain valid 0/1 occupancy patterns of length \(N\) with exactly eight occupied positions, then multiplying by \(8!\) to account for assigning the eight distinct individuals to the occupied positions. One result is printed per input value; processing ends when a terminating zero is read.
+
+2. Inputs  
+- A sequence of integers \(N\).  
+- Input terminates when a value of 0 is encountered.  
+- If an integer cannot be read, processing stops (no output for that unreadable item).
+
+3. Outputs  
+- For each nonzero input \(N\), outputs a single nonnegative integer (printed as a signed 64-bit decimal) equal to the program’s computed number of valid seatings.
+
+4. Preconditions / Assumptions / Defined Range  
+- The program is intended for \(N \ge 0\).  
+- The implementation uses fixed-size internal arrays sized for indices up to 69; behavior is only defined for \(N \le 70\).  
+- The computed total is printed as a signed 64-bit integer; if the true value exceeds that range, overflow may occur.
+
+5. High-Level Counting Semantics  
+For each processed nonzero \(N\):  
+- If \(N \le 16\), the output is 0.  
+- If \(N > 16\), the output equals \(8!\) times the number of valid occupancy patterns counted by the program’s rules below.  
+- Seat positions are labeled by index; different occupied index sets are counted as different even if related by rotation or reflection.  
+- The eight individuals are distinct; different permutations of individuals over the same occupied positions are counted separately via the \(8!\) factor.
+
+6. Valid Occupancy Patterns (Exactly Eight Occupied)  
+The program counts binary strings \(x[0..N-1]\) with exactly eight 1s (“occupied”) subject to constraints that depend on the parity of \(N\):
+
+6.1. Odd \(N\) (cyclic non-adjacency)  
+When \(N\) is odd and \(N>16\), the counted patterns are exactly those with:  
+- Exactly eight occupied positions, and  
+- No two occupied positions adjacent on the circle (i.e., for all \(i\), not both \(x[i]=1\) and \(x[(i+1)\bmod N]=1\)).  
+
+6.2. Even \(N\) (paired-half constraint)  
+When \(N\) is even and \(N>16\), the program does **not** count all cyclic non-adjacent patterns. Instead, it counts patterns based on pairing opposite positions: for each \(i\in[0, N/2-1]\), positions \(i\) and \(i+N/2\) are treated as a pair, and the pattern is constructed by choosing for each pair one of three pair-states:  
+- \((1,0)\): first-half position occupied, opposite empty  
+- \((0,1)\): first-half position empty, opposite occupied  
+- \((0,0)\): both empty  
+The pair-state \((1,1)\) is never allowed.
+
+Additionally, as the program scans pairs in increasing \(i\), it enforces a “no consecutive occupied pairs in the same half” rule:  
+- If pair \(i\) is \((1,0)\), then pair \(i+1\) is not allowed to be \((1,0)\).  
+- If pair \(i\) is \((0,1)\), then pair \(i+1\) is not allowed to be \((0,1)\).  
+- Pair \((0,0)\) does not restrict the next pair.  
+
+Finally, the constraint is cyclic over the \(N/2\) pairs: the restriction between the last pair \((N/2-1)\) and the first pair (index 0) is also enforced in the same “same-half cannot repeat consecutively” sense, taking into account which of the two halves (if any) was occupied in pair 0.
+
+Under these rules, the total number of occupied positions across all pairs must be exactly eight (each \((1,0)\) or \((0,1)\) contributes one occupied position; \((0,0)\) contributes none).
+
+7. Termination and Per-Case State  
+For each nonzero \(N\): the program clears its memoization state, computes the occupancy-pattern count according to the parity-specific rules above (or 0 if \(N \le 16\)), multiplies by \(8!\), prints the result, and continues to the next input. Processing terminates immediately when \(N=0\) is read.
+
+8. Exceptional / Undefined Behavior  
+- If \(N>70\), internal indexing may exceed allocated bounds; behavior is undefined.  
+- If the mathematically correct result does not fit in signed 64-bit range, the printed value may be incorrect due to overflow.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 2025
+  Title:Eight Princes
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+#define FACT8 40320
+#define N_OF_PRINCES 8
+
+int N;
+int result[70];
+
+void dump(int f)
+{
+#ifdef DEBUG
+  int i;
+  if(f==0)
+    {
+      for(i=0;i<N;i++)
+	printf("%d|",result[i]);
+      printf("\n");
+    }
+  else if(f==1)
+    {
+      for(i=0;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1:\n");
+    }
+  else if (f==2)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("1:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("0:\n");
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("0:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1+\n");
+    }
+  else if(f==3)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("0:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("1;\n");
+    }
+  else if(f==4)
+    {
+      for(i=0;i<N/2-1;i++)
+	printf("%d|",result[i]);
+      printf("1:");
+      for(i=N/2;i<N-1;i++)
+	printf("%d|",result[i]);
+      printf("0@\n");
+    }
+#endif
+}
+
+unsigned int memo[70][9][3][3];
+
+unsigned int calc_odd_1(int pos,int princes,int sitdown,int zero_sitdown)
+{
+  unsigned int ret;
+
+  if(ret=memo[pos][princes][sitdown][zero_sitdown])
+    return(ret);
+
+  if(princes==0)
+    {
+      dump(0);
+      ret=1;
+    }
+  else if(pos==N-1 && princes>1)
+    ret=0;
+  else if(pos==N-1 && princes==1)
+    if(zero_sitdown==0 && sitdown==0)
+      {
+	dump(1);
+	ret=1;
+      }
+    else
+      ret=0;
+  else
+    {
+      if(sitdown==0)
+	{
+	  result[pos]=1;
+	  ret=calc_odd_1(pos+1,princes-1,1,zero_sitdown);
+	}
+      else
+	ret=0;
+      
+      result[pos]=0;
+      ret+=calc_odd_1(pos+1,princes,0,zero_sitdown);
+    }
+  memo[pos][princes][sitdown][zero_sitdown]=ret;
+  return(ret);
+}
+
+unsigned int calc_odd(int N)
+{
+  unsigned int ret=0;
+  
+  result[0]=1;
+  ret+=calc_odd_1(1,N_OF_PRINCES-1,1,1);
+  result[0]=0;
+  ret+=calc_odd_1(1,N_OF_PRINCES,0,0);
+  return(ret);
+}
+
+unsigned int calc_even_1(int pos,int princes,int sitdown,int zero_sitdown)
+{
+  unsigned int ret;
+
+  //printf("Pos=%d pr=%d\n",pos,princes);
+  if(ret=memo[pos][princes][sitdown][zero_sitdown])
+    return(ret);
+
+  if(princes==0)
+    {
+      dump(0);
+      ret=1;
+    }
+  else if(pos==N/2-1 && princes>1)
+    ret=0;
+  else if(pos==N/2-1 && princes==1)
+    {
+      if(zero_sitdown==0 && sitdown==0)
+	{
+	  dump(2);
+	  ret=2;
+	}
+      else if((zero_sitdown==2||zero_sitdown==0) && (sitdown==1 || sitdown==0))
+	{
+	  dump(3);
+	  ret=1;
+	}
+      else if((zero_sitdown==1||zero_sitdown==0) && (sitdown==2 || sitdown==0))
+	{
+	  dump(4);
+	  ret=1;
+	}
+      else
+	ret=0;
+    }
+  else
+    {
+      ret=0;
+      if(sitdown==0 || sitdown==2)
+	{
+	  result[pos]=1;result[pos+N/2]=0;
+	  ret +=calc_even_1(pos+1,princes-1,1,zero_sitdown);
+	}
+      if(sitdown==0 || sitdown==1)
+	{
+	  result[pos]=0;result[pos+N/2]=1;
+	  ret +=calc_even_1(pos+1,princes-1,2,zero_sitdown);
+	}
+
+      result[pos]=0;result[pos+N/2]=0;
+      ret+=calc_even_1(pos+1,princes,0,zero_sitdown);
+    }
+  memo[pos][princes][sitdown][zero_sitdown]=ret;
+  return(ret);
+}
+
+unsigned int calc_even(int N)
+{
+  unsigned int ret=0;
+  
+  result[0]=1;result[N/2]=0;
+  ret+=calc_even_1(1,N_OF_PRINCES-1,1,1); //zenhan
+  result[0]=0;result[N/2]=1;
+  ret+=calc_even_1(1,N_OF_PRINCES-1,2,2); //kouhan
+  result[0]=  result[N/2]=0;
+  ret+=calc_even_1(1,N_OF_PRINCES  ,0,0); //none
+  return(ret);
+}
+
+
+main()
+{
+  long long ret;
+
+  while(scanf("%d",&N) && N)
+    {
+      memset(memo,0,sizeof(memo));
+      if(N<=16)
+	ret=0;
+      else if(N & 1)
+	ret=(long long)FACT8*calc_odd(N);
+      else
+	ret=(long long)FACT8*calc_even(N);
+      printf("%lld\n",ret);
+    }
+  return(0);
+}
+=== C CODE END ===

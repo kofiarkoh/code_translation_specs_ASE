@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the minimum total cost to construct a binary tree over an ordered sequence of `n` points, where each internal node combines two contiguous subsequences. The cost of combining a left subsequence `[i..j]` with a right subsequence `[j+1..k]` is the Manhattan distance between the first point of the left subsequence and the first point of the right subsequence, plus the Manhattan distance between the last point of the left subsequence and the last point of the right subsequence. The total cost is the sum of combination costs over the entire tree.
+
+2. Inputs  
+- An integer `n`: the number of points in an ordered sequence.  
+- `n` pairs of integers `(x_i, y_i)`: coordinates of each point, in sequence order.
+
+3. Outputs  
+- A single integer: the minimum achievable total construction cost for the full sequence of points.
+
+4. Preconditions  
+- `1 ≤ n ≤ 1000`.  
+- Exactly `n` coordinate pairs are provided.  
+- All input values are non-negative integers (assumption based on the input-reading behavior).  
+- The minimum total cost fits within the range of a signed 32-bit integer (assumption; otherwise overflow may occur).
+
+5. Postconditions  
+- The output equals the minimum, over all binary partitionings of the index interval `[0..n-1]` into contiguous subintervals, of the sum of merge costs defined as:  
+  For each merge of `[i..j]` and `[j+1..k]`, add `|x_i - x_{j+1}| + |y_j - y_k|`.  
+- If `n = 1`, the output is `0`.
+
+6. Invariants  
+- For any contiguous interval consisting of a single point, the minimum cost is `0`.  
+- For any contiguous interval `[i..k]`, the computed minimum cost is no greater than the cost produced by any specific single split point `j` with `i ≤ j < k` using the defined merge cost plus optimal subinterval costs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, contains negative values, or violates bounds, behavior is unspecified.  
+- If arithmetic overflows the integer range, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state beyond the program execution. The program reads input once, computes the minimum cost, outputs it, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `n^2`.  
+- Time complexity is cubic in `n` in the worst case.
+```

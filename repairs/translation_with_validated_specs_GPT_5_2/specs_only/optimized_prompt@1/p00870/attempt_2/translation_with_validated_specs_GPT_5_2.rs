@@ -1,0 +1,134 @@
+use std::io::{self, Read};
+
+fn main() {
+    // The original specification describes token-based reading, but also a special
+    // trimming rule for text fragments based on the last character's ASCII code.
+    // That rule only makes sense if fragments are read as raw lines/strings that
+    // may include trailing control characters (e.g., '\r' from CRLF).
+    //
+    // To preserve that behavior as closely as possible, we parse the dataset
+    // headers and patterns as whitespace-delimited tokens, but we read each text
+    // fragment as the remainder of a line (trimmed of the trailing '\n'), then
+    // apply the "drop last char if < ' '" rule to that line content.
+    //
+    // This is the narrowest interpretation that makes the trimming rule observable.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    let mut out = String::new();
+
+    loop {
+        // Read next non-empty line for header.
+        let header_line = loop {
+            match lines.next() {
+                None => {
+                    print!("{out}");
+                    return;
+                }
+                Some(l) => {
+                    if !l.trim().is_empty() {
+                        break l.to_string();
+                    }
+                }
+            }
+        };
+
+        let mut header_it = header_line.split_whitespace();
+        let n_opt = header_it.next();
+        if n_opt.is_none() {
+            print!("{out}");
+            return;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = header_it.next().unwrap().parse().unwrap();
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read n pattern tokens (may span multiple lines).
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        while patterns.len() < n {
+            let l = lines.next().unwrap_or("");
+            for tok in l.split_whitespace() {
+                patterns.push(tok.as_bytes().to_vec());
+                if patterns.len() == n {
+                    break;
+                }
+            }
+        }
+
+        // Read m text fragments as line-based tokens (one per line), applying trimming rule.
+        // If a line contains multiple whitespace tokens, we take them in order as fragments
+        // (still applying trimming per fragment token as read from the line).
+        let mut text: Vec<u8> = Vec::new();
+        let mut got = 0usize;
+        while got < m {
+            let l = lines.next().unwrap_or("");
+            // If the line has no tokens, it contributes nothing; keep reading.
+            let mut any = false;
+            for tok in l.split_whitespace() {
+                any = true;
+                let mut frag = tok.as_bytes().to_vec();
+                if let Some(&last) = frag.last() {
+                    if last < b' ' {
+                        frag.pop();
+                    }
+                }
+                text.extend_from_slice(&frag);
+                got += 1;
+                if got == m {
+                    break;
+                }
+            }
+            if !any {
+                continue;
+            }
+        }
+
+        let l = text.len();
+        let masks = 1usize << n;
+        let full_mask = masks - 1;
+
+        // Use a flat Vec<u8> for dp to reduce overhead and match boolean semantics.
+        // dp[(pos * masks) + mask] == 1 means reachable.
+        let mut dp: Vec<u8> = vec![0u8; (l + 1) * masks];
+        dp[0 * masks + 0] = 1;
+
+        for p in 0..l {
+            let base = p * masks;
+            for s in 0..masks {
+                if dp[base + s] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let lenk = pat.len();
+                    if p + lenk > l {
+                        continue;
+                    }
+                    if text[p..p + lenk] == pat[..] {
+                        let np = p + lenk;
+                        let ns = s | bit;
+                        dp[np * masks + ns] = 1;
+                    }
+                }
+            }
+        }
+
+        let mut count = 0usize;
+        for p in 0..=l {
+            if dp[p * masks + full_mask] != 0 {
+                count += 1;
+            }
+        }
+
+        out.push_str(&format!("{count}\n"));
+    }
+
+    print!("{out}");
+}

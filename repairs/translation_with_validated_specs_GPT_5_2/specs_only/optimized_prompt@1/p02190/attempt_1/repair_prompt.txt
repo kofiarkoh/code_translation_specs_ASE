@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a finite sequence of integers and computes the number of distinct values present in the sequence. Outputs that count.
+
+2. Inputs  
+- An integer specifying the number of elements in the sequence.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single integer: the count of unique (distinct) values among the provided integers.
+
+4. Preconditions  
+- The provided element count is at least 1.  
+- The provided element count does not exceed the fixed maximum capacity of the internal storage (100001).  
+- The input contains at least that many integers following the count.  
+
+5. Postconditions  
+- The output equals the cardinality of the set of input values (i.e., the number of distinct integers in the input sequence).  
+- The output is in the range [1, n].
+
+6. Invariants  
+- The distinct-count accumulator is always at least 1 and at most the number of processed elements.  
+- After processing any prefix of the sorted sequence, the accumulator equals the number of value changes observed in that prefix plus one.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid, missing, or malformed input. Behavior is unspecified if input cannot be read as required or if preconditions are violated.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run computation with no externally observable persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 100001 input integers due to fixed storage capacity.  
+- Uses memory proportional to the number of input elements stored.
+```

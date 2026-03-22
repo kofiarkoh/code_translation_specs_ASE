@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes single-source shortest-path costs in a directed, weighted graph with vertices indexed from 0 to N−1, using vertex 0 as the source. After computation, it outputs, for every vertex, its index and the computed minimum total cost from the source, or a sentinel value indicating unreachable.
+
+2. Inputs  
+- An integer N: the number of vertices.  
+- For each of N vertices, one vertex description consisting of:  
+  - A vertex index U.  
+  - An integer K: the number of outgoing edges from U.  
+  - K pairs (V, W) describing a directed edge from U to V with nonnegative weight/cost W.  
+
+Assumption: The input provides exactly N vertex descriptions (not necessarily in order), and each vertex index appears exactly once.
+
+3. Outputs  
+For each vertex i in [0, N−1], outputs a line containing:  
+- The vertex index i.  
+- A space separator.  
+- The computed shortest-path cost from vertex 0 to i, or −1 if i is unreachable from 0.
+
+4. Preconditions  
+- N is nonnegative and small enough to allow allocation of per-vertex storage.  
+- All vertex indices U and edge endpoints V are within [0, N−1].  
+- For each vertex, K is within [0, 100].  
+- Edge weights are integers such that all computed path costs fit within the integer range (no overflow).  
+- Edge weights are nonnegative (required for correctness of the computed shortest paths).  
+- Input is well-formed and complete as described; otherwise behavior is not defined by this specification.
+
+5. Postconditions  
+- For every vertex i reachable from vertex 0 via directed edges, the reported cost equals the minimum possible sum of edge weights along any path from 0 to i.  
+- For every vertex i not reachable from vertex 0, the reported cost is −1.  
+- The reported cost for vertex 0 is 0.
+
+6. Invariants  
+- During computation, each vertex’s stored cost is either −1 (meaning “no known path yet”) or a nonnegative integer representing the best known path cost from the source.  
+- Once a vertex is finalized (marked visited), its stored cost does not change thereafter.  
+- At all times, stored costs never increase when updated.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., out-of-range indices, too many edges, negative weights, integer overflow, incomplete/malformed input), the program may produce incorrect output or exhibit undefined behavior.
+
+8. State Transitions (if applicable)  
+Per vertex, the logical state transitions are:  
+- Initially: unvisited with cost = −1, except source vertex 0 with cost = 0.  
+- While processing: a vertex may transition from cost = −1 to a nonnegative tentative cost, and may have its tentative cost decreased multiple times.  
+- Finalization: a vertex transitions from unvisited to visited exactly once when selected for finalization; after this, its cost is final.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is O(N² + E), where E is the total number of edges described (bounded by 100·N).  
+- Memory usage is O(N + E) with a fixed per-vertex maximum of 100 outgoing edges.
+```

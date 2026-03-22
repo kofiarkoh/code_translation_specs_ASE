@@ -1,0 +1,78 @@
+```rust
+use std::io::{self, Read};
+
+fn find_not_zero(diff: &[u8], start: usize, n: usize) -> Option<usize> {
+    for i in start..n {
+        if diff[i] != 0 {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn rotate_count(diff: &[u8], acc: i32, n: usize, min_val: &mut i32) {
+    let pos = match find_not_zero(diff, 0, n) {
+        None => {
+            if acc < *min_val {
+                *min_val = acc;
+            }
+            return;
+        }
+        Some(p) => p,
+    };
+
+    let offs = diff[pos]; // 1..=9 by invariant (pos is non-zero)
+    let mut diff2 = diff.to_vec();
+
+    // Spec transition: choose end index i in [pos, n-1], subtract offs from [pos..=i] mod 10.
+    // The C code achieves this by iteratively extending the affected suffix one element at a time,
+    // reusing the progressively updated diff2.
+    for i in pos..n {
+        diff2[i] = (diff2[i] + 10 - offs) % 10;
+        rotate_count(&diff2, acc + 1, n, min_val);
+    }
+}
+
+fn calc_diff(init: &[u8], target: &[u8], n: usize) -> Vec<u8> {
+    let mut diff = vec![0u8; n];
+    for i in 0..n {
+        let a = init[i] - b'0';
+        let b = target[i] - b'0';
+        diff[i] = (b + 10 - a) % 10;
+    }
+    diff
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: usize = n_tok.parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let init_s = it.next().unwrap();
+        let target_s = it.next().unwrap();
+
+        let init = init_s.as_bytes();
+        let target = target_s.as_bytes();
+
+        if init[..n] == target[..n] {
+            out.push_str("0\n");
+        } else {
+            let diff = calc_diff(init, target, n);
+            let mut min_val: i32 = 99; // matches C's initial bound
+            rotate_count(&diff, 0, n, &mut min_val);
+            out.push_str(&format!("{min_val}\n"));
+        }
+    }
+
+    print!("{out}");
+}
+```

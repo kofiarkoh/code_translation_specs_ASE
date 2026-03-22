@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as i64 (matches C's long long on typical platforms).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut x: i64 = it.next().unwrap().parse().unwrap();
+    let mut k: i64 = it.next().unwrap().parse().unwrap();
+    let d: i64 = it.next().unwrap().parse().unwrap();
+
+    // C uses llabs(x). Note: llabs(LLONG_MIN) is undefined in C; in Rust we emulate
+    // two's-complement wrapping behavior via wrapping_abs().
+    x = x.wrapping_abs();
+
+    let mut now: i64 = x;
+
+    // Preserve C's signed division semantics (trunc toward zero).
+    // If d == 0, C would have UB (division by zero); Rust would panic.
+    // We do not attempt to define behavior beyond the C code.
+    if x / d <= k {
+        let q = x / d;
+        now = now.wrapping_sub(d.wrapping_mul(q));
+        k -= q;
+        if k % 2 != 0 {
+            now = now.wrapping_sub(d);
+        }
+    } else {
+        now = now.wrapping_sub(d.wrapping_mul(k));
+    }
+
+    // C prints llabs(now). Again, emulate wrapping behavior for LLONG_MIN.
+    let out = now.wrapping_abs();
+    print!("{}", out);
+}

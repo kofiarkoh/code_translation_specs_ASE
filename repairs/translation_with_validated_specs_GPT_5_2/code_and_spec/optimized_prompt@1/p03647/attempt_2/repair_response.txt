@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input and parse as integers; stop processing on malformed input.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    // Read N and one additional integer (ignored). If missing/malformed, stop early.
+    let n0: i32 = match it.next().and_then(|t| t.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    if it.next().and_then(|t| t.parse::<i32>().ok()).is_none() {
+        // Malformed/missing ignored integer => no records processed.
+        println!("POSSIBLE");
+        return;
+    }
+
+    // Feasibility flag per SPEC: true => POSSIBLE, false => IMPOSSIBLE.
+    let mut possible = true;
+
+    // Fixed-size table.
+    let mut used = vec![0u8; 1 << 18];
+
+    // Process (A,B) pairs until EOF or malformed.
+    loop {
+        let a: i32 = match it.next() {
+            Some(t) => match t.parse() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+            None => break,
+        };
+        let b: i32 = match it.next() {
+            Some(t) => match t.parse() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+            None => break,
+        };
+
+        // Derived category index from C:
+        // idx = (a-1 ? (b-n ? 0 : a) : b)
+        // where n is the initial N (C later overwrites n as a flag, but the index uses the
+        // original N value).
+        let idx_i32 = if a - 1 != 0 {
+            if b - n0 != 0 { 0 } else { a }
+        } else {
+            b
+        };
+        let idx = idx_i32 as usize; // out-of-bounds => undefined per spec
+
+        // Uniqueness constraint: selecting the same derived index more than once => IMPOSSIBLE.
+        if used[idx] != 0 {
+            possible = false;
+        } else {
+            used[idx] = 1;
+        }
+    }
+
+    println!("{}", if possible { "POSSIBLE" } else { "IMPOSSIBLE" });
+}
+```

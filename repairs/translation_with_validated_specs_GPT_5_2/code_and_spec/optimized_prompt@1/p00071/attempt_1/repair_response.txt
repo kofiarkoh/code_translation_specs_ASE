@@ -1,0 +1,82 @@
+```rust
+use std::io::{self, Read};
+
+const DIRS: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)]; // left, up, right, down (as in spec)
+
+fn explode(field: &mut Vec<Vec<u8>>, px: i32, py: i32) {
+    // Spec assumes px,py are within 1..=8; otherwise C has undefined behavior.
+    // We keep the same assumption and do not add extra validation.
+    field[py as usize][px as usize] = b'0';
+
+    for (dx, dy) in DIRS {
+        for dist in 1..=3 {
+            let x = px + dist * dx;
+            let y = py + dist * dy;
+            if x < 1 || x > 8 || y < 1 || y > 8 {
+                break;
+            }
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read entire stdin; C uses gets/sscanf with no error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.split_terminator('\n');
+
+    let first = lines.next().unwrap_or("");
+    let n_datasets: usize = first.trim().parse().unwrap();
+
+    let mut out = String::new();
+
+    for n in 1..=n_datasets {
+        // field[y][x], with indices 0..=9; we store input lines starting at x=1.
+        // Each row is a byte vector; we keep a trailing 0 byte to model C '\0' termination.
+        let mut field: Vec<Vec<u8>> = vec![vec![0u8; 10]; 10];
+
+        for i in 0..=8 {
+            let line = lines.next().unwrap_or("");
+            let bytes = line.as_bytes();
+
+            // Store starting at column index 1, like gets(&(field[i][1])).
+            // No bounds checking in C; here we truncate to fit the fixed 10 columns.
+            let max_copy = (10usize).saturating_sub(1).min(bytes.len());
+            for k in 0..max_copy {
+                field[i][1 + k] = bytes[k];
+            }
+            // Ensure C-string terminator at the end of what we stored.
+            if 1 + max_copy < 10 {
+                field[i][1 + max_copy] = 0;
+            } else {
+                // If exactly filled, last byte is already some character; force terminator at end.
+                field[i][9] = 0;
+            }
+        }
+
+        let sx_line = lines.next().unwrap_or("");
+        let sx: i32 = sx_line.trim().parse().unwrap();
+        let sy_line = lines.next().unwrap_or("");
+        let sy: i32 = sy_line.trim().parse().unwrap();
+
+        explode(&mut field, sx, sy);
+
+        out.push_str(&format!("Data {}:\n", n));
+        for i in 1..=8 {
+            // Print from column index 1 until '\0', like puts(&(field[i][1])).
+            let row = &field[i];
+            let mut end = 1usize;
+            while end < row.len() && row[end] != 0 {
+                end += 1;
+            }
+            out.push_str(std::str::from_utf8(&row[1..end]).unwrap());
+            out.push('\n');
+        }
+    }
+
+    print!("{out}");
+}
+```

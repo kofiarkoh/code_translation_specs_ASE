@@ -1,0 +1,154 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; specification assumes well-formed input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let th: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let tw: usize = it.next().unwrap().parse().unwrap();
+
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(th);
+    for _ in 0..th {
+        let s = it.next().unwrap();
+        // Preconditions allow extra characters; we take the first tw non-whitespace chars.
+        let row = s.as_bytes()[..tw].to_vec();
+        text.push(row);
+    }
+
+    let ph: usize = it.next().unwrap().parse().unwrap();
+    let pw: usize = it.next().unwrap().parse().unwrap();
+
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(ph);
+    for _ in 0..ph {
+        let s = it.next().unwrap();
+        let row = s.as_bytes()[..pw].to_vec();
+        pat.push(row);
+    }
+
+    // If pattern doesn't fit, no valid placements; produce no output.
+    if ph > th || pw > tw {
+        return;
+    }
+
+    // Hash-based equality test:
+    // Use a 2D rolling hash (Rabin-Karp style) with wrapping arithmetic to emulate
+    // typical C unsigned overflow behavior and to allow collisions (no verification).
+    //
+    // We compute:
+    // 1) For each row, rolling hash over width pw (base_x).
+    // 2) For each column position, rolling hash over height ph of those row-hashes (base_y).
+    //
+    // All arithmetic is u64 with wrapping_* to preserve modulo 2^64 behavior.
+    const BASE_X: u64 = 911382323u64;
+    const BASE_Y: u64 = 972663749u64;
+
+    fn pow_wrapping(base: u64, exp: usize) -> u64 {
+        let mut r: u64 = 1;
+        for _ in 0..exp {
+            r = r.wrapping_mul(base);
+        }
+        r
+    }
+
+    let pow_x = pow_wrapping(BASE_X, pw);
+    let pow_y = pow_wrapping(BASE_Y, ph);
+
+    // Pattern hash: first hash each row, then combine vertically.
+    let mut pat_row_hash: Vec<u64> = vec![0; ph];
+    for r in 0..ph {
+        let mut h: u64 = 0;
+        for c in 0..pw {
+            h = h
+                .wrapping_mul(BASE_X)
+                .wrapping_add(pat[r][c] as u64);
+        }
+        pat_row_hash[r] = h;
+    }
+    let mut pat_hash: u64 = 0;
+    for r in 0..ph {
+        pat_hash = pat_hash
+            .wrapping_mul(BASE_Y)
+            .wrapping_add(pat_row_hash[r]);
+    }
+
+    // Text row rolling hashes for each row and each possible column start.
+    let out_w = tw - pw + 1;
+    let out_h = th - ph + 1;
+
+    let mut row_hashes: Vec<Vec<u64>> = vec![vec![0; out_w]; th];
+    for r in 0..th {
+        // Initial window hash for columns [0, pw)
+        let mut h: u64 = 0;
+        for c in 0..pw {
+            h = h
+                .wrapping_mul(BASE_X)
+                .wrapping_add(text[r][c] as u64);
+        }
+        row_hashes[r][0] = h;
+
+        for c0 in 1..out_w {
+            // Slide window: remove leftmost, add new rightmost.
+            // h' = h*BASE_X + new - old*BASE_X^pw
+            let old = text[r][c0 - 1] as u64;
+            let newc = text[r][c0 + pw - 1] as u64;
+            h = h
+                .wrapping_mul(BASE_X)
+                .wrapping_add(newc)
+                .wrapping_sub(old.wrapping_mul(pow_x));
+            row_hashes[r][c0] = h;
+        }
+    }
+
+    // Vertical rolling hash over row_hashes for each column start.
+    // Emit coordinates in non-decreasing row, then column order.
+    let mut col_hash: Vec<u64> = vec![0; out_w];
+
+    // Initialize for top row = 0
+    for c in 0..out_w {
+        let mut h: u64 = 0;
+        for r in 0..ph {
+            h = h
+                .wrapping_mul(BASE_Y)
+                .wrapping_add(row_hashes[r][c]);
+        }
+        col_hash[c] = h;
+    }
+
+    let mut output = String::new();
+
+    // Check row 0
+    for c in 0..out_w {
+        if col_hash[c] == pat_hash {
+            output.push_str(&format!("{} {}\n", 0usize, c));
+        }
+    }
+
+    // Slide down for subsequent rows
+    for r0 in 1..out_h {
+        for c in 0..out_w {
+            let old = row_hashes[r0 - 1][c];
+            let newv = row_hashes[r0 + ph - 1][c];
+            let h = col_hash[c];
+            // h' = h*BASE_Y + new - old*BASE_Y^ph
+            col_hash[c] = h
+                .wrapping_mul(BASE_Y)
+                .wrapping_add(newv)
+                .wrapping_sub(old.wrapping_mul(pow_y));
+        }
+
+        for c in 0..out_w {
+            if col_hash[c] == pat_hash {
+                output.push_str(&format!("{} {}\n", r0, c));
+            }
+        }
+    }
+
+    print!("{output}");
+}
+```

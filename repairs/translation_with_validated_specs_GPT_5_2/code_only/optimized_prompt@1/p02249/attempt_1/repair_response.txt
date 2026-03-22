@@ -1,0 +1,135 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+const C1: i64 = 401;
+const C2: i64 = 397;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn next_u32(&mut self) -> u32 {
+        // Mimic C in(): assumes next token is a non-negative integer.
+        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
+            self.idx += 1;
+        }
+        let mut n: u32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if c < b'0' {
+                break;
+            }
+            n = n * 10 + ((c & 0x0f) as u32);
+            self.idx += 1;
+        }
+        n
+    }
+    fn next_token_bytes(&mut self) -> Vec<u8> {
+        // Mimic: while ((ch = gc()) > ' ') *p++ = ch;
+        while self.idx < self.buf.len() && self.buf[self.idx] <= b' ' {
+            self.idx += 1;
+        }
+        let start = self.idx;
+        while self.idx < self.buf.len() && self.buf[self.idx] > b' ' {
+            self.idx += 1;
+        }
+        self.buf[start..self.idx].to_vec()
+    }
+}
+
+fn gen_hash(s: &[Vec<u8>], h: usize, w: usize, r_pat: usize, c_pat: usize) -> Vec<Vec<i32>> {
+    // res is only meaningfully filled for rows 0..=h-R and cols 0..=w-C,
+    // but we allocate full h x w like the C code's fixed arrays.
+    let mut t = vec![vec![0i32; w]; h];
+    let mut res = vec![vec![0i32; w]; h];
+
+    let mut x: i64 = 1;
+    let mut y: i64 = 1;
+    for _ in 0..c_pat {
+        x = (x * C1) % MOD;
+    }
+    for _ in 0..r_pat {
+        y = (y * C2) % MOD;
+    }
+
+    // Horizontal rolling hash for each row -> t[r][c]
+    for r in 0..h {
+        let mut k: i64 = 0;
+        for c in 0..c_pat {
+            k = (k * C1 + s[r][c] as i64) % MOD;
+        }
+        for c in 0..=w - c_pat {
+            t[r][c] = k as i32;
+            if c + c_pat < w {
+                // k = (k*C1 - s[r][c]*x + s[r][c+C]) % MOD; if (k < 0) k += MOD;
+                k = (k * C1 - (s[r][c] as i64) * x + (s[r][c + c_pat] as i64)) % MOD;
+            }
+            if k < 0 {
+                k += MOD;
+            }
+        }
+    }
+
+    // Vertical rolling hash over t -> res[r][c]
+    for c in 0..w {
+        let mut k: i64 = 0;
+        for r in 0..r_pat {
+            k = (k * C2 + t[r][c] as i64) % MOD;
+        }
+        for r in 0..=h - r_pat {
+            res[r][c] = k as i32;
+            if r + r_pat < h {
+                k = (k * C2 - (t[r][c] as i64) * y + (t[r + r_pat][c] as i64)) % MOD;
+            }
+            if k < 0 {
+                k += MOD;
+            }
+        }
+    }
+
+    res
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let h = sc.next_u32() as usize;
+    let w = sc.next_u32() as usize;
+
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let row = sc.next_token_bytes();
+        // C code assumes exactly W characters; we preserve behavior by indexing as-is.
+        text.push(row);
+    }
+
+    let r_pat = sc.next_u32() as usize;
+    let c_pat = sc.next_u32() as usize;
+
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(r_pat);
+    for _ in 0..r_pat {
+        let row = sc.next_token_bytes();
+        pat.push(row);
+    }
+
+    let a = gen_hash(&text, h, w, r_pat, c_pat);
+    let b = gen_hash(&pat, r_pat, c_pat, r_pat, c_pat);
+
+    let mut out = String::new();
+    for r in 0..=h - r_pat {
+        for c in 0..=w - c_pat {
+            if a[r][c] == b[0][0] {
+                out.push_str(&format!("{} {}\n", r, c));
+            }
+        }
+    }
+    print!("{out}");
+}
+```

@@ -1,0 +1,42 @@
+```rust
+use std::io::{self, Read};
+
+const NUM_MAX: usize = 1000;
+const K_MAX: usize = 1000;
+const MOD: u64 = 1_000_000_007;
+
+fn init_pdp() -> Vec<Vec<u64>> {
+    // pdp[i][j] = # of partitions of j using parts in [1..=i], modulo MOD
+    let mut pdp = vec![vec![0u64; NUM_MAX + 1]; K_MAX + 1];
+    pdp[0][0] = 1;
+
+    for i in 1..=K_MAX {
+        for j in 0..=NUM_MAX {
+            let mut v = pdp[i - 1][j];
+            if j >= i {
+                v += pdp[i][j - i];
+                v %= MOD;
+            }
+            pdp[i][j] = v;
+        }
+    }
+    pdp
+}
+
+fn main() {
+    // Match C behavior: if input cannot be read/parsed, behavior is unspecified.
+    // We still proceed with default 0 values if parsing fails.
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+
+    let mut it = input.split_whitespace();
+    let n: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+    let k: usize = it.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+
+    let pdp = init_pdp();
+
+    // Preconditions guarantee 0<=n,k<=1000; if violated, indexing may panic (unspecified by spec).
+    let ans = pdp[k][n] % MOD;
+    println!("{}", ans);
+}
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the number of distinct sequences of two allowed move types that reach a target point with nonnegative integer coordinates, under the constraint that each move increases the coordinate sum by 3 and increases each coordinate by either 1 or 2. The result is reported modulo a fixed large prime.
+
+2. Inputs  
+- Two integers representing the target coordinates.
+
+3. Outputs  
+- A single nonnegative integer: the count of valid move sequences to reach the target, reduced modulo the fixed prime.  
+- Outputs `0` when the target is unreachable under the allowed moves.
+
+4. Preconditions  
+- The two input integers are successfully provided.  
+- The target coordinates are assumed to be within a range that keeps all required combinatorial values within the precomputed limit (i.e., the derived total number of moves does not exceed the fixed maximum supported size).
+
+5. Postconditions  
+- If the target is reachable, the output equals the binomial coefficient corresponding to choosing how many moves are of one type among the total moves, modulo the fixed prime.  
+- If the target is not reachable, the output is `0`.
+
+6. Invariants  
+- All combinatorial computations are performed modulo the fixed prime.  
+- For supported sizes, factorials and modular inverses used for binomial coefficients are consistent with modular arithmetic under the fixed prime.
+
+7. Error Handling / Exceptional Behavior  
+- If the target coordinate sum is not divisible by 3, outputs `0`.  
+- If the derived counts of required move types are negative, outputs `0`.  
+- Behavior is undefined if the required precomputation size exceeds the fixed supported maximum (may lead to incorrect results or memory errors).  
+- No explicit handling is provided for malformed input.
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and modular inverses once per execution before producing the final count.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the fixed precomputation limit plus constant-time query evaluation.  
+- Memory usage is proportional to the fixed precomputation limit due to stored tables.
+```

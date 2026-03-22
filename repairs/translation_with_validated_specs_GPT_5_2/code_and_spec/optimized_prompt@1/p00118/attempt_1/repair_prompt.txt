@@ -1,0 +1,158 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each provided rectangular character grid, computes and outputs the number of connected regions, where a region is a maximal set of grid cells that (a) all contain the same character and (b) are connected via 4-directional adjacency (up, down, left, right). Processing repeats for multiple grids until a terminating size pair is provided.
+
+2. Inputs  
+- A sequence of test cases. Each test case consists of:  
+  - Two integers: grid height and grid width.  
+  - Exactly `height` rows of character data representing the grid contents.  
+- A terminating pair of integers indicating no further test cases.
+
+3. Outputs  
+- For each non-terminating test case, one integer: the number of 4-connected same-character regions in the grid, written as a separate line.
+
+4. Preconditions  
+- For each test case, height and width are non-negative and do not exceed 128.  
+- Each of the `height` input rows contains at least `width` characters of meaningful grid data (extra characters, if any, are ignored by the region definition).  
+- The total number of cells (`height * width`) does not exceed 16384.  
+- Sufficient call stack depth is available to traverse a region whose size may be up to `height * width`.
+
+5. Postconditions  
+For each processed test case (non-terminating):  
+- The output value equals the count of equivalence classes induced by the relation: two cells are equivalent iff they can be connected by a path of 4-adjacent steps through cells all having the same character.  
+- Every cell belongs to exactly one counted region.
+
+6. Invariants  
+- Region membership is determined solely by grid dimensions, cell characters, and 4-directional adjacency.  
+- The computed region count is independent of traversal order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for malformed input, missing rows, rows shorter than the declared width, dimensions exceeding limits, or input read failures; behavior is unspecified in these cases.  
+- If recursion depth exceeds available stack capacity, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats: read a test case → compute region count → output result.  
+- Terminates when the terminating size pair is read.
+
+9. Non-functional Constraints (if inferable)  
+- Supports grids up to 128×128.  
+- Uses memory proportional to the maximum grid size.  
+- Runtime is bounded by a constant factor times the number of cells per test case (with additional overhead from recursive traversal).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+char str[128][128];
+int area_id[128][128];
+
+void DFS(int i, int j, int H, int W){
+	if (i + 1 < H){
+		if (str[i][j] == str[i+1][j] && area_id[i+1][j] == (i + 1) * W + j){
+			area_id[i+1][j] = area_id[i][j];
+			DFS(i + 1, j, H, W);
+		}
+	}
+	
+	if (i - 1 >= 0){
+		if (str[i][j] == str[i-1][j] && area_id[i-1][j] == (i - 1) * W + j){
+			area_id[i-1][j] = area_id[i][j];
+			DFS(i - 1, j, H, W);
+		}
+	}
+	
+	if (j + 1 < W){
+		if (str[i][j] == str[i][j+1] && area_id[i][j+1] == i * W + (j + 1)){
+			area_id[i][j+1] = area_id[i][j];
+			DFS(i, j + 1, H, W);
+		}
+	}
+	
+	if (j - 1 >= 0){
+		if (str[i][j] == str[i][j-1] && area_id[i][j-1] == i * W + (j - 1)){
+			area_id[i][j-1] = area_id[i][j];
+			DFS(i, j - 1, H, W);
+		}
+	}
+}
+	
+
+int main(void)
+{
+	int H, W, i, j, cnt;
+	char area_num[128 * 128];
+	
+	while (1){
+		scanf("%d %d", &H, &W);
+		
+		if (H == 0 && W == 0){
+			break;
+		}
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_id[i][j] = i * W + j;
+			}
+		}
+				
+		for (i = 0; i < 128 * 128; i++){
+			area_num[i] = 0;
+		}
+		
+		cnt = 0;
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			scanf("%s", str[i]);
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				DFS(i, j, H, W);
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_num[area_id[i][j]] = 1;
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				if (area_num[i * W + j] == 1){
+					cnt++;
+				}
+			}
+		}
+		
+		printf("%d\n", cnt);
+	}
+	
+	return (0);
+}
+=== C CODE END ===

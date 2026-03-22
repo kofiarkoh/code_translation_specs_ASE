@@ -1,0 +1,158 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Node {
+    // Minimum and maximum prefix sum within this segment
+    min: i64,
+    max: i64,
+    // Maximum (P[b] - P[a]) with a <= b within this segment
+    best: i64,
+}
+
+impl Node {
+    fn single(x: i64) -> Self {
+        Node { min: x, max: x, best: 0 }
+    }
+
+    fn merge(left: Node, right: Node) -> Self {
+        // Crossing best uses min from left and max from right to preserve a <= b.
+        let cross = right.max - left.min;
+        let best = left.best.max(right.best).max(cross);
+        Node {
+            min: left.min.min(right.min),
+            max: left.max.max(right.max),
+            best,
+        }
+    }
+
+    fn add_all(&mut self, delta: i64) {
+        // Adding a constant to all prefix sums shifts min/max but does not change best difference.
+        self.min += delta;
+        self.max += delta;
+    }
+}
+
+struct SegTree {
+    n: usize,        // number of leaves (power of two)
+    tree: Vec<Node>, // 1-indexed nodes, size 2*n
+    lazy: Vec<i64>,  // 1-indexed lazy tags, size 2*n (only internal nodes used)
+}
+
+impl SegTree {
+    fn new(values: &[i64]) -> Self {
+        let m = values.len();
+        let mut n = 1usize;
+        while n < m {
+            n <<= 1;
+        }
+
+        let mut tree = vec![Node::single(0); 2 * n];
+        let lazy = vec![0i64; 2 * n];
+
+        for i in 0..n {
+            let v = if i < m { values[i] } else { 0 };
+            tree[n + i] = Node::single(v);
+        }
+        for i in (1..n).rev() {
+            tree[i] = Node::merge(tree[i << 1], tree[i << 1 | 1]);
+        }
+
+        SegTree { n, tree, lazy }
+    }
+
+    fn best(&self) -> i64 {
+        self.tree[1].best
+    }
+
+    fn apply(&mut self, idx: usize, delta: i64) {
+        self.tree[idx].add_all(delta);
+        self.lazy[idx] += delta;
+    }
+
+    fn push(&mut self, idx: usize) {
+        let tag = self.lazy[idx];
+        if tag != 0 {
+            self.apply(idx << 1, tag);
+            self.apply(idx << 1 | 1, tag);
+            self.lazy[idx] = 0;
+        }
+    }
+
+    fn pull(&mut self, idx: usize) {
+        self.tree[idx] = Node::merge(self.tree[idx << 1], self.tree[idx << 1 | 1]);
+    }
+
+    fn add_range(&mut self, l: usize, r: usize, delta: i64) {
+        // Add delta to all values in [l, r) (0-based indices over the prefix array).
+        self.add_range_rec(1, 0, self.n, l, r, delta);
+    }
+
+    fn add_range_rec(
+        &mut self,
+        idx: usize,
+        seg_l: usize,
+        seg_r: usize,
+        ql: usize,
+        qr: usize,
+        delta: i64,
+    ) {
+        if ql >= seg_r || qr <= seg_l {
+            return;
+        }
+        if ql <= seg_l && seg_r <= qr {
+            self.apply(idx, delta);
+            return;
+        }
+        self.push(idx);
+        let mid = (seg_l + seg_r) >> 1;
+        self.add_range_rec(idx << 1, seg_l, mid, ql, qr, delta);
+        self.add_range_rec(idx << 1 | 1, mid, seg_r, ql, qr, delta);
+        self.pull(idx);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0i64; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Prefix sums P[0..=n]
+    let mut p = vec![0i64; n + 1];
+    for i in 0..n {
+        p[i + 1] = p[i] + a[i];
+    }
+
+    let mut st = SegTree::new(&p);
+
+    let mut out = String::new();
+    out.push_str(&format!("{}\n", st.best()));
+
+    for _ in 0..q {
+        let pos_1: usize = it.next().unwrap().parse().unwrap(); // 1-based position in A
+        let v: i64 = it.next().unwrap().parse().unwrap();
+
+        let idx = pos_1 - 1;
+        let old = a[idx];
+        let delta = v - old;
+        a[idx] = v;
+
+        // Update prefix sums: P[k] for k >= pos_1 increases by delta.
+        // P indices are 0..=n, so affected range is [pos_1, n+1).
+        st.add_range(pos_1, n + 1, delta);
+
+        out.push_str(&format!("{}\n", st.best()));
+    }
+
+    print!("{out}");
+}

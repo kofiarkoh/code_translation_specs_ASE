@@ -1,0 +1,55 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 50001;
+
+fn make_prime_table() -> Vec<u8> {
+    // table[x] == 0 => prime (or 0/1 treated as non-prime by usage), table[x] == 1 => composite
+    let mut table = vec![0u8; MAX];
+
+    for i in 2..MAX {
+        if table[i] == 0 {
+            let mut j = 2usize;
+            while i * j < MAX {
+                table[i * j] = 1;
+                j += 1;
+            }
+        }
+    }
+    table
+}
+
+fn main() {
+    // Read entire stdin; if tokens can't be parsed as i32, stop processing (no error output).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let ptable = make_prime_table();
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let n: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // per spec: terminate with no further output
+        };
+
+        if n == 0 {
+            break; // no output for terminating zero
+        }
+
+        // Per spec, behavior is undefined if n is negative or exceeds supported range.
+        // We mirror the C behavior by assuming inputs are within 0..=50000.
+        let n_usize = n as usize;
+
+        let mut cnt: i32 = 0;
+        for i in 2..=n_usize / 2 {
+            if ptable[i] == 0 && ptable[n_usize - i] == 0 {
+                cnt += 1;
+            }
+        }
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,89 @@
+use std::io::{self, Read};
+
+const INF: i32 = 1_000_000_000;
+
+fn dfs(
+    c: i32,
+    las: i32,
+    dist: i32,
+    r: &[usize; 9],
+    used: &mut [bool; 9],
+    d: &[[i32; 201]; 201],
+    res: &mut i32,
+    r_count: i32,
+) {
+    if c == r_count + 1 {
+        if *res > dist {
+            *res = dist;
+        }
+        return;
+    }
+
+    for i in 1..=r_count as usize {
+        if !used[i] {
+            used[i] = true;
+            if las == -1 {
+                dfs(c + 1, i as i32, 0, r, used, d, res, r_count);
+            } else {
+                let las_u = las as usize;
+                // Use wrapping_add to emulate C's potential signed overflow behavior as closely as possible.
+                let ndist = dist.wrapping_add(d[r[las_u]][r[i]]);
+                dfs(c + 1, i as i32, ndist, r, used, d, res, r_count);
+            }
+            used[i] = false;
+        }
+    }
+}
+
+fn main() {
+    // Read all input (scanf-like whitespace parsing)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r_count: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut d = [[0i32; 201]; 201];
+    for i in 1..=n {
+        for j in 1..=n {
+            if i != j {
+                d[i][j] = INF;
+            }
+        }
+    }
+
+    let mut r = [0usize; 9];
+    for i in 1..=r_count as usize {
+        r[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        if d[a][b] > c {
+            d[a][b] = c;
+            d[b][a] = c;
+        }
+    }
+
+    // Floyd-Warshall
+    for k in 1..=n {
+        for i in 1..=n {
+            for j in 1..=n {
+                let via = d[i][k].wrapping_add(d[k][j]); // emulate C signed overflow if it happens
+                if d[i][j] > via {
+                    d[i][j] = via;
+                }
+            }
+        }
+    }
+
+    let mut res: i32 = INF;
+    let mut used = [false; 9];
+    dfs(1, -1, 0, &r, &mut used, &d, &mut res, r_count);
+
+    print!("{}\n", res);
+}

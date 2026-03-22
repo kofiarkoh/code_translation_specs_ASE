@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse three integers.
+    // Per spec: if parsing fails, behavior is unspecified; we simply return.
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+    let mut it = input.split_whitespace();
+    let a: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let c: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // C code iterates from min(a,b) down to 1, counting common divisors,
+    // and prints the i where the count reaches c.
+    // Preconditions guarantee a,b>0, c>0, and enough common divisors exist.
+    // If preconditions don't hold, output is unspecified in the spec; here we
+    // will print 0 if not found (a defined behavior), which may differ from C's
+    // indeterminate 'l' in those cases.
+    let start = if a > b { b } else { a };
+    let mut sum: i32 = 0;
+    let mut l: i32 = 0;
+
+    for i in (1..=start).rev() {
+        if a % i == 0 && b % i == 0 {
+            sum += 1;
+        }
+        if sum == c {
+            l = i;
+            break;
+        }
+    }
+
+    print!("{l}\n");
+}

@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, the program scans the sequence from the smallest index upward and reports the first index `i` such that **every other position** `j != i` can be explained (within a fixed tolerance) by a degree‑`d` polynomial determined from the remaining points when both `i` and `j` are excluded. In other words, it finds the smallest index whose removal makes the data “self-consistent” under a leave‑two‑out interpolation check.
+
+2. Inputs  
+- Repeated datasets.  
+- Each dataset begins with an integer `d`.  
+- If `d` is nonzero, it is followed by `d + 3` real numbers. These values are treated as samples at integer indices `0` through `d+2`.  
+- Input terminates when a dataset begins with `d = 0`.
+
+3. Outputs  
+- For each non-terminating dataset, outputs one integer: the selected index `i` (0-based).
+
+4. Preconditions / Assumptions  
+- `d > 0` for each processed dataset.  
+- Exactly `d + 3` real values are provided for each dataset.  
+- `d + 3 <= 10`.  
+- The program assumes there exists at least one index `i` that satisfies the selection rule below; otherwise, the printed index is not defined by the specification (the program will still print some value based on its control flow).
+
+5. Selection Rule (Postconditions)  
+Let `n = d + 3` and let `v[0..n-1]` be the input values.
+
+For any pair of distinct indices `(i, j)`, define `P_{i,j}` as the unique polynomial of degree at most `d` that interpolates the `n-2 = d+1` points `(k, v[k])` for all indices `k` with `k != i` and `k != j`. Let `pred(i,j)` be the value `P_{i,j}(j)` (the value predicted at index `j` by that polynomial). The program uses a fixed tolerance of `0.1` and considers `j` consistent with the remaining points (excluding `i` and `j`) if `|pred(i,j) - v[j]| <= 0.1`.
+
+The program outputs the **smallest** index `i` such that:
+- For **every** index `j` with `j != i`, `|pred(i,j) - v[j]| <= 0.1`.
+
+Equivalently, it outputs the first `i` for which removing `i` makes *all* remaining indices `j` individually predictable (within tolerance) from the other `d+1` points.
+
+6. Ordering / Tie-breaking  
+- Indices `i` are considered in increasing order starting from `0`.  
+- The first `i` satisfying the rule in Section 5 is printed; no other tie-breaking is used.
+
+7. Termination Behavior  
+- The program processes datasets sequentially and stops when it reads `d = 0`.  
+- For each dataset, it prints exactly one line containing the chosen index.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing values, or out-of-range `d`; behavior is undefined if the preconditions are violated.
+```

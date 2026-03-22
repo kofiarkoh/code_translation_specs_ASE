@@ -1,0 +1,41 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // If input is missing/invalid, behavior is unspecified by the spec.
+    // We choose to do nothing in that case.
+    let a: i128 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let b: i128 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // Spec precondition: b != 0. If violated, behavior is undefined; we do nothing.
+    if b == 0 {
+        return;
+    }
+
+    // Search i in [1, b+1] (inclusive), considering candidates a*i in order.
+    // Note: If b < 0, the range [1, b+1] is empty; thus no output.
+    let upper = b + 1;
+    if upper < 1 {
+        return;
+    }
+
+    for i in 1..=upper {
+        // Spec precondition: a*i does not overflow the integer range used.
+        let candidate = a * i;
+        if candidate % b == 0 {
+            print!("{}", candidate);
+            return;
+        }
+    }
+
+    // Otherwise, produce no output.
+}

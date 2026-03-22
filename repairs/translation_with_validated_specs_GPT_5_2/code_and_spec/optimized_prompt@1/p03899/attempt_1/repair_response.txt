@@ -1,0 +1,84 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    k: i32,
+    v: i64,
+}
+
+fn main() {
+    // Read all input (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let m: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let n_usize = n as usize;
+
+    let mut a: Vec<i32> = vec![0; n_usize];
+    for i in 0..n_usize {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // dp[j] holds the best value for selecting exactly current t elements ending at index j.
+    // Initialize for t = 1: weight is 1, so dp[j] = a[j].
+    let mut dp: Vec<i64> = a.iter().map(|&x| x as i64).collect();
+
+    // Monotonic queue buffer (size n is enough).
+    let mut d: Vec<Node> = vec![Node { k: 0, v: 0 }; n_usize];
+
+    // For t from 2..=k, update dp in-place using a sliding-window maximum over previous dp.
+    for t in 2..=k {
+        let mut f: i32 = 0;
+        let mut b: i32 = 0;
+
+        // Seed deque with index (t-2) and value dp[t-2], matching the C code.
+        let seed_idx = t - 2;
+        d[0] = Node {
+            k: seed_idx,
+            v: dp[seed_idx as usize],
+        };
+
+        // j ranges from (t-1) to (n-1)
+        for j in (t - 1)..n {
+            // Pop front if it falls out of allowed gap window:
+            // previous index p must satisfy p >= j - (m+1)  <=>  p == j - m - 1 is the first invalid.
+            if d[f as usize].k == j - m - 1 {
+                f += 1;
+            }
+
+            // Best previous dp within window + current weighted contribution.
+            let best_prev = d[f as usize].v;
+            let v = best_prev + (t as i64) * (a[j as usize] as i64);
+
+            // Maintain deque as decreasing by dp value (using dp[j] from previous layer).
+            while f <= b && d[b as usize].v <= dp[j as usize] {
+                b -= 1;
+            }
+            b += 1;
+            d[b as usize] = Node {
+                k: j,
+                v: dp[j as usize],
+            };
+
+            // Write updated dp for this layer.
+            dp[j as usize] = v;
+        }
+    }
+
+    // Answer is max dp[i] for i in [k-1, n-1].
+    let mut ans: i64 = 0;
+    for i in (k - 1)..n {
+        let val = dp[i as usize];
+        if ans < val {
+            ans = val;
+        }
+    }
+
+    print!("{ans}\n");
+}
+```

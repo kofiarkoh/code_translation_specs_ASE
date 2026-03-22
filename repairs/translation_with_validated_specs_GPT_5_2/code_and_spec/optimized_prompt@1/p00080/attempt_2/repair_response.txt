@@ -1,0 +1,41 @@
+```rust
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-5;
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers.
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+
+    for tok in input.split_whitespace() {
+        let q: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // On malformed input, stop further processing (unspecified beyond failure).
+        };
+
+        if q == -1 {
+            break; // Sentinel: terminate without output.
+        }
+
+        // Intended for positive q; behavior for q <= 0 is unspecified by the spec.
+        let qf = q as f64;
+
+        // p0 = q/2 (as double)
+        let mut px = qf / 2.0;
+        let mut x: f64;
+
+        // Do-while semantics: execute at least once, print the final x that causes termination.
+        loop {
+            x = px - (px * px * px - qf) / (3.0 * px * px);
+            px = x;
+
+            if (x * x * x - qf).abs() < EPS * qf {
+                break;
+            }
+        }
+
+        println!("{:.6}", x);
+    }
+}
+```

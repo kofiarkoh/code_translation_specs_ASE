@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, computes how many distinct individuals (excluding individual 1) are either directly connected to individual 1 or connected to individual 1 through exactly one intermediate individual (i.e., within two connection steps), and outputs that count. Processing continues for multiple datasets until a terminating dataset is encountered.
+
+2. Inputs  
+- A sequence of datasets.  
+- Each dataset begins with two integers:  
+  - The number of individuals `n`.  
+  - The number of undirected connections `m`.  
+- Followed by `m` pairs of integers, each pair denoting an undirected connection between two individuals.  
+- A terminating dataset is indicated by `n = 0` and `m = 0`.
+
+3. Outputs  
+- For each non-terminating dataset, outputs a single integer on its own line: the number of distinct individuals among {2..n} that are within two steps of individual 1.
+
+4. Preconditions  
+- For each dataset, individuals are identified by integers intended to be in the range 1..n.  
+- `n` is expected to be at most 500.  
+- `m` is non-negative.  
+- Input provides exactly the required number of integers for each dataset.
+
+5. Postconditions  
+For each non-terminating dataset, the printed value equals the size of the set:  
+{ x ∈ {2..n} | x is directly connected to 1 OR there exists y ∈ {2..n} such that y is directly connected to 1 AND x is directly connected to y }.  
+Each qualifying individual is counted at most once.
+
+6. Invariants  
+- Individual 1 is never included in the reported count.  
+- The reported count is between 0 and (n − 1), inclusive.  
+- Connections are treated as undirected for the purpose of reachability within two steps.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is malformed, incomplete, contains identifiers outside the supported bounds, or violates the stated preconditions, behavior is unspecified (may produce incorrect output or access invalid memory).
+
+8. State Transitions (if applicable)  
+- Repeats dataset processing until the terminating dataset (0, 0) is read, after which the program terminates normally.  
+- No state is preserved across datasets beyond reading the next dataset.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to 500 individuals per dataset.  
+- Uses memory proportional to the square of the maximum supported individuals.
+```

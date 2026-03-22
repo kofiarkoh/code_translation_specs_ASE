@@ -1,0 +1,95 @@
+use std::io::{self, Read};
+
+fn parse_i32_like_atoi(s: &str) -> i32 {
+    // The spec says the digit string is intended to be decimal digits; C uses atoi.
+    // We keep it simple and parse as i32; on unexpected input, behavior is unspecified anyway.
+    s.parse::<i32>().unwrap()
+}
+
+fn partition_sum(paper: &str, n: usize, mask: u32) -> i32 {
+    // Bits 0..n-1 indicate a cut after position i; caller ensures bit n-1 is set.
+    let bytes = paper.as_bytes();
+    let mut sum: i32 = 0;
+    let mut start: usize = 0;
+
+    for i in 0..n {
+        if (mask & (1u32 << i)) != 0 {
+            let part = std::str::from_utf8(&bytes[start..=i]).unwrap();
+            sum += parse_i32_like_atoi(part);
+            start = i + 1;
+        }
+    }
+    sum
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(target_tok) = it.next() else { break };
+        let target: i32 = target_tok.parse().unwrap();
+
+        // Match C's behavior: `scanf("%d%s", &target, paper), target`
+        // If target is 0, terminate immediately without requiring/consuming the string.
+        if target == 0 {
+            break;
+        }
+
+        // For processed instances, spec guarantees the string token exists.
+        let paper = match it.next() {
+            Some(s) => s,
+            None => break, // unspecified input; avoid panic/runtime error
+        };
+
+        let n = paper.len(); // spec: nonempty
+        let mut best: i32 = -1;
+        let mut best_mask: u32 = 0;
+        let mut cnt: i32 = 0;
+
+        // Enumerate masks with last bit set, exactly like the C loop.
+        let start_mask: u32 = 1u32 << (n - 1);
+        let end_mask: u32 = 1u32 << n;
+
+        for mask in start_mask..end_mask {
+            let t = partition_sum(paper, n, mask);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    best_mask = mask;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                out.push_str("error\n");
+            } else {
+                out.push_str("rejected\n");
+            }
+        } else {
+            out.push_str(&best.to_string());
+            out.push(' ');
+
+            let bytes = paper.as_bytes();
+            for i in 0..n {
+                out.push(bytes[i] as char);
+                if (best_mask & (1u32 << i)) != 0 {
+                    if i == n - 1 {
+                        out.push('\n');
+                    } else {
+                        out.push(' ');
+                    }
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

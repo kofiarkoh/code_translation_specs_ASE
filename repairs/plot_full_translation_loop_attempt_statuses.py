@@ -6,7 +6,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-INPUT_CSV = Path("./repairs/full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS_analysis/optimized_prompt@1/attempt_status_summary.csv")
+INPUT_CSV = Path("./repairs/translation_with_validated_specs_GPT_5_2_analysis/optimized_prompt@1/attempt_status_summary.csv")
 OUTPUT_PNG = INPUT_CSV.with_name("attempt_status_dashboard.png")
 OUTPUT_TXT = INPUT_CSV.with_name("attempt_status_table.txt")
 STATUS_SERIES = [

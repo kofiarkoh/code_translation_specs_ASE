@@ -1,0 +1,166 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, for each rooted tree in a forest, a value defined by aggregating node weights over the tree with an order-dependent cost, and outputs the sum of these values over all roots. For each node, its contribution depends on the total weights of its child subtrees and is minimized by processing heavier child subtrees earlier (ties arbitrary).
+
+2. Inputs  
+- An integer `N`: number of nodes.  
+- For each node `i` in `[0, N-1]`:
+  - An integer weight.  
+  - An integer parent reference, either:
+    - `-1` indicating the node is a root, or
+    - an integer in `[0, N-1]` indicating the node’s parent.
+
+3. Outputs  
+- A single integer value: the sum, over all roots, of the computed tree value for that root.
+
+4. Preconditions  
+- `N` is non-negative and does not exceed the implementation’s fixed maximum capacity.  
+- Each non-root node’s parent reference is within `[0, N-1]`.  
+- The parent references define a forest (i.e., no cycles are present and every node is reachable from exactly one root via parent links).  
+- Sufficient memory is available for internal storage proportional to `N`.
+
+5. Postconditions  
+- The program outputs:  
+  \[
+  \sum_{r \in Roots} dp[r]
+  \]
+  where for every node `u`:
+  - Let `children(u)` be the set of children of `u`.  
+  - Let `s[u]` be the total weight in the subtree rooted at `u`:
+    \[
+    s[u] = weight(u) + \sum_{v \in children(u)} s[v]
+    \]
+  - Let `dp[u]` be:
+    \[
+    dp[u] = \sum_{v \in children(u)} dp[v] \;+\; \min_{\pi} \sum_{k=0}^{d-1} s[\pi(k)] \cdot k
+    \]
+    where `d` is the number of children and the minimum is taken over all permutations `\pi` of the children.  
+  - The minimizing permutation is achieved by ordering children by non-increasing `s[child]` (ties may be in any order without changing the minimum when equal).
+
+6. Invariants  
+- For every node `u`, after its value is computed:
+  - `s[u]` equals the sum of weights in `u`’s subtree.  
+  - `dp[u]` equals the subtree cost defined in the postconditions and depends only on the subtree rooted at `u`.  
+- The final output equals the sum of `dp` values of all roots and is independent of the order in which roots are processed.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., invalid parent indices, cycles, exceeding capacity, or memory allocation failure), behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Each node transitions from “not yet evaluated” to “evaluated” exactly once, after all of its descendants have been evaluated.  
+- Each root transitions the corresponding tree from “unprocessed” to “processed,” after which its `dp` value is added to the global sum.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is dominated by sorting child-subtree totals per node; overall cost is proportional to the sum over nodes of (number of children × log(number of children)).  
+- Memory usage is linear in `N` plus storage for all parent-child relationships.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2456: Usoperanto
+// 2018.4.17 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// マイナス値の入力に対応
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	if (c == '-') { c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define MAX 1000002
+int  N;
+int  m[MAX];
+int  *base, bsz;
+int  hi[MAX], *to[MAX];
+int  que[MAX], top;
+int  a[MAX];
+long long s[MAX], b[MAX], dp[MAX];
+
+int cmp(long long *a, long long *b)
+{
+	if (*a == *b) return 0;
+	if (*a < *b) return 1;
+	return -1;
+}
+
+void calc(int u)
+{
+	int i, v, sz;
+
+	sz = 0, s[u] = m[u], dp[u] = 0;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i];
+		b[sz++] = s[v], s[u] += s[v], dp[u] += dp[v];
+	}
+	qsort(b, sz, sizeof(long long), cmp);
+	for (i = 0; i < sz; i++) dp[u] += b[i]*i;
+}
+
+int main()
+{
+	int i, l, t;
+	long long ans;
+	int *memo;
+
+	N = in();
+	memo = malloc(N<<2);
+	for (i = 0; i < N; i++) {
+		m[i] = in(), memo[i] = l = in();
+		if (l == -1) bsz++;
+		else hi[l]++;
+	}
+	base = malloc(bsz<<2);
+	for (i = 0; i < N; i++) if (hi[i]) to[i] = malloc(hi[i]<<2);
+	bsz = 0, memset(hi, 0, N<<2);
+
+	for (i = 0; i < N; i++) {
+		l = memo[i];
+		if (l == -1) base[bsz++] = i;
+		else to[l][hi[l]++] = i;
+	}
+
+	ans = 0;
+	for (i = 0; i < bsz; i++) {
+		que[1] = base[i], top = 1;
+		while (top) {
+			t = que[top];
+			if (a[t] < hi[t]) que[++top] = to[t][a[t]++];
+			else calc(t), top--;
+		}
+		ans += dp[base[i]];
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,54 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: usize = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if n == 1 {
+        println!("1");
+        return;
+    }
+
+    // For n >= 2, build A(1..n) modulo MOD and maintain prefix sums.
+    // prefix[i] = (A(1) + ... + A(i)) mod MOD, with prefix[0] = 0.
+    let mut a: Vec<i64> = vec![0; n + 1];
+    let mut prefix: Vec<i64> = vec![0; n + 1];
+
+    let n_mod = (n as i64) % MOD;
+
+    a[1] = n_mod;
+    prefix[1] = a[1];
+
+    a[2] = mod_norm(n_mod * n_mod);
+    prefix[2] = mod_norm(prefix[1] + a[2]);
+
+    for i in 3..=n {
+        // sum_{j=1}^{i-3} A(j), treated as 0 when i-3 <= 0.
+        let r = i.saturating_sub(3);
+        let sum_part = if r >= 1 { prefix[r] } else { 0 };
+
+        // (i-3)(n-1) + (n-i+2)n
+        let i_i64 = i as i64;
+        let term1 = mod_norm((i_i64 - 3) * ((n as i64) - 1));
+        let term2 = mod_norm(((n as i64) - i_i64 + 2) * (n as i64));
+
+        let val = mod_norm(a[i - 1] + sum_part + term1 + term2);
+        a[i] = val;
+        prefix[i] = mod_norm(prefix[i - 1] + a[i]);
+    }
+
+    println!("{}", a[n]);
+}
+```

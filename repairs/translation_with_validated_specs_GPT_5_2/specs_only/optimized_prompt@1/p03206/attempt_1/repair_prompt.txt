@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single integer representing a day number and, for specific recognized values, outputs the corresponding holiday-related label.
+
+2. Inputs  
+- One integer value.
+
+3. Outputs  
+- If the input equals 25: outputs the label for “Christmas”.  
+- If the input equals 24: outputs the label for “Christmas Eve”.  
+- If the input equals 23: outputs the label for “Christmas Eve Eve”.  
+- If the input equals 22: outputs the label for “Christmas Eve Eve Eve”.  
+- For any other input value: produces no output.
+
+4. Preconditions  
+- An integer input value is available to be read.
+
+5. Postconditions  
+- The program terminates normally after attempting to read the input.  
+- If the input is one of {22, 23, 24, 25}, exactly one corresponding line of text is produced.  
+- Otherwise, no text is produced.
+
+6. Invariants  
+- No persistent state is maintained beyond the single input value.  
+- At most one of the specified outputs can be produced for any single input value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for missing/invalid input; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable.
+
+9. Non-functional Constraints (if inferable)  
+- Constant time and constant memory usage.
+```

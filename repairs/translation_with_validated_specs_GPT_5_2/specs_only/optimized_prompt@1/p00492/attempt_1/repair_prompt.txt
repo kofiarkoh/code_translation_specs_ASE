@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the total length of the boundary of a set of occupied cells on a hexagonal grid, counting only edges that are adjacent to the exterior (i.e., reachable empty space outside the occupied region). Internal holes (enclosed empty regions) do not contribute to the boundary count.
+
+2. Inputs  
+- Two positive integers specifying the grid width and height.  
+- A height-by-width collection of cell values indicating whether each hex cell is occupied or empty (assumption: values are binary-like, where one value represents occupied and the other represents empty).
+
+3. Outputs  
+- A single non-negative integer: the number of hex-cell edges that separate an occupied cell from exterior empty space.
+
+4. Preconditions  
+- Width and height are such that all internal fixed-size storage used by the program is sufficient (in particular, the grid dimensions must fit within the program’s bounded arrays).  
+- The provided grid contains exactly width × height cell values.  
+- Cell values are consistent with the intended meaning of “occupied” vs “empty” (assumption: occupied is represented by value 1 and empty by value 0).  
+- Input is well-formed and fully available.
+
+5. Postconditions  
+- The output equals the count of all adjacency edges where:  
+  - one side is an occupied cell within the given grid, and  
+  - the other side is an empty cell that is connected (via hex-neighbor connectivity through empty cells) to the outside of the grid.  
+- Empty regions completely enclosed by occupied cells are treated as interior and do not increase the reported boundary.
+
+6. Invariants  
+- Exterior reachability is defined using 6-neighbor connectivity on the hex grid.  
+- Each occupied cell has up to 6 neighbor positions; each such neighbor contributes at most 1 to the final count, and only if that neighbor position is exterior-reachable empty space.  
+- The reported boundary count is never negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs are missing, malformed, or dimensions exceed internal storage limits, behavior is undefined (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Conceptual states:  
+  1) Initial: grid occupancy is read.  
+  2) Exterior marking: empty cells connected to the outside are identified as exterior.  
+  3) Boundary counting: occupied-to-exterior adjacencies are counted.  
+  4) Final: the count is emitted.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed upper bounds for stored grid and traversal data; therefore maximum supported dimensions are limited.  
+- Time is proportional to the number of grid cells plus the number of reachable empty cells (linear in the explored area).  
+- Memory usage is bounded by the fixed-size internal arrays.
+```

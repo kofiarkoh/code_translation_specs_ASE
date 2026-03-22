@@ -1,0 +1,51 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then take the first whitespace-delimited token (like scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = match input.split_whitespace().next() {
+        Some(tok) => tok.as_bytes(),
+        None => return, // No token: C code would leave S uninitialized; we just do nothing.
+    };
+
+    // C code uses fixed-size buffers of 11 and examines at most 11 positions.
+    // It relies on encountering '\0' within those 11 positions; otherwise output is undefined.
+    // In Rust, we cannot have unterminated strings; we emulate the intended behavior when
+    // the terminator is encountered within range, and otherwise we output whatever was built.
+    let mut ans: Vec<u8> = Vec::with_capacity(11);
+    let mut j: usize = 0;
+
+    for i in 0..11 {
+        // In C, S is a char[11] filled by scanf, which NUL-terminates if it fits.
+        // Here, we treat positions beyond the token length as if they were '\0'.
+        let c = if i < s.len() { s[i] } else { 0u8 };
+
+        if c == b'B' {
+            if j > 0 {
+                j -= 1;
+                ans.truncate(j);
+            } else {
+                j = 0;
+            }
+        } else {
+            // Append the byte (including possible '\0'), then break if it was '\0'.
+            if j < ans.len() {
+                ans[j] = c;
+            } else {
+                ans.push(c);
+            }
+            j += 1;
+
+            if c == 0u8 {
+                break;
+            }
+        }
+    }
+
+    // printf("%s", ans) prints up to the first NUL. If no NUL was appended, it would be UB in C.
+    // We mimic the defined case by printing bytes up to the first NUL (or all bytes if none).
+    let end = ans.iter().position(|&b| b == 0u8).unwrap_or(ans.len());
+    let out = String::from_utf8_lossy(&ans[..end]);
+    print!("{out}");
+}

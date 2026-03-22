@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if k >= 50 {
+        let n: usize = 50;
+        let rem: i64 = k / 50;
+        let t: i64 = k % 50;
+        let x: i64 = 49 + rem;
+
+        let mut a = vec![x; n];
+
+        // Apply the specified transformation for i = 0..t-1.
+        // For k >= 0, t is in 0..49. For k < 0, Rust's % can be negative;
+        // in that case, this loop runs zero times (narrowest reasonable behavior).
+        if t > 0 {
+            for i in 0..(t as usize) {
+                a[i] = a[i].wrapping_add(50);
+                for j in 0..n {
+                    if j != i {
+                        a[j] = a[j].wrapping_sub(1);
+                    }
+                }
+            }
+        }
+
+        print!("{n}\n");
+        for i in 0..n {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", a[i]);
+        }
+        // Final newline not required.
+    } else if k >= 2 {
+        let n = k as usize;
+        print!("{n}\n");
+        for i in 0..n {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", n);
+        }
+        // Final newline not required.
+    } else if k == 0 {
+        print!("4\n3 3 3 3");
+        // Final newline not required.
+    } else if k == 1 {
+        print!("3\n1 0 3");
+        // Final newline not required.
+    } else {
+        // For k < 0, behavior is defined only as "same branching logic".
+        // None of the specified cases match; choose the narrowest behavior:
+        // print n=0 and no sequence.
+        print!("0\n");
+    }
+}

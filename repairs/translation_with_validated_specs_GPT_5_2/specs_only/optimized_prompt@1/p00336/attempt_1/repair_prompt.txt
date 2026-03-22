@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the number of distinct ways the second input string can be obtained as a subsequence of the first input string (preserving relative order, not necessarily contiguous), and reports the count modulo 1,000,000,007.
+
+2. Inputs  
+- Two non-empty, whitespace-delimited strings:
+  - Source string (the string from which subsequences are chosen)
+  - Target string (the subsequence to be formed)
+
+3. Outputs  
+- A single non-negative integer: the number of subsequence occurrences of the target within the source, reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- Both input strings are provided successfully.  
+- Each string length is at most 1000 characters.  
+- The target length is at least 1 (behavior for an empty target is not defined by this program’s output contract).  
+
+5. Postconditions  
+- The output equals:  
+  (number of index sequences selecting characters from the source, in strictly increasing order, whose selected characters concatenate to exactly the target) modulo 1,000,000,007.
+
+6. Invariants  
+- All intermediate and final counts are maintained modulo 1,000,000,007.  
+- Counts represent numbers of subsequence formations based on prefixes of the source and target, and are always within the range [0, 1,000,000,006].
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates length constraints, behavior is unspecified (may produce incorrect output or memory corruption).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no persistent state beyond execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the product of the two string lengths.  
+- Memory usage is proportional to the product of the two string lengths (bounded by a fixed 1001×1001 table).
+```

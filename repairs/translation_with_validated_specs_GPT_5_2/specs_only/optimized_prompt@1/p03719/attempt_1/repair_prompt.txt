@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three integers and determines whether the third integer lies within the inclusive range defined by the first two integers (from the first as lower bound to the second as upper bound). Outputs an affirmative response if it does, otherwise a negative response.
+
+2. Inputs  
+- Three integers provided via standard input:  
+  - First integer: intended lower bound  
+  - Second integer: intended upper bound  
+  - Third integer: value to test for inclusion
+
+3. Outputs  
+- A single line to standard output indicating whether the third integer is within the inclusive range \[first, second\].
+
+4. Preconditions  
+- Standard input provides three integers in a readable form.  
+- The intended meaning of “within range” assumes the first integer is the lower bound and the second is the upper bound (i.e., the range is not automatically normalized if the first is greater than the second).
+
+5. Postconditions  
+- If (first ≤ third ≤ second), the program outputs an affirmative indication.  
+- Otherwise, the program outputs a negative indication.  
+- Program terminates after producing exactly one such indication.
+
+6. Invariants  
+- The decision is based solely on the inclusive comparison between the three input integers.  
+- No persistent state is maintained across executions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input or missing values; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable (single-shot computation with no externally visible state transitions beyond producing output).
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input size (fixed number of integers).
+```

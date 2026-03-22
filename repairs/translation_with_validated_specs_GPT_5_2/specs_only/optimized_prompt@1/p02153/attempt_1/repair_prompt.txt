@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Compute the minimum total travel cost to move from a designated start cell to a designated goal cell on a 2D grid using a minimum-cost search (Dijkstra-style). Movement cost depends on whether the move is orthogonal or diagonal and on whether the destination cell is a wall cell. Some cells are marked “dangerous” due to hazard sources; dangerous cells restrict which moves are allowed. If the goal cannot be reached under these rules, report that no finite-cost path exists.
+
+2. Inputs  
+- Four non-negative integers:  
+  - Grid height `H` and width `W`.  
+  - Cost parameter `A` (base cost component).  
+  - Cost parameter `B` (additional penalty for entering a wall cell).  
+- Then `H` whitespace-delimited strings, each providing the characters for one grid row. The program uses the first `W` characters of each row as the row’s cells.  
+- Characters with special meaning:  
+  - `s`: start cell (assumed present).  
+  - `g`: goal cell (assumed present).  
+  - `*`: hazard source cell.  
+  - `#`: wall cell (affects movement cost and some movement permissions).  
+  - Any other character is treated as a normal traversable cell.
+
+3. Derived Hazard (Dangerous) Cells  
+- A cell is marked “dangerous” if it is a hazard source `*` or is one of its 8 neighboring cells (including diagonals) of any hazard source.  
+- This dangerous marking is computed once from the input grid and then used during pathfinding.  
+- The program’s marking procedure conceptually applies to the grid and its immediate neighborhood; it does not perform explicit boundary checks when marking neighbors. Therefore, valid inputs must be such that this marking does not access outside the program’s fixed internal storage (i.e., the grid must fit within the internal maximum size with enough margin for the one-cell neighborhood used by hazard expansion).
+
+4. Movement Rules  
+From a current cell, the set of candidate moves depends on whether the current cell is dangerous:
+
+- If the current cell is **not dangerous**: up to 8-direction moves are considered (4 orthogonal + 4 diagonal), subject to bounds and the additional constraints below.  
+- If the current cell **is dangerous**: only the 4 orthogonal moves are considered, subject to bounds and the additional constraints below.
+
+Additional constraints applied to considered moves:
+- Moves must stay within the grid bounds (rows `1..H`, columns `1..W`).  
+- Let the destination cell be a wall if and only if its grid character is `#`.  
+- If the current cell is dangerous **and** the destination cell is a wall, that move is not allowed.  
+- Diagonal moves are only allowed when the destination cell is a wall. Orthogonal moves may go to either wall or non-wall cells (unless forbidden by the dangerous-to-wall rule above).
+
+5. Step Cost  
+Each move adds a non-negative cost determined by:
+- Whether the move is orthogonal or diagonal.  
+- Whether the destination cell is a wall (`#`).
+
+Let the input parameters be `A_in` and `B`. The per-step costs are:
+- Orthogonal move into non-wall: `A_in`  
+- Orthogonal move into wall: `A_in + B`  
+- Diagonal move into non-wall: `2 * A_in`  
+- Diagonal move into wall: `2 * A_in + B`
+
+6. Output  
+- If the goal is reachable: output a single integer equal to the minimum total cost to reach the goal from the start under the rules above.  
+- If unreachable: output the literal string `INF`.
+
+7. Preconditions / Constraints  
+- `H` and `W` must not exceed the program’s fixed internal maximum grid size.  
+- The grid is assumed to contain one start cell `s` and one goal cell `g` (the program does not validate their presence/uniqueness).  
+- Each of the `H` grid rows must contain at least `W` non-whitespace characters (input is read as whitespace-delimited strings).  
+- Cost parameters and the resulting minimum cost must fit within the integer ranges used by the program (accumulated cost is computed in signed 64-bit).  
+- Inputs must be such that the hazard expansion to the 8 neighbors of any `*` can be represented within the program’s internal storage without out-of-bounds access (the program does not check bounds during this marking).
+
+8. Algorithmic/State Semantics  
+- The program performs a Dijkstra-style search over grid cells with non-negative edge weights.  
+- A cell is “finalized” the first time it is removed from the priority frontier with minimum accumulated cost; after finalization it is not reconsidered.  
+- The search terminates when the goal cell is removed from the frontier (returning its cost) or when the frontier becomes empty (unreachable).
+
+9. Implementation/Compilation Contract (I/O Types)  
+- The computed minimum cost is represented as a 64-bit signed integer and is printed as a decimal integer. In C, this corresponds to using `long long` and printing with the `%lld` format.
+```

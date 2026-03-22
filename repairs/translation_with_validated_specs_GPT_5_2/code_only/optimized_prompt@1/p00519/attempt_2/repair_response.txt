@@ -1,0 +1,196 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct Taxi {
+    untin: i32,
+    limit: i32,
+}
+
+#[derive(Clone, Copy, Default)]
+struct Status {
+    town: u16,  // C: short
+    kaisu: u16, // C: short
+}
+
+// adjust_heap as in C: compare children, swap with smallest, recurse; else bubble up to parent.
+fn adjust_heap(idx: usize, heap: &mut [Status], heap_size: usize, mincost: &[Vec<i32>]) {
+    if heap_size == 0 {
+        return;
+    }
+    let mut min_idx = idx;
+    let left = idx * 2 + 1;
+    if left < heap_size {
+        let cost_min = mincost[heap[min_idx].town as usize][heap[min_idx].kaisu as usize] - 1;
+        let cost_left = mincost[heap[left].town as usize][heap[left].kaisu as usize] - 1;
+        if cost_min > cost_left {
+            min_idx = left;
+        }
+        let right = idx * 2 + 2;
+        if right < heap_size {
+            let cost_min2 = mincost[heap[min_idx].town as usize][heap[min_idx].kaisu as usize] - 1;
+            let cost_right = mincost[heap[right].town as usize][heap[right].kaisu as usize] - 1;
+            if cost_min2 > cost_right {
+                min_idx = right;
+            }
+        }
+    }
+    if min_idx != idx {
+        heap.swap(idx, min_idx);
+        adjust_heap(min_idx, heap, heap_size, mincost);
+    } else if idx > 0 {
+        adjust_heap(idx / 2, heap, heap_size, mincost);
+    }
+}
+
+fn main() {
+    // scanf-like whitespace parsing
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // C would return 1; just exit.
+    };
+    let k: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut taxi = vec![Taxi::default(); n];
+    for i in 0..n {
+        let untin: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let limit: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        taxi[i] = Taxi { untin, limit };
+    }
+
+    let mut mati: Vec<Vec<u16>> = vec![Vec::new(); n];
+    for _ in 0..k {
+        let a: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let b: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => return,
+        };
+        let a = (a - 1) as usize;
+        let b = (b - 1) as usize;
+        mati[a].push(b as u16);
+        mati[b].push(a as u16);
+    }
+
+    // C arrays: status_mincost[5000][5001], in_heap[5000][5001]
+    // We size by N for towns, but keep kaisu dimension fixed to match C indexing.
+    const KAISU_MAX: usize = 5001;
+    let mut status_mincost: Vec<Vec<i32>> = vec![vec![0; KAISU_MAX]; n];
+    let mut in_heap: Vec<Vec<u8>> = vec![vec![0; KAISU_MAX]; n];
+
+    let mut heap: Vec<Status> = Vec::new();
+
+    let read_cost = |stat: Status, mincost: &Vec<Vec<i32>>| -> i32 {
+        mincost[stat.town as usize][stat.kaisu as usize] - 1
+    };
+
+    let mut update_cost = |stat: Status, cost: i32, mincost: &mut Vec<Vec<i32>>| {
+        let cell = &mut mincost[stat.town as usize][stat.kaisu as usize];
+        if *cell == 0 || (*cell - 1) > cost {
+            *cell = cost + 1;
+        }
+    };
+
+    let mut insert_heap = |stat: Status,
+                           cost: i32,
+                           heap: &mut Vec<Status>,
+                           mincost: &mut Vec<Vec<i32>>,
+                           in_heap: &mut Vec<Vec<u8>>| {
+        let prev_cost = read_cost(stat, mincost);
+        if prev_cost < 0 || cost < prev_cost {
+            update_cost(stat, cost, mincost);
+            if in_heap[stat.town as usize][stat.kaisu as usize] == 0 {
+                in_heap[stat.town as usize][stat.kaisu as usize] = 1;
+                heap.push(stat);
+                let heap_size = heap.len();
+                adjust_heap(heap_size - 1, heap.as_mut_slice(), heap_size, mincost);
+            }
+        }
+    };
+
+    let mut get_heap =
+        |heap: &mut Vec<Status>, mincost: &Vec<Vec<i32>>, in_heap: &mut Vec<Vec<u8>>| -> Status {
+            let ret = heap[0];
+            in_heap[ret.town as usize][ret.kaisu as usize] = 0;
+            let last = heap.pop().unwrap();
+            if !heap.is_empty() {
+                heap[0] = last;
+                let heap_size = heap.len();
+                adjust_heap(0, heap.as_mut_slice(), heap_size, mincost);
+            }
+            ret
+        };
+
+    // haba yuusen tansaku
+    let initial = Status { town: 0, kaisu: 0 };
+    insert_heap(
+        initial,
+        0,
+        &mut heap,
+        &mut status_mincost,
+        &mut in_heap,
+    );
+
+    while !heap.is_empty() {
+        let cur = get_heap(&mut heap, &status_mincost, &mut in_heap);
+        let cur_cost = read_cost(cur, &status_mincost);
+
+        if cur.town as usize == n - 1 {
+            // mokutekiti ni tuita
+            print!("{}\n", cur_cost);
+            break;
+        }
+
+        // tugi no mati ni iku
+        if cur.kaisu > 0 {
+            let next_kaisu = cur.kaisu - 1;
+            let town_idx = cur.town as usize;
+            for &to in &mati[town_idx] {
+                let next = Status {
+                    town: to,
+                    kaisu: next_kaisu,
+                };
+                insert_heap(
+                    next,
+                    cur_cost,
+                    &mut heap,
+                    &mut status_mincost,
+                    &mut in_heap,
+                );
+            }
+        }
+
+        // kakin site kono mati de taxi ni noru
+        let t = cur.town as usize;
+        // C assigns int to short; emulate 16-bit truncation/wrap.
+        let next_kaisu = (taxi[t].limit as i16) as u16;
+        let next = Status {
+            town: cur.town,
+            kaisu: next_kaisu,
+        };
+        let next_cost = cur_cost.wrapping_add(taxi[t].untin);
+        insert_heap(
+            next,
+            next_cost,
+            &mut heap,
+            &mut status_mincost,
+            &mut in_heap,
+        );
+    }
+}
+```

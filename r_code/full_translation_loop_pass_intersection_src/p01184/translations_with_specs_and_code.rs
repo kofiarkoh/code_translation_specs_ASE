@@ -1,0 +1,156 @@
+use std::io::{self, Read};
+
+fn check(pat: u32, groups: &[u32]) -> bool {
+    // Coverage: every group must contain at least one selected person.
+    for &g in groups {
+        if (g & pat) == 0 {
+            return false;
+        }
+    }
+
+    // Connectivity among selected people via groups, restricted to selected people.
+    // This mirrors the C logic: start each selected person as its own "component mask" g[j],
+    // then for each group, if a component intersects the group, union in all selected members
+    // of that group. Finally, merge overlapping components and check if all selected are connected.
+    let mut comps: Vec<u32> = Vec::new();
+    let mut k = pat;
+    let mut bit: u32 = 1;
+    while k != 0 {
+        if (k & 1) != 0 {
+            comps.push(bit);
+        }
+        k >>= 1;
+        bit <<= 1;
+    }
+
+    for &grp in groups {
+        for comp in comps.iter_mut() {
+            if (*comp & grp) != 0 {
+                *comp |= grp & pat;
+            }
+        }
+    }
+
+    if comps.is_empty() {
+        return false; // pat is never 0 in our search, but keep it safe.
+    }
+    let mut merged = comps[0];
+    for &c in comps.iter().skip(1) {
+        if (c & merged) != 0 {
+            merged |= c;
+        }
+    }
+    merged == pat
+}
+
+// Generate next bitmask with same popcount (Gosper's hack), within u32.
+fn next_combination(x: u32) -> u32 {
+    let u = x & x.wrapping_neg();
+    let v = x.wrapping_add(u);
+    v | (((x ^ v) / u) >> 2)
+}
+
+fn main() {
+    // Read entire stdin and tokenize by whitespace (matches scanf("%s") / "%d" behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut case_no = 0usize;
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: usize = match it.next() {
+            Some(v) => v.parse().unwrap(),
+            None => break,
+        };
+        if n <= 0 {
+            break;
+        }
+
+        if case_no > 0 {
+            out.push('\n');
+        }
+        case_no += 1;
+
+        // Map names to bit ids (1,2,4,...) and store unique names in insertion order.
+        // Spec invariant: repeated initial names do not create additional distinct people.
+        let mut name_to_bit: std::collections::HashMap<String, u32> = std::collections::HashMap::new();
+        let mut names: Vec<String> = Vec::new();
+        let mut next_bit: u32 = 1;
+
+        for _ in 0..n {
+            let s = it.next().unwrap().to_string();
+            if !name_to_bit.contains_key(&s) {
+                name_to_bit.insert(s.clone(), next_bit);
+                names.push(s);
+                next_bit <<= 1;
+            }
+        }
+
+        let sz = names.len();
+        let mut groups: Vec<u32> = vec![0u32; m];
+
+        for i in 0..m {
+            let cnt: usize = it.next().unwrap().parse().unwrap();
+            let mut mask = 0u32;
+            for _ in 0..cnt {
+                let nm = it.next().unwrap();
+                // Per spec: behavior is not well-defined if unknown; we mimic C's
+                // "may produce incorrect results" by simply ignoring unknown names
+                // (C would OR -1 into the mask, which is also "incorrect/unsafe").
+                if let Some(&b) = name_to_bit.get(nm) {
+                    mask |= b;
+                }
+            }
+            groups[i] = mask;
+        }
+
+        let mut ans_mask: Option<u32> = None;
+        let mut ans_size: usize = 0;
+
+        // Search sizes 1..=5, minimal size first.
+        let limit = 1u32 << sz;
+        for k in 1..=5usize {
+            if k > sz {
+                break;
+            }
+            let mut comb: u32 = (1u32 << k) - 1;
+            while comb < limit {
+                if check(comb, &groups) {
+                    ans_mask = Some(comb);
+                    ans_size = k;
+                    break;
+                }
+                comb = next_combination(comb);
+            }
+            if ans_mask.is_some() {
+                break;
+            }
+        }
+
+        match ans_mask {
+            None => {
+                out.push_str("Impossible\n");
+            }
+            Some(mask) => {
+                out.push_str(&format!("{ans_size}\n"));
+                let mut bit = 1u32;
+                for nm in &names {
+                    if (mask & bit) != 0 {
+                        out.push_str(nm);
+                        out.push('\n');
+                    }
+                    bit <<= 1;
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

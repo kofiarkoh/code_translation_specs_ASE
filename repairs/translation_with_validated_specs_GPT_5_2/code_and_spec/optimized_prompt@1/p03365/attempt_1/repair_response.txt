@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+const MAX: usize = 1_000_000;
+
+fn mod_pow(mut a: i64, mut e: i64) -> i64 {
+    a %= MOD;
+    let mut x: i64 = 1;
+    while e > 0 {
+        if (e & 1) == 1 {
+            x = (x * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    x
+}
+
+fn choose(n: i64, r: i64, fact: &[i64], invfact: &[i64]) -> i64 {
+    if n < 0 || r < 0 || r > n {
+        return 0;
+    }
+    let ni = n as usize;
+    let ri = r as usize;
+    let n_minus_r = (n - r) as usize;
+    (((fact[ni] * invfact[ri]) % MOD) * invfact[n_minus_r]) % MOD
+}
+
+fn main() {
+    // Read input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Precompute factorials and inverse factorials up to MAX.
+    // Matches the C code: fact[0..=1_000_004] is filled, invfact[0..=1_000_000] is valid.
+    let mut fact = vec![0i64; MAX + 5];
+    let mut invfact = vec![0i64; MAX + 1];
+
+    fact[0] = 1;
+    for i in 1..(MAX + 5) {
+        fact[i] = (fact[i - 1] * (i as i64)) % MOD;
+    }
+
+    invfact[MAX] = mod_pow(fact[MAX], MOD - 2);
+    for i in (0..MAX).rev() {
+        invfact[i] = (invfact[i + 1] * ((i + 1) as i64)) % MOD;
+    }
+
+    // Compute temp[k] for k = 0..n-1
+    // Note: per spec, behavior is undefined if n is out of supported range; we do not add checks.
+    let nu = n as usize;
+    let mut temp = vec![0i64; nu.max(1)];
+    for k in 0..nu {
+        let k_i64 = k as i64;
+        let term = choose(k_i64 - 1, n - 1 - k_i64, &fact, &invfact);
+        // fact indices used: fact[k] and fact[n-1-k]
+        let t = (((term * fact[k]) % MOD) * fact[(n - 1 - k_i64) as usize]) % MOD;
+        temp[k] = t;
+    }
+
+    // Accumulate answer: sum_{k=1}^{n-1} k * (temp[k] - temp[k-1]) mod MOD
+    let mut ans: i64 = 0;
+    for k in 1..nu {
+        let diff = (temp[k] - temp[k - 1] + MOD) % MOD;
+        ans = (ans + ((k as i64) * diff) % MOD) % MOD;
+    }
+
+    print!("{ans}\n");
+}
+```

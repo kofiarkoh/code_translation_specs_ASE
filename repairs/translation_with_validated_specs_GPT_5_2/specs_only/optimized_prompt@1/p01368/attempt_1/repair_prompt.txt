@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each dataset, the minimum number of independent “chains” needed to cover a set of time-stamped tasks located on nodes of a weighted undirected graph, where a task may be followed by another task if travel time between their locations is no more than the time difference between them.
+
+2. Inputs  
+For each dataset (repeated until a terminating dataset is encountered):  
+- An integer count of graph nodes.  
+- An integer count of undirected weighted edges.  
+- An integer count of tasks.  
+- For each edge: two node indices and a nonnegative travel cost.  
+- For each task: a node index (task location) and an integer time value.
+
+3. Outputs  
+For each dataset, outputs a single integer: the minimum number of chains required to schedule all tasks under the feasibility rule described above.
+
+4. Preconditions  
+- Node count is within the fixed supported limit (at most 102).  
+- Task count is within the fixed supported limit (at most 1000).  
+- All referenced node indices are within the node range.  
+- Edge costs and task times are such that shortest-path sums fit within the program’s integer range.  
+- The terminating condition is a dataset whose node count is zero.
+
+5. Postconditions  
+For each non-terminating dataset:  
+- The output equals the minimum number of disjoint sequences that collectively include every task exactly once, where within each sequence, each task (except the first) is feasible to perform immediately after its predecessor given shortest travel time between their locations and the difference in their time values.
+
+6. Invariants  
+- Shortest-path distances used for feasibility are the minimum travel costs implied by the given edges (or treated as unreachable if no path exists).  
+- A feasibility relation between two distinct tasks exists only if the predecessor can reach the successor’s location within the successor’s time minus the predecessor’s time.  
+- Each task belongs to exactly one chain in the computed minimum chain cover.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed for malformed input, out-of-range values, or capacity overruns; behavior is unspecified in such cases.  
+- Unreachable node pairs are treated as infeasible for task-to-task transitions.
+
+8. State Transitions (if applicable)  
+- Processes datasets sequentially until the terminating dataset is read.  
+- For each dataset, constructs shortest-path distances, derives task-to-task feasibility, computes a maximum set of feasible predecessor–successor links without conflicts, and outputs the resulting minimum chain count.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size storage; maximum supported sizes are bounded as noted in Preconditions.  
+- Time complexity is dominated by all-pairs shortest paths over nodes and by matching over tasks; intended for moderate node counts and up to about 1000 tasks.
+```

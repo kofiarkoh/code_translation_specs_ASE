@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence and performs a single pass from right to left to determine whether the sequence can be made non-decreasing by applying a limited adjustment rule: for each adjacent pair `(a[i-1], a[i])` encountered in that right-to-left order, if the left element is greater than the right element, the program decrements the left element by exactly 1 once, then immediately checks again. If after this single decrement the left element is still greater than the right element, the program rejects; otherwise it continues. If the pass completes without rejection, the program accepts.
+
+2. Inputs  
+- An integer `n` indicating the number of elements.  
+- `n` integers forming the sequence.
+
+3. Outputs  
+- Prints exactly `Yes` if the sequence is accepted, or exactly `No` if it is rejected.  
+- No trailing newline is printed by the program.
+
+4. Preconditions  
+- `n` is expected to be within the fixed storage capacity of the program (up to 100009).  
+- Exactly `n` integers are available to read after `n`.  
+- No explicit validation is performed; behavior is unspecified if these assumptions are violated.
+
+5. Postconditions  
+- If the output is `Yes`, then after applying the program’s right-to-left, at-most-one-decrement-per-adjacent-comparison rule, the resulting sequence is non-decreasing (i.e., for all indices `j`, `a[j] <= a[j+1]` holds in the final adjusted array).  
+- If the output is `No`, then during the right-to-left pass there exists an index `i` where `a[i-1]` exceeds `a[i]` by at least 2 at the moment of comparison, so that even after decrementing `a[i-1]` once, `a[i-1] > a[i]` still holds and the program terminates immediately.
+
+6. Invariants  
+- The algorithm processes indices from `n-1` down to `1`.  
+- At each step, only the left element of the currently inspected adjacent pair (`a[i-1]`) may be modified, and it is modified by at most 1 for that step.  
+- If the program has not rejected, then after finishing the check at position `i`, the suffix from `i-1` to `n-1` is non-decreasing under the adjustments performed so far.
+
+7. Error Handling / Exceptional Behavior  
+- There is no explicit error handling for invalid `n`, insufficient input, or out-of-range values; behavior is unspecified if preconditions are not met.
+
+8. State Transitions  
+- Initial: read `n` and the sequence.  
+- Processing: iterate from right to left, optionally decrementing `a[i-1]` once when needed and rejecting immediately if still out of order.  
+- Terminal:  
+  - Reject: print `No` and terminate immediately.  
+  - Accept: print `Yes` after completing the pass.
+
+9. Non-functional Constraints  
+- Runs in linear time in `n`.  
+- Uses a fixed-size array capable of holding up to 100009 integers.
+```

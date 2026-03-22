@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each prefix length of an undirected edge list, the number of unordered vertex pairs that are disconnected when only the edges *after* that prefix are present. Equivalently: for each index \(i\) (0-based in the input order), it outputs the number of unordered pairs of distinct vertices that are in different connected components in the graph formed by vertices \(0..n-1\) and edges \((a_j,b_j)\) for all \(j > i\).
+
+2. Inputs  
+- An integer \(n\): number of vertices.  
+- An integer \(m\): number of edges.  
+- A sequence of \(m\) undirected edges, each given as two vertex indices in the range \([1, n]\) (assumed 1-based in the input), representing connections between vertices.
+
+3. Outputs  
+- \(m\) lines, each containing one integer value.  
+- The \(i\)-th output value corresponds to the number of disconnected unordered vertex pairs after removing the first \(i+1\) edges from the given edge list (i.e., keeping only edges with indices greater than \(i\)).
+
+4. Preconditions  
+- \(1 \le n \le 100000\).  
+- \(1 \le m \le 100000\).  
+- Each edge endpoint is a valid vertex index in \([1, n]\).  
+- Sufficient memory is available for arrays sized proportional to \(n\) and \(m\).  
+- Assumption: The intended contract is defined for \(m \ge 1\); behavior for \(m = 0\) is not supported by the code.
+
+5. Postconditions  
+For each \(i \in [0, m-1]\), the program outputs:
+\[
+\sum_{\text{components } C \text{ in } G_i} \left( |C| \cdot (n - |C|) \right) / 2
+\]
+where \(G_i\) is the graph containing all \(n\) vertices and only the edges with indices \(j\) such that \(j > i\). This equals the number of unordered pairs of distinct vertices that are not connected by any path in \(G_i\).
+
+6. Invariants  
+- At any point during processing, the vertices are partitioned into disjoint connected components with well-defined component sizes.  
+- The maintained component sizes sum to \(n\).  
+- The running disconnected-pair count equals the total number of unordered vertex pairs minus the number of pairs that are connected within the same component.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing, malformed, or violates preconditions (including \(m=0\) or out-of-range vertex indices), the behavior is undefined (may crash or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- Initial state: \(n\) singleton components; disconnected-pair count is \(\binom{n}{2}\).  
+- Processing state: edges are incorporated in reverse input order, transitioning the component partition by merging the two components containing an edge’s endpoints when they are distinct; the disconnected-pair count decreases by the product of the merged component sizes.  
+- Output state: after all reverse incorporations, the stored disconnected-pair counts are emitted in original edge order.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is approximately linear in \(n + m\) up to inverse-Ackermann factors typical of dynamic connectivity via component merging.  
+- Space complexity is \(O(n + m)\).
+```

@@ -1,0 +1,105 @@
+```rust
+use std::io::{self, Read};
+
+const MAX_L: usize = 5001;
+const MAX_MASK: usize = 4096;
+
+fn main() {
+    // scanf("%d %d") / scanf("%s") behavior: whitespace-delimited tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        let m: usize = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read e[12][21] and len[12]
+        let mut e: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap_or("");
+            let b = s.as_bytes().to_vec();
+            lens.push(b.len());
+            e.push(b);
+        }
+
+        // Build t[5001] by concatenating m tokens
+        let mut t: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let s = it.next().unwrap_or("");
+            t.extend_from_slice(s.as_bytes());
+        }
+        let l_s = t.len();
+
+        // flag[5001][4096] as in C (char), initialized to 0 each test case.
+        // Use a flat array for speed and to match fixed-size semantics.
+        let mut flag = vec![0u8; MAX_L * MAX_MASK];
+        let idx = |pos: usize, mask: usize| -> usize { pos * MAX_MASK + mask };
+
+        // loop = 1<<n (C int). In the original problem n<=12 so <=4096.
+        // If n is larger, the C program would have undefined behavior due to OOB.
+        // We keep behavior within allocated bounds by limiting masks to MAX_MASK.
+        let loop_mask = 1usize
+            .checked_shl(n as u32)
+            .unwrap_or(usize::MAX)
+            .min(MAX_MASK);
+
+        // DP
+        // C loops i=0..l_s-1 and writes flag[i+l][pat]; if l_s>5000 it's OOB in C.
+        // We cap positions to MAX_L-1 to stay in-bounds.
+        let max_i = l_s.min(MAX_L - 1);
+        for i in 0..max_i {
+            for j in 0..loop_mask {
+                if j != 0 && flag[idx(i, j)] == 0 {
+                    continue;
+                }
+                let mut mask = 1usize;
+                for k in 0..n {
+                    if mask >= loop_mask {
+                        break;
+                    }
+                    if (j & mask) != 0 {
+                        mask <<= 1;
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l <= l_s && i + l < MAX_L {
+                        // strncmp(&e[k][0], &t[i], l) == 0
+                        if t.get(i..i + l) == Some(&e[k][..]) {
+                            let pat = j | mask;
+                            if pat < loop_mask {
+                                flag[idx(i + l, pat)] = 1;
+                            }
+                        }
+                    }
+                    mask <<= 1;
+                }
+            }
+        }
+
+        // Count flag[i][loop-1] for i=0..l_s (inclusive)
+        let full = loop_mask.saturating_sub(1);
+        let mut cnt: i32 = 0;
+        let max_count_i = l_s.min(MAX_L - 1);
+        for i in 0..=max_count_i {
+            cnt += flag[idx(i, full)] as i32;
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```

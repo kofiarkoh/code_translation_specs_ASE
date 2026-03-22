@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Processes a sequence of test cases. For each test case, it computes a total cost by, for each value in the range 1 through 20, taking the larger of the two occurrence counts of that value from two provided collections and multiplying that count by the value itself. The result is the sum of these products over all values 1..20, produced once per test case.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with two integers:  
+  - The number of elements in the first collection.  
+  - The number of elements in the second collection.  
+- Then:  
+  - That many integers for the first collection.  
+  - That many integers for the second collection.  
+- Termination is indicated by a test case whose first integer (the first collection size) is zero; that terminating case is not processed.
+
+3. Outputs  
+- For each non-terminating test case, outputs one integer: the computed total cost for that test case, on its own line.
+
+4. Preconditions  
+- The input provides enough integers to satisfy the declared sizes for each test case until termination.  
+- All collection element values are integers in the inclusive range 1..20.  
+- The first integer of each test case (the first collection size) is non-negative; termination occurs when it is exactly zero.
+
+5. Postconditions  
+For each processed test case, the output value equals:  
+\[
+\sum_{v=1}^{20} v \times \max(\text{count of } v \text{ in first collection},\ \text{count of } v \text{ in second collection})
+\]
+No output is produced for the terminating test case.
+
+6. Invariants  
+- For any processed test case and any value v in 1..20, the tracked counts for v in each collection are non-negative integers.  
+- The computed total is non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is performed for malformed input, premature end of input, negative sizes, or element values outside 1..20; behavior is unspecified in these cases.  
+- If the input stream ends or fails before a complete test case is read, the program’s behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Repeats the following states until termination:  
+  1) Read test case header (two sizes).  
+  2) If the first size is zero, terminate.  
+  3) Read first collection elements and accumulate counts.  
+  4) Read second collection elements and accumulate counts.  
+  5) Compute and output the test case result.  
+  6) Proceed to the next test case.
+
+9. Non-functional Constraints (if inferable)  
+- Per test case, time is linear in the total number of input elements plus a fixed cost proportional to 20.  
+- Uses fixed, bounded auxiliary storage for counts over the value range 1..20.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define max(X, Y) ((X)>(Y)?(X):(Y))
+int main(void)
+{
+    int w, d;
+    while (scanf("%d%d", &w, &d), w) {
+        int i, a[21]={0}, b[21]={0}, res;
+        for(i=0;i<w;++i) { int t; scanf("%d", &t); a[t]++; }
+        for(i=0;i<d;++i) { int t; scanf("%d", &t); b[t]++; }
+        res=0;
+        for(i=1;i<=20;++i) res+=i*max(a[i], b[i]);
+        printf("%d\n", res);
+    }
+    return 0;
+}
+=== C CODE END ===

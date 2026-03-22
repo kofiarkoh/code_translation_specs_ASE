@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the total of an initial list of integers, then for each query reports what the total would be if exactly one specified element of the list were replaced by a provided new value.
+
+2. Inputs  
+- An integer `n`: the number of elements in the initial list.  
+- A sequence of `n` integers: the initial list values.  
+- An integer `m`: the number of queries.  
+- A sequence of `m` queries, each consisting of:  
+  - An integer position `p` (1-based index into the initial list).  
+  - An integer replacement value `x`.
+
+3. Outputs  
+- For each query, one integer on its own line: the modified total after replacing the element at position `p` with `x`.
+
+4. Preconditions  
+- `0 ≤ n ≤ 100`.  
+- `0 ≤ m ≤ 100`.  
+- Each query position `p` satisfies `1 ≤ p ≤ n`.  
+- All provided integers fit within the range of the program’s integer type.  
+- Input is well-formed and contains all required values.
+
+5. Postconditions  
+- Let `S` be the sum of the initial list. For each query `(p, x)`, the program outputs `S - original_value_at_position_p + x`.  
+- The initial list is not permanently modified across queries; each query is evaluated against the original list.
+
+6. Invariants  
+- The computed initial total `S` remains constant for all queries.  
+- Each query’s output depends only on `S`, the original value at the referenced position, and the query’s replacement value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., out-of-range indices, too many elements/queries, malformed input, or integer overflow), behavior is undefined.
+
+8. State Transitions (if applicable)  
+- No persistent state beyond the program execution.  
+- Internal state transitions: from “input collected” to “initial total computed” to “outputs produced for each query,” without altering the stored original list.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 100 initial elements and 100 queries.  
+- Time proportional to `n + m`; memory usage bounded by storage for the input lists and queries.
+```

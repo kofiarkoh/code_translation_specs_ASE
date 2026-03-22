@@ -1,0 +1,124 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the minimum length of a contiguous subsequence (window) of a given integer sequence that contains every integer value from 1 through K at least once. If no such window exists, returns 0.
+
+2. Inputs  
+- An integer N: the number of elements in the sequence.  
+- An integer K: the required set size (values 1..K must all appear).  
+- A sequence of N integers.
+
+3. Outputs  
+- A single integer:  
+  - the minimum window length that contains all values 1..K at least once, or  
+  - 0 if no such window exists.
+
+4. Preconditions  
+- N and K are non-negative integers.  
+- N does not exceed the implementation’s fixed maximum capacity.  
+- All input values are non-negative integers.  
+- K does not exceed the implementation’s fixed maximum capacity minus one.  
+(If these are violated, behavior is unspecified.)
+
+5. Postconditions  
+- If N < K, the output is 0.  
+- Otherwise, if there exists at least one contiguous subsequence that contains every value in {1, 2, …, K} at least once, the output equals the minimum length among all such subsequences.  
+- Otherwise, the output is 0.
+
+6. Invariants  
+- During computation, the maintained candidate window (when one exists) always contains all values 1..K at least once.  
+- The maintained candidate window is minimal with respect to its left boundary: removing its first element would cause at least one value in 1..K to be missing.
+
+7. Error Handling / Exceptional Behavior  
+- If it is impossible to form a window containing all values 1..K (including the case N < K), the program outputs 0.  
+- No explicit handling is provided for malformed input, negative values, or out-of-range N/K; behavior is unspecified in those cases.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once and produces one output. No persistent state is retained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal storage proportional to N and K, bounded by a compile-time maximum.  
+- Runs in time linear in N under the stated preconditions.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ DSL_3_B The Smallest Window II
+// 2018.5.6 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+int in()
+{
+	int n = 0, c = gc();
+	do n = 10*n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+#define MAX_N 100003
+int a[MAX_N], f[MAX_N];
+
+int main()
+{
+	int N, K, i, j, s, t, ans;
+
+	N = in(), K = in();
+	if (N < K) { puts("0"); return 0; }
+	for (i = 0; i < N; i++) a[i] = in();
+
+	s = 0, i = j = 0;
+	while (s < K && j < N) {
+		t = a[j++];
+		if (t <= K) {
+			if (f[t] == 0) s++;
+			f[t]++;
+		}
+	}
+	if (s < K) goto ng;
+	while ((t = a[i]) > K || f[t] > 1) {
+		if (t <= K) f[t]--;
+		i++;
+	}
+	ans = j-i;
+
+	while (j < N) {
+		t = a[j++];
+		if (t <= K) f[t]++;
+		while ((t = a[i]) > K || f[t] > 1) {
+			if (t <= K) f[t]--;
+			i++;
+		}
+		if (j-i < ans) ans = j-i;
+	}
+	printf("%d\n", ans);
+	return 0;
+ng: puts("0");
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,79 @@
+```rust
+use std::io::{self, Read};
+
+const P: i64 = 1_000_000_007;
+
+fn mod_p(x: i64) -> i64 {
+    let mut v = x % P;
+    if v < 0 {
+        v += P;
+    }
+    v
+}
+
+// Matches the C semantics: recursive exponentiation with modulo at each step.
+// Precondition (per spec): when called with exponent Onum[N]-1, it assumes Onum[N] >= 1.
+fn power(mut a: i64, n: i64) -> i64 {
+    if n == 0 {
+        1
+    } else if n % 2 == 0 {
+        a = mod_p(a * a);
+        power(a, n / 2)
+    } else {
+        mod_p(a * power(a, n - 1))
+    }
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse::<i64>().unwrap() as usize;
+
+    // Arrays sized N+1, 1-indexed like the C code.
+    let mut s = vec![0i64; n + 1];
+    let mut onum = vec![0i64; n + 1];
+
+    for i in 1..=n {
+        let ai: i64 = it.next().unwrap().parse().unwrap();
+        s[i] = s[i - 1] ^ ai;
+        onum[i] = onum[i - 1] + if s[i] == 0 { 1 } else { 0 };
+    }
+
+    let m: usize = 1usize << 20;
+
+    // prev[v] stores the most recent index i where S[i] == v, or 0 if none yet.
+    // This matches the C initialization to 0 (not -1).
+    let mut prev = vec![0usize; m];
+    let mut dp = vec![0i64; m];
+    let mut sum = vec![0i64; m];
+    let mut osum = vec![1i64; m];
+
+    for i in 1..=n {
+        let x = s[i] as usize; // per precondition, prefix xor is within [0, 2^20-1]
+        let delta_zeros = onum[i] - onum[prev[x]];
+
+        dp[x] = mod_p(sum[x] * delta_zeros + osum[x]);
+        osum[x] = mod_p(osum[x] + sum[x] * delta_zeros);
+        sum[x] = mod_p(sum[x] + dp[x]);
+
+        prev[x] = i;
+    }
+
+    let ans: i64;
+    if s[n] == 0 {
+        // Per spec, assumes onum[n] >= 1; otherwise behavior is undefined.
+        let mut a = power(2, onum[n] - 1);
+        for v in 1..m {
+            a = mod_p(a + sum[v]);
+        }
+        ans = a;
+    } else {
+        ans = dp[s[n] as usize];
+    }
+
+    print!("{ans}\n");
+}
+```

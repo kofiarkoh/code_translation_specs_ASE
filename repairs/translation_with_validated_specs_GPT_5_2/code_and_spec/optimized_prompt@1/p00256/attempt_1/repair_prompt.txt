@@ -1,0 +1,185 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+The program repeatedly reads one whitespace-delimited token at a time and stops when it reads a token whose first character is `#`. For each non-sentinel token, it parses the token as a dot-separated sequence of unsigned decimal integers and performs one of two conversions:
+
+- If the token contains exactly 3 components (i.e., exactly two `.` characters), it is interpreted as a Gregorian calendar date `Y.M.D` (year, month, day) and is converted to a 5-component mixed-radix representation `p0.p1.p2.p3.p4`.
+- Otherwise, it is interpreted as a 5-component mixed-radix representation and is converted to a Gregorian date `Y.M.D`.
+
+Each processed token produces exactly one output line containing the converted representation as dot-separated integers. No output is produced for the sentinel token.
+
+2. Inputs  
+- A sequence of whitespace-delimited tokens, each read with `%s` into a fixed buffer of size 50 (so tokens longer than 49 characters overflow the buffer; behavior is undefined in that case).  
+- Termination token: any token whose first character is `#`.  
+- Each non-sentinel token is parsed by scanning characters left-to-right, splitting on `.` and interpreting each component as a base-10 non-negative integer (no sign handling).  
+- The program distinguishes only between “exactly 3 components” and “not exactly 3 components”; it does not validate the component count beyond that.
+
+3. Outputs  
+- For each non-sentinel token, one line is printed:
+  - If the input has 3 components, the output has 5 components: `p0.p1.p2.p3.p4`.
+  - Otherwise, the output has 3 components: `Y.M.D`.
+- Output components are printed in decimal with `.` separators and a trailing newline.
+
+4. Calendar Rules and Day Counting  
+- Gregorian month lengths are the standard lengths with February = 28 days, plus one extra day in leap years.  
+- Leap year rule: a year is a leap year if it is divisible by 4 and (not divisible by 100 unless also divisible by 400).  
+- Day-of-month is treated as 1-based in the input and output Gregorian dates. When converting a Gregorian date to an internal day count, the program uses `(D - 1)` as the 0-based offset within the month.
+
+5. Conversion: Gregorian (3 components) → Mixed-radix (5 components)  
+Given a parsed Gregorian date `Y.M.D`, the program computes an internal day count `dt` (an unsigned 64-bit value) as:
+
+- `dt = (days before month M in year Y) + (D - 1)`, where “days before month M” is the sum of standard month lengths for months `1..(M-1)`.  
+- If `M > 2` and `Y` is a leap year, add 1 to `dt`.  
+- Then apply a year-based offset relative to year 2001 using `k = Y - 2001` (integer arithmetic as in C), adding:  
+  `365*k + k/4 - k/100 + k/400`  
+- Finally add a fixed epoch-alignment constant equal to `366 - m12`, where `m12` is defined by the program as:  
+  `m12 = 365*13 + 4 - 11`  
+  (so the added constant is exactly `366 - (365*13 + 4 - 11)`).
+
+The resulting `dt` is decomposed into five mixed-radix digits by repeated modulus/division in this order (least significant first):  
+- `p4 = dt mod 20`, then `dt = dt / 20`  
+- `p3 = dt mod 18`, then `dt = dt / 18`  
+- `p2 = dt mod 20`, then `dt = dt / 20`  
+- `p1 = dt mod 20`, then `dt = dt / 20`  
+- `p0 = dt mod 13`  
+
+The program prints `p0.p1.p2.p3.p4`. For Gregorian inputs, these digits are within the ranges implied by the moduli: `p0∈[0,12]`, `p1∈[0,19]`, `p2∈[0,19]`, `p3∈[0,17]`, `p4∈[0,19]`.
+
+6. Conversion: Mixed-radix (not 3 components) → Gregorian (3 components)  
+The program interprets the first five parsed components as digits in a mixed-radix number with radices (most significant to least significant): 13, 20, 20, 18, 20, combining them as:
+
+`dt = ((((d0)*20 + d1)*20 + d2)*18 + d3)*20 + d4`
+
+It then adds a fixed constant offset of `4738 + 1` to `dt` (i.e., `4739`).
+
+To convert this adjusted `dt` into a Gregorian date, the program:
+- Initializes the year `Y` to 2000.  
+- Repeatedly advances the year while `dt > 365` by doing:
+  - Save the current `dt` into a temporary `t`.
+  - Subtract 365 from `dt`.
+  - If the current year `Y` is a leap year, subtract 1 more from `dt`.
+  - Increment `Y`.
+- If this loop ends with `dt == 0`, it restores `dt` from `t` and decrements `Y` by 1 (so an exact year-boundary remainder is attributed to the previous year rather than producing day 0 of the next year).
+- Determines the month by starting at January and subtracting month lengths until the remaining `dt` fits within the current month. February in leap years is handled by decrementing `dt` once when passing February; if that decrement makes `dt` become 0, the day is set to 29 and the month is February.
+- Prints `Y.M.D`, where `D` is the final remaining `dt` value (which is 1-based after the month-selection logic).
+
+7. Preconditions / Assumptions  
+- Tokens are assumed to contain only digits and `.` separators; other characters lead to unspecified parsing results.  
+- No validation is performed for:
+  - Gregorian date validity (month/day ranges),
+  - mixed-radix digit ranges,
+  - having at least five components in the mixed-radix case.  
+  In the “not 3 components” branch, the program uses the first five parsed integers; if fewer than five are present, behavior is undefined due to use of uninitialized values.
+
+8. Error Handling / Termination  
+- There is no explicit error reporting. Malformed or out-of-range inputs yield unspecified results.  
+- The program terminates when it reads a token starting with `#`. (End-of-input handling is not explicitly checked; behavior on EOF is not defined by the program logic.)
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+  char s[50];
+  int d[5],n,c,i,r;
+  int m12=365*13+4-11;
+  int d400=365*400+100-4+1;
+  int d100=365*100+25 -1;
+  int d4  =365*4  +1;
+  int a[5];
+  int M[]={0,31,28,31,30,31,30,31,31,30,31,30,31};
+  unsigned long long dt,t;
+  while(scanf("%s",s),s[0]-'#'){
+    for(i=c=n=r=0;s[i];i++){
+      if(s[i]=='.'){
+	c++;
+	d[r++]=n;
+	n=0;
+      }
+      else{
+	n*=10;
+	n+=s[i]-'0';
+      }
+    }
+    d[r]=n;
+    dt=0;//-m12;
+    if(c==2){
+      //printf("%d %d %d\n",d[0],d[1],d[2]);
+      for(i=1;i<d[1];i++)dt+=M[i];
+      if(d[1]>2&&d[0]%4==0&&(d[0]%100||d[0]%400==0))dt++;
+      dt+=(unsigned long long)d[2]-1;
+      d[0]-=2001;
+      dt+=(unsigned long long)365*d[0]+d[0]/4-d[0]/100+d[0]/400+366-m12;
+      //printf("%d\n",m12);
+      a[4]=dt%20;
+      dt/=20;
+      a[3]=dt%18;
+      dt/=18;
+      a[2]=dt%20;
+      dt/=20;
+      a[1]=dt%20;
+      dt/=20;
+      a[0]=dt%13;
+      printf("%d.%d.%d.%d.%d\n",a[0],a[1],a[2],a[3],a[4]);      
+    }
+    else{
+      dt=d[0];
+      dt=dt*20+d[1];
+      dt=dt*20+d[2];
+      dt=dt*18+d[3];
+      dt=dt*20+d[4];
+      dt+=4738+1;
+      for(a[0]=2000;dt>365;a[0]++){
+	t=dt;
+	dt-=365;
+	if(a[0]%4==0&&(a[0]%100||a[0]%400==0))dt--;
+      }
+      if(dt==0){
+	dt=t;
+	a[0]--;
+      }
+      /*a[0] =(dt/d400)*400;
+      dt%d400;
+      a[0]+=(dt/d100)*100;
+      dt%=d100;
+      a[0]+=(dt/d4  )*4  ;
+      dt%=d4  ;
+      a[0]+=(dt/365);
+      dt%=365;//*/
+      //if(59>dt&&a[0]%4==0&&(a[0]%100||a[0]%400==0))dt++;
+      for(i=1;i<13;i++){
+	if(dt<=M[i])break;
+	dt-=M[i];
+	if(i==2&&a[0]%4==0&&(a[0]%100||a[0]%400==0)){
+	  dt--;
+	  if(dt==0){
+	    dt=29;
+	    break;
+	  }
+	}
+      }
+      printf("%d.%d.%lld\n",a[0],i,dt);
+    }
+  }
+  return 0;
+}
+=== C CODE END ===

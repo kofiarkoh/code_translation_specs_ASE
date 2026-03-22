@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Read};
+
+static mut I: i32 = 0;
+static mut T: i32 = 0;
+
+// p(n): counts how many i in [2..] divide n while i*i <= n, starting t=2,
+// then returns t-2. This is exactly what the C code computes.
+fn p(n: i32) -> i32 {
+    unsafe {
+        I = 2;
+        T = 2;
+        // Use i64 for i*i to avoid Rust overflow panics; C would overflow/UB,
+        // but typical inputs keep this in range. This preserves intended behavior.
+        while (I as i64) * (I as i64) <= n as i64 {
+            // C GNU extension: n%i?:t++;
+            // Equivalent to: if (n % i == 0) t++;
+            if n % I == 0 {
+                T += 1;
+            }
+            I += 1;
+        }
+        T - 2
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    // C loop: for (; scanf("%d",&l), u=l; ) { ... }
+    // This continues while u=l is nonzero, i.e., it stops when l==0 (even though read succeeds).
+    while let Some(tok) = it.next() {
+        let mut l: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let mut u: i32 = l;
+
+        if u == 0 {
+            break;
+        }
+
+        while p(l) != 0 {
+            l = l.wrapping_sub(1);
+        }
+        while p(u) != 0 {
+            u = u.wrapping_add(1);
+        }
+
+        let diff = u.wrapping_sub(l);
+        out.push_str(&format!("{diff}\n"));
+    }
+
+    print!("{out}");
+}
+```

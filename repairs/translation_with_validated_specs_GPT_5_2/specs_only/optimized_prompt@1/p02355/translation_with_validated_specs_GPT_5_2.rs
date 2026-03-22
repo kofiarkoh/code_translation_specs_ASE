@@ -1,0 +1,104 @@
+use std::io::{self, Read};
+
+const MAX_CAP: usize = 1_000_000;
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Unspecified; no output.
+    };
+    let k: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Unspecified; no output.
+    };
+
+    // Preconditions are stated as "unspecified behavior if violated".
+    // We do not add explicit error handling beyond what is needed to run.
+    // We still keep internal storage bounded by a compile-time maximum.
+    let n_cap = n.min(MAX_CAP);
+
+    let mut a: Vec<usize> = Vec::with_capacity(n_cap);
+    for _ in 0..n_cap {
+        if let Some(s) = it.next() {
+            a.push(s.parse().unwrap());
+        } else {
+            break; // Unspecified; proceed with what we have.
+        }
+    }
+
+    // Postcondition: if N < K, output 0.
+    if n < k {
+        println!("0");
+        return;
+    }
+
+    // If k == 0, the required set {1..K} is empty; the minimum window length is 0.
+    // This is the narrowest reasonable interpretation consistent with "contains every value 1..K".
+    if k == 0 {
+        println!("0");
+        return;
+    }
+
+    // Fixed-size internal storage proportional to K, bounded by MAX_CAP.
+    // Values outside 1..=k are ignored.
+    let freq_len = (k + 1).min(MAX_CAP);
+    let mut freq = vec![0u32; freq_len];
+
+    let mut have: usize = 0; // number of distinct values in 1..=k currently present (freq>0)
+    let mut left: usize = 0;
+    let mut best: Option<usize> = None;
+
+    for right in 0..a.len() {
+        let v = a[right];
+        if v <= k && v < freq.len() {
+            if freq[v] == 0 {
+                have += 1;
+            }
+            freq[v] = freq[v].wrapping_add(1);
+        }
+
+        // When a candidate window exists (have == k), shrink from the left to make it minimal
+        // w.r.t. its left boundary (invariant).
+        while have == k && left <= right {
+            // Update best with current minimal-left window.
+            let len = right - left + 1;
+            best = Some(best.map_or(len, |b| b.min(len)));
+
+            let lv = a[left];
+            if lv <= k && lv < freq.len() {
+                // If removing would drop a required value to zero, stop shrinking.
+                if freq[lv] == 1 {
+                    break;
+                }
+                freq[lv] = freq[lv].wrapping_sub(1);
+            }
+            left += 1;
+        }
+
+        // If we are at a minimal-left window and we need to move on, advance left by one
+        // to search for the next window, maintaining correctness.
+        if have == k && left <= right {
+            let lv = a[left];
+            if lv <= k && lv < freq.len() {
+                // Here freq[lv] must be 1 for a required value, or lv is irrelevant.
+                if freq[lv] == 1 {
+                    freq[lv] = 0;
+                    have -= 1;
+                } else {
+                    freq[lv] = freq[lv].wrapping_sub(1);
+                }
+            }
+            left += 1;
+        }
+    }
+
+    match best {
+        Some(ans) => println!("{}", ans),
+        None => println!("0"),
+    }
+}

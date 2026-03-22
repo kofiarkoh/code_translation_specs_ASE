@@ -1,0 +1,129 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs an integer with exactly `N` decimal digits that satisfies `M` digit-position constraints of the form “the digit at position `s` equals `c`”. If no such `N`-digit integer exists, outputs `-1`. If `M` is zero, outputs the smallest `N`-digit integer (with the special case that for `N = 1` it outputs `0`).
+
+2. Inputs  
+- An integer `N`: the required number of digits.  
+- An integer `M`: the number of constraints.  
+- `M` pairs `(s, c)` where:  
+  - `s` is a 1-based digit position within the `N`-digit number (from most significant to least significant).  
+  - `c` is the required digit value at that position.
+
+3. Outputs  
+- A single integer:  
+  - An `N`-digit nonnegative integer satisfying all constraints, if one is constructed by the program’s rules; or  
+  - `-1` if the constraints are detected as inconsistent or if the most significant digit is constrained to `0` when `N > 1`.
+
+4. Preconditions  
+- `N` is intended to be in the range 1 to 3 (the program’s place-value handling is only defined for up to 3 digits).  
+- Each constraint position `s` is intended to be within `1..N`.  
+- Each constraint digit `c` is intended to be within `0..9`.  
+(If these are violated, behavior is not reliably defined by the code.)
+
+5. Postconditions  
+- If `M = 0` and `N ∈ {1,2,3}`, the output is:  
+  - `0` when `N = 1`,  
+  - `10` when `N = 2`,  
+  - `100` when `N = 3`.  
+- If `M > 0` and the program does not output `-1`, the output is an integer with exactly `N` digits that matches every provided constraint that is not contradicted by another constraint. Unconstrained digits are chosen to make the number as small as possible under the program’s rules, including ensuring a nonzero most significant digit when `N > 1`.
+
+6. Invariants  
+- For any digit position that appears in multiple constraints, all specified digit values for that position must agree; otherwise the result is considered impossible.  
+- When a valid result is produced for `N > 1`, the most significant digit is nonzero.
+
+7. Error Handling / Exceptional Behavior  
+- Outputs `-1` if it detects contradictory constraints for the same position.  
+- Outputs `-1` if (and only if) the first provided constraint explicitly sets the most significant digit to `0` while `N > 1`, regardless of other constraints.  
+- If `N` is outside 1..3, or if any constraint uses an out-of-range position or digit, the program’s behavior is not well-defined by the code.
+
+8. State Transitions (if applicable)  
+- No persistent state; a single computation from input to output.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage are linear in `M` and `N` (with `N` effectively bounded to at most 3 under intended use).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+  int N,M,num=0;
+  scanf("%d%d",&N,&M);
+  int s[N],c[M];
+  int d[]={100,10,1};
+  int digit[N];
+  for (int i = 0; i < N; i++){digit[i]=-1;}
+  
+  if (M==0){
+    switch (N)
+    {
+    case 1:
+      num=0;
+      break;
+    case 2:
+      num=10;
+      break;
+    case 3:
+      num=100;
+      break;
+    default:
+      break;
+    }
+  }else{
+    for (int i = 0; i < M; i++)
+    {
+      scanf("%d%d",&s[i],&c[i]);
+      if (digit[s[i]-1]==-1)
+      {
+        digit[s[i]-1]=c[i]*d[3-N+(s[i]-1)];
+      }else if (digit[s[i]-1]/d[3-N+(s[i]-1)]!=c[i])
+      {
+        num=-1;
+      }
+    }
+
+    if (num!=-1)
+    {
+      for (int i = 0; i < N; i++)
+      {
+        if (digit[i]!=-1)
+        {
+          num+=digit[i];
+        }else if (N>1&&i==0&&digit[i]!=0){
+          num+=d[3-N+i];
+        }
+      }
+    }
+  }
+
+  if (N>1&&s[0]==1&&c[0]==0)
+  {
+    puts("-1");
+  }else{
+    printf("%d",num);
+  }
+  
+  return 0;
+}
+=== C CODE END ===

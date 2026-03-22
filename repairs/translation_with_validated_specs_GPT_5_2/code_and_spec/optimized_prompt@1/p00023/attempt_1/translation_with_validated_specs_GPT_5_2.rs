@@ -1,0 +1,53 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (well-formed input assumed by spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    for _ in 0..n {
+        let ax: f64 = it.next().unwrap().parse().unwrap();
+        let ay: f64 = it.next().unwrap().parse().unwrap();
+        let ar: f64 = it.next().unwrap().parse().unwrap();
+        let bx: f64 = it.next().unwrap().parse().unwrap();
+        let by: f64 = it.next().unwrap().parse().unwrap();
+        let br: f64 = it.next().unwrap().parse().unwrap();
+
+        let dx = ax - bx;
+        let dy = ay - by;
+
+        let d2 = dx * dx + dy * dy;
+        let sum = ar + br;
+        let sum2 = sum * sum;
+        let diff = ar - br;
+        let diff2 = diff * diff;
+
+        // Classification per spec/C:
+        // 0: externally disjoint
+        // 1: at least one common point but neither strictly contains the other
+        // 2: first strictly contains second (no common points)
+        // -2: second strictly contains first (no common points)
+        let code = if d2 > sum2 {
+            0
+        } else if sum2 > d2 && d2 > diff2 {
+            1
+        } else if d2 < diff2 {
+            if ar > br { 2 } else { -2 }
+        } else {
+            // Includes tangency and coincident cases, matching the C code and spec's "at least one common point".
+            1
+        };
+
+        out.push_str(&format!("{code}\n"));
+    }
+
+    print!("{out}");
+}

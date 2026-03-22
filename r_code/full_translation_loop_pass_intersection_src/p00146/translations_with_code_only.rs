@@ -1,0 +1,105 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut a = vec![0i32; 110];
+    let mut b = vec![0i32; 110];
+    let mut c = vec![0i32; 110];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+        b[i] = it.next().unwrap().parse().unwrap();
+        c[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let states = 1usize << n;
+
+    // d[20][1<<16] and fr[20][1<<16] in C; n is assumed <= 16 by the C layout.
+    // We allocate based on n to preserve behavior for valid inputs.
+    let mut d = vec![vec![1e18f64; states]; n];
+    let mut fr = vec![vec![-1i32; states]; n];
+
+    for i in 0..n {
+        d[i][1usize << i] = 0.0;
+    }
+
+    // f(i, j, k) as in C
+    let f = |i: usize, jmask: usize, k: usize, n: usize, b: &Vec<i32>, c: &Vec<i32>| -> f64 {
+        if jmask == 0 {
+            return 0.0;
+        }
+        let mut w: i32 = 0;
+        for l in 0..n {
+            if (jmask & (1usize << l)) != 0 {
+                // In C: w += c[l] * 20; (int arithmetic)
+                w = w.wrapping_add(c[l].wrapping_mul(20));
+            }
+        }
+        // In C: abs(b[k]-b[i]) uses int arithmetic; emulate wrapping then abs on i32.
+        let diff = b[k].wrapping_sub(b[i]);
+        let adiff = diff.wrapping_abs() as f64;
+        (adiff / 2000.0) * ((w as f64) + 70.0)
+    };
+
+    for jmask in 0..states {
+        for i in 0..n {
+            // C bug/precedence: if((1<<i)&j==0)continue;
+            // Parsed as: if ( (1<<i) & (j==0) ) continue;
+            // Since (j==0) is 0/1, this is true only when i==0 and jmask==0.
+            if i == 0 && jmask == 0 {
+                continue;
+            }
+            for k in 0..n {
+                if (jmask & (1usize << k)) != 0 {
+                    continue;
+                }
+                let next = jmask + (1usize << k);
+                let cand = d[i][jmask] + f(i, jmask, k, n, &b, &c);
+                if d[k][next] > cand {
+                    d[k][next] = cand;
+                    fr[k][next] = i as i32;
+                }
+            }
+        }
+    }
+
+    // In C: k=j-1; where j is left as (1<<n) after the DP loop.
+    // Here, states == (1<<n), so k = states-1.
+    let mut k_mask: usize = states - 1;
+
+    // Find best ending node j (ties keep earlier j due to strict < in C)
+    let mut best_j: usize = 0;
+    for i in 0..n {
+        if d[i][k_mask] < d[best_j][k_mask] {
+            best_j = i;
+        }
+    }
+
+    let mut r = vec![0usize; 110];
+    r[n - 1] = best_j;
+
+    for i in 1..n {
+        let idx = n - i;
+        let prev = fr[r[idx]][k_mask];
+        // C would index with -1 if prev is -1 (UB). We keep behavior for valid inputs.
+        r[n - i - 1] = prev as usize;
+        k_mask -= 1usize << r[idx];
+    }
+
+    // Output: a[r[0]] ... a[r[n-1]] with spaces, newline at end.
+    let mut out = String::new();
+    for i in 0..(n - 1) {
+        out.push_str(&format!("{} ", a[r[i]]));
+    }
+    out.push_str(&format!("{}\n", a[r[n - 1]]));
+    print!("{out}");
+}

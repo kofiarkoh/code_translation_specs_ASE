@@ -1,0 +1,204 @@
+```rust
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 1_000_003;
+const INF: i32 = i32::MAX;
+
+#[derive(Clone, Copy)]
+struct HA {
+    n: i32,
+    b: i32,
+}
+
+fn lookup1(ha1: &[i32], n: i32) -> bool {
+    // C code assumes n is non-negative when used here (it inserts only q>0).
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let v = ha1[idx];
+        if v == 0 {
+            return false;
+        }
+        if v == n {
+            return true;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn insert1(ha1: &mut [i32], n: i32) {
+    let mut idx = (n as usize) % HASHSIZ;
+    loop {
+        let v = ha1[idx];
+        if v == 0 {
+            ha1[idx] = n;
+            return;
+        }
+        if v == n {
+            return;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn lookup2(ha2: &mut [HA], n: i32, b: i32) -> bool {
+    // Note: This follows the C logic exactly, including its probing wrap condition.
+    // The C code has `if (++p == ha2) p = ha2;` which is effectively never true;
+    // thus it does not wrap around. We preserve that behavior by not wrapping.
+    let mut idx = (n as usize) % HASHSIZ;
+    while ha2[idx].n != 0 {
+        if ha2[idx].n == n {
+            if ha2[idx].b == b - 1 {
+                ha2[idx].b = b;
+                return true;
+            }
+            return false;
+        }
+        idx += 1;
+        if idx >= HASHSIZ {
+            // Preserve the C bug/behavior: no wrap; treat as not found.
+            return false;
+        }
+    }
+    false
+}
+
+fn insert2(ha2: &mut [HA], n: i32) {
+    let mut idx = (n as usize) % HASHSIZ;
+    while ha2[idx].n != 0 {
+        if ha2[idx].n == n {
+            return;
+        }
+        idx += 1;
+        if idx >= HASHSIZ {
+            // Preserve the C bug/behavior: no wrap; give up.
+            return;
+        }
+    }
+    ha2[idx].n = n;
+    ha2[idx].b = 1;
+}
+
+fn abs_i32(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
+}
+
+fn main() {
+    // Fast input: read all, parse as non-negative integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    // Per spec: multiple datasets until n == 0.
+    // Note: C's `in()` expects non-negative integers; we do the same.
+    let mut outputs = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        let mut a = vec![0i32; n];
+        for i in 0..n {
+            a[i] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+        let mut w = vec![0i32; m];
+        for i in 0..m {
+            w[i] = it.next().unwrap().parse::<i32>().unwrap();
+        }
+
+        // Enumerate all signed outcomes q with coefficients in {-1,0,+1}.
+        // C uses fixed array q[60000] (enough for m<=10); spec says m<=12.
+        // We'll allocate dynamically to preserve semantics for m up to 12.
+        let mut q: Vec<i32> = Vec::with_capacity(3usize.pow(m as u32));
+        q.push(0);
+        let mut end = 1usize;
+        for i in 0..m {
+            let e = end;
+            for j in 0..e {
+                let base = q[j];
+                q.push(base + w[i]);
+                q.push(base - w[i]);
+            }
+            end = q.len();
+        }
+
+        // Build membership table for exactly balanceable targets:
+        // per spec/C: only q>0 are inserted; targets t==0 are never "exactly balanceable".
+        let mut ha1 = vec![0i32; HASHSIZ];
+        for &val in q.iter().take(end) {
+            if val > 0 {
+                insert1(&mut ha1, val);
+            }
+        }
+
+        // Intersection of candidate deviations across unbalanceable targets.
+        let mut x: i32 = 0;
+        let mut ans: i32 = 0;
+
+        let mut ha2 = vec![HA { n: 0, b: 0 }; HASHSIZ];
+
+        for i in 0..n {
+            if !lookup1(&ha1, a[i]) {
+                if x == 0 {
+                    ans = INF;
+                    // reset ha2
+                    for slot in ha2.iter_mut() {
+                        slot.n = 0;
+                        slot.b = 0;
+                    }
+                    for &qv in q.iter().take(end) {
+                        let t = abs_i32(a[i] - qv);
+                        if t < ans {
+                            ans = t;
+                        }
+                        insert2(&mut ha2, t);
+                    }
+                    x = 1;
+                } else {
+                    x += 1;
+                    ans = INF;
+                    let mut r = false;
+                    for &qv in q.iter().take(end) {
+                        let t = abs_i32(a[i] - qv);
+                        if lookup2(&mut ha2, t, x) {
+                            if t < ans {
+                                ans = t;
+                            }
+                            r = true;
+                        }
+                    }
+                    if !r {
+                        ans = -1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        outputs.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{outputs}");
+}
+
+/*
+Note on spec vs C:
+- The spec defines Q as all signed outcomes (including negatives and 0), and exact balanceability
+  requires q == t and t > 0. This matches the C code: it inserts only q>0 into ha1 and checks
+  membership for targets; thus target 0 is never considered exactly balanceable.
+- The C code's hash probing for ha2 has a wrap-around bug (it never wraps). This Rust translation
+  preserves that behavior to match the source-of-truth implementation.
+*/
+```

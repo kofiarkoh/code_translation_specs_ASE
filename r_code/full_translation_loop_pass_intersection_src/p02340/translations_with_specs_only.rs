@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const MAX: usize = 1000;
+
+fn main() {
+    // Read entire stdin; if parsing fails, behavior is unspecified by the spec.
+    // We choose a narrow interpretation: default missing/invalid values to 0.
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+    let mut it = input.split_whitespace();
+
+    let target: usize = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0) as usize;
+    let bound: usize = it.next().and_then(|s| s.parse::<i64>().ok()).unwrap_or(0) as usize;
+
+    // Precompute dp[sum][max_part] for sum,max_part in 0..=1000.
+    // dp[s][k] = number of partitions of s using parts in [1..=k], order irrelevant.
+    // Recurrence:
+    //   dp[0][k] = 1 for all k
+    //   dp[s][0] = 0 for s>0
+    //   dp[s][k] = dp[s][k-1] + (s>=k ? dp[s-k][k] : 0)  (mod MOD)
+    let mut dp = vec![vec![0u64; MAX + 1]; MAX + 1];
+
+    for k in 0..=MAX {
+        dp[0][k] = 1;
+    }
+
+    for s in 1..=MAX {
+        dp[s][0] = 0;
+    }
+
+    for k in 1..=MAX {
+        for s in 1..=MAX {
+            let mut v = dp[s][k - 1];
+            if s >= k {
+                v = (v + dp[s - k][k]) % MOD;
+            }
+            dp[s][k] = v;
+        }
+    }
+
+    // Preconditions guarantee target,bound in [0,1000]; outside is undefined.
+    // We do not add checks to preserve the "undefined" nature; indexing may panic in Rust.
+    let ans = dp[target][bound] % MOD;
+    println!("{ans}");
+}

@@ -1,0 +1,64 @@
+```rust
+use std::io::{self, Read};
+
+fn digit_sum(mut x: u64) -> u64 {
+    let mut s = 0u64;
+    while x > 0 {
+        s += x % 10;
+        x /= 10;
+    }
+    s
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: u64 = match input.split_whitespace().next() {
+        Some(tok) => tok.parse().unwrap(),
+        None => return, // unspecified by spec; choose to do nothing if missing
+    };
+
+    let mut cur: u64 = 1;
+
+    for _ in 0..n {
+        println!("{}", cur);
+
+        let p = cur;
+
+        // Candidate evaluation order:
+        // 1) p + 1
+        // 2) for scales 10..=10^15: the largest integer less than the next multiple
+        //    of that scale above (p + 1), i.e., (ceil((p+1)/scale)*scale - 1)
+        let mut best_val: u64 = p + 1;
+        let mut best_ratio: f64 = {
+            let ds = digit_sum(best_val);
+            (best_val as f64) / (ds as f64)
+        };
+
+        let mut scale: u64 = 10;
+        for _ in 0..15 {
+            let x = p + 1;
+
+            // next multiple of `scale` at or above x:
+            // m = ((x + scale - 1) / scale) * scale
+            // candidate = m - 1
+            let m = ((x + scale - 1) / scale) * scale;
+            let cand = m - 1;
+
+            // cand is strictly greater than p for all scales >= 10.
+            let ds = digit_sum(cand);
+            let ratio = (cand as f64) / (ds as f64);
+
+            // Ties resolved by keeping earliest encountered: only update on strict improvement.
+            if ratio < best_ratio {
+                best_ratio = ratio;
+                best_val = cand;
+            }
+
+            scale *= 10;
+        }
+
+        cur = best_val;
+    }
+}
+```

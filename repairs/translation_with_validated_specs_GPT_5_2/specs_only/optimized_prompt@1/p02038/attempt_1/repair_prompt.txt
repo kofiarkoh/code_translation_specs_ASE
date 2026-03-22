@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a count and a sequence of truth-like tokens, then computes a left-associative binary reduction over the sequence using the rule: the result is false only when the left operand is true and the right operand is false; otherwise the result is true. Outputs the final reduced truth value.
+
+2. Inputs  
+- An integer specifying the number of tokens to read.  
+- A sequence of that many tokens, each providing at least one character; only the first character of each token is used as the token’s value.
+
+3. Outputs  
+- On successful processing, writes a single character representing the final reduced truth value, followed by a line terminator.
+
+4. Preconditions  
+- The input provides the integer count and at least that many subsequent tokens.  
+- The count is at least 2 (the computation requires at least two tokens).  
+- The count does not exceed the program’s internal fixed storage capacity for tokens.  
+- Tokens intended to represent truth values use the characters `T` and `F` (other characters are accepted but will be treated as “not `T`” / “not `F`” per the reduction rule).
+
+5. Postconditions  
+- If all required inputs are successfully read and preconditions hold, the program outputs:  
+  - `F` iff there exists an index `k` (1 ≤ k < N) such that the reduced value of the prefix up to `k-1` is `T` and the k-th token is `F`; otherwise outputs `T`.  
+  Equivalently, the output is the result of repeatedly applying the binary rule from left to right across the N token values.
+
+6. Invariants  
+- After reading, the stored sequence length equals the provided count.  
+- During reduction, the intermediate result is always either `T` or `F`.
+
+7. Error Handling / Exceptional Behavior  
+- If the initial count cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If any token cannot be read, the program terminates with a non-zero exit status and produces no guaranteed output.  
+- If the count is less than 2 or exceeds internal storage capacity, behavior is not defined by the program (no explicit handling).
+
+8. State Transitions (if applicable)  
+- States: Start → (Input Read Failure → Terminate Error) or (Inputs Read → Reduced Result Computed → Output Written → Terminate Success).  
+- On any token read failure: Inputs Read (partial) → Terminate Error.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of tokens.  
+- Uses fixed-size internal storage; maximum supported token count is bounded by that storage.
+```

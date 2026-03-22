@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, Read};
+
+fn get_len(an: i32, bn: i32, ais: &[i32], bis: &[i32], k0: i32) -> i32 {
+    let mut ai: i32 = 0;
+
+    let mut bi = k0;
+    while bi < bn {
+        if ai >= an {
+            return bi - k0;
+        }
+        let b = bis[bi as usize];
+
+        let mut aj = ai;
+        while aj < an && ais[aj as usize] != b {
+            aj += 1;
+        }
+        if aj >= an {
+            return bi - k0;
+        }
+        ai = aj + 1;
+
+        bi += 1;
+    }
+
+    bn - k0
+}
+
+fn main() {
+    // Read all input (scanf-style whitespace separated integers).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let an: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // If no input, mimic "do nothing" rather than panic.
+    };
+    let bn: i32 = it.next().unwrap().parse().unwrap();
+
+    // The C code uses fixed-size global arrays, but only the first an/bn elements are read/used.
+    let mut ais: Vec<i32> = Vec::with_capacity(an.max(0) as usize);
+    let mut bis: Vec<i32> = Vec::with_capacity(bn.max(0) as usize);
+
+    for _ in 0..an {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        ais.push(v);
+    }
+    for _ in 0..bn {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        bis.push(v);
+    }
+
+    let mut max_len: i32 = 0;
+
+    let mut k0: i32 = 0;
+    while k0 < bn {
+        // Preserve the C condition: if (k0 + max_len > bn) break;
+        // Use i64 to avoid overflow in Rust; C signed overflow is UB, but with given bounds it won't occur.
+        if (k0 as i64 + max_len as i64) > bn as i64 {
+            break;
+        }
+
+        let len = get_len(an, bn, &ais, &bis, k0);
+        if max_len < len {
+            max_len = len;
+        }
+
+        k0 += 1;
+    }
+
+    print!("{max_len}\n");
+}
+```

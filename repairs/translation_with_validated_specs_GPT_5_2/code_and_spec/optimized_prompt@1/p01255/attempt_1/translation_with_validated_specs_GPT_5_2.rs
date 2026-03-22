@@ -1,0 +1,436 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-6;
+
+fn eq(a: f64, b: f64) -> bool {
+    (a - b).abs() < EPS
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct PP {
+    x: f64,
+    y: f64,
+}
+
+fn peq(a: PP, b: PP) -> bool {
+    eq(a.x, b.x) && eq(a.y, b.y)
+}
+
+fn vadd(p1: PP, p2: PP) -> PP {
+    PP {
+        x: p1.x + p2.x,
+        y: p1.y + p2.y,
+    }
+}
+fn vsub(p1: PP, p2: PP) -> PP {
+    PP {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y,
+    }
+}
+fn vsmul(p: PP, k: f64) -> PP {
+    PP {
+        x: p.x * k,
+        y: p.y * k,
+    }
+}
+fn cross(a: PP, b: PP) -> f64 {
+    a.x * b.y - a.y * b.x
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Seg {
+    s: PP,
+    e: PP,
+}
+
+fn dir(s: Seg) -> PP {
+    vsub(s.e, s.s)
+}
+
+fn ccw(p: PP, q: PP, r: PP) -> i32 {
+    let dx = q.x - p.x;
+    let dy = q.y - p.y;
+    let dx_ = r.x - p.x;
+    let dy_ = r.y - p.y;
+    let t = dx * dy_ - dy * dx_;
+    if t.abs() < EPS {
+        0
+    } else if t <= 0.0 {
+        -1
+    } else {
+        1
+    }
+}
+
+fn intersect(s1: Seg, s2: Seg) -> bool {
+    (ccw(s1.s, s1.e, s2.s) * ccw(s1.s, s1.e, s2.e) <= 0)
+        && (ccw(s2.s, s2.e, s1.s) * ccw(s2.s, s2.e, s1.e) <= 0)
+}
+
+// Returns (ok, point). If ok==false, point is dummy.
+fn cross_point(s1: Seg, s2: Seg) -> (bool, PP) {
+    let n = cross(vsub(s2.s, s1.s), dir(s2));
+    let d = cross(dir(s1), dir(s2));
+    if eq(d, 0.0) {
+        (false, PP { x: 1.0, y: 1.0 })
+    } else {
+        (true, vadd(s1.s, vsmul(dir(s1), n / d)))
+    }
+}
+
+fn uniq_sorted_points(a: &mut Vec<PP>) {
+    if a.is_empty() {
+        return;
+    }
+    let mut out: Vec<PP> = Vec::with_capacity(a.len());
+    out.push(a[0]);
+    for &p in a.iter().skip(1) {
+        if !peq(*out.last().unwrap(), p) {
+            out.push(p);
+        }
+    }
+    *a = out;
+}
+
+const N: usize = 500;
+const MAX: usize = 5000;
+const LIM_MAX: usize = 25;
+
+#[derive(Clone, Copy, Debug, Default)]
+struct T {
+    s: Seg,
+    id: usize, // route id (0..lim)
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct A {
+    hi: usize,
+    to: [usize; LIM_MAX],
+    id: [usize; LIM_MAX],
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct S {
+    v: usize,
+    hi: i32,
+}
+
+fn pushback(aa: &mut Vec<Vec<A>>, ff: &mut [i32], i: usize, iid: usize, j: usize, jid: usize) {
+    let a = &mut aa[i][iid];
+    for k in 0..a.hi {
+        if a.to[k] == j && a.id[k] == jid {
+            return;
+        }
+    }
+    if a.hi == 0 {
+        ff[i] += 1;
+    }
+    let k = a.hi;
+    a.hi += 1;
+    // C code assumes fixed small bounds; spec says undefined if exceeded.
+    a.to[k] = j;
+    a.id[k] = jid;
+}
+
+fn segarrange(
+    data: &[T],
+    nseg: usize,
+    lim: usize,
+) -> (Vec<PP>, Vec<Vec<A>>, Vec<S>, usize) {
+    // Build tbl: all endpoints + all computable intersections.
+    let mut tbl: Vec<PP> = Vec::new();
+    tbl.reserve(2 * nseg + nseg * (nseg.saturating_sub(1)) / 2);
+
+    for i in 0..nseg {
+        tbl.push(data[i].s.s);
+        tbl.push(data[i].s.e);
+    }
+    for i in 0..nseg {
+        for j in 0..i {
+            if intersect(data[i].s, data[j].s) {
+                let (ok, p) = cross_point(data[i].s, data[j].s);
+                if ok {
+                    tbl.push(p);
+                }
+            }
+        }
+    }
+
+    // Sort with EPS-aware comparator like C's cmp.
+    tbl.sort_by(|a, b| {
+        if eq(a.x, b.x) {
+            if eq(a.y, b.y) {
+                Ordering::Equal
+            } else if a.y <= b.y {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        } else if a.x <= b.x {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    });
+    uniq_sorted_points(&mut tbl);
+    let sz = tbl.len();
+
+    // aa[sz][lim], ff[sz]
+    let mut ff: Vec<i32> = vec![0; sz];
+    let mut aa: Vec<Vec<A>> = vec![vec![A::default(); lim]; sz];
+
+    // For each segment, collect all tbl points collinear with it, in tbl order,
+    // then connect consecutive points for that route id.
+    let mut u: Vec<(usize, usize)> = Vec::new(); // (tbl index, route id)
+    for i in 0..nseg {
+        u.clear();
+        for (j, &p) in tbl.iter().enumerate() {
+            if ccw(data[i].s.s, data[i].s.e, p) == 0 {
+                u.push((j, data[i].id));
+            }
+        }
+        for w in u.windows(2) {
+            let (u0, id0) = w[0];
+            let (u1, id1) = w[1];
+            pushback(&mut aa, &mut ff, u0, id0, u1, id1);
+            pushback(&mut aa, &mut ff, u1, id1, u0, id0);
+        }
+    }
+
+    // ss sorted by descending degree (ff), then descending v.
+    let mut ss: Vec<S> = (0..sz)
+        .map(|i| S {
+            v: i,
+            hi: ff[i],
+        })
+        .collect();
+    ss.sort_by(|a, b| {
+        let d = b.hi.cmp(&a.hi);
+        if d != Ordering::Equal {
+            d
+        } else {
+            b.v.cmp(&a.v)
+        }
+    });
+
+    (tbl, aa, ss, sz)
+}
+
+fn welsh_powell(lim: usize, aa: &[Vec<A>], ss: &[S], sz: usize) -> i32 {
+    if sz == 0 {
+        // No points => no segments => no routes present; C would return 1? Actually lim>0 but
+        // with all s==0, nseg==0, sz==0, ss[0] invalid. Spec says undefined; we avoid panic.
+        return 0;
+    }
+
+    let lim_i32 = lim as i32;
+    if ss[0].hi == lim_i32 {
+        return lim_i32;
+    }
+    if ss[0].hi == 1 {
+        return 1;
+    }
+
+    // Preserve C's special-case bookkeeping (even if odd-looking).
+    let mut ff_flag: i32 = 0;
+    let mut mg: i32 = 0;
+    if lim == 22 {
+        ff_flag = 1;
+        mg = 10;
+    }
+
+    let mut conflict = vec![vec![false; lim]; lim];
+    for i in 0..lim {
+        conflict[i][i] = true; // invariant: self-conflict for bookkeeping
+    }
+
+    for i in 0..sz {
+        let u = ss[i].v;
+        for c in 0..lim {
+            if aa[u][c].hi != 0 {
+                for cc in (c + 1)..lim {
+                    if aa[u][cc].hi != 0 {
+                        conflict[c][cc] = true;
+                        conflict[cc][c] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut ans: i32 = lim_i32;
+
+    for m in 0..2 {
+        let mut r: i32 = 0;
+        let mut color = vec![0i32; lim];
+        let mut q: Vec<usize> = Vec::with_capacity(lim);
+
+        for i in 0..sz {
+            let u = ss[i].v;
+            let mut f: usize = 0;
+            q.clear();
+
+            // pick first uncolored route present at this point
+            for c in 0..lim {
+                if aa[u][c].hi != 0 && color[c] == 0 {
+                    r += 1;
+                    color[c] = r;
+                    q.push(c);
+                    f = 1;
+                    break;
+                }
+            }
+            if f == 0 {
+                continue;
+            }
+
+            if m == 0 {
+                for j in 0..sz {
+                    let u2 = ss[j].v;
+                    for cc in 0..lim {
+                        if aa[u2][cc].hi != 0 && color[cc] == 0 {
+                            let mut k = 0usize;
+                            loop {
+                                if k == f {
+                                    color[cc] = r;
+                                    q.push(cc);
+                                    f += 1;
+                                    break;
+                                }
+                                if conflict[q[k]][cc] {
+                                    break;
+                                }
+                                k += 1;
+                            }
+                        }
+                    }
+                }
+            } else {
+                for j in (0..sz).rev() {
+                    let u2 = ss[j].v;
+                    for cc in 0..lim {
+                        if aa[u2][cc].hi != 0 && color[cc] == 0 {
+                            let mut k = 0usize;
+                            loop {
+                                if k == f {
+                                    color[cc] = r;
+                                    q.push(cc);
+                                    f += 1;
+                                    break;
+                                }
+                                if conflict[q[k]][cc] {
+                                    break;
+                                }
+                                k += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (ff_flag & 1) != 0 && r == mg {
+            ff_flag <<= 1;
+        }
+        if (ff_flag & 2) != 0 && r == mg {
+            ff_flag <<= 1;
+        }
+        if r < ans {
+            ans = r;
+        }
+    }
+
+    if (ff_flag & 4) != 0 {
+        ans = mg - 1;
+    }
+    ans
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+    fn next_i32(&mut self) -> Option<i32> {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.buf[self.idx] == b'-' {
+            sign = -1;
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            n = n * 10 + (c - b'0') as i32;
+            self.idx += 1;
+        }
+        Some(sign * n)
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let lim = match sc.next_i32() {
+            Some(v) => v,
+            None => break,
+        };
+        if lim == 0 {
+            break;
+        }
+        let lim_usize = lim as usize;
+
+        // Build segment list from polylines.
+        let mut data: Vec<T> = Vec::new();
+        data.reserve(N);
+
+        for route_id in 0..lim_usize {
+            let s = sc.next_i32().unwrap() as usize;
+            if s == 0 {
+                continue;
+            }
+            let mut x0 = sc.next_i32().unwrap() as f64;
+            let mut y0 = sc.next_i32().unwrap() as f64;
+            for _ in 1..s {
+                let x1 = sc.next_i32().unwrap() as f64;
+                let y1 = sc.next_i32().unwrap() as f64;
+                data.push(T {
+                    s: Seg {
+                        s: PP { x: x0, y: y0 },
+                        e: PP { x: x1, y: y1 },
+                    },
+                    id: route_id,
+                });
+                x0 = x1;
+                y0 = y1;
+            }
+        }
+
+        let nseg = data.len();
+        let (_tbl, aa, ss, sz) = segarrange(&data, nseg, lim_usize);
+        let ans = welsh_powell(lim_usize, &aa, &ss, sz);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

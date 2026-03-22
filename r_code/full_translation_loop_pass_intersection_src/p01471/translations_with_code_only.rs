@@ -1,0 +1,125 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Item {
+    w: i32,
+    v: i32,
+    r: f64,
+}
+
+fn zero(a: f64) -> bool {
+    a.abs() < 1e-7
+}
+
+fn main() {
+    // Read entire stdin (fast enough and preserves behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx: usize = 0;
+
+    // Emulate the C in() behavior: it does not skip whitespace robustly; it assumes the next
+    // non-consumed byte begins a number (possibly '-'). We'll still skip non-digit/non-'-'
+    // to be resilient to typical whitespace-separated input.
+    fn next_i32(bytes: &[u8], idx: &mut usize) -> i32 {
+        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= bytes.len() {
+            return 0;
+        }
+        let mut c = bytes[*idx];
+        *idx += 1;
+
+        let mut n: i32 = 0;
+        if c == b'-' {
+            if *idx < bytes.len() {
+                c = bytes[*idx];
+                *idx += 1;
+            } else {
+                return 0;
+            }
+            while c >= b'0' {
+                // (c & 0xf) matches the C code's digit extraction.
+                n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+                if *idx >= bytes.len() {
+                    break;
+                }
+                c = bytes[*idx];
+                *idx += 1;
+            }
+            return -n;
+        }
+
+        while c >= b'0' {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if *idx >= bytes.len() {
+                break;
+            }
+            c = bytes[*idx];
+            *idx += 1;
+        }
+        n
+    }
+
+    let n = next_i32(bytes, &mut idx);
+    let mut w_cap = next_i32(bytes, &mut idx) as f64;
+
+    let mut tbl: Vec<Item> = Vec::with_capacity(100_002);
+    let mut ans: f64 = 0.0;
+
+    let mut nn = n;
+    while nn > 0 {
+        nn -= 1;
+        let mut w = next_i32(bytes, &mut idx);
+        let mut v = next_i32(bytes, &mut idx);
+
+        if w >= 0 && v <= 0 {
+            continue;
+        }
+        if w < 0 && v > 0 {
+            ans += v as f64;
+            w_cap -= w as f64; // subtracting negative increases capacity
+        } else {
+            if w < 0 {
+                // Mirror the C code's sign normalization and immediate adjustments.
+                w = -w;
+                v = -v;
+                ans -= v as f64;
+                w_cap += w as f64;
+            }
+            // C does (double)v/w; if w==0 this yields +/-inf or NaN. Preserve that.
+            let r = (v as f64) / (w as f64);
+            tbl.push(Item { w, v, r });
+        }
+    }
+
+    // Emulate qsort with the provided comparator:
+    // cmp(a,b): if |b.r - a.r| < 1e-8 => equal; else if a.r <= b.r => return 1; else -1.
+    // This sorts by descending r, with a tolerance band treated as equal.
+    tbl.sort_by(|a, b| {
+        if (b.r - a.r).abs() < 1e-8 {
+            Ordering::Equal
+        } else if a.r <= b.r {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        }
+    });
+
+    for item in &tbl {
+        if zero(w_cap) {
+            break;
+        }
+        let mut x = w_cap / (item.w as f64);
+        if x > 1.0 {
+            x = 1.0;
+        }
+        w_cap -= x * (item.w as f64);
+        ans += x * (item.v as f64);
+    }
+
+    // C prints with "%lf\n" (default 6 digits after decimal).
+    println!("{:.6}", ans);
+}

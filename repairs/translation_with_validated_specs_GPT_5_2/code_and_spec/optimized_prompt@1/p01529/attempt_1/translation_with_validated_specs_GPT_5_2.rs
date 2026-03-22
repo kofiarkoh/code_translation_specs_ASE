@@ -1,0 +1,77 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens (spec: well-formed input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut prefix = vec![0i64; n];
+
+    for i in 0..n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        prefix[i] = x + if i > 0 { prefix[i - 1] } else { 0 };
+    }
+
+    if n <= 1 {
+        // Spec: if n = 1, output 0.
+        println!("0");
+        return;
+    }
+
+    // dp[i][j] = min cost to merge items i..=j into one group (adjacent merges only).
+    // k[i][j] = argmin split point b for dp[i][j] (Knuth optimization).
+    //
+    // Memory: O(n^2) as intended by spec.
+    let inf: i64 = i64::MAX / 4;
+    let mut dp = vec![vec![inf; n]; n];
+    let mut k = vec![vec![0usize; n]; n];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    // Helper: sum of weights in [i..=j]
+    let sum_range = |prefix: &Vec<i64>, i: usize, j: usize| -> i64 {
+        if i == 0 {
+            prefix[j]
+        } else {
+            prefix[j] - prefix[i - 1]
+        }
+    };
+
+    // Length a = j - i, from 1 to n-1 (C loops a<=n but j<n prevents extra work).
+    for a in 1..n {
+        for i in 0..(n - a) {
+            let j = i + a;
+
+            // Knuth optimization bounds:
+            // b in [k[i][j-1], k[i+1][j]] (valid for this cost model).
+            let mut left = k[i][j - 1];
+            let mut right = k[i + 1][j];
+            if left > right {
+                std::mem::swap(&mut left, &mut right);
+            }
+
+            let s = sum_range(&prefix, i, j);
+            let mut best = inf;
+            let mut best_b = left;
+
+            for b in left..=right {
+                // Split into [i..=b] and [b+1..=j]
+                let cand = dp[i][b] + dp[b + 1][j] + s;
+                if cand < best {
+                    best = cand;
+                    best_b = b;
+                }
+            }
+
+            dp[i][j] = best;
+            k[i][j] = best_b;
+        }
+    }
+
+    println!("{}", dp[0][n - 1]);
+}

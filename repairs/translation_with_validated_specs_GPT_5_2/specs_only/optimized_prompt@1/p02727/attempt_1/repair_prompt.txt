@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the maximum achievable total value by selecting exactly `X` items from a first group and exactly `Y` items from a second group, with the option to replace some of those selected items by items from a third group. Each item from the third group may be used at most once as a replacement. The program outputs the resulting maximum total sum.
+
+2. Inputs  
+- Five integers:  
+  - `X`: number of items to select from the first group after replacements  
+  - `Y`: number of items to select from the second group after replacements  
+  - `A`: number of available items in the first group  
+  - `B`: number of available items in the second group  
+  - `C`: number of available items in the third group (replacement candidates)  
+- A sequence of `A` integers: values of items in the first group  
+- A sequence of `B` integers: values of items in the second group  
+- A sequence of `C` integers: values of items in the third group
+
+3. Outputs  
+- One signed 64-bit integer: the maximum total sum of the final chosen `X + Y` items under the allowed replacement rule.
+
+4. Preconditions  
+- All required integers are present in the input.  
+- `0 <= X <= A` and `0 <= Y <= B` (the program later sums the first `X` and first `Y` values after internal selection).  
+- `A`, `B`, and `C` do not exceed the fixed internal storage capacity.  
+- The sum of selected values fits within a signed 64-bit integer.
+
+5. Postconditions  
+- The output equals the maximum possible value of:  
+  - (sum of `X` chosen values from the first group) + (sum of `Y` chosen values from the second group),  
+  after optionally performing replacements where each replacement swaps out one currently chosen item (from either group) for one distinct item from the third group, and only if the swap increases the total.  
+- Exactly `X` values are counted from the first group’s final chosen multiset and exactly `Y` values are counted from the second group’s final chosen multiset.
+
+6. Invariants  
+- At all times, the program maintains a notion of “currently chosen” items consisting of `X` candidates from the first group and `Y` candidates from the second group.  
+- A replacement from the third group, if applied, never decreases the total sum of the currently chosen items.  
+- No item from the third group is used more than once.
+
+7. Error Handling / Exceptional Behavior  
+- If any required input value is missing or cannot be read as an integer, the program terminates early with a non-zero exit status and produces no guaranteed output.  
+- If preconditions about bounds/capacity are violated, behavior is not defined by this specification (the code does not guard against it).
+
+8. State Transitions (if applicable)  
+- Initial state: three groups of item values are read.  
+- Selection state: the program conceptually fixes an initial choice of `X` items from the first group and `Y` items from the second group that is optimal without using the third group.  
+- Replacement state: iteratively applies zero or more improving replacements using items from the third group until no further improving replacement is possible or no replacement candidates remain.  
+- Final state: outputs the sum of the final chosen `X + Y` items.
+
+9. Non-functional Constraints (if inferable)  
+- Uses memory proportional to `A + B + C` within a fixed maximum capacity.  
+- Intended to run efficiently for moderately large `A`, `B`, `C` (dominant cost is ordering the three groups and then a linear pass over the third group).
+```

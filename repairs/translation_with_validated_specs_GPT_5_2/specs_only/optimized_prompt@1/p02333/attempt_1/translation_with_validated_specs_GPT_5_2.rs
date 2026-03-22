@@ -1,0 +1,59 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const MAX: usize = 2000;
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r: u64 = 1;
+    a %= MOD;
+    while e > 0 {
+        if (e & 1) == 1 {
+            r = (r * a) % MOD;
+        }
+        a = (a * a) % MOD;
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    // Input: exactly two integers n and m. If malformed, behavior is unspecified by spec.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: u64 = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Precompute factorials and inverse factorials up to 2000 under MOD.
+    let mut fact = vec![0u64; MAX + 1];
+    let mut inv_fact = vec![0u64; MAX + 1];
+
+    fact[0] = 1;
+    for i in 1..=MAX {
+        fact[i] = (fact[i - 1] * (i as u64)) % MOD;
+    }
+
+    // MOD is prime and > MAX, so factorial[MAX] is invertible mod MOD.
+    inv_fact[MAX] = mod_pow(fact[MAX], MOD - 2);
+    for i in (1..=MAX).rev() {
+        inv_fact[i - 1] = (inv_fact[i] * (i as u64)) % MOD;
+    }
+
+    // Compute sum_{i=0..m} (-1)^{m-i} C(m,i) * i^n mod MOD.
+    let mut ans: u64 = 0;
+    for i in 0..=m {
+        let c = (((fact[m] * inv_fact[i]) % MOD) * inv_fact[m - i]) % MOD;
+        let p = mod_pow(i as u64, n);
+        let term = (c * p) % MOD;
+
+        // (-1)^{m-i}: subtract when (m-i) is odd, add when even.
+        if ((m - i) & 1) == 1 {
+            ans = (ans + MOD - term) % MOD;
+        } else {
+            ans = (ans + term) % MOD;
+        }
+    }
+
+    println!("{}", ans);
+}

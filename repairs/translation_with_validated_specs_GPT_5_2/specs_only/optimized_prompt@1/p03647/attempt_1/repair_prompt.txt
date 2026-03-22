@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a sequence of input pairs can be processed without violating a uniqueness constraint on a derived category index. Produces a single final decision: either the sequence is feasible (“POSSIBLE”) or infeasible (“IMPOSSIBLE”).
+
+2. Inputs  
+- An initial integer value (call it `N`).  
+- A second integer value that is read and ignored.  
+- Zero or more subsequent records, each consisting of two integers (call them `A` and `B`), read until end-of-input.
+
+3. Outputs  
+- Exactly one line of text indicating feasibility:
+  - “POSSIBLE” if no violation is detected.
+  - “IMPOSSIBLE” if a violation is detected.
+
+4. Preconditions  
+- The input provides at least the initial integer `N` (and one additional integer that is ignored).  
+- Each subsequent record, if present, contains two integers.  
+- Assumption: All derived category indices computed from the input fall within a fixed finite range (bounded by a preallocated table size). If not, behavior is undefined.
+
+5. Postconditions  
+- If any derived category index is selected more than once across the processed records, the output is “IMPOSSIBLE”.  
+- Otherwise, the output is “POSSIBLE”.
+
+6. Invariants  
+- A fixed-size table of category-usage counts is maintained; each processed record selects exactly one category index and increments its count.  
+- Once infeasibility is detected, the final output remains “IMPOSSIBLE” regardless of remaining input.
+
+7. Error Handling / Exceptional Behavior  
+- End-of-input terminates record processing and triggers output.  
+- Malformed input (non-integer where an integer is required) results in termination of record processing at that point; the decision is based on records successfully read up to then.  
+- If a derived category index falls outside the table bounds, behavior is undefined (no guaranteed error handling).
+
+8. State Transitions (if applicable)  
+- State includes:
+  - The current feasibility flag (initially feasible).
+  - The category-usage table (initially all zero).
+- For each successfully read record:
+  - A category index is derived from `A`, `B`, and `N`.
+  - If that category has already been used at least once, transition to infeasible state.
+  - Otherwise, mark the category as used.
+- After input ends, emit output based on the final feasibility state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed upper bound on the number of distinct categories (a constant-size table).  
+- Memory usage is constant with respect to the number of input records (aside from the fixed table).  
+- Processing time is linear in the number of successfully read records.
+```

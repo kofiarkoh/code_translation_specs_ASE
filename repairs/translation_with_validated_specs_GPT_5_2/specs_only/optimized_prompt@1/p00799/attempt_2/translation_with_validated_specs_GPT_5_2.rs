@@ -1,0 +1,142 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Pair {
+    u: i64,
+    c: i64,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum State {
+    Active,
+    Charging,
+}
+
+struct Device {
+    cycle: Vec<Pair>,
+    idx: usize, // current cycle index
+    state: State,
+    rem: i64, // remaining time in current state
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: i64 = n_tok.parse().unwrap();
+        let lim: i64 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
+        if n <= 0 {
+            break;
+        }
+
+        let n_usize = n as usize;
+        let mut devices: Vec<Device> = Vec::with_capacity(n_usize);
+
+        for _ in 0..n_usize {
+            let mut cycle: Vec<Pair> = Vec::new();
+            loop {
+                let u: i64 = it.next().unwrap().parse().unwrap();
+                if u <= 0 {
+                    break;
+                }
+                let c: i64 = it.next().unwrap().parse().unwrap();
+                cycle.push(Pair { u, c });
+            }
+
+            let first = cycle[0];
+            devices.push(Device {
+                cycle,
+                idx: 0,
+                state: State::Active,
+                rem: first.u,
+            });
+        }
+
+        if lim <= 0 {
+            outputs.push("0".to_string());
+            continue;
+        }
+
+        // Fixed-size circular buffer queue of capacity 102, overwrite-on-wrap semantics.
+        // IMPORTANT: Emptiness is determined by a separate count, not by head==tail,
+        // because overwrite can make head==tail while the queue is logically non-empty.
+        const QCAP: usize = 102;
+        let mut qbuf: [usize; QCAP] = [0; QCAP];
+        let mut qhead: usize = 0;
+        let mut qtail: usize = 0;
+        let mut qlen: usize = 0;
+
+        let mut misses: i128 = 0;
+
+        for _t in 1..=lim {
+            // Step (B) excludes devices that "just entered charging in this same time unit".
+            // We implement this by snapshotting which devices were charging at the *start*
+            // of the time unit (before step A).
+            let mut was_charging: Vec<bool> = vec![false; n_usize];
+            for i in 0..n_usize {
+                was_charging[i] = devices[i].state == State::Charging;
+            }
+
+            // (A) Advance active devices and enqueue new chargers.
+            for i in 0..n_usize {
+                if devices[i].state == State::Active {
+                    devices[i].rem -= 1;
+                    if devices[i].rem == 0 {
+                        devices[i].state = State::Charging;
+                        devices[i].rem = devices[i].cycle[devices[i].idx].c;
+
+                        // Enqueue with overwrite-on-wrap semantics and no full detection.
+                        qbuf[qtail] = i;
+                        qtail = (qtail + 1) % QCAP;
+                        if qlen < QCAP {
+                            qlen += 1;
+                        } else {
+                            // Overwrite oldest: advance head to keep length at capacity.
+                            qhead = (qhead + 1) % QCAP;
+                        }
+                    }
+                }
+            }
+
+            if qlen == 0 {
+                continue;
+            }
+
+            let front = qbuf[qhead];
+
+            // (B) Count misses among devices that were already charging before step (A).
+            for i in 0..n_usize {
+                if was_charging[i] && i != front {
+                    misses += 1;
+                }
+            }
+
+            // (C) Apply one unit of charging service to the queue front.
+            let fi = front;
+            devices[fi].rem -= 1;
+            if devices[fi].rem == 0 {
+                // Dequeue
+                qhead = (qhead + 1) % QCAP;
+                qlen -= 1;
+
+                // Switch to active, advance cycle index, set remaining active time.
+                devices[fi].state = State::Active;
+                devices[fi].idx = (devices[fi].idx + 1) % devices[fi].cycle.len();
+                devices[fi].rem = devices[fi].cycle[devices[fi].idx].u;
+            }
+        }
+
+        outputs.push(misses.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

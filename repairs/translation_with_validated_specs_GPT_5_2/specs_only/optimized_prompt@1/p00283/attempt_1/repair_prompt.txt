@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each dataset, the minimum number of actions required to reduce an initial positive target value to zero or below. Each action is chosen from a provided set and is only available when the current resource level meets that action’s requirement. Performing an action decreases the remaining target by a specified amount and increases the resource level by a specified amount (capped at a fixed maximum). If the target cannot be reduced to zero or below under these rules, reports that no solution exists.
+
+2. Inputs  
+For each dataset:
+- An initial target value.  
+- A count of available action types.  
+- For each action type:  
+  - A positive reduction amount applied to the remaining target when the action is taken.  
+  - A nonnegative resource gain applied to the current resource level when the action is taken.  
+  - A nonnegative minimum resource requirement that must be met to take the action.  
+Datasets repeat until a terminating pair of zeros is encountered.
+
+3. Outputs  
+For each dataset:
+- If solvable: a single nonnegative integer equal to the minimum number of actions needed to reach a remaining target value ≤ 0.  
+- If not solvable: an explicit “no solution” indicator.
+
+4. Preconditions  
+- The number of action types does not exceed 100.  
+- The initial target value is within the supported memoization range (assumed 0 to 100 inclusive); behavior outside this range is undefined.  
+- Resource requirement and gain values are assumed to be within a range that keeps the effective resource level within 0 to 100 after capping.  
+- Each action’s reduction amount is assumed positive to ensure progress toward termination; if not, termination is not guaranteed.
+
+5. Postconditions  
+For each dataset:
+- If an output integer is produced, it equals the minimum number of valid actions (respecting resource requirements and resource updates with capping) that reduces the target to ≤ 0.  
+- If the “no solution” indicator is produced, then no sequence of valid actions exists that reduces the target to ≤ 0.
+
+6. Invariants  
+- The resource level used for decision-making is always treated as an integer within 0 to 100 (values above 100 are treated as 100).  
+- The computed minimum action count for any reachable state (remaining target, resource level) is consistent: repeated evaluations yield the same result for the same state within a dataset.
+
+7. Error Handling / Exceptional Behavior  
+- If an input dataset is incomplete or malformed while reading action definitions, the program terminates immediately with a nonzero exit status and produces no further outputs.  
+- If preconditions are violated (e.g., target value outside supported range), behavior is undefined (may crash or produce incorrect results).
+
+8. State Transitions (if applicable)  
+Within a dataset, from a state defined by (remaining target T, resource level K):
+- A transition is allowed by choosing any action whose requirement is ≤ K.  
+- The next state becomes (T − reduction, min(100, K + gain)).  
+- The process terminates successfully upon reaching any state with T ≤ 0.
+
+9. Non-functional Constraints (if inferable)  
+- The solution is computed using bounded-state dynamic programming over at most 101 × 101 distinct states per dataset, implying predictable memory usage and runtime proportional to the number of states times the number of actions.
+```

@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer value, computes one third of it as a real number, then computes the cube of that one-third value, and outputs the resulting real number.
+
+2. Inputs  
+- One integer value from standard input.
+
+3. Outputs  
+- One real-number value written to standard output representing \((l/3)^3\), displayed with 12 digits after the decimal point, followed by a newline.
+
+4. Preconditions  
+- Standard input provides a syntactically valid integer within the representable range of the program’s integer type.
+
+5. Postconditions  
+- If the input is successfully read, the program outputs a real number equal to \((l/3)^3\) as computed in floating-point arithmetic.
+
+6. Invariants  
+- No persistent state is maintained beyond the single computation; the program’s behavior depends only on the provided input value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing or invalid, behavior is unspecified (the output may be incorrect or indeterminate).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no externally observable state transitions beyond producing its single output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses floating-point arithmetic; results may be subject to rounding/precision limits of the underlying floating-point representation.
+```

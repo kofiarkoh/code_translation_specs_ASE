@@ -1,0 +1,237 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const MOD: i64 = 998_244_353;
+
+#[derive(Clone, Copy, Debug)]
+struct Pair {
+    key: i32,
+    id: i32,
+}
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn mod_add(ans: &mut i64, v: i64) {
+    *ans += v;
+    *ans %= MOD;
+}
+
+fn mod_sub(ans: &mut i64, v: i64) {
+    *ans -= v;
+    *ans %= MOD;
+}
+
+struct Fenwick {
+    n: usize,
+    bit: Vec<i32>,
+}
+impl Fenwick {
+    fn new(n: usize) -> Self {
+        Self { n, bit: vec![0; n + 1] }
+    }
+    fn reset(&mut self) {
+        self.bit.fill(0);
+    }
+    fn add(&mut self, mut idx: usize, delta: i32) {
+        while idx <= self.n {
+            self.bit[idx] += delta;
+            idx += idx & (!idx + 1);
+        }
+    }
+    fn sum(&self, mut idx: usize) -> i32 {
+        let mut res: i32 = 0;
+        while idx > 0 {
+            res += self.bit[idx];
+            idx &= idx - 1;
+        }
+        res
+    }
+}
+
+fn main() {
+    // Input: N then N pairs (a_i, b_i) as 32-bit signed integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let mut ab: Vec<(i32, i32)> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let a: i32 = it.next().unwrap().parse().unwrap();
+        let b: i32 = it.next().unwrap().parse().unwrap();
+        ab.push((a, b));
+    }
+
+    // 5.1 Compress a into AID:
+    // Sort by a nondecreasing; tie order unspecified, so we use an unstable sort.
+    ab.sort_unstable_by(|(a1, _), (a2, _)| a1.cmp(a2));
+
+    let mut d: Vec<Pair> = Vec::with_capacity(n);
+    let mut m: i32 = 0;
+    let mut idx = 0usize;
+    while idx < n {
+        m += 1;
+        let a_val = ab[idx].0;
+        let mut j = idx;
+        while j < n && ab[j].0 == a_val {
+            // key becomes original b, id becomes AID
+            d.push(Pair { key: ab[j].1, id: m });
+            j += 1;
+        }
+        idx = j;
+    }
+    let m_usize = m as usize;
+
+    // 5.2 Compress b into BRank:
+    d.sort_unstable_by(|p1, p2| p1.key.cmp(&p2.key));
+    let mut br: i32 = 0;
+    idx = 0;
+    while idx < n {
+        br += 1;
+        let b_val = d[idx].key;
+        let mut j = idx;
+        while j < n && d[j].key == b_val {
+            d[j].key = br; // key becomes BRank
+            j += 1;
+        }
+        idx = j;
+    }
+    // Now each element is (BRank, AID) stored as (key, id).
+
+    // 6. pow[k] = 2^k mod MOD for k=0..N
+    let mut pow: Vec<i64> = vec![0; n + 1];
+    pow[0] = 1;
+    for k in 1..=n {
+        pow[k] = (pow[k - 1] * 2) % MOD;
+    }
+
+    // 7. ans = ((pow[N] - 1) * N) mod MOD
+    let mut ans: i64 = mod_norm((pow[n] - 1) * (n as i64));
+
+    // 8. BIT sweeps over AID indices 1..m
+    let mut bit = Fenwick::new(m_usize);
+
+    // 8.1 Forward sweep grouped by equal BRank (array already sorted by BRank)
+    idx = 0;
+    while idx < n {
+        let brank = d[idx].key;
+        let mut j = idx;
+        while j < n && d[j].key == brank {
+            j += 1;
+        }
+
+        // For each element in group [idx, j)
+        for t in idx..j {
+            let id = d[t].id as usize;
+            let l = bit.sum(id.saturating_sub(1)) as usize;
+            let s_id = bit.sum(id) as usize;
+            // Implemented exponent is exactly i - sum_BIT(id), where i = idx.
+            let exp_r = idx - s_id;
+            mod_add(&mut ans, pow[l]);
+            mod_add(&mut ans, pow[exp_r]);
+        }
+
+        // Group correction: subtract pow[i] * (j - i)
+        let corr = (pow[idx] * ((j - idx) as i64)) % MOD;
+        mod_sub(&mut ans, corr);
+
+        // Update BIT with all AIDs in group
+        for t in idx..j {
+            let id = d[t].id as usize;
+            bit.add(id, 1);
+        }
+
+        idx = j;
+    }
+
+    // 8.2 Backward sweep grouped by equal BRank
+    bit.reset();
+    let mut i: isize = (n as isize) - 1;
+    while i >= 0 {
+        let brank = d[i as usize].key;
+        let mut j: isize = i;
+        while j >= 0 && d[j as usize].key == brank {
+            j -= 1;
+        }
+        // group is (j, i] inclusive; size = i - j
+        let group_start = (j + 1) as usize;
+        let group_end = i as usize;
+
+        for t in group_start..=group_end {
+            let id = d[t].id as usize;
+            let l = bit.sum(id.saturating_sub(1)) as usize;
+            let s_id = bit.sum(id) as usize;
+            let processed_right = n - t - 1;
+            let exp_r = processed_right - s_id;
+            mod_add(&mut ans, pow[l]);
+            mod_add(&mut ans, pow[exp_r]);
+        }
+
+        // Group correction: subtract pow[N - i - 1] * (i - j)
+        let processed_right_of_i = n - (group_end + 1);
+        let size = (i - j) as i64;
+        let corr = (pow[processed_right_of_i] * size) % MOD;
+        mod_sub(&mut ans, corr);
+
+        // Update BIT with all AIDs in group
+        for t in group_start..=group_end {
+            let id = d[t].id as usize;
+            bit.add(id, 1);
+        }
+
+        i = j;
+    }
+
+    // 9. Swap fields: (BRank, AID) -> (AID, BRank), then sort by new key (AID)
+    for p in &mut d {
+        let tmp = p.key;
+        p.key = p.id;
+        p.id = tmp;
+    }
+    d.sort_unstable_by(|p1, p2| p1.key.cmp(&p2.key));
+
+    // 9.1 Forward correction grouped by equal AID (now in key)
+    idx = 0;
+    while idx < n {
+        let aid = d[idx].key;
+        let mut j = idx;
+        while j < n && d[j].key == aid {
+            j += 1;
+        }
+        let corr = (pow[idx] * ((j - idx) as i64)) % MOD;
+        mod_sub(&mut ans, corr);
+        idx = j;
+    }
+
+    // 9.2 Backward correction grouped by equal AID
+    i = (n as isize) - 1;
+    while i >= 0 {
+        let aid = d[i as usize].key;
+        let mut j: isize = i;
+        while j >= 0 && d[j as usize].key == aid {
+            j -= 1;
+        }
+        let group_end = i as usize;
+        let processed_right_of_i = n - (group_end + 1);
+        let size = (i - j) as i64;
+        let corr = (pow[processed_right_of_i] * size) % MOD;
+        mod_sub(&mut ans, corr);
+        i = j;
+    }
+
+    // 10. Finalization: print ans reduced modulo MOD in [0, MOD-1]
+    ans = mod_norm(ans);
+    print!("{ans}\n");
+}
+```

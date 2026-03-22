@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads sets of three 2D line segments. For each set, attempts to compute the pairwise intersection points of consecutive segments (segment 1 with 2, 2 with 3, 3 with 1). If all three intersections exist, computes the area of the triangle formed by those intersection points and classifies the result into one of five textual categories. If any required intersection does not exist, outputs the lowest category.
+
+2. Inputs  
+- A stream of integer quadruples representing endpoints of a 2D line segment: (x1, y1, x2, y2).  
+- Input is consumed in groups of three segments (i.e., three quadruples per classification).
+
+3. Outputs  
+For each complete group of three input segments, outputs exactly one line containing one of:  
+- `kyo`  
+- `syo-kichi`  
+- `kichi`  
+- `chu-kichi`  
+- `dai-kichi`
+
+4. Preconditions  
+- Each segment endpoint coordinate fits within the integer range used by the program.  
+- For each group, exactly three segments are intended to be provided; incomplete trailing data is ignored (no output for an incomplete group).  
+- The output pointers provided to the intersection routine are valid writable locations (as used internally by the program).
+
+5. Postconditions  
+For each group of three segments:  
+- If all three pairwise intersections (1∩2, 2∩3, 3∩1) exist as points lying on both corresponding closed segments, the program outputs a category determined solely by the absolute area of the triangle formed by the three intersection points:  
+  - Area < 1e-6 → `kyo`  
+  - 1e-6 ≤ Area < 100000 − 1e-6 → `syo-kichi`  
+  - 100000 − 1e-6 ≤ Area < 1000000 − 1e-6 → `kichi`  
+  - 1000000 − 1e-6 ≤ Area < 1900000 − 1e-6 → `chu-kichi`  
+  - Area ≥ 1900000 − 1e-6 → `dai-kichi`  
+- If any of the three required intersections does not exist, outputs `kyo`.
+
+6. Invariants  
+- Processing is performed strictly per group of three segments; exactly one classification line is produced per complete group.  
+- Intersection points, when reported as existing, lie within both involved segments (including endpoints).  
+- The computed area used for classification is non-negative (absolute value).
+
+7. Error Handling / Exceptional Behavior  
+- If two segments are parallel or collinear such that there is no unique intersection point, the intersection is treated as non-existent.  
+- If the unique intersection point of two non-parallel segments lies outside either segment, the intersection is treated as non-existent.  
+- No explicit diagnostics are produced for malformed or incomplete input; incomplete final groups produce no output.  
+- Behavior is undefined if integer arithmetic overflows during geometric computations.
+
+8. State Transitions (if applicable)  
+- Maintains an internal count of how many segments have been read for the current group (0 → 1 → 2 → 3).  
+- Upon reaching 3 segments, performs classification, outputs one line, then resets the count to 0 to begin the next group.
+
+9. Non-functional Constraints (if inferable)  
+- Uses floating-point computations for intersection coordinates and area; classification near thresholds is tolerant via small epsilon margins (1e-6).  
+- Time and memory usage are linear in the number of input segments, with constant work per group.
+```

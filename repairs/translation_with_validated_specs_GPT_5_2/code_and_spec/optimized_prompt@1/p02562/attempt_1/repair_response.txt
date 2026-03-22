@@ -1,0 +1,297 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+const SUP: i64 = 1i64 << 60;
+const INF: i64 = -SUP;
+
+#[derive(Clone)]
+struct Edge {
+    tail: usize,
+    head: usize,
+    cap: i32,
+    cost: i32,
+    flow: i32,
+}
+
+/// Successive shortest path for min-cost circulation with demands `b`.
+///
+/// Mirrors the C behavior closely:
+/// - Returns `INF` if negative cycle detected during initial potential computation.
+/// - Returns `SUP` if a deficit node cannot reach any surplus node (treated as invalid candidate).
+/// - Otherwise returns the minimum cost (can be negative).
+fn successive_shortest_path(n: usize, adj: &[Vec<usize>], edges: &mut [Edge], b: &[i32]) -> i64 {
+    let m = edges.len();
+
+    // Current objective from existing flows.
+    let mut ans: i64 = 0;
+    for e in edges.iter() {
+        ans += (e.cost as i64) * (e.flow as i64);
+    }
+
+    // Compute node imbalances def[i] = b[i] + outflow - inflow (as in C code).
+    let mut def = vec![0i32; n + 1];
+    for i in 1..=n {
+        let mut v = b[i];
+        for &eid in &adj[i] {
+            let fwd_flow = edges[eid].flow;
+            let rev_flow = edges[eid ^ 1].flow;
+            v += fwd_flow - rev_flow;
+        }
+        def[i] = v;
+    }
+
+    // Potentials pi; initialized to SUP, then for any deficit node we run Bellman-Ford-like relaxations
+    // starting from that node with pi[node]=0, to detect negative cycles / set initial potentials.
+    let mut pi = vec![SUP; n + 1];
+    let mut heap_def: BinaryHeap<Reverse<(i32, usize)>> = BinaryHeap::new();
+
+    for i in 1..=n {
+        if def[i] < 0 {
+            heap_def.push(Reverse((def[i], i)));
+            if pi[i] == SUP {
+                pi[i] = 0;
+                // Relax up to N times; if still relaxes on N-th, negative cycle => INF.
+                for iter in 1..=n {
+                    let mut changed = false;
+                    for k in 0..m {
+                        if edges[k].flow == edges[k].cap {
+                            continue;
+                        }
+                        let u = edges[k].tail;
+                        let w = edges[k].head;
+                        if pi[u] != SUP {
+                            let cand = pi[u] + edges[k].cost as i64;
+                            if pi[w] > cand {
+                                pi[w] = cand;
+                                changed = true;
+                            }
+                        }
+                    }
+                    if !changed {
+                        break;
+                    }
+                    if iter == n {
+                        return INF;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut dist = vec![SUP; n + 1];
+    let mut prev: Vec<Option<usize>> = vec![None; n + 1];
+    let mut used = vec![false; n + 1];
+
+    while let Some(Reverse((_key, s))) = heap_def.pop() {
+        // Dijkstra on reduced costs from s.
+        for u in 1..=n {
+            used[u] = false;
+            dist[u] = SUP;
+            prev[u] = None;
+        }
+        dist[s] = 0;
+
+        let mut heap_dist: BinaryHeap<Reverse<(i64, usize)>> = BinaryHeap::new();
+        heap_dist.push(Reverse((0, s)));
+
+        while let Some(Reverse((du, u))) = heap_dist.pop() {
+            if used[u] {
+                continue;
+            }
+            used[u] = true;
+            if du != dist[u] {
+                continue;
+            }
+            for &eid in &adj[u] {
+                let e = &edges[eid];
+                if e.flow == e.cap {
+                    continue;
+                }
+                let w = e.head;
+                // reduced cost: cost + pi[u] - pi[w]
+                let rc = e.cost as i64 + pi[u] - pi[w];
+                let nd = dist[u] + rc;
+                if dist[w] > nd {
+                    dist[w] = nd;
+                    prev[w] = Some(eid);
+                    heap_dist.push(Reverse((nd, w)));
+                }
+            }
+        }
+
+        // Find any reachable t with def[t] > 0.
+        let mut t: usize = 0;
+        for node in 1..=n {
+            if dist[node] != SUP && def[node] > 0 {
+                t = node;
+                break;
+            }
+        }
+        if t == 0 {
+            return SUP;
+        }
+
+        // Determine augmentation amount.
+        let mut min_amt: i32 = (-def[s]).min(def[t]);
+        let mut u = t;
+        while let Some(eid) = prev[u] {
+            let residual = edges[eid].cap - edges[eid].flow;
+            if min_amt > residual {
+                min_amt = residual;
+            }
+            u = edges[eid].tail;
+        }
+
+        // Augment along path, using the same update rules as the C code.
+        let mut v = t;
+        while let Some(eid) = prev[v] {
+            let rev = eid ^ 1;
+            if edges[rev].flow > 0 {
+                edges[rev].flow -= min_amt;
+                edges[eid].cap -= min_amt;
+            } else {
+                edges[eid].flow += min_amt;
+                edges[rev].cap += min_amt;
+            }
+            ans += (edges[eid].cost as i64) * (min_amt as i64);
+            v = edges[eid].tail;
+        }
+
+        // Update potentials.
+        for i in 1..=n {
+            if dist[i] != SUP {
+                pi[i] += dist[i];
+            }
+        }
+
+        // Update deficits and reinsert if still negative.
+        def[s] += min_amt;
+        def[t] -= min_amt;
+        if def[s] < 0 {
+            heap_def.push(Reverse((def[s], s)));
+        }
+    }
+
+    ans
+}
+
+fn add_edge(
+    adj: &mut [Vec<usize>],
+    edges: &mut Vec<Edge>,
+    tail: usize,
+    head: usize,
+    cap: i32,
+    cost: i32,
+) {
+    let id = edges.len();
+    edges.push(Edge {
+        tail,
+        head,
+        cap,
+        cost,
+        flow: 0,
+    });
+    edges.push(Edge {
+        tail: head,
+        head: tail,
+        cap: 0,
+        cost: -cost,
+        flow: 0,
+    });
+    adj[tail].push(id);
+    adj[head].push(id ^ 1);
+}
+
+fn main() {
+    // Read all input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![vec![0i32; n + 1]; n + 1];
+    for i in 1..=n {
+        for j in 1..=n {
+            a[i][j] = it.next().unwrap().parse().unwrap();
+        }
+    }
+
+    // Build graph as in C:
+    // Nodes: 1..=N (rows), N+1..=2N (cols), 2N+1 (source-like), 2N+2 (sink-like)
+    let nn = 2 * n + 2;
+    let s = 2 * n + 1;
+    let t = 2 * n + 2;
+
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); nn + 1];
+    let mut edges: Vec<Edge> = Vec::new();
+
+    // Row->Col edges cap=1 cost=-A
+    for u in 1..=n {
+        for w in (n + 1)..=(2 * n) {
+            let val = a[u][w - n];
+            add_edge(&mut adj, &mut edges, u, w, 1, -val);
+        }
+    }
+    // s -> row edges cap=K cost=0
+    for w in 1..=n {
+        add_edge(&mut adj, &mut edges, s, w, k, 0);
+    }
+    // col -> t edges cap=K cost=0
+    for u in (n + 1)..=(2 * n) {
+        add_edge(&mut adj, &mut edges, u, t, k, 0);
+    }
+
+    let mut b = vec![0i32; nn + 1];
+    let mut argmax: i32 = 0;
+    let mut best: i64 = 0;
+
+    // Evaluate T from 1..=N*K (if K==0, loop is empty and best remains 0).
+    let max_t = (n as i32) * k;
+    for i in 1..=max_t {
+        b[s] = -i;
+        b[t] = i;
+        let cost = successive_shortest_path(nn, &adj, &mut edges, &b);
+        let tmp = -cost;
+        if tmp != SUP && best < tmp {
+            best = tmp;
+            argmax = i;
+        }
+    }
+
+    // Output best sum.
+    println!("{}", best);
+
+    // Recompute marking for argmax.
+    let mut ans_grid = vec![vec!['.'; n + 1]; n + 1];
+    b[s] = -argmax;
+    b[t] = argmax;
+
+    // Reset flows/caps as in C:
+    // for each original pair: forward.flow=0; reverse.cap=0
+    for j in (0..edges.len()).step_by(2) {
+        edges[j].flow = 0;
+        edges[j ^ 1].cap = 0;
+        edges[j ^ 1].flow = 0; // not explicitly in C, but keeps state consistent.
+    }
+
+    let _ = successive_shortest_path(nn, &adj, &mut edges, &b);
+
+    // Mark selected row->col edges with flow==1.
+    for j in (0..edges.len()).step_by(2) {
+        let u = edges[j].tail;
+        let w = edges[j].head;
+        if u >= 1 && u <= n && w >= n + 1 && w <= 2 * n && edges[j].flow == 1 {
+            ans_grid[u][w - n] = 'X';
+        }
+    }
+
+    for i in 1..=n {
+        let line: String = (1..=n).map(|j| ans_grid[i][j]).collect();
+        println!("{}", line);
+    }
+}
+```

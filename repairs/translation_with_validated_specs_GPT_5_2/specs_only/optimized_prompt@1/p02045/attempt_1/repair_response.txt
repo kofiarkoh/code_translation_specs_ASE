@@ -1,0 +1,122 @@
+```rust
+use std::io::{self, Read};
+use std::process;
+
+#[derive(Clone, Copy)]
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+fn abs_i64(v: i64) -> i64 {
+    if v < 0 { -v } else { v }
+}
+
+fn manhattan(a: Point, b: Point) -> i64 {
+    abs_i64(a.x - b.x) + abs_i64(a.y - b.y)
+}
+
+fn rect_dist(p: Point, a: i64, b: i64, c: i64, d: i64) -> i64 {
+    let mut dist = 0i64;
+
+    if p.x < a {
+        dist += a - p.x;
+    } else if p.x > c {
+        dist += p.x - c;
+    }
+
+    if p.y < b {
+        dist += b - p.y;
+    } else if p.y > d {
+        dist += p.y - d;
+    }
+
+    dist
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        let n_str = match n_opt {
+            None => break, // EOF before reading N: normal termination, no further output
+            Some(s) => s,
+        };
+
+        let n: i64 = match n_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // Narrow interpretation: treat unreadable N as "cannot be read"
+        };
+
+        if n <= 0 {
+            break; // non-positive N: normal termination
+        }
+
+        // For a started dataset, any missing required input is a fatal error (non-zero exit).
+        let a: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let b: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let c: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+        let d: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => process::exit(1),
+        };
+
+        let n_usize = n as usize;
+
+        // Spec says behavior is undefined if N > 127; we do not add extra handling.
+        let mut pts: Vec<Point> = Vec::with_capacity(n_usize + 1);
+        for _ in 0..(n_usize + 1) {
+            let x: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+            let y: i64 = match it.next().and_then(|s| s.parse().ok()) {
+                Some(v) => v,
+                None => process::exit(1),
+            };
+            pts.push(Point { x, y });
+        }
+
+        let mut total: i64 = 0;
+        for i in 0..n_usize {
+            let p1 = pts[i];
+            let p2 = pts[i + 1];
+
+            let direct = manhattan(p1, p2);
+
+            let mut d1 = rect_dist(p1, a, b, c, d);
+            if d1 > 0 {
+                d1 -= 1;
+                if d1 < 0 {
+                    d1 = 0;
+                }
+            }
+            let d2 = rect_dist(p2, a, b, c, d);
+
+            let via = d1 + d2;
+            total += if direct < via { direct } else { via };
+        }
+
+        outputs.push(total.to_string());
+    }
+
+    if !outputs.is_empty() {
+        print!("{}", outputs.join("\n"));
+        print!("\n");
+    }
+}
+```

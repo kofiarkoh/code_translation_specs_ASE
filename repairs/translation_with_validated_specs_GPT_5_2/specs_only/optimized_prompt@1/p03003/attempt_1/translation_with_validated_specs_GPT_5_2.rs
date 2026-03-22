@@ -1,0 +1,72 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn mod_norm(x: i64) -> i64 {
+    let mut v = x % MOD;
+    if v < 0 {
+        v += MOD;
+    }
+    v
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0i64; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+    let mut b = vec![0i64; m];
+    for j in 0..m {
+        b[j] = it.next().unwrap().parse().unwrap();
+    }
+
+    // dp[i][j] = number of distinct common subsequences between a[0..i) and b[0..j), mod MOD.
+    // Invariant: dp[0][*] = dp[*][0] = 1 (only empty subsequence).
+    let mut dp = vec![vec![0i64; m + 1]; n + 1];
+    for i in 0..=n {
+        dp[i][0] = 1;
+    }
+    for j in 0..=m {
+        dp[0][j] = 1;
+    }
+
+    // last_pos maps a value in b to its most recent 1-based index encountered so far in the j loop.
+    // This supports the standard O(n*m) recurrence for counting DISTINCT common subsequences.
+    let mut last_pos: HashMap<i64, usize> = HashMap::new();
+
+    for i in 1..=n {
+        last_pos.clear();
+        for j in 1..=m {
+            // Inclusion-exclusion for distinct subsequences over prefixes:
+            // dp[i][j] = dp[i-1][j] + dp[i][j-1] - dp[i-1][j-1] + (if a[i-1]==b[j-1] then dp[i-1][j-1] - dp[i-1][k-1] else 0)
+            // where k is the previous position of value a[i-1] in b within [1..j-1].
+            let mut val = dp[i - 1][j] + dp[i][j - 1] - dp[i - 1][j - 1];
+
+            if a[i - 1] == b[j - 1] {
+                let add = dp[i - 1][j - 1];
+                val += add;
+                if let Some(&k) = last_pos.get(&a[i - 1]) {
+                    // Subtract duplicates introduced by earlier equal element in b.
+                    val -= dp[i - 1][k - 1];
+                }
+            }
+
+            dp[i][j] = mod_norm(val);
+
+            // Update last position for b[j-1] after using it for this j.
+            last_pos.insert(b[j - 1], j);
+        }
+    }
+
+    // Output dp[n][m] in [0, MOD-1].
+    println!("{}", dp[n][m]);
+}

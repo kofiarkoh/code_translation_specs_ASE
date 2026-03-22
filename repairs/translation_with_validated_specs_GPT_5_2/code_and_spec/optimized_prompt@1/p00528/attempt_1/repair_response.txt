@@ -1,0 +1,163 @@
+```rust
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Cell {
+    x: i32,
+    y: i32,
+    id: usize, // base id for p^(0); p^(1) is id+1
+}
+
+fn main() {
+    // Read all input as bytes, parse non-negative integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input
+        .bytes()
+        .filter(|&b| b >= b'0' && b <= b'9' || b == b' ' || b == b'\n' || b == b'\r' || b == b'\t')
+        .peekable();
+
+    fn next_u32(it: &mut std::iter::Peekable<impl Iterator<Item = u8>>) -> u32 {
+        // Skip non-digits
+        while let Some(&c) = it.peek() {
+            if (b'0'..=b'9').contains(&c) {
+                break;
+            }
+            it.next();
+        }
+        let mut n: u32 = 0;
+        while let Some(&c) = it.peek() {
+            if !(b'0'..=b'9').contains(&c) {
+                break;
+            }
+            n = n * 10 + (c - b'0') as u32;
+            it.next();
+        }
+        n
+    }
+
+    let m = next_u32(&mut it) as i32;
+    let n = next_u32(&mut it) as i32;
+    let mut k = next_u32(&mut it) as usize;
+
+    // Collect special cells; duplicates are kept as distinct entities (per spec).
+    let mut cells: Vec<Cell> = Vec::with_capacity(k + 2);
+    let mut sz: usize = 0;
+    let mut s_base: Option<usize> = None;
+    let mut g_base: Option<usize> = None;
+
+    for _ in 0..k {
+        let x = next_u32(&mut it) as i32;
+        let y = next_u32(&mut it) as i32;
+        let id = sz;
+        if x == 1 && y == 1 {
+            s_base = Some(id);
+        } else if x == m && y == n {
+            g_base = Some(id);
+        }
+        cells.push(Cell { x, y, id });
+        sz += 2;
+    }
+
+    // Add corners if missing.
+    let ss_base = s_base; // used only to mimic C's "flag" behavior; spec doesn't require it.
+    if s_base.is_none() {
+        let id = sz;
+        cells.push(Cell { x: 1, y: 1, id });
+        s_base = Some(id);
+        k += 1;
+        sz += 2;
+    }
+    if g_base.is_none() {
+        let id = sz;
+        cells.push(Cell { x: m, y: n, id });
+        g_base = Some(id);
+        k += 1;
+        sz += 2;
+    }
+
+    let start = s_base.unwrap(); // (1,1)^(0)
+    let goal = g_base.unwrap(); // (m,n)^(0); goal+1 is (m,n)^(1)
+
+    // Build adjacency list. The C code uses fixed per-node capacity; we use Vec.
+    let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); sz];
+
+    // 5.1 Intra-cell edges (cost 1)
+    for c in &cells {
+        let a = c.id;
+        let b = c.id + 1;
+        adj[a].push((b, 1));
+        adj[b].push((a, 1));
+    }
+
+    // 5.2 Same-row connections between ^(0) nodes only, consecutive in (x,y) sort.
+    let mut by_x = cells.clone();
+    by_x.sort_by(|a, b| a.x.cmp(&b.x).then(a.y.cmp(&b.y)));
+    for w in by_x.windows(2) {
+        let p = w[0];
+        let q = w[1];
+        if p.x == q.x {
+            let d = (p.y - q.y).abs() as i64;
+            let a = p.id;
+            let b = q.id;
+            adj[a].push((b, d));
+            adj[b].push((a, d));
+        }
+    }
+
+    // 5.3 Same-column connections between ^(1) nodes only, consecutive in (y,x) sort.
+    let mut by_y = cells;
+    by_y.sort_by(|a, b| a.y.cmp(&b.y).then(a.x.cmp(&b.x)));
+    for w in by_y.windows(2) {
+        let p = w[0];
+        let q = w[1];
+        if p.y == q.y {
+            let d = (p.x - q.x).abs() as i64;
+            let a = p.id + 1;
+            let b = q.id + 1;
+            adj[a].push((b, d));
+            adj[b].push((a, d));
+        }
+    }
+
+    // Dijkstra from start; goal reached when extracting goal or goal+1.
+    // Note: The C code has a special "flag" branch that mutates edges when (1,1) was added.
+    // This behavior is NOT part of the specification; we follow the spec and do not do it.
+    let _ = ss_base; // keep variable to highlight mismatch with C; unused by spec.
+
+    let mut dist: Vec<i64> = vec![i64::MAX; sz];
+    let mut used: Vec<bool> = vec![false; sz];
+    let mut pq: BinaryHeap<(Reverse<i64>, usize)> = BinaryHeap::new();
+
+    dist[start] = 0;
+    pq.push((Reverse(0), start));
+
+    let mut ans: i64 = -1;
+    while let Some((Reverse(d), u)) = pq.pop() {
+        if used[u] {
+            continue;
+        }
+        used[u] = true;
+
+        if u == goal || u == goal + 1 {
+            ans = d;
+            break; // early termination as allowed by spec
+        }
+
+        for &(v, w) in &adj[u] {
+            if used[v] {
+                continue;
+            }
+            let nd = d.saturating_add(w);
+            if nd < dist[v] {
+                dist[v] = nd;
+                pq.push((Reverse(nd), v));
+            }
+        }
+    }
+
+    print!("{ans}\n");
+}
+```

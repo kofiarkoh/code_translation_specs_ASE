@@ -1,0 +1,57 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // Allowed operations:
+    // 1) x := x + 1
+    // 2) x := -x
+    //
+    // Consider shortest paths in the implicit graph of integers.
+    // An optimal sequence never needs more than one sign flip:
+    // - Two flips can be removed (they cancel) and only increase the count.
+    //
+    // Thus the minimum is the best of:
+    // - No flip: only possible if b >= a, cost = b - a
+    // - Flip once at some point:
+    //   If we flip when current value is x, we go to -x, then only increments.
+    //   Starting from a, after k increments we are at a + k, then flip -> -(a + k),
+    //   then after m increments reach b:
+    //     b = -(a + k) + m, with k,m >= 0
+    //   Total cost = k + 1 + m = k + 1 + (b + a + k) = 2k + (a + b) + 1
+    //   Feasibility requires m >= 0 => b + a + k >= 0 => k >= -(a + b).
+    //   Minimal k is max(0, -(a + b)).
+    //
+    // Therefore:
+    //   cost_flip = 2*max(0, -(a+b)) + (a+b) + 1
+    // which simplifies to:
+    //   if a+b >= 0: cost_flip = a+b+1
+    //   else:        cost_flip = -(a+b)+1
+    //
+    // Use i128 for intermediate arithmetic to avoid overflow (e.g., a+b).
+    let a128 = a as i128;
+    let b128 = b as i128;
+
+    let mut best: Option<i128> = None;
+
+    // No flip path
+    if b128 >= a128 {
+        best = Some(b128 - a128);
+    }
+
+    // One flip path
+    let s = a128 + b128;
+    let cost_flip = if s >= 0 { s + 1 } else { -s + 1 };
+    best = Some(match best {
+        Some(x) => x.min(cost_flip),
+        None => cost_flip,
+    });
+
+    // Spec guarantees the minimum fits in i64.
+    println!("{}", best.unwrap() as i64);
+}

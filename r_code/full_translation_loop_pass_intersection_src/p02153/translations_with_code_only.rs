@@ -1,0 +1,212 @@
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    t: i64,
+    r: usize,
+    c: usize,
+}
+
+// Make BinaryHeap a min-heap by reversing ordering on t.
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse: smaller t has higher priority.
+        other
+            .t
+            .cmp(&self.t)
+            .then_with(|| self.r.cmp(&other.r))
+            .then_with(|| self.c.cmp(&other.c))
+    }
+}
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.t == other.t && self.r == other.r && self.c == other.c
+    }
+}
+impl Eq for Node {}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            idx: 0,
+        }
+    }
+
+    // Emulates the C in(): reads a non-negative integer, assuming the next byte is a digit.
+    fn in_u32(&mut self) -> u32 {
+        let mut n: u32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        // C code does not skip spaces; it assumes digit. We keep that behavior.
+        while c >= b'0' {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as u32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+        }
+        n
+    }
+
+    // Emulates ins(): reads bytes until <= ' ' and terminates (delimiter consumed).
+    fn ins_bytes(&mut self) -> Vec<u8> {
+        let mut out = Vec::new();
+        loop {
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            let b = self.buf[self.idx];
+            self.idx += 1;
+            if b <= b' ' {
+                break;
+            }
+            out.push(b);
+        }
+        out
+    }
+}
+
+fn dijkstra(
+    sr: usize,
+    sc: usize,
+    gr: usize,
+    gc: usize,
+    h: usize,
+    w: usize,
+    vis: &mut [Vec<u8>],
+    map: &[Vec<u8>],
+    bomb: &[Vec<u8>],
+    mv: &[[i32; 2]; 8],
+    tt: &[[i64; 2]; 8],
+) -> i64 {
+    let mut heap = BinaryHeap::<Node>::new();
+    heap.push(Node { t: 0, r: sr, c: sc });
+
+    while let Some(Node { t, r, c }) = heap.pop() {
+        if r == gr && c == gc {
+            return t;
+        }
+        if vis[r][c] != 0 {
+            continue;
+        }
+        vis[r][c] = 1;
+
+        let f = bomb[r][c] as usize; // 0 or 1
+        let k = (2 - f) << 2; // 8 if not bombed, 4 if bombed
+        for i in 0..k {
+            let rr_i = r as i32 + mv[i][0];
+            let cc_i = c as i32 + mv[i][1];
+            if rr_i < 1 || rr_i > h as i32 || cc_i < 1 || cc_i > w as i32 {
+                continue;
+            }
+            let rr = rr_i as usize;
+            let cc = cc_i as usize;
+
+            let g = if map[rr][cc] == b'#' { 1usize } else { 0usize };
+            if f != 0 && g != 0 {
+                continue;
+            }
+            if (i < 4 || g != 0) && vis[rr][cc] == 0 {
+                heap.push(Node {
+                    t: t + tt[i][g],
+                    r: rr,
+                    c: cc,
+                });
+            }
+        }
+    }
+    -1
+}
+
+fn main() {
+    const MAXV: usize = 1005;
+
+    let mut scn = Scanner::new();
+    let h = scn.in_u32() as usize;
+    let w = scn.in_u32() as usize;
+    let mut a = scn.in_u32() as i64;
+    let b = scn.in_u32() as i64;
+
+    // 1-based indexing like the C code; keep a border to allow bomb marking outside [1..H],[1..W].
+    let mut vis = vec![vec![0u8; MAXV]; MAXV];
+    let mut map = vec![vec![0u8; MAXV]; MAXV];
+    let mut bomb = vec![vec![0u8; MAXV]; MAXV];
+
+    let mv: [[i32; 2]; 8] = [
+        [-1, 0],
+        [0, 1],
+        [1, 0],
+        [0, -1],
+        [-1, -1],
+        [-1, 1],
+        [1, 1],
+        [1, -1],
+    ];
+
+    let mut sr = 0usize;
+    let mut sc = 0usize;
+    let mut tr = 0usize;
+    let mut tc = 0usize;
+
+    for r in 1..=h {
+        let row = scn.ins_bytes();
+        // Copy into map[r][1..=w]
+        for c in 1..=w {
+            let ch = row[c - 1];
+            map[r][c] = ch;
+            if ch == b'*' {
+                bomb[r][c] = 1;
+                for i in 0..8 {
+                    let rr = (r as i32 + mv[i][0]) as isize;
+                    let cc = (c as i32 + mv[i][1]) as isize;
+                    // C code writes without bounds checks; here we rely on MAXV being large enough.
+                    if rr >= 0 && (rr as usize) < MAXV && cc >= 0 && (cc as usize) < MAXV {
+                        bomb[rr as usize][cc as usize] = 1;
+                    }
+                }
+            } else if ch == b's' {
+                sr = r;
+                sc = c;
+            } else if ch == b'g' {
+                tr = r;
+                tc = c;
+            }
+        }
+    }
+
+    let mut tt = [[0i64; 2]; 8];
+    for i in 0..4 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+    a <<= 1;
+    for i in 4..8 {
+        tt[i][0] = a;
+        tt[i][1] = a + b;
+    }
+
+    let ans = dijkstra(sr, sc, tr, tc, h, w, &mut vis, &map, &bomb, &mv, &tt);
+    if ans >= 0 {
+        print!("{ans}\n");
+    } else {
+        print!("INF\n");
+    }
+}

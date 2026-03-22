@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether there exist integers \(i\) and \(j\) such that \(0 \le i \le h\) and \(0 \le j \le w\) and the value  
+\[
+(w \cdot i) + (h \cdot j) - 2 \cdot i \cdot j
+\]
+equals \(k\). Outputs an affirmative result if such a pair exists; otherwise outputs a negative result.
+
+2. Inputs  
+- Three integers: \(h\), \(w\), and \(k\), provided via standard input.
+
+3. Outputs  
+- Writes exactly one line to standard output indicating either:
+  - an affirmative result if a satisfying pair \((i, j)\) exists, or
+  - a negative result otherwise.
+
+4. Preconditions  
+- Standard input provides three integers in a readable form.  
+- To avoid undefined arithmetic behavior, it is assumed that all intermediate computations of \((w \cdot i) + (h \cdot j) - 2 \cdot i \cdot j\) fit within the range of the integer type used by the program.
+
+5. Postconditions  
+- If the program outputs an affirmative result, then there exists at least one pair \((i, j)\) with \(0 \le i \le h\) and \(0 \le j \le w\) such that \((w \cdot i) + (h \cdot j) - 2 \cdot i \cdot j = k\).  
+- If the program outputs a negative result, then for all pairs \((i, j)\) with \(0 \le i \le h\) and \(0 \le j \le w\), \((w \cdot i) + (h \cdot j) - 2 \cdot i \cdot j \ne k\).
+
+6. Invariants  
+- During evaluation, only pairs \((i, j)\) within the inclusive bounds \([0, h]\) and \([0, w]\) are considered.  
+- The decision is based solely on whether any considered pair yields a value equal to \(k\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input or input read failures.  
+- If integer overflow occurs during computation, behavior is not guaranteed.
+
+8. State Transitions (if applicable)  
+- Single-pass decision process with two terminal outcomes:
+  - transitions to immediate termination after producing an affirmative result upon finding a satisfying pair, or
+  - transitions to termination after producing a negative result if no satisfying pair exists.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to \((h+1)\times(w+1)\) in the worst case.  
+- Uses constant additional memory beyond input storage.
+```

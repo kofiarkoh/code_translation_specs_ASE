@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads five integers and, if any of them is zero, outputs the 1-based position of the first zero among them. If none are zero, produces no output.
+
+2. Inputs  
+- Five integer values provided via standard input.
+
+3. Outputs  
+- If at least one input value equals zero: a single digit representing the position (1 through 5) of the first zero value.  
+- If no input value equals zero: no output.
+
+4. Preconditions  
+- Exactly five integers are available from standard input and can be read successfully.
+
+5. Postconditions  
+- If one or more of the five input integers is zero, the output equals the smallest index *i* in {1..5} such that the *i*th input is zero.  
+- If none of the five input integers is zero, nothing is written to standard output.
+
+6. Invariants  
+- At most one position value is output.  
+- If output occurs, it is always in the range 1 to 5 and corresponds to the earliest zero in input order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input; behavior is unspecified if fewer than five integers are provided or if input cannot be read as integers.
+
+8. State Transitions (if applicable)  
+- None.
+
+9. Non-functional Constraints (if inferable)  
+- Constant time and constant memory usage relative to input size (fixed five integers).
+```

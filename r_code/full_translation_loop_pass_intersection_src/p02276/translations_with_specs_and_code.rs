@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+const N: usize = 1_000_000;
+
+fn partition(a: &mut [i32], p: usize, r: usize) -> usize {
+    // Mirrors the C code's 1-based indexing logic:
+    // pivot = a[r], i = p-1, j in [p, r-1], swap when a[j] <= pivot,
+    // then swap a[i+1] with a[r], return i+1.
+    let x = a[r];
+    let mut i: isize = p as isize - 1;
+
+    for j in p..r {
+        if a[j] <= x {
+            i += 1;
+            let iu = i as usize;
+            a.swap(iu, j);
+        }
+    }
+    let k = (i + 1) as usize;
+    a.swap(k, r);
+    k
+}
+
+fn main() {
+    // Read all input (no explicit error handling per spec/C behavior).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed-capacity internal storage, like the C global array A[N].
+    // We keep index 0 unused to preserve 1-based indexing.
+    // Preconditions say n <= N and n >= 1; otherwise behavior is undefined.
+    let mut a = vec![0i32; N + 1];
+
+    for i in 1..=n {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a[i] = v;
+    }
+
+    let pivot_pos = partition(&mut a, 1, n);
+
+    let mut out = String::new();
+    for i in 1..=n {
+        if i == pivot_pos {
+            out.push('[');
+            out.push_str(&a[i].to_string());
+            out.push(']');
+        } else {
+            out.push_str(&a[i].to_string());
+        }
+        if i < n {
+            out.push(' ');
+        }
+    }
+    out.push('\n');
+
+    print!("{out}");
+}

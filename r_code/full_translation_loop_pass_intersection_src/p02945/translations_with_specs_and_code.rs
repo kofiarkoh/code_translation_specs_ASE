@@ -1,0 +1,22 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse two integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    let c = a + b;
+    let d = a - b;
+    let e = a * b;
+
+    // Spec: output max of (a+b), (a-b), (a*b).
+    // Note: C code initializes max=-1000, which could be wrong if all results < -1000.
+    // We follow the specification, not that artifact.
+    let max_val = c.max(d).max(e);
+
+    print!("{max_val}");
+}

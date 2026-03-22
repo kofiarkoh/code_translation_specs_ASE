@@ -1,0 +1,129 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each test case, the program simulates the motion of a point (“ray”) on a fixed, discrete coordinate system with optional reflections caused by mirror segments placed on a small grid. The ray starts from a fixed initial state, moves in fixed diagonal increments, and on each step may reflect depending on an alternation state and whether the step crosses a stored mirror segment. The simulation terminates only under specific conditions (a special internal-state condition, or a boundary condition gated by whether the most recent step reflected). The program outputs the final reported coordinates at termination.
+
+2. Inputs  
+- A sequence of test cases.  
+- Each test case begins with an integer `n`. Processing ends when `n < 0`.  
+- If `n >= 0`, it is followed by `n` mirror descriptions. Each description consists of:  
+  - A string token `s` (read as a word), and  
+  - Two integers `x` and `y` (grid indices).
+
+3. Mirror Representation and Interpretation  
+- Mirrors are stored on a fixed 4D boolean grid indexed as `mir[a][b][c][d]` with each index expected to be within `0..8`.  
+- For each mirror description:  
+  - If the first character of `s` is `'x'`, the program marks a segment between grid points `(x, y)` and `(x+1, y)` by setting `mir[x][y][x+1][y] = 1`.  
+  - Otherwise (any non-`'x'` token), it marks a segment between `(x, y)` and `(x, y+1)` by setting `mir[x][y][x][y+1] = 1`.  
+- The specification assumes inputs keep all referenced indices valid (including `x+1` or `y+1` where applicable); otherwise behavior is unspecified.
+
+4. Coordinate System and State  
+- The simulated ray position is maintained as integer coordinates `(X, Y)` in a scaled lattice.  
+- Initial state for each test case:  
+  - `X = 50`, `Y = 0`  
+  - Direction `d = 0` (one of four diagonal directions)  
+  - Alternation flag `v = 1` for the first step; it flips once per iteration, but **only after** completing that iteration’s movement/reflection processing  
+  - A flag `wall = 1` indicating “no reflection occurred on the most recent move” (used by termination rules)
+
+5. Movement per Step and Per-Iteration Ordering  
+- The direction `d` selects one of four fixed diagonal increments (in `(X, Y)` units):  
+  - `d=0`: `( +50, +50 )`  
+  - `d=1`: `( -50, +50 )`  
+  - `d=2`: `( -50, -50 )`  
+  - `d=3`: `( +50, -50 )`  
+- The simulation runs an unbounded loop with an iteration counter `i` starting at `0`. In each iteration, the following ordering applies:  
+  1. **Termination checks** are performed first (see Section 7). These checks are only enabled once `i >= 2`.  
+  2. The ray advances by the increment for the current direction `d`.  
+  3. `wall` is set to `1` for this moved step, and may be cleared to `0` if a reflection occurs on this step.  
+  4. Exactly one mirror-crossing test is performed, chosen by the **current** value of `v` for this iteration (starting with `v=1` on the first move). If a mirror is detected, the direction is updated by a fixed mapping and `wall` is set to `0`.  
+  5. At the end of the iteration, `i` is incremented and `v` is flipped (`v = !v`) to be used on the next iteration.
+
+6. Mirror-Crossing Tests and Reflection Mapping  
+- Exactly one mirror-crossing test is performed per step, selected by the current iteration’s `v` value (before it is flipped for the next iteration):  
+- If `v == 1`, the program checks:  
+  - `mir[X/100][(Y-50)/100][X/100][(Y+50)/100]`  
+  If this is set, a reflection occurs: `d` becomes `tr[1][d]` where `tr[1] = {1, 0, 3, 2}`, and `wall = 0`.  
+- If `v == 0`, the program checks:  
+  - `mir[(X-50)/100][Y/100][(X+50)/100][Y/100]`  
+  If this is set, a reflection occurs: `d` becomes `tr[0][d]` where `tr[0] = {3, 2, 1, 0}`, and `wall = 0`.  
+- If the checked entry is not set, no reflection occurs and `d` is unchanged.
+
+7. Termination and Special Mapping  
+Termination checks are performed at the start of each loop iteration, before applying that iteration’s movement, and only once at least two iterations have already completed (`i >= 2`):  
+- Special internal-state termination: if `(X, Y, d) == (100, 50, 0)`, the simulation terminates immediately and the reported final position is forced to `(75, 25)` (no movement is performed in that iteration).  
+- Boundary termination (gated by `wall` from the most recently executed move): if `wall == 1` and any of the following holds: `X == 0`, `Y == 0`, `X == 800`, or `Y == 800`, the simulation terminates and the reported final position is the current `(X, Y)`.  
+- If neither condition holds, the simulation continues.
+
+8. Outputs  
+- For each test case with `n >= 0`, the program prints one line containing two integers: the final reported `(X, Y)` as determined by the termination rules above.
+
+9. Additional Notes / Assumptions  
+- No error handling is performed; malformed input or out-of-range mirror indices lead to unspecified behavior.  
+- The program assumes the simulation will eventually terminate under the given rules; it does not impose an explicit step limit.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1212: Mirror Illusion
+// 2018.1.23 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+char mir[9][9][9][9];
+int mv[4][2] = {{50,50},{-50,50},{-50,-50},{50,-50}};
+int tr[2][4] = {{3,2,1,0},{1,0,3,2}};
+
+int main()
+{
+	int n, i, v, x, y, d, wall;
+	char s[5];
+
+	while (scanf("%d", &n) && n >= 0) {
+		memset(mir, 0, sizeof(mir));
+
+		for (i = 0 ; i < n ; i++) {
+			scanf("%s%d%d", s, &x, &y);
+			if (*s == 'x') mir[x][y][x+1][y] = 1;
+			else           mir[x][y][x][y+1] = 1;
+		}
+
+		x = 50, y = 0, d = 0, wall = 1;
+		for (v = 1, i = 0; ; i++, v = !v) {
+			if (i >= 2) {
+				if (x == 100 && y == 50 && d == 0) { x = 75, y = 25; break; }
+				if (wall && (!x || !y || x == 800 || y == 800)) break;
+			}
+
+	        x += mv[d][0], y += mv[d][1], wall = 1;
+
+			if (v) {
+				if (mir[x/100][(y-50)/100][x/100][(y+50)/100]) d = tr[v][d], wall = 0;
+			} else {
+				if (mir[(x-50)/100][y/100][(x+50)/100][y/100]) d = tr[v][d], wall = 0;
+			}
+		}
+		printf("%d %d\n", x, y);
+	}
+	return 0;
+}
+=== C CODE END ===

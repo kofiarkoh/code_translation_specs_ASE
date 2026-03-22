@@ -1,0 +1,129 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let s: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let w: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let q: i64 = match it.next().and_then(|x| x.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        if n <= 0 {
+            break;
+        }
+
+        // Constraints violations are "undefined" per spec; we do not add extra handling.
+        let n_usize = n as usize;
+
+        // Generate digits a[0..n-1]
+        let mut a: Vec<i64> = Vec::with_capacity(n_usize);
+        let mut g: i64 = s;
+        for _ in 0..n_usize {
+            // C-like signed division and remainder semantics are matched by Rust for i64.
+            let digit = (g / 7) % 10;
+            a.push(digit);
+
+            // Arithmetic right shift on signed integers: Rust's >> on i64 is arithmetic.
+            if (g & 1) != 0 {
+                g = (g >> 1) ^ w;
+            } else {
+                g >>= 1;
+            }
+        }
+
+        let ans: i128;
+
+        if q == 2 || q == 5 {
+            // Strategy: count substrings ending at each position where last digit divisible by q,
+            // adding number of possible starts with non-zero leading digit.
+            let mut k: i128 = 0;
+            let mut acc: i128 = 0;
+            for &d in &a {
+                if d != 0 {
+                    k += 1;
+                }
+                // Divisibility depends only on last digit; use C-like remainder behavior.
+                if d % q == 0 {
+                    acc += k;
+                }
+            }
+            ans = acc;
+        } else {
+            // Count divisible substrings with no leading zero by scanning from right to left.
+            // For each start i (with a[i] != 0), count ends j >= i such that value(i..j) % q == 0.
+            //
+            // Let suffix remainder at position i be:
+            //   r_i = (a[i]*10^0 + a[i+1]*10^1 + ... + a[n-1]*10^(n-1-i)) % q
+            // Then value(i..j) % q == 0  <=>  r_i == r_{j+1}  (with appropriate scaling),
+            // which is achieved by maintaining:
+            //   cur = r_i computed incrementally from right to left with pow10.
+            //
+            // We count, for each i with a[i] != 0, how many previously seen suffix remainders
+            // (for positions j+1) equal cur.
+            let q_usize = q as usize;
+
+            // Frequency table for remainders 0..q-1.
+            // q is positive per spec; if q is huge, this may be large, but spec does not constrain.
+            let mut freq: Vec<i128> = vec![0; q_usize];
+
+            // Empty suffix remainder at position n is 0.
+            freq[0] = 1;
+
+            let mut cur: i64 = 0;
+            let mut pow10: i64 = 1 % q;
+            let mut acc: i128 = 0;
+
+            for idx in (0..n_usize).rev() {
+                // Update cur = (a[idx]*pow10 + cur) % q, keeping it in 0..q-1.
+                // Use i128 to avoid overflow in multiplication, then reduce mod q.
+                let term = ((a[idx] as i128) * (pow10 as i128) + (cur as i128)) % (q as i128);
+                let mut cur_mod = term as i64;
+                if cur_mod < 0 {
+                    cur_mod += q;
+                }
+                cur = cur_mod;
+
+                if a[idx] != 0 {
+                    acc += freq[cur as usize];
+                }
+
+                freq[cur as usize] += 1;
+
+                // pow10 = (pow10 * 10) % q, normalized to 0..q-1
+                let p = ((pow10 as i128) * 10) % (q as i128);
+                let mut p64 = p as i64;
+                if p64 < 0 {
+                    p64 += q;
+                }
+                pow10 = p64;
+            }
+
+            ans = acc;
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

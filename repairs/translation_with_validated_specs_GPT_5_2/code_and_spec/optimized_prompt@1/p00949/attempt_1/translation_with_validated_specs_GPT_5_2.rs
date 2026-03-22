@@ -1,0 +1,122 @@
+use std::io::{self, Read};
+
+const HASHSIZ: usize = 10007;
+
+type Sig = [i16; 26];
+
+fn hash_key(f: &Sig) -> usize {
+    // Mirrors the C code:
+    // f[0]++ (temporarily) then k = (k<<4) + f[i] for i=0,2,4,...,24; k % HASHSIZ
+    // We do not mutate f; instead we add 1 to f[0] in the computation.
+    let mut k: u64 = 0;
+    for i in (0..26).step_by(2) {
+        k = (k << 4) + (f[i] as i32 + if i == 0 { 1 } else { 0 }) as u64;
+    }
+    (k % HASHSIZ as u64) as usize
+}
+
+fn sig_eq(a: &Sig, b: &Sig) -> bool {
+    a == b
+}
+
+fn insert(table: &mut [Sig; HASHSIZ], f: &Sig) {
+    let mut idx = hash_key(f);
+    loop {
+        if table[idx][0] == 0 {
+            table[idx] = *f;
+            return;
+        }
+        if sig_eq(&table[idx], f) {
+            return;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn lookup(table: &[Sig; HASHSIZ], f: &Sig) -> bool {
+    let mut idx = hash_key(f);
+    loop {
+        if table[idx][0] == 0 {
+            return false;
+        }
+        if sig_eq(&table[idx], f) {
+            return true;
+        }
+        idx += 1;
+        if idx == HASHSIZ {
+            idx = 0;
+        }
+    }
+}
+
+fn read_token_line(s: &str) -> Vec<u8> {
+    // SPEC: only prefix up to first whitespace is considered.
+    let token = s.split_whitespace().next().unwrap_or("");
+    // SPEC precondition: lowercase letters only.
+    token.bytes().map(|b| b - b'a').collect()
+}
+
+fn main() {
+    // Read entire stdin; behavior is unspecified if inputs are missing (SPEC).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut lines = input.lines();
+    let la = lines.next().unwrap_or("");
+    let lb = lines.next().unwrap_or("");
+
+    let sa = read_token_line(la);
+    let sb = read_token_line(lb);
+
+    let wa = sa.len();
+    let wb = sb.len();
+    let w = wa.min(wb);
+
+    let mut table: [Sig; HASHSIZ] = [[0i16; 26]; HASHSIZ];
+
+    let mut answer_k = 0usize;
+
+    'outer: for k in (1..=w).rev() {
+        table = [[0i16; 26]; HASHSIZ];
+
+        // Build signatures for all length-k substrings of A and insert into table.
+        let mut f: Sig = [0; 26];
+        for &ch in &sa[0..k] {
+            f[ch as usize] += 1;
+        }
+        insert(&mut table, &f);
+
+        for start in 1..=(wa - k) {
+            let out = sa[start - 1] as usize;
+            let inn = sa[start + k - 1] as usize;
+            f[out] -= 1;
+            f[inn] += 1;
+            insert(&mut table, &f);
+        }
+
+        // Scan B and lookup.
+        let mut g: Sig = [0; 26];
+        for &ch in &sb[0..k] {
+            g[ch as usize] += 1;
+        }
+        if lookup(&table, &g) {
+            answer_k = k;
+            break 'outer;
+        }
+        for start in 1..=(wb - k) {
+            let out = sb[start - 1] as usize;
+            let inn = sb[start + k - 1] as usize;
+            g[out] -= 1;
+            g[inn] += 1;
+            if lookup(&table, &g) {
+                answer_k = k;
+                break 'outer;
+            }
+        }
+    }
+
+    print!("{answer_k}\n");
+}

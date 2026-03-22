@@ -1,0 +1,79 @@
+```rust
+use std::io::{self, Read};
+
+fn remove2(cards: &[u8; 20], out: &mut [u8; 20], m1: usize, m2: usize) {
+    // Mirrors the C behavior: iterate over all 20 slots and copy everything
+    // except the two removed indices, compacting to the front.
+    let mut j = 0usize;
+    for i in 0..20usize {
+        if i != m1 && i != m2 {
+            out[j] = cards[i];
+            j += 1;
+        }
+    }
+    // The remaining tail is irrelevant (never read past L = 20 - 2*depth),
+    // matching the C program which leaves it unspecified.
+}
+
+fn solve(buf: &[u8; 20], depth: i32, max_depth: &mut i32) {
+    let last = (20 - 2 * depth) as usize;
+
+    // In C, mybuf is a local 4x20 array used to hold each successor state.
+    // We recreate that with four separate buffers.
+    for i in 0..last {
+        // Down neighbor: j = i + 4, with i < 16 and j < last
+        if i < 16 && i + 4 < last && buf[i] == buf[i + 4] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 4);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Right neighbor: j = i + 1, with i%4 < 3 and j < last
+        if (i % 4) < 3 && i + 1 < last && buf[i] == buf[i + 1] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 1);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Down-right neighbor: j = i + 5, with i < 16, i%4 < 3 and j < last
+        if i < 16 && (i % 4) < 3 && i + 5 < last && buf[i] == buf[i + 5] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 5);
+            solve(&out, depth + 1, max_depth);
+        }
+        // Down-left neighbor: j = i + 3, with i < 16, i%4 > 0 and j < last
+        if i < 16 && (i % 4) > 0 && i + 3 < last && buf[i] == buf[i + 3] {
+            let mut out = [0u8; 20];
+            remove2(buf, &mut out, i, i + 3);
+            solve(&out, depth + 1, max_depth);
+        }
+    }
+
+    // The C code updates max_ after exploring children, but it does not require
+    // reaching a terminal state; it records the best depth seen anywhere.
+    if depth > *max_depth {
+        *max_depth = depth;
+    }
+}
+
+fn main() {
+    // Read entire stdin; input is assumed well-formed per spec (no validation).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        let mut buf = [0u8; 20];
+        for j in 0..20 {
+            let tok = it.next().unwrap();
+            let b = tok.as_bytes()[0];
+            buf[j] = b - b'0';
+        }
+
+        let mut max_depth: i32 = 0;
+        solve(&buf, 0, &mut max_depth);
+        let remaining = 20 - (max_depth as i32) * 2;
+        println!("{}", remaining);
+    }
+}
+```

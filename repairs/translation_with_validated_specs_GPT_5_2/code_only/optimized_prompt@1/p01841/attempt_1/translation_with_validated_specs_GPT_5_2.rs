@@ -1,0 +1,168 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct MyStr {
+    start: usize, // start index into the backing buffer
+    len: usize,   // length in bytes
+}
+
+fn is_empty_tree(s: &MyStr) -> bool {
+    // C: if(in->len==2) return(1);
+    s.len == 2
+}
+
+fn remove_paren(s: &mut MyStr) {
+    // C: in->len -= 2; in->sptr++;
+    // Assumes the substring is at least "(...)".
+    s.len = s.len.saturating_sub(2);
+    s.start += 1;
+}
+
+fn analyze_tree(buf: &[u8], input: &MyStr, left: &mut MyStr, right: &mut MyStr, val: &mut i32) {
+    // Mirrors the C logic scanning the substring and tracking nesting level.
+    // It sets:
+    // - left: prefix before the first '[' at nesting level 0
+    // - val: atoi starting right after that '['
+    // - right: suffix after the matching ']' when lv==1
+    let p0 = input.start;
+    left.start = p0;
+    left.len = input.len;
+
+    let mut lv: i32 = 0;
+    for i in 0..input.len {
+        let c = buf[p0 + i];
+        if c == b'[' {
+            if lv == 0 {
+                left.len = i;
+                // C: *val = atoi(p+i+1);
+                // Parse optional sign and digits; stop at first non-digit.
+                let mut j = p0 + i + 1;
+                let end = p0 + input.len;
+                let mut sign: i32 = 1;
+                if j < end && buf[j] == b'-' {
+                    sign = -1;
+                    j += 1;
+                } else if j < end && buf[j] == b'+' {
+                    j += 1;
+                }
+                let mut acc: i32 = 0;
+                while j < end {
+                    let d = buf[j];
+                    if !(b'0'..=b'9').contains(&d) {
+                        break;
+                    }
+                    // C's atoi has undefined behavior on overflow; we emulate common wraparound-ish
+                    // behavior by using wrapping arithmetic on i32.
+                    acc = acc.wrapping_mul(10).wrapping_add((d - b'0') as i32);
+                    j += 1;
+                }
+                *val = acc.wrapping_mul(sign);
+            }
+            lv += 1;
+        } else if c == b']' {
+            if lv == 1 {
+                right.start = p0 + i + 1;
+                right.len = input.len - i - 1;
+            }
+            lv -= 1;
+        } else if c == b'(' {
+            lv += 1;
+        } else if c == b')' {
+            lv -= 1;
+        }
+    }
+}
+
+fn add_tree(buf1: &[u8], in1: MyStr, buf2: &[u8], in2: MyStr, out_buf: &mut Vec<u8>) -> MyStr {
+    let mut stree = [[MyStr { start: 0, len: 0 }; 2]; 2];
+    let mut v = [0i32; 2];
+
+    analyze_tree(buf1, &in1, &mut stree[0][0], &mut stree[0][1], &mut v[0]);
+    analyze_tree(buf2, &in2, &mut stree[1][0], &mut stree[1][1], &mut v[1]);
+
+    let val = v[0].wrapping_add(v[1]);
+
+    // Build left subtree
+    let left_sub = if is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]) {
+        // C uses zeros pointer with len=0; we represent as empty slice.
+        MyStr { start: 0, len: 0 }
+    } else {
+        let mut a = stree[0][0];
+        let mut b = stree[1][0];
+        remove_paren(&mut a);
+        remove_paren(&mut b);
+        // Both subtrees come from different buffers; recurse with their respective buffers.
+        // We must pass the correct backing buffer for each.
+        // Here, a is in buf1 and b is in buf2.
+        // To keep the same algorithm, we need a function that can handle different buffers.
+        // We'll recurse by materializing each subtree into its own temporary buffer when needed.
+        // However, the C code always points into original strings; recursion uses those pointers.
+        // We can emulate by recursing with (buf1,a) and (buf2,b) directly.
+        add_tree(buf1, a, buf2, b, out_buf)
+    };
+
+    // Build right subtree
+    let right_sub = if is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]) {
+        MyStr { start: 0, len: 0 }
+    } else {
+        let mut a = stree[0][1];
+        let mut b = stree[1][1];
+        remove_paren(&mut a);
+        remove_paren(&mut b);
+        add_tree(buf1, a, buf2, b, out_buf)
+    };
+
+    // Emit "(%.*s)[%d](%.*s)" into out_buf, like sprintf into a global buffer.
+    let out_start = out_buf.len();
+    out_buf.push(b'(');
+    if left_sub.len != 0 {
+        // left_sub refers to out_buf (from recursion) OR empty.
+        // In this implementation, recursive results are also stored in out_buf, so left_sub.start
+        // indexes into out_buf.
+        out_buf.extend_from_slice(&out_buf[left_sub.start..left_sub.start + left_sub.len]);
+    }
+    out_buf.push(b')');
+    out_buf.push(b'[');
+    out_buf.extend_from_slice(val.to_string().as_bytes());
+    out_buf.push(b']');
+    out_buf.push(b'(');
+    if right_sub.len != 0 {
+        out_buf.extend_from_slice(&out_buf[right_sub.start..right_sub.start + right_sub.len]);
+    }
+    out_buf.push(b')');
+
+    MyStr {
+        start: out_start,
+        len: out_buf.len() - out_start,
+    }
+}
+
+fn main() {
+    // Read all input, then mimic scanf("%s") twice (whitespace-delimited tokens).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let s1 = it.next().unwrap_or("");
+    let s2 = it.next().unwrap_or("");
+
+    let b1 = s1.as_bytes();
+    let b2 = s2.as_bytes();
+
+    let t1 = MyStr { start: 0, len: b1.len() };
+    let t2 = MyStr { start: 0, len: b2.len() };
+
+    // Global answer buffer equivalent; recursion appends into it.
+    let mut ans: Vec<u8> = Vec::with_capacity(100000);
+
+    // To emulate the C behavior where recursive results are written into a single global buffer
+    // and referenced by pointers, we store all constructed subtrees in `ans` and return slices
+    // into it (MyStr with start/len).
+    //
+    // Base case uses empty (len=0) which corresponds to printing nothing for %.*s.
+    let res = add_tree(b1, t1, b2, t2, &mut ans);
+
+    // display(): print exactly the substring and a trailing '\n'
+    let out = &ans[res.start..res.start + res.len];
+    io::stdout().write_all(out).unwrap();
+    io::stdout().write_all(b"\n").unwrap();
+}

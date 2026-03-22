@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens (matches scanf("%d") / scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut s: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        s.push(it.next().unwrap().to_string());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<String> = Vec::with_capacity(m);
+    for _ in 0..m {
+        t.push(it.next().unwrap().to_string());
+    }
+
+    // Semantics per spec/C: for each string appearing in the first list (including duplicates),
+    // compute (# in first) - (# in second), take maximum, clamp at >= 0.
+    let mut max_diff: i32 = 0;
+
+    for i in 0..n {
+        let mut diff: i32 = 0;
+
+        for j in 0..n {
+            if s[i] == s[j] {
+                diff += 1;
+            }
+        }
+        for j in 0..m {
+            if s[i] == t[j] {
+                diff -= 1;
+            }
+        }
+
+        if diff > max_diff {
+            max_diff = diff;
+        }
+    }
+
+    println!("{}", max_diff);
+}

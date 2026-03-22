@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each test case, determines the minimum number of label-state changes required along a given reference line segment when considering its proper intersections with a set of other line segments, where each intersecting segment contributes a constraint based on its associated type and label.
+
+2. Inputs  
+- An integer count of test cases.  
+For each test case:  
+- Two endpoints defining a reference line segment in 2D.  
+- An integer number of candidate segments.  
+- For each candidate segment: two endpoints in 2D, plus two integer attributes: a type indicator and a binary label.
+
+3. Outputs  
+- For each test case, one integer: the minimum number of required label-state changes along the reference segment induced by the intersecting candidate segments.
+
+4. Preconditions  
+- The number of candidate segments does not exceed the fixed internal capacity (at most 105).  
+- Candidate segment attributes include a type value where one distinguished value is treated specially, and a label intended to be binary (0/1).  
+- All numeric inputs fit within the integer ranges used by the program.
+
+5. Postconditions  
+For each test case, the printed integer equals the minimum, over the two possible initial label states (0 or 1), of the number of times the running label state must toggle while traversing the reference segment from its first endpoint to its second, when processing all candidate segments that properly intersect the interior of the reference segment and the interior of the candidate segment.  
+- Only proper interior intersections are considered; intersections at endpoints or non-intersections do not contribute.  
+- Each contributing intersection imposes a condition that may force a toggle depending on the current label state, the candidate’s type, and the candidate’s label.
+
+6. Invariants  
+- The set of considered intersections for a test case consists only of proper interior intersections between the reference segment and candidate segments.  
+- Intersections are processed in nondecreasing order of their position along the reference segment (ties, if any, are treated as an arbitrary but consistent order).  
+- The running label state is always binary and changes only by toggling.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range values, or capacity overflow; behavior is undefined in such cases.  
+- Candidate segments parallel to the reference segment (including collinear) are ignored (treated as non-contributing).
+
+8. State Transitions (if applicable)  
+- A binary label state is initialized to either 0 or 1 (both cases evaluated).  
+- While traversing ordered intersection points, the state toggles whenever the current intersection’s constraint is not satisfied under the current state.  
+- The output is the smaller toggle count from the two initializations.
+
+9. Non-functional Constraints (if inferable)  
+- Time per test case is dominated by sorting the contributing intersections and is proportional to the number of contributing intersections times a logarithmic factor.  
+- Uses fixed-size storage for intersections, limiting the maximum number of stored contributing intersections.
+```

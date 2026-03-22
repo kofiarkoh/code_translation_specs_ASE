@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer specifying how many test cases to process. For each test case, it reads an integer seed value and generates a sequence of exactly 10 integers by repeatedly updating the current value with a fixed arithmetic transformation. For each test case, the program prints a case header labeled with a 1-based case number, followed by the 10 generated values, one per line.
+
+2. Inputs  
+- An integer `N` indicating the number of test cases.  
+- Then `N` integer seed values, one per test case.
+
+3. Outputs  
+For each test case `i` (1-based):  
+- A header line of the form `Case i:`.  
+- Exactly 10 subsequent lines, each containing one integer produced by the transformation described below.  
+The seed itself is not printed unless it appears as a result of the transformation.
+
+4. Transformation / Generation Rule  
+Let `x` be the current integer value, initialized to the seed for the test case. Repeat the following update exactly 10 times; after each update, print the new value of `x`:
+- Compute the square of the current value.  
+- Discard the last two decimal digits of that square using integer division by 100.  
+- Keep only the next four decimal digits (the least significant four digits of the divided result) using modulo 10000.
+
+Equivalently, each iteration performs:
+- `x = ((x * x) / 100) % 10000`  
+using integer arithmetic (truncating toward zero as in C integer division).
+
+This corresponds to extracting the four decimal digits in positions 3 through 6 from the right of `x*x` (after removing the two least significant digits).
+
+5. Preconditions / Assumptions  
+- `N` is assumed to be an integer. If `N <= 0`, no test cases are processed and no output is produced.  
+- Each test case is assumed to provide an integer seed value readable by the program.  
+- The computation uses C `int` arithmetic; if `x * x` overflows the `int` range, behavior is not defined by this specification.  
+- No validation is performed for malformed or missing input; if required inputs cannot be read, behavior is unspecified.
+
+6. Postconditions  
+- If the test-case count is `N > 0`, exactly `N` case headers are printed, numbered from 1 to `N`.  
+- For each processed test case, exactly 10 transformed values are printed.  
+- Each printed value is the updated `x` after applying the full transformation for that iteration.
+
+7. Invariants and State Progression  
+- Case numbering starts at 1 and increases by 1 per processed test case.  
+- Within each test case, the program performs exactly 10 update-and-print iterations, where each iteration’s input is the previous iteration’s output.  
+- Processing proceeds sequentially from case 1 through case `N`, terminating after completing all requested cases.
+```

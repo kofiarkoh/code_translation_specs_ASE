@@ -1,0 +1,223 @@
+use std::io::{self, Read};
+
+const FH: usize = 0; // First half
+const SH: usize = 1; // Second half
+const ALL: usize = 2;
+const MAX: usize = 200_005;
+
+struct Scanner {
+    input: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { input, idx: 0 }
+    }
+    fn next_i32(&mut self) -> i32 {
+        // Same behavior as the C in(): reads a non-negative integer, skipping non-digits.
+        while self.idx < self.input.len() && self.input[self.idx] < b'0' {
+            self.idx += 1;
+        }
+        let mut n: i32 = 0;
+        while self.idx < self.input.len() {
+            let c = self.input[self.idx];
+            if c < b'0' {
+                break;
+            }
+            n = n * 10 + ((c & 0x0f) as i32);
+            self.idx += 1;
+        }
+        n
+    }
+}
+
+struct State {
+    // We model the C fixed arrays with fixed-size Vecs and explicit indices.
+    // This avoids the previous bug where "len == 0" but indices were used as if capacity implied length.
+    que: [Vec<i32>; 2],
+    qt: [usize; 2],
+    qe: [usize; 2],
+
+    minq: [Vec<i32>; 2],
+    at: [usize; 2],
+    ae: [usize; 2],
+
+    maxq: [Vec<i32>; 2],
+    zt: [usize; 2],
+    ze: [usize; 2],
+}
+
+impl State {
+    fn new() -> Self {
+        Self {
+            que: [vec![0; MAX], vec![0; MAX]],
+            qt: [0, 0],
+            qe: [0, 0],
+            minq: [vec![0; MAX], vec![0; MAX]],
+            at: [0, 0],
+            ae: [0, 0],
+            maxq: [vec![0; MAX], vec![0; MAX]],
+            zt: [0, 0],
+            ze: [0, 0],
+        }
+    }
+
+    #[inline]
+    fn size(&self, id: usize) -> usize {
+        self.qe[id] - self.qt[id]
+    }
+    #[inline]
+    fn min_sz(&self, id: usize) -> usize {
+        self.ae[id] - self.at[id]
+    }
+    #[inline]
+    fn max_sz(&self, id: usize) -> usize {
+        self.ze[id] - self.zt[id]
+    }
+
+    fn add(&mut self, id: usize, a: i32) {
+        if id == ALL {
+            self.add(SH, a);
+            if self.size(FH) < self.size(SH) {
+                let moved = self.del(SH);
+                self.add(FH, moved);
+            }
+            return;
+        }
+
+        self.que[id][self.qe[id]] = a;
+        self.qe[id] += 1;
+
+        if self.size(id) == 1 {
+            self.minq[id][self.ae[id]] = a;
+            self.ae[id] += 1;
+            self.maxq[id][self.ze[id]] = a;
+            self.ze[id] += 1;
+        } else if id == FH {
+            // FH: prefix-extrema history
+            if self.minq[id][self.ae[id] - 1] > a {
+                self.minq[id][self.ae[id]] = a;
+                self.ae[id] += 1;
+            }
+            if self.maxq[id][self.ze[id] - 1] < a {
+                self.maxq[id][self.ze[id]] = a;
+                self.ze[id] += 1;
+            }
+        } else {
+            // SH: monotone-queue style structures
+            while self.min_sz(id) > 0 && self.minq[id][self.ae[id] - 1] > a {
+                self.ae[id] -= 1;
+            }
+            while self.max_sz(id) > 0 && self.maxq[id][self.ze[id] - 1] < a {
+                self.ze[id] -= 1;
+            }
+            self.minq[id][self.ae[id]] = a;
+            self.ae[id] += 1;
+            self.maxq[id][self.ze[id]] = a;
+            self.ze[id] += 1;
+        }
+    }
+
+    fn del(&mut self, id: usize) -> i32 {
+        if id == ALL {
+            let a = self.del(FH);
+            if self.size(FH) < self.size(SH) {
+                let moved = self.del(SH);
+                self.add(FH, moved);
+            }
+            return a;
+        }
+
+        if id == FH {
+            self.qe[id] -= 1;
+            let a = self.que[id][self.qe[id]];
+            if self.minq[id][self.ae[id] - 1] == a {
+                self.ae[id] -= 1;
+            }
+            if self.maxq[id][self.ze[id] - 1] == a {
+                self.ze[id] -= 1;
+            }
+            a
+        } else {
+            let a = self.que[id][self.qt[id]];
+            self.qt[id] += 1;
+            if self.minq[id][self.at[id]] == a {
+                self.at[id] += 1;
+            }
+            if self.maxq[id][self.zt[id]] == a {
+                self.zt[id] += 1;
+            }
+            a
+        }
+    }
+
+    fn gmin(&self, id: usize, th: usize) -> i32 {
+        if id == FH {
+            self.minq[id][self.ae[id] - th]
+        } else {
+            self.minq[id][self.at[id] + th - 1]
+        }
+    }
+
+    fn gmax(&self, id: usize, th: usize) -> i32 {
+        if id == FH {
+            self.maxq[id][self.ze[id] - th]
+        } else {
+            self.maxq[id][self.zt[id] + th - 1]
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let q = sc.next_i32();
+        if q == 0 {
+            break;
+        }
+
+        let mut st = State::new();
+
+        for _ in 0..q {
+            let op = sc.next_i32();
+            let a: i32;
+            match op {
+                0 => {
+                    let x = sc.next_i32();
+                    st.add(ALL, x);
+                    continue; // no output
+                }
+                1 => a = st.del(ALL),
+                2 => a = st.gmin(FH, 1),
+                3 => a = st.gmin(SH, 1),
+                4 => {
+                    let k = sc.next_i32() as usize;
+                    a = st.gmin(FH, k);
+                }
+                5 => {
+                    let k = sc.next_i32() as usize;
+                    a = st.gmin(SH, k);
+                }
+                6 => a = st.gmax(FH, 1),
+                7 => a = st.gmax(SH, 1),
+                8 => {
+                    let k = sc.next_i32() as usize;
+                    a = st.gmax(FH, k);
+                }
+                _ => {
+                    let k = sc.next_i32() as usize;
+                    a = st.gmax(SH, k);
+                }
+            }
+            out.push_str(&a.to_string());
+            out.push('\n');
+        }
+        out.push_str("end\n");
+    }
+
+    print!("{out}");
+}

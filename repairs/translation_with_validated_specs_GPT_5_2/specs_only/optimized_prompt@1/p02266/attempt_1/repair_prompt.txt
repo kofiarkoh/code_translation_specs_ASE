@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of terrain-direction characters representing a 1‑dimensional cross-section and computes: (a) the total accumulated “water” area trapped by matching downward and upward slopes, and (b) the areas of each individual trapped region after merging any regions that become connected by a newly closed boundary. Outputs the total area, the number of resulting regions, and the list of region areas in left-to-right order.
+
+2. Inputs  
+- A stream of characters until end-of-input.  
+- Only three character categories affect the result: downward slope, upward slope, and flat. Any other characters are effectively ignored (they advance position but do not directly create/close regions).
+
+3. Outputs  
+- Line 1: an integer equal to the total trapped area across all regions.  
+- Line 2: an integer equal to the number of resulting trapped regions, followed by that many integers representing each region’s area in left-to-right order on the same line.
+
+4. Preconditions  
+- Input is provided as a finite character stream.  
+- Sufficient memory is available for internal bookkeeping proportional to the number of unmatched downward slopes and the number of regions formed.
+
+5. Postconditions  
+- The reported total area equals the sum of the reported individual region areas.  
+- Each reported region area is positive.  
+- The reported regions are maximal with respect to connectivity: no two reported regions overlap, and any regions that become connected by a later closure are merged into a single region.
+
+6. Invariants  
+- The internal position index advances by one per input character processed.  
+- At any time, the set of stored unmatched downward slopes corresponds exactly to downward slopes that have not yet been paired with a later upward slope.  
+- The set of stored regions represents disjoint trapped regions formed so far, with each region associated to its left boundary position; regions are maintained so that merging can occur when a new region encloses earlier ones.
+
+7. Error Handling / Exceptional Behavior  
+- If an upward slope occurs when there is no unmatched downward slope available, it produces no region and has no effect other than advancing position.  
+- No explicit handling is performed for memory allocation failure; behavior is undefined in that case.  
+- Characters other than the three recognized terrain symbols do not trigger region creation/closure; they only advance position.
+
+8. State Transitions (if applicable)  
+- On downward slope: pushes a new unmatched downward boundary at the current position.  
+- On flat: no state change other than position advance.  
+- On upward slope:  
+  - If there is an unmatched downward boundary, closes a region between that boundary and the current position, computes its area, and merges it with any previously formed regions that lie entirely within the newly closed region, producing a single combined region.  
+  - If there is no unmatched downward boundary, no region is formed.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of input characters plus any merging work; overall work is bounded by a constant factor per character amortized.  
+- Memory usage is linear in the maximum number of simultaneously unmatched downward slopes plus the number of regions formed.
+```

@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Fixed-size storage as implied by the constraints.
+    // We store only the first `w` bytes of each row; extra characters are ignored.
+    let mut grid = vec![vec![b'.'; w]; h];
+    for i in 0..h {
+        if let Some(row) = it.next() {
+            let bytes = row.as_bytes();
+            for j in 0..w {
+                // Spec: no explicit handling for short rows; behavior is undefined in that case.
+                // We choose the narrowest reasonable interpretation that still compiles:
+                // if the row is shorter, treat missing characters as '.'.
+                grid[i][j] = *bytes.get(j).unwrap_or(&b'.');
+            }
+        } else {
+            // Spec: no explicit handling for insufficient rows; choose to leave remaining as '.'.
+            break;
+        }
+    }
+
+    for i in 0..h {
+        for j in 0..w {
+            if grid[i][j] == b'#' {
+                let mut ok = false;
+                if i > 0 && grid[i - 1][j] == b'#' {
+                    ok = true;
+                }
+                if i + 1 < h && grid[i + 1][j] == b'#' {
+                    ok = true;
+                }
+                if j > 0 && grid[i][j - 1] == b'#' {
+                    ok = true;
+                }
+                if j + 1 < w && grid[i][j + 1] == b'#' {
+                    ok = true;
+                }
+
+                if !ok {
+                    // Negative result; terminate immediately as specified.
+                    println!("No");
+                    return;
+                }
+            }
+        }
+    }
+
+    // Affirmative result.
+    println!("Yes");
+}

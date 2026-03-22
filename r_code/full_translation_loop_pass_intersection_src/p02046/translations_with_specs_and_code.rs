@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    // SPEC precondition: input is a sequence of complete integer pairs.
+    // If there's an incomplete trailing integer, behavior is not inferable;
+    // we stop processing when a full pair can't be read.
+    let mut out = String::new();
+    loop {
+        let a = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => break,
+        };
+        let b = match it.next() {
+            Some(s) => s.parse::<i32>().unwrap(),
+            None => break,
+        };
+
+        // Match C's abs(int) behavior for all values except potential overflow on i32::MIN,
+        // which the SPEC says is not handled/inferable. We use i64 to avoid overflow here.
+        let x = (a as i64).abs();
+        let y = (b as i64).abs();
+
+        let t: i64;
+        if x + y == 1 {
+            t = 1;
+        } else if (x % 2 != 0) && (y % 2 != 0) {
+            t = x + y - 1;
+        } else if (x % 2 == 0) && (y % 2 == 0) {
+            t = x + y;
+        } else if x != 0 && y != 0 {
+            t = x + y;
+        } else {
+            t = x + y + 1;
+        }
+
+        out.push_str(&format!("{t}\n"));
+    }
+
+    print!("{out}");
+}

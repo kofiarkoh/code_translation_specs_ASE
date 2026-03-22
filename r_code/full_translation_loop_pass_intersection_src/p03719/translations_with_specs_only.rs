@@ -1,0 +1,21 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Narrowest reasonable interpretation: use Rust's default signed integer type (i64)
+    // for parsing "integers" from stdin. If input is malformed or out of range, the
+    // specification states behavior is not inferable; we therefore allow a panic.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let lower: i64 = it.next().unwrap().parse().unwrap();
+    let upper: i64 = it.next().unwrap().parse().unwrap();
+    let query: i64 = it.next().unwrap().parse().unwrap();
+
+    // Inclusive interval check as specified.
+    if query >= lower && query <= upper {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

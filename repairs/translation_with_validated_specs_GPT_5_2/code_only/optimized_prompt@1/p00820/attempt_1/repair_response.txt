@@ -1,0 +1,44 @@
+```rust
+use std::io::{self, Read};
+
+fn solve(n: i32, c: i32, low: i32) -> i32 {
+    let mut ret: i32 = 0;
+    let mut i: i32 = low;
+
+    // Mirror C loop: for (i=low; i*i<=n; i++)
+    // Use i64 for the multiplication to avoid overflow/panic in Rust;
+    // this matches typical C behavior for AOJ constraints (and keeps semantics stable).
+    while (i as i64) * (i as i64) <= n as i64 {
+        let sq = i * i;
+        if n == sq {
+            ret += 1;
+        } else if c < 4 {
+            ret += solve(n - sq, c + 1, i);
+        }
+        i += 1;
+    }
+    ret
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let mut out = String::new();
+
+    while let Some(tok) = it.next() {
+        let n: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        if n == 0 {
+            break;
+        }
+        let ret = solve(n, 1, 1);
+        out.push_str(&format!("{ret}\n"));
+    }
+
+    print!("{out}");
+}
+```

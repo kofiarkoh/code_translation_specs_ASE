@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, Read};
+
+fn calc(v: &[f64], n: usize, x: usize, k: usize) -> f64 {
+    // Computes pred(i=x, j=k) using Lagrange interpolation over points
+    // with indices != x and != k (so exactly d+1 points).
+    let mut s = 0.0f64;
+    for i in 0..n {
+        if i == k || i == x {
+            continue;
+        }
+        let mut t = v[i];
+        for j in 0..n {
+            if j != i && j != k && j != x {
+                // t *= (k - j) / (i - j)
+                t = (t * ((k as f64) - (j as f64))) / ((i as f64) - (j as f64));
+            }
+        }
+        s += t;
+    }
+    s
+}
+
+fn main() {
+    // Read all input tokens (ints and floats) whitespace-separated.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(dtok) = it.next() else { break };
+        let d: i32 = dtok.parse().unwrap();
+        if d == 0 {
+            break;
+        }
+
+        let n = (d as usize) + 3;
+        let mut v = vec![0.0f64; n];
+        for i in 0..n {
+            v[i] = it.next().unwrap().parse::<f64>().unwrap();
+        }
+
+        let mut ans_i = 0usize;
+        'outer: for i in 0..n {
+            for j in 0..=n {
+                if j == n {
+                    ans_i = i;
+                    break 'outer; // found smallest i satisfying the rule
+                }
+                if j != i {
+                    let pred = calc(&v, n, i, j);
+                    let diff = pred - v[j];
+                    if diff < -0.1 || diff > 0.1 {
+                        break; // i fails; try next i
+                    }
+                }
+            }
+        }
+
+        out.push_str(&format!("{ans_i}\n"));
+    }
+
+    print!("{out}");
+}
+```

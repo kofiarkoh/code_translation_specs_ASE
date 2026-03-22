@@ -1,0 +1,22 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-delimited tokens (like scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Per spec: no explicit error handling for missing input; preconditions guarantee presence.
+    let s1 = it.next().unwrap();
+    let s2 = it.next().unwrap();
+
+    // Equivalent to C: strcpy(str, str1); strcat(str, str1);
+    let doubled = format!("{s1}{s1}");
+
+    // Equivalent to C: strstr(str, str2) != NULL
+    if doubled.contains(s2) {
+        print!("Yes\n");
+    } else {
+        print!("No\n");
+    }
+}

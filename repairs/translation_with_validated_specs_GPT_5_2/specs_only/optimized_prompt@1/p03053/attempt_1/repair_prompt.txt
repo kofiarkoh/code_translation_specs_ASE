@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for a rectangular grid containing “source” cells and “empty” cells, the maximum over all cells of the minimum number of orthogonal (up/down/left/right) steps required to reach any source cell. Outputs that maximum distance.
+
+2. Inputs  
+- Two integers: grid height and grid width.  
+- A grid of height rows, each containing width characters, where each cell is either a source cell or an empty cell.
+
+3. Outputs  
+- A single integer: the largest among all grid cells of their shortest orthogonal-step distance to the nearest source cell (with source cells having distance 0).
+
+4. Preconditions  
+- Height and width are within the supported fixed bounds (at most 1000 each).  
+- Each input row has exactly the specified width and contains only the two expected cell types.  
+- At least one source cell exists in the grid.  
+- The grid dimensions are small enough that all internal indexing and queue capacity assumptions hold.
+
+5. Postconditions  
+- For every cell, its computed distance equals the length (in orthogonal steps) of the shortest path to any source cell.  
+- The output equals the maximum of these distances across all cells.
+
+6. Invariants  
+- Distances for source cells are always 0.  
+- Distances for empty cells, once finalized, represent a non-increasing upper bound that converges to the true shortest distance; no cell’s stored distance ever increases.  
+- Only orthogonal adjacency is considered for movement and distance.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, missing source cells, or out-of-range dimensions. In such cases, behavior is unspecified (may produce an invalid result).
+
+8. State Transitions (if applicable)  
+- Each empty cell transitions from “unreached” to “reached with a finite distance” when a shortest distance to a source is established.  
+- Source cells start and remain at distance 0.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of grid cells (linear in height × width).  
+- Memory usage is proportional to the number of grid cells, with fixed maximum storage sized for up to 1000×1000 cells.
+```

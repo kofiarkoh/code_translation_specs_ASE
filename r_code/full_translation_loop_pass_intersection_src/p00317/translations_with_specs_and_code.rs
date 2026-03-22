@@ -1,0 +1,195 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+    fn skip_whitespace(&mut self) {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+    }
+    fn next_usize(&mut self) -> usize {
+        self.skip_whitespace();
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() {
+            let c = self.buf[self.idx];
+            if !c.is_ascii_digit() {
+                break;
+            }
+            n = n * 10 + (c - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+    fn next_token(&mut self) -> Vec<u8> {
+        self.skip_whitespace();
+        let start = self.idx;
+        while self.idx < self.buf.len() && !self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        self.buf[start..self.idx].to_vec()
+    }
+}
+
+fn cmp_bytes(a: &Vec<u8>, b: &Vec<u8>) -> Ordering {
+    a.as_slice().cmp(b.as_slice())
+}
+
+/// Equivalent to the C `search`:
+/// - if `part == false`: exact match (strcmp == 0) existence -> 1/0
+/// - if `part == true`: count of strings whose first `n` bytes equal `s[..n]`
+///   (implemented via two binary searches on lexicographic order using prefix comparisons)
+fn search(sorted: &[Vec<u8>], s: &[u8], n: usize, part: bool) -> i32 {
+    if !part {
+        // exact match existence
+        if sorted.binary_search_by(|x| x.as_slice().cmp(s)).is_ok() {
+            1
+        } else {
+            0
+        }
+    } else {
+        // count of elements with prefix s[..n]
+        // upper bound: last index where prefix <= s[..n]
+        let mut low = 0usize;
+        let mut high = sorted.len();
+        while low < high {
+            let mid = (low + high) >> 1;
+            let pref = &sorted[mid][..sorted[mid].len().min(n)];
+            let ord = pref.cmp(&s[..n]);
+            if ord <= Ordering::Equal {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        let k = low as isize - 1;
+
+        // lower bound: first index where prefix >= s[..n]
+        low = 0;
+        high = sorted.len();
+        while low < high {
+            let mid = (low + high) >> 1;
+            let pref = &sorted[mid][..sorted[mid].len().min(n)];
+            let ord = pref.cmp(&s[..n]);
+            if ord < Ordering::Equal {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        let l = low as isize;
+
+        if k >= l {
+            (k - l + 1) as i32
+        } else {
+            0
+        }
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let n_words = sc.next_usize();
+    let n_queries = sc.next_usize();
+
+    let mut w: Vec<Vec<u8>> = Vec::with_capacity(n_words);
+    let mut r: Vec<Vec<u8>> = Vec::with_capacity(n_words);
+    let mut one = 0i32;
+
+    for _ in 0..n_words {
+        let tok = sc.next_token();
+        if tok.len() == 1 {
+            one += 1;
+        }
+        w.push(tok.clone());
+        let mut rev = tok;
+        rev.reverse();
+        r.push(rev);
+    }
+
+    w.sort_by(cmp_bytes);
+    r.sort_by(cmp_bytes);
+
+    let mut out = String::new();
+
+    for _ in 0..n_queries {
+        let mut slate = sc.next_token();
+        let mut res = slate.clone();
+        res.reverse();
+        let mut n = slate.len();
+
+        // find '?' position in original slate
+        let mut k = 0usize;
+        while k < n && slate[k] != b'?' {
+            k += 1;
+        }
+
+        let mut part = false;
+        let mut f_res = false;
+        // `s` will be either slate (prefix/exact) or res (suffix via reversed)
+        // In Rust we just keep a flag and mutate the chosen buffer.
+        if !res.is_empty() && res[0] == b'*' {
+            // pattern ends with '*'
+            n -= 1;
+            slate.truncate(n);
+            part = true;
+            if k >= n {
+                k = usize::MAX; // represent -1
+            }
+        } else if !slate.is_empty() && slate[0] == b'*' {
+            // pattern begins with '*'
+            n -= 1;
+            res.truncate(n);
+            part = true;
+            f_res = true;
+            if k >= n + 1 {
+                k = usize::MAX; // represent -1
+            } else {
+                // convert '?' index from original to reversed-without-star index
+                k = n - k;
+            }
+        } else if k >= n {
+            k = usize::MAX; // represent -1
+        }
+
+        let ans: i32;
+        if k != usize::MAX {
+            // has '?'
+            if n == 1 {
+                // effective pattern is "?"
+                ans = if part { n_words as i32 } else { one };
+            } else {
+                let mut total = 0i32;
+                for ch in b'a'..=b'z' {
+                    if f_res {
+                        res[k] = ch;
+                        total += search(&r, &res, n, part);
+                    } else {
+                        slate[k] = ch;
+                        total += search(&w, &slate, n, part);
+                    }
+                }
+                ans = total;
+            }
+        } else {
+            // no '?'
+            if f_res {
+                ans = search(&r, &res, n, part);
+            } else {
+                ans = search(&w, &slate, n, part);
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

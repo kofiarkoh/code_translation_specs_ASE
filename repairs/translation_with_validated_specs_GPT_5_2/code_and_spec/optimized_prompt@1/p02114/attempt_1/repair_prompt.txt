@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an \(n \times n\) grid of characters, partitions the cells containing the character `'o'` into 4-neighbor connected components (adjacent via up/down/left/right), and outputs an integer derived from the number of such components: specifically \(\left\lfloor\frac{C-1}{3}\right\rfloor\), where \(C\) is the count of connected components of `'o'`.
+
+2. Inputs  
+- An integer \(n\) (grid dimension).  
+- \(n^2\) character cells forming an \(n \times n\) grid.
+
+3. Outputs  
+- A single integer value: \(\left\lfloor\frac{C-1}{3}\right\rfloor\), where \(C\) is the number of 4-neighbor connected components consisting of cells equal to `'o'`.
+
+4. Preconditions  
+- \(1 \le n \le 298\) (so that the grid plus a one-cell border fits within internal storage).  
+- The total number of grid cells \(n^2 \le 100010\) (so that internal traversal storage is sufficient).  
+- Each grid cell is a character; only cells equal to `'o'` are treated as occupied for connectivity purposes.  
+- Input is well-formed and provides all required values.
+
+5. Postconditions  
+- Let \(C\) be the number of maximal sets of `'o'` cells connected via 4-neighbor adjacency in the input grid. The program outputs exactly \(\left\lfloor\frac{C-1}{3}\right\rfloor\).  
+- All `'o'` cells are treated as belonging to exactly one counted component.
+
+6. Invariants  
+- During processing, each grid cell is classified as either already visited or not; no cell is visited more than once.  
+- Each counted component corresponds to a unique maximal 4-neighbor connected region of `'o'` cells in the original grid.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., \(n\) too large, too many cells, insufficient input), behavior is undefined (may include incorrect output or memory corruption).
+
+8. State Transitions (if applicable)  
+- Grid cell state transitions:  
+  - Unvisited `'o'` cell → visited (and will not be considered again).  
+  - Any non-`'o'` cell is never transitioned into an `'o'` component; it may be treated as already non-eligible for traversal.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of grid cells plus the number of 4-neighbor adjacency checks (overall \(O(n^2)\)).  
+- Memory usage is bounded by fixed-size storage for the grid and traversal bookkeeping, requiring \(O(n^2)\) space within the stated limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int X[]={1,0,-1,0};
+int Y[]={0,1,0,-1};
+int main(){
+  char d[300][300]={};
+  int n,i,j,k,c=0,t,r,x[100010],y[100010],ny,nx;
+  scanf("%d",&n);
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++)scanf(" %c",&d[i+1][j+1]);
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++){
+      if(d[i+1][j+1]=='x')continue;
+      d[y[t=0]=i+1][x[0]=j+1]='x';
+      c++;
+      for(r=1;r-t;t++){
+	for(k=0;k<4;k++){
+	  ny=y[t]+Y[k];
+	  nx=x[t]+X[k];
+	  if(d[ny][nx]-'o')continue;
+	  d[y[r]=ny][x[r]=nx]='x';
+	  r++;
+	}
+      }
+    }
+  }
+  printf("%d\n",(c-1)/3);
+  return 0;
+}
+=== C CODE END ===

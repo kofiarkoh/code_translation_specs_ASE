@@ -1,0 +1,99 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens.
+    // This matches C's scanf("%d %d") and scanf(" %c") behavior (skips leading whitespace).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break; // no more input
+        }
+        let w: usize = w_opt.unwrap().parse().unwrap();
+        let h: usize = it.next().unwrap().parse().unwrap();
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // Grid and cost arrays are per test case.
+        let mut grid = vec![vec!['\0'; w]; h];
+        let mut cost = vec![vec![0i32; w]; h];
+
+        // Per spec: if multiple '&' exist, use the last encountered in row-major order.
+        // Also: when '&' is read, store '.' in the grid and set start cost to 1.
+        let mut start: Option<(usize, usize)> = None;
+
+        for y in 0..h {
+            for x in 0..w {
+                let tok = it.next().unwrap();
+                let ch = tok.chars().next().unwrap(); // token is a single non-whitespace char
+                if ch == '&' {
+                    grid[y][x] = '.';
+                    cost[y][x] = 1;
+                    start = Some((y, x));
+                } else {
+                    grid[y][x] = ch;
+                }
+            }
+        }
+
+        let (sy, sx) = start.expect("Precondition violated: missing '&'");
+
+        // Queue-based repeated relaxation (FIFO), as specified.
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+        q.push_back((sy, sx));
+
+        let dirs: [(isize, isize); 4] = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+        while let Some((uy, ux)) = q.pop_front() {
+            let cu = cost[uy][ux];
+            for (dx, dy) in dirs {
+                let nx = ux as isize + dx;
+                let ny = uy as isize + dy;
+                if nx < 0 || ny < 0 || nx >= w as isize || ny >= h as isize {
+                    continue;
+                }
+                let vx = nx as usize;
+                let vy = ny as usize;
+
+                let candidate = if grid[uy][ux] == grid[vy][vx] {
+                    cu
+                } else {
+                    cu + 1
+                };
+
+                let cv = cost[vy][vx];
+                if cv == 0 || candidate < cv {
+                    cost[vy][vx] = candidate;
+                    q.push_back((vy, vx));
+                }
+            }
+        }
+
+        // Boundary minimum of (cost / 2) using integer division.
+        // C initializes min = w; we do the same (w fits in i32 per constraints).
+        let mut min_val: i32 = w as i32;
+
+        for x in 0..w {
+            min_val = min_val.min(cost[0][x] / 2);
+            min_val = min_val.min(cost[h - 1][x] / 2);
+        }
+        for y in 0..h {
+            min_val = min_val.min(cost[y][0] / 2);
+            min_val = min_val.min(cost[y][w - 1] / 2);
+        }
+
+        out.push_str(&format!("{min_val}\n"));
+    }
+
+    print!("{out}");
+}
+```

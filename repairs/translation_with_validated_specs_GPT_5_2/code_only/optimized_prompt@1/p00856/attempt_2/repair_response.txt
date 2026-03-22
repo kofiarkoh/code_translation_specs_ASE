@@ -1,0 +1,93 @@
+```rust
+use std::io::{self, Read};
+
+const ONE_SIXTH: f64 = 1.0 / 6.0;
+
+fn myabs(x: i32) -> i32 {
+    if x >= 0 { x } else { -x }
+}
+
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 100],
+    memo: &mut [[f64; 101]; 101],
+) -> f64 {
+    // In C, memo is indexed only when turn is within [0..100] due to base cases.
+    // Rust would panic on negative -> huge usize, so guard first.
+    if turn <= 0 {
+        return if rest == 0 { 1.0 } else { 0.0 };
+    }
+    let t = turn as usize;
+
+    if memo[rest][t] != f64::MAX {
+        return memo[rest][t];
+    }
+
+    let ret = if rest == 0 {
+        1.0
+    } else if turn == 1 && rest <= 6 {
+        ONE_SIXTH
+    } else {
+        let mut acc = 0.0;
+        for i in 1..=6 {
+            let next_pos_i = myabs(rest as i32 - i);
+            let next_pos = next_pos_i as usize;
+
+            // next_pos is in [0..=n] given rest in [0..=n] and i in [1..=6]
+            let idx = n - next_pos;
+            match sq[idx] {
+                0 => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+                b'L' => acc += ONE_SIXTH * solve(next_pos, turn - 2, n, sq, memo),
+                b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+                _ => acc += ONE_SIXTH * solve(next_pos, turn - 1, n, sq, memo),
+            }
+        }
+        acc
+    };
+
+    memo[rest][t] = ret;
+    ret
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n = match it.next() {
+            Some(v) => v.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let t = it.next().unwrap().parse::<i32>().unwrap();
+        let lcnt = it.next().unwrap().parse::<usize>().unwrap();
+        let bcnt = it.next().unwrap().parse::<usize>().unwrap();
+
+        if n == 0 && t == 0 && lcnt == 0 && bcnt == 0 {
+            break;
+        }
+
+        let mut sq = [0u8; 100];
+        let mut memo = [[f64::MAX; 101]; 101];
+
+        for _ in 0..lcnt {
+            let pos = it.next().unwrap().parse::<usize>().unwrap();
+            if pos < 100 {
+                sq[pos] = b'L';
+            }
+        }
+        for _ in 0..bcnt {
+            let pos = it.next().unwrap().parse::<usize>().unwrap();
+            if pos < 100 {
+                sq[pos] = b'B';
+            }
+        }
+
+        let ret = solve(n, t, n, &sq, &mut memo);
+        // C: printf("%lf\n", ret);
+        println!("{}", ret);
+    }
+}
+```

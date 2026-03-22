@@ -1,0 +1,56 @@
+```rust
+use std::io::{self, Read};
+
+const C: i128 = 200_000_000_000_000_000;
+const MAX_N: usize = 131_072;
+
+fn f(a: i128, b: i128, pts: &[(i128, i128)]) -> u8 {
+    let mut acc: u8 = 0;
+    for &(x, y) in pts {
+        if a < x || b < y {
+            continue;
+        }
+        let p = (a - x) + (b - y);
+        let q = b - y;
+        // "every bit set in q is also set in p"  <=>  (q & !p) == 0
+        if (q & !p) == 0 {
+            acc ^= 1;
+        }
+    }
+    acc
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // missing input => unspecified; exit quietly
+    };
+
+    // Spec says behavior is undefined if n exceeds capacity; we still allocate as read.
+    let mut pts: Vec<(i128, i128)> = Vec::with_capacity(n.min(MAX_N));
+    for _ in 0..n {
+        let x: i128 = it.next().unwrap().parse().unwrap();
+        let y: i128 = it.next().unwrap().parse().unwrap();
+        pts.push((x, y));
+    }
+
+    // Greedy bitwise maximization of R in [0, 2^61 - 1], from high bit to low bit.
+    let mut r: i128 = 0;
+    for k in (0..=60).rev() {
+        let bit = 1_i128 << k;
+        let cand_r = r + bit;
+        let a = C - cand_r;
+        let b = cand_r;
+        if f(a, b, &pts) == 1 {
+            r = cand_r;
+        }
+    }
+
+    let a_star = C - r;
+    println!("{a_star}");
+}
+```

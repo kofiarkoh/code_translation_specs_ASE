@@ -1,0 +1,53 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<u64> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: u64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+
+    // Track the three smallest concatenation values seen so far, in non-decreasing order.
+    // C code uses 9999999999 as a sentinel; we keep the same value to match behavior.
+    // Note: This assumes (per spec) all real concatenations fit in the integer range.
+    let mut r: [u64; 3] = [9_999_999_999, 9_999_999_999, 9_999_999_999];
+
+    for i in 0..n {
+        for j in 0..n {
+            if i == j {
+                continue;
+            }
+
+            // Compute k = smallest power of 10 such that A[j] % k == A[j],
+            // i.e., k = 10^(number_of_decimal_digits(A[j])).
+            // This matches the C loop:
+            //   for(k=10; A[j]%k!=A[j]; k*=10);
+            let mut k: u64 = 10;
+            while a[j] % k != a[j] {
+                k *= 10;
+            }
+
+            let mut val: u64 = a[i] * k + a[j];
+
+            // Insert into r if smaller, shifting via swaps (as in the C XOR-swap loop).
+            for t in 0..3 {
+                if r[t] > val {
+                    std::mem::swap(&mut r[t], &mut val);
+                }
+            }
+        }
+    }
+
+    // Output the third smallest (0-based index 2), with newline.
+    // C prints with "%d\n" (signed int), but spec defines non-negative integers;
+    // we print as unsigned decimal.
+    println!("{}", r[2]);
+}
+```

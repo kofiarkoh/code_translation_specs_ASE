@@ -1,0 +1,31 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches scanf behavior for whitespace-separated tokens)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // if scanf would fail to read, C code has undefined behavior; we just exit
+    };
+    let b: i64 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    // In C, signed overflow on (a+b) is undefined. We emulate common two's-complement wraparound.
+    let sum = a.wrapping_add(b);
+
+    if sum % 2 != 0 {
+        print!("IMPOSSIBLE");
+        return;
+    }
+
+    // C prints with "%d" (int) even though expression is long int; emulate by casting to i32.
+    let half_as_int = (sum / 2) as i32;
+    print!("{}", half_as_int);
+}
+```

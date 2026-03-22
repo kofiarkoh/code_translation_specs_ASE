@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads three integers and performs a deterministic sequence of paired arithmetic updates to two integer values for a number of steps equal to the first input reduced modulo 12. Produces the resulting pair of integers after completing those steps.
+
+2. Inputs  
+- An integer step count `N` (treated as a signed integer value).  
+- Two signed integer initial values `A` and `B`.
+
+3. Outputs  
+- Two signed integers: the final values of `A` and `B` after applying the update sequence for `N mod 12` steps.
+
+4. Preconditions  
+- Exactly three integer values are provided as input.  
+- The step count is non-negative.  
+- All intermediate and final results of the arithmetic updates fit within the range of the signed integer type used for `A` and `B` (otherwise behavior is not defined by this specification).
+
+5. Postconditions  
+Let `k = N mod 12`, with `k` in the range `[0, 11]`. Starting from `(A0, B0)` as the input values, define a sequence of states `(A_t, B_t)` for `t = 0..k` such that:  
+- `(A_0, B_0) = (A0, B0)`  
+- For each step `t` from `1` to `k`:
+  - If `t` is odd: `A_t = A_{t-1} - B_{t-1}`, `B_t = B_{t-1}`  
+  - If `t` is even: `A_t = A_{t-1}`, `B_t = A_{t-1} + B_{t-1}`  
+The program outputs `(A_k, B_k)`.
+
+6. Invariants  
+- The number of applied steps is exactly `k = N mod 12`.  
+- After any completed step `t`, the pair `(A_t, B_t)` is uniquely determined by `(A0, B0)` and `t` via the recurrence in the Postconditions.
+
+7. Error Handling / Exceptional Behavior  
+- If the required three input integers are not successfully provided, the resulting output is unspecified.  
+- If arithmetic overflow occurs for the integer type used for `A` or `B`, the resulting behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- State consists of the pair `(A, B)` and an implicit step index `t`.  
+- Transition for odd `t`: `(A, B) → (A − B, B)`  
+- Transition for even `t`: `(A, B) → (A, A + B)`  
+- Exactly `k` transitions are performed, where `k = N mod 12`.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to `N mod 12` (at most 11 steps), and uses constant memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 3130 Calculation Training
+// 2020.1.14 bal4u
+
+#include <stdio.h>
+
+typedef long long ll;
+
+int main()
+{
+	ll N; int i, A, B;
+	
+	scanf("%lld%d%d", &N, &A, &B);
+	N %= 12;
+	i = 0; while (i < N) {
+		A = A-B, ++i;
+		if (i == N) break;
+		B = A+B, ++i;
+	}
+	printf("%d %d\n", A, B);
+	return 0;
+}
+=== C CODE END ===

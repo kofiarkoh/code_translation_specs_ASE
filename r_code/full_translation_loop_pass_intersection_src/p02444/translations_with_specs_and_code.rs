@@ -1,0 +1,50 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut a: Vec<i32> = vec![0; n];
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    // Temporary buffer sized to n (matches C's fixed 1000, but uses n as needed).
+    let mut tmp: Vec<i32> = vec![0; n];
+
+    for _ in 0..q {
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+        let e: usize = it.next().unwrap().parse().unwrap();
+
+        // Copy subrange [b, e) into tmp at the same indices (as in C).
+        for i in b..e {
+            tmp[i] = a[i];
+        }
+
+        // Rotate left by (m - b) within the subrange length (e - b).
+        // Per spec, e > b is assumed; otherwise behavior is undefined (C would mod by 0).
+        let len = e - b;
+        let shift = m - b;
+
+        for i in 0..len {
+            a[b + i] = tmp[b + (i + shift) % len];
+        }
+    }
+
+    // Output: n integers separated by spaces, ending with newline.
+    let mut out = String::new();
+    for i in 0..n {
+        if i + 1 == n {
+            out.push_str(&format!("{}\n", a[i]));
+        } else {
+            out.push_str(&format!("{} ", a[i]));
+        }
+    }
+    print!("{out}");
+}

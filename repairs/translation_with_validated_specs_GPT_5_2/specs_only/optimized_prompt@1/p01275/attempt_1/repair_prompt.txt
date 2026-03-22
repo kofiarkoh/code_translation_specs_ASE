@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, for each problem instance, the minimum number of allowed rotation operations required to transform an initial sequence of decimal digits into a target sequence of decimal digits, and outputs that minimum.
+
+2. Inputs  
+- Repeated problem instances, each consisting of:  
+  - An integer length `n` (terminates when `n` is zero).  
+  - Two digit sequences of length `n`, representing the initial and target states.
+
+3. Outputs  
+- For each non-terminating instance, outputs a single non-negative integer: the minimum number of operations needed to reach the target from the initial sequence under the allowed operation model.
+
+4. Preconditions  
+- `n` is within the supported fixed maximum length (assumed `1 <= n <= 10`).  
+- The two provided sequences each contain at least `n` characters.  
+- Each of the first `n` characters of both sequences is a decimal digit (`0`–`9`).  
+- The input stream is well-formed according to the above instance structure.
+
+5. Postconditions  
+- If the initial and target sequences are identical over the first `n` digits, the output is `0`.  
+- Otherwise, the output equals the minimum number of operations required to make all digit-wise differences (modulo 10) between initial and target become zero, where an operation is defined as:  
+  - Choose an index `p` (0-based) such that the current difference at `p` is non-zero.  
+  - Let `k` be that non-zero difference value (1–9).  
+  - Choose any index `i` with `p <= i < n`.  
+  - Apply a rotation that decreases the differences at all positions `j` in `[p, i]` by `k` modulo 10 (equivalently, adds `10 - k` modulo 10), making the difference at `p` become zero.  
+- The reported minimum is taken over all valid sequences of such operations.
+
+6. Invariants  
+- Throughout the computation for an instance, each position’s difference value is always in the range `0`–`9` (interpreted modulo 10).  
+- Any operation performed always makes the leftmost non-zero difference position become zero immediately after that operation.  
+- The accumulated operation count for any explored transformation path equals the number of operations applied along that path.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (e.g., non-digits, `n` exceeding the fixed capacity, missing data), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- For each instance, the state is the vector of digit-wise differences modulo 10.  
+- A transition consists of selecting the leftmost non-zero position `p` and an end index `i >= p`, then updating the difference vector by subtracting the value at `p` from all positions in `[p, i]` modulo 10, and incrementing the operation count by 1.  
+- A terminal state is reached when all differences are zero; the instance result is the minimum operation count among all terminal states reachable via valid transitions.
+
+9. Non-functional Constraints (if inferable)  
+- Supports only sequences up to a small fixed maximum length (assumed 10).  
+- Uses exhaustive exploration of possible operation choices; runtime may grow rapidly with `n` and the digit configuration, but is bounded by the small maximum length.
+```

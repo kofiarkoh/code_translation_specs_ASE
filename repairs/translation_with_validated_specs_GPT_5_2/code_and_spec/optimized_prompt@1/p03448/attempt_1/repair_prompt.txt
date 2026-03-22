@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes how many distinct combinations of three nonnegative integer counts (each bounded by a provided maximum) yield a target total value when weighted by fixed denominations.
+
+2. Inputs  
+- Four integers provided via standard input:  
+  - Maximum allowable count for denomination 500  
+  - Maximum allowable count for denomination 100  
+  - Maximum allowable count for denomination 50  
+  - Target total value
+
+3. Outputs  
+- A single integer written to standard output: the number of combinations of counts within the given bounds whose weighted sum equals the target value.
+
+4. Preconditions  
+- All four input values are successfully provided as integers.  
+- The maximum counts are assumed to be nonnegative; if negative, the behavior effectively results in zero combinations being considered.  
+- The computed number of combinations fits within the range of a signed integer.
+
+5. Postconditions  
+- The output equals the cardinality of the set of triples (i, j, k) such that:  
+  - 0 ≤ i ≤ A, 0 ≤ j ≤ B, 0 ≤ k ≤ C  
+  - 500·i + 100·j + 50·k = X
+
+6. Invariants  
+- The reported count is always a nonnegative integer.  
+- Each valid triple within the specified bounds contributes exactly 1 to the count; no triple is counted more than once.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing or not an integer, the program’s behavior is unspecified.  
+- If arithmetic overflows the integer range (during sum computation or counting), the behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained beyond the program’s execution. The program reads inputs, computes the count, outputs it, and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows proportionally to (A+1)·(B+1)·(C+1).  
+- Uses constant additional memory aside from a small fixed set of integer variables.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main (void){
+  
+  int A, B, C, X;
+  
+  scanf("%d", &A);
+  scanf("%d", &B);
+  scanf("%d", &C);
+  scanf("%d", &X);
+  
+  int i, j, k;
+  
+  int count=0;
+  
+  for (i=0; i<=A; i++){
+   for (j=0; j<=B; j++){
+     for (k=0; k<=C; k++){
+       
+      if ( 500*i + 100*j + 50*k == X)
+      { count = count + 1;}
+       
+     }
+   }
+  }
+  
+  printf("%d", count);
+  
+  return 0;
+}
+=== C CODE END ===

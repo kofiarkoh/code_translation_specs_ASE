@@ -1,0 +1,100 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02114/p02114_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02114/p02114_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (13910858) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/specs_only/optimized_prompt@1/p02114/attempt_1/translation_with_validated_specs_GPT_5_2.rs:20:33:
+called `Option::unwrap()` on a `None` value
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; input is assumed well-formed per specification.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Read n*n cells as tokens; each token is treated as a character cell.
+    // Only the first char of each token is used (narrowest reasonable interpretation).
+    let mut grid: Vec<Vec<u8>> = vec![vec![b'.'; n]; n];
+    for i in 0..n {
+        for j in 0..n {
+            let tok = it.next().unwrap();
+            let ch = tok.as_bytes()[0];
+            grid[i][j] = ch;
+        }
+    }
+
+    let mut visited = vec![vec![false; n]; n];
+    let mut components: i64 = 0;
+
+    let dirs: [(isize, isize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
+
+    for i in 0..n {
+        for j in 0..n {
+            if !visited[i][j] && grid[i][j] == b'o' {
+                components += 1;
+                visited[i][j] = true;
+
+                let mut q = VecDeque::new();
+                q.push_back((i, j));
+
+                while let Some((x, y)) = q.pop_front() {
+                    for (dx, dy) in dirs {
+                        let nx = x as isize + dx;
+                        let ny = y as isize + dy;
+                        if nx < 0 || ny < 0 || nx >= n as isize || ny >= n as isize {
+                            continue;
+                        }
+                        let nxu = nx as usize;
+                        let nyu = ny as usize;
+                        if !visited[nxu][nyu] && grid[nxu][nyu] == b'o' {
+                            visited[nxu][nyu] = true;
+                            q.push_back((nxu, nyu));
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Output floor((C-1)/3). For C=0, this yields floor(-1/3) = -1 in math,
+    // but integer division in Rust truncates toward zero. The specification does not
+    // define behavior for C=0 explicitly; we keep the narrowest interpretation by
+    // using integer arithmetic on signed integers as written.
+    let ans = (components - 1) / 3;
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

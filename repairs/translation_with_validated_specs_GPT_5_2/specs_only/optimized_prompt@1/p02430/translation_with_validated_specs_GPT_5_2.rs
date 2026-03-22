@@ -1,0 +1,50 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+
+    let mut it = input.split_whitespace();
+    let n: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return, // unspecified by spec; choose to produce no output
+    };
+    let k: i64 = match it.next().and_then(|s| s.parse::<i64>().ok()) {
+        Some(v) => v,
+        None => return, // unspecified by spec; choose to produce no output
+    };
+
+    // Spec assumes n is non-negative and small enough that (1 << n) is well-defined for int.
+    // We emulate "int" as i32 and do the shift in u32 to avoid UB; if n is out of range,
+    // behavior is unspecified by spec, so we choose to produce no output.
+    if n < 0 || n > 31 {
+        return;
+    }
+    let n_u32 = n as u32;
+
+    // Enumerate p in [0, 2^n - 1] in increasing numeric order.
+    let limit: u32 = 1u32 << n_u32;
+
+    let mut out = String::new();
+    for p in 0u32..limit {
+        // Popcount on an int: use 32-bit popcount.
+        let pop = p.count_ones() as i64;
+        if pop != k {
+            continue;
+        }
+
+        out.push_str(&(p as i32).to_string());
+        out.push(':');
+
+        // List set bit positions i in ascending order, restricted to 0 <= i < n.
+        for i in 0..n_u32 {
+            if ((p >> i) & 1) != 0 {
+                out.push(' ');
+                out.push_str(&i.to_string());
+            }
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

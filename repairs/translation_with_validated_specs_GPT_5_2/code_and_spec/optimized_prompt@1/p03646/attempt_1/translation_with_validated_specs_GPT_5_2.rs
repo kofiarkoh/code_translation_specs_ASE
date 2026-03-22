@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and parse one i64 (signed 64-bit), matching C's long long intent.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if k >= 50 {
+        let n: usize = 50;
+        let rem: i64 = k / 50;
+        let t: i64 = k % 50;
+        let x: i64 = 49 + rem;
+
+        let mut a = vec![x; n];
+
+        // For k >= 0, t is in 0..49. For k < 0, Rust's % matches C's sign-of-dividend remainder,
+        // and the loop below naturally does nothing if t <= 0, matching the spec's "same branching logic".
+        for i in 0..(t.max(0) as usize) {
+            a[i] += 50;
+            for j in 0..n {
+                if j != i {
+                    a[j] -= 1;
+                }
+            }
+        }
+
+        print!("50\n");
+        for v in a {
+            print!("{} ", v);
+        }
+    } else if k >= 2 {
+        let n = k;
+        print!("{}\n", n);
+        for _ in 0..n {
+            print!("{} ", n);
+        }
+    } else if k == 0 {
+        // Exact formatting per spec/C: includes trailing newline.
+        print!("4\n3 3 3 3\n");
+    } else {
+        // k == 1 (and also any other k < 2 not equal to 0, per branching logic)
+        print!("3\n1 0 3\n");
+    }
+}

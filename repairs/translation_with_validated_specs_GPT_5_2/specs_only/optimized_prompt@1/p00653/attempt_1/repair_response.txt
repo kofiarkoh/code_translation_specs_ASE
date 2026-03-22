@@ -1,0 +1,125 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let rows_opt = it.next();
+        if rows_opt.is_none() {
+            break;
+        }
+        let rows: i32 = rows_opt.unwrap().parse().unwrap();
+        if rows <= 0 {
+            break; // terminates when provided row count is non-positive
+        }
+        let cols: usize = it.next().unwrap().parse().unwrap();
+        let q: usize = it.next().unwrap().parse().unwrap();
+
+        let r = rows as usize;
+        let c = cols;
+
+        // Read grid values.
+        let mut grid: Vec<i64> = Vec::with_capacity(r * c);
+        for _ in 0..(r * c) {
+            let v: i64 = it.next().unwrap().parse().unwrap();
+            grid.push(v);
+        }
+
+        // Build 2D sparse table for range minimum query (static grid, many queries).
+        // st[k1][k2][i][j] = min over sub-rectangle of size (2^k1 x 2^k2) starting at (i,j).
+        // Stored as a flat Vec for each (k1,k2) level: index = i * cols + j.
+        let max_k1 = (usize::BITS - (r as u32).leading_zeros()) as usize; // floor(log2(r)) + 1
+        let max_k2 = (usize::BITS - (c as u32).leading_zeros()) as usize; // floor(log2(c)) + 1
+
+        let mut st: Vec<Vec<Vec<i64>>> = vec![vec![Vec::new(); max_k2]; max_k1];
+
+        // Base level (0,0) is the grid itself.
+        st[0][0] = vec![grid.clone()];
+
+        // Build along columns for k1=0.
+        for k2 in 1..max_k2 {
+            let w = 1usize << k2;
+            let half = w >> 1;
+            let mut level = vec![i64::MAX; r * c];
+            for i in 0..r {
+                for j in 0..c {
+                    if j + w <= c {
+                        let a = st[0][k2 - 1][0][i * c + j];
+                        let b = st[0][k2 - 1][0][i * c + (j + half)];
+                        level[i * c + j] = a.min(b);
+                    }
+                }
+            }
+            st[0][k2] = vec![level];
+        }
+
+        // Build along rows for all k2.
+        for k1 in 1..max_k1 {
+            let h = 1usize << k1;
+            let half = h >> 1;
+            for k2 in 0..max_k2 {
+                let w = 1usize << k2;
+                let mut level = vec![i64::MAX; r * c];
+                for i in 0..r {
+                    if i + h > r {
+                        continue;
+                    }
+                    for j in 0..c {
+                        if j + w > c {
+                            continue;
+                        }
+                        let a = st[k1 - 1][k2][0][i * c + j];
+                        let b = st[k1 - 1][k2][0][(i + half) * c + j];
+                        level[i * c + j] = a.min(b);
+                    }
+                }
+                st[k1][k2] = vec![level];
+            }
+        }
+
+        // Precompute floor(log2) for indices up to max(r,c).
+        let max_n = r.max(c);
+        let mut lg = vec![0usize; max_n + 1];
+        for i in 2..=max_n {
+            lg[i] = lg[i / 2] + 1;
+        }
+
+        // Answer queries.
+        for _ in 0..q {
+            let top: usize = it.next().unwrap().parse().unwrap();
+            let left: usize = it.next().unwrap().parse().unwrap();
+            let bottom: usize = it.next().unwrap().parse().unwrap();
+            let right: usize = it.next().unwrap().parse().unwrap();
+
+            let h = bottom - top + 1;
+            let w = right - left + 1;
+            let k1 = lg[h];
+            let k2 = lg[w];
+            let dh = h - (1usize << k1);
+            let dw = w - (1usize << k2);
+
+            // Combine four overlapping blocks to cover the query rectangle.
+            let i1 = top;
+            let i2 = top + dh;
+            let j1 = left;
+            let j2 = left + dw;
+
+            let a = st[k1][k2][0][i1 * c + j1];
+            let b = st[k1][k2][0][i1 * c + j2];
+            let d = st[k1][k2][0][i2 * c + j1];
+            let e = st[k1][k2][0][i2 * c + j2];
+
+            let ans = a.min(b).min(d).min(e);
+            out.push_str(&format!("{ans}\n"));
+        }
+    }
+
+    print!("{out}");
+}
+```

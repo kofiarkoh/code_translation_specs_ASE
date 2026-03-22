@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single non-negative integer derived from a set of input point coordinates. The result is the unique value (within a fixed search range) that satisfies a parity condition: when paired with its complement to a fixed constant, the parity (XOR) of a set of combinatorial predicates over all input points equals 1 at a boundary and is used to select the maximal feasible value under that condition.
+
+2. Inputs  
+- An integer count of points.  
+- A sequence of that many pairs of integer coordinates.
+
+3. Outputs  
+- One integer value printed to standard output, followed by a line terminator.
+
+4. Preconditions  
+- The point count is within the capacity of the internal fixed-size storage (at most 131072 points).  
+- All input coordinates are integers representable in the program’s integer range.  
+- The computed search and intermediate arithmetic do not overflow the program’s integer range (notably when forming differences and sums involving the fixed constant and the evolving search value).  
+- The parity condition used by the search is well-defined over the explored range (i.e., the combinatorial predicate evaluation is meaningful for all tested candidates).
+
+5. Postconditions  
+Let:  
+- `C` be the fixed constant 200000000000000000.  
+- The input points be `(xi, yi)` for `i = 0..n-1`.  
+- For any candidate pair `(A, B)`, define `F(A,B)` as the XOR over all points of a predicate `P` computed as follows:  
+  - If `A < xi` or `B < yi`, the point contributes 0.  
+  - Otherwise let `p = (A - xi) + (B - yi)` and `q = (B - yi)`. The point contributes 1 iff, in binary, every bit set in `q` is also set in `p` (equivalently, `q` is a bitwise subset of `p`); otherwise it contributes 0.  
+- The program outputs `A*` such that `A* = C - R` where `R` is the maximum value in `[0, 2^61 - 1]` satisfying `F(C - (R + 2^k), R + 2^k) = 1` for each accepted bit during construction (i.e., `R` is the maximal value reachable by greedily setting bits from high to low while preserving `F(C - R, R) = 1` at each step where a bit is set).  
+
+Under the assumption that this greedy bitwise maximization is valid for the underlying predicate over the searched domain, the output equals the minimal `A` in the searched range such that `F(A, C - A) = 1`.
+
+6. Invariants  
+- During the search, the maintained value `R` is always non-negative and never exceeds `2^61 - 1`.  
+- At any point in the search, `A = C - R` and `B = R` satisfy `A + B = C`.  
+- The parity function `F(A,B)` depends only on the input points and the candidate `(A,B)` and is deterministic for fixed inputs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If input is missing/malformed, if the point count exceeds capacity, or if arithmetic overflows occur, behavior is undefined (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)  
+- Reads and stores the set of points once.  
+- Performs a monotone bitwise construction of an internal search value from high bit to low bit, conditionally increasing it.  
+- Outputs the final derived value and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the number of points times a fixed number of search iterations (61 evaluations of the parity function).  
+- Memory usage is linear in the number of points, bounded by the fixed maximum capacity.
+```

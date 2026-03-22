@@ -1,0 +1,58 @@
+use std::io::{self, Read};
+
+fn parse_time_token(tok: &str) -> Option<usize> {
+    // Specification assumes well-formed H:M:S with literal ':' separators.
+    let mut it = tok.split(':');
+    let h = it.next()?.parse::<usize>().ok()?;
+    let m = it.next()?.parse::<usize>().ok()?;
+    let s = it.next()?.parse::<usize>().ok()?;
+    Some(h * 3600 + m * 60 + s)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+    loop {
+        let n_tok = match it.next() {
+            Some(t) => t,
+            None => break, // No more datasets.
+        };
+        let n: usize = n_tok.parse().unwrap();
+
+        if n == 0 {
+            break; // Termination marker; no output for this dataset.
+        }
+
+        // Fixed memory proportional to seconds in a day.
+        let mut counts = vec![0u32; 24 * 3600];
+
+        for _ in 0..n {
+            let start_tok = it.next().unwrap();
+            let end_tok = it.next().unwrap();
+
+            let start = parse_time_token(start_tok).unwrap();
+            let end = parse_time_token(end_tok).unwrap();
+
+            // Semantics: increment for every whole second t with start <= t < end.
+            // Assumptions guarantee 0 <= start <= end <= 86400 and no wrap across midnight.
+            for t in start..end {
+                counts[t] += 1;
+            }
+        }
+
+        let mut maxv: u32 = 0;
+        for &c in &counts {
+            if c > maxv {
+                maxv = c;
+            }
+        }
+
+        out.push_str(&format!("{maxv}\n"));
+    }
+
+    print!("{out}");
+}

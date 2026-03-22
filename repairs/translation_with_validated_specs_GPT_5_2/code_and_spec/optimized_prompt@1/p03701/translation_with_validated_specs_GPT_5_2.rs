@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, split by whitespace (matches scanf-style tokenization).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    // Spec: behavior undefined if n is negative; we follow that assumption.
+    let n_usize = n as usize;
+
+    // C stores the array; spec notes linear memory usage, so we keep a Vec as well.
+    let mut s: Vec<i32> = vec![0; n_usize];
+
+    let mut sum: i32 = 0;
+    // Mirrors C's sentinel-based selection; spec assumes inputs <= 100.
+    let mut min_not_div10: i32 = 101;
+
+    for i in 0..n_usize {
+        let x: i32 = it.next().unwrap().parse().unwrap();
+        s[i] = x;
+        sum += x;
+
+        // In C, values divisible by 10 are replaced with 101 before min selection.
+        let candidate = if x % 10 == 0 { 101 } else { x };
+        if candidate < min_not_div10 {
+            min_not_div10 = candidate;
+        }
+    }
+
+    let mut ans = sum;
+    if sum % 10 == 0 {
+        if min_not_div10 == 101 {
+            ans = 0;
+        } else {
+            ans = sum - min_not_div10;
+        }
+    }
+
+    print!("{ans}\n");
+}

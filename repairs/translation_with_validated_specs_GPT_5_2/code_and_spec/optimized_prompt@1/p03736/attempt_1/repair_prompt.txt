@@ -1,0 +1,148 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs a single minimum total cost derived from processing a sequence of position changes on a 1‑dimensional index set of size `n`. The reported cost is decomposed into:  
+- `D`: the cumulative travel distance along the sequence of visited positions, and  
+- `M`: a separately maintained adjustment term obtained as the minimum value over all indices of an internal per-index quantity after all updates.  
+The program outputs `D + M`.
+
+2. Inputs  
+- Integer `n`: number of positions.  
+- Integer `q`: number of subsequent position updates.  
+- Two integers: an initial current position and a distinguished target position.  
+- A sequence of `q` integers: each is the next current position, processed in order.
+
+All positions are interpreted as 1-based in the input and converted internally to 0-based indices.
+
+3. Outputs  
+- One signed 64-bit integer (printed in decimal) equal to the computed minimum total cost.
+
+4. Preconditions / Assumptions  
+- `1 ≤ n ≤ 200000`.  
+- `q ≥ 0`.  
+- All provided positions (initial current position, distinguished target position, and each queried position) are within `[1, n]`.  
+- Input is well-formed and contains all required integers.  
+If these assumptions are violated, behavior is undefined.
+
+5. State and Initialization  
+Let `cur` be the current position (0-based) and `t` be the distinguished target position (0-based). The program maintains:  
+- A cumulative distance `D`, initialized to `0`.  
+- An array `dp[0..n-1]` of 64-bit values that is initially `0` for every index (due to static zero-initialization).  
+- Two internal prefix-minimum summary structures over indices `0..n-1`, both initialized to `+INF` everywhere, then seeded using the target position `t` so that they initially encode candidates derived from `t` (one seeded at index `t` with value `-t`, the other seeded at index `n-1-t` with value `+t`).
+
+6. Per-Update Processing (State Transitions)  
+Let the sequence of visited positions be `p0, p1, ..., pq` (0-based), where `p0` is the initial current position and each `pk` for `k≥1` is the k-th queried position. For each step `k = 1..q`, with previous position `prev = p{k-1}` and new position `next = pk`, the program performs:
+
+1) Update travel distance:  
+- `D := D + |prev - next|`.
+
+2) Compute an intermediate adjustment value `x` using the summary structures queried at `next`:  
+- Form two candidates based on prefix minima up to indices corresponding to `next` in each structure, then combine them so that the best candidate represents a minimum over previously introduced values of the form `base + |pos - next|`.  
+- After obtaining this best candidate, subtract the movement distance for this step:  
+  - `x := (best_candidate_at_next) - |prev - next|`.
+
+3) Relax the per-index value at the *previous* position (not the new one):  
+- `dp[prev] := min(dp[prev], x)`.
+
+4) Insert the relaxed value into both summary structures at the *previous* position (not the new one), using transformed values equivalent to storing `dp[prev] - prev` in one structure and `dp[prev] + prev` in the other (with the second structure using the mirrored index `n-1-prev`).
+
+5) Set `cur := next` and continue.
+
+7. Finalization and Output Semantics  
+After all `q` updates are processed:  
+- Compute `M := min_{r=0..n-1} dp[r]`.  
+- Output `M + D`.
+
+Notes on consequences of initialization: since `dp[r]` starts at `0` for all `r` and is only updated via `dp[prev] := min(dp[prev], x)`, each `dp[r]` never increases above `0`.
+
+8. Invariants / Properties Maintained  
+- `D` always equals the sum of absolute differences between consecutive visited positions processed so far.  
+- The two summary structures always represent prefix minima of the transformed inserted values, so that querying at an index yields the minimum over all previously inserted positions of an expression equivalent to `dp[pos] + |pos - query_index|` (before the per-step subtraction of `|prev-next|`).  
+- Each `dp[r]` is monotonically non-increasing over time.
+
+9. Error Handling / Exceptional Behavior  
+No explicit error handling is performed; invalid inputs or out-of-range indices may lead to incorrect results or crashes.
+
+10. Non-functional Constraints  
+- Time complexity is `O((n + q) log n)` due to logarithmic-time updates and queries on the summary structures.  
+- Memory usage is `O(n)` for the internal arrays and summary structures.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	200000
+#define INF	0x3f3f3f3f3f3f3f3fLL
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+
+void update(long long *ft, int i, int n, long long x) {
+	while (i < n) {
+		ft[i] = min(ft[i], x);
+		i |= i + 1;
+	}
+}
+
+long long query(long long *ft, int i) {
+	long long x = INF;
+
+	while (i >= 0) {
+		x = min(x, ft[i]);
+		i &= i + 1, i--;
+	}
+	return x;
+}
+
+int main() {
+	static long long dp[N], ft1[N], ft2[N];
+	int n, q, i, j;
+	long long d, ans;
+
+	scanf("%d%d%d%d", &n, &q, &i, &j), i--, j--;
+	memset(ft1, 0x3f, n * sizeof *ft1);
+	memset(ft2, 0x3f, n * sizeof *ft2);
+	update(ft1, j, n, -j);
+	update(ft2, n - 1 - j, n, j);
+	d = 0;
+	while (q--) {
+		int i_;
+		long long x;
+
+		scanf("%d", &i_), i_--;
+		d += abs(i - i_);
+		x = min(query(ft1, i_) + i_, query(ft2, n - 1 - i_) - i_) - abs(i - i_);
+		dp[i] = min(dp[i], x);
+		update(ft1, i, n, x - i);
+		update(ft2, n - 1 - i, n, x + i);
+		i = i_;
+	}
+	ans = INF;
+	for (i = 0; i < n; i++)
+		ans = min(ans, dp[i]);
+	ans += d;
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

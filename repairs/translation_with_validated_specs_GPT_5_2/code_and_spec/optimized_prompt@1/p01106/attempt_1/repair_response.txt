@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // input exhausted / parsing fails
+        }
+        let n: i32 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+        let i: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let j: i64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        if n <= 0 {
+            break; // terminating case not processed
+        }
+        let n_usize = n as usize;
+
+        // Working copies, converted to 0-based.
+        let mut I: i64 = i.wrapping_sub(1);
+        let mut J: i64 = j.wrapping_sub(1);
+
+        // low and ans are fixed-size in C; here we size to n (and n+1 for ans indexing).
+        // low stores 0/1 values as u8.
+        let mut low: Vec<u8> = vec![0; n_usize];
+        let mut ans: Vec<u8> = vec![0; n_usize + 1]; // ans[1..=n] used
+
+        // Phase A: derive low control sequence from I, stored by bit position (reversed consumption).
+        for k in 1..=n_usize {
+            let p = n_usize - k; // bit position
+            let b = ((I >> p) & 1) as u8;
+            low[p] = b;
+            if b == 0 {
+                I = !I; // bitwise complement on signed 64-bit (wrapping)
+            }
+        }
+
+        // Phase B: produce output from J driven by low consumed from index 0 upward.
+        for k in 1..=n_usize {
+            let p = n_usize - k;
+            let c = ((J >> p) & 1) as u8;
+            let ctrl = low[k - 1];
+            ans[k] = if c == ctrl { b'L' } else { b'R' };
+            if ctrl == 0 {
+                J = !J;
+            }
+        }
+
+        // Output exactly n characters followed by newline.
+        out.push_str(std::str::from_utf8(&ans[1..=n_usize]).unwrap());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

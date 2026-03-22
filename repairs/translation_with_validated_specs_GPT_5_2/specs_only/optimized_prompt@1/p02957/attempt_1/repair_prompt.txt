@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs the arithmetic mean of two provided integers when their sum is even; otherwise reports that the mean is not representable as an integer.
+
+2. Inputs  
+- Two signed integer values provided via standard input.
+
+3. Outputs  
+- If the sum of the two input integers is even: outputs a single integer equal to half of their sum.  
+- If the sum is odd: outputs the word “IMPOSSIBLE”.
+
+4. Preconditions  
+- Two integer values are available on standard input and are representable within the program’s chosen integer range.  
+- The sum of the two input values is representable within that same range (to avoid overflow).
+
+5. Postconditions  
+- Exactly one of the following holds:  
+  - The output is the integer average of the two inputs (when the sum is even).  
+  - The output indicates impossibility (when the sum is odd).
+
+6. Invariants  
+- The decision of whether an integer average exists depends solely on the parity of the sum of the two inputs.  
+- When an integer average is produced, it is an integer value whose double equals the sum of the inputs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for missing/invalid input or arithmetic overflow; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from reading inputs and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and uses constant memory.
+```

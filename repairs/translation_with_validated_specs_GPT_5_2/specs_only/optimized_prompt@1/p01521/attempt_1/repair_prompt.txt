@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a line of text and determines whether the number of runs of consecutive `'o'` characters is at least the number of runs of consecutive `'x'` characters. Outputs a single character: `'o'` if the run count of `'o'` is greater than or equal to the run count of `'x'`, otherwise `'x'`.
+
+2. Inputs  
+- One line of text (a sequence of characters terminated by end-of-line).
+
+3. Outputs  
+- Exactly one line containing a single character: either `'o'` or `'x'`.
+
+4. Preconditions  
+- A line of input is available to be read.  
+- The input line length does not exceed the fixed internal storage capacity (assumption: at most 199 characters, excluding the terminating end marker).  
+- The execution environment provides a character representation where indexing by character value is valid for all characters that may appear in the input (assumption: input characters map into a non-negative range suitable for counting).
+
+5. Postconditions  
+- Let a “run” of a character be a maximal contiguous sequence of that character in the input line.  
+- The program outputs:
+  - `'x'` if the number of runs of `'o'` is strictly less than the number of runs of `'x'`.  
+  - `'o'` otherwise (including equality).  
+- No other output is produced.
+
+6. Invariants  
+- For each character value, the maintained count equals the number of runs of that character encountered so far while scanning the input from left to right.  
+- The scan position advances monotonically from the start of the input line to its end.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input line exceeds internal storage capacity, behavior is undefined.  
+- If input cannot be read, behavior is undefined.  
+- If the input contains characters outside the assumed countable range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: consumes one input line and produces one output line, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the length of the input line.  
+- Uses fixed-size internal storage for the input line and run counts.
+```

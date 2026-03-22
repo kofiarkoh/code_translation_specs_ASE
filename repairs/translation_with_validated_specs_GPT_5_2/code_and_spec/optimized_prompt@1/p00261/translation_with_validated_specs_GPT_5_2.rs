@@ -1,0 +1,49 @@
+use std::io::{self, Read};
+
+fn main() {
+    // State indices per spec: S0..S5, with S0 initial and S5 accepting.
+    // Undefined transitions are represented as None.
+    let map: [[Option<usize>; 2]; 6] = [
+        // S0: on 0 -> S1, on 1 -> S2
+        [Some(1), Some(2)],
+        // S1: on 0 -> undefined, on 1 -> S3
+        [None, Some(3)],
+        // S2: on 0 -> S1, on 1 -> undefined
+        [Some(1), None],
+        // S3: on 0 -> S4, on 1 -> S5
+        [Some(4), Some(5)],
+        // S4: on 0 -> S5, on 1 -> S2
+        [Some(5), Some(2)],
+        // S5: on 0 -> S2, on 1 -> S1
+        [Some(2), Some(1)],
+    ];
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        if token.as_bytes().first() == Some(&b'#') {
+            break;
+        }
+
+        let mut state: usize = 0; // S0
+        for &b in token.as_bytes() {
+            // Per spec, tokens contain only '0'/'1'; otherwise behavior is undefined.
+            let sym = (b - b'0') as usize; // 0 or 1
+            match map[state][sym] {
+                Some(next) => state = next,
+                None => break, // stop early on undefined transition
+            }
+        }
+
+        if state == 5 {
+            out.push_str("Yes\n");
+        } else {
+            out.push_str("No\n");
+        }
+    }
+
+    print!("{out}");
+}

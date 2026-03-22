@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of integers and computes the maximum length of any contiguous run of consecutive positions where each next value is less than or equal to the previous value. The reported length is the number of consecutive “non-increasing steps” (adjacent comparisons) in the longest such run.
+
+2. Inputs  
+- An integer specifying the number of elements in the sequence.  
+- A sequence of that many integers.
+
+3. Outputs  
+- A single integer: the maximum number of consecutive adjacent pairs in the sequence satisfying “next value ≤ current value” within any contiguous segment.
+
+4. Preconditions  
+- The first input value is a non-negative integer.  
+- Exactly that many subsequent integers are available as input.  
+- Sufficient memory/stack space exists to store the sequence.
+
+5. Postconditions  
+- If the sequence length is 0 or 1, the output is 0.  
+- Otherwise, the output equals:  
+  \[
+  \max_{0 \le i < j < n} \left( (j-i) \;\text{such that}\; h_{k+1} \le h_k \;\text{for all}\; k \in [i, j-1] \right)
+  \]
+  i.e., the maximum number of consecutive non-increasing adjacent transitions in any contiguous segment.
+
+6. Invariants  
+- The output is an integer in the range \([0, \max(0, n-1)]\).  
+- At all times during processing, the tracked maximum is at least as large as the length of the current suffix run of consecutive non-increasing steps.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for invalid, missing, or non-numeric input. Behavior is unspecified if inputs do not meet the preconditions.  
+- No explicit handling is provided for resource exhaustion (e.g., inability to allocate required storage).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond a single execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the number of input elements.  
+- Space usage is linear in the number of input elements.
+```

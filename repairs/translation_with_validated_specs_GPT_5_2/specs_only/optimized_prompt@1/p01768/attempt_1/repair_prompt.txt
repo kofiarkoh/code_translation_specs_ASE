@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the sum, over all items, of the minimum cost among all items that are mutually reachable from that item via the given undirected relationships. Equivalently, for each connected component in the relationship graph, it adds (component minimum cost) once per item in that component, and outputs the total.
+
+2. Inputs  
+- An integer specifying the number of items.  
+- For each item: a name token and an integer cost.  
+- An integer specifying the number of undirected relationships.  
+- For each relationship: two name tokens identifying the related items.
+
+3. Outputs  
+- A single integer: the total sum of per-item reachable-minimum costs as defined above.
+
+4. Preconditions  
+- The number of items is within the fixed maximum supported by the program.  
+- Each item name fits within the fixed maximum name length supported by the program.  
+- Each relationship endpoint name matches exactly one of the provided item names.  
+- Sufficient memory is available to store the relationship graph.  
+- Costs are integers; behavior is only well-defined if the final total fits within the integer range used for accumulation.
+
+5. Postconditions  
+- The output equals:  
+  \[
+  \sum_{v \in V} \min\{ \text{cost}(u) \mid u \text{ is in the same connected component as } v \}
+  \]
+- After computation, each item’s stored cost value is replaced by the minimum cost of its connected component (this mutation does not affect the correctness of the produced output).
+
+6. Invariants  
+- Relationships define an undirected graph over the set of items.  
+- During each per-item reachability evaluation, the set of visited items is exactly the set reachable from the starting item within that evaluation.  
+- The computed minimum for a starting item is the minimum of the (current) costs of all items reachable from it at the time of evaluation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid input, missing names, duplicate names, out-of-range counts, memory allocation failures, or integer overflow. In such cases, behavior is undefined or may produce incorrect results or terminate abnormally.
+
+8. State Transitions (if applicable)  
+- Builds an internal undirected graph from the relationships.  
+- Repeatedly, for each item, performs a reachability-based minimum-cost evaluation and updates that item’s stored cost to the computed component minimum.  
+- Produces the final total and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Supports up to a fixed maximum number of items and fixed maximum name length.  
+- Time cost grows with the number of items times the size of the graph due to repeating reachability computations per item.  
+- Memory usage grows with the number of items plus the number of relationships (stored bidirectionally).
+```

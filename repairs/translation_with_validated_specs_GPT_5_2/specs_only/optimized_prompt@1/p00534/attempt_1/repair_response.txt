@@ -1,0 +1,84 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    let mut items: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        items.push(v);
+    }
+
+    let mut elems: Vec<i32> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        elems.push(v);
+    }
+
+    // DP with O(n*m) time and O(n*m) memory as specified.
+    // dp[j][i] = minimum cost to assign first j items using elements among first i elements,
+    //            with the j-th item assigned to element i (i is 1-based in this definition).
+    //
+    // Transition:
+    // dp[j][i] = min_{k < i} dp[j-1][k] + items[j-1] * elems[i-1]
+    //
+    // Sentinel-like large value for unreachable states and for m < n behavior.
+    // Use i32::MAX/4 to reduce risk of overflow when adding (overflow is unspecified anyway).
+    let inf: i32 = i32::MAX / 4;
+
+    // Allocate (n+1) x (m+1) initialized to inf.
+    let mut dp = vec![vec![inf; m + 1]; n + 1];
+
+    // Base: 0 items assigned has cost 0 with "last chosen index" 0.
+    dp[0][0] = 0;
+
+    // Fill DP.
+    for j in 1..=n {
+        // Maintain running minimum of dp[j-1][k] for k < i.
+        let mut best_prev = inf;
+        for i in 1..=m {
+            // Update best_prev with dp[j-1][i-1] so it represents min over k in [0, i-1].
+            let prev = dp[j - 1][i - 1];
+            if prev < best_prev {
+                best_prev = prev;
+            }
+
+            // If best_prev is inf, state is unreachable.
+            if best_prev >= inf {
+                dp[j][i] = inf;
+                continue;
+            }
+
+            // Cost computation in i32; overflow behavior is unspecified by the spec,
+            // so we use wrapping operations to avoid panics in debug builds.
+            let prod = items[j - 1].wrapping_mul(elems[i - 1]);
+            dp[j][i] = best_prev.wrapping_add(prod);
+        }
+    }
+
+    // Answer: min over dp[n][i] for i in 1..=m.
+    // If m < n, all states for j=n will remain inf, producing the sentinel-like output.
+    let mut ans = inf;
+    for i in 1..=m {
+        let v = dp[n][i];
+        if v < ans {
+            ans = v;
+        }
+    }
+
+    println!("{}", ans);
+}
+```

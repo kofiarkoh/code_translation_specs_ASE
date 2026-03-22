@@ -1,0 +1,97 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001; // pages 0..=1000
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    pg: [u8; PGMAX], // 0/1 presence
+    tm: i32,         // count of records for this word (not distinct pages)
+}
+
+fn main() {
+    // Tokenize stdin similarly to repeated scanf("%s %d") until EOF or parse failure.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut entries: Vec<Entry> = Vec::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p_str = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p: i32 = match p_str.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Find existing entry by exact string equality.
+        let mut idx = None;
+        for (i, e) in entries.iter().enumerate() {
+            if e.word == w {
+                idx = Some(i);
+                break;
+            }
+        }
+
+        if let Some(i) = idx {
+            if (0..PGMAX as i32).contains(&p) {
+                entries[i].pg[p as usize] = 1;
+            }
+            entries[i].tm = entries[i].tm.wrapping_add(1);
+        } else {
+            // Spec says exceeding MAX is UB in C; in Rust we avoid OOB by ignoring extra distinct words.
+            if entries.len() >= MAX {
+                continue;
+            }
+            let mut e = Entry {
+                word: w.to_string(),
+                // Spec says uninitialized in C; Rust must initialize. Choose zeroed state.
+                pg: [0u8; PGMAX],
+                tm: 0,
+            };
+            if (0..PGMAX as i32).contains(&p) {
+                e.pg[p as usize] = 1;
+            }
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+        }
+    }
+
+    // Sort by ascending lexicographic order of the word strings.
+    // Use Rust's String ordering (Unicode scalar value order), the narrowest reasonable choice here.
+    entries.sort_by(|a, b| a.word.cmp(&b.word));
+
+    let mut out = String::new();
+
+    for e in &entries {
+        out.push_str(&e.word);
+        out.push('\n');
+
+        let mut printed: i32 = 0;
+        for j in 0..PGMAX {
+            if e.pg[j] == 1 {
+                printed = printed.wrapping_add(1);
+                if printed == e.tm {
+                    out.push_str(&j.to_string());
+                    out.push('\n');
+                    break;
+                } else {
+                    out.push_str(&j.to_string());
+                    out.push(' ');
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

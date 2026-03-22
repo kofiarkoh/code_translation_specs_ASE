@@ -1,0 +1,116 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+const WDMAX: usize = 31;
+
+#[derive(Clone)]
+struct Index {
+    pgnum: [i32; PGMAX],
+    tm: i32,
+    str_: String,
+}
+
+fn main() {
+    // In the C code, `idx` is an uninitialized local array; reading from it before writing
+    // would be UB. The program only uses entries < rgnum, and those are written before use.
+    // In Rust we must initialize; this does not change defined behavior of the C program.
+    let mut idx: Vec<Index> = (0..MAX)
+        .map(|_| Index {
+            pgnum: [0; PGMAX],
+            tm: 0,
+            str_: String::new(),
+        })
+        .collect();
+
+    // Read all input and tokenize like repeated scanf("%s %d", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut rgnum: usize = 0;
+
+    loop {
+        let word = match it.next() {
+            Some(w) => w,
+            None => break,
+        };
+        let num_s = match it.next() {
+            Some(n) => n,
+            None => break, // incomplete pair: scanf would fail and loop would end
+        };
+
+        // C uses `int` and does not bounds-check tmp_pgnum before indexing.
+        // We emulate the *int parsing* and only apply the write if it lands in-bounds;
+        // out-of-bounds in C would be UB, so there is no single correct behavior to emulate.
+        let tmp_pgnum_i32: i32 = num_s.parse::<i32>().unwrap_or(0);
+        let tmp_pgnum_usize = if tmp_pgnum_i32 >= 0 {
+            tmp_pgnum_i32 as usize
+        } else {
+            usize::MAX
+        };
+
+        // tmp_str is a fixed buffer in C; scanf("%s") would overflow if longer than WDMAX-1.
+        // Here we keep the token as-is; this is the closest we can do safely.
+        let tmp_str = word.to_string();
+
+        let mut found = false;
+        for i in 0..rgnum {
+            if idx[i].str_ == tmp_str {
+                if tmp_pgnum_usize < PGMAX {
+                    idx[i].pgnum[tmp_pgnum_usize] = 1;
+                }
+                idx[i].tm = idx[i].tm.wrapping_add(1); // preserve C int wraparound
+                found = true;
+                break;
+            }
+        }
+
+        if !found {
+            if rgnum < MAX {
+                if tmp_pgnum_usize < PGMAX {
+                    idx[rgnum].pgnum[tmp_pgnum_usize] = 1;
+                }
+                idx[rgnum].tm = idx[rgnum].tm.wrapping_add(1);
+                idx[rgnum].str_ = tmp_str;
+                rgnum += 1;
+            } else {
+                // C would write past idx[MAX] (UB). We stop adding new entries.
+            }
+        }
+    }
+
+    // C does a simple O(n^2) sort by strcmp on idx[i].str
+    for i in 0..rgnum {
+        for j in (i + 1)..rgnum {
+            if idx[i].str_.as_str().cmp(idx[j].str_.as_str()) == Ordering::Greater {
+                idx.swap(i, j);
+            }
+        }
+    }
+
+    // Output exactly as C: word, newline, then page numbers separated by spaces, last with newline.
+    let mut out = String::new();
+    for i in 0..rgnum {
+        out.push_str(&idx[i].str_);
+        out.push('\n');
+
+        let mut k: i32 = 0;
+        for j in 0..PGMAX {
+            if idx[i].pgnum[j] == 1 {
+                if k == idx[i].tm.wrapping_sub(1) {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                    k = k.wrapping_add(1);
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a rectangular character grid (“text”) and a smaller rectangular character grid (“pattern”), then reports every top-left position in the text where the pattern occurs as an exact sub-rectangle match, using a hash-based equality test.
+
+2. Inputs  
+- Two non-negative integers: the text grid height and width.  
+- Exactly that many rows of text grid data, each row providing a sequence of non-whitespace characters.  
+- Two non-negative integers: the pattern grid height and width.  
+- Exactly that many rows of pattern grid data, each row providing a sequence of non-whitespace characters.
+
+3. Outputs  
+- For each reported match, outputs one line containing two integers: the row index and column index (0-based) of the top-left corner of a matching placement of the pattern within the text.  
+- No additional output.
+
+4. Preconditions  
+- Text dimensions and pattern dimensions fit within the fixed maximum supported size.  
+- Each provided row contains at least as many non-whitespace characters as the declared width for that grid.  
+- The pattern height and width are each at least 1.  
+- The pattern dimensions do not exceed the corresponding text dimensions (otherwise no positions are valid to report).  
+- Input is well-formed and complete.
+
+5. Postconditions  
+- Every output coordinate corresponds to a placement fully inside the text bounds.  
+- For every output coordinate, the pattern is guaranteed to match the corresponding text sub-rectangle under the program’s hash-equality criterion.  
+- If no placements satisfy the criterion, produces no lines.
+
+6. Invariants  
+- Reported coordinates, if any, are within:  
+  - row in [0, text_height − pattern_height]  
+  - column in [0, text_width − pattern_width]  
+- Coordinates are emitted in non-decreasing row order, and within the same row in non-decreasing column order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., oversized dimensions, insufficient row lengths, empty pattern dimensions), behavior is undefined (may crash, produce incorrect output, or access memory out of bounds).  
+- Hash collisions are not checked by direct character comparison; therefore, false positives are possible in principle (a reported coordinate may not be a true exact match), though the program treats hash equality as sufficient.
+
+8. State Transitions (if applicable)  
+- Stateless across runs; no persistent state.  
+- Internally transitions from “input read” to “hash computed” to “match positions emitted,” but exposes no externally observable state beyond output.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory proportional to the maximum supported grid size.  
+- Time cost is proportional to the text area plus the number of candidate placements, with additional work proportional to the pattern dimensions for hashing.
+```

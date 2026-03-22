@@ -1,0 +1,156 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Evaluates a single arithmetic expression consisting of non-negative integers, binary operators (addition, subtraction, multiplication), and parentheses. Operator precedence is treated as unknown: the program considers a fixed set of 13 possible precedence/associativity schemes for the three operators, evaluates the expression under each scheme (while always respecting parentheses), and outputs the maximum resulting value.
+
+2. Inputs  
+- One expression provided as a single contiguous token (no embedded whitespace).  
+- The expression may contain:
+  - Non-negative integer literals (base-10).
+  - Parentheses for grouping.
+  - Binary operators: addition, subtraction, multiplication.
+
+3. Outputs  
+- One signed integer value: the maximum evaluation result among the 13 considered operator-ordering schemes.
+
+4. Preconditions  
+- The input expression is syntactically valid under the following assumptions:
+  - Parentheses are balanced and properly nested.
+  - Operators are binary and appear only between two valid subexpressions.
+  - No unary operators are present.
+  - The expression contains at least one integer literal.
+- All intermediate and final results fit within the signed 64-bit integer range.
+
+5. Postconditions  
+- The printed value equals:  
+  max over the 13 predefined operator precedence/associativity schemes of (value of the expression evaluated under that scheme, with parentheses enforced).  
+- Parenthesized subexpressions are evaluated as grouped units in all schemes.
+
+6. Invariants  
+- During each evaluation scheme:
+  - The expression is interpreted deterministically according to that scheme’s operator ordering rules and the explicit parentheses.
+  - Only the three supported binary operators are applied, and only to integer operands.
+  - The computed result for a given scheme is a single integer value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If the input violates the preconditions (e.g., malformed expression, unexpected characters, unbalanced parentheses, missing operands/operators), behavior is undefined (may crash or produce an arbitrary result).  
+- If 64-bit signed integer overflow occurs, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond computing and tracking the running maximum across the 13 evaluation schemes.
+
+9. Non-functional Constraints (if inferable)  
+- The expression length is bounded by a small fixed maximum (on the order of a few hundred characters).  
+- Runtime is proportional to the expression size multiplied by 13 (a small constant factor).  
+- Memory usage is bounded by fixed-size internal buffers proportional to the maximum expression length.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2613: Unordered Operators
+// 2017.10.10 bal4u@uu
+
+#include <stdio.h>
+#include <ctype.h>
+
+#define MAX 210
+
+#define VAL   10
+#define LEFT  -1
+#define RIGHT -2
+#define PLUS   0 
+#define MINUS  1
+#define MUL    2
+
+typedef struct { long long v; char id; } T;
+T stack[MAX+3], buf[MAX+3]; int top, end;
+
+char str[MAX], *p;
+
+int tbl[13][3] = {
+	{1,2,3},{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1},
+	{1,1,1},{1,1,2},{2,2,1},{1,2,1},{2,1,2},{1,2,2},{2,1,1}}; int rid;
+
+long long getInt(void)
+{
+	long long n = 0;
+	while (isdigit(*p)) n = 10 * n + (*p++ - '0');
+	return n;
+}
+
+int token(char c)
+{
+	if (c == '+') return PLUS;
+	if (c == '-') return MINUS;
+	return MUL;
+}
+
+int rank(int op)
+{
+	if (op == LEFT) return LEFT;
+	return tbl[rid][op];
+}
+
+int main()
+{
+	int i, id, f;
+	long long v1, v2, ans;
+
+	scanf("%s", str); f = 1;
+	for (rid = 0; rid < 13; rid++) {
+		p = str, top = 0, end = 0;
+		while (*p) {
+			if (isdigit(*p)) buf[end].id = VAL, buf[end++].v = getInt();
+			else if (*p == ')') {
+				while (top > 0 && stack[top-1].id != LEFT) buf[end++] = stack[--top];
+				p++, top--;
+			} else if (*p == '(') stack[top++].id = LEFT, p++;
+			else {
+				id = token(*p++);
+				while (top > 0) {
+					if (rank(id) <= rank(stack[top-1].id))
+						buf[end++] = stack[--top];
+					else break;
+				}
+				stack[top++].id = id;
+			}
+		}
+		while (top > 0) buf[end++] = stack[--top];
+
+		for (top = i = 0; i < end; i++) {
+			if ((id = buf[i].id) == VAL) stack[top++].v = buf[i].v;
+			else {
+				v1 = stack[--top].v, v2 = stack[--top].v;
+				if      (id == PLUS)  v2 += v1;
+				else if (id == MINUS) v2 -= v1;
+				else if (id == MUL)   v2 *= v1;
+				stack[top++].v = v2;
+			}
+		}
+		if (f) ans = stack[--top].v, f = 0;
+		else if (ans < stack[--top].v) ans = stack[top].v;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

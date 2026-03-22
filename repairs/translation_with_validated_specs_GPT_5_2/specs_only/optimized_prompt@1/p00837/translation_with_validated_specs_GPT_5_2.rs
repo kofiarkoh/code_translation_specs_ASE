@@ -1,0 +1,124 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Occ {
+    seq: usize,
+    stu: usize,
+    id: usize,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(ms) = it.next() else { break };
+        let m_i: i32 = ms.parse().unwrap();
+        if m_i <= 0 {
+            break;
+        }
+        let m = m_i as usize;
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        let hold = m + 1;
+
+        // desks[d] is front-to-back order for desk d (1-based); desk hold=m+1 is special.
+        let mut desks: Vec<Vec<usize>> = vec![Vec::new(); m + 2];
+
+        // Book ids are assumed small (<=100) per spec's implied bounds.
+        let mut seen = vec![false; 101];
+        let mut loc_desk = vec![0usize; 101];
+
+        let mut occs: Vec<Occ> = Vec::new();
+
+        for stu in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                if !seen[id] {
+                    seen[id] = true;
+                    loc_desk[id] = hold;
+                    desks[hold].push(id);
+                }
+                occs.push(Occ { seq, stu, id });
+            }
+        }
+
+        // Global order: (seq, stu).
+        occs.sort_by(|a, b| a.seq.cmp(&b.seq).then(a.stu.cmp(&b.stu)));
+
+        let mut cost: i64 = 0;
+
+        for occ in occs {
+            let id = occ.id;
+
+            // A) Remove requested book from its current desk.
+            let from = loc_desk[id];
+            let pos = desks[from]
+                .iter()
+                .position(|&x| x == id)
+                .expect("undefined behavior: book not found in recorded desk");
+            desks[from].remove(pos);
+            cost += from as i64;
+
+            // B) Overflow procedure if primary is full (size == c) at this moment.
+            if desks[1].len() == c {
+                // 1) Choose tmp: smallest auxiliary desk not full; temporarily insert id.
+                let mut tmp = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() != c {
+                        tmp = d;
+                        break;
+                    }
+                }
+                desks[tmp].push(id);
+                cost += tmp as i64;
+
+                // 2) Evict front book from primary.
+                let id2 = desks[1].remove(0);
+                cost += 1;
+
+                // 3) Choose j: smallest auxiliary desk not full after step 1 and 2.
+                let mut j = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() != c {
+                        j = d;
+                        break;
+                    }
+                }
+
+                // Insert id2: normally at back; if j == tmp, insert one slot earlier than back.
+                // Then cancel the temporary insertion of id by removing it from tmp.
+                if j == tmp {
+                    let insert_pos = desks[j].len() - 1; // one slot earlier than current back
+                    desks[j].insert(insert_pos, id2);
+                } else {
+                    desks[j].push(id2);
+                }
+                loc_desk[id2] = j;
+                cost += (j + tmp) as i64;
+
+                // Net effect required by spec: id is no longer kept in desk tmp.
+                // Remove the (only) occurrence of id from tmp; this is deterministic because
+                // the temporary insertion was at the back and no other id copies exist.
+                let last = desks[tmp]
+                    .pop()
+                    .expect("undefined behavior: tmp desk unexpectedly empty when canceling temp insert");
+                debug_assert!(last == id);
+            }
+
+            // C) Insert requested book into primary at the back.
+            desks[1].push(id);
+            loc_desk[id] = 1;
+            cost += 1;
+        }
+
+        outs.push(cost.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Maintains a last-in-first-out holding area of up to 10 integer values. For each nonzero input value, it is stored. For each zero input value, the most recently stored value is removed and emitted.
+
+2. Inputs  
+A sequence of integer values read from standard input until end-of-input.
+
+3. Outputs  
+For each input value equal to zero, outputs one integer to standard output: the most recently stored value that has not yet been output.
+
+4. Preconditions  
+- The number of stored-but-not-yet-output values is never negative at the time a zero is processed (i.e., a zero is not provided when nothing is stored).  
+- The number of stored-but-not-yet-output values never exceeds 10 at any time (i.e., no more than 10 consecutive nonzero inputs without enough zeros to remove them).  
+- All input tokens intended to be processed are valid integers.
+
+5. Postconditions  
+- After processing all input, the internal stored count equals: (number of nonzero inputs) − (number of zero inputs).  
+- The output sequence corresponds exactly to the values removed by zero inputs, in reverse order of their most recent insertion at the time of each removal.
+
+6. Invariants  
+- At all times during processing (assuming preconditions hold), the stored count is within 0 to 10 inclusive.  
+- The set of currently stored values is exactly the multiset of nonzero inputs not yet removed by a zero, with removal occurring in last-in-first-out order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If a zero is processed when no value is stored, or if more than 10 values are stored without removal, behavior is undefined (may read/write outside allocated storage or produce incorrect output).  
+- If non-integer input is encountered before end-of-input, behavior is unspecified (may terminate early or loop without progress depending on the environment).
+
+8. State Transitions (if applicable)  
+- On nonzero input: stored count increases by 1; the input value becomes the new most-recently-stored value.  
+- On zero input: stored count decreases by 1; the previously most-recently-stored value is emitted and removed.
+
+9. Non-functional Constraints (if inferable)  
+- Storage capacity is fixed at 10 integers.  
+- Processing is streaming and order-dependent; each input is handled once in arrival order.
+```

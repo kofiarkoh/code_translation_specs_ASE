@@ -1,0 +1,164 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Default)]
+struct T {
+    id: i32,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    used: bool,
+}
+
+fn calc(t: &mut [T], ans: &mut [i32], order: &mut i32) {
+    // C qsort with comparator:
+    // if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1;
+    // Use i64 to avoid overflow in subtraction while preserving ordering intent.
+    t.sort_by(|a, b| {
+        let dx = (a.x1 as i64) - (b.x1 as i64);
+        if dx != 0 {
+            dx.cmp(&0)
+        } else {
+            let dy = (a.y1 as i64) - (b.y1 as i64);
+            dy.cmp(&0)
+        }
+    });
+
+    // ans[t[0].id] = ++order, t[0].used = 1;
+    *order += 1;
+    ans[t[0].id as usize] = *order;
+    t[0].used = true;
+
+    let y = t[0].y2;
+    let mut x: i32 = 501;
+    for i in 0..t.len() {
+        if t[i].used {
+            continue;
+        }
+        if t[i].y1 < y && y < t[i].y2 {
+            x = t[i].x1;
+            break;
+        }
+    }
+
+    // Collect into tmp those with y2 <= y && x2 <= x, marking them used in current slice.
+    let mut tmp: Vec<T> = Vec::new();
+    for i in 0..t.len() {
+        if t[i].used {
+            continue;
+        }
+        if t[i].y2 <= y && t[i].x2 <= x {
+            tmp.push(t[i]);
+            t[i].used = true;
+        }
+    }
+    if !tmp.is_empty() {
+        calc(&mut tmp[..], ans, order);
+    }
+
+    // for (i = 0; i < n; i++) if (t[i].used == 0) calc(t+i, n-i);
+    // This relies on passing a subarray starting at i; we emulate with a mutable subslice.
+    let n = t.len();
+    for i in 0..n {
+        if !t[i].used {
+            let (left, right) = t.split_at_mut(i);
+            let _ = left; // unused
+            calc(right, ans, order);
+        }
+    }
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+
+    // Emulates the C in(): reads an unsigned integer, assuming the next byte is a digit.
+    // Stops when encountering a byte < '0'. (C code does not skip whitespace.)
+    fn in_num(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = n
+                .wrapping_shl(3)
+                .wrapping_add(n.wrapping_shl(1))
+                .wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let mut tbl = [T::default(); 10];
+    let mut ans = [0i32; 10];
+
+    let mut cno = 0;
+    loop {
+        let n = sc.in_num();
+        if n == 0 {
+            break;
+        }
+        let n_usize = n as usize;
+
+        for i in 0..n_usize {
+            let x1 = sc.in_num();
+            let y1 = sc.in_num();
+            let x2 = sc.in_num();
+            let y2 = sc.in_num();
+
+            let mut t = T::default();
+            t.id = i as i32;
+            t.used = false;
+
+            if x1 <= x2 {
+                t.x1 = x1;
+                t.x2 = x2;
+            } else {
+                t.x1 = x2;
+                t.x2 = x1;
+            }
+            if y1 <= y2 {
+                t.y1 = y1;
+                t.y2 = y2;
+            } else {
+                t.y1 = y2;
+                t.y2 = y1;
+            }
+            tbl[i] = t;
+        }
+
+        let mut order: i32 = 0;
+        calc(&mut tbl[..n_usize], &mut ans[..], &mut order);
+
+        let mut out = String::new();
+        if cno == 0 {
+            cno = 1;
+        } else {
+            out.push('\n');
+        }
+        for i in 0..n_usize {
+            out.push_str(&format!("{}\n", ans[i]));
+        }
+        print!("{out}");
+    }
+}

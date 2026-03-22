@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, token-scan like scanf("%d %s ...")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut s: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        s.push(it.next().unwrap().to_string());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<String> = Vec::with_capacity(m);
+    for _ in 0..m {
+        t.push(it.next().unwrap().to_string());
+    }
+
+    // Per spec: max over strings in first list of (count in first - count in second), lower-bounded by 0.
+    // Matches the C code's O(N*(N+M)) approach.
+    let mut max_net: i32 = 0;
+    for i in 0..n {
+        let mut net: i32 = 0;
+
+        for j in 0..n {
+            if s[i] == s[j] {
+                net += 1;
+            }
+        }
+        for j in 0..m {
+            if s[i] == t[j] {
+                net -= 1;
+            }
+        }
+
+        if net > max_net {
+            max_net = net;
+        }
+    }
+
+    println!("{}", max_net);
+}
+```

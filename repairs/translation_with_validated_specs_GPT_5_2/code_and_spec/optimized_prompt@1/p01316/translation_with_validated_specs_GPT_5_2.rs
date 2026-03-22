@@ -1,0 +1,71 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more instances
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            break; // termination condition per spec
+        }
+
+        // Read increments
+        let mut inc = vec![0i32; m];
+        for k in 0..m {
+            inc[k] = it.next().unwrap().parse().unwrap();
+        }
+
+        // DP over states 0..255, using -1 as "unreachable" like the C code.
+        // dp_prev[s] = min cost to be at state s after processing i targets.
+        let mut dp_prev = vec![-1i32; 256];
+        let mut dp_curr = vec![-1i32; 256];
+        dp_prev[128] = 0;
+
+        for _ in 0..n {
+            let x: i32 = it.next().unwrap().parse().unwrap();
+            dp_curr.fill(-1);
+
+            for s in 0..256 {
+                let prev_cost = dp_prev[s];
+                if prev_cost < 0 {
+                    continue;
+                }
+                let s_i32 = s as i32;
+                for &d in &inc {
+                    let mut t = s_i32 + d;
+                    if t < 0 {
+                        t = 0;
+                    } else if t > 255 {
+                        t = 255;
+                    }
+                    let diff = x - t;
+                    let y = prev_cost + diff * diff; // per spec, fits in i32 (otherwise unspecified)
+                    let idx = t as usize;
+                    let cur = dp_curr[idx];
+                    dp_curr[idx] = if cur < 0 { y } else { cur.min(y) };
+                }
+            }
+
+            std::mem::swap(&mut dp_prev, &mut dp_curr);
+        }
+
+        // Minimum over final states
+        let mut res: i32 = 1 << 30;
+        for &v in &dp_prev {
+            if v >= 0 {
+                res = res.min(v);
+            }
+        }
+
+        println!("{res}");
+    }
+}

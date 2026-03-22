@@ -1,0 +1,130 @@
+use std::io::{self, Read};
+
+const MAX_N: usize = 100_003;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    // Mimic the C in(): assumes next non-consumed byte is a digit and reads until c < '0'.
+    // This matches the original behavior for valid AOJ inputs (space/newline separated non-negative ints).
+    fn in_i32(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+
+    let n = sc.in_i32() as usize;
+    let k_i32 = sc.in_i32();
+    let k = k_i32 as usize;
+
+    if n < k {
+        print!("0\n");
+        return;
+    }
+
+    let mut a = vec![0i32; n];
+    for i in 0..n {
+        a[i] = sc.in_i32();
+    }
+
+    // f indexed by value; only values 0..=K are used (C code uses t<=K).
+    // Allocate MAX_N to match original bounds.
+    let mut f = vec![0i32; MAX_N];
+
+    let mut s: usize = 0;
+    let mut i: usize = 0;
+    let mut j: usize = 0;
+
+    while s < k && j < n {
+        let t = a[j];
+        j += 1;
+        if t <= k_i32 {
+            let ti = t as usize;
+            if f[ti] == 0 {
+                s += 1;
+            }
+            f[ti] += 1;
+        }
+    }
+
+    if s < k {
+        print!("0\n");
+        return;
+    }
+
+    while i < n {
+        let t = a[i];
+        if t > k_i32 {
+            i += 1;
+            continue;
+        }
+        let ti = t as usize;
+        if f[ti] > 1 {
+            f[ti] -= 1;
+            i += 1;
+            continue;
+        }
+        break;
+    }
+
+    let mut ans: usize = j - i;
+
+    while j < n {
+        let t = a[j];
+        j += 1;
+        if t <= k_i32 {
+            f[t as usize] += 1;
+        }
+
+        while i < n {
+            let t2 = a[i];
+            if t2 > k_i32 {
+                i += 1;
+                continue;
+            }
+            let ti2 = t2 as usize;
+            if f[ti2] > 1 {
+                f[ti2] -= 1;
+                i += 1;
+                continue;
+            }
+            break;
+        }
+
+        let len = j - i;
+        if len < ans {
+            ans = len;
+        }
+    }
+
+    print!("{ans}\n");
+}

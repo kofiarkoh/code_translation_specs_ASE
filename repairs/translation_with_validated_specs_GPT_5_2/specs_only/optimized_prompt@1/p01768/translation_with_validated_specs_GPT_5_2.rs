@@ -1,0 +1,73 @@
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // No explicit error handling per spec; unwraps may panic on invalid input.
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Store names and costs; map names to indices.
+    let mut name_to_idx: HashMap<String, usize> = HashMap::with_capacity(n);
+    let mut costs: Vec<i64> = Vec::with_capacity(n);
+
+    for idx in 0..n {
+        let name = it.next().unwrap().to_string();
+        let cost: i64 = it.next().unwrap().parse().unwrap();
+        name_to_idx.insert(name, idx);
+        costs.push(cost);
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Build undirected adjacency list.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let a = it.next().unwrap();
+        let b = it.next().unwrap();
+        let ia = *name_to_idx.get(a).unwrap();
+        let ib = *name_to_idx.get(b).unwrap();
+        adj[ia].push(ib);
+        adj[ib].push(ia);
+    }
+
+    // Repeatedly, for each item, perform reachability-based minimum-cost evaluation
+    // using the *current* costs at the time of evaluation, then mutate that item's cost.
+    // This matches the specified state transition and invariant.
+    let mut total: i64 = 0;
+
+    for start in 0..n {
+        let mut visited = vec![false; n];
+        let mut stack: Vec<usize> = Vec::new();
+
+        visited[start] = true;
+        stack.push(start);
+
+        let mut min_cost = costs[start];
+
+        while let Some(v) = stack.pop() {
+            // Minimum is over current costs at time of evaluation.
+            if costs[v] < min_cost {
+                min_cost = costs[v];
+            }
+            for &to in &adj[v] {
+                if !visited[to] {
+                    visited[to] = true;
+                    stack.push(to);
+                }
+            }
+        }
+
+        // Accumulate per-item reachable-minimum cost.
+        // No overflow checks per spec; i64 overflow would panic in debug, wrap in release.
+        total = total.wrapping_add(min_cost);
+
+        // Mutate stored cost for this item to the computed minimum.
+        costs[start] = min_cost;
+    }
+
+    println!("{}", total);
+}

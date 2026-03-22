@@ -1,0 +1,63 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // unspecified behavior in spec for malformed input; just stop
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if (n | m) == 0 {
+            break;
+        }
+
+        // Adjacency matrix sized for indices 0..=500, matching the C code's bounds.
+        // Spec notes memory proportional to square of max supported individuals.
+        let mut student = vec![vec![0u8; 501]; 501];
+        let mut list = vec![0u8; 501];
+
+        for _ in 0..m {
+            let p1: usize = it.next().unwrap().parse().unwrap();
+            let p2: usize = it.next().unwrap().parse().unwrap();
+            student[p1][p2] = 1;
+            student[p2][p1] = 1;
+        }
+
+        // Mark direct connections to 1 (excluding 1 itself by iterating from 2).
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                list[i] = 1;
+            }
+        }
+
+        // Mark friends-of-friends via exactly one intermediate that is directly connected to 1.
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                for j in 2..=n {
+                    if student[i][j] == 1 {
+                        list[j] = 1;
+                    }
+                }
+            }
+        }
+
+        // Count marked individuals in 2..=n (never include 1).
+        let mut count: u32 = 0;
+        for i in 2..=n {
+            count += list[i] as u32;
+        }
+
+        out.push_str(&format!("{count}\n"));
+    }
+
+    print!("{out}");
+}

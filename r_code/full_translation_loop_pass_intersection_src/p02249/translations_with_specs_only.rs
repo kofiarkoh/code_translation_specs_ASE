@@ -1,0 +1,142 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes; parse tokens separated by ASCII whitespace.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let th: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let tw: usize = it.next().unwrap().parse().unwrap();
+
+    let mut text: Vec<Vec<u8>> = Vec::with_capacity(th);
+    for _ in 0..th {
+        let s = it.next().unwrap();
+        // Preconditions say row has at least tw non-whitespace chars; we take the first tw bytes.
+        let row = s.as_bytes();
+        text.push(row[..tw].to_vec());
+    }
+
+    let ph: usize = it.next().unwrap().parse().unwrap();
+    let pw: usize = it.next().unwrap().parse().unwrap();
+
+    let mut pat: Vec<Vec<u8>> = Vec::with_capacity(ph);
+    for _ in 0..ph {
+        let s = it.next().unwrap();
+        let row = s.as_bytes();
+        pat.push(row[..pw].to_vec());
+    }
+
+    // Hashing-based approach: 2D rolling hash via row hashes + vertical rolling.
+    // Correctness assumes no collisions; if collisions occur, false positives may be printed (per spec).
+
+    // Use 64-bit wrapping arithmetic to emulate typical unsigned overflow behavior.
+    const BASE_COL: u64 = 911382323u64;
+    const BASE_ROW: u64 = 972663749u64;
+
+    // Precompute powers.
+    let mut pow_col: Vec<u64> = vec![1; tw.saturating_add(1)];
+    for i in 1..pow_col.len() {
+        pow_col[i] = pow_col[i - 1].wrapping_mul(BASE_COL);
+    }
+    let mut pow_row: Vec<u64> = vec![1; th.saturating_add(1)];
+    for i in 1..pow_row.len() {
+        pow_row[i] = pow_row[i - 1].wrapping_mul(BASE_ROW);
+    }
+
+    // Helper: compute rolling hashes of all width-pw windows for each row.
+    // Returns matrix [h][w - pw + 1] of u64.
+    fn row_window_hashes(
+        grid: &[Vec<u8>],
+        h: usize,
+        w: usize,
+        win_w: usize,
+        base: u64,
+        pow: &[u64],
+    ) -> Vec<Vec<u64>> {
+        let out_w = w - win_w + 1;
+        let mut res: Vec<Vec<u64>> = vec![vec![0u64; out_w]; h];
+
+        for r in 0..h {
+            // Prefix hash: pref[c+1] = pref[c]*base + val
+            let mut pref: Vec<u64> = vec![0u64; w + 1];
+            for c in 0..w {
+                let v = grid[r][c] as u64;
+                pref[c + 1] = pref[c].wrapping_mul(base).wrapping_add(v);
+            }
+            for c0 in 0..out_w {
+                let c1 = c0 + win_w;
+                // Hash of substring [c0, c1):
+                // pref[c1] - pref[c0]*base^(win_w)
+                let left = pref[c0].wrapping_mul(pow[win_w]);
+                res[r][c0] = pref[c1].wrapping_sub(left);
+            }
+        }
+        res
+    }
+
+    // Pattern row hashes (single window per row).
+    let pat_row_hashes = row_window_hashes(&pat, ph, pw, pw, BASE_COL, &pow_col);
+    let mut pat_col_hash_seq: Vec<u64> = Vec::with_capacity(ph);
+    for r in 0..ph {
+        pat_col_hash_seq.push(pat_row_hashes[r][0]);
+    }
+
+    // Combine pattern row-hash sequence into a single vertical hash.
+    let mut pat_hash: u64 = 0;
+    for &v in &pat_col_hash_seq {
+        pat_hash = pat_hash.wrapping_mul(BASE_ROW).wrapping_add(v);
+    }
+
+    // Text row window hashes for each row and each possible column.
+    let text_row_hashes = row_window_hashes(&text, th, tw, pw, BASE_COL, &pow_col);
+
+    // For each column position, do vertical rolling hash over rows.
+    let out_h = th - ph + 1;
+    let out_w = tw - pw + 1;
+
+    let mut output = String::new();
+
+    for c in 0..out_w {
+        // Build prefix over rows for this column's row-window hashes.
+        let mut pref: Vec<u64> = vec![0u64; th + 1];
+        for r in 0..th {
+            let v = text_row_hashes[r][c];
+            pref[r + 1] = pref[r].wrapping_mul(BASE_ROW).wrapping_add(v);
+        }
+
+        for r0 in 0..out_h {
+            let r1 = r0 + ph;
+            let left = pref[r0].wrapping_mul(pow_row[ph]);
+            let hsh = pref[r1].wrapping_sub(left);
+            if hsh == pat_hash {
+                // Per spec, collisions may cause false positives; do not verify further.
+                output.push_str(&format!("{} {}\n", r0, c));
+            }
+        }
+    }
+
+    // Output must be in increasing row order, then column order.
+    // The loop above iterates columns outermost; reorder to satisfy required ordering.
+    // To preserve hashing-based approach while meeting ordering, collect matches and sort.
+    // This is still deterministic and preserves observable output ordering.
+    if !output.is_empty() {
+        // Re-parse collected lines into pairs, sort, and print.
+        let mut pairs: Vec<(usize, usize)> = Vec::new();
+        for line in output.lines() {
+            let mut sp = line.split_whitespace();
+            let r: usize = sp.next().unwrap().parse().unwrap();
+            let c: usize = sp.next().unwrap().parse().unwrap();
+            pairs.push((r, c));
+        }
+        pairs.sort_unstable();
+        let mut final_out = String::new();
+        for (r, c) in pairs {
+            final_out.push_str(&format!("{} {}\n", r, c));
+        }
+        print!("{}", final_out);
+    }
+}

@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let k: i64 = it.next().unwrap().parse().unwrap();
+
+    // Memory usage proportional to n: store the sequence even though it doesn't affect the result.
+    // If n is negative, behavior is unspecified by the spec; we keep parsing as i64 and cast.
+    let mut a: Vec<i64> = Vec::with_capacity(n.max(0) as usize);
+    for _ in 0..(n.max(0) as usize) {
+        let v: i64 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+    }
+    let _ = a; // explicitly unused; values do not influence t.
+
+    // Compute minimal t:
+    // If n <= k => t = 1
+    // Else smallest positive integer t such that k + (t-1)*(k-1) >= n
+    let t: i64 = if n <= k {
+        1
+    } else {
+        // Let d = n - k > 0. Need (t-1)*(k-1) >= d.
+        // So t = 1 + ceil(d / (k-1)).
+        let d = n - k;
+        let denom = k - 1; // k > 1 per preconditions; otherwise undefined behavior.
+        1 + (d + denom - 1) / denom
+    };
+
+    print!("{}", t);
+}

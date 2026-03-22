@@ -1,0 +1,211 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Node {
+    parent: usize,        // 0 means unset during construction
+    children: Vec<usize>, // in attachment order
+    m: i64,               // mass
+    mx: i64,              // horizontal moment (sum of column indices)
+    xl: i32,              // support interval min (inclusive)
+    xr: i32,              // support interval max (inclusive)
+    done: bool,           // aggregated into parent already
+}
+
+impl Node {
+    fn new() -> Self {
+        Self {
+            parent: 0,
+            children: Vec::new(),
+            m: 0,
+            mx: 0,
+            xl: i32::MAX,
+            xr: i32::MIN,
+            done: false,
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break;
+        }
+        let w: i32 = w_opt.unwrap().parse().unwrap();
+        let h: i32 = it.next().unwrap().parse().unwrap();
+        if w <= 0 {
+            break;
+        }
+
+        let wu = w as usize;
+        let hu = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(hu);
+        for _ in 0..hu {
+            let s = it.next().unwrap();
+            let bytes = s.as_bytes();
+            // Spec: row contains at least w characters; no validation.
+            grid.push(bytes[..wu].to_vec());
+        }
+
+        // Component labeling by 4-neighborhood with same character.
+        let mut comp: Vec<Vec<i32>> = vec![vec![-1; wu]; hu];
+        let mut comp_char: Vec<u8> = Vec::new();
+
+        let mut comp_count: i32 = 0;
+        for r in 0..hu {
+            for c in 0..wu {
+                if grid[r][c] == b'.' || comp[r][c] != -1 {
+                    continue;
+                }
+                let ch = grid[r][c];
+                comp_char.push(ch);
+                let id = comp_count;
+                comp_count += 1;
+
+                let mut q = VecDeque::new();
+                q.push_back((r, c));
+                comp[r][c] = id;
+
+                while let Some((rr, cc)) = q.pop_front() {
+                    let neighbors = [
+                        (rr.wrapping_sub(1), cc, rr > 0),
+                        (rr + 1, cc, rr + 1 < hu),
+                        (rr, cc.wrapping_sub(1), cc > 0),
+                        (rr, cc + 1, cc + 1 < wu),
+                    ];
+                    for &(nr, nc, ok) in &neighbors {
+                        if !ok {
+                            continue;
+                        }
+                        if grid[nr][nc] == ch && comp[nr][nc] == -1 {
+                            comp[nr][nc] = id;
+                            q.push_back((nr, nc));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build scan-order node IDs for components, and compute per-node m/mx and support [xl,xr],
+        // and construct single-parent child links based on first vertical contact in scan order.
+        let mut comp_to_node: Vec<i32> = vec![-1; comp_count as usize];
+        let mut nodes: Vec<Node> = Vec::new();
+        nodes.push(Node::new()); // index 0 unused; root is node 1 per spec
+
+        let mut next_node_id: usize = 1;
+
+        for rr in (0..hu).rev() {
+            for cc in 0..wu {
+                if grid[rr][cc] == b'.' {
+                    continue;
+                }
+                let cid = comp[rr][cc] as usize;
+                if comp_to_node[cid] == -1 {
+                    comp_to_node[cid] = next_node_id as i32;
+                    nodes.push(Node::new());
+                    next_node_id += 1;
+                }
+                let nid = comp_to_node[cid] as usize;
+
+                // Mass and moment: count every occupied cell in the component.
+                nodes[nid].m += 1;
+                nodes[nid].mx += cc as i64;
+
+                // Support footprint contribution.
+                let supported = if rr + 1 == hu {
+                    true
+                } else {
+                    grid[rr + 1][cc] != b'.'
+                };
+                if supported {
+                    let x = cc as i32;
+                    if x < nodes[nid].xl {
+                        nodes[nid].xl = x;
+                    }
+                    if x > nodes[nid].xr {
+                        nodes[nid].xr = x;
+                    }
+                }
+
+                // Parent/child relation via vertical adjacency, first-parent-wins.
+                if rr + 1 < hu && grid[rr + 1][cc] != b'.' {
+                    let below_cid = comp[rr + 1][cc] as usize;
+                    if comp_to_node[below_cid] == -1 {
+                        comp_to_node[below_cid] = next_node_id as i32;
+                        nodes.push(Node::new());
+                        next_node_id += 1;
+                    }
+                    let below_nid = comp_to_node[below_cid] as usize;
+
+                    if nodes[nid].parent == 0 {
+                        nodes[nid].parent = below_nid;
+                        nodes[below_nid].children.push(nid);
+                    }
+                }
+            }
+        }
+
+        // Spec assumption: at least one occupied cell exists; root is node 1.
+        // Root is forcibly set to be its own parent.
+        if nodes.len() > 1 {
+            nodes[1].parent = 1;
+        }
+
+        fn dfs(u: usize, nodes: &mut [Node]) -> bool {
+            // Depth-first over children in stored order.
+            let children = nodes[u].children.clone();
+            for v in children {
+                if !dfs(v, nodes) {
+                    return false;
+                }
+            }
+
+            // Compute x = 0.5 + (mx / m) using real division.
+            // Use f64; inputs are small (<= 600 cells), so exactness is not a concern here.
+            let m = nodes[u].m;
+            let mx = nodes[u].mx;
+            let x = 0.5f64 + (mx as f64) / (m as f64);
+
+            // Unstable if x <= xl or x >= xr + 1, i.e., must be strictly inside (xl, xr+1).
+            let xl = nodes[u].xl as f64;
+            let xr1 = (nodes[u].xr as f64) + 1.0;
+            if x <= xl || x >= xr1 {
+                return false;
+            }
+
+            // Aggregate into parent once.
+            if !nodes[u].done {
+                let p = nodes[u].parent;
+                // Root has parent = itself; aggregation is still performed per spec logic,
+                // but marking done prevents double counting if revisited (it won't be).
+                nodes[p].m += nodes[u].m;
+                nodes[p].mx += nodes[u].mx;
+                nodes[u].done = true;
+            }
+            true
+        }
+
+        let stable = if nodes.len() <= 1 {
+            // Undefined per spec (no occupied cells), but keep behavior narrow: treat as UNSTABLE.
+            false
+        } else {
+            dfs(1, &mut nodes)
+        };
+
+        if stable {
+            out.push_str("STABLE\n");
+        } else {
+            out.push_str("UNSTABLE\n");
+        }
+    }
+
+    print!("{out}");
+}

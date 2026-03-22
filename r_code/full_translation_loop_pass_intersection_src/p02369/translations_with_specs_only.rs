@@ -1,0 +1,58 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Preconditions say inputs are valid; no explicit error handling required.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Graph: adjacency list of outgoing edges.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        adj[u].push(v);
+    }
+
+    // Directed cycle detection via DFS with 3-color marking:
+    // 0 = unvisited, 1 = visiting (in recursion stack), 2 = done.
+    let mut color: Vec<u8> = vec![0; n];
+
+    fn dfs(u: usize, adj: &Vec<Vec<usize>>, color: &mut [u8]) -> bool {
+        color[u] = 1;
+        for &v in &adj[u] {
+            match color[v] {
+                0 => {
+                    if dfs(v, adj, color) {
+                        return true;
+                    }
+                }
+                1 => {
+                    // Back-edge to a node in the current recursion stack => cycle.
+                    return true;
+                }
+                _ => {}
+            }
+        }
+        color[u] = 2;
+        false
+    }
+
+    let mut has_cycle = false;
+    for u in 0..n {
+        if color[u] == 0 && dfs(u, &adj, &mut color) {
+            has_cycle = true;
+            break;
+        }
+    }
+
+    if has_cycle {
+        println!("1");
+    } else {
+        println!("0");
+    }
+}

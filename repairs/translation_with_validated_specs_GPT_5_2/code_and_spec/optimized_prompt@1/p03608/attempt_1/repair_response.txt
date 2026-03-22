@@ -1,0 +1,93 @@
+```rust
+use std::io::{self, Read};
+
+const INF: i32 = 1_000_000_000;
+
+fn dfs(
+    c: usize,
+    last: isize,
+    dist: i32,
+    r_count: usize,
+    r: &[usize],          // 1-based: r[1..=R]
+    used: &mut [bool],    // 1-based: used[1..=R]
+    d: &Vec<Vec<i32>>,    // 1-based: d[1..=N][1..=N]
+    best: &mut i32,
+) {
+    if c == r_count + 1 {
+        if *best > dist {
+            *best = dist;
+        }
+        return;
+    }
+
+    for i in 1..=r_count {
+        if !used[i] {
+            used[i] = true;
+            if last == -1 {
+                dfs(c + 1, i as isize, 0, r_count, r, used, d, best);
+            } else {
+                let last_u = last as usize;
+                let nd = dist + d[r[last_u]][r[i]];
+                dfs(c + 1, i as isize, nd, r_count, r, used, d, best);
+            }
+            used[i] = false;
+        }
+    }
+}
+
+fn main() {
+    // Read all input (no explicit error handling, matching the C program's spirit).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let r_count: usize = it.next().unwrap().parse().unwrap();
+
+    // Distance matrix, 1-based indexing.
+    let mut d = vec![vec![0i32; n + 1]; n + 1];
+    for i in 1..=n {
+        for j in 1..=n {
+            if i != j {
+                d[i][j] = INF;
+            }
+        }
+    }
+
+    // Required vertices, 1-based indexing.
+    let mut r = vec![0usize; r_count + 1];
+    for i in 1..=r_count {
+        r[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Edges: keep only the smallest weight among multiple edges.
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        if d[a][b] > c {
+            d[a][b] = c;
+            d[b][a] = c;
+        }
+    }
+
+    // Floyd–Warshall all-pairs shortest paths.
+    for k in 1..=n {
+        for i in 1..=n {
+            for j in 1..=n {
+                let via = d[i][k] + d[k][j];
+                if d[i][j] > via {
+                    d[i][j] = via;
+                }
+            }
+        }
+    }
+
+    let mut best = INF;
+    let mut used = vec![false; r_count + 1];
+    dfs(1, -1, 0, r_count, &r, &mut used, &d, &mut best);
+
+    print!("{best}\n");
+}
+```

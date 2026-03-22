@@ -1,0 +1,104 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const MAX: usize = 100;
+const WDMAX: usize = 20;
+const PGMAX: usize = 1001; // indices 0..=1000
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    pg: [u8; PGMAX], // page-presence table; 0/1
+    tm: i32,         // per-word counter (records seen for this word)
+}
+
+fn main() {
+    // Read entire stdin and tokenize like repeated scanf("%s %d").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut entries: Vec<Entry> = Vec::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p_str = match it.next() {
+            Some(s) => s,
+            None => break, // incomplete record at EOF: stop
+        };
+        let p: i32 = match p_str.parse() {
+            Ok(v) => v,
+            Err(_) => break, // narrow interpretation: stop on non-integer where %d would fail
+        };
+
+        // C spec notes UB for overlong words; in Rust we cannot overflow buffers.
+        // Narrowest reasonable behavior: accept the token as-is.
+        let mut found_idx: Option<usize> = None;
+        for (i, e) in entries.iter().enumerate() {
+            if e.word == w {
+                found_idx = Some(i);
+                break;
+            }
+        }
+
+        if let Some(i) = found_idx {
+            // C spec notes UB for out-of-range page indices; in Rust we avoid OOB.
+            if (0..PGMAX as i32).contains(&p) {
+                entries[i].pg[p as usize] = 1;
+            }
+            entries[i].tm = entries[i].tm.wrapping_add(1);
+        } else {
+            // C spec notes UB if exceeding MAX; in Rust we cap storage to MAX.
+            if entries.len() >= MAX {
+                // Narrowest reasonable behavior: ignore further distinct words.
+                continue;
+            }
+            let mut e = Entry {
+                word: w.to_string(),
+                pg: [0u8; PGMAX], // C leaves uninitialized; Rust must initialize. Choose zero.
+                tm: 0,            // C leaves uninitialized; Rust must initialize. Choose zero.
+            };
+            if (0..PGMAX as i32).contains(&p) {
+                e.pg[p as usize] = 1;
+            }
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+        }
+    }
+
+    // Sort ascending lexicographic order.
+    entries.sort_by(|a, b| {
+        // strcmp-like bytewise lexicographic on UTF-8 bytes is not identical to C locale,
+        // but is the narrowest reasonable interpretation without external assumptions.
+        a.word.as_bytes().cmp(b.word.as_bytes())
+    });
+
+    let mut out = String::new();
+
+    for e in &entries {
+        out.push_str(&e.word);
+        out.push('\n');
+
+        // Print page numbers in increasing order, stopping after printing exactly tm pages with pg[j]==1.
+        // If tm exceeds the number of present pages, no terminating newline is printed for the page list.
+        let mut printed: i32 = 0;
+        for j in 0..PGMAX {
+            if e.pg[j] == 1 {
+                printed = printed.wrapping_add(1);
+                if printed == e.tm {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

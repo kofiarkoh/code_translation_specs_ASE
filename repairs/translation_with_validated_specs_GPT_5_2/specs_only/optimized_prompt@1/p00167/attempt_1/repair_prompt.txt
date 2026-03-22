@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads multiple datasets. For each dataset, computes and outputs the number of adjacent element exchanges required to sort the given integer sequence into nondecreasing order using only swaps of neighboring elements (equivalently, the number of inversions in the sequence).
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer length, followed by that many integers forming the sequence.  
+- Input terminates when a dataset length of zero is encountered or when no further length can be read.
+
+3. Outputs  
+- For each non-terminating dataset, writes a single integer to standard output: the count of adjacent swaps needed to sort the dataset’s sequence into nondecreasing order.  
+- Each result is output on its own line.
+
+4. Preconditions  
+- For each dataset processed:  
+  - The length is a positive integer not exceeding 100.  
+  - Exactly that many integers are available to be read for the sequence.  
+- The computed swap count fits within the range of a signed integer.
+
+5. Postconditions  
+- For every dataset with positive length that is successfully read, exactly one corresponding swap-count value is produced.  
+- The reported value equals the number of index pairs (i, j) with i < j such that the earlier element is greater than the later element in the original sequence.
+
+6. Invariants  
+- Within a dataset, the swap count is nonnegative and increases by exactly one per adjacent exchange needed to eliminate an out-of-order neighboring pair.  
+- The final swap count depends only on the initial sequence values and equals the inversion count.
+
+7. Error Handling / Exceptional Behavior  
+- If the dataset length cannot be read, processing stops with no further output.  
+- If the length is zero, processing stops with no output for that terminating dataset.  
+- If fewer than the required sequence elements are present or input is otherwise malformed after a positive length, behavior is unspecified (the program does not guarantee a defined result).
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read dataset length → if terminating, stop; else read sequence → compute swap count → output result → proceed to next dataset.  
+- No persistent state is carried between datasets other than continuing to read input.
+
+9. Non-functional Constraints (if inferable)  
+- Supports sequences up to 100 elements per dataset.  
+- Time per dataset grows quadratically with the dataset length; memory usage is bounded and constant with respect to input size beyond the fixed array.
+```

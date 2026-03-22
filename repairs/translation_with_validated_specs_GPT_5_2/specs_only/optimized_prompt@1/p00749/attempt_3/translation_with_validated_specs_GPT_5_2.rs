@@ -1,0 +1,220 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Node {
+    parent: usize,        // 0 means unset during construction
+    children: Vec<usize>, // in attachment order
+    m: i64,               // mass
+    mx: i64,              // horizontal moment (sum of column indices)
+    xl: i32,              // support interval min (inclusive)
+    xr: i32,              // support interval max (inclusive)
+    done: bool,           // aggregated into parent already
+}
+
+impl Node {
+    fn new() -> Self {
+        Self {
+            parent: 0,
+            children: Vec::new(),
+            m: 0,
+            mx: 0,
+            xl: i32::MAX,
+            xr: i32::MIN,
+            done: false,
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(w_tok) = it.next() else { break };
+        let w: i32 = w_tok.parse().unwrap();
+        let h: i32 = it.next().unwrap().parse().unwrap();
+        if w <= 0 {
+            break;
+        }
+
+        let wu = w as usize;
+        let hu = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(hu);
+        for _ in 0..hu {
+            let s = it.next().unwrap();
+            let bytes = s.as_bytes();
+            grid.push(bytes[..wu].to_vec());
+        }
+
+        // Component labeling by 4-neighborhood with same character.
+        let mut comp: Vec<Vec<i32>> = vec![vec![-1; wu]; hu];
+        let mut comp_count: i32 = 0;
+
+        for r in 0..hu {
+            for c in 0..wu {
+                if grid[r][c] == b'.' || comp[r][c] != -1 {
+                    continue;
+                }
+                let ch = grid[r][c];
+                let id = comp_count;
+                comp_count += 1;
+
+                let mut q = VecDeque::new();
+                q.push_back((r, c));
+                comp[r][c] = id;
+
+                while let Some((rr, cc)) = q.pop_front() {
+                    if rr > 0 && grid[rr - 1][cc] == ch && comp[rr - 1][cc] == -1 {
+                        comp[rr - 1][cc] = id;
+                        q.push_back((rr - 1, cc));
+                    }
+                    if rr + 1 < hu && grid[rr + 1][cc] == ch && comp[rr + 1][cc] == -1 {
+                        comp[rr + 1][cc] = id;
+                        q.push_back((rr + 1, cc));
+                    }
+                    if cc > 0 && grid[rr][cc - 1] == ch && comp[rr][cc - 1] == -1 {
+                        comp[rr][cc - 1] = id;
+                        q.push_back((rr, cc - 1));
+                    }
+                    if cc + 1 < wu && grid[rr][cc + 1] == ch && comp[rr][cc + 1] == -1 {
+                        comp[rr][cc + 1] = id;
+                        q.push_back((rr, cc + 1));
+                    }
+                }
+            }
+        }
+
+        // Build scan-order node IDs for components, compute per-node m/mx and support [xl,xr],
+        // and construct single-parent child links based on first vertical contact in scan order.
+        let mut comp_to_node: Vec<i32> = vec![-1; comp_count as usize];
+        let mut nodes: Vec<Node> = Vec::new();
+        nodes.push(Node::new()); // index 0 unused; root is node 1 per spec
+        let mut next_node_id: usize = 1;
+
+        for rr in (0..hu).rev() {
+            for cc in 0..wu {
+                if grid[rr][cc] == b'.' {
+                    continue;
+                }
+                let cid = comp[rr][cc] as usize;
+                if comp_to_node[cid] == -1 {
+                    comp_to_node[cid] = next_node_id as i32;
+                    nodes.push(Node::new());
+                    next_node_id += 1;
+                }
+                let nid = comp_to_node[cid] as usize;
+
+                nodes[nid].m += 1;
+                nodes[nid].mx += cc as i64;
+
+                let supported = if rr + 1 == hu {
+                    true
+                } else {
+                    grid[rr + 1][cc] != b'.'
+                };
+                if supported {
+                    let x = cc as i32;
+                    if x < nodes[nid].xl {
+                        nodes[nid].xl = x;
+                    }
+                    if x > nodes[nid].xr {
+                        nodes[nid].xr = x;
+                    }
+                }
+
+                if rr + 1 < hu && grid[rr + 1][cc] != b'.' {
+                    let below_cid = comp[rr + 1][cc] as usize;
+                    if comp_to_node[below_cid] == -1 {
+                        comp_to_node[below_cid] = next_node_id as i32;
+                        nodes.push(Node::new());
+                        next_node_id += 1;
+                    }
+                    let below_nid = comp_to_node[below_cid] as usize;
+
+                    if nodes[nid].parent == 0 {
+                        nodes[nid].parent = below_nid;
+                        nodes[below_nid].children.push(nid);
+                    }
+                }
+            }
+        }
+
+        if nodes.len() > 1 {
+            nodes[1].parent = 1;
+        }
+
+        // Iterative DFS with cycle protection.
+        // The spec describes a rooted parent/child structure, but the construction can create cycles
+        // (e.g., mutual vertical contacts between two components) due to scan order + first-parent-wins.
+        // The original C likely recursed and could loop/overflow; here we terminate as UNSTABLE on cycles
+        // to avoid non-termination while keeping a narrow, conservative interpretation.
+        fn check_stability_iterative(root: usize, nodes: &mut [Node]) -> bool {
+            let n = nodes.len();
+            let mut state: Vec<u8> = vec![0; n]; // 0=unseen, 1=visiting, 2=done
+
+            let mut stack: Vec<(usize, u8)> = Vec::new(); // (node, phase 0=enter,1=exit)
+            stack.push((root, 0));
+
+            while let Some((u, phase)) = stack.pop() {
+                if phase == 0 {
+                    if state[u] == 2 {
+                        continue;
+                    }
+                    if state[u] == 1 {
+                        // Back-edge => cycle reachable from root.
+                        return false;
+                    }
+                    state[u] = 1;
+                    stack.push((u, 1));
+                    for &v in nodes[u].children.iter().rev() {
+                        stack.push((v, 0));
+                    }
+                } else {
+                    // exit
+                    let m = nodes[u].m;
+                    if m == 0 {
+                        return false;
+                    }
+                    let mx = nodes[u].mx;
+
+                    let x = 0.5f64 + (mx as f64) / (m as f64);
+                    let xl = nodes[u].xl as f64;
+                    let xr1 = (nodes[u].xr as f64) + 1.0;
+
+                    if x <= xl || x >= xr1 {
+                        return false;
+                    }
+
+                    if !nodes[u].done {
+                        let p = nodes[u].parent;
+                        nodes[p].m += nodes[u].m;
+                        nodes[p].mx += nodes[u].mx;
+                        nodes[u].done = true;
+                    }
+
+                    state[u] = 2;
+                }
+            }
+            true
+        }
+
+        let stable = if nodes.len() <= 1 {
+            false
+        } else {
+            check_stability_iterative(1, &mut nodes)
+        };
+
+        if stable {
+            out.push_str("STABLE\n");
+        } else {
+            out.push_str("UNSTABLE\n");
+        }
+    }
+
+    print!("{out}");
+}

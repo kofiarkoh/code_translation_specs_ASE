@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Direct semantic translation of the golfed C, including the subtlety that the
+    // "iteration expression" of the for-loop runs AFTER the body, and uses the *previous*
+    // p (from the previous iteration), not the newly assigned one.
+    //
+    // C:
+    // for (scanf("%d%*d",&n); ~scanf("%d%d",&a,&b); p-m&&*p ? n=0 : ++*p)
+    //     p = m + (a-1 ? (b-n ? 0 : a) : b);
+
+    let mut m = vec![0i32; 1 << 18];
+    let mut p_idx: usize = 0; // p initially points to m (index 0), globals are zeroed.
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // scanf("%d%*d",&n);
+    let mut n: i32 = match it.next() {
+        Some(t) => t.parse().unwrap_or(0),
+        None => return,
+    };
+    // %*d: try to read and discard one int if present (scanf would just fail to match it).
+    let _ = it.next();
+
+    // We must execute the "iteration expression" after each successful read+body,
+    // but not before the first body.
+    let mut first = true;
+
+    loop {
+        // Loop condition: ~scanf("%d%d",&a,&b)
+        let a_tok = match it.next() {
+            Some(t) => t,
+            None => break, // EOF => scanf returns EOF (-1) => ~(-1)==0 => stop
+        };
+        let b_tok = match it.next() {
+            Some(t) => t,
+            None => break, // ill-formed for this program; avoid uninitialized use
+        };
+        let a: i32 = a_tok.parse().unwrap_or(0);
+        let b: i32 = b_tok.parse().unwrap_or(0);
+
+        // In C, the iteration expression runs after the previous body.
+        if !first {
+            if p_idx != 0 && m[p_idx] != 0 {
+                n = 0;
+            } else {
+                // C signed overflow is UB; assume inputs avoid it.
+                m[p_idx] += 1;
+            }
+        }
+        first = false;
+
+        // Body: p = m + (a-1 ? (b-n ? 0 : a) : b);
+        let offset: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 { 0 } else { a }
+        } else {
+            b
+        };
+
+        // Assume valid in-bounds as typical for such golfed contest code.
+        p_idx = offset as usize;
+    }
+
+    // After loop ends, the for-loop does NOT execute the iteration expression again.
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}
+```

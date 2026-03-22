@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer \(n\) and outputs a single integer computed by an iterative recurrence with all arithmetic performed modulo \(1{,}000{,}000{,}007\). The program has a special case for \(n=1\), and for \(n\ge 2\) it builds values for indices \(1\) through \(n\) and outputs the value associated with index \(n\).
+
+2. Inputs  
+- One integer \(n\) read from standard input.
+
+3. Outputs  
+- One integer written to standard output: the computed value modulo \(1{,}000{,}000{,}007\), followed by a newline.
+
+4. Preconditions  
+- \(n\) is provided and is a valid integer.  
+- \(1 \le n \le 1{,}000{,}000\) (required to stay within fixed internal storage bounds).
+
+5. Postconditions / Defined Computation  
+Let \(M = 1{,}000{,}000{,}007\).
+
+- If \(n = 1\): the program outputs \(1\).
+
+- If \(n \ge 2\): define an auxiliary sequence \(A(1), A(2), \dots, A(n)\) (all values taken modulo \(M\)) as follows:
+  - \(A(1) \equiv n \pmod M\)
+  - \(A(2) \equiv n^2 \pmod M\)
+  - For each integer \(i\) with \(3 \le i \le n\):
+    \[
+    A(i) \equiv A(i-1) + \sum_{j=1}^{i-3} A(j) + (i-3)(n-1) + (n-i+2)n \pmod M
+    \]
+  The program outputs \(A(n)\).
+
+Notes on the summation term: when \(i-3 \le 0\), the sum \(\sum_{j=1}^{i-3} A(j)\) is treated as \(0\).
+
+6. Invariants / Maintained State  
+- All maintained values and intermediate results are reduced modulo \(M\).  
+- For \(n \ge 2\), the program maintains a prefix-sum data structure over indices \(1..n\) such that after finishing index \(i\), it can retrieve \(\sum_{j=1}^{r} A(j) \bmod M\) for relevant \(r\), and it has stored \(A(k)\) at each index \(k \le i\).  
+- The value stored at index \(1\) for \(n\ge 2\) is \(n\) (modulo \(M\)); it is not the same as the \(n=1\) output value.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input. If input cannot be read as an integer, behavior is unspecified.  
+- If \(n\) is outside the supported range (notably \(n > 1{,}000{,}000\) or \(n < 1\)), behavior is unspecified (may include incorrect results or memory corruption).
+
+8. State Transitions  
+- For \(n=1\): output \(1\) and terminate.  
+- For \(n\ge 2\): initialize \(A(1)\) and \(A(2)\), then iterate \(i=3\) through \(n\), computing \(A(i)\) from the recurrence and updating the prefix-sum state; finally output \(A(n)\) and terminate.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(n \log n)\) for \(n \ge 2\).  
+- Memory usage is \(O(n)\) with a fixed upper bound sized for \(n \le 1{,}000{,}000\).  
+- Output is deterministic for a given valid input \(n\).
+```

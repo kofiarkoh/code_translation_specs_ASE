@@ -1,0 +1,153 @@
+```rust
+use std::io::{self, Read};
+
+const N_MAX: usize = 4;
+const SIZE: usize = 2 * N_MAX + 1; // 9
+const CENTER: usize = N_MAX; // 4
+
+fn right_face(top: i32, front: i32) -> i32 {
+    // Fixed lookup table RIGHT(top, front) as required by the specification.
+    // This is the standard cube geometry mapping consistent with:
+    // - opposite faces sum to 7
+    // - (top, front) uniquely determines right
+    //
+    // Table indexed by [top][front], 1..6; invalid combinations are not expected per preconditions.
+    const R: [[i32; 7]; 7] = [
+        [0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 3, 5, 2, 4, 0], // top=1, front=2..5
+        [0, 4, 0, 1, 6, 0, 3], // top=2, front=1,3,4,6
+        [0, 2, 6, 0, 0, 1, 5], // top=3, front=1,2,5,6
+        [0, 5, 1, 0, 0, 6, 2], // top=4, front=1,2,5,6
+        [0, 3, 0, 6, 1, 0, 4], // top=5, front=1,3,4,6
+        [0, 0, 4, 2, 5, 3, 0], // top=6, front=2..5
+    ];
+    R[top as usize][front as usize]
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut height = [[0i32; SIZE]; SIZE];
+        let mut top_rec = [[0i32; SIZE]; SIZE];
+
+        for _ in 0..n {
+            let mut top: i32 = it.next().unwrap().parse().unwrap();
+            let mut front: i32 = it.next().unwrap().parse().unwrap();
+
+            let mut r: usize = CENTER;
+            let mut c: usize = CENTER;
+
+            loop {
+                let cur_h = height[r][c];
+
+                // Candidate selection: strict ">" update only; no special tie-break beyond scan order.
+                let mut best_val: i32 = 0;
+                let mut best_dir: i32 = -1; // 0=N,1=S,2=W,3=E
+
+                // North
+                if height[r - 1][c] < cur_h {
+                    let val = front; // FRONT
+                    if val > 3 && val > best_val {
+                        best_val = val;
+                        best_dir = 0;
+                    }
+                }
+                // South
+                if height[r + 1][c] < cur_h {
+                    let val = 7 - front; // BACK
+                    if val > 3 && val > best_val {
+                        best_val = val;
+                        best_dir = 1;
+                    }
+                }
+                // West
+                if height[r][c - 1] < cur_h {
+                    let val = 7 - right_face(top, front); // LEFT
+                    if val > 3 && val > best_val {
+                        best_val = val;
+                        best_dir = 2;
+                    }
+                }
+                // East
+                if height[r][c + 1] < cur_h {
+                    let val = right_face(top, front); // RIGHT
+                    if val > 3 && val > best_val {
+                        best_val = val;
+                        best_dir = 3;
+                    }
+                }
+
+                if best_dir < 0 {
+                    break;
+                }
+
+                // Apply move: update position and orientation using old (top, front).
+                let old_top = top;
+                let old_front = front;
+
+                match best_dir {
+                    0 => {
+                        // North: newfront = oldtop; newtop = BACK(oldtop, oldfront)
+                        r -= 1;
+                        front = old_top;
+                        top = 7 - old_front;
+                    }
+                    1 => {
+                        // South: newfront = BOTTOM(oldtop, oldfront); newtop = oldfront
+                        r += 1;
+                        front = 7 - old_top;
+                        top = old_front;
+                    }
+                    2 => {
+                        // West: newfront = oldfront; newtop = RIGHT(oldtop, oldfront)
+                        c -= 1;
+                        front = old_front;
+                        top = right_face(old_top, old_front);
+                    }
+                    3 => {
+                        // East: newfront = oldfront; newtop = LEFT(oldtop, oldfront)
+                        c += 1;
+                        front = old_front;
+                        top = 7 - right_face(old_top, old_front);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+
+            height[r][c] += 1;
+            top_rec[r][c] = top;
+        }
+
+        let mut counts = [0i32; 7];
+        for rr in 0..SIZE {
+            for cc in 0..SIZE {
+                let v = top_rec[rr][cc];
+                if (1..=6).contains(&v) {
+                    counts[v as usize] += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!(
+            "{} {} {} {} {} {}\n",
+            counts[1], counts[2], counts[3], counts[4], counts[5], counts[6]
+        ));
+    }
+
+    print!("{out}");
+}
+```

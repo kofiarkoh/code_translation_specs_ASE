@@ -1,0 +1,162 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // pw[t] = product_{j=1..t} (2j-1) mod MOD, with pw[0]=1
+    // calc(k) = 0 if k odd else pw[k/2]
+    let mut pw = vec![0i64; n + 1];
+    pw[0] = 1;
+    for i in 1..=n {
+        let odd = (2 * i - 1) as i64;
+        pw[i] = (pw[i - 1] * odd) % MOD;
+    }
+    let calc = |k: usize, pw: &Vec<i64>| -> i64 {
+        if (k & 1) == 1 {
+            0
+        } else {
+            pw[k >> 1]
+        }
+    };
+
+    // Build adjacency list
+    let mut g = vec![Vec::<usize>::new(); n];
+    for _ in 1..n {
+        let mut u: usize = it.next().unwrap().parse().unwrap();
+        let mut v: usize = it.next().unwrap().parse().unwrap();
+        u -= 1;
+        v -= 1;
+        g[u].push(v);
+        g[v].push(u);
+    }
+
+    // Root at 0: compute parent order and subtree sizes
+    let root = 0usize;
+    let mut parent = vec![usize::MAX; n];
+    let mut order = Vec::with_capacity(n);
+    let mut stack = vec![root];
+    parent[root] = root;
+    while let Some(u) = stack.pop() {
+        order.push(u);
+        for &v in &g[u] {
+            if v == parent[u] {
+                continue;
+            }
+            if parent[v] == usize::MAX {
+                parent[v] = u;
+                stack.push(v);
+            }
+        }
+    }
+
+    // Subtree sizes via reverse order
+    let mut sz = vec![1usize; n];
+    for &u in order.iter().rev() {
+        let mut s = 1usize;
+        for &v in &g[u] {
+            if v == parent[u] {
+                continue;
+            }
+            s += sz[v];
+        }
+        sz[u] = s;
+    }
+
+    // dp[u][i][b] stored as two Vec<i64> per node: dp0, dp1
+    // dp_sz[u] is the current maximum i index used (inclusive) before the final ++ in C.
+    let mut dp0: Vec<Vec<i64>> = vec![Vec::new(); n];
+    let mut dp1: Vec<Vec<i64>> = vec![Vec::new(); n];
+    let mut dp_sz = vec![0usize; n];
+
+    // Post-order DP (children first)
+    for &u in order.iter().rev() {
+        // Initialize: dp[u][0][0] = 1
+        dp0[u] = vec![0i64; sz[u] + 1];
+        dp1[u] = vec![0i64; sz[u] + 1];
+        dp0[u][0] = 1;
+        dp_sz[u] = 0;
+
+        // Combine children
+        for &v in &g[u] {
+            if v == parent[u] {
+                continue;
+            }
+
+            let max_u = dp_sz[u];
+            let max_v = dp_sz[v];
+
+            let mut tmp0 = vec![0i64; sz[u] + 1];
+            let mut tmp1 = vec![0i64; sz[u] + 1];
+
+            for x in (0..=max_u).rev() {
+                let a0 = dp0[u][x];
+                let a1 = dp1[u][x];
+                if a0 == 0 && a1 == 0 {
+                    continue;
+                }
+                for y in (0..=max_v).rev() {
+                    let b0 = dp0[v][y];
+                    let b1 = dp1[v][y];
+                    if b0 == 0 && b1 == 0 {
+                        continue;
+                    }
+                    let idx = x + y;
+
+                    // tmp[idx][0] += a0*b0 + a1*b1
+                    tmp0[idx] = (tmp0[idx] + a0 * b0) % MOD;
+                    tmp0[idx] = (tmp0[idx] + a1 * b1) % MOD;
+
+                    // tmp[idx][1] += a0*b1 + a1*b0
+                    tmp1[idx] = (tmp1[idx] + a0 * b1) % MOD;
+                    tmp1[idx] = (tmp1[idx] + a1 * b0) % MOD;
+                }
+            }
+
+            dp0[u] = tmp0;
+            dp1[u] = tmp1;
+            dp_sz[u] += dp_sz[v];
+        }
+
+        // If u != 0, perform the "closing" transition into index sz[u]
+        if u != root {
+            let max_u = dp_sz[u];
+            let target = sz[u];
+            for x in (0..=max_u).rev() {
+                let k = sz[u] - x;
+                let w = calc(k, &pw);
+                if w == 0 {
+                    continue;
+                }
+                let add0 = (dp1[u][x] * w) % MOD;
+                let add1 = (dp0[u][x] * w) % MOD;
+                dp0[u][target] = (dp0[u][target] + add0) % MOD;
+                dp1[u][target] = (dp1[u][target] + add1) % MOD;
+            }
+        }
+
+        // dp_sz[u]++
+        dp_sz[u] += 1;
+    }
+
+    // Final answer from root dp
+    let mut ans: i64 = 0;
+    for i in 0..=n {
+        let w = calc(n - i, &pw);
+        if w == 0 {
+            continue;
+        }
+        ans = (ans + dp0[root][i] * w) % MOD;
+        ans = (ans - dp1[root][i] * w) % MOD;
+    }
+    ans = (ans % MOD + MOD) % MOD;
+    println!("{}", ans);
+}
+```

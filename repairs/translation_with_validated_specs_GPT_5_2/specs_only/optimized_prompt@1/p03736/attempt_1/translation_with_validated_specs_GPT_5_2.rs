@@ -1,0 +1,146 @@
+use std::cmp::{min, Ordering};
+use std::io::{self, Read};
+
+const INF: i64 = i64::MAX / 4;
+
+fn abs_i64(x: i64) -> i64 {
+    if x < 0 { -x } else { x }
+}
+
+struct SegMin {
+    n: usize,
+    size: usize,
+    data: Vec<i64>,
+}
+
+impl SegMin {
+    fn new(n: usize) -> Self {
+        let mut size = 1usize;
+        while size < n {
+            size <<= 1;
+        }
+        SegMin {
+            n,
+            size,
+            data: vec![INF; 2 * size],
+        }
+    }
+
+    fn update_min(&mut self, idx: usize, val: i64) {
+        // Point update: a[idx] = min(a[idx], val)
+        let mut i = idx + self.size;
+        if self.data[i] > val {
+            self.data[i] = val;
+            i >>= 1;
+            while i > 0 {
+                let newv = min(self.data[i << 1], self.data[(i << 1) | 1]);
+                if self.data[i] == newv {
+                    break;
+                }
+                self.data[i] = newv;
+                i >>= 1;
+            }
+        }
+    }
+
+    fn query_min_prefix(&self, r_inclusive: usize) -> i64 {
+        // Returns min over [0..=r_inclusive]. If r_inclusive >= n, behavior is undefined by spec.
+        let mut l = self.size;
+        let mut r = r_inclusive + self.size;
+        let mut res = INF;
+
+        while l <= r {
+            if (l & 1) == 1 {
+                res = min(res, self.data[l]);
+                l += 1;
+            }
+            if (r & 1) == 0 {
+                res = min(res, self.data[r]);
+                if r == 0 {
+                    break;
+                }
+                r -= 1;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        res
+    }
+}
+
+fn main() {
+    // Input: n, q, initial current position, target position, then q next positions.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut cur: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+    let t: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+
+    let mut dp = vec![0i64; n];
+
+    // Two prefix-min summary structures:
+    // A stores values of form dp[pos] - pos at index pos, queried as min_{pos<=x}(A[pos]) + x.
+    // B stores values of form dp[pos] + pos at mirrored index (n-1-pos), queried as
+    // min_{pos>=x}(dp[pos] + pos) - x via prefix on mirrored indices.
+    let mut seg_a = SegMin::new(n);
+    let mut seg_b = SegMin::new(n);
+
+    // Seed using target position t:
+    // A[t] = -t, B[n-1-t] = +t.
+    seg_a.update_min(t, -(t as i64));
+    seg_b.update_min(n - 1 - t, t as i64);
+
+    let mut d: i64 = 0;
+
+    for _ in 0..q {
+        let next: usize = it.next().unwrap().parse::<usize>().unwrap() - 1;
+
+        let prev = cur;
+        let step_dist = abs_i64(prev as i64 - next as i64);
+        d += step_dist;
+
+        // best_candidate_at_next = min(
+        //   min_{pos<=next}(dp[pos] - pos) + next,
+        //   min_{pos>=next}(dp[pos] + pos) - next
+        // )
+        let cand1 = {
+            let m = seg_a.query_min_prefix(next);
+            if m >= INF / 2 { INF } else { m + next as i64 }
+        };
+        let cand2 = {
+            let mirrored = n - 1 - next;
+            let m = seg_b.query_min_prefix(mirrored);
+            if m >= INF / 2 { INF } else { m - next as i64 }
+        };
+        let best = min(cand1, cand2);
+
+        // x := best - |prev-next|
+        let x = if best >= INF / 2 { INF } else { best - step_dist };
+
+        // Relax dp at previous position.
+        if x < dp[prev] {
+            dp[prev] = x;
+        }
+
+        // Insert relaxed dp[prev] into both structures at previous position.
+        let v = dp[prev];
+        seg_a.update_min(prev, v - prev as i64);
+        seg_b.update_min(n - 1 - prev, v + prev as i64);
+
+        cur = next;
+    }
+
+    // M := min_r dp[r], output M + D.
+    let mut m = dp[0];
+    for &v in &dp[1..] {
+        if v < m {
+            m = v;
+        }
+    }
+    let ans = m + d;
+    println!("{}", ans);
+}

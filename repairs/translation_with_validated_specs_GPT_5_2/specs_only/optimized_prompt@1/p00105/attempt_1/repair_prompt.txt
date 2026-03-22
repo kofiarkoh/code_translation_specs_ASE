@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Builds an index from a stream of `(word, page-number)` pairs. For each distinct word encountered, it stores the word string, maintains a page-presence table indexed by page number, and maintains a per-word counter. After all input is consumed, it sorts the stored words in ascending lexicographic order and prints each word followed by page numbers derived from that word’s page-presence table.
+
+2. Inputs  
+- A sequence of zero or more records read until end-of-file, each containing:  
+  - A word token read with `%s` (whitespace-delimited).  
+  - An integer page number read with `%d`.  
+- Word identity is determined by exact string comparison (`strcmp` equality).
+
+3. State Updates per Input Record  
+For each input record `(w, p)`:
+- If `w` matches an existing stored word entry:  
+  - Set that entry’s page-presence slot at index `p` to `1`.  
+  - Increment that entry’s counter `tm` by `1`.  
+- If `w` is not found among stored entries:  
+  - Create a new entry for `w`.  
+  - Store the word string.  
+  - Set the new entry’s page-presence slot at index `p` to `1`.  
+  - Increment the new entry’s counter `tm` by `1`.  
+- The counter `tm` is incremented once per input record for that word, even if the same page number repeats; it is not a count of distinct pages.
+
+4. Sorting / Ordering  
+- After input ends, the program sorts the stored entries by ascending lexicographic order of the word strings.  
+- No secondary tie-breaker is used (duplicate identical strings are not expected to be stored as separate entries because matching strings are merged during input processing).
+
+5. Output Format and Page-Number Listing Semantics  
+For each stored word in sorted order, the program outputs:
+- One line containing the word.  
+- Then it scans page indices in increasing numeric order from `0` up to `PGMAX-1` (i.e., `0` through `1000`). For each index `j` whose page-presence value equals `1`, it prints `j`.  
+  - A single space is printed after each printed page number except the one the program considers the last for that word.  
+  - A newline is printed only when the program prints what it considers the last page number for that word.  
+- The program decides it has reached the “last” page number for a word when it has printed exactly `tm` page indices with presence value `1`. At that point it prints the final number followed by a newline and stops scanning further page indices for that word.
+
+6. Constraints, Assumptions, and Undefined/Unspecified Behavior  
+- Maximum distinct words: at most `MAX` entries can be stored; exceeding this limit causes out-of-bounds writes and undefined behavior.  
+- Word length: the word token must fit in the fixed-size buffers (`WDMAX` including the terminating null); longer tokens can overflow and cause undefined behavior.  
+- Page number range: page numbers are used directly as indices into a fixed-size array of length `PGMAX`; values outside `0..PGMAX-1` cause out-of-bounds access and undefined behavior.  
+- Initialization: the per-entry page-presence array and the per-entry counter are not explicitly initialized to zero before first use. As a result, their initial values are indeterminate, and the program’s behavior (including which pages appear “present” and the effective value of `tm`) is not well-defined by the C language.  
+- Because the page-list printing loop relies on `tm` matching the number of encountered `pgnum[j]==1` entries, if `tm` exceeds the number of such entries encountered during the scan (which can occur due to repeated records for the same page and/or indeterminate initial state), the program may finish scanning without printing a terminating newline for that word’s page list.
+
+7. Termination and Error Handling  
+- Input processing ends at end-of-file.  
+- No explicit error messages are produced.  
+- After sorting and printing, the program exits normally.
+```

@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Adjacency list (undirected). Vertex labels are 1..=n.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
+    for _ in 0..m {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        g[a].push(b);
+        g[b].push(a);
+    }
+
+    // d[v] stores:
+    // -1 if unreached, 0 for vertex 1, otherwise the parent vertex label.
+    let mut d: Vec<i32> = vec![-1; n + 1];
+    d[1] = 0;
+
+    // BFS queue (fixed-capacity in C; VecDeque is safe and preserves semantics).
+    let mut q: std::collections::VecDeque<usize> = std::collections::VecDeque::new();
+    q.push_back(1);
+
+    while let Some(i) = q.pop_front() {
+        for &j in &g[i] {
+            if d[j] == -1 {
+                d[j] = i as i32; // assign parent exactly once
+                q.push_back(j);
+            }
+        }
+    }
+
+    // Output format must match exactly: success line then N-1 lines.
+    let mut out = String::new();
+    out.push_str("Yes\n");
+    for v in 2..=n {
+        out.push_str(&format!("{}\n", d[v]));
+    }
+    print!("{out}");
+}

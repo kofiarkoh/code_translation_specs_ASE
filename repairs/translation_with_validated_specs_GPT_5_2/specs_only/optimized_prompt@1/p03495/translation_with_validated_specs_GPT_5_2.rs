@@ -1,0 +1,49 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: isize = it.next().unwrap().parse().unwrap();
+
+    // Value domain is [1, N] inclusive. Use 1-based indexing; index 0 unused.
+    let mut freq = vec![0usize; n + 1];
+
+    for _ in 0..n {
+        let v: usize = it.next().unwrap().parse().unwrap();
+        // Preconditions guarantee 1 <= v <= n; no validation performed.
+        freq[v] += 1;
+    }
+
+    // Collect frequencies of distinct values present (positive frequencies).
+    let mut present: Vec<usize> = freq.into_iter().skip(1).filter(|&c| c > 0).collect();
+    let distinct_count = present.len();
+
+    // If K >= distinct_count, output 0. K may be negative; no validation performed.
+    if k as isize >= distinct_count as isize {
+        println!("0");
+        return;
+    }
+
+    // Need to remove (distinct_count - K) least frequent distinct values.
+    // If K is negative, this implies removing more than all distinct values; the
+    // narrowest interpretation consistent with "at most K distinct remain" is
+    // removing all elements (sum of all present frequencies == N).
+    let need_remove_distinct: usize = if k < 0 {
+        distinct_count
+    } else {
+        distinct_count - (k as usize)
+    };
+
+    present.sort_unstable();
+
+    let mut removed = 0usize;
+    for &c in present.iter().take(need_remove_distinct) {
+        removed += c;
+    }
+
+    println!("{}", removed);
+}

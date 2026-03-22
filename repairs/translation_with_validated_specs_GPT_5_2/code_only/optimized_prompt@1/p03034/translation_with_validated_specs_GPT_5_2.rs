@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // Mirror C's fixed-size global array (only first n elements used).
+    let mut a = vec![0i64; 100_010];
+    for i in 0..(n as usize) {
+        if let Some(v) = it.next() {
+            a[i] = v.parse::<i64>().unwrap();
+        } else {
+            // If input is short, C would read garbage/leave uninitialized; here we keep 0.
+            // This situation shouldn't occur for valid inputs.
+            a[i] = 0;
+        }
+    }
+
+    let mut ans: i64 = 0;
+
+    // C loop: for (int d=1; d*2 < n-1; d++)
+    // Use i32 arithmetic to match C's int behavior (no overflow expected for typical n).
+    let mut d: i32 = 1;
+    while d * 2 < n - 1 {
+        let mut s: i32 = 0;
+        let mut g: i32 = n - 1;
+        let mut crr: i64 = 0;
+
+        loop {
+            let ns = s + d;
+            let ng = g - d;
+            if ng <= d || ns == ng || ns == g {
+                break;
+            }
+            s = ns;
+            g = ng;
+
+            // C uses signed long long; overflow is UB in C, but we emulate typical 2's-complement
+            // wraparound using wrapping_add to preserve behavior on overflow.
+            let add = a[s as usize].wrapping_add(a[g as usize]);
+            crr = crr.wrapping_add(add);
+
+            if crr > ans {
+                ans = crr;
+            }
+        }
+
+        d += 1;
+    }
+
+    // C prints without trailing newline.
+    print!("{}", ans);
+}

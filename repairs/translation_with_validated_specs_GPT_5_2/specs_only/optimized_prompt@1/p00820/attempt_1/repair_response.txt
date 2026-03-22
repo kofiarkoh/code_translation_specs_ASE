@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, Read};
+
+fn count_representations(n: i64) -> i64 {
+    // Counts non-decreasing tuples (a1..ak), 1<=k<=4, ai>0, sum(ai^2)=n.
+    // Implemented via recursion with bounded depth 4, as specified.
+    fn rec(remaining: i64, min_a: i64, depth_left: i32) -> i64 {
+        if remaining <= 0 || depth_left == 0 {
+            return 0;
+        }
+
+        let mut count = 0i64;
+
+        // a must be >= min_a and a^2 <= remaining.
+        // Use integer arithmetic; overflow behavior is unspecified by the spec if it occurs.
+        let mut a = min_a;
+        while a * a <= remaining {
+            let sq = a * a;
+            let rem2 = remaining - sq;
+
+            // Using exactly one term at this level is valid if it completes the sum.
+            if rem2 == 0 {
+                count += 1;
+            }
+
+            // Otherwise, try adding more terms (up to 4 total), maintaining non-decreasing order.
+            if rem2 > 0 && depth_left > 1 {
+                count += rec(rem2, a, depth_left - 1);
+            }
+
+            a += 1;
+        }
+
+        count
+    }
+
+    rec(n, 1, 4)
+}
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    let mut out = String::new();
+    for tok in input.split_whitespace() {
+        let n: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => return, // terminate without further output on read/parse failure
+        };
+        if n == 0 {
+            break; // terminating value
+        }
+        if n > 0 {
+            let ans = count_representations(n);
+            out.push_str(&format!("{ans}\n"));
+        } else {
+            // Specification says "provided positive integer"; for non-positive (other than 0),
+            // behavior is not defined. Narrow interpretation: produce no output and continue.
+        }
+    }
+
+    print!("{out}");
+}
+```

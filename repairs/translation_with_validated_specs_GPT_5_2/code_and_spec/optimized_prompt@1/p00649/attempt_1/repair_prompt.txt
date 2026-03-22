@@ -1,0 +1,147 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each dataset, assigns each of up to 10 axis-aligned rectangles a unique positive integer rank from 1 to N, producing a total order over the rectangles. The order is deterministic and depends only on the rectangles’ normalized corner coordinates. The produced ranks define a sequence in which rectangles are considered “selected” according to a geometric rule based on leftmost position and a recursively derived partitioning of the remaining rectangles.
+
+2. Inputs  
+- Zero or more datasets.  
+- Each dataset begins with an integer N.  
+- If N is nonzero, it is followed by N rectangles, each given by four integers representing two opposite corners.  
+- Input terminates when a dataset begins with N = 0.
+
+3. Outputs  
+For each dataset:  
+- N lines, where line i (0-based by input order) contains the assigned rank of the i-th input rectangle.  
+- A blank line is printed between consecutive datasets.
+
+4. Preconditions  
+- N is within the supported fixed capacity (N ≤ 10).  
+- Each rectangle is specified by four integers; coordinates fit within the integer range.  
+- Rectangles are treated as closed axis-aligned boxes after normalization (min/max per axis).  
+- Assumption: Input contains only nonnegative integers (as negative values are not meaningfully handled by the parser).
+
+5. Postconditions  
+For each dataset with N > 0:  
+- Every rectangle receives exactly one rank in the range [1, N].  
+- All ranks are distinct (a permutation of 1..N).  
+- The output rank for each rectangle is stable for the same input dataset (deterministic).  
+- Rectangle corner coordinates are normalized internally so that for each rectangle: x1 ≤ x2 and y1 ≤ y2 before ordering decisions are made.
+
+6. Invariants  
+- At any point during ordering, a rectangle is either unranked or assigned exactly one rank; once ranked, it is never re-ranked.  
+- The global rank counter increases by exactly 1 per rectangle ranked, and never exceeds N.  
+- The set of ranked rectangles and unranked rectangles always forms a partition of the dataset.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If N exceeds the fixed capacity, behavior is undefined (may overwrite memory or produce incorrect output).  
+- Malformed input (missing values, non-numeric tokens, negative numbers) leads to undefined or incorrect behavior.  
+- Degenerate rectangles (zero width and/or height) are accepted; ordering is still produced.
+
+8. State Transitions (if applicable)  
+For each dataset:  
+- Initial state: all rectangles unranked; rank counter = 0.  
+- Transition: repeatedly select an unranked rectangle according to the defined geometric ordering rule and assign the next rank, marking it ranked.  
+- Recursive partitioning transitions: after selecting a rectangle, a subset of remaining rectangles that satisfy a derived positional constraint is fully ranked before ranking the rest.  
+- Terminal state: all N rectangles ranked; rank counter = N; results are emitted.
+
+9. Non-functional Constraints (if inferable)  
+- Designed for small N (fixed maximum 10); uses recursion and repeated sorting/partitioning but remains bounded and fast for that size.  
+- Memory usage is constant and small, bounded by fixed-size arrays.  
+- Output is deterministic and independent of runtime environment aside from input content.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1064: Yanagi's Comic
+// 2018.1.18 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int id, x1, y1, x2, y2; char used; } T;
+T tbl[10];
+int ans[10];
+int order;
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int cmp(T *a, T *b) { if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1; }
+
+void calc(T *t, int n)
+{
+	int i, j, x, y, xx, yy;
+	T tmp[10];
+
+	qsort(t, n, sizeof(T), cmp);
+	ans[t[0].id] = ++order, t[0].used = 1;
+
+	y = t[0].y2, x = 501;
+	for (i = 0; i < n; i++) {
+		if (t[i].used) continue;
+		if (t[i].y1 < y && y < t[i].y2) { x = t[i].x1; break; }
+	}
+
+	xx = yy = 501, j = 0;
+	for (i = 0; i < n; i++) {
+		if (t[i].used) continue;
+		if (t[i].y2 <= y && t[i].x2 <= x) tmp[j++] = t[i], t[i].used = 1;
+	}
+	if (j > 0) calc(tmp, j);
+
+	for (i = 0; i < n; i++) if (t[i].used == 0) calc(t+i, n-i);
+}
+
+int main()
+{
+	int n, x1, y1, x2, y2;
+	int cno, i;
+
+	cno = 0; while (n = in()) {
+		for (i = 0; i < n; i++) {
+			x1 = in(), y1 = in(), x2 = in(), y2 = in();
+			tbl[i].id = i, tbl[i].used = 0;
+			if (x1 <= x2) tbl[i].x1 = x1, tbl[i].x2 = x2;
+			else          tbl[i].x1 = x2, tbl[i].x2 = x1;
+			if (y1 <= y2) tbl[i].y1 = y1, tbl[i].y2 = y2;
+			else          tbl[i].y1 = y2, tbl[i].y2 = y1;
+		}
+
+		order = 0;
+		calc(tbl, n);
+
+		if (!cno) cno = 1;
+		else putchar('\n');
+		for (i = 0; i < n; i++) printf("%d\n", ans[i]);
+	}
+	return 0;
+}
+=== C CODE END ===

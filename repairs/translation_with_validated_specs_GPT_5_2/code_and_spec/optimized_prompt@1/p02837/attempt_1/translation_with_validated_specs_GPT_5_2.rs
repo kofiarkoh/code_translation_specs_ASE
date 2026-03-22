@@ -1,0 +1,72 @@
+use std::io::{self, Read};
+
+fn popcount(mut z: u32) -> u32 {
+    // Mirrors the C recursive counter(z>>1)+(z&1), but iteratively.
+    let mut c = 0;
+    while z != 0 {
+        c += z & 1;
+        z >>= 1;
+    }
+    c
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // Undefined by spec; just exit if no input.
+    };
+
+    // Store assertions per entity: (target_index_0_based, asserted_value_0_or_1)
+    let mut assertions: Vec<Vec<(usize, u8)>> = vec![Vec::new(); n];
+
+    for i in 0..n {
+        let ai: usize = it.next().unwrap().parse().unwrap();
+        let mut v = Vec::with_capacity(ai);
+        for _ in 0..ai {
+            let t_1based: usize = it.next().unwrap().parse().unwrap();
+            let val: u8 = it.next().unwrap().parse().unwrap();
+            v.push((t_1based - 1, val));
+        }
+        assertions[i] = v;
+    }
+
+    let mut best: u32 = 0;
+
+    // Enumerate all subsets of {0..n-1}.
+    // Spec precondition: n <= 20, so 1<<n fits in u32.
+    let total = 1u32 << n;
+    for mask in 0..total {
+        let mut ok = true;
+
+        for j in 0..n {
+            if (mask & (1u32 << j)) == 0 {
+                continue; // entity j not selected
+            }
+            for &(t, val) in &assertions[j] {
+                let bit = ((mask >> t) & 1) as u8;
+                if bit ^ val != 0 {
+                    ok = false;
+                    break;
+                }
+            }
+            if !ok {
+                break;
+            }
+        }
+
+        if ok {
+            let cnt = popcount(mask);
+            if best < cnt {
+                best = cnt;
+            }
+        }
+    }
+
+    // Preserve I/O formatting: C prints without trailing newline.
+    print!("{}", best);
+}

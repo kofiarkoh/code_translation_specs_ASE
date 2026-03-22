@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the smallest integer greater than or equal to the quotient of two provided integers (i.e., the ceiling of the division of the first integer by the second), under the assumption of non-negative inputs.
+
+2. Inputs  
+- Two integers provided via standard input: a dividend and a divisor.
+
+3. Outputs  
+- One integer written to standard output: the ceiling of (dividend ÷ divisor), followed by a line terminator.
+
+4. Preconditions  
+- Exactly two integers are available on input.  
+- The divisor is non-zero.  
+- Assumption (required for correctness of “ceiling” interpretation): the dividend and divisor are non-negative integers.
+
+5. Postconditions  
+- If the dividend is exactly divisible by the divisor, the output equals the exact integer quotient.  
+- Otherwise, the output equals the integer quotient rounded up to the next integer (ceiling).
+
+6. Invariants  
+- The produced result is an integer.  
+- Under the non-negative input assumption, the result is the minimal integer value such that (result × divisor) is greater than or equal to the dividend.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the divisor is zero, behavior is undefined (division by zero).  
+- If input does not contain two valid integers, behavior is unspecified.  
+- If intermediate arithmetic overflows the integer range, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- None; the program is stateless aside from consuming input and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main () {
+	int a, b, c;
+	scanf ("%d %d", &a, &b);
+	c = a/b;
+	if (a % b != 0) {
+		c++;
+	}
+	printf ("%d\n", c);
+}
+=== C CODE END ===

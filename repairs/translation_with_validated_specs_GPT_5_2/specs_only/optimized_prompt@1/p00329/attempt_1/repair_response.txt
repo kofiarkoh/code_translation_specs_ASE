@@ -1,0 +1,127 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+
+    // Read non-negative decimal integer K as digit characters.
+    // The routine stops at the first non-digit and consumes it.
+    let mut idx = 0usize;
+    let mut k: usize = 0;
+    while idx < input.len() && input[idx].is_ascii_digit() {
+        k = k
+            .saturating_mul(10)
+            .saturating_add((input[idx] - b'0') as usize);
+        idx += 1;
+    }
+    if idx < input.len() {
+        idx += 1; // consume the first non-digit
+    }
+
+    // Preconditions say K >= 1; otherwise unspecified. We proceed with saturating behavior.
+    let n = k.saturating_sub(1);
+
+    // Read adjacency: for each (row i, col j), read byte c and set edge j->i if (c&1)!=0,
+    // then read and discard one additional byte.
+    // Store edges in the order they are encountered for deterministic traversal.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for i in 0..n {
+        for j in 0..n {
+            if idx >= input.len() {
+                // Unspecified behavior per spec if input is short; stop safely.
+                break;
+            }
+            let c = input[idx];
+            idx += 1;
+            if (c & 1) != 0 {
+                adj[j].push(i);
+            }
+            if idx < input.len() {
+                idx += 1; // discard separator byte
+            } else {
+                // Unspecified if missing; stop safely.
+                break;
+            }
+        }
+    }
+
+    // Standard Kuhn augmenting-path matching:
+    // match_r[r] = Some(l) means right r is matched to left l.
+    // match_l[l] = Some(r) means left l is matched to right r.
+    fn try_augment(
+        start_l: usize,
+        adj: &[Vec<usize>],
+        match_r: &mut [Option<usize>],
+        match_l: &mut [Option<usize>],
+        seen_r: &mut [bool],
+    ) -> bool {
+        for &r in &adj[start_l] {
+            if seen_r[r] {
+                continue;
+            }
+            seen_r[r] = true;
+            if match_r[r].is_none()
+                || try_augment(match_r[r].unwrap(), adj, match_r, match_l, seen_r)
+            {
+                // Reassign r to start_l
+                if let Some(prev_r) = match_l[start_l] {
+                    // start_l should be unmatched when called in this program's usage,
+                    // but keep consistent if it isn't.
+                    if match_r[prev_r] == Some(start_l) {
+                        match_r[prev_r] = None;
+                    }
+                }
+                match_r[r] = Some(start_l);
+                match_l[start_l] = Some(r);
+                return true;
+            }
+        }
+        false
+    }
+
+    let mut match_r: Vec<Option<usize>> = vec![None; n];
+    let mut match_l: Vec<Option<usize>> = vec![None; n];
+
+    // First compute whether any perfect matching exists.
+    for l in 0..n {
+        let mut seen_r = vec![false; n];
+        if !try_augment(l, &adj, &mut match_r, &mut match_l, &mut seen_r) {
+            print!("no\n");
+            return;
+        }
+    }
+
+    // If one exists, output partners for left vertices in increasing order.
+    // For each left i:
+    // - remove i and its currently matched partner (if any)
+    // - run augmenting-path from i to re-establish perfect matching
+    // - print resulting partner of i (1-based)
+    let mut out = String::new();
+    out.push_str("yes\n");
+
+    for i in 0..n {
+        if let Some(r) = match_l[i] {
+            match_l[i] = None;
+            if match_r[r] == Some(i) {
+                match_r[r] = None;
+            }
+        }
+
+        let mut seen_r = vec![false; n];
+        let ok = try_augment(i, &adj, &mut match_r, &mut match_l, &mut seen_r);
+        if !ok {
+            // Spec implies this should not happen if a perfect matching existed initially,
+            // but behavior would be unspecified; choose to report failure deterministically.
+            print!("no\n");
+            return;
+        }
+
+        let partner_r = match_l[i].unwrap();
+        out.push_str(&(partner_r + 1).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

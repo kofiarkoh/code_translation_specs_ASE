@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads two rooted **binary** trees encoded as single whitespace-delimited strings in a fixed concrete format and produces a new tree string representing their recursive “sum”. At each node position where **both** input trees have a non-empty node, the output contains a node whose integer value is the sum of the two input node values, and whose left and right children are obtained by recursively summing the corresponding left and right subtrees. If, at some position, **either** input has an empty subtree, then the output subtree at that position is empty and recursion does not continue below that position. Consequently, the output tree’s shape is the structural intersection of the two input trees.
+
+2. Tree String Representation (Concrete Format and How It Is Interpreted)  
+- The program treats each (sub)tree as a **whole substring** and decomposes a non-empty node by locating the node’s **top-level** bracketed value and splitting the string around it.  
+- A **non-empty node** is expected to have the form:  
+  `<left_part>[<value>]<right_part>`  
+  where:
+  - `<left_part>` is the complete encoding of the left subtree **including its outer parentheses**, and is expected to be either `()` or `(<...>)`.
+  - `<right_part>` is the complete encoding of the right subtree **including its outer parentheses**, and is expected to be either `()` or `(<...>)`.
+  - `<value>` is a decimal integer in text form (optionally signed) that begins immediately after the `[` and is interpreted using C’s `atoi` (i.e., parsing stops at the first non-numeric character such as `]`).
+- An **empty subtree** is encoded **exactly** as the two-character string `()`. Emptiness is determined solely by the subtree substring length being exactly 2.
+
+3. Node Decomposition / Parsing Rule (Top-Level Split)  
+For any input substring representing a (sub)tree, the program identifies the node’s value and its left/right subtree substrings as follows:  
+- It scans the entire substring from left to right while maintaining a single nesting counter that is incremented on `[` and `(` and decremented on `]` and `)`.  
+- The node’s value is taken from the first `[` encountered when this counter is 0 (i.e., the “outermost” `[` for that node). The left subtree substring is defined as **all characters before** that `[` (its length may be 2 for `()` or longer for `(<...>)`).  
+- The right subtree substring is defined as **all characters after** the matching `]` that returns the counter from 1 back to 0 for that bracketed value (i.e., the `]` paired with the selected `[`).
+
+4. Recursion and Subtree Handling  
+- When combining two nodes, the program first decomposes each node string into `(left_subtree_string, value, right_subtree_string)` using the rule above.  
+- For each side (left and right) independently:
+  - If either corresponding subtree string is empty (length 2, i.e., exactly `()`), the combined subtree for that side is empty in the output (represented as `()`), and no further recursion occurs on that side.
+  - Otherwise, the program removes exactly one outer pair of parentheses from each subtree string (i.e., it recurses on the inside of `(<...>)`) and recursively combines those inner strings to produce the combined subtree content. That combined content is then re-wrapped in parentheses when forming the parent node’s output.
+
+5. Output Construction / Formatting Semantics  
+- Each combined non-empty node is emitted in the exact format:  
+  `(<combined_left>)[<sum>](<combined_right>)`  
+  where `<combined_left>` and `<combined_right>` are the recursively produced subtree contents (possibly empty, in which case the parentheses are still present, yielding `()`).
+- The program always prints the final combined tree string followed by a newline.
+
+6. Inputs  
+- Two whitespace-delimited strings read from standard input, each assumed to be a well-formed tree encoding consistent with the decomposition rules above.  
+- The program reads exactly two such strings and ignores any additional input.
+
+7. Assumptions, Constraints, and Undefined Behavior  
+- No validation is performed. Inputs are assumed to be properly balanced and nested with respect to `(` `)` and `[` `]` in a way that makes the top-level split unambiguous and yields left/right parts that are parenthesized subtree encodings.  
+- Integer parsing uses `atoi`; values outside the range of `int` or otherwise not representable lead to undefined/implementation-defined behavior as in C.  
+- The program uses fixed-size internal buffers for the two inputs and the constructed output; if an input string exceeds the input buffer capacity or the constructed output exceeds the output buffer capacity, behavior is undefined.  
+- Deep recursion may overflow the call stack; behavior is undefined in that case.
+
+8. Execution/Termination Behavior  
+- The program reads two tree strings, recursively constructs the combined tree in an internal buffer, prints it as one line, and terminates normally.
+```

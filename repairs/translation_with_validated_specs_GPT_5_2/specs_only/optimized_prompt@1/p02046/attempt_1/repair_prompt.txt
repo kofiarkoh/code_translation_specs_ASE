@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each pair of integers read from input until end-of-input, computes and outputs a single integer value derived from the absolute values of the pair and their parity (odd/even) and whether either value is zero.
+
+2. Inputs  
+- A sequence of zero or more pairs of signed integers provided via standard input.  
+- Each computation consumes exactly two integers.
+
+3. Outputs  
+- For each successfully read input pair, writes one integer result followed by a line break to standard output.
+
+4. Preconditions  
+- Input must contain integers in pairs; behavior is only defined for iterations where two integers are successfully read.  
+- The absolute value operation must be representable for the provided integers (i.e., no overflow in taking absolute value).
+
+5. Postconditions  
+For each processed input pair, let:  
+- \(a = |x|\), \(b = |y|\).  
+
+The output value \(t\) satisfies:  
+- If \(a + b = 1\), then \(t = 1\).  
+- Else if \(a\) and \(b\) are both odd, then \(t = a + b - 1\).  
+- Else if \(a\) and \(b\) are both even, then \(t = a + b\).  
+- Else if \(a \neq 0\) and \(b \neq 0\), then \(t = a + b\).  
+- Else (exactly one of \(a, b\) is zero and \(a + b \neq 1\)), then \(t = a + b + 1\).
+
+6. Invariants  
+- Each output depends only on the current input pair and not on any prior pairs.  
+- For every processed pair, \(t\) is an integer and \(t \ge 0\).  
+- For every processed pair, \(t\) is one of \(\{a+b-1,\ a+b,\ a+b+1\}\), except the special case \(a+b=1\) where \(t=1\).
+
+7. Error Handling / Exceptional Behavior  
+- Processing stops at end-of-input.  
+- If input does not provide two integers for a pair (e.g., malformed or incomplete data), behavior is not defined by this specification (the program may terminate or produce no further output).  
+- If taking absolute value overflows for an input integer, behavior is not defined.
+
+8. State Transitions (if applicable)  
+- Repeats a stateless transformation for each input pair until end-of-input; no persistent state is carried between iterations.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time linear in the number of successfully read integer pairs.  
+- Uses constant additional memory.
+```

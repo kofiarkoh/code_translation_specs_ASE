@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+use std::process;
+
+fn main() {
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        process::exit(1);
+    }
+
+    let mut it = input.split_whitespace();
+    let t1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let t2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let r1: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+    let r2: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => process::exit(1),
+    };
+
+    let out = if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            "Alice"
+        } else if t1 > t2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    } else {
+        if r1 > r2 {
+            "Alice"
+        } else if r1 < r2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    };
+
+    println!("{out}");
+}

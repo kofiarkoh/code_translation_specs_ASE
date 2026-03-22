@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each test case, classifies the spatial relationship between two circles in a plane and emits an integer code indicating whether they are disjoint, intersect in two points, are tangent, or one strictly contains the other.
+
+2. Inputs  
+- An integer count of test cases.  
+- For each test case: six real numbers representing two circles: first circle center coordinates and radius, then second circle center coordinates and radius.
+
+3. Outputs  
+For each test case, outputs one integer code on its own line:  
+- `0`: circles are externally disjoint (no common points).  
+- `1`: circles have at least one common point but neither strictly contains the other (this includes both two-point intersection and tangency cases).  
+- `2`: the first circle strictly contains the second (no common points).  
+- `-2`: the second circle strictly contains the first (no common points).
+
+4. Preconditions  
+- The test case count is provided and is non-negative.  
+- Each test case provides six finite real values.  
+- Radii are assumed to be non-negative.  
+- Input is assumed to be well-formed; behavior is unspecified if values are missing or non-numeric.
+
+5. Postconditions  
+- Exactly one classification code is produced per test case.  
+- The classification is determined solely by comparing the squared distance between centers with the squared sum and squared difference of radii.
+
+6. Invariants  
+- The number of output lines equals the number of processed test cases.  
+- For any test case, exactly one of the output codes `{0, 1, 2, -2}` is produced.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input parsing fails or values violate preconditions (e.g., negative radii, non-finite numbers), the resulting behavior/output is unspecified.
+
+8. State Transitions (if applicable)  
+- The program maintains no persistent state across test cases beyond consuming the remaining test count; each test case is processed independently.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in time proportional to the number of test cases with constant work per case.  
+- Uses constant additional memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define SQ(x) ((x) * (x))
+ 
+typedef struct{
+    double x;
+    double y;
+    double r;
+} CIRCLE;
+ 
+int main(void)
+{
+    CIRCLE a, b;
+    int n;
+     
+    scanf("%d", &n);
+     
+    while (n-- != 0){
+        scanf("%lf%lf%lf%lf%lf%lf", &a.x, &a.y, &a.r, &b.x, &b.y, &b.r);
+         
+        if (SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r + b.r)){
+            printf("0\n");
+        }
+         
+        else if (SQ(a.r + b.r) > SQ(a.x - b.x) + SQ(a.y - b.y) && SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r - b.r)){
+            printf("1\n");
+        }
+         
+        else if (SQ(a.x - b.x) + SQ(a.y - b.y) < SQ(a.r - b.r)){
+            if (a.r > b.r){
+                printf("2\n");
+            }
+            else {
+                printf("-2\n");
+            }
+        }
+        else {
+            printf("1\n");
+        }
+    }
+     
+    return (0);
+}
+=== C CODE END ===

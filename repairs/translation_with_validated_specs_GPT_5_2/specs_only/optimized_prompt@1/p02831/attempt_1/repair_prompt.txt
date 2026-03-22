@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads two integers and computes the smallest positive multiple of the first integer that is divisible by the second integer, then outputs that multiple.
+
+2. Inputs  
+- Two signed integers provided via standard input:  
+  - First value: an integer \(a\)  
+  - Second value: an integer \(b\)
+
+3. Outputs  
+- If a qualifying multiple is found within the searched range, outputs a single signed integer equal to \(a \cdot i\), where \(i\) is the smallest positive integer in the search range such that \(b\) divides \(a \cdot i\).  
+- Otherwise, produces no output.
+
+4. Preconditions  
+- Two integers are available on input.  
+- \(b \neq 0\) (division/modulo by zero is not permitted).  
+- Arithmetic operations performed during the search (notably \(a \cdot i\) and \(b+1\)) do not overflow the integer range used by the program.
+
+5. Postconditions  
+- If the program outputs a value \(m\), then:  
+  - \(m\) is a positive-integer multiple of \(a\) (i.e., \(m = a \cdot i\) for some integer \(i \ge 1\)).  
+  - \(m\) is divisible by \(b\).  
+  - Among all \(a \cdot i\) with \(i\) in \([1, b+1]\) that are divisible by \(b\), \(m\) corresponds to the smallest such \(i\).  
+- If no value is output, then there is no \(i\) in \([1, b+1]\) such that \(a \cdot i\) is divisible by \(b\).
+
+6. Invariants  
+- During the search, the candidate values considered are exactly \(a \cdot i\) for successive integers \(i\) starting at 1 and not exceeding \(b+1\).  
+- If an output occurs, it is the first candidate in this sequence that is divisible by \(b\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is missing/invalid, behavior is unspecified.  
+- If \(b = 0\) or if required arithmetic overflows, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state beyond local computation; terminates after producing the output (if any) or after exhausting the search range.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost is proportional to the size of the searched range (up to \(b+1\) iterations).  
+- Uses constant additional memory.
+```

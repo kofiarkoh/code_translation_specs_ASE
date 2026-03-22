@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens (like scanf("%d"/"%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let mut s: Vec<String> = Vec::with_capacity(n);
+    for _ in 0..n {
+        s.push(it.next().unwrap().to_string());
+    }
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let mut t: Vec<String> = Vec::with_capacity(m);
+    for _ in 0..m {
+        t.push(it.next().unwrap().to_string());
+    }
+
+    let mut max_val: i32 = 0;
+
+    for i in 0..n {
+        let mut score: i32 = 0;
+
+        for j in 0..n {
+            if s[i] == s[j] {
+                score += 1;
+            }
+        }
+        for j in 0..m {
+            if s[i] == t[j] {
+                score -= 1;
+            }
+        }
+
+        if score > max_val {
+            max_val = score;
+        }
+    }
+
+    print!("{}\n", max_val);
+}

@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Given multiple routes drawn as polylines in a 2D plane, the program determines the minimum number of “groups” produced by a specific greedy graph-coloring heuristic (Welsh–Powell variant) applied to a conflict graph derived from route overlaps. Two routes are considered in conflict if they both pass through at least one common geometric point (including shared endpoints and proper intersections). The reported value is the smaller of the heuristic’s results under two traversal orders.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - An integer specifying the number of routes.  
+  - For each route:  
+    - An integer specifying the number of points in the route’s polyline.  
+    - If that number is nonzero, that many 2D integer coordinate pairs describing the polyline vertices in order.  
+- A test case count value of zero terminates input.
+
+3. Outputs  
+- For each non-terminating test case, one integer on its own line: the number of groups (colors) assigned by the heuristic to the set of routes, based on the derived conflicts.
+
+4. Preconditions  
+- The number of routes is within a small fixed upper bound (implied by internal fixed-size storage).  
+- Each route’s point count is within a small fixed upper bound, and the total number of polyline segments across all routes fits within internal fixed-size storage.  
+- Coordinates are within ranges that keep intermediate geometric computations finite.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each test case, the program outputs an integer `k` such that:  
+- Every route that appears in the conflict graph is assigned one of `k` group labels by the heuristic.  
+- No two conflicting routes are assigned the same group label by that heuristic.  
+- `k` equals the minimum of the heuristic’s results from two different vertex-processing orders (one forward, one reverse) over the same conflict graph.
+
+6. Invariants  
+- The conflict relation is symmetric: if route A conflicts with route B, then route B conflicts with route A.  
+- A route is always considered conflicting with itself for the purpose of the heuristic’s internal bookkeeping.  
+- Geometric point equality and collinearity are evaluated with a fixed small tolerance; points within that tolerance are treated as identical for building the set of intersection/endpoint points.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If input violates size limits or is malformed, behavior is undefined (may produce incorrect output or memory corruption).  
+- Degenerate geometric cases (e.g., overlapping collinear segments) are not robustly distinguished; the program assumes intersections are representable as a single point when used to build conflicts, and parallel/collinear cases may be treated as having no computable intersection point beyond shared endpoints.
+
+8. State Transitions (if applicable)  
+- For each test case:  
+  - Builds a set of all segment endpoints and all computable pairwise segment intersection points.  
+  - Constructs an undirected conflict graph among routes based on co-occurrence at any such point.  
+  - Runs the greedy coloring heuristic twice (two traversal orders) and outputs the smaller color count.  
+- Terminates when the route-count input is zero.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory buffers, imposing hard limits on the number of routes, segments, and derived points.  
+- Runtime grows at least quadratically with the number of segments due to pairwise intersection consideration, and additionally with the number of derived points during graph construction and coloring.  
+- Floating-point tolerance affects determinism near geometric boundaries; results may vary for nearly coincident/intersecting inputs.
+```

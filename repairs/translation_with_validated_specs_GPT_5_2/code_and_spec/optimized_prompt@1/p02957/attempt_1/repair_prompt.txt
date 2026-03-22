@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs the arithmetic mean of two provided integers when their sum is even; otherwise reports that the mean is not representable as an integer.
+
+2. Inputs  
+- Two signed integer values provided via standard input.
+
+3. Outputs  
+- If the sum of the two input integers is even: outputs a single integer equal to half of their sum.  
+- If the sum is odd: outputs the word “IMPOSSIBLE”.
+
+4. Preconditions  
+- Two integer values are available on standard input and are representable within the program’s chosen integer range.  
+- The sum of the two input values is representable within that same range (to avoid overflow).
+
+5. Postconditions  
+- Exactly one of the following holds:  
+  - The output is the integer average of the two inputs (when the sum is even).  
+  - The output indicates impossibility (when the sum is odd).
+
+6. Invariants  
+- The decision of whether an integer average exists depends solely on the parity of the sum of the two inputs.  
+- When an integer average is produced, it is an integer value whose double equals the sum of the inputs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is provided for missing/invalid input or arithmetic overflow; behavior in such cases is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is stateless aside from reading inputs and producing output.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and uses constant memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+
+ int main()
+{
+long int a,b,k;
+
+scanf("%ld %ld",&a,&b);
+
+
+if ((a+b) % 2 !=0)
+{
+printf("IMPOSSIBLE");
+  return 0;
+}
+
+printf("%d",(a+b)/2);   
+   
+}
+=== C CODE END ===

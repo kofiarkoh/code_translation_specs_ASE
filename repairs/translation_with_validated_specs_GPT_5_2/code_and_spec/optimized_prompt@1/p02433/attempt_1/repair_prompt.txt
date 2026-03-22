@@ -1,0 +1,232 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Maintains an ordered, mutable sequence of integers with a movable cursor. The sequence is implemented conceptually as a doubly linked list that always contains a distinguished internal end-marker element. The program processes a finite list of commands to insert integers immediately before the cursor, move the cursor left or right by a signed offset, and erase the element at the cursor (except the end marker). After all commands, it outputs the remaining non-marker integers in order from front to back, one per line.
+
+2. Inputs  
+- First line: a decimal integer `q` giving the number of subsequent command lines.  
+- Next `q` lines: each line is interpreted by its first character (at position 0) as a command code:
+  - Insert command: first character is `'0'`. The integer argument is parsed starting at character position 2 of the same line (i.e., the program ignores the character at position 1 and applies `atoi` to the substring beginning at index 2).  
+  - Move command: first character is `'1'`. The signed integer offset is parsed starting at character position 2 of the line in the same way.  
+  - Erase command: first character is `'2'`. Any remaining characters on the line are ignored.
+- Command lines are read line-by-line; only the first character and (for insert/move) the substring starting at index 2 affect behavior.
+
+3. Outputs  
+- On normal completion: prints each stored integer in the sequence (excluding the internal end marker), one per line, in front-to-back order.  
+- On certain invalid cursor moves: prints a specific error message (see section 7) and terminates immediately without printing the final sequence.
+
+4. Preconditions / Assumptions  
+- The first line exists and contains a value that `atoi` can convert; `q` is intended to be non-negative.  
+- Exactly `q` subsequent lines are intended to be present.  
+- Each command line is intended to follow the concrete encoding described in section 2 (not word-based commands). In particular, insert/move arguments are intended to begin at index 2 of the line.  
+- Inserted values and move offsets are within the range representable by C `int`.  
+- Sufficient memory is available for insertions (no allocation-failure handling is performed).
+
+5. Command Semantics / Postconditions  
+State consists of the ordered sequence and the current cursor position (a pointer to a node in the sequence). Initially, the sequence contains only the internal end-marker node, and the cursor points to that end-marker node.
+
+For each command, processed in input order:
+- Insert (`'0'`):  
+  - Creates a new node containing the parsed integer value.  
+  - Inserts it immediately before the current cursor node (at the front if the cursor is currently at the front).  
+  - Sets the cursor to the newly inserted node.
+- Move (`'1'`):  
+  - If the parsed offset is 0, the cursor is unchanged.  
+  - If the offset is negative, moves the cursor left (toward the front) one node per step for `-offset` steps.  
+  - If the offset is positive, moves the cursor right (toward the back) one node per step for `offset` steps.  
+  - If a step would move left from the front node or move right when there is no next node, the program terminates with an error (section 7).
+- Erase (`'2'`):  
+  - If the cursor is at the internal end-marker node, no change occurs.  
+  - Otherwise, removes the cursor node from the sequence and frees it; the cursor becomes the removed node’s successor (the next node toward the back). (This successor exists because the end marker is never removed.)
+
+6. Invariants  
+- The sequence always contains exactly one distinguished internal end-marker node, which is never removed.  
+- During normal operation, the cursor always points to a node in the sequence (never becomes null).  
+- The sequence remains a well-formed doubly linked order: the front node has no predecessor; adjacent `prev`/`next` links are consistent.
+
+7. Error Handling / Exceptional Behavior  
+- If a move command attempts to move left when the cursor is already at the front node, the program prints `Cursor is already front.` followed by a newline and terminates immediately with a non-zero exit status.  
+- If a move command attempts to move right when the cursor’s `next` pointer is null (i.e., there is no next node), the program prints `Cursor has no next.` followed by a newline and terminates immediately with a non-zero exit status.  
+- Allocation failure, malformed input, missing lines, or command lines not matching the expected encoding are not explicitly handled; behavior is unspecified.
+
+8. Termination Behavior  
+- If no invalid move occurs, the program processes exactly `q` command lines and then prints the final sequence contents (excluding the end marker) and exits normally.  
+- If an invalid move occurs, the program terminates immediately at that point and does not print the final sequence.
+
+9. Non-functional Constraints (informative)  
+- Time is proportional to the total number of move steps performed, plus the number of commands and the number of elements printed.  
+- Memory usage grows with the number of inserted nodes minus erased nodes (excluding the end marker).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define INSERT '0'
+#define MOVE '1'
+#define ERASE '2'
+#define END 1000000001
+
+typedef struct Cell {
+	int data;
+	struct Cell* prev;
+	struct Cell* next;
+} Cell;
+
+Cell* newCell(int data) {
+    Cell* cell = malloc(sizeof(Cell));
+    cell->data = data;
+    cell->prev = NULL;
+    cell->next = NULL;
+    return cell;
+}
+
+void print(Cell *cell) {
+    // 先頭まで移動する
+	while (cell->prev != NULL) {
+		cell = cell->prev;
+	}
+
+	do {
+	    if (cell->data != END) {
+			printf("%d\n", cell->data);
+			cell = cell->next;
+		}
+	} while (cell->next != NULL);
+}
+
+int isEnd(Cell *cursor) {
+	return (cursor != NULL && cursor->data == END);
+}
+
+int isFront(Cell *cursor) {
+	return (cursor != NULL && cursor->prev == NULL);
+}
+
+Cell* insert(Cell *cursor, int data) {
+	if (isFront(cursor)) {
+		Cell *new = newCell(data);
+		new->next = cursor;
+		cursor->prev = new;
+		return new;
+	}
+
+	Cell *new = newCell(data);
+	Cell *prev = cursor->prev;
+	new->prev = prev;
+	new->next = cursor;
+	prev->next = new;
+	cursor->prev = new;
+	return new;
+}
+
+Cell* move(Cell *cursor, int d) {
+	if (d == 0) {
+		return cursor;
+	}
+
+	if (d < 0) {
+		for (;d < 0; d++) {
+			if (isFront(cursor)) {
+				printf("Cursor is already front.\n");
+				exit(1);
+			}
+
+			cursor = cursor->prev;
+		}
+		return cursor;
+	}
+
+	for (;d > 0; d--) {
+		if (cursor->next == NULL) {
+			printf("Cursor has no next.\n");
+			exit(2);
+		}
+
+		cursor = cursor->next;
+	}
+	
+	return cursor;
+}
+
+Cell* erase(Cell *cursor) {
+	if (isEnd(cursor)) {
+		return cursor;
+	}
+	
+	if (isFront(cursor)) {
+	    Cell *next = cursor->next;
+	    next->prev = NULL;
+	    free(cursor);
+	    return next;
+	}
+
+	Cell *prev = cursor->prev;
+	Cell *next = cursor->next;
+	prev->next = next;
+	next->prev = prev;
+	free(cursor);
+	return next;
+}
+
+
+void answer() {
+	Cell *cursor;
+	int q = 0;
+	char a[15];
+
+	fgets(a, 15, stdin);
+	q = atoi(a);
+	cursor = newCell(END);
+
+	while (q--) {
+	    fgets(a, 15, stdin);
+		if (a[0] == INSERT) {
+            cursor = insert(cursor, atoi(a+2));
+		} else if (a[0] == MOVE) {
+		    cursor = move(cursor, atoi(a+2));
+		} else if (a[0] == ERASE) {
+		    cursor = erase(cursor);
+		}
+
+	}
+
+	print(cursor);
+}
+
+int test() {
+	Cell *cur = newCell(END);
+	cur = insert(cur, 1);
+	cur = insert(cur, 2);
+	cur = insert(cur, 3);
+	cur = move(cur, 1);
+	cur = erase(cur);
+	print(cur);
+	return 0;
+}
+
+int main(void){
+	answer();
+}
+=== C CODE END ===

@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence and applies a series of in-place cyclic rotations to specified contiguous subranges. After all operations, outputs the final sequence.
+
+2. Inputs  
+- An integer `n`: number of elements in the sequence.  
+- `n` integers: the initial sequence values.  
+- An integer `q`: number of operations.  
+- `q` operations, each consisting of three integers:  
+  - `b`: start index of the affected subrange (inclusive).  
+  - `m`: pivot index within the subrange used to define the rotation amount.  
+  - `e`: end index of the affected subrange (exclusive).
+
+3. Outputs  
+- The final sequence of `n` integers after all operations, emitted in order, separated by spaces, ending with a newline.
+
+4. Preconditions  
+- `0 <= n <= 1000`.  
+- For each operation: `0 <= b < e <= n`.  
+- For each operation: `b <= m <= e`.  
+- Each operation’s subrange length `(e - b)` is positive.  
+- All required integers are present and readable from input.
+
+5. Postconditions  
+- Let the original subrange be indices `[b, e)` with length `L = e - b`. Define rotation offset `k = m - b` (so `0 <= k <= L`).  
+- After an operation, for every `i` in `[0, L)`, the element at index `b + i` becomes the element that was previously at index `b + ((i + k) mod L)`.  
+- Elements outside `[b, e)` are unchanged by that operation.  
+- After all `q` operations, the output reflects the sequence resulting from applying the operations in input order.
+
+6. Invariants  
+- The sequence length remains `n` throughout execution.  
+- Each operation preserves the multiset of values within its affected subrange (it is a permutation of that subrange).  
+- Values outside the currently operated subrange remain unchanged during that operation.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs violate preconditions (e.g., out-of-range indices, empty subrange, missing/invalid data), behavior is undefined (may produce incorrect output or fail).
+
+8. State Transitions (if applicable)  
+- State consists of the current sequence of `n` integers.  
+- Each operation transitions the state by replacing the specified subrange with its cyclically rotated version as defined in Postconditions.  
+- Final state is printed and the program terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Supports at most 1000 sequence elements.  
+- Each operation requires time proportional to the length of its subrange and uses additional temporary storage proportional to the sequence size.
+```

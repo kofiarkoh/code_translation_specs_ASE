@@ -1,0 +1,92 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: no method named `write_all` found for struct `Stdout` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:166:18
+     |
+ 166 |     io::stdout().write_all(out).unwrap();
+     |                  ^^^^^^^^^
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1875:8
+     |
+1875 |     fn write_all(&mut self, mut buf: &[u8]) -> Result<()> {
+     |        --------- the method is available for `Stdout` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_all` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::Write;
+     |
+help: there is a method `write` with a similar name
+     |
+ 166 -     io::stdout().write_all(out).unwrap();
+ 166 +     io::stdout().write(out).unwrap();
+     |
+
+error[E0599]: no method named `write_all` found for struct `Stdout` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:167:18
+     |
+ 167 |     io::stdout().write_all(b"\n").unwrap();
+     |                  ^^^^^^^^^
+     |
+    ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1875:8
+     |
+1875 |     fn write_all(&mut self, mut buf: &[u8]) -> Result<()> {
+     |        --------- the method is available for `Stdout` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_all` is implemented but not in scope; perhaps you want to import it
+     |
+   1 + use std::io::Write;
+     |
+help: there is a method `write` with a similar name
+     |
+ 167 -     io::stdout().write_all(b"\n").unwrap();
+ 167 +     io::stdout().write(b"\n").unwrap();
+     |
+
+error[E0499]: cannot borrow `stree[_][_]` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:80:48
+   |
+80 |     analyze_tree(buf1, &in1, &mut stree[0][0], &mut stree[0][1], &mut v[0]);
+   |     ------------             ----------------  ^^^^^^^^^^^^^^^^ second mutable borrow occurs here
+   |     |                        |
+   |     |                        first mutable borrow occurs here
+   |     first borrow later used by call
+
+error[E0499]: cannot borrow `stree[_][_]` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:81:48
+   |
+81 |     analyze_tree(buf2, &in2, &mut stree[1][0], &mut stree[1][1], &mut v[1]);
+   |     ------------             ----------------  ^^^^^^^^^^^^^^^^ second mutable borrow occurs here
+   |     |                        |
+   |     |                        first mutable borrow occurs here
+   |     first borrow later used by call
+
+error[E0502]: cannot borrow `*out_buf` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:122:9
+    |
+122 |         out_buf.extend_from_slice(&out_buf[left_sub.start..left_sub.start + left_sub.len]);
+    |         ^^^^^^^^-----------------^^-------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         |       |                  |
+    |         |       |                  immutable borrow occurs here
+    |         |       immutable borrow later used by call
+    |         mutable borrow occurs here
+
+error[E0502]: cannot borrow `*out_buf` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_GPT_5_2/code_only/optimized_prompt@1/p01841/attempt_1/translation_with_validated_specs_GPT_5_2.rs:130:9
+    |
+130 |         out_buf.extend_from_slice(&out_buf[right_sub.start..right_sub.start + right_sub.len]);
+    |         ^^^^^^^^-----------------^^-------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |         |       |                  |
+    |         |       |                  immutable borrow occurs here
+    |         |       immutable borrow later used by call
+    |         mutable borrow occurs here
+
+error: aborting due to 6 previous errors
+
+Some errors have detailed explanations: E0499, E0502, E0599.
+For more information about an error, try `rustc --explain E0499`.

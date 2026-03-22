@@ -1,0 +1,176 @@
+```rust
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // We must read exactly h*w characters where leading whitespace before each character is skipped.
+    // Using split_whitespace() is incorrect because grid characters may be given without whitespace
+    // (e.g., as contiguous strings per row). So we implement a byte-level scanner that can:
+    // - read integers (skipping whitespace)
+    // - read a single non-whitespace byte as a "character"
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut sc = Scanner::new(&input);
+
+    let mut out = String::new();
+
+    loop {
+        let w = match sc.next_usize_opt() {
+            None => break,
+            Some(v) => v,
+        };
+        let h = match sc.next_usize_opt() {
+            None => break,
+            Some(v) => v,
+        };
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        let mut grid: Vec<Vec<u8>> = vec![vec![b'.'; w]; h];
+        let mut sx: usize = 0;
+        let mut sy: usize = 0;
+
+        for y in 0..h {
+            for x in 0..w {
+                let mut ch = sc.next_non_ws_byte();
+                if ch == b'&' {
+                    // Last '&' in row-major order becomes the start.
+                    sx = x;
+                    sy = y;
+                    // Immediately treated as '.' for comparisons.
+                    ch = b'.';
+                }
+                grid[y][x] = ch;
+            }
+        }
+
+        let mut c: Vec<Vec<u32>> = vec![vec![0u32; w]; h];
+        c[sy][sx] = 1;
+
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+        q.push_back((sx, sy));
+
+        while let Some((ux, uy)) = q.pop_front() {
+            let cu = c[uy][ux];
+
+            // Left
+            if ux > 0 {
+                relax(ux, uy, ux - 1, uy, cu, &grid, &mut c, &mut q);
+            }
+            // Right
+            if ux + 1 < w {
+                relax(ux, uy, ux + 1, uy, cu, &grid, &mut c, &mut q);
+            }
+            // Up
+            if uy > 0 {
+                relax(ux, uy, ux, uy - 1, cu, &grid, &mut c, &mut q);
+            }
+            // Down
+            if uy + 1 < h {
+                relax(ux, uy, ux, uy + 1, cu, &grid, &mut c, &mut q);
+            }
+        }
+
+        // Minimum over boundary cells of c[cell] / 2 (integer division).
+        let mut best: Option<u32> = None;
+        for y in 0..h {
+            for x in 0..w {
+                if x == 0 || y == 0 || x + 1 == w || y + 1 == h {
+                    let val = c[y][x] / 2;
+                    best = Some(match best {
+                        None => val,
+                        Some(b) => min(b, val),
+                    });
+                }
+            }
+        }
+
+        out.push_str(&format!("{}\n", best.unwrap_or(0)));
+    }
+
+    print!("{out}");
+}
+
+fn relax(
+    ux: usize,
+    uy: usize,
+    vx: usize,
+    vy: usize,
+    cu: u32,
+    grid: &[Vec<u8>],
+    c: &mut [Vec<u32>],
+    q: &mut VecDeque<(usize, usize)>,
+) {
+    let candidate = if grid[uy][ux] == grid[vy][vx] { cu } else { cu + 1 };
+    let cv = c[vy][vx];
+    if cv == 0 || candidate < cv {
+        c[vy][vx] = candidate;
+        q.push_back((vx, vy));
+    }
+}
+
+struct Scanner<'a> {
+    data: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Scanner<'a> {
+    fn new(data: &'a [u8]) -> Self {
+        Self { data, i: 0 }
+    }
+
+    fn is_ws(b: u8) -> bool {
+        matches!(b, b' ' | b'\n' | b'\r' | b'\t' | 0x0b | 0x0c)
+    }
+
+    fn skip_ws(&mut self) {
+        while self.i < self.data.len() && Self::is_ws(self.data[self.i]) {
+            self.i += 1;
+        }
+    }
+
+    fn next_usize_opt(&mut self) -> Option<usize> {
+        self.skip_ws();
+        if self.i >= self.data.len() {
+            return None;
+        }
+        let mut sign = 1i32;
+        if self.data[self.i] == b'-' {
+            sign = -1;
+            self.i += 1;
+        }
+        let mut val: usize = 0;
+        let mut any = false;
+        while self.i < self.data.len() {
+            let b = self.data[self.i];
+            if b.is_ascii_digit() {
+                any = true;
+                val = val.saturating_mul(10).saturating_add((b - b'0') as usize);
+                self.i += 1;
+            } else {
+                break;
+            }
+        }
+        if !any {
+            return None;
+        }
+        if sign < 0 {
+            // Dimensions are assumed non-negative by spec; keep narrow behavior.
+            Some(0)
+        } else {
+            Some(val)
+        }
+    }
+
+    fn next_non_ws_byte(&mut self) -> u8 {
+        self.skip_ws();
+        // Spec says input is well-formed and provides enough characters; if not, behavior undefined.
+        let b = self.data[self.i];
+        self.i += 1;
+        b
+    }
+}
+```

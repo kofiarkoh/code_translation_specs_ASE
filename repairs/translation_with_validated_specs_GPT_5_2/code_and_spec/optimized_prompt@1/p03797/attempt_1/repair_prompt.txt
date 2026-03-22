@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs a single integer value derived from two input integers. The result is determined by comparing the first input to half of the second input and applying a piecewise rule that yields either zero, half of the second input, the first input, or a value between the first input and half of the second input.
+
+2. Inputs  
+- Two signed integers provided from standard input:
+  - First value: \(n\)
+  - Second value: \(m\)
+
+3. Outputs  
+- One signed integer written to standard output: \(sum\)
+
+4. Preconditions  
+- Two integer values are available on standard input and are representable in the program’s integer range.
+- Integer division by 2 is well-defined as truncation toward zero (as per the execution environment’s integer semantics).
+
+5. Postconditions  
+Let \(h = \text{trunc}(m/2)\). The output \(sum\) satisfies exactly one of the following, in priority order:
+- If \(m = 1\), then \(sum = 0\).
+- Else if \(h < n\), then \(sum = h\).
+- Else if \(0 \le (h - n) < 2\), then \(sum = n\).
+- Else (i.e., \(h - n \ge 2\)), then \(sum = n + \text{trunc}((h - n)/2)\).
+
+6. Invariants  
+- The program produces exactly one integer output if it reaches normal completion.
+- When \(m \ne 1\) and \(h \ge n\), the output is at least \(n\).
+- When \(m \ne 1\) and \(h < n\), the output equals \(h\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input is provided; if input cannot be read as two integers, behavior is unspecified.
+- No explicit overflow checks are performed; if intermediate or final arithmetic exceeds the representable range, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained beyond the single execution.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory relative to input size.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+    long long int n,m;
+    scanf("%lld%lld",&n,&m);
+
+    long long int sum;
+    if(m==1){
+        sum=0;
+    }else if((m/2-n)<0){
+        sum=m/2;
+    }else if((m/2-n)<2){
+        sum=n;
+    }else{
+        sum=n+(m/2-n)/2;
+    }
+    printf("%lld",sum);
+    return 0;
+}
+=== C CODE END ===

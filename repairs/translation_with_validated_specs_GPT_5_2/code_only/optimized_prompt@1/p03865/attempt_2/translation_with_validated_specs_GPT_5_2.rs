@@ -1,0 +1,37 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Mimic: char buf[114514]; n = read(0, buf, 114514);
+    let mut buf = vec![0u8; 114_514];
+    let n_read = io::stdin().read(&mut buf).unwrap_or(0);
+
+    // C: n--; (after read)
+    // Use wrapping to emulate C integer wraparound on underflow.
+    let n = (n_read as isize).wrapping_sub(1);
+
+    // C code:
+    // puts(n+(buf[0]==buf[n-1])&1?"First":"Second");
+    //
+    // Precedence in C: + binds tighter than &, and ?: is very low.
+    // So it parses as:
+    //   (((n + (buf[0]==buf[n-1])) & 1) ? "First" : "Second")
+    //
+    // Note: (buf[0]==buf[n-1]) is 0/1.
+    // Also, buf[n-1] uses the decremented n, so index is (n-1) == (n_read-2).
+    //
+    // If n_read < 2, the C program has UB (out-of-bounds). We avoid panics and
+    // choose a deterministic approximation: treat the comparison as false.
+    let eq = if n_read >= 2 {
+        let idx = n_read - 2;
+        (buf[0] == buf[idx]) as isize
+    } else {
+        0
+    };
+
+    let cond = (n.wrapping_add(eq) & 1) != 0;
+    if cond {
+        print!("First\n");
+    } else {
+        print!("Second\n");
+    }
+}

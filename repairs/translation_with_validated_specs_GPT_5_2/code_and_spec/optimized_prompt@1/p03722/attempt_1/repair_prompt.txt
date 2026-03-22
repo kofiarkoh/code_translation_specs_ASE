@@ -1,0 +1,110 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the maximum achievable total weight along any directed path from node 1 to node N in a directed weighted graph. If the maximum is unbounded due to a reachable positive-weight cycle that can still reach node N, reports that the result is infinite.
+
+2. Inputs  
+- An integer N: number of nodes (nodes are labeled 1 through N).  
+- An integer M: number of directed edges.  
+- M triples (u, w, c): a directed edge from node u to node w with integer weight c.
+
+3. Outputs  
+- If the maximum total weight from node 1 to node N is finite: outputs that maximum as an integer.  
+- If the maximum total weight from node 1 to node N is unbounded (infinite): outputs the literal string `inf`.
+
+4. Preconditions  
+- 1 ≤ N ≤ 1000.  
+- 0 ≤ M ≤ 2000.  
+- All edge endpoints u and w are in [1, N].  
+- The sum of weights along any considered path fits within 64-bit signed integer range (assumption; otherwise behavior is not defined by the code’s contract).
+
+5. Postconditions  
+- If there is no directed path from node 1 to node N, the program outputs a very large negative integer value (effectively representing “no path”), since no explicit “unreachable” output is defined.  
+- If there exists at least one path from node 1 to node N and no reachable positive-weight cycle can be used to increase the path weight without bound while still allowing reachability to N, the program outputs the maximum total weight among all such paths.  
+- If there exists a directed cycle with positive total weight that is reachable from node 1 and from which node N is reachable, the program outputs `inf`.
+
+6. Invariants  
+- Node 1 is treated as having a baseline best-known total weight of 0.  
+- Best-known values for other nodes are monotonically improved only when a strictly better (higher total weight in the original graph) path is discovered.  
+- The reported finite result, when produced, corresponds to some path from node 1 to node N.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-range N/M, invalid node indices, or arithmetic overflow. In such cases, output is unspecified.  
+- No explicit handling for the “unreachable N” case beyond emitting a sentinel-like large negative number.
+
+8. State Transitions (if applicable)  
+- Not applicable beyond internal computation; the program has no persistent state across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to N·M.  
+- Memory usage is bounded by storage for up to 2000 edges and up to 1000 node values.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+const long long sup = (long long)1 << 60;
+
+typedef struct {
+	int t, h, cost;
+} edge;
+
+int main()
+{
+	int i, u, w, c, N, M;
+	edge e[2001];
+	scanf("%d %d", &N, &M);
+	for (i = 0; i < M; i++) {
+		scanf("%d %d %d", &u, &w, &c);
+		e[i].t = u;
+		e[i].h = w;
+		e[i].cost = -c;
+	}
+
+	int k;
+	long long min[1001], ans;
+	for (i = 2, min[1] = 0; i <= N; i++) min[i] = sup;
+	for (k = 1; k < N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	ans = min[N];
+	for (k = 1; k <= N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	
+	if (min[N] == ans) printf("%lld\n", -ans);
+	else printf("inf\n");
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

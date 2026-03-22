@@ -1,0 +1,62 @@
+use std::io::{self, Read};
+
+fn reverse_decimal_digits_ignoring_sign(x: i128) -> i128 {
+    // Produces a non-negative integer derived from the input’s decimal digits, ignoring any sign.
+    let mut n = x.abs();
+    let mut rev: i128 = 0;
+    while n > 0 {
+        rev = rev * 10 + (n % 10);
+        n /= 10;
+    }
+    rev
+}
+
+fn is_decimal_palindrome_non_negative(x: i128) -> bool {
+    // Palindrome testing is based on decimal digit reversal.
+    // For non-negative x, this is equivalent to x == reverse(x).
+    x >= 0 && x == reverse_decimal_digits_ignoring_sign(x)
+}
+
+fn main() {
+    // No explicit handling for invalid/missing input; behavior unspecified in that case.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: i128 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // Search for the nearest palindromic non-negative integer.
+    // Tie-breaking: smaller value at equal distance.
+    //
+    // To preserve the spec's "undefined if range exceeded", we do not attempt to guard against
+    // overflow beyond i128; we use checked arithmetic and stop only when it would overflow,
+    // but the spec says behavior is undefined in that scenario anyway.
+    //
+    // For negative input, the spec allows output but does not guarantee "closest" relative to n.
+    // We still run the same search logic, constrained to non-negative candidates.
+    let mut d: i128 = 0;
+    loop {
+        // Prefer smaller candidate at equal distance: check n - d before n + d.
+        let mut best: Option<i128> = None;
+
+        if let Some(a) = n.checked_sub(d) {
+            if a >= 0 && is_decimal_palindrome_non_negative(a) {
+                best = Some(a);
+            }
+        }
+
+        if best.is_none() {
+            if let Some(b) = n.checked_add(d) {
+                if b >= 0 && is_decimal_palindrome_non_negative(b) {
+                    best = Some(b);
+                }
+            }
+        }
+
+        if let Some(p) = best {
+            println!("{p}");
+            return;
+        }
+
+        // Increase distance; if this overflows, the spec says behavior is undefined.
+        d = d.checked_add(1).unwrap();
+    }
+}

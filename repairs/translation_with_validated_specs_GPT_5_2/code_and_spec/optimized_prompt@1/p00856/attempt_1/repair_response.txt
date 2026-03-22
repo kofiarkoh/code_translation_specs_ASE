@@ -1,0 +1,88 @@
+```rust
+use std::f64;
+use std::io::{self, Read};
+
+const ONE_SIXTH: f64 = 1.0 / 6.0;
+
+fn solve(
+    rest: usize,
+    turn: i32,
+    n: usize,
+    sq: &[u8; 101],
+    memo: &mut Vec<Vec<Option<f64>>>,
+) -> f64 {
+    if turn >= 0 {
+        if let Some(v) = memo[rest][turn as usize] {
+            return v;
+        }
+    }
+
+    let ret = if rest == 0 {
+        1.0
+    } else if turn <= 0 {
+        0.0
+    } else if turn == 1 && rest <= 6 {
+        // Spec base case: special-square effects are NOT applied here.
+        ONE_SIXTH
+    } else {
+        let mut acc = 0.0;
+        for d in 1..=6usize {
+            let next_rest = if rest >= d { rest - d } else { d - rest }; // bounce: |rest - d|
+            let pos = n - next_rest; // position from start after move
+            match sq[pos] {
+                0 => acc += ONE_SIXTH * solve(next_rest, turn - 1, n, sq, memo),
+                b'L' => acc += ONE_SIXTH * solve(next_rest, turn - 2, n, sq, memo),
+                b'B' => acc += ONE_SIXTH * solve(n, turn - 1, n, sq, memo),
+                _ => {} // unreachable given construction; keep semantics permissive
+            }
+        }
+        acc
+    };
+
+    if turn >= 0 {
+        memo[rest][turn as usize] = Some(ret);
+    }
+    ret
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let t: i32 = it.next().unwrap().parse().unwrap();
+        let lcnt: usize = it.next().unwrap().parse().unwrap();
+        let bcnt: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && t == 0 && lcnt == 0 && bcnt == 0 {
+            break;
+        }
+
+        // C uses sq[100] but indexes up to N (<=100 by spec). Use 101 to cover 0..=100 safely.
+        let mut sq = [0u8; 101];
+
+        // Memo table indexed by [rest][turn], with rest in 0..=100 and turn in 0..=100 (spec).
+        let mut memo: Vec<Vec<Option<f64>>> = vec![vec![None; 101]; 101];
+
+        for _ in 0..lcnt {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            sq[pos] = b'L';
+        }
+        for _ in 0..bcnt {
+            let pos: usize = it.next().unwrap().parse().unwrap();
+            // Back-to-start overwrites lose-extra-turn if both specified (matches spec/C).
+            sq[pos] = b'B';
+        }
+
+        let ans = solve(n, t, n, &sq, &mut memo);
+        // Match C's printf("%lf\n", ...) default formatting: Rust's default Display is acceptable.
+        println!("{}", ans);
+    }
+}
+```

@@ -1,0 +1,85 @@
+use std::io::{self, Read};
+
+const DIR: [(i32, i32); 4] = [(0, -1), (-1, 0), (0, 1), (1, 0)];
+
+fn explode(field: &mut [[u8; 10]; 10], px: i32, py: i32) {
+    // C code assumes px,py are valid indices when called.
+    field[py as usize][px as usize] = b'0';
+    for &(dx, dy) in &DIR {
+        for j in 1..=3 {
+            let x = px + j * dx;
+            let y = py + j * dy;
+            if x < 1 || x > 8 || y < 1 || y > 8 {
+                break;
+            }
+            if field[y as usize][x as usize] == b'1' {
+                explode(field, x, y);
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read entire stdin; then consume it line-by-line like gets().
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.split_terminator('\n');
+
+    // Helper: emulate gets() into a fixed-size buffer.
+    // In C, gets() strips the trailing '\n' and does not include it in the buffer.
+    // Here, we take the next line (without '\n') and copy bytes into the destination,
+    // truncating if longer than the destination (C would overflow; we avoid unsafe).
+    fn gets_into(dst: &mut [u8], lines: &mut std::str::SplitTerminator<'_, char>) {
+        let line = lines.next().unwrap_or("");
+        let bytes = line.as_bytes();
+        let n = dst.len().min(bytes.len());
+        dst[..n].copy_from_slice(&bytes[..n]);
+        if n < dst.len() {
+            // Fill the rest with NULs to mimic typical C string termination.
+            for b in &mut dst[n..] {
+                *b = 0;
+            }
+        }
+    }
+
+    // Parse integer from a C-like NUL-terminated buffer prefix.
+    fn parse_int_from_buf(buf: &[u8]) -> i32 {
+        // Take up to first NUL, then parse like sscanf("%d", ...).
+        let end = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+        let s = std::str::from_utf8(&buf[..end]).unwrap_or("");
+        s.trim().parse::<i32>().unwrap_or(0)
+    }
+
+    let mut field = [[0u8; 10]; 10];
+
+    // gets(field[0]); sscanf(field[0], "%d", &N);
+    gets_into(&mut field[0], &mut lines);
+    let n_cases = parse_int_from_buf(&field[0]) as i32;
+
+    for n in 1..=n_cases {
+        // for (i = 0; i <= 8; i++) gets(&(field[i][1]));
+        for i in 0..=8 {
+            gets_into(&mut field[i][1..], &mut lines);
+        }
+
+        // gets(field[0]); sscanf(field[0], "%d", &sx);
+        gets_into(&mut field[0], &mut lines);
+        let sx = parse_int_from_buf(&field[0]);
+
+        // gets(field[0]); sscanf(field[0], "%d", &sy);
+        gets_into(&mut field[0], &mut lines);
+        let sy = parse_int_from_buf(&field[0]);
+
+        explode(&mut field, sx, sy);
+
+        print!("Data {}:\n", n);
+        for i in 1..=8 {
+            // puts(&(field[i][1]));
+            // Print bytes until NUL, then newline.
+            let row = &field[i][1..];
+            let end = row.iter().position(|&c| c == 0).unwrap_or(row.len());
+            let s = String::from_utf8_lossy(&row[..end]);
+            print!("{}\n", s);
+        }
+    }
+}

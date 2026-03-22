@@ -1,0 +1,242 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Given a directed graph with `n` vertices and `m` directed edges (in input order), the program classifies each edge as either **`same`** or **`diff`**.
+
+The classification is based on strongly connected components (SCCs) and on whether an edge is the only “direct” way to realize reachability under the program’s checks:
+
+### A) Edges whose endpoints are in different SCCs (inter-SCC edges)  
+Let `S = SCC(u)` and `T = SCC(v)` with `S != T`. Consider the SCC condensation graph (a DAG) whose nodes are SCCs and whose arcs are induced by original edges that go from one SCC to another.
+
+An original inter-SCC edge `u -> v` is classified **`diff`** if **either** of the following holds:
+
+1) **Parallel SCC-arc duplication:** there is more than one original edge whose endpoints lie in the same ordered SCC pair `(S, T)` (i.e., multiple original edges induce the same condensation-graph arc from `S` to `T`). In that case, all such original edges for that ordered SCC pair are marked **`diff`**.
+
+2) **Existence of a longer SCC-level route:** in the condensation graph, there exists a directed path from `S` to `T` that uses at least one intermediate SCC (i.e., a path of length ≥ 2). If so, the original edge(s) inducing `S -> T` are marked **`diff`**.
+
+If neither condition holds, the inter-SCC edge is classified **`same`**.
+
+Notes on what “longer SCC-level route” means in this program:
+- It is evaluated on the condensation DAG using the SCC indices produced by the SCC computation.
+- The program’s check corresponds to whether `T` is reachable from `S` via at least two condensation arcs (not merely via the direct arc `S -> T`).
+
+### B) Edges whose endpoints are in the same SCC (intra-SCC edges)  
+For an edge `u -> v` with `SCC(u) == SCC(v)`, the edge is classified **`diff`** if there exists a directed path from `u` to `v` that stays within that SCC and **does not use the edge being classified**. If no such alternative path exists, it is classified **`same`**.
+
+2. Inputs  
+- Two integers `n` and `m`.  
+- Then `m` pairs of integers `(u, v)`, each denoting a directed edge from `u` to `v`.  
+- Vertex labels in the input are **1-based**; the program internally converts them to 0-based indices.
+
+3. Outputs  
+- Exactly `m` lines, in the same order as the input edges.  
+- For each edge, print either **`same`** or **`diff`** (lowercase), followed by a newline.
+
+4. Preconditions / Constraints  
+- `1 ≤ n ≤ 1000`.  
+- `0 ≤ m ≤ 200000`.  
+- Each endpoint `u, v` is an integer in `[1, n]`.  
+- Multiple edges and self-loops may appear; they are handled by the rules above.  
+- No explicit validation is performed; if the input violates these constraints or is malformed/incomplete, behavior is unspecified.
+
+5. Algorithmic Semantics and Edge Cases (clarifications)  
+- SCCs are computed over the full directed graph; every vertex belongs to exactly one SCC.  
+- Inter-SCC classification depends only on SCC membership and reachability in the condensation DAG (including detection of multiple original edges between the same ordered SCC pair).  
+- Intra-SCC classification explicitly excludes the edge under test when searching for an alternative path from its source to its destination within the SCC.
+
+6. Program Structure / Compilation Model (Non-functional Requirement)  
+- The implementation is a single, standard-conforming ISO C program.  
+- It must compile cleanly under a standard C11 compilation mode (e.g., `-std=c11`) without relying on compiler-specific extensions.  
+- **All functions, including any helper routines and any callback functions (such as comparators passed to library routines), must be defined at file scope; nested function definitions are not permitted.**  
+- `main` has a standard C signature and the program performs a single batch run: read input, compute classifications, print results, then terminate.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	1000
+#define M	200000
+
+int max(int a, int b) { return a > b ? a : b; }
+
+int oo[1 + M * 3], oh[1 + M * 3];
+
+int link(int o, int h) {
+	static int _ = 1;
+
+	oo[_] = o, oh[_] = h;
+	return _++;
+}
+
+int ii[M], jj[M];
+int ae[N], af[N], ae_[N], cc[N], qu[N], cnt;
+
+void dfs1(int i) {
+	int o;
+
+	if (cc[i])
+		return;
+	cc[i] = -1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int h = oh[o], j = jj[h];
+
+		dfs1(j);
+	}
+	qu[--cnt] = i;
+}
+
+void dfs2(int j, int c) {
+	int o;
+
+	if (cc[j] != -1)
+		return;
+	cc[j] = c;
+	for (o = af[j]; o; o = oo[o]) {
+		int h = oh[o], i = ii[h];
+
+		dfs2(i, c);
+	}
+}
+
+char visited[N]; int c;
+int hh[N * 2], cnt_;
+
+void dfs3(int i) {
+	int o;
+
+	visited[i] = 1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int h = oh[o], j = jj[h];
+
+		if (!visited[j] && cc[j] == c)
+			hh[cnt_++] = h, dfs3(j);
+	}
+}
+
+void dfs4(int j) {
+	int o;
+
+	visited[j] = 2;
+	for (o = af[j]; o; o = oo[o]) {
+		int h = oh[o], i = ii[h];
+
+		if (visited[i] == 1 && cc[i] == c)
+			hh[cnt_++] = h, dfs4(i);
+	}
+}
+
+int h_;
+
+int dfs5(int i, int t) {
+	int o;
+
+	if (i == t)
+		return 1;
+	if (visited[i])
+		return 0;
+	visited[i] = 1;
+	for (o = ae[i]; o; o = oo[o]) {
+		int h = oh[o], j = jj[h];
+
+		if (h != h_ && cc[j] == c && dfs5(j, t))
+			return 1;
+	}
+	return 0;
+}
+
+int main() {
+	static int dd[N];
+	static char diff[M];
+	int n, n_, m, g, g_, h, i, j, s;
+
+	scanf("%d%d", &n, &m);
+	for (h = 0; h < m; h++) {
+		scanf("%d%d", &i, &j), i--, j--;
+		ii[h] = i, jj[h] = j;
+		ae[i] = link(ae[i], h);
+		af[j] = link(af[j], h);
+	}
+	cnt = n;
+	for (i = 0; i < n; i++)
+		if (!cc[i])
+			dfs1(i);
+	n_ = 0;
+	for (g = 0; g < n; g++) {
+		i = qu[g];
+		if (cc[i] == -1)
+			dfs2(i, n_++);
+	}
+	for (h = 0; h < m; h++) {
+		i = cc[ii[h]], j = cc[jj[h]];
+		if (i != j)
+			ae_[i] = link(ae_[i], h);
+	}
+	for (s = 0; s < n_; s++) {
+		int o;
+
+		memset(dd, 0, n_ * sizeof *dd);
+		for (o = ae_[s]; o; o = oo[o]) {
+			h = oh[o], j = cc[jj[h]];
+			dd[j]++;
+		}
+		for (o = ae_[s]; o; o = oo[o]) {
+			h = oh[o], j = cc[jj[h]];
+			if (dd[j] > 1)
+				diff[h] = 1;
+		}
+		memset(dd, -1, n_ * sizeof *dd), dd[s] = 0;
+		for (i = s; i < n_; i++)
+			if (dd[i] != -1)
+				for (o = ae_[i]; o; o = oo[o]) {
+					h = oh[o], j = cc[jj[h]];
+					dd[j] = max(dd[j], dd[i] + 1);
+				}
+		for (o = ae_[s]; o; o = oo[o]) {
+			h = oh[o], j = cc[jj[h]];
+			if (dd[j] > 1)
+				diff[h] = 1;
+		}
+	}
+	for (c = 0; c < n_; c++) {
+		cnt = 0;
+		for (i = 0; i < n; i++)
+			if (cc[i] == c)
+				qu[cnt++] = i;
+		cnt_ = 0;
+		dfs3(qu[0]);
+		dfs4(qu[0]);
+		for (g_ = 0; g_ < cnt_; g_++) {
+			h = hh[g_];
+			for (g = 0; g < cnt; g++)
+				visited[qu[g]] = 0;
+			h_ = h;
+			diff[h] = !dfs5(ii[h], jj[h]);
+		}
+	}
+	for (h = 0; h < m; h++)
+		printf(diff[h] ? "diff\n" : "same\n");
+	return 0;
+}
+=== C CODE END ===

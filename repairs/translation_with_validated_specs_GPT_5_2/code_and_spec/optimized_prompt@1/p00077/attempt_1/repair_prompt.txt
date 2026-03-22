@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of whitespace-delimited text tokens from standard input and writes a transformed version of each token to standard output. Within each token, any occurrence of a repetition marker causes the immediately following character to be repeated a specified number of times; all other characters are copied through unchanged. Each input token produces exactly one output line.
+
+2. Inputs  
+- Zero or more whitespace-delimited tokens from standard input.  
+- Each token is treated independently.
+
+3. Outputs  
+- For each input token, one line is written to standard output containing the transformed token followed by a line terminator.
+
+4. Preconditions  
+- Each input token length does not exceed the fixed internal buffer capacity (assumption: at most 99 characters).  
+- Any repetition marker within a token is followed by:
+  - a single decimal digit character indicating the repeat count, and
+  - at least one additional character to be repeated.  
+- The repeat count digit represents a non-negative integer in the range 0–9.
+
+5. Postconditions  
+For each input token:  
+- The output line equals the input token with every repetition marker sequence replaced as follows:  
+  - A repetition marker, followed by a digit `d`, followed by a character `c`, is replaced by `c` repeated `d` times.  
+- Characters not part of such a marker sequence appear in the output in the same order as in the input.  
+- A line terminator is emitted after processing each token.
+
+6. Invariants  
+- Processing of one token does not depend on previous tokens; no cross-token state is preserved.  
+- Output for a token is produced in left-to-right order relative to the token’s interpretation under the marker rule.
+
+7. Error Handling / Exceptional Behavior  
+- If an input token exceeds the internal buffer capacity, behavior is undefined (may corrupt memory or crash).  
+- If a repetition marker is not followed by a digit and a subsequent character as required, behavior is undefined (may read beyond the token and produce incorrect output or crash).  
+- End-of-input cleanly terminates processing without additional output beyond what has already been produced.
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read next token → transform and output one line → read next token, until end-of-input.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed maximum token size (assumed 99 characters plus terminator).  
+- Time and output size per token are proportional to the token length plus the total number of repeated characters requested.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+
+int main(void) {
+  char str[MAX];
+  int i, j;
+  int length;
+
+  while(scanf("%s", str) != EOF) {
+    length = strlen(str);
+    for(i=0; i<length; ++i) {
+      if(str[i] == '@') {
+        for(++i, j=0; j<str[i]-'0'; ++j) {
+          printf("%c", str[i+1]);
+        }
+        i += 1;
+        continue;
+      }
+      else {
+        printf("%c", str[i]);
+      }
+    }
+    printf("\n");
+  }
+
+  return 0;
+}
+=== C CODE END ===

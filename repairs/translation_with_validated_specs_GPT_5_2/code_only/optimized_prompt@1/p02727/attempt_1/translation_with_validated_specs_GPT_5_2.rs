@@ -1,0 +1,101 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf with %d).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let x: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let y: i32 = match it.next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => std::process::exit(1),
+    };
+    let a: usize = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v as usize,
+        None => std::process::exit(1),
+    };
+    let b: usize = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v as usize,
+        None => std::process::exit(1),
+    };
+    let c: usize = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v as usize,
+        None => std::process::exit(1),
+    };
+
+    let mut p: Vec<i32> = Vec::with_capacity(a);
+    let mut q: Vec<i32> = Vec::with_capacity(b);
+    let mut r: Vec<i32> = Vec::with_capacity(c);
+
+    for _ in 0..a {
+        let v: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        p.push(v);
+    }
+    for _ in 0..b {
+        let v: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        q.push(v);
+    }
+    for _ in 0..c {
+        let v: i32 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => std::process::exit(1),
+        };
+        r.push(v);
+    }
+
+    // C comparator sorts descending: return -1 if a>b, 1 if a<b, 0 otherwise.
+    p.sort_unstable_by(|u, v| v.cmp(u));
+    q.sort_unstable_by(|u, v| v.cmp(u));
+    r.sort_unstable_by(|u, v| v.cmp(u));
+
+    // Indices are int in C and can go negative; emulate with i32.
+    let mut asumi: i32 = x - 1;
+    let mut iguti: i32 = y - 1;
+
+    for i in 0..c {
+        if asumi < 0 && iguti < 0 {
+            break;
+        } else if asumi < 0
+            || (iguti >= 0
+                && p[asumi as usize] > q[iguti as usize])
+        {
+            // Replace in q if r[i] is better; else stop.
+            let qi = iguti as usize;
+            if r[i] > q[qi] {
+                q[qi] = r[i];
+                iguti -= 1;
+            } else {
+                break;
+            }
+        } else {
+            // Replace in p if r[i] is better; else stop.
+            let pi = asumi as usize;
+            if r[i] > p[pi] {
+                p[pi] = r[i];
+                asumi -= 1;
+            } else {
+                break;
+            }
+        }
+    }
+
+    let mut kitaeri: i64 = 0;
+    for i in 0..(x as usize) {
+        kitaeri += p[i] as i64;
+    }
+    for i in 0..(y as usize) {
+        kitaeri += q[i] as i64;
+    }
+
+    print!("{}\n", kitaeri);
+}

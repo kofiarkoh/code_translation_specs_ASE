@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+const EPS: f64 = 1e-5;
+
+fn main() {
+    // Read entire stdin, then parse ints like scanf("%d") would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    while let Some(tok) = it.next() {
+        let q_i32: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // If parsing fails, mimic scanf failure by stopping.
+        };
+        if q_i32 == -1 {
+            break;
+        }
+
+        // C promotes q to double in expressions; preserve that.
+        let q = q_i32 as f64;
+
+        // Initial guess: q/2 (as double).
+        let mut px = q / 2.0;
+        let x: f64;
+
+        // Newton iteration for cube root, matching the C loop structure.
+        // Note: For q == 0, this will produce NaN due to division by zero,
+        // and the loop will terminate immediately because comparisons with NaN are false,
+        // matching typical C behavior with IEEE-754 doubles.
+        loop {
+            let next = px - (px * px * px - q) / (3.0 * px * px);
+            px = next;
+
+            // Termination condition: fabs(x^3 - q) < EPS * q
+            // (C uses >= in the while condition).
+            if (next * next * next - q).abs() < EPS * q {
+                x = next;
+                break;
+            }
+        }
+
+        // Match printf("%.6lf\n", x);
+        println!("{:.6}", x);
+    }
+}

@@ -1,0 +1,82 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    const MAX_N: usize = 13;
+    const VALUE_RANGE: usize = 101; // 0..=100
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // Per spec, n is within 1..=13; behavior is undefined otherwise.
+        let mut numline = vec![0usize; n];
+        for i in 0..n {
+            numline[i] = it.next().unwrap().parse::<usize>().unwrap();
+        }
+
+        // Iteratively apply the "frequency at position" transform until fixed point.
+        let mut tmpline = vec![0usize; n];
+        let mut counts = vec![0usize; VALUE_RANGE];
+
+        let mut cnt: i32 = 0;
+        let mut flag = true;
+        while flag {
+            // Reset counts
+            for c in counts.iter_mut() {
+                *c = 0;
+            }
+
+            // Count occurrences of each value in current sequence
+            for &v in &numline {
+                // Per spec, values are 0..=100; undefined otherwise.
+                counts[v] += 1;
+            }
+
+            // Build next sequence: each position becomes frequency of its current value
+            for i in 0..n {
+                tmpline[i] = counts[numline[i]];
+            }
+
+            cnt += 1;
+
+            // Check fixed point: tmpline equals numline
+            let mut same = 0usize;
+            for i in 0..n {
+                if tmpline[i] == numline[i] {
+                    same += 1;
+                }
+            }
+
+            if same == n {
+                flag = false;
+            } else {
+                // Prepare for next iteration
+                numline.clone_from_slice(&tmpline);
+                flag = true;
+            }
+        }
+
+        // C code prints cnt-1 due to counting one extra iteration when detecting fixed point.
+        // This matches the provided C behavior and the spec's "number of transformations required".
+        println!("{}", cnt - 1);
+
+        for i in 0..n {
+            if i + 1 == n {
+                println!("{}", tmpline[i]);
+            } else {
+                print!("{} ", tmpline[i]);
+            }
+        }
+    }
+}

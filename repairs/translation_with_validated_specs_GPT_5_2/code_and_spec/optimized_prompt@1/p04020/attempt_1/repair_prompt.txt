@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Given a length `N` and a sequence of `N` nonnegative integer quantities, computes the total number of pairs formed by a left-to-right greedy process. At each position `i`, it first forms as many internal pairs as possible from that position alone (each internal pair consumes 2 units from `A[i]`). Then, if `A[i]` has exactly one unit remaining (i.e., is odd after internal pairing) and the immediate right neighbor `A[i+1]` has at least 2 units available at that moment, it forms exactly one adjacent pair by consuming 1 unit from `A[i]` and 1 unit from `A[i+1]`. The program outputs the final accumulated pair count.
+
+This specification describes the program’s actual behavior; it does not claim global optimality beyond this greedy procedure.
+
+2. Inputs  
+- An integer `N`.  
+- A sequence of `N` integer quantities `A[1]..A[N]`.
+
+3. Outputs  
+- A single integer value: the total number of pairs counted by the procedure.
+
+4. Preconditions / Assumptions  
+- `1 <= N <= 100000`.  
+- Each quantity fits in a signed 64-bit C integer type used by the program (`long long`).  
+- Quantities are assumed to be nonnegative; behavior is unspecified if negative values are provided.  
+- The final count fits in a signed 64-bit `long long`.
+
+5. Pair-Counting Rules (as implemented)  
+- Internal pairing at position `i`: contributes `floor(A[i] / 2)` pairs and conceptually leaves `A[i] mod 2` units at `i`.  
+- Adjacent pairing between `i` and `i+1` (for `i = 1..N-1`): after internal pairing at `i`, if `A[i]` is odd and `A[i+1] > 1`, then exactly one additional pair is formed; this decrements `A[i+1]` by 1 and consumes the remaining 1 unit from `A[i]`. No other adjacent pairing is attempted for that boundary.  
+- After processing boundaries up to `N-1`, internal pairing is also applied to the final position `N` using its (possibly decremented) value.
+
+6. State Transitions / Ordering  
+- Processing is strictly left-to-right from `i = 1` to `N-1`.  
+- The only mutation of the input sequence is that `A[i+1]` may be decremented by 1 when an adjacent pair is formed at boundary `(i, i+1)`. Earlier positions are not revisited.  
+- The running total of pairs only increases.
+
+7. Termination Behavior  
+- The program always terminates after a single pass over the sequence and prints the computed count followed by a newline.
+
+8. I/O and Representation Requirements (to match the source program)  
+- The implementation reads `N` with `scanf("%d", &N)` and reads each quantity with `scanf("%lld", ...)` into a `long long`.  
+- The result is printed as a `long long` using `printf("%lld\n", ans)`.  
+- No explicit error handling is performed for malformed or insufficient input; behavior is unspecified if input operations fail.
+
+9. Non-functional Constraints  
+- Time complexity is linear in `N`.  
+- Memory usage is bounded by storage for up to `100000` 64-bit quantities plus a small constant amount of additional state.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{
+	int i, N;
+	long long A[100001];
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%lld", &(A[i]));
+
+	long long ans = 0;
+	for (i = 1; i < N; i++) {
+		ans += A[i] / 2;
+		if (A[i+1] > 1 && A[i] % 2 == 1) {
+			A[i+1]--;
+			ans++;
+		}
+	}
+	ans += A[N] / 2;
+
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,30 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Contract: if token is not a valid real number, behavior is undefined.
+        // We choose to stop (panic) rather than invent recovery behavior.
+        let v: f64 = tok.parse().unwrap();
+
+        // x = (4.9 * v^2) / (9.8^2)
+        let x = (4.9_f64 * v * v) / (9.8_f64 * 9.8_f64);
+
+        // k = truncate(x + 5) toward zero
+        // Contract: conversion must be representable; otherwise undefined.
+        let k: i64 = (x + 5.0).trunc() as i64;
+
+        // m = truncate(k / 5) (integer division in Rust truncates toward zero)
+        let m: i64 = k / 5;
+
+        // output m + 1
+        out.push_str(&(m + 1).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

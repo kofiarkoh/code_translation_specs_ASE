@@ -1,0 +1,139 @@
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+
+fn main() {
+    // Read all input as bytes; parse nonnegative decimal integers separated by non-digits.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    fn next_u64(bytes: &[u8], idx: &mut usize) -> Option<u64> {
+        while *idx < bytes.len() && !bytes[*idx].is_ascii_digit() {
+            *idx += 1;
+        }
+        if *idx >= bytes.len() {
+            return None;
+        }
+        let mut val: u64 = 0;
+        while *idx < bytes.len() && bytes[*idx].is_ascii_digit() {
+            val = val * 10 + (bytes[*idx] - b'0') as u64;
+            *idx += 1;
+        }
+        Some(val)
+    }
+
+    let n = match next_u64(bytes, &mut idx) {
+        Some(v) => v as usize,
+        None => return,
+    };
+    let m = match next_u64(bytes, &mut idx) {
+        Some(v) => v as usize,
+        None => return,
+    };
+
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut gr: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let s = next_u64(bytes, &mut idx).unwrap() as usize;
+        let d = next_u64(bytes, &mut idx).unwrap() as usize;
+        // Input is 1-based; convert to 0-based.
+        let s0 = s - 1;
+        let d0 = d - 1;
+        // Edges are appended as read; the "first stored outgoing edge" is g[s0][0].
+        g[s0].push(d0);
+        gr[d0].push(s0);
+    }
+
+    // Kosaraju SCC decomposition.
+    // First pass: order by finish time on original graph.
+    let mut vis = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    for start in 0..n {
+        if vis[start] {
+            continue;
+        }
+        // Iterative DFS to avoid recursion depth issues.
+        let mut stack: Vec<(usize, usize)> = Vec::new(); // (v, next_edge_index)
+        stack.push((start, 0));
+        vis[start] = true;
+
+        while let Some((v, ei)) = stack.pop() {
+            if ei < g[v].len() {
+                // Resume later.
+                stack.push((v, ei + 1));
+                let to = g[v][ei];
+                if !vis[to] {
+                    vis[to] = true;
+                    stack.push((to, 0));
+                }
+            } else {
+                order.push(v);
+            }
+        }
+    }
+
+    // Second pass: process vertices in reverse finish order on reversed graph.
+    let mut cmp: Vec<i32> = vec![-1; n];
+    let mut k: usize = 0;
+
+    for &v in order.iter().rev() {
+        if cmp[v] != -1 {
+            continue;
+        }
+        let mut stack: Vec<usize> = Vec::new();
+        stack.push(v);
+        cmp[v] = k as i32;
+
+        while let Some(x) = stack.pop() {
+            for &to in &gr[x] {
+                if cmp[to] == -1 {
+                    cmp[to] = k as i32;
+                    stack.push(to);
+                }
+            }
+        }
+        k += 1;
+    }
+
+    // Construct component "next" relation nx with overwrite rule.
+    let mut nx: Vec<i32> = vec![-1; k];
+    for i in 0..n {
+        if !g[i].is_empty() {
+            let j = g[i][0]; // first stored outgoing edge for vertex i
+            let ci = cmp[i] as usize;
+            let cj = cmp[j] as i32;
+            // Overwrite any previous value for this component.
+            nx[ci] = cj;
+        }
+    }
+
+    // Per-component combination logic.
+    let mut dp: Vec<u64> = vec![0; k];
+    let mut ans: u64 = 1;
+
+    for i in 0..k {
+        if dp[i] != 0 {
+            dp[i] = dp[i].wrapping_add(1);
+        } else {
+            dp[i] = 2;
+        }
+
+        let ni = nx[i];
+        if ni < 0 || ni as usize == i {
+            ans = (ans * (dp[i] % MOD)) % MOD;
+        } else {
+            let t = ni as usize;
+            if dp[t] != 0 {
+                dp[t] = (dp[t] % MOD) * (dp[i] % MOD) % MOD;
+            } else {
+                dp[t] = dp[i] % MOD;
+            }
+        }
+    }
+
+    println!("{}", ans % MOD);
+}

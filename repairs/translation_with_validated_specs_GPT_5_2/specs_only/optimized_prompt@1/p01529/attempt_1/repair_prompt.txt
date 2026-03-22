@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum total cost to iteratively combine a sequence of `n` non-negative item weights into a single item, where each combine operation merges two adjacent groups and incurs a cost equal to the sum of weights in the merged group. The result is the minimum possible total cost over all valid sequences of adjacent merges.
+
+2. Inputs  
+- An integer `n`: the number of items.  
+- A sequence of `n` integer weights.
+
+3. Outputs  
+- A single integer value: the minimum achievable total merge cost for combining all `n` items into one via adjacent merges.
+
+4. Preconditions  
+- `1 ≤ n ≤ 4000`.  
+- Exactly `n` weights are provided.  
+- Each weight is a non-negative integer representable within signed 64-bit range.  
+- The minimum total cost and all intermediate sums fit within signed 64-bit range.  
+- Input is well-formed (no missing or malformed numeric tokens).
+
+5. Postconditions  
+- The output equals the minimum, over all ways of repeatedly merging two adjacent groups until one group remains, of the sum of merge costs, where each merge cost is the sum of weights in the newly formed group.  
+- If `n = 1`, the output is `0`.
+
+6. Invariants  
+- For any contiguous subrange of items, the computed subproblem value (when defined) represents the minimum total cost to merge exactly that subrange into one group using only adjacent merges within the subrange.  
+- The cost contribution of a final merge for any subrange equals the sum of weights in that subrange.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If preconditions are violated (e.g., malformed input, out-of-range values, overflow), behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-shot computation with no externally visible state beyond producing the output.
+
+9. Non-functional Constraints (if inferable)  
+- Designed to handle up to 4000 items using a dynamic programming approach with memory usage proportional to `n²`.  
+- Execution time is intended to be feasible for the stated bounds by exploiting properties of the optimal partition structure (assumption: the optimization conditions required for this property hold for the given cost model).
+```

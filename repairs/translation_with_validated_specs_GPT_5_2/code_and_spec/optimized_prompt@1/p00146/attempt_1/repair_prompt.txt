@@ -1,0 +1,126 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes an ordering of the given items that minimizes a cumulative travel cost over a path that visits each item exactly once. The cost of moving from one visited item to a newly visited item depends on the absolute difference of their second attributes and on a weight derived from the set of items already visited. Outputs the first attribute of each item in the chosen visit order.
+
+2. Inputs  
+- An integer `n`: number of items.  
+- `n` triples of integers per item:  
+  - First attribute: an identifier/value to be output in the final sequence.  
+  - Second attribute: a position-like value used to compute movement distance.  
+  - Third attribute: a weight-like value contributing to the cost multiplier once the item has been visited.
+
+3. Outputs  
+- A sequence of `n` integers: the first attributes of the items, ordered according to a minimum-cost Hamiltonian path under the program’s cost model. Items are separated by single spaces and terminated by a newline.
+
+4. Preconditions  
+- `n` is such that the program’s internal fixed-size storage is sufficient; in particular, `n` must not exceed the supported maximum implied by the internal tables (effectively `n ≤ 16`).  
+- Input provides exactly `n` well-formed triples.  
+- The computed costs and intermediate totals fit within the numeric ranges used by the program (no overflow/undefined behavior in integer absolute difference or bit operations).
+
+5. Postconditions  
+- Exactly `n` output values are produced.  
+- Each output value corresponds to the first attribute of a distinct input item; every input item appears exactly once in the output order.  
+- The produced order minimizes the total path cost among all permutations, where total cost is the sum over each step from a previously visited item `i` to a newly visited item `k` given the already-visited set `S` (including `i`):  
+  - Step cost = (|second[k] − second[i]| / 2000) × (70 + 20 × sum(third[x] for x in S)).  
+- If multiple orders have the same minimal cost, the program outputs one of them (tie-breaking is not specified).
+
+6. Invariants  
+- During optimization, each partial solution represents a path that visits a specific subset of items exactly once and ends at a specific last item.  
+- For any subset and endpoint that is reachable, the stored cost is the minimal cost among all paths realizing that subset and endpoint under the defined step cost.  
+- For any stored predecessor relation used for reconstruction, it refers to an item that is included in the corresponding visited subset and yields the stored minimal cost.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., unsupported `n`, malformed input, or numeric/bit-operation issues), behavior is undefined: it may crash, produce incorrect output, or access memory out of bounds.
+
+8. State Transitions (if applicable)  
+- Initializes the set of visited items to each singleton item as a valid starting state with zero cost.  
+- Expands states by adding one unvisited item at a time, updating the minimal cost for the new visited set and new endpoint.  
+- After considering all visited sets, selects the minimal-cost state that has all items visited (endpoint chosen by minimal total cost).  
+- Reconstructs the corresponding full visit order by repeatedly moving to the recorded predecessor while removing the current endpoint from the visited set, until the start is reached.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage grow exponentially with `n` due to enumeration of visited subsets; practical operation is limited to small `n` (up to the internal maximum, effectively 16).  
+- Uses floating-point arithmetic for costs; results may be subject to floating-point comparison/rounding effects when costs are extremely close.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+int a[110],b[110],c[110],n;
+double f(int i,int j,int k){
+  int w=0,l;
+  if(j==0)return 0;
+  for(l=0;l<n;l++){
+    if(j&(1<<l))w+=c[l]*20;
+  }
+  return abs(b[k]-b[i])/2000.0*(w+70);
+}
+double d[20][1<<16]={};
+int fr[20][1<<16]={};
+int main(){
+  int i,j,k,r[110];
+  scanf("%d",&n);
+  for(i=0;i<n;i++)scanf("%d %d %d",&a[i],&b[i],&c[i]);
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)d[i][j]=1e18;
+  }//printf("a\n");
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)fr[i][j]=-1;
+  }
+  for(i=0;i<n;i++)d[i][1<<i]=0;
+  for(j=0;j<(1<<n);j++){
+    for(i=0;i<n;i++){
+      if((1<<i)&j==0)continue;
+      for(k=0;k<n;k++){
+	if(j&(1<<k))continue;
+	if(d[k][j+(1<<k)]>d[i][j]+f(i,j,k)){
+	  d[k][j+(1<<k)]=d[i][j]+f(i,j,k);
+	  fr[k][j+(1<<k)]=i;
+	}
+      }
+    }
+  }//printf("b\n");
+  /*for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)printf("%f ",d[i][j]);printf("\n");
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)printf("%d ",fr[i][j]);printf("\n");
+    }//*/
+  k=j-1;
+  for(i=j=0;i<n;i++){
+    if(d[i][k]<d[j][k])j=i;
+  }//printf("%d %d\n",j,fr[j][k]);
+  r[n-1]=j;
+  for(i=1;i<n;i++){//printf("%d:",j);
+    r[n-i-1]=fr[r[n-i]][k];
+    k-=(1<<r[n-i]);
+    //j=fr[r[n-i-1]][k];
+  }//printf("d\n");
+  //for(i=0;i<n;i++)printf("%d ",r[i]);printf("\n");
+  for(i=0;i<n-1;i++)printf("%d ",a[r[i]]);
+  printf("%d\n",a[r[i]]);
+  return 0;
+}
+=== C CODE END ===

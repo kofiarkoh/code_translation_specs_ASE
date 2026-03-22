@@ -1,0 +1,134 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone)]
+struct Req {
+    stu: i32,
+    seq: i32,
+    id: usize,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(ms) = it.next() else { break };
+        let m: i32 = ms.parse().unwrap();
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+        if m <= 0 {
+            break;
+        }
+
+        let m_usize = m as usize;
+        let holding = m_usize + 1;
+        let desk_count = holding + 1; // index 0 unused
+
+        let mut desk: Vec<Vec<usize>> = vec![Vec::new(); desk_count];
+        let mut book_loc: Vec<(usize, usize)> = vec![(0, 0); 101]; // (desk, pos), 0 => unseen
+        let mut reqs: Vec<Req> = Vec::new();
+
+        for stu in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+                reqs.push(Req {
+                    stu: stu as i32,
+                    seq: seq as i32,
+                    id,
+                });
+
+                // First-seen placement into holding desk (m+1).
+                if book_loc[id].0 == 0 {
+                    let pos = desk[holding].len();
+                    desk[holding].push(id);
+                    book_loc[id] = (holding, pos);
+                }
+            }
+        }
+
+        reqs.sort_by(|a, b| a.seq.cmp(&b.seq).then(a.stu.cmp(&b.stu)));
+
+        let mut ans: i64 = 0;
+
+        for r in reqs {
+            let id = r.id;
+            let (from, pos) = book_loc[id];
+
+            // A) Remove id from its current desk, shifting and updating positions.
+            {
+                let d = &mut desk[from];
+                for idx in (pos + 1)..d.len() {
+                    let bid = d[idx];
+                    book_loc[bid].1 -= 1;
+                }
+                d.remove(pos);
+            }
+            ans += from as i64;
+
+            // B) Overflow if primary is full (before inserting id into primary).
+            if desk[1].len() == c {
+                // 1) Choose tmp: smallest non-full auxiliary desk.
+                let mut tmp = 2usize;
+                while tmp <= m_usize && desk[tmp].len() == c {
+                    tmp += 1;
+                }
+                // Temporarily insert id into tmp (C code does NOT update book_loc for id here).
+                desk[tmp].push(id);
+                ans += tmp as i64;
+
+                // 2) Evict front book from primary.
+                let id2 = desk[1][0];
+                {
+                    let d1 = &mut desk[1];
+                    for idx in 1..d1.len() {
+                        let bid = d1[idx];
+                        book_loc[bid].1 -= 1;
+                    }
+                    d1.remove(0);
+                }
+                ans += 1;
+
+                // 3) Choose j: smallest non-full auxiliary desk (after step 1 and 2).
+                let mut j = 2usize;
+                while j <= m_usize && desk[j].len() == c {
+                    j += 1;
+                }
+
+                // Critical semantic detail from the C code:
+                // If j == tmp, insert id2 at position hi[j] (which includes the temporary id),
+                // then decrement hi[tmp] afterwards. This effectively places id2 *after* the
+                // temporary id, and then removes the temporary id, shifting id2 left by one.
+                // Net effect: id2 ends up at the back of tmp, and id is not kept there.
+                let pos_before = desk[j].len(); // equals hi[j] in C at this moment
+                desk[j].push(id2);
+                book_loc[id2] = (j, pos_before);
+                ans += (j + tmp) as i64;
+
+                // Cancel the temporary insertion of id into tmp.
+                // If tmp == j, this removes the element before id2, shifting id2 left by 1.
+                desk[tmp].pop();
+
+                // If tmp == j, id2's recorded position must be decremented to match the shift.
+                if tmp == j {
+                    book_loc[id2].1 -= 1;
+                }
+            }
+
+            // C) Insert requested book into primary at back.
+            let pos1 = desk[1].len();
+            desk[1].push(id);
+            book_loc[id] = (1, pos1);
+            ans += 1;
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}
+```

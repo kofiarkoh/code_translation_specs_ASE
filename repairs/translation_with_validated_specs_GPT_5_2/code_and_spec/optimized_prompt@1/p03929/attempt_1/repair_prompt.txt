@@ -1,0 +1,102 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads two signed 64-bit integers and outputs a count derived from the first value scaled by 7. The count is based on integers satisfying both:
+- a modulo-7 filter that excludes residues 0 and 1, and  
+- a modulo-11 condition requiring \((9 \times i) \bmod 11\) to equal the second input value.  
+
+The program computes this count over a range tied to \(N = 7 \times \text{base}\), and then applies additional subtractions for two boundary windows near the start and end of the range.
+
+2. Inputs  
+- Two signed integers read from standard input (as `long long` in C):
+  - `base`: a scaling value used to form \(N = 7 \times \text{base}\).  
+  - `target`: a value compared against \((9 \times i) \bmod 11\).
+
+3. Outputs  
+- One signed integer (printed as a `long long`): the final computed count.
+
+4. Preconditions / Assumptions  
+- Exactly two integers must be successfully read; otherwise behavior is undefined.  
+- Arithmetic is performed in signed 64-bit (`long long`) without overflow checks; behavior is undefined if intermediate values overflow. In particular, \(7 \times \text{base}\) must fit in signed 64-bit.  
+- The program’s loops assume a meaningful non-negative range length; if `base` is negative, \(N\) becomes negative and the loop structure no longer corresponds to counting over a valid positive interval (the program will still run, but the resulting value follows the implemented loop behavior rather than a well-defined “count in 1..N” interpretation).  
+- `target` is compared to a value in the range 0..10 produced by modulo 11; if `target` is outside that range, the equality tests will never succeed and only the fixed subtraction loops may affect the result.
+
+5. Postconditions (What is computed)  
+Let \(N = 7 \times \text{base}\). Define the predicate \(P(i)\) as:
+- \(i \bmod 7 \notin \{0,1\}\), and  
+- \((9 \times i) \bmod 11 = \text{target}\).
+
+The program computes:
+- \(A\): the number of integers \(i\) with \(1 \le i \le N\) such that \(P(i)\) holds, **using periodicity with period 693** (i.e., it counts full blocks of 693 and a remainder block).  
+Then it adjusts \(A\) by subtracting:
+- the number of integers \(i\) in the window \(1 \le i \le 7\) such that \(P(i)\) holds, and  
+- the number of integers \(i\) in the window \(N-6 \le i \le N\) such that \(P(i)\) holds.  
+
+These two subtractions are applied independently; if the windows overlap, an integer in the overlap that satisfies \(P(i)\) is subtracted once for each window it belongs to (i.e., it may be subtracted twice).
+
+6. Counting / Periodicity Clarification  
+- The program exploits that the combined conditions depend only on \(i \bmod 7\) and \(i \bmod 11\), hence repeat with period \(\mathrm{lcm}(7,11)=77\); the implementation specifically uses a period of 693 (a multiple of 77) to count in blocks.  
+- The “remainder” portion counts \(i\) from 1 up to \(N \bmod 693\) inclusive, and the “full blocks” portion counts \(i\) from 1 to 693 inclusive and multiplies by \(\lfloor N/693 \rfloor\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid/missing input.  
+- No explicit validation of ranges is performed.
+
+8. Implementation / Language Constraints  
+- The program is intended to be valid ISO C (C11) and compile under standard C11 compilation (e.g., `-std=c11`) without relying on compiler-specific extensions.  
+- Any helper logic must be expressible in standard C (e.g., file-scope functions or inlined logic), not via non-standard constructs such as nested function definitions inside `main`.
+
+9. State Transitions  
+- Stateless single-run behavior: reads input once, computes, prints one line, and terminates.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+	long long int n, k;
+	scanf("%lld %lld", &n, &k);
+	long long int ans = 0, i;
+	n *= 7;
+	for (i = 1; i <= n % 693; i++)
+		if (i % 7 > 1)
+			if (9 * i % 11 == k)
+				ans++;
+	long long int count = 0;
+	for (i = 1; i <= 693; i++)
+		if (i % 7 > 1)
+			if (9 * i % 11 == k)
+				count++;
+	ans += count * (n / 693);
+	for (i = 1; i <= 7; i++)
+		if (i % 7 > 1)
+			if (9 * i % 11 == k)
+				ans--;
+	for (i = n - 6; i <= n; i++)
+		if (i % 7 > 1)
+			if (i * 9 % 11 == k)
+				ans--;
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

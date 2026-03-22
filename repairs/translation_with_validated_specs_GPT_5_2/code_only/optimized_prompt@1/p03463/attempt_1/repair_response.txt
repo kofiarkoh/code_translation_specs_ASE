@@ -1,0 +1,25 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (matches typical scanf behavior for whitespace-separated ints).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let _n: i32 = it.next().unwrap().parse().unwrap();
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+
+    // In C, signed overflow is UB. We emulate common two's-complement wraparound
+    // by using wrapping arithmetic, then apply C-like remainder behavior.
+    let diff = b.wrapping_sub(a);
+    if diff.wrapping_rem(2) == 0 {
+        print!("Alice\n");
+    } else {
+        print!("Borys\n");
+    }
+
+    // stdout is flushed on program exit; explicit flush not necessary to preserve output.
+}
+```

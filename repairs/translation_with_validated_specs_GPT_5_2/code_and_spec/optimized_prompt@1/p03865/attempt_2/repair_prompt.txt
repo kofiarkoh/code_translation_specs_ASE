@@ -1,0 +1,72 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03865/p03865_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03865/p03865_sample1_output.txt
+Input:
+abcde
+Expected:
+Second
+Actual:
+First
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Fixed-size buffer as in the C code.
+    let mut buf = [0u8; 114_514];
+
+    // The spec requires a single unbuffered read and no explicit error handling.
+    // In C, read() may return -1; here we approximate by treating any read error
+    // as yielding 0 bytes (which leads to undefined behavior per spec anyway).
+    let l: usize = match io::stdin().read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => 0,
+    };
+
+    // C semantics:
+    // n = L; n--; then uses buf[0] and buf[n-1] (i.e., buf[L-2]).
+    // If L < 2, behavior is undefined in C; in Rust we must avoid OOB,
+    // so we mimic "no explicit error handling" by producing an arbitrary
+    // but deterministic result without panicking.
+    if l < 2 {
+        // Undefined behavior case per spec; choose an arbitrary output.
+        print!("Second\n");
+        return;
+    }
+
+    let n = l - 1;
+    let eq: usize = if buf[0] == buf[n - 1] { 1 } else { 0 };
+
+    // Preserve C operator precedence: (n + eq) & 1
+    let cond = (n + eq) & 1;
+
+    if cond != 0 {
+        print!("First\n");
+    } else {
+        print!("Second\n");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

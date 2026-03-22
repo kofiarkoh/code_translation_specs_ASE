@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer count and then that many integers, computes a value equal to \(3^N\) minus \(2^{E}\), where \(E\) is the number of even integers among the provided values, and outputs the result.
+
+2. Inputs  
+- An integer \(N\): the number of subsequent integers to read.  
+- A sequence of \(N\) integers.
+
+3. Outputs  
+- A single integer value: \(3^N - 2^{E}\), where \(E\) is the count of even numbers in the input sequence.
+
+4. Preconditions  
+- The input provides at least \(N+1\) integers.  
+- \(N \ge 0\).  
+- The computed values \(3^N\) and \(2^{E}\), and their difference, fit within the range of the program’s integer type (no overflow).
+
+5. Postconditions  
+- Exactly one integer is produced as output, equal to \(3^N - 2^{E}\) based on the provided inputs.  
+- \(E\) equals the number of input integers divisible by 2.
+
+6. Invariants  
+- After processing any prefix of the \(N\) integers, the maintained even-count-derived factor equals \(2^{E_p}\), where \(E_p\) is the number of even values seen so far.  
+- After completing the exponent computation, the maintained power-of-three factor equals \(3^N\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If inputs are missing/invalid, behavior is unspecified.  
+- If integer overflow occurs during computation, behavior is unspecified.
+
+8. State Transitions (if applicable)  
+- No persistent state beyond the execution of the program; it performs a single read-compute-output cycle and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in \(N\).  
+- Uses constant additional memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#
+
+int main(){
+
+int N,A,odd=1,exp=1;
+scanf("%d",&N);
+for (int i = 0; i < N; i++){
+    scanf("%d",&A);
+    if (A%2==0){ odd*=2;}
+}
+
+for (int i = 1; i <= N; i++){exp*=3;}
+
+printf("%d",exp-odd);
+
+return 0;
+
+}
+=== C CODE END ===

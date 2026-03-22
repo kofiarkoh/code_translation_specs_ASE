@@ -1,0 +1,68 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let k: usize = it.next().unwrap().parse().unwrap();
+    let s = it.next().unwrap_or("");
+
+    // Build run-length representation over the first N bits.
+    // We follow the invariant that candidate segments start/end with a run of '1'.
+    // To make this uniform, we add a leading/trailing zero-length '1' run when needed.
+    let bytes = s.as_bytes();
+
+    let mut runs: Vec<usize> = Vec::new();
+
+    // Leading adjustment: if the first bit is '0', prepend a zero-length '1' run.
+    if n > 0 && bytes[0] == b'0' {
+        runs.push(0);
+    }
+
+    // Count runs
+    let mut i = 0usize;
+    while i < n {
+        let c = bytes[i];
+        let mut j = i + 1;
+        while j < n && bytes[j] == c {
+            j += 1;
+        }
+        runs.push(j - i);
+        i = j;
+    }
+
+    // Trailing adjustment: if the last bit is '0', append a zero-length '1' run.
+    if n > 0 && bytes[n - 1] == b'0' {
+        runs.push(0);
+    }
+
+    // Prefix sums over run lengths for O(1) range sum.
+    let mut pref = vec![0usize; runs.len() + 1];
+    for (idx, &len) in runs.iter().enumerate() {
+        pref[idx + 1] = pref[idx] + len;
+    }
+
+    // Sliding window over runs:
+    // Consider windows of at most (2K+1) consecutive runs, starting at even indices
+    // (which correspond to '1' runs due to the leading adjustment).
+    let window = 2 * k + 1;
+    let mut ans = 0usize;
+
+    let m = runs.len();
+    let mut l = 0usize;
+    while l < m {
+        let r = (l + window).min(m);
+        let sum = pref[r] - pref[l];
+        if sum > ans {
+            ans = sum;
+        }
+        l += 2; // move to next '1' run start
+    }
+
+    println!("{}", ans);
+}
+```

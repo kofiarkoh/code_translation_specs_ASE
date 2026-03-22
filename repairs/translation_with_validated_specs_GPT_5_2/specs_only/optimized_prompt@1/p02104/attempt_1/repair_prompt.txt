@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Given a positive integer size and a sequence of that many integers whose values are intended to be within the same size range, the program computes, for each value \(v\) in \(1..n\), a single associated position index from the input sequence. If the value \(v\) appears at least once, the program selects one of its occurrence positions; if it does not appear, the program may still select a position belonging to some other value, depending on availability. Each selected position is used at most once across all values.
+
+2. Inputs  
+- An integer \(n\): the number of elements in the sequence.  
+- A sequence of \(n\) integers \(p[1..n]\): each represents a value/category.
+
+3. Outputs  
+- A sequence of \(n\) integers \(ans[1..n]\), one per line, where each \(ans[v]\) is either:  
+  - a position index in \(1..n\) that is assigned to value \(v\), or  
+  - 0 if no position could be assigned to \(v\).
+
+4. Preconditions  
+- \(1 \le n <\) the fixed internal maximum capacity.  
+- Each input value \(p[i]\) is assumed to satisfy \(1 \le p[i] \le n\). (If not, behavior is undefined due to out-of-range internal indexing.)  
+- Sufficient memory is available to allocate storage proportional to the number of occurrences of each value.
+
+5. Postconditions  
+- For every \(v \in [1..n]\), \(ans[v] \in [0..n]\).  
+- No nonzero position index appears in more than one output entry (i.e., the set of assigned positions is unique).  
+- If value \(v\) appears in the input, then \(ans[v]\) is guaranteed to be one of the positions where \(p[position] = v\).  
+- If value \(v\) does not appear in the input, then \(ans[v]\) is either 0 or a position where \(p[position] \ne v\); no stronger guarantee is implied.  
+- The total count of nonzero outputs equals the number of positions that were successfully assigned, which is at most \(n\).
+
+6. Invariants  
+- Assigned positions (nonzero outputs) are never reused for another value.  
+- Any position assigned to a value that appears in the input is always an actual occurrence position of that value.  
+- Outputs are produced for all values \(1..n\) in order.
+
+7. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting.  
+- If an input value is outside \(1..n\), internal memory may be accessed out of bounds, leading to undefined behavior.  
+- If memory allocation fails, subsequent behavior is undefined (likely a crash).  
+- If the input stream does not contain the required integers, behavior is undefined.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program is a single-run batch computation with no externally visible persistent state.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in \(n\) under the stated preconditions.  
+- Memory usage is linear in \(n\), including storage for all occurrence positions and auxiliary stacks.
+```

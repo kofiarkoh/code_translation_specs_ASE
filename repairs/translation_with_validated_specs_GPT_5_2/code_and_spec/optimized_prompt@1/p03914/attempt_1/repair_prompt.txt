@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes a value derived from a finite-state counting process parameterized by two integers: a size parameter and a number of steps. The process starts from a single initial state and, for each step, redistributes counts among states according to fixed transition multiplicities that depend on the current state and the size parameter. The program outputs the count associated with the terminal state where both state components equal the size parameter, reduced modulo a fixed large prime.
+
+2. Inputs  
+- Two integers:  
+  - A size parameter.  
+  - A step count.
+
+3. Outputs  
+- One integer: the computed count for the terminal state (size, size), reduced modulo 1,000,000,007.
+
+4. Preconditions  
+- The two input integers are successfully provided.  
+- The size parameter is within the supported internal bounds (at most 301) to avoid out-of-bounds state indexing.  
+- The step count is non-negative and within the supported internal bounds (at most 301) to avoid out-of-bounds state indexing.  
+- To avoid undefined arithmetic behavior, the size parameter is assumed to be at least 1, and intermediate arithmetic is assumed not to overflow the signed 64-bit range (the program does not enforce this).
+
+5. Postconditions  
+- The program outputs the value of the terminal state (size, size) after exactly the given number of steps, modulo 1,000,000,007.  
+- If the terminal state is unreachable under the process for the given inputs, the output is 0.
+
+6. Invariants  
+- All state values represent accumulated counts (possibly large) derived from the initial state through repeated application of the step transitions.  
+- At any step boundary, only states with first component between 1 and (step index + 1) and second component between 1 and the first component may be non-zero (subject to the internal bounds).  
+- The terminal state queried for output is always the state whose two components both equal the size parameter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for invalid or missing input.  
+- If inputs exceed internal bounds, behavior is undefined (may access memory out of range).  
+- If intermediate arithmetic exceeds the signed 64-bit range, behavior is undefined.  
+- Negative inputs may lead to nonsensical results or undefined behavior; no validation is performed.
+
+8. State Transitions (if applicable)  
+- The computation maintains a 2D state indexed by two positive integers (a, b) with 1 ≤ b ≤ a.  
+- Initialization: the state (1, 1) starts with count 1; all other states start at 0.  
+- For each of the specified number of steps, each existing state (a, b) contributes its current count to up to three successor states with multiplicities determined by (size − a), b, and (a − b), respectively:  
+  - One successor increases the first component by 1 while keeping the second component unchanged.  
+  - One successor sets the second component equal to the first component (i.e., moves to a state where both components are equal to the prior first component).  
+  - One successor keeps both components unchanged.  
+- The output is taken from the state (size, size) after all steps.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size memory for the state table; memory usage is constant with respect to input values beyond the fixed bound.  
+- Runtime grows on the order of the square of the step count (within the fixed bound).  
+- Output is reduced modulo 1,000,000,007.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define Mod 1000000007
+
+int main()
+{	
+	int N, M;
+	scanf("%d %d", &N, &M);
+	
+	int i, j, k;
+	long long dp[302][302] = {}, tmp;
+	for (k = 1, dp[1][1] = 1; k <= M; k++) {
+		for (i = k; i >= 1; i--) {
+			for (j = i; j >= 1; j--) {
+				tmp = dp[i][j] % Mod;
+				dp[i][j] = 0;
+				dp[i+1][j] += tmp * (N - i);
+				dp[i][i] += tmp * j;
+				dp[i][j] += tmp * (i - j);
+			}
+		}
+	}
+	
+	printf("%lld\n", dp[N][N] % Mod);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

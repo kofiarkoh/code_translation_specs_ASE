@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+For each of a given number of queries, computes and outputs a category value in the range 1–3 determined by the smaller of two positions after each position is mapped to its distance from the nearest end of a 1..n line (using 1-based positions).
+
+2. Inputs  
+- An integer `n`: the size of the line (number of positions).  
+- An integer `k`: the number of queries.  
+- `k` pairs of integers `(a, b)`: two 1-based positions per query.
+
+3. Outputs  
+- For each query, one integer per line in `{1, 2, 3}`.
+
+4. Preconditions  
+- `k >= 0`.  
+- For each query, `a` and `b` are intended to be valid 1-based positions within the line: `1 <= a <= n` and `1 <= b <= n`.  
+- `n` is intended to be positive (`n >= 1`) to make the position mapping meaningful.
+
+5. Postconditions  
+For each query with input positions `(a, b)`:
+- Let `da = min(a, n + 1 - a)` and `db = min(b, n + 1 - b)` (distance-to-nearest-end mapping, still 1-based).  
+- Let `m = min(da, db)`.  
+- The program outputs `((m - 1) mod 3) + 1`.  
+- Exactly `k` output lines are produced.
+
+6. Invariants  
+- Each produced output value is always in the set `{1, 2, 3}`.  
+- Each query is processed independently; no query affects the result of any other query.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the provided input is missing, malformed, or violates the intended bounds (e.g., positions outside `1..n` or non-positive `n`), the behavior is unspecified by this program’s contract.
+
+8. State Transitions (if applicable)  
+- No persistent state is maintained across queries beyond reading inputs and producing outputs; the program terminates after processing all queries.
+
+9. Non-functional Constraints (if inferable)  
+- Time grows linearly with the number of queries (`k`), with constant work per query.  
+- Uses a constant amount of additional memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+	int n,ai,bi,i,k,c;
+	scanf("%d",&n);
+	scanf("%d",&k);
+	for(i=0;i<k;i++){
+		scanf("%d%d",&ai,&bi);
+		if(n+1-ai<ai)ai=n+1-ai;
+		if(n+1-bi<bi)bi=n+1-bi;
+		if(ai>bi)c=(bi-1)%3+1;
+		else c=(ai-1)%3+1;
+		printf("%d\n",c);
+	}
+	return 0;
+}
+=== C CODE END ===

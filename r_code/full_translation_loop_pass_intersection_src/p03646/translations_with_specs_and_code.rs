@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as i64 (matches C's long long intent).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let k: i64 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if k >= 50 {
+        // Matches C logic exactly.
+        let rem = k / 50;
+        let x = 49 + rem;
+        let t = (k % 50) as usize;
+
+        let mut a = vec![x; 50];
+
+        for i in 0..t {
+            a[i] += 50;
+            for j in 0..50 {
+                if j != i {
+                    a[j] -= 1;
+                }
+            }
+        }
+
+        // Output formatting: exactly as C (newline after 50, then numbers with trailing space, no final newline).
+        print!("50\n");
+        for v in a {
+            print!("{} ", v);
+        }
+    } else if k >= 2 {
+        let n = k as usize;
+        print!("{}\n", n);
+        for _ in 0..n {
+            // C prints n as a number, with trailing space, no final newline.
+            print!("{} ", n);
+        }
+    } else if k == 0 {
+        // Exact output including final newline.
+        print!("4\n3 3 3 3\n");
+    } else {
+        // k == 1 (and also any negative values per C's else branch; spec says negative is unspecified).
+        print!("3\n1 0 3\n");
+    }
+}

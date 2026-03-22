@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+- Reads an `N × M` character grid and locates all cells marked with the character `'o'`.  
+- Processes the `'o'` cells in a fixed scan order (from bottom row to top row, and within each row from right to left). For each such cell, it is immediately converted to `'.'` in the grid before any further processing.  
+- For each converted former-`'o'` cell, performs a shortest-path search on the grid where movement is **restricted to two directions**: one step **to the right** (same row, next column) and one step **toward increasing row index in the stored array** (which corresponds to a single fixed “vertical” direction in the program’s coordinate handling). A move is allowed only if the destination cell currently contains `'.'`.  
+- From the set of reachable cells, considers at most 100 candidate target cells: specifically, those reached latest in the program’s BFS visitation order (which corresponds to the farthest reachable cells by shortest-path distance, with ties broken by that visitation order). For each candidate, the associated distance is the BFS distance from the source `'o'` cell.  
+- Builds and solves a min-cost flow model whose effect is to choose, for each original `'o'` cell, **one** target grid cell among its candidate set, with the constraint that each grid cell can be chosen by **at most one** `'o'`. The objective is to maximize the sum of the chosen distances (equivalently, minimize the negative of that sum in the flow model).  
+- Outputs the resulting maximum total distance as an integer.
+
+2. Inputs  
+- Two integers `N` and `M`.  
+- `N` strings, each providing `M` grid characters (the program reads each row as a C string).  
+- The program treats characters as follows:  
+  - `'o'` marks a source cell to be processed and assigned.  
+  - `'.'` denotes traversable space for the reachability search.  
+  - Any other character is treated as non-traversable for the reachability search (because only `'.'` is accepted as a move destination).  
+
+3. Outputs  
+- Prints one signed integer (as a 64-bit `long long` in C) equal to the maximum achievable sum of distances under the rules above (including the “up to 100 candidates per `'o'`” restriction and the one-to-one usage of target cells).
+
+4. Preconditions / Assumptions  
+- `N` and `M` must fit within the program’s fixed array bounds (notably the grid storage and the fixed-size edge/list arrays used to build the flow network).  
+- The total number of `'o'` cells must be small enough that the constructed graph fits in the fixed edge/list storage.  
+- Each input row must contain at least `M` characters.  
+- Sufficient memory must be available for the dynamic allocations used by the flow solver.  
+- If these assumptions are violated, behavior is undefined.
+
+5. Postconditions / Semantics of the Optimization  
+- Each original `'o'` cell contributes exactly one unit of assignment demand in the model.  
+- A grid cell can be selected as a target by at most one `'o'` cell (capacity 1 per grid cell).  
+- A target is eligible for a given `'o'` cell only if it is among that `'o'` cell’s selected candidate set (at most 100 reachable cells chosen as described).  
+- Distances are shortest-path lengths measured in number of moves under the program’s two-direction movement rule, through cells that are `'.'` at the time of that `'o'` cell’s search (including the fact that the `'o'` cell itself is first changed to `'.'`).  
+- The printed value is the maximum possible sum of these distances over all such one-to-one selections.
+
+6. Ordering / Tie-Breaking Details  
+- The set of candidates for an `'o'` cell is derived from the BFS queue order: the program takes up to the last 100 discovered reachable cells. This implicitly breaks ties among equal-distance cells according to the BFS discovery/processing order induced by the fixed neighbor-expansion order used in the search.
+
+7. Exceptional / Sentinel Behavior  
+- If the flow solver detects a negative-cost cycle during its initialization phase, it returns a sentinel value representing failure; the main program negates and prints that sentinel.  
+- If the solver cannot find any augmenting path to satisfy remaining deficits, it returns a different sentinel value; the main program negates and prints that sentinel.  
+- No other explicit error handling is performed.
+
+8. High-Level State Transitions  
+1) Read `N`, `M`, and the grid.  
+2) Scan the grid in the program’s fixed order; for each `'o'`: convert it to `'.'`, run the restricted-direction BFS, and record up to 100 candidate targets with distances.  
+3) Construct a flow network encoding: one unit per `'o'` to be assigned, capacity-1 usage of each grid cell, and costs equal to negative distances on candidate edges.  
+4) Run successive-shortest-path min-cost flow to optimality (or until a failure sentinel is produced).  
+5) Print the negated minimum cost (i.e., the maximum total distance).
+```

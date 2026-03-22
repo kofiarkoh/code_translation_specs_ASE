@@ -1,0 +1,226 @@
+use std::io::{self, Read};
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+    #[inline]
+    fn next_usize(&mut self) -> usize {
+        while self.idx < self.buf.len() && self.buf[self.idx].is_ascii_whitespace() {
+            self.idx += 1;
+        }
+        if self.idx >= self.buf.len() {
+            return 0;
+        }
+        let mut n: usize = 0;
+        while self.idx < self.buf.len() {
+            let b = self.buf[self.idx];
+            if b.is_ascii_whitespace() {
+                break;
+            }
+            n = n * 10 + (b - b'0') as usize;
+            self.idx += 1;
+        }
+        n
+    }
+}
+
+/// A fast min-heap specialized for (t, r, c) with i32 key `t`.
+/// This avoids the overhead of std::collections::BinaryHeap<Reverse<...>> which can TLE on AOJ.
+#[derive(Clone, Copy)]
+struct Node {
+    t: i32,
+    r: u16,
+    c: u16,
+}
+struct MinHeap {
+    a: Vec<Node>,
+}
+impl MinHeap {
+    #[inline]
+    fn new(cap: usize) -> Self {
+        Self { a: Vec::with_capacity(cap) }
+    }
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.a.is_empty()
+    }
+    #[inline]
+    fn push(&mut self, x: Node) {
+        self.a.push(x);
+        let mut i = self.a.len() - 1;
+        while i > 0 {
+            let p = (i - 1) >> 1;
+            if self.a[p].t <= self.a[i].t {
+                break;
+            }
+            self.a.swap(p, i);
+            i = p;
+        }
+    }
+    #[inline]
+    fn pop_min(&mut self) -> Node {
+        let min = self.a[0];
+        let last = self.a.pop().unwrap();
+        if !self.a.is_empty() {
+            self.a[0] = last;
+            self.sift_down(0);
+        }
+        min
+    }
+    #[inline]
+    fn sift_down(&mut self, mut i: usize) {
+        let n = self.a.len();
+        loop {
+            let l = (i << 1) + 1;
+            if l >= n {
+                break;
+            }
+            let r = l + 1;
+            let mut m = l;
+            if r < n && self.a[r].t < self.a[l].t {
+                m = r;
+            }
+            if self.a[i].t <= self.a[m].t {
+                break;
+            }
+            self.a.swap(i, m);
+            i = m;
+        }
+    }
+}
+
+/// Derive S(k) sequence for one grid, matching the C algorithm:
+/// - mark visited when enqueued (so each cell enqueued at most once)
+/// - always pop reachable cell with minimum value
+/// - S(k) is running maximum of popped values, with S(0)=0
+fn derive_levels(grid: &[i32], w: usize, h: usize, sx: usize, sy: usize) -> Vec<i32> {
+    let n = w * h;
+    let mut visited = vec![false; n];
+    let mut heap = MinHeap::new(n.min(150_000)); // capacity hint; not a hard limit in Rust
+
+    let mut levels = Vec::with_capacity(n + 1);
+    levels.push(0);
+
+    let start = sy * w + sx;
+    visited[start] = true;
+    heap.push(Node {
+        t: grid[start],
+        r: sy as u16,
+        c: sx as u16,
+    });
+
+    let mut current_max = 0i32;
+
+    while !heap.is_empty() {
+        let Node { t, r, c } = heap.pop_min();
+        if t > current_max {
+            current_max = t;
+        }
+        levels.push(current_max);
+
+        let r = r as usize;
+        let c = c as usize;
+
+        // neighbors; compute indices directly
+        if r > 0 {
+            let ni = (r - 1) * w + c;
+            if !visited[ni] {
+                visited[ni] = true;
+                heap.push(Node {
+                    t: grid[ni],
+                    r: (r - 1) as u16,
+                    c: c as u16,
+                });
+            }
+        }
+        if c + 1 < w {
+            let ni = r * w + (c + 1);
+            if !visited[ni] {
+                visited[ni] = true;
+                heap.push(Node {
+                    t: grid[ni],
+                    r: r as u16,
+                    c: (c + 1) as u16,
+                });
+            }
+        }
+        if r + 1 < h {
+            let ni = (r + 1) * w + c;
+            if !visited[ni] {
+                visited[ni] = true;
+                heap.push(Node {
+                    t: grid[ni],
+                    r: (r + 1) as u16,
+                    c: c as u16,
+                });
+            }
+        }
+        if c > 0 {
+            let ni = r * w + (c - 1);
+            if !visited[ni] {
+                visited[ni] = true;
+                heap.push(Node {
+                    t: grid[ni],
+                    r: r as u16,
+                    c: (c - 1) as u16,
+                });
+            }
+        }
+    }
+
+    levels
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let r_budget = sc.next_usize();
+        if r_budget == 0 {
+            break;
+        }
+
+        let mut seqs: [Vec<i32>; 2] = [Vec::new(), Vec::new()];
+
+        for g in 0..2 {
+            let w = sc.next_usize();
+            let h = sc.next_usize();
+            let x0 = sc.next_usize() - 1;
+            let y0 = sc.next_usize() - 1;
+
+            let mut grid = vec![0i32; w * h];
+            for r in 0..h {
+                let base = r * w;
+                for c in 0..w {
+                    grid[base + c] = sc.next_usize() as i32;
+                }
+            }
+
+            seqs[g] = derive_levels(&grid, w, h, x0, y0);
+        }
+
+        let mut ans = i32::MAX;
+        for i in 0..=r_budget {
+            let j = r_budget - i;
+            if i < seqs[0].len() && j < seqs[1].len() {
+                let t = seqs[0][i] + seqs[1][j];
+                if t < ans {
+                    ans = t;
+                }
+            }
+        }
+
+        out.push_str(&ans.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

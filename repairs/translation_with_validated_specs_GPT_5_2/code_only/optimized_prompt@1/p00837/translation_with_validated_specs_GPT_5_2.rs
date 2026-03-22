@@ -1,0 +1,151 @@
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct T {
+    stu: i32,
+    seq: i32,
+    id: usize,
+}
+
+fn main() {
+    // Read entire stdin, parse as integers like scanf("%d")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        let c: i32 = it.next().unwrap().parse().unwrap();
+        let n: i32 = it.next().unwrap().parse().unwrap();
+
+        if m <= 0 {
+            break;
+        }
+
+        // Arrays sized to match C code.
+        // desk[12][5001], hi[12], book[101][2], req[5002]
+        let mut hi = [0i32; 12];
+        let mut desk = [[0usize; 5001]; 12];
+        let mut book = [[0i32; 2]; 101];
+        let mut req: Vec<T> = Vec::with_capacity(5002);
+
+        let tmp_init = m + 1; // initial "from" desk for first-time-seen books
+
+        for i in 0..(n as i32) {
+            let t: i32 = it.next().unwrap().parse().unwrap();
+            for j in 0..t {
+                let id_i32: i32 = it.next().unwrap().parse().unwrap();
+                let id = id_i32 as usize;
+
+                req.push(T {
+                    stu: i,
+                    seq: j,
+                    id,
+                });
+
+                if book[id][0] == 0 {
+                    let tmp = tmp_init as usize;
+                    book[id][0] = tmp_init;
+                    book[id][1] = hi[tmp];
+                    let h = hi[tmp] as usize;
+                    desk[tmp][h] = id;
+                    hi[tmp] += 1;
+                }
+            }
+        }
+
+        // qsort with cmp: by seq, then by stu (both ascending).
+        req.sort_by(|a, b| {
+            match a.seq.cmp(&b.seq) {
+                Ordering::Equal => a.stu.cmp(&b.stu),
+                other => other,
+            }
+        });
+
+        // Use i64 for ans to avoid overflow panics; C uses int (overflow UB),
+        // but typical AOJ constraints keep it in range. This is a conservative choice.
+        let mut ans: i64 = 0;
+
+        for r in req.iter() {
+            let id = r.id;
+            let from = book[id][0] as usize;
+            let pos = book[id][1] as usize;
+
+            // Remove id from desk[from] at index pos by shifting left.
+            let hi_from = hi[from] as usize;
+            for j in (pos + 1)..hi_from {
+                let t_id = desk[from][j];
+                book[t_id][1] -= 1;
+                desk[from][j - 1] = desk[from][j];
+            }
+            hi[from] -= 1;
+            ans += from as i64;
+
+            if hi[1] == c {
+                // Find first tmp in [2..=m] with hi[tmp] != c
+                let mut tmp = 2i32;
+                while tmp <= m && hi[tmp as usize] == c {
+                    tmp += 1;
+                }
+                let tmpu = tmp as usize;
+
+                // Put current id into desk[tmp]
+                let htmp = hi[tmpu] as usize;
+                desk[tmpu][htmp] = id;
+                hi[tmpu] += 1;
+                ans += tmp as i64;
+
+                // Evict from desk[1] front (index 0)
+                let id2 = desk[1][0];
+                let hi1 = hi[1] as usize;
+                for j in 1..hi1 {
+                    let t_id = desk[1][j];
+                    book[t_id][1] -= 1;
+                    desk[1][j - 1] = desk[1][j];
+                }
+                hi[1] -= 1;
+                ans += 1;
+
+                // Find first j in [2..=m] with hi[j] != c
+                let mut jv = 2i32;
+                while jv <= m && hi[jv as usize] == c {
+                    jv += 1;
+                }
+                let ju = jv as usize;
+
+                // Insert id2 into desk[j] at position pos = hi[j], but if j==tmp then pos--
+                let mut pos2 = hi[ju] as i32;
+                if jv == tmp {
+                    pos2 -= 1;
+                }
+                let pos2u = pos2 as usize;
+                desk[ju][pos2u] = id2;
+                hi[ju] += 1;
+                book[id2][0] = jv;
+                book[id2][1] = pos2;
+
+                ans += (jv as i64) + (tmp as i64);
+                hi[tmpu] -= 1;
+            }
+
+            // Move requested id to desk 1 at the end
+            book[id][0] = 1;
+            book[id][1] = hi[1];
+            let h1 = hi[1] as usize;
+            desk[1][h1] = id;
+            hi[1] += 1;
+            ans += 1;
+        }
+
+        out.push_str(&format!("{}\n", ans));
+    }
+
+    print!("{out}");
+}

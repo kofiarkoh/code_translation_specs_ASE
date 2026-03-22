@@ -1,0 +1,39 @@
+use std::io::{self, Read};
+
+fn souti(a: u8, b: u8) -> u8 {
+    if a == b'T' && b == b'F' { b'F' } else { b'T' }
+}
+
+fn main() {
+    // Read entire stdin, then parse tokens like scanf("%d") and scanf("%3s").
+    let mut input = String::new();
+    if io::stdin().read_to_string(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next().and_then(|t| t.parse::<i32>().ok()) {
+        Some(v) => v as usize, // mirrors C's int->loop usage; negative would behave oddly in C too
+        None => std::process::exit(1),
+    };
+
+    let mut p: Vec<u8> = vec![0; n];
+    for i in 0..n {
+        let tok = match it.next() {
+            Some(t) => t,
+            None => std::process::exit(1),
+        };
+        // scanf("%3s", hoge) reads up to 3 non-whitespace chars; we already have a token.
+        // C then uses hoge[0]; if empty token can't happen with %s.
+        p[i] = tok.as_bytes()[0];
+    }
+
+    // The C code assumes N >= 2; if N < 2 it would read out of bounds (UB).
+    // We emulate the intended behavior for valid inputs (N >= 2).
+    let mut notomamiko = souti(p[0], p[1]);
+    for i in 2..n {
+        notomamiko = souti(notomamiko, p[i]);
+    }
+
+    print!("{}\n", notomamiko as char);
+}

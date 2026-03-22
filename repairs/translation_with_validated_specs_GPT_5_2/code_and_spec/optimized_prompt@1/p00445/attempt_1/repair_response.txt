@@ -1,0 +1,37 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then split by whitespace into tokens (matches scanf("%s")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for token in input.split_whitespace() {
+        // The C code operates on bytes/ASCII; the spec describes text tokens but uses exact
+        // 3-character substrings "JOI"/"IOI". We count on UTF-8 bytes; for non-ASCII this
+        // differs from "characters", but the intended problem uses ASCII.
+        let b = token.as_bytes();
+        let n = b.len();
+
+        let mut joi = 0i32;
+        let mut ioi = 0i32;
+
+        if n >= 3 {
+            for i in 0..=(n - 3) {
+                if &b[i..i + 3] == b"JOI" {
+                    joi += 1;
+                }
+                if &b[i..i + 3] == b"IOI" {
+                    ioi += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{joi}\n{ioi}\n"));
+    }
+
+    print!("{out}");
+}
+```

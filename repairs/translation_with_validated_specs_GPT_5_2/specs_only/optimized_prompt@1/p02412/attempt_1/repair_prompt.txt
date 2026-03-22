@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Repeatedly processes pairs of integers and, for each pair, computes the number of distinct unordered triples of different integers chosen from the range 1 through the given upper bound whose sum equals the given target. Processing stops when a terminating pair is provided.
+
+2. Inputs  
+- A sequence of integer pairs:  
+  - An upper bound value.  
+  - A target sum value.  
+- A terminating pair consisting of two zeros.
+
+3. Outputs  
+- For each non-terminating input pair, outputs a single integer: the count of distinct unordered triples of pairwise distinct integers in the range [1, upper bound] whose sum equals the target.
+
+4. Preconditions  
+- Each input pair is available and consists of two integers.  
+- The upper bound is assumed to be non-negative.  
+- The computed count is assumed to fit within the integer range of the execution environment.
+
+5. Postconditions  
+For each processed (non-terminating) input pair (n, x):  
+- The program outputs the number of sets {a, b, c} such that:  
+  - 1 ≤ a, b, c ≤ n  
+  - a, b, c are all different  
+  - a + b + c = x  
+- No output is produced for the terminating pair (0, 0).
+
+6. Invariants  
+- During processing of a given input pair, the accumulated count corresponds to the number of ordered permutations of valid triples encountered so far; the final reported value corresponds to the unordered triple count.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling is defined for malformed input, missing input, or input conversion failures.  
+- No explicit handling is defined for arithmetic overflow.
+
+8. State Transitions (if applicable)  
+- Repeats in a “waiting for next pair” state.  
+- On receiving a non-terminating pair, transitions to “compute and output result,” then returns to waiting for the next pair.  
+- On receiving the terminating pair (0, 0), transitions to “terminated” and exits.
+
+9. Non-functional Constraints (if inferable)  
+- Time cost grows cubically with the upper bound per processed pair.  
+- Uses constant additional memory aside from a fixed set of scalar variables.
+```

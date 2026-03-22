@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the maximum size of a subset of `n` entities that can be simultaneously selected such that, for every selected entity, all of its stated binary assertions about other entities’ selection status are satisfied by the subset.
+
+2. Inputs  
+- An integer `n`: the number of entities.  
+- For each entity `i` in `[1..n]`:  
+  - An integer `a[i]`: the number of assertions made by entity `i`.  
+  - Then `a[i]` pairs `(t, v)` where:  
+    - `t` identifies a target entity (1-based index).  
+    - `v` is a binary value indicating the asserted selection status of the target entity (0 = not selected, 1 = selected).
+
+3. Outputs  
+- A single integer: the maximum number of entities that can be selected while satisfying all assertions made by selected entities.
+
+4. Preconditions  
+- `0 <= n <= 20`.  
+- For each entity `i`, `0 <= a[i] <= 20`.  
+- Each assertion’s target index `t` is in `[1..n]`.  
+- Each assertion’s binary value `v` is either `0` or `1`.  
+- The input provides exactly the required number of integers.  
+- Assumption: right-shift behavior on non-negative integers is well-defined; the program’s intended use is with `n` such that subset enumeration is representable in the integer type used.
+
+5. Postconditions  
+- Let `S` be any subset of entities. `S` is considered consistent if for every entity `j` in `S`, and for every assertion `(t, v)` made by `j`, the membership of `t` in `S` equals `v`.  
+- The output equals `max{|S| : S is consistent}`.  
+- If no non-empty subset is consistent, the output is `0` (the empty subset is always consistent).
+
+6. Invariants  
+- During evaluation, a subset is treated as valid only if all assertions of all selected entities match the subset’s membership decisions for their referenced targets.  
+- The reported maximum is always the size of some consistent subset examined so far and never decreases.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If preconditions are violated (e.g., out-of-range sizes/indices, malformed input, or values outside expected domains), behavior is undefined (may compute an incorrect result or access invalid memory).
+
+8. State Transitions (if applicable)  
+- Stateless with respect to external state: reads input once, computes a result, outputs it, and terminates. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity grows exponentially with `n` due to enumeration of all subsets; practical only for small `n` (up to 20 as implied by fixed storage).  
+- Memory usage is bounded by fixed-size storage for up to 20 entities and up to 20 assertions per entity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int counter(int z){
+    if(z==0) return 0;
+    else return counter(z>>1)+(z&1);
+}
+int main(void)
+{
+    int n=0,max=0,count=0,flag=1;
+    int a[20]={},x[20][20]={},y[20][20]={};
+    scanf("%d",&n);
+    for(int i=0;i<n;i++){
+        scanf("%d",&a[i]);
+        for(int j=0;j<a[i];j++){
+            scanf("%d %d",&x[i][j],&y[i][j]);
+        }
+    }
+    for(int i=0;i<(1<<n);i++){
+        flag=1;
+        for(int j=0;j<n;j++){
+            if(!(i&(1<<j))) continue;
+            for(int k=0;k<a[j];k++){
+                if((i>>(x[j][k]-1)&1)^y[j][k]){
+                    flag=0;
+                    break;
+                }
+            }
+        }
+        // 矛盾がなかった時
+        if(flag==1){
+            count=counter(i);
+            if(max<count) max=count;
+        }
+    }
+    printf("%d",max);
+    return 0;
+}
+
+void zeros(int *a){
+    for(int i=0;i<20;i++) a[i]=0;
+}
+=== C CODE END ===

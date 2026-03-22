@@ -1,0 +1,110 @@
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; parsing is whitespace-delimited, matching "leading whitespace skipped".
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let w_opt = it.next();
+        if w_opt.is_none() {
+            break; // No explicit error handling per spec; just stop if input ends.
+        }
+        let w: usize = w_opt.unwrap().parse().unwrap();
+        let h: usize = it.next().unwrap().parse().unwrap();
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        // Grid storage; '&' is replaced with '.' immediately upon read.
+        let mut grid: Vec<Vec<u8>> = vec![vec![b'.'; w]; h];
+        let mut sx: usize = 0;
+        let mut sy: usize = 0;
+
+        for y in 0..h {
+            for x in 0..w {
+                let tok = it.next().unwrap();
+                // The spec says "exactly h*w characters" with leading whitespace skipped.
+                // Using split_whitespace means we take the first byte of each token.
+                let mut ch = tok.as_bytes()[0];
+                if ch == b'&' {
+                    // If multiple '&' exist, the last one in row-major order wins.
+                    sx = x;
+                    sy = y;
+                    ch = b'.';
+                }
+                grid[y][x] = ch;
+            }
+        }
+
+        // Cost array: 0 means unreached; positive values are best-known costs.
+        let mut c: Vec<Vec<u32>> = vec![vec![0u32; w]; h];
+
+        // Start cell initial cost is 1 (not 0).
+        c[sy][sx] = 1;
+
+        // FIFO queue-driven repeated relaxation (no settled state).
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+        q.push_back((sx, sy));
+
+        while let Some((ux, uy)) = q.pop_front() {
+            let cu = c[uy][ux];
+            // If cu is 0, it would mean unreached; but start is 1 and we only enqueue on update.
+            // Still, keep semantics simple and proceed.
+
+            // Four orthogonal neighbors.
+            let neighbors = [
+                (ux.wrapping_sub(1), uy, ux > 0),
+                (ux + 1, uy, ux + 1 < w),
+                (ux, uy.wrapping_sub(1), uy > 0),
+                (ux, uy + 1, uy + 1 < h),
+            ];
+
+            for &(vx, vy, ok) in &neighbors {
+                if !ok {
+                    continue;
+                }
+                let candidate = if grid[uy][ux] == grid[vy][vx] {
+                    cu
+                } else {
+                    cu + 1
+                };
+
+                let cv = c[vy][vx];
+                if cv == 0 || candidate < cv {
+                    c[vy][vx] = candidate;
+                    q.push_back((vx, vy));
+                }
+            }
+        }
+
+        // Boundary minimum of c[cell] / 2 using integer division.
+        // Spec assumes well-formed input with at least one '&'; thus at least start is reached.
+        let mut best: Option<u32> = None;
+
+        for y in 0..h {
+            for x in 0..w {
+                let is_boundary = x == 0 || y == 0 || x + 1 == w || y + 1 == h;
+                if !is_boundary {
+                    continue;
+                }
+                let val = c[y][x] / 2;
+                best = Some(match best {
+                    None => val,
+                    Some(b) => min(b, val),
+                });
+            }
+        }
+
+        let ans = best.unwrap_or(0);
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

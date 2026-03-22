@@ -1,0 +1,105 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n < 0 {
+            break;
+        }
+
+        // mir[a][b][c][d], indices expected 0..8 by spec.
+        let mut mir = [[[[false; 9]; 9]; 9]; 9];
+
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+
+            if s.as_bytes()[0] == b'x' {
+                // Segment between (x,y) and (x+1,y)
+                mir[x][y][x + 1][y] = true;
+            } else {
+                // Segment between (x,y) and (x,y+1)
+                mir[x][y][x][y + 1] = true;
+            }
+        }
+
+        // State
+        let mut x: i32 = 50;
+        let mut y: i32 = 0;
+        let mut d: usize = 0;
+        let mut v: bool = true; // v=1 initially
+        let mut wall: i32 = 1; // 1 means no reflection on most recent move
+        let mut i: i32 = 0;
+
+        // Direction increments
+        let dx = [50, -50, -50, 50];
+        let dy = [50, 50, -50, -50];
+
+        // Reflection mappings
+        let tr0 = [3usize, 2, 1, 0];
+        let tr1 = [1usize, 0, 3, 2];
+
+        let (final_x, final_y) = loop {
+            // Termination checks (enabled only once i >= 2), before movement.
+            if i >= 2 {
+                if x == 100 && y == 50 && d == 0 {
+                    break (75, 25);
+                }
+                if wall == 1 && (x == 0 || y == 0 || x == 800 || y == 800) {
+                    break (x, y);
+                }
+            }
+
+            // Move
+            x += dx[d];
+            y += dy[d];
+
+            // Assume no reflection for this moved step; clear if reflection occurs.
+            wall = 1;
+
+            // Exactly one mirror-crossing test based on current v.
+            if v {
+                // mir[X/100][(Y-50)/100][X/100][(Y+50)/100]
+                let a = (x / 100) as usize;
+                let b = ((y - 50) / 100) as usize;
+                let c = (x / 100) as usize;
+                let dd = ((y + 50) / 100) as usize;
+                if mir[a][b][c][dd] {
+                    d = tr1[d];
+                    wall = 0;
+                }
+            } else {
+                // mir[(X-50)/100][Y/100][(X+50)/100][Y/100]
+                let a = ((x - 50) / 100) as usize;
+                let b = (y / 100) as usize;
+                let c = ((x + 50) / 100) as usize;
+                let dd = (y / 100) as usize;
+                if mir[a][b][c][dd] {
+                    d = tr0[d];
+                    wall = 0;
+                }
+            }
+
+            // End of iteration: increment i and flip v.
+            i += 1;
+            v = !v;
+        };
+
+        out.push_str(&format!("{} {}\n", final_x, final_y));
+    }
+
+    print!("{out}");
+}
+```

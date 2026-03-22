@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes, modulo a fixed constant, the number of valid sequences of daily participant subsets over a given number of days, subject to (a) a per-day required participant constraint and (b) a day-to-day overlap constraint. The first day additionally requires inclusion of a fixed designated initial participant.
+
+2. Inputs  
+- An integer `N` representing the number of days.  
+- A string `in` of length `N` consisting only of the characters `J`, `O`, and `I`, where `in[d]` denotes the required participant for day `d`.
+
+3. Outputs  
+- A single non-negative integer: the number of valid sequences, reduced modulo `10007`.
+
+4. Preconditions / Assumptions  
+- `N` is read as an integer and `in` is read as a whitespace-delimited string.  
+- The string length equals `N`.  
+- Every character of the string is one of `J`, `O`, `I`. (If not, behavior is undefined due to the program’s use of an uninitialized value.)  
+- `N` does not exceed the fixed input buffer capacity (effectively `N ≤ 1000`).  
+- The program assumes `N ≥ 1`; if `N = 0`, the program’s behavior does not correspond to a meaningful “0-day” count (it will still output a value based on its initial state).
+
+5. Postconditions / Validity Rules  
+Let the three participants be exactly `J`, `O`, and `I`. For each day `d`, a “daily subset” is any subset of `{J, O, I}` (including possibly the empty subset as a representable state, though it will not contribute to valid sequences under the transition rules below).
+
+A sequence of daily subsets of length `N` is counted by the program iff it satisfies:
+
+- **Day 0 constraint (special):** the day-0 subset must include the required participant `in[0]` and must also include participant `J` (the designated initial participant).  
+- **Day d constraint for d > 0:** the day-`d` subset must include the required participant `in[d]`.  
+- **Day-to-day overlap for d > 0:** the day-`d` subset must share at least one participant with the day-(d−1) subset (i.e., their intersection is non-empty).
+
+The program outputs the number of such sequences modulo `10007`.
+
+6. Counting and Modulo Behavior  
+- All counts are accumulated modulo `10007` throughout the computation.  
+- The final output is the sum (modulo `10007`) of the counts of sequences ending in each possible subset state after day `N−1`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. Missing input, malformed input, unsupported characters, or violations of size assumptions result in unspecified/undefined behavior.
+
+8. State Transitions (High-level)  
+- The computation maintains, for each day, counts of partial sequences indexed by the subset chosen for that day.  
+- Initialization corresponds to “before day 0” having only the subset `{J}` as the prior state.  
+- Day 0 is handled with the stricter requirement that the chosen subset contains both `J` and the day-0 required participant.  
+- For each subsequent day, a next-day subset is reachable from a previous-day subset only if it (a) includes the day’s required participant and (b) overlaps the previous-day subset by at least one participant.
+```

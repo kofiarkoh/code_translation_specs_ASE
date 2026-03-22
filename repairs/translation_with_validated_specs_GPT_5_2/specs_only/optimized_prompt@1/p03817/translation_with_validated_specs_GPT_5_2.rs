@@ -1,0 +1,38 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    // If input cannot be read, output is unspecified per spec; we simply do nothing.
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    let n: i64 = match input.split_whitespace().next() {
+        Some(tok) => match tok.parse() {
+            Ok(v) => v,
+            Err(_) => return, // unspecified; do nothing
+        },
+        None => return, // unspecified; do nothing
+    };
+
+    // Use Rust's integer division/remainder semantics (trunc toward zero),
+    // matching the spec's note for negative inputs.
+    let q = n / 11;
+    let r = n % 11;
+
+    let add = if r == 0 {
+        0
+    } else if (1..=6).contains(&r) {
+        1
+    } else if (7..=10).contains(&r) {
+        2
+    } else {
+        // For negative inputs, r can be negative; behavior is not meaningfully specified.
+        // Narrowest reasonable interpretation: no additional cost outside the stated ranges.
+        0
+    };
+
+    // No explicit overflow checks per spec.
+    let ans = 2 * q + add;
+    print!("{ans}");
+}

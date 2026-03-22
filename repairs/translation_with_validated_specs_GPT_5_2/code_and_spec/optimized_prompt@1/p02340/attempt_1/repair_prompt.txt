@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, for given nonnegative integers \(n\) and \(k\), the number of ways to express \(n\) as a sum of positive integers where each summand is at most \(k\), with order of summands not significant (i.e., integer partitions with maximum part size \(k\)). The result is reported modulo \(1{,}000{,}000{,}007\).
+
+2. Inputs  
+- Two integers \(n\) and \(k\) provided via standard input.
+
+3. Outputs  
+- A single integer written to standard output: the computed count modulo \(1{,}000{,}000{,}007\).
+
+4. Preconditions  
+- Input must contain two integers.  
+- \(0 \le n \le 1000\).  
+- \(0 \le k \le 1000\).  
+(If these bounds are violated, behavior is not defined by the program’s contract.)
+
+5. Postconditions  
+- The output equals the number of integer partitions of \(n\) using parts in the range \([1, k]\), reduced modulo \(1{,}000{,}000{,}007\).  
+- Special cases implied:  
+  - If \(n = 0\), the output is 1 for any \(k \ge 0\).  
+  - If \(k = 0\), the output is 1 iff \(n = 0\), otherwise 0.
+
+6. Invariants  
+- All computed counts are maintained modulo \(1{,}000{,}000{,}007\) and therefore remain within \([0, 1{,}000{,}000{,}006]\).  
+- For any valid \(k\) and \(n\), the reported value depends only on \(k\), \(n\), and the fixed modulus.
+
+7. Error Handling / Exceptional Behavior  
+- If input cannot be read, the program does not guarantee a meaningful result (it may proceed with unspecified values).  
+- No explicit error messages are produced for invalid or missing input.
+
+8. State Transitions (if applicable)  
+- Initializes an internal table of partition counts once per execution, then produces exactly one output and terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed amount of memory proportional to the product of the maximum supported \(k\) and \(n\) (bounded by the compiled limits).  
+- Runtime is bounded by a precomputation over all \(k \in [0,1000]\) and \(n \in [0,1000]\), independent of the specific input values within those bounds.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+#define NUM_MAX 1000
+#define K_MAX 1000
+
+// pdp[# of partitions][# of balls]
+static uint64_t pdp[K_MAX+1][NUM_MAX+1];
+void init() {
+    pdp[0][0] = 1;
+    int i, j;
+    for(i = 1; i <= K_MAX; i++) {
+        for(j = 0; j <= NUM_MAX; j++) {
+            pdp[i][j] = pdp[i-1][j];
+            if(j>=i) pdp[i][j] = (pdp[i][j] + pdp[i][j-i])%DIVISOR;
+        }
+    }
+    return;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+    init();
+    printf("%d\n", (int)pdp[k][n]);
+    return 0;
+}
+=== C CODE END ===

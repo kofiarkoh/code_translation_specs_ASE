@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads multiple datasets. For each dataset, computes and outputs the number of adjacent element exchanges required to sort the given integer sequence into nondecreasing order using only swaps of neighboring elements (equivalently, the number of inversions in the sequence).
+
+2. Inputs  
+- A sequence of datasets from standard input.  
+- Each dataset begins with an integer length, followed by that many integers forming the sequence.  
+- Input terminates when a dataset length of zero is encountered or when no further length can be read.
+
+3. Outputs  
+- For each non-terminating dataset, writes a single integer to standard output: the count of adjacent swaps needed to sort the dataset’s sequence into nondecreasing order.  
+- Each result is output on its own line.
+
+4. Preconditions  
+- For each dataset processed:  
+  - The length is a positive integer not exceeding 100.  
+  - Exactly that many integers are available to be read for the sequence.  
+- The computed swap count fits within the range of a signed integer.
+
+5. Postconditions  
+- For every dataset with positive length that is successfully read, exactly one corresponding swap-count value is produced.  
+- The reported value equals the number of index pairs (i, j) with i < j such that the earlier element is greater than the later element in the original sequence.
+
+6. Invariants  
+- Within a dataset, the swap count is nonnegative and increases by exactly one per adjacent exchange needed to eliminate an out-of-order neighboring pair.  
+- The final swap count depends only on the initial sequence values and equals the inversion count.
+
+7. Error Handling / Exceptional Behavior  
+- If the dataset length cannot be read, processing stops with no further output.  
+- If the length is zero, processing stops with no output for that terminating dataset.  
+- If fewer than the required sequence elements are present or input is otherwise malformed after a positive length, behavior is unspecified (the program does not guarantee a defined result).
+
+8. State Transitions (if applicable)  
+- Repeats the cycle: read dataset length → if terminating, stop; else read sequence → compute swap count → output result → proceed to next dataset.  
+- No persistent state is carried between datasets other than continuing to read input.
+
+9. Non-functional Constraints (if inferable)  
+- Supports sequences up to 100 elements per dataset.  
+- Time per dataset grows quadratically with the dataset length; memory usage is bounded and constant with respect to input size beyond the fixed array.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+
+int main(void) {
+    int a[100], n, i, u, swap_count, t;
+
+    while (scanf("%d", &n) == 1 && n) {
+        for (i = 0; i < n; i++) {
+            scanf("%d", &(a[i]));
+        }
+        swap_count = 0;
+        for (u = n - 1; u > 0; u--) {
+            for (i = 0; i < u; i++) {
+                if (a[i] > a[i+1]) {
+                    t = a[i];
+                    a[i] = a[i+1];
+                    a[i+1] = t;
+                    swap_count++;
+                }
+            }
+        }
+        printf("%d\n", swap_count);
+    }
+    return 0;
+}
+=== C CODE END ===

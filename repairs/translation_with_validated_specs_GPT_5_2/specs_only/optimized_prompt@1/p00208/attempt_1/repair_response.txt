@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; behavior on I/O failure is unspecified by the spec,
+    // so we keep it simple and let Rust's default behavior apply.
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        // Spec precondition: each token intended for processing is a valid integer.
+        // If parsing fails, behavior is unspecified; we stop processing.
+        let x_i64: i64 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if x_i64 == 0 {
+            break;
+        }
+
+        // Spec precondition: each nonzero input integer is non-negative.
+        // If negative values are provided, behavior is not meaningfully defined.
+        // We choose the narrowest reasonable behavior: do nothing for negatives.
+        if x_i64 < 0 {
+            continue;
+        }
+
+        let mut x: u64 = x_i64 as u64;
+
+        // Fixed-size internal storage: up to 199 base-8 digits.
+        // The spec says overflow would be undefined; we avoid panics and keep within bounds.
+        let mut digits = [0u8; 199];
+        let mut len: usize = 0;
+
+        // Convert to base-8 digits, least significant first.
+        // For x > 0, there is at least one digit.
+        while x > 0 && len < digits.len() {
+            digits[len] = (x & 7) as u8;
+            len += 1;
+            x >>= 3;
+        }
+
+        // If x is still > 0 here, it would require more than 199 base-8 digits.
+        // Spec says behavior is undefined; we choose to truncate silently.
+
+        // Output transformed digits, most significant first.
+        for i in (0..len).rev() {
+            let d = digits[i];
+            let t = if d <= 3 {
+                d
+            } else if d <= 5 {
+                d + 1
+            } else {
+                d + 2
+            };
+            out.push(char::from(b'0' + t));
+        }
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

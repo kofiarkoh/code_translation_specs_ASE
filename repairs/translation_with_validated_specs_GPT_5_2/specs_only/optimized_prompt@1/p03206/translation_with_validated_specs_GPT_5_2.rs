@@ -1,0 +1,23 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    // Behavior for missing/invalid input is unspecified by the specification.
+    // We attempt to read and parse; if it fails, we produce no output.
+    if io::stdin().read_to_string(&mut input).is_err() {
+        return;
+    }
+
+    let day: i64 = match input.split_whitespace().next().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    match day {
+        25 => println!("Christmas"),
+        24 => println!("Christmas Eve"),
+        23 => println!("Christmas Eve Eve"),
+        22 => println!("Christmas Eve Eve Eve"),
+        _ => {}
+    }
+}

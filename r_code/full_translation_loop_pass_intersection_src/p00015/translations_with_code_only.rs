@@ -1,0 +1,98 @@
+use std::io::{self, Read};
+
+const LEN: usize = 128;
+
+fn convert(char_num: &str, int_num: &mut [i32; LEN]) {
+    // Mirrors C: iterate from end to start, store digits reversed.
+    // C does: (int)charNum[i] - 48; no validation; we emulate byte-based behavior.
+    let bytes = char_num.as_bytes();
+    let mut j: usize = 0;
+    for &b in bytes.iter().rev() {
+        if j >= LEN {
+            // In C this would overflow the array (UB). We clamp to avoid panic.
+            break;
+        }
+        int_num[j] = (b as i32) - 48;
+        j += 1;
+    }
+}
+
+fn main() {
+    // Token-based scanning like scanf("%d") / scanf("%s")
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let data_set: i32 = match it.next() {
+        Some(t) => t.parse::<i32>().unwrap_or(0), // scanf failure would leave dataSet uninitialized (UB); best-effort.
+        None => return,
+    };
+
+    let mut count: i32 = 1;
+
+    while count <= data_set {
+        count += 1;
+
+        // The C code loops on scanf != EOF then breaks immediately; effectively reads one token.
+        let first_num = match it.next() {
+            Some(s) => s,
+            None => break, // EOF: C would break out of inner while and then use old buffer (UB); we stop.
+        };
+        let second_num = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+
+        if first_num.len() > 80 || second_num.len() > 80 {
+            print!("overflow\n");
+            continue;
+        }
+
+        let mut f_num = [0i32; LEN];
+        let mut s_num = [0i32; LEN];
+        let mut sum = [0i32; LEN];
+
+        convert(first_num, &mut f_num);
+        convert(second_num, &mut s_num);
+
+        for i in 0..LEN {
+            sum[i] = f_num[i] + s_num[i];
+        }
+
+        // Carry propagation. In C, sum[i+1] when i==LEN-1 is out-of-bounds (UB).
+        // We avoid panic and emulate "no further storage" by dropping the carry.
+        for i in 0..LEN {
+            if sum[i] >= 10 {
+                sum[i] %= 10;
+                if i + 1 < LEN {
+                    sum[i + 1] += 1;
+                }
+            }
+        }
+
+        let mut k: usize = 0;
+        let mut j: isize = (LEN as isize) - 1;
+        while j >= 0 {
+            let ju = j as usize;
+            if sum[ju] == 0 && ju != 0 {
+                k += 1;
+                j -= 1;
+            } else {
+                break;
+            }
+        }
+
+        if k < LEN - 80 {
+            print!("overflow");
+        } else {
+            // Print from LEN-k-1 down to 0 inclusive.
+            let mut l: isize = (LEN - k - 1) as isize;
+            while l >= 0 {
+                let lu = l as usize;
+                print!("{}", sum[lu]);
+                l -= 1;
+            }
+        }
+        print!("\n");
+    }
+}

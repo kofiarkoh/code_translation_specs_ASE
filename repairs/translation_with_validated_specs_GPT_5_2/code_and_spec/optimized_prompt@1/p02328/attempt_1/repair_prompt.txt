@@ -1,0 +1,108 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a histogram described by a bar count and bar heights, then computes the maximum rectangular area that can be formed by choosing a contiguous range of bars and taking the rectangle height as the minimum height within that range. Prints this maximum area as a signed decimal integer followed by a newline.
+
+2. Inputs  
+- One signed decimal integer `w` read from standard input, representing the number of histogram bars.  
+- Then exactly `w` signed decimal integers, each a bar height, read from standard input.
+
+3. Outputs  
+- One signed decimal integer (in base 10) written to standard output: the maximum rectangular area, followed by a newline.
+
+4. Preconditions / Assumptions  
+- `w` is interpreted as a `long long int` value as read by `scanf` with the `%lld` conversion.  
+- `0 <= w <= 100000`. (The program uses fixed-size internal arrays of length 100001 and additionally writes a sentinel value at index `w`.)  
+- Exactly `w` heights are present in the input and are interpreted as `long long int` values as read by `scanf` with `%lld`.  
+- Heights are assumed to be non-negative for the histogram interpretation; the program does not validate this.  
+- All intermediate and final area computations are performed in signed `long long int`; if multiplication or other arithmetic overflows that type, behavior is undefined.  
+- No explicit input validation is performed; if input is missing or not parseable by the stated conversions, the program’s behavior is undefined.
+
+5. Postconditions / Result Definition  
+Let the input heights be \(h_0, h_1, \dots, h_{w-1}\). The program outputs:
+\[
+\max_{0 \le l \le r < w} \left(\min_{k \in [l,r]} h_k\right)\cdot (r-l+1)
+\]
+If `w == 0`, the output is `0`.
+
+6. Algorithmic/State Properties (observable semantics)  
+- The computation is performed in a single pass over the bars plus an additional finalization step achieved by treating an extra trailing bar of height 0, ensuring all candidate rectangles are considered before termination.  
+- Internally, it maintains a set of candidate bar heights with associated earliest start positions such that heights are strictly increasing in the maintained structure; when a lower height is encountered, it finalizes areas for prior heights that can no longer extend to the current position.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages or recovery are provided. Violations of the preconditions (including `w` out of range, insufficient input values, or arithmetic overflow) result in undefined behavior.
+
+8. Termination Behavior  
+- After reading the required inputs, the program computes the maximum area, prints it, and terminates. No persistent state is kept across runs.
+
+9. Non-functional Constraints (inferable)  
+- Time complexity is linear in `w` under the stated assumptions.  
+- Memory usage is linear in `w` and bounded by the fixed maximum capacity (100001 elements).
+
+10. C I/O Contract (to match the source program)  
+- The program uses C standard I/O (`<stdio.h>`) and reads/writes `long long int` values using the `%lld` format for both `scanf` and `printf`. No fixed-width integer format macros are required or assumed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define MAX 100001
+struct rect {
+  long long int height;
+  long long int pos;
+};
+long long int table[MAX];
+long long int large_histogram(long long int w);
+int main(void)
+{
+  long long int i, j, w, temp, max = 0;
+  scanf("%lld", &w);
+  for (i = 0; i < w; i++) scanf("%lld", &table[i]);
+  temp = large_histogram(w);
+  if (max < temp) max = temp;
+  printf("%lld\n", max);
+}
+long long int large_histogram(long long int w)
+{
+  long long int i, sp = 0, max = 0;
+  struct rect stack[MAX];
+  table[w] = 0;
+  for (i = 0; i <= w; i++) {
+    struct rect r;
+    r.height = table[i];
+    r.pos = i;
+    if (!sp || stack[sp-1].height < r.height) stack[sp++] = r;
+    else if (stack[sp-1].height > r.height){
+      long long int target = i;
+      while (sp && stack[sp-1].height >= r.height) {
+        struct rect pre = stack[--sp];
+        long long int area = pre.height * (i - pre.pos);
+        if (max < area) max = area;
+        target = pre.pos;
+      }
+      r.pos = target;
+      stack[sp++] = r;
+    }
+  }
+  return max;
+}
+=== C CODE END ===

@@ -1,0 +1,55 @@
+use std::io::{self, Read};
+
+fn is_prime_like_c(n: i32) -> bool {
+    // Mirrors the C function p(n):
+    // for (i = t = 2; i*i <= n; ++i) { n%i?:t++; } return t-2;
+    // It returns 0 exactly when no divisors were found in [2, floor(sqrt(n))],
+    // i.e., when n is treated as prime by that logic.
+    //
+    // Note: Per spec, inputs are assumed >= 2 for defined/terminating behavior.
+    let mut i: i32 = 2;
+    let mut t: i32 = 2;
+    while i * i <= n {
+        if n % i == 0 {
+            t += 1;
+        }
+        i += 1;
+    }
+    (t - 2) == 0
+}
+
+fn main() {
+    // Read all input; C code uses scanf in a loop and stops on EOF.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut out = String::new();
+
+    for tok in input.split_whitespace() {
+        let x: i32 = match tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified in C; stop on parse failure
+        };
+
+        if x == 0 {
+            break; // sentinel: no output for 0
+        }
+
+        // Find L: greatest prime <= x (by decrementing)
+        let mut l = x;
+        while !is_prime_like_c(l) {
+            l -= 1;
+        }
+
+        // Find U: least prime >= x (by incrementing)
+        let mut u = x;
+        while !is_prime_like_c(u) {
+            u += 1;
+        }
+
+        out.push_str(&(u - l).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

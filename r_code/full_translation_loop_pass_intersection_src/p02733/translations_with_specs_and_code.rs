@@ -1,0 +1,108 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let k_limit: i32 = it.next().unwrap().parse().unwrap();
+
+    // Grid as bytes for fast access: grid[row][col], 0-based.
+    let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let s = it.next().unwrap().as_bytes().to_vec();
+        grid.push(s);
+    }
+
+    // Enumerate all horizontal cut configurations via bitmask over (h-1) gaps.
+    // Bit i (0-based) means cut after row i (between i and i+1).
+    let mut ans: i32 = 1 << 30;
+
+    if h == 0 || w == 0 {
+        // Not expected by spec (well-formed input), but keep behavior simple.
+        println!("{}", 0);
+        return;
+    }
+
+    let max_mask = 1usize << (h.saturating_sub(1));
+    for mask in 0..max_mask {
+        // Build row groups (bands) as inclusive ranges [start, end].
+        let mut bands: Vec<(usize, usize)> = Vec::new();
+        let mut start = 0usize;
+        for r in 0..(h - 1) {
+            if (mask >> r) & 1 == 1 {
+                bands.push((start, r));
+                start = r + 1;
+            }
+        }
+        bands.push((start, h - 1));
+
+        // Horizontal cuts count = number of bands - 1
+        let mut tmp: i32 = (bands.len() as i32) - 1;
+
+        // Current accumulated '1' counts per band since last vertical cut.
+        let mut count = vec![0i32; bands.len()];
+
+        let mut feasible = true;
+
+        // Scan columns left-to-right, greedily placing vertical cuts as needed.
+        for col in 0..w {
+            // Try to add this column to current segment.
+            let mut next_count = count.clone();
+            let mut ok = true;
+            for (bi, &(rs, re)) in bands.iter().enumerate() {
+                let mut add = 0i32;
+                for r in rs..=re {
+                    if grid[r][col] == b'1' {
+                        add += 1;
+                    }
+                }
+                next_count[bi] += add;
+                if next_count[bi] > k_limit {
+                    ok = false;
+                    break;
+                }
+            }
+
+            if ok {
+                count = next_count;
+                continue;
+            }
+
+            // Need a vertical cut before this column: reset counts and try again with only this column.
+            let mut fresh_count = vec![0i32; bands.len()];
+            let mut ok_single = true;
+            for (bi, &(rs, re)) in bands.iter().enumerate() {
+                let mut add = 0i32;
+                for r in rs..=re {
+                    if grid[r][col] == b'1' {
+                        add += 1;
+                    }
+                }
+                fresh_count[bi] = add;
+                if fresh_count[bi] > k_limit {
+                    ok_single = false;
+                    break;
+                }
+            }
+
+            if !ok_single {
+                feasible = false;
+                break;
+            }
+
+            tmp += 1; // one vertical cut inserted
+            count = fresh_count;
+        }
+
+        if feasible && tmp < ans {
+            ans = tmp;
+        }
+    }
+
+    // Per spec: if no feasible partition exists, prints a large sentinel-like integer.
+    println!("{}", ans);
+}

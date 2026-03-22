@@ -1,0 +1,104 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    w: i64,
+}
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let p: f64 = match it.next() {
+        Some(s) => s.parse::<f64>().unwrap(),
+        None => return, // No input: unspecified; exit quietly.
+    };
+    let n: usize = match it.next() {
+        Some(s) => s.parse::<usize>().unwrap(),
+        None => return,
+    };
+
+    // Build adjacency list for an undirected weighted graph.
+    let mut adj: Vec<Vec<Edge>> = vec![Vec::new(); n.saturating_add(1)];
+    if n >= 2 {
+        for _ in 0..(n - 1) {
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+            let c: i64 = it.next().unwrap().parse().unwrap();
+            if x <= n && y <= n {
+                adj[x].push(Edge { to: y, w: c });
+                adj[y].push(Edge { to: x, w: c });
+            } else {
+                // Preconditions say indices are within [1, N]; no explicit error handling.
+                // If violated, we ignore out-of-range edges to keep memory safe.
+            }
+        }
+    }
+
+    // Traversal from node 1, assigning depth and parent-edge weight on first discovery.
+    // Unreached nodes retain default-initialized values (depth=0, parent_w=0), per spec.
+    let mut visited = vec![false; n.saturating_add(1)];
+    let mut depth: Vec<usize> = vec![0; n.saturating_add(1)];
+    let mut parent_w: Vec<i64> = vec![0; n.saturating_add(1)];
+
+    let mut max_depth: usize = 0;
+
+    if n >= 1 {
+        let mut q = VecDeque::new();
+        visited[1] = true;
+        depth[1] = 0;
+        parent_w[1] = 0;
+        q.push_back(1);
+
+        while let Some(u) = q.pop_front() {
+            let du = depth[u];
+            if du > max_depth {
+                max_depth = du;
+            }
+            for &e in &adj[u] {
+                let v = e.to;
+                if v == 0 || v > n {
+                    continue;
+                }
+                if !visited[v] {
+                    visited[v] = true;
+                    depth[v] = du.saturating_add(1);
+                    parent_w[v] = e.w;
+                    q.push_back(v);
+                }
+            }
+        }
+    }
+
+    // Precompute powers P^d up to max_depth reached.
+    // For unreached nodes, depth remains 0, so they use P^0 = 1.
+    let mut powp: Vec<f64> = vec![0.0; max_depth.saturating_add(1)];
+    if !powp.is_empty() {
+        powp[0] = 1.0;
+        for d in 1..powp.len() {
+            powp[d] = powp[d - 1] * p;
+        }
+    }
+
+    // Accumulate:
+    // a = sum parentEdgeWeight(v) * P^depth(v)
+    // b = 1 + sum P^depth(v)
+    let mut a: f64 = 0.0;
+    let mut b: f64 = 1.0;
+
+    for v in 1..=n {
+        let d = depth[v];
+        let pd = if d <= max_depth { powp[d] } else { p.powi(d as i32) };
+        a += (parent_w[v] as f64) * pd;
+        b += pd;
+    }
+
+    let ans = a * b;
+    println!("{:.10}", ans);
+}
+```

@@ -1,0 +1,59 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return, // Undefined by spec; choose to do nothing if no input.
+    };
+
+    // occ[v] holds the list of positions i where p[i] == v (1-based positions).
+    let mut occ: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+
+    // Read p[1..n]. Spec assumes 1 <= p[i] <= n; otherwise behavior is undefined.
+    for i in 1..=n {
+        let v: usize = it.next().unwrap().parse().unwrap();
+        // If v is out of range, spec says behavior is undefined; we intentionally
+        // do not add extra checks that would change observable behavior.
+        occ[v].push(i);
+    }
+
+    // ans[v] is the assigned position for value v, or 0 if none.
+    let mut ans: Vec<usize> = vec![0; n + 1];
+
+    // First, for each value that appears, assign one of its own occurrence positions.
+    // We choose the last occurrence (pop) to keep O(1) per assignment.
+    let mut leftovers: Vec<usize> = Vec::new(); // unassigned positions from multi-occurrence values
+    for v in 1..=n {
+        if !occ[v].is_empty() {
+            ans[v] = occ[v].pop().unwrap();
+            // Any remaining occurrences are available to be assigned to missing values.
+            while let Some(pos) = occ[v].pop() {
+                leftovers.push(pos);
+            }
+        }
+    }
+
+    // Then, for values that do not appear, assign any remaining unused position if available.
+    // Spec allows assigning a position belonging to some other value, or 0 if none.
+    for v in 1..=n {
+        if ans[v] == 0 {
+            if let Some(pos) = leftovers.pop() {
+                ans[v] = pos;
+            }
+        }
+    }
+
+    // Output ans[1..n], one per line.
+    let mut out = String::new();
+    for v in 1..=n {
+        out.push_str(&format!("{}\n", ans[v]));
+    }
+    print!("{out}");
+}
+```

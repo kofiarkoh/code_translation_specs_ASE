@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer sequence of length `N` and decides whether it satisfies a set of arithmetic consistency constraints based on cyclic adjacent differences, a divisibility condition involving the total sum, and a final weighted check. Prints an acceptance or rejection decision.
+
+2. Inputs  
+- An integer `N`.  
+- A sequence of `N` signed integers.
+
+3. Outputs  
+- Prints exactly one line:  
+  - `YES` if all required conditions hold.  
+  - Otherwise prints a rejection line. Rejection is printed as `NO` for most failing conditions, but for one specific late failing condition it is printed as `No` (case-sensitive).
+
+4. Preconditions / Assumptions  
+- `1 ≤ N ≤ 100000` (the program uses fixed-size arrays of length 100001 and also accesses index `N` after reading `N` values).  
+- The input provides at least `N` integers following `N`.  
+- All intermediate arithmetic is performed in signed 64-bit `long long`; if overflow occurs, behavior is unspecified.  
+- Compilation/portability assumption: the program uses C `long long` and reads/writes using `scanf`/`printf` with the `%lld` format for 64-bit values; it does not rely on `<inttypes.h>` format macros.
+
+5. Decision Logic (Semantics)  
+Let the input values be `A[0..N-1]`. The program treats the sequence as cyclic by setting an extra element `A[N] = A[0]` for difference computations.
+
+It computes:  
+- `sum = Σ_{i=1..N} A[i]` (note this includes `A[N] = A[0]`, i.e., it is the sum of all input elements plus the first element once more).  
+- For each `i = 1..N`, the cyclic adjacent difference `d_i = A[i] - A[i-1]` (with `A[N]` defined as above).
+
+It then requires:  
+- Divisibility: `sum` must be divisible by `T = N*(N+1)/2`. If not, reject with `NO`.  
+- Let `S = sum / T` (an integer). For each `i = 1..N`, define  
+  - `x_i = (S - d_i) / N` using integer division as written in the program. The program rejects unless each `x_i` is within `[0, S]`. (If `(S - d_i)` is not a multiple of `N`, the computed `x_i` will generally fail these checks or later checks; the program does not separately test divisibility.)  
+- The program also requires `Σ_{i=1..N} x_i = S`; otherwise reject with `NO`.  
+- Final weighted check: starting from the value `A[N]` (which equals the first input element), it subtracts `x_i * (N - i + 1)` for `i = 1..N` and requires the result to be exactly zero. If this final check fails, it rejects with `No`; otherwise it accepts with `YES`.
+
+6. Additional Notes / Edge Conditions  
+- The cyclic nature is used only for computing differences via `A[N] = A[0]`.  
+- The program is otherwise stateless and bases its decision solely on the provided input.  
+- No explicit handling exists for malformed input or out-of-range `N`; behavior is unspecified in those cases.
+```

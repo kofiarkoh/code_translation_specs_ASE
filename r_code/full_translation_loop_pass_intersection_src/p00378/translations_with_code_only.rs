@@ -1,0 +1,34 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse three integers like scanf("%d%d%d", ...)
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let a: i32 = it.next().unwrap().parse().unwrap();
+    let b: i32 = it.next().unwrap().parse().unwrap();
+    let x: i32 = it.next().unwrap().parse().unwrap();
+
+    let ans: i32;
+    if a >= 2 * b {
+        // Emulate C's integer division truncation toward zero.
+        // Note: (x - 1) can overflow in C for x == INT_MIN (UB). We use wrapping to
+        // approximate typical two's-complement behavior.
+        let t = x.wrapping_sub(1);
+        ans = (t / 500 + 1) * b;
+    } else {
+        let mut res = (x / 1000) * a;
+        let c = x % 1000;
+        if c != 0 {
+            if c <= 500 && b < a {
+                res += b;
+            } else {
+                res += a;
+            }
+        }
+        ans = res;
+    }
+
+    print!("{ans}\n");
+}

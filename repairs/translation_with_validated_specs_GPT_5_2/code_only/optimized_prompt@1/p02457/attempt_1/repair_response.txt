@@ -1,0 +1,159 @@
+```rust
+use std::io::{self, Read};
+
+fn search(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
+    if head > tail {
+        return -1;
+    }
+    // In C: mid = (head + tail) / 2 with int arithmetic.
+    // Here head/tail are i32 and within bounds by construction.
+    let mid = (head + tail) / 2;
+    let v = s[mid as usize];
+    if v == key {
+        mid
+    } else if v > key {
+        search(s, key, head, mid - 1)
+    } else {
+        search(s, key, mid + 1, tail)
+    }
+}
+
+fn get_lb(s: &[i32], key: i32, head: i32, tail: i32) -> i32 {
+    // Mirrors the C logic exactly, including the early returns.
+    // Note: In the original C, some paths can lead to s[mid-1] when mid==0
+    // (undefined behavior). The given code's early returns are intended to
+    // prevent that in normal use; we keep the same structure.
+    if s[0] > key || tail < 0 {
+        return 0;
+    }
+    if s[tail as usize] < key || head > tail {
+        return tail + 1;
+    }
+
+    let mid = (head + tail) / 2;
+    let vmid = s[mid as usize];
+
+    if vmid < key {
+        get_lb(s, key, mid + 1, tail)
+    } else {
+        // vmid >= key
+        // C: if (s[mid-1] < key) return mid; else tail = mid-1;
+        // This assumes mid > 0 in the intended execution.
+        if mid > 0 && s[(mid - 1) as usize] < key {
+            mid
+        } else {
+            get_lb(s, key, head, mid - 1)
+        }
+    }
+}
+
+fn insert(s: &mut [i32], key: i32, cnt: i32) -> i32 {
+    let d = if cnt == 0 {
+        0
+    } else {
+        get_lb(s, key, 0, cnt - 1)
+    };
+
+    // for(i=cnt;i>d;i--) s[i]=s[i-1];
+    let mut i = cnt;
+    while i > d {
+        let iu = i as usize;
+        s[iu] = s[iu - 1];
+        i -= 1;
+    }
+    s[i as usize] = key;
+    1
+}
+
+fn delete_(s: &mut [i32], key: i32, cnt: i32) -> i32 {
+    let d = search(s, key, 0, cnt - 1);
+    if d < 0 {
+        return -1;
+    }
+    // for(i=d;i<cnt-1;i++) s[i]=s[i+1];
+    let mut i = d;
+    while i < cnt - 1 {
+        let iu = i as usize;
+        s[iu] = s[iu + 1];
+        i += 1;
+    }
+    1
+}
+
+fn dump(out: &mut String, s: &[i32], l: i32, r: i32, cnt: i32) {
+    let mut i = get_lb(s, l, 0, cnt - 1);
+    // C: while(s[i]<=r&&i<cnt) printf("%d\n", s[i++]);
+    // Note: C evaluates left operand first, so it reads s[i] even if i>=cnt
+    // (potential UB). We preserve intended behavior by checking bounds first.
+    while i < cnt && s[i as usize] <= r {
+        out.push_str(&format!("{}\n", s[i as usize]));
+        i += 1;
+    }
+}
+
+fn main() {
+    // Read entire stdin and parse integers like scanf would (whitespace-separated).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: i32 = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses VLA int s[q]; We'll allocate exactly q slots.
+    let mut s = vec![0i32; q as usize];
+    let mut cnt: i32 = 0;
+
+    let mut out = String::new();
+
+    let mut remaining = q;
+    while remaining > 0 {
+        remaining -= 1;
+
+        let com: i32 = it.next().unwrap().parse().unwrap();
+        match com {
+            0 => {
+                // insert
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x, 0, cnt - 1) == -1 {
+                    if insert(&mut s, x, cnt) == 1 {
+                        cnt += 1;
+                    }
+                }
+                out.push_str(&format!("{}\n", cnt));
+            }
+            1 => {
+                // find
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if search(&s, x, 0, cnt - 1) == -1 {
+                    out.push_str("0\n");
+                } else {
+                    out.push_str("1\n");
+                }
+            }
+            2 => {
+                // delete
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                if delete_(&mut s, x, cnt) == 1 {
+                    cnt -= 1;
+                }
+            }
+            3 => {
+                // dump
+                let x: i32 = it.next().unwrap().parse().unwrap();
+                let y: i32 = it.next().unwrap().parse().unwrap();
+                if cnt > 0 {
+                    dump(&mut out, &s, x, y, cnt);
+                }
+            }
+            _ => {
+                // No default in C; ignore unknown commands if present.
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

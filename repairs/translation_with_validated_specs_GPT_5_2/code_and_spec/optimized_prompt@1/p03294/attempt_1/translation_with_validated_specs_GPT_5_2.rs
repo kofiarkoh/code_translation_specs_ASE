@@ -1,0 +1,28 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (no explicit error handling per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+
+    // Spec says memory grows linearly with count (stores the sequence).
+    // If n is negative, behavior is unspecified; we still proceed in a way
+    // that will likely panic on allocation, matching "unspecified".
+    let n_usize: usize = n.try_into().unwrap();
+
+    let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+    let mut ans: i32 = 0;
+
+    for _ in 0..n_usize {
+        let v: i32 = it.next().unwrap().parse().unwrap();
+        a.push(v);
+        ans += v - 1;
+    }
+
+    // No trailing newline, matching the C code's printf("%d", ans).
+    print!("{ans}");
+}

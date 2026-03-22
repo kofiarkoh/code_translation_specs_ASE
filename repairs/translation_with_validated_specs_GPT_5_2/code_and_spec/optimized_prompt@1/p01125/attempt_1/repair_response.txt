@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Direction deltas in the same order as the C code's d4 trick:
+    // d=0(N): (0, +1), d=1(E): (+1, 0), d=2(S): (0, -1), d=3(W/other): (-1, 0)
+    let dx = [0i32, 1, 0, -1];
+    let dy = [1i32, 0, -1, 0];
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let mut remaining: i32 = n_opt.unwrap().parse::<i32>().unwrap();
+        if remaining == 0 {
+            break; // termination condition
+        }
+
+        // Fixed small grid as in C: 25x25, coordinates assumed in-bounds by spec.
+        // Duplicate targets collapse naturally (cell is just set to 1).
+        let mut grid = [[false; 25]; 25];
+
+        for _ in 0..remaining {
+            let x: usize = it.next().unwrap().parse().unwrap();
+            let y: usize = it.next().unwrap().parse().unwrap();
+            grid[x][y] = true;
+        }
+
+        let m: i32 = it.next().unwrap().parse().unwrap();
+
+        let mut px: i32 = 10;
+        let mut py: i32 = 10;
+
+        // Collect at starting cell immediately.
+        if grid[px as usize][py as usize] {
+            grid[px as usize][py as usize] = false;
+            remaining -= 1;
+        }
+
+        for _ in 0..m {
+            let c_tok = it.next().unwrap();
+            let c = c_tok.as_bytes()[0] as char;
+            let mut q: i32 = it.next().unwrap().parse().unwrap();
+
+            let d: usize = match c {
+                'N' => 0,
+                'E' => 1,
+                'S' => 2,
+                _ => 3, // any other token treated as west per spec (and C)
+            };
+
+            while q > 0 {
+                q -= 1;
+                px += dx[d];
+                py += dy[d];
+
+                let ux = px as usize;
+                let uy = py as usize;
+                if grid[ux][uy] {
+                    grid[ux][uy] = false;
+                    remaining -= 1;
+                }
+            }
+        }
+
+        if remaining != 0 {
+            out.push_str("No\n");
+        } else {
+            out.push_str("Yes\n");
+        }
+    }
+
+    print!("{out}");
+}
+```

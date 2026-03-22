@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Determines whether a given integer mapping over positions `1..n` satisfies a specific feasibility condition dependent on `k`.  
+- If `k` equals `n`, it checks whether the mapping represents a uniform cyclic shift of the positions.  
+- If `k` differs from `n`, it treats the mapping as a directed functional graph and decides feasibility based on the parity of a value derived from the number of connected components and the parity of `k`.
+
+2. Inputs  
+- Two integers: `n` (size of the mapping) and `k` (a parameter affecting the decision rule).  
+- A sequence of `n` integers representing a mapping from each position `i` (1-based) to a target value.
+
+3. Outputs  
+- Prints exactly one decision token indicating acceptance or rejection: either “Yes” or “No”.
+
+4. Preconditions  
+- `n` is within the supported fixed capacity (at most 100010).  
+- The mapping values are intended to be valid indices in `1..n` for the graph-based interpretation; otherwise behavior is not defined by the code.  
+- For the graph-based case (`k != n`), the input should not use the sentinel value `-1` as a legitimate mapping value; otherwise the computed result may not reflect the intended mapping.
+
+5. Postconditions  
+- If `k == n`:  
+  - Outputs “Yes” iff there exists an integer offset `x` such that for every position `i`, the difference between the mapped value at `i` and `i` is congruent to `x` modulo `n` (i.e., the mapping is a single consistent rotation/shift).  
+  - Otherwise outputs “No”.  
+- If `k != n`:  
+  - Let `cnt` be the number of directed cycles in the functional graph induced by the mapping (equivalently, the number of weakly connected components in a functional graph where each node has outdegree 1).  
+  - Outputs “No” iff both `(n - cnt)` is odd and `k` is odd; otherwise outputs “Yes”.
+
+6. Invariants  
+- In the `k != n` case, during processing the program marks visited nodes so that each node is accounted for at most once in the cycle/component counting.  
+- The computed `cnt` equals the number of disjoint cycles/components under the assumption that all mapping values are valid indices and `-1` is not part of the mapping domain.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range mapping values, or capacity violations.  
+- If mapping values fall outside `1..n` (or if `-1` appears as a mapping value in the `k != n` case), the program may access invalid memory or produce an unspecified result.
+
+8. State Transitions (if applicable)  
+- The mapping storage is mutated in the `k != n` case: elements are overwritten with a sentinel to record visitation, and this mutation persists until program termination.  
+- No other persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in linear time in `n` under the stated preconditions.  
+- Uses fixed-size memory proportional to `n` (bounded by the static capacity).
+```

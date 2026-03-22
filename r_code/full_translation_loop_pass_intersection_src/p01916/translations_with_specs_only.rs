@@ -1,0 +1,29 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then take the first whitespace-delimited token as the string.
+    // Per specification, input is present and valid; behavior is undefined otherwise.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let s = input.split_whitespace().next().unwrap();
+
+    // Track parity (odd/even) for each of 26 lowercase letters.
+    // We only need parity, not exact counts.
+    let mut odd = [false; 26];
+    for b in s.bytes() {
+        let idx = (b - b'a') as usize; // valid under preconditions
+        odd[idx] = !odd[idx];
+    }
+
+    // Count how many letters have odd occurrences.
+    let mut o: u32 = 0;
+    for &is_odd in &odd {
+        if is_odd {
+            o += 1;
+        }
+    }
+
+    // Output floor(O/2).
+    let result = o / 2;
+    println!("{}", result);
+}

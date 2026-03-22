@@ -1,0 +1,84 @@
+use std::io::{self, Read};
+
+const N: i64 = 1_000_000_007;
+
+fn inittable(memo: &mut [i64], n: i64) {
+    // C code sets memo[1]=1 then fills 2..=n; memo[0] is set later in main.
+    memo[1] = 1;
+    for i in 2..=n {
+        let idx = i as usize;
+        let prev = memo[(i - 1) as usize];
+        memo[idx] = (i % N) * prev % N;
+    }
+}
+
+fn extgcd(a: i64, b: i64) -> (i64, i64, i64) {
+    // Returns (d, x, y) such that a*x + b*y = d, where d = gcd(a,b).
+    // Mirrors the C recursion and coefficient swapping.
+    if b != 0 {
+        let (d, x1, y1) = extgcd(b, a % b);
+        // In C: d=extgcd(b,a%b,y,x); *y -= (a/b)*(*x);
+        // Mapping: x corresponds to y1, y corresponds to x1 after swap.
+        let x = y1;
+        let y = x1 - (a / b) * y1;
+        (d, x, y)
+    } else {
+        (a, 1, 0)
+    }
+}
+
+fn mod_inv(a: i64, m: i64) -> i64 {
+    let (_d, x, _y) = extgcd(a, m);
+    // C: (m + x%m) % m; ensure non-negative.
+    (m + (x % m)) % m
+}
+
+fn mod_cmb(memo: &[i64], n: i64, r: i64, m: i64) -> i64 {
+    if n < 0 || r < 0 || n < r {
+        return 0;
+    }
+    let a1 = memo[n as usize];
+    let a2 = memo[r as usize];
+    let a3 = memo[(n - r) as usize];
+    let denom = (a2 * a3) % m;
+    (a1 * mod_inv(denom, m)) % m
+}
+
+fn main() {
+    // Read all input, parse as i64 then cast to i32 where appropriate.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let x: i64 = it.next().unwrap().parse::<i64>().unwrap();
+    let y: i64 = it.next().unwrap().parse::<i64>().unwrap();
+    let k: i64 = it.next().unwrap().parse::<i64>().unwrap();
+
+    // C has global memo[220001]; assume inputs keep x+y+2*k within bounds.
+    let mut memo = vec![0i64; 220_001];
+
+    inittable(&mut memo, x + y + 2 * k);
+    memo[0] = 1;
+
+    let mut ans: i64 = 0;
+
+    for i in 0..=k {
+        let xgr = (mod_cmb(&memo, x + 2 * (k - i), k - i, N)
+            - mod_cmb(&memo, x + 2 * (k - i), k - i - 1, N)
+            + N)
+            % N;
+        let ygr = (mod_cmb(&memo, y + 2 * i, i, N)
+            - mod_cmb(&memo, y + 2 * i, i - 1, N)
+            + N)
+            % N;
+
+        let term = (xgr * ygr) % N;
+        let comb = mod_cmb(&memo, x + y + 2 * k, y + 2 * i, N);
+        ans = (ans + (term * comb) % N) % N;
+    }
+
+    // C prints with "%d\n" even though ans is long long; emulate numeric value.
+    // ans is already in [0, N), but keep the C's (ans+N)%N.
+    let out = (ans + N) % N;
+    println!("{}", out);
+}

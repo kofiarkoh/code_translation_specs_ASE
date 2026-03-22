@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads up to 10,000 bytes from standard input into a buffer. It then advances past an initial contiguous run of bytes whose values are `>= '0'`, and also consumes the first following byte `< '0'` (the delimiter that ends that initial run). After that, it repeatedly parses pairs of non-negative integers from the buffer and, for each pair, computes a derived integer value based on the parity of the first integer. Each computed value is written to standard output in decimal, one per line.
+
+2. Inputs and Parsing Model  
+- Input is treated as a raw byte stream; only the first 10,000 bytes are read. The program does not use the returned byte count from `read`; it relies on the buffer contents being sufficient for its parsing pattern.  
+- **“Digit-like” bytes:** Throughout parsing, a byte is considered part of a number if its value is `>= '0'`. A number ends when a byte `< '0'` is encountered. (This is a byte-value comparison, not a strict `'0'`–`'9'` check.)  
+- **Initial skip:** The program first consumes an initial run of digit-like bytes (`>= '0'`) and then consumes exactly one additional byte `< '0'` that terminates that run. Parsing of records begins at the byte immediately after that terminator.  
+- **Record processing condition:** Records are processed only while the current byte at the start of a record is digit-like (`>= '0'`). If the current byte is `< '0'` at that point, processing stops and no later bytes are searched for.  
+- **Record format:** Each record consists of two integers `(N, D)` parsed back-to-back:
+  - `N` is formed by consuming consecutive digit-like bytes and interpreting each consumed byte as a decimal digit value `byte - '0'`, accumulating `N = N*10 + (byte - '0')`, until a byte `< '0'` is encountered. That terminating byte is consumed.
+  - Immediately after that, `D` is parsed the same way: consume digit-like bytes, accumulate using `byte - '0'`, stop at the first byte `< '0'`, and consume that terminator byte.
+- There is no general whitespace/comment skipping beyond the delimiters that naturally terminate `N` and `D`. In particular, between records the next record begins only if the very next unconsumed byte is digit-like.
+
+3. Computation  
+For each parsed pair `(N, D)`, the program computes:
+- If `N` is odd: decrement `N` by 1, then compute `ans = 127*N + D` (equivalently `127*(N-1) + D` using the original `N`).  
+- If `N` is even: compute `ans = 127*N - D`.
+
+4. Outputs  
+- For each processed record, the program outputs `ans` as base-10 digits followed by a newline. The conversion routine emits digits by repeated `% 10` and `/= 10` on `ans` and does not include a sign character.  
+- Output is accumulated in an internal buffer (up to 20,000 bytes) and written once to standard output at the end.
+
+5. Preconditions / Assumptions and Undefined Behavior  
+- The input must be structured so that all required terminator bytes (`< '0'`) exist within the read buffer; otherwise the program may read beyond meaningful input in the buffer.  
+- Parsed values and intermediate arithmetic are performed in C `int` and must not overflow.  
+- The computed `ans` is assumed to be non-negative; negative values are not rendered as conventional signed decimal text by this program.  
+- The decimal rendering assumes the value fits within the temporary digit buffer (up to 10 digits).  
+- Total output must fit within the 20,000-byte output buffer.  
+- No explicit error handling or validation is performed; if assumptions are violated, behavior is undefined (incorrect output, truncation, or failure).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+=== C CODE END ===

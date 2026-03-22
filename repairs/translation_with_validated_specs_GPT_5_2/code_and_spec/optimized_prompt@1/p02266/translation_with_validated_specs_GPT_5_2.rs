@@ -1,0 +1,70 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes; process one byte == one character position.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    // Position index advances by 1 per character processed.
+    // C code starts x=1 and uses current x for boundaries/area, then increments.
+    let mut x: i32 = 1;
+
+    // Stack of unmatched downward slopes: stores their x positions.
+    let mut down_stack: Vec<i32> = Vec::new();
+
+    // Pools (regions) stored as (left_boundary_x, area), maintained in a stack-like list
+    // with the most recently formed/updated region at the front.
+    let mut pools: Vec<(i32, i32)> = Vec::new();
+
+    for b in input.bytes() {
+        match b {
+            b'\\' => {
+                down_stack.push(x);
+            }
+            b'_' => {
+                // flat: no state change
+            }
+            b'/' => {
+                if let Some(left_x) = down_stack.pop() {
+                    let mut area = x - left_x;
+
+                    // Merge any existing pools that are entirely inside the new region.
+                    // In the C code, pools are kept with decreasing x in the linked list.
+                    // If left_x < current top pool's x, then the new region encloses it
+                    // and possibly more; pop and accumulate while pool.x > left_x.
+                    while let Some(&(pool_x, pool_area)) = pools.last() {
+                        if pool_x > left_x {
+                            area += pool_area;
+                            pools.pop();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    // Push the (possibly merged) region.
+                    pools.push((left_x, area));
+                } else {
+                    // Upward slope with no unmatched downward slope: no effect besides x++.
+                }
+            }
+            _ => {
+                // Any other character: ignored except for advancing position.
+            }
+        }
+        x += 1;
+    }
+
+    // pools currently stored in increasing left_x order (because we pop enclosed ones
+    // and then push; left-to-right order is the same as increasing left boundary).
+    let sum: i32 = pools.iter().map(|&(_, a)| a).sum();
+    let count: usize = pools.len();
+
+    // Output formatting must match C:
+    // Line 1: sum
+    // Line 2: count followed by each area prefixed with a space, in left-to-right order.
+    print!("{sum}\n{count}");
+    for &(_, area) in &pools {
+        print!(" {area}");
+    }
+    print!("\n");
+}

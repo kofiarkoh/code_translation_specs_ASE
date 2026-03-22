@@ -1,0 +1,136 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads a sequence of `n` records, each containing a single-character label and an integer key, sorts the records in nondecreasing order by key using a specific in-place quicksort procedure, checks whether the resulting order is stable with respect to the original input order for equal keys, then outputs the stability result followed by the sorted records.
+
+2. Inputs  
+- An integer `n`: the number of records.  
+- `n` records, each consisting of:  
+  - a single character label  
+  - an integer key  
+Input is read using standard formatted scanning; whitespace may appear before the label.
+
+3. Outputs  
+- One line: either `Stable` or `Not stable` (exact capitalization and spacing as shown).  
+- Then `n` lines, each containing the label, a space, and the key of a record, in the exact order produced by the program’s sort.
+
+4. Preconditions / Assumptions  
+- `n` is expected to be at least 1; behavior is unspecified if `n <= 0` (the program may attempt to sort an invalid range).  
+- Exactly `n` records follow `n` in the input, each matching the expected format.  
+- Sufficient stack space is available for recursion and for storing `n` records in an automatic array.
+
+5. Sorting Semantics (Order Produced)  
+The program does not define the output as “any” nondecreasing-by-key ordering. It produces the specific ordering resulting from the following deterministic quicksort:
+
+- The sort is applied to the entire array of records.  
+- Quicksort recursively sorts subarrays `[p..r]` when `p < r`.  
+- Partitioning uses the last element of the subarray as the pivot. Let `x` be the pivot key.  
+- The partition procedure scans the subarray from left to right (excluding the pivot position). Each time it encounters an element with key `<= x`, it advances a boundary index and swaps the encountered element into the left partition.  
+- After the scan, it swaps the pivot element into the position immediately after the left partition and returns that pivot index.  
+- Recursion then sorts the left and right partitions around the pivot index.
+
+This procedure fully determines the final permutation, including the relative order of records with equal keys (which is not guaranteed to match input order).
+
+6. Stability Check Semantics  
+- Each record is tagged with its original input position.  
+- After sorting, the program reports `Stable` iff there is no pair of records with equal keys that appear in an order inconsistent with their original input positions.  
+- Concretely, if there exist indices `i < j` in the sorted array such that the keys are equal but the original position of element `i` is greater than the original position of element `j`, the program reports `Not stable`; otherwise it reports `Stable`.
+
+7. Postconditions  
+- The printed records are exactly the input records (labels remain associated with their keys), reordered by the quicksort described above.  
+- The printed sequence is in nondecreasing order by key.  
+- The stability line corresponds to the stability of the produced sorted order as defined in Section 6.
+
+8. Error Handling / Exceptional Behavior  
+No explicit error handling is performed for malformed input, premature end of input, or resource exhaustion; behavior is unspecified in such cases.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+=== C CODE END ===

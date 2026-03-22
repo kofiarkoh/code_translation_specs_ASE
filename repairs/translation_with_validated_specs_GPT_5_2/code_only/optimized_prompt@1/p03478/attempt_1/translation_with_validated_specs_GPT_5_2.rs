@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as C scanf("%d") would for whitespace-separated ints.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return, // If no input, do nothing (closest to "no successful scanf").
+    };
+    let a_bound: i32 = it.next().unwrap().parse().unwrap();
+    let b_bound: i32 = it.next().unwrap().parse().unwrap();
+
+    let mut count: i32 = 0;
+
+    // C code uses int arithmetic; in Rust we use i32 and wrapping ops to emulate
+    // potential signed overflow behavior as closely as possible.
+    for i in 1..=n {
+        let e = i % 10;
+        let d = ((i.wrapping_sub(e)) / 10) % 10;
+        let c = ((i.wrapping_sub(10i32.wrapping_mul(d)).wrapping_sub(e)) / 100) % 10;
+        let b = ((i
+            .wrapping_sub(100i32.wrapping_mul(c))
+            .wrapping_sub(10i32.wrapping_mul(d))
+            .wrapping_sub(e))
+            / 1000)
+            % 10;
+        let a = ((i
+            .wrapping_sub(1000i32.wrapping_mul(b))
+            .wrapping_sub(100i32.wrapping_mul(c))
+            .wrapping_sub(10i32.wrapping_mul(d))
+            .wrapping_sub(e))
+            / 10000)
+            % 10;
+
+        let sum = a.wrapping_add(b).wrapping_add(c).wrapping_add(d).wrapping_add(e);
+
+        if a_bound <= sum && sum <= b_bound {
+            count = count.wrapping_add(i);
+        }
+    }
+
+    // Match C's printf("%d") with no trailing newline.
+    print!("{}", count);
+}

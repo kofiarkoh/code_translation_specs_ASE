@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple datasets of straight line segments whose endpoints lie on an integer grid. For each dataset, it counts how many segments belong to each digit class 0–9 according to a fixed set of hardcoded “templates” based on (a) connectivity via shared endpoints, (b) how many endpoint occurrences in a component are at shared points, and (c) a small number of additional geometric tests. Segments that are not part of any recognized template are counted as digit 1.
+
+2. Inputs  
+For each dataset:  
+- An integer `n` = number of segments.  
+- Then `n` segments, each given by four integers `(x1, y1, x2, y2)` describing its two endpoints.
+
+Datasets repeat until a dataset with `n = 0`, which terminates the program.
+
+3. Outputs  
+For each dataset:  
+- One line with 10 non-negative integers: counts for digit 0, digit 1, …, digit 9, in that order.
+
+4. Preconditions / Assumptions  
+- `n` is within the program’s fixed capacity (at most 1001 segments).  
+- Endpoint coordinates are integers within the fixed grid range supported by the program’s internal arrays (indices must be valid).  
+- Input is well-formed and contains all required integers.  
+- The program stores only up to 5 segments per connected component for later analysis; if a component contains more than 5 segments, behavior is undefined.
+
+5. Definitions Used for Classification  
+- Two segments are in the same connected component if they are connected by a chain of segments where consecutive segments share an endpoint with exactly equal coordinates. Connectivity is computed over shared endpoints only (segment crossings without shared endpoints do not connect components).  
+- A grid point is “shared” if it is used as an endpoint by more than one segment in the dataset (multiplicity > 1).  
+- For a connected component, let:  
+  - `m` = number of segments in the component.  
+  - `p` = the number of endpoint occurrences in the component that lie at shared points, counted with multiplicity (i.e., each segment endpoint contributes 1 to `p` if its coordinate is shared in the dataset). Thus `p` ranges from 0 to `2m`.  
+- “Point on segment interior” test: a point is considered to lie on a segment only if it is collinear with the segment and lies within the segment’s bounding box, and it is strictly not equal to either endpoint of that segment.
+
+6. Classification Logic (Template-Based)  
+Classification is performed per connected component, but only components matching one of the specific templates below contribute to digits other than 1. All other segments (including those in components of any size/pattern not listed) are counted as digit 1.
+
+Only components with `m >= 2` are considered for template matching. For each such component:
+
+A. Digit 4 template  
+- If `m == 2` and `p == 2`, then the component contributes 1 to the count for digit 4 (i.e., both segments are accounted for as a “4” component).
+
+B. Digit 9 template  
+- If `m == 4` and `p == 6`, then the component contributes 1 to the count for digit 9.
+
+C. Digit 0 / 8 template (requires geometric check)  
+- If `m == 4` and `p == 8`, then exactly one of the following applies:  
+  - If there exists any segment endpoint (from any segment in the dataset) that lies strictly in the interior of any segment of this component, then the component contributes 1 to digit 8.  
+  - Otherwise, the component contributes 1 to digit 0.  
+  (The interior test excludes equality with the tested segment’s endpoints.)
+
+D. Digit 3 / 7 template (requires geometric check)  
+- If `m == 3` and `p == 4`, then exactly one of the following applies:  
+  - If there exists an endpoint of any segment (from any component) that lies strictly in the interior of a segment of this component whose both endpoints are shared points (i.e., both endpoints have multiplicity > 1), then the component contributes 1 to digit 3.  
+  - Otherwise, the component contributes 1 to digit 7.
+
+E. Digit 2 / 5 / 6 template (requires orientation-based check)  
+- If `m == 5` and `p == 8`, then the component contributes 1 to exactly one of digits 2, 5, or 6. The choice is determined by an orientation/sidedness computation derived from the component’s endpoint-sharing structure: two “junction” segments are identified via endpoints that are not shared, and the relative sidedness of corresponding “branch” points with respect to those junction segments determines whether the digit is 2, 5, or 6.
+
+7. Catch-All Digit 1  
+- After accounting for all components that match one of the templates above, every remaining segment (including isolated segments, components with `m < 2`, and components with `m >= 2` that do not match any listed `(m, p)` template) is counted as digit 1.  
+- The program ensures the total of all digit counts equals `n` by defining digit 1 as “all segments not otherwise accounted for.”
+
+8. State and Termination  
+- For each dataset, all internal counters and connectivity structures are reset before reading segments.  
+- The program terminates immediately after reading a dataset with `n = 0`.
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If the preconditions are violated (out-of-range coordinates, too many segments, or a component exceeding the stored-per-component limit), results are undefined.
+```

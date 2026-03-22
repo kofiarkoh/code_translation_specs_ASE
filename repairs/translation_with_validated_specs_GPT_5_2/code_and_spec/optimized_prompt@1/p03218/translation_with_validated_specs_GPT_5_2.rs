@@ -1,0 +1,47 @@
+use std::io::{self, Read};
+
+const P: i64 = 998_244_353;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b) // preserves C-like sign behavior for negatives
+    }
+}
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i64 = match it.next() {
+        Some(x) => x.parse::<i64>().unwrap(),
+        None => return, // no input; unspecified, but avoid panic
+    };
+
+    // Spec assumes n >= 0 and allocation succeeds.
+    let n_usize: usize = n as usize;
+
+    let mut a: Vec<i64> = Vec::with_capacity(n_usize);
+    for _ in 0..n_usize {
+        let v = it.next().unwrap().parse::<i64>().unwrap();
+        a.push(v);
+    }
+
+    // Sort nondecreasing. (C used subtraction in comparator with potential overflow;
+    // spec notes overflow is undefined. Rust's cmp avoids overflow, but preserves
+    // required nondecreasing order.)
+    a.sort();
+
+    let mut ans: i64 = 1;
+    for (i, &val) in a.iter().enumerate() {
+        let g = gcd(val, i as i64);
+        // As in C, multiplication may overflow in release builds (wrapping),
+        // and behavior is not guaranteed by the spec in overflow cases.
+        ans = (ans * g) % P;
+    }
+
+    print!("{ans}\n");
+}

@@ -1,0 +1,115 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Simulates movement on a bounded 2D grid starting from a fixed initial position. A set of target cells is provided. As the simulated path visits cells, any target located on a visited cell is collected (removed). After executing all movement commands, reports whether all targets have been collected.
+
+2. Inputs  
+For each scenario (repeated until termination):  
+- An integer count of target positions.  
+- That many pairs of integer coordinates, each denoting a target cell.  
+- An integer count of movement commands.  
+- That many movement commands, each consisting of a cardinal direction (north/east/south/west) and a nonnegative step count.
+
+3. Outputs  
+For each scenario, outputs a single line indicating whether all targets were collected by the end of the simulation:  
+- “Yes” if all targets have been collected.  
+- “No” otherwise.
+
+4. Preconditions  
+- The initial target count is either zero (terminates input processing) or positive (a scenario to process).  
+- All provided coordinates (targets and all positions reached during movement) are within the supported grid bounds.  
+- The number of targets does not exceed the grid’s capacity.  
+- Movement command step counts are nonnegative.  
+- Direction tokens are limited to the four supported cardinal directions; any other token is treated as west.
+
+5. Postconditions  
+For each processed scenario:  
+- The simulated position equals the initial position advanced by the net effect of all movement commands.  
+- A target is considered collected if and only if the simulated path (including the initial position before any movement) visits its cell at least once.  
+- The output is “Yes” if and only if every initially provided target has been collected; otherwise the output is “No”.
+
+6. Invariants  
+- Each grid cell contains at most one target at any time.  
+- Collecting a target from a cell makes that cell non-target thereafter.  
+- The remaining-target count never increases and decreases by exactly one per newly collected target cell.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for malformed input, out-of-bounds coordinates, or paths leaving the supported grid; behavior is undefined in those cases.  
+- Duplicate target coordinates are not counted multiple times; they behave as a single target at that cell.
+
+8. State Transitions (if applicable)  
+Within a scenario:  
+- State consists of current position and the set of remaining target cells.  
+- Initial state: fixed starting position; targets placed as provided. If the starting cell contains a target, it is immediately collected.  
+- For each movement command: the position advances one cell per step in the specified direction; after each step, if the new cell contains a target, it is collected.  
+- Terminal state: after all commands, output depends solely on whether the remaining target set is empty.
+
+9. Non-functional Constraints (if inferable)  
+- Grid size is fixed and small; memory usage is bounded by the grid representation.  
+- Runtime per scenario is proportional to the number of movement steps plus the number of target placements.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=l;i<r;i++)
+
+ll d4[]={0,1,0,-1,0};
+
+int main(){
+	ll n;
+	while(scanf("%lld",&n),n){
+		ll a[25][25]={};
+		rep(i,0,n){
+			ll x,y;
+			scanf("%lld%lld",&x,&y);
+			a[x][y]=1;
+		}
+		ll m;
+		scanf("%lld",&m);
+		ll px=10,py=10;
+		if(a[px][py]){
+			a[px][py]=0;
+			n--;
+		}
+		rep(i,0,m){
+			char c;
+			ll d,q;
+			scanf(" %c %lld",&c,&q);
+			if(c=='N')d=0;
+			else if(c=='E')d=1;
+			else if(c=='S')d=2;
+			else d=3;
+			while(q--){
+				px+=d4[d];
+				py+=d4[d+1];
+				if(a[px][py]){
+					a[px][py]=0;
+					n--;
+				}
+			}
+		}
+		puts(n?"No":"Yes");
+	}
+}
+=== C CODE END ===

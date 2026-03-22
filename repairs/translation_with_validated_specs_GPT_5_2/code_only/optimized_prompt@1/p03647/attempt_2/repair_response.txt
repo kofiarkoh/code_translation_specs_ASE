@@ -1,0 +1,75 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // C code (golfed):
+    // m[1<<18];*p;main(n,a,b){
+    //   for(scanf("%d%*d",&n);~scanf("%d%d",&a,&b);p-m&&*p?n=0:++*p)
+    //     p=m+(a-1?b-n?0:a:b);
+    //   puts(n?"IMPOSSIBLE":"POSSIBLE");
+    // }
+    //
+    // Key semantic detail: the first scanf is "%d%*d". If the second integer is absent,
+    // scanf returns 1 and does NOT consume anything further. Our previous version always
+    // consumed a second token, which broke inputs where the first line contains only one int.
+
+    let mut m = vec![0i32; 1 << 18];
+    let mut p_idx: usize = 0;
+
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // scanf("%d%*d",&n);
+    let mut n: i32 = match it.next() {
+        Some(tok) => tok.parse().unwrap_or(0),
+        None => return,
+    };
+    // %*d: attempt to read and discard one int; if absent, do nothing (like scanf).
+    let _discard = it.next();
+
+    // Loop: condition is ~scanf("%d%d",&a,&b)
+    loop {
+        // scanf("%d%d",&a,&b) succeeds only if two ints are available.
+        let a_tok = match it.next() {
+            Some(t) => t,
+            None => break, // EOF => scanf returns EOF (-1) => ~(-1)==0 => stop
+        };
+        let b_tok = match it.next() {
+            Some(t) => t,
+            None => break, // only one int => scanf returns 1 => ~1 != 0 in C, but a/b not both assigned.
+                         // However, the C code uses a and b in the body; such input would be ill-formed.
+                         // We stop to avoid using uninitialized values.
+        };
+
+        let a: i32 = a_tok.parse().unwrap_or(0);
+        let b: i32 = b_tok.parse().unwrap_or(0);
+
+        // p = m + (a-1 ? (b-n ? 0 : a) : b);
+        let offset: i32 = if a.wrapping_sub(1) != 0 {
+            if b.wrapping_sub(n) != 0 { 0 } else { a }
+        } else {
+            b
+        };
+
+        // In the original C, out-of-bounds pointer arithmetic is UB; contest inputs
+        // are expected to keep this in range. We map directly and assume valid.
+        // (Using wrapping/clamping here changes semantics; so we avoid it.)
+        p_idx = offset as usize;
+
+        // Iteration expression: p-m && *p ? n=0 : ++*p
+        if p_idx != 0 && m[p_idx] != 0 {
+            n = 0;
+        } else {
+            // Signed overflow in C is UB; assume it doesn't overflow for valid inputs.
+            m[p_idx] += 1;
+        }
+    }
+
+    if n != 0 {
+        print!("IMPOSSIBLE\n");
+    } else {
+        print!("POSSIBLE\n");
+    }
+}
+```

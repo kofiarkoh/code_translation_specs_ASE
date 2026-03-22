@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Computes the minimum number of unit operations required to transform an initial integer value into a target integer value, where an operation is either (a) incrementing the current value by 1, or (b) multiplying the current value by −1 (sign flip). Outputs that minimum count.
+
+2. Inputs  
+- Two signed integers: an initial value and a target value.
+
+3. Outputs  
+- A single non-negative integer representing the minimum number of allowed operations needed to reach the target from the initial value.
+
+4. Preconditions  
+- Two integers are provided as input.  
+- The required operation count fits within a 64-bit signed integer.
+
+5. Postconditions  
+- The output equals the minimum possible number of operations (increment by 1 and/or sign flip) that transforms the initial value into the target value.  
+- The output is 0 if and only if the initial value equals the target value.
+
+6. Invariants  
+- The reported operation count is always an integer ≥ 0.  
+- The result depends only on the two input values and is deterministic.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit handling for missing/invalid input or numeric overflow; behavior is unspecified if inputs are not valid integers or if the true minimum count exceeds 64-bit signed range.
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Runs in constant time and constant memory with respect to input magnitude.
+```

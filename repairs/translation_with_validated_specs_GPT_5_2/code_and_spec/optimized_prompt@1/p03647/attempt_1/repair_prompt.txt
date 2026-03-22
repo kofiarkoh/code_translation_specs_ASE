@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Determines whether a sequence of input pairs can be processed without violating a uniqueness constraint on a derived category index. Produces a single final decision: either the sequence is feasible (“POSSIBLE”) or infeasible (“IMPOSSIBLE”).
+
+2. Inputs  
+- An initial integer value (call it `N`).  
+- A second integer value that is read and ignored.  
+- Zero or more subsequent records, each consisting of two integers (call them `A` and `B`), read until end-of-input.
+
+3. Outputs  
+- Exactly one line of text indicating feasibility:
+  - “POSSIBLE” if no violation is detected.
+  - “IMPOSSIBLE” if a violation is detected.
+
+4. Preconditions  
+- The input provides at least the initial integer `N` (and one additional integer that is ignored).  
+- Each subsequent record, if present, contains two integers.  
+- Assumption: All derived category indices computed from the input fall within a fixed finite range (bounded by a preallocated table size). If not, behavior is undefined.
+
+5. Postconditions  
+- If any derived category index is selected more than once across the processed records, the output is “IMPOSSIBLE”.  
+- Otherwise, the output is “POSSIBLE”.
+
+6. Invariants  
+- A fixed-size table of category-usage counts is maintained; each processed record selects exactly one category index and increments its count.  
+- Once infeasibility is detected, the final output remains “IMPOSSIBLE” regardless of remaining input.
+
+7. Error Handling / Exceptional Behavior  
+- End-of-input terminates record processing and triggers output.  
+- Malformed input (non-integer where an integer is required) results in termination of record processing at that point; the decision is based on records successfully read up to then.  
+- If a derived category index falls outside the table bounds, behavior is undefined (no guaranteed error handling).
+
+8. State Transitions (if applicable)  
+- State includes:
+  - The current feasibility flag (initially feasible).
+  - The category-usage table (initially all zero).
+- For each successfully read record:
+  - A category index is derived from `A`, `B`, and `N`.
+  - If that category has already been used at least once, transition to infeasible state.
+  - Otherwise, mark the category as used.
+- After input ends, emit output based on the final feasibility state.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed upper bound on the number of distinct categories (a constant-size table).  
+- Memory usage is constant with respect to the number of input records (aside from the fixed table).  
+- Processing time is linear in the number of successfully read records.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+m[1<<18];*p;main(n,a,b){for(scanf("%d%*d",&n);~scanf("%d%d",&a,&b);p-m&&*p?n=0:++*p)p=m+(a-1?b-n?0:a:b);puts(n?"IMPOSSIBLE":"POSSIBLE");}
+=== C CODE END ===

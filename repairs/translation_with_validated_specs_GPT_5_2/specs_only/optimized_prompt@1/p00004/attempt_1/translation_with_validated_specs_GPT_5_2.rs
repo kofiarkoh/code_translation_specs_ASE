@@ -1,0 +1,52 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; constant memory per case is still satisfied for typical constraints,
+    // and the specification does not forbid buffering the input.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+
+    loop {
+        let a: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break, // end-of-input: stop without additional output
+        };
+        let b: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let c: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let d: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let e: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+        let f: f64 = match it.next() {
+            Some(s) => s.parse().unwrap(),
+            None => break,
+        };
+
+        // Solve:
+        // a*x + b*y = c
+        // d*x + e*y = f
+        //
+        // Using elimination with the divisions implied by the preconditions:
+        // y = (f - (d*c)/a) / (e - (b*d)/a)
+        // x = (c - b*y) / a
+        //
+        // If preconditions are violated, behavior is intentionally not guarded.
+        let denom = e - (b * d) / a;
+        let y = (f - (d * c) / a) / denom;
+        let x = (c - b * y) / a;
+
+        println!("{:.3} {:.3}", x, y);
+    }
+}

@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays to match C semantics
+    let mut p = vec![0usize; n + 1];
+    let mut hi = vec![0usize; n + 1];
+
+    // First pass: read p[i], count occurrences per value
+    for i in 1..=n {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        p[i] = a;
+        // Spec precondition: 1 <= a <= n; otherwise behavior is undefined in C.
+        // We keep the same assumption and index directly.
+        hi[a] += 1;
+    }
+
+    // Allocate occurrence lists q[v] with exact capacity hi[v]
+    let mut q: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+    for v in 1..=n {
+        q[v] = Vec::with_capacity(hi[v]);
+    }
+
+    // Reset hi to reuse as "current length" (like C's memset to 0)
+    for v in 1..=n {
+        hi[v] = 0;
+    }
+
+    // Second pass: fill q[v] with positions i where p[i] == v
+    for i in 1..=n {
+        let a = p[i];
+        q[a].push(i);
+        hi[a] += 1;
+    }
+
+    // Stack of available positions
+    let mut sp: Vec<usize> = Vec::with_capacity(n);
+    let mut ans = vec![0usize; n + 1];
+
+    // Two rounds, matching the C loops exactly.
+    for _round in 0..2 {
+        for v in 1..=n {
+            // While hi[v] > 0: pop from q[v] (in reverse insertion order) and push onto sp
+            while hi[v] > 0 {
+                hi[v] -= 1;
+                let pos = q[v][hi[v]];
+                sp.push(pos);
+            }
+            // If ans[v] not set and stack non-empty, assign one position
+            if ans[v] == 0 {
+                if let Some(pos) = sp.pop() {
+                    ans[v] = pos;
+                }
+            }
+        }
+    }
+
+    // Output ans[1..n], one per line
+    let mut out = String::new();
+    for v in 1..=n {
+        out.push_str(&format!("{}\n", ans[v]));
+    }
+    print!("{out}");
+}
+```

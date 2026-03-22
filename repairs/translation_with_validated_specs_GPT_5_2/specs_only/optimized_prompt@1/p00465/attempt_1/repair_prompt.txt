@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each problem instance, the program reads two independent rectangular grids with a designated starting cell in each. For each grid, it derives a sequence where the k-th element (k ≥ 1) is the minimum possible value of the maximum cell value encountered when selecting exactly k distinct cells that are reachable from the start via 4-directional adjacency, under the constraint that the selected cells form a connected region containing the start.  
+Given an integer R, it then computes the minimum achievable sum of these two per-grid sequence values by choosing k cells from the first grid and (R−k) cells from the second grid, for any k that is feasible in both grids. The resulting minimum sum is output.
+
+2. Inputs  
+Repeated instances until termination by a leading zero value:  
+- An integer R (termination when R = 0).  
+- For each of two grids:  
+  - Grid width W and height H.  
+  - Starting coordinates (X, Y) given in 1-based indexing.  
+  - H×W non-negative integer cell values.
+
+3. Outputs  
+For each instance (nonzero R):  
+- One integer: the minimum sum described in the Functional Description.
+
+4. Preconditions  
+- For each grid: 1 ≤ W, H ≤ 501.  
+- Starting coordinates refer to a valid cell within the grid.  
+- R is non-negative.  
+- The total number of cells in each grid does not exceed the program’s internal capacity for storing derived sequence values (assumed ≤ 100000).  
+- The number of enqueued cells during processing does not exceed the program’s internal queue capacity (assumed ≤ 150000).  
+- Input values are well-formed non-negative integers.
+
+5. Postconditions  
+For each processed instance:  
+- Let S₁(k) be the minimal possible maximum cell value among all connected (4-adjacent) sets of exactly k distinct cells containing the start in grid 1. Define S₂(k) analogously for grid 2.  
+- The program outputs:  
+  - min over all integers k such that 0 ≤ k ≤ R, k is within the computed range for grid 1, and (R−k) is within the computed range for grid 2, of S₁(k) + S₂(R−k),  
+  with the convention that S₁(0) = S₂(0) = 0.
+
+6. Invariants  
+- For each grid, the derived sequence is non-decreasing with respect to the number of selected cells.  
+- For each grid, the k-th sequence value equals the smallest threshold T such that at least k cells are reachable from the start using only cells with value ≤ T (equivalently, the minimal possible maximum value needed to include k reachable cells in a connected region containing the start).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If inputs violate preconditions (e.g., exceed internal capacities or contain invalid coordinates), behavior is undefined (may produce incorrect output or crash).  
+- Termination occurs only when the leading R value is zero.
+
+8. State Transitions (if applicable)  
+- For each instance, the program transitions from an unprocessed state to a processed state by computing the two per-grid sequences and then computing the minimum combined sum for the given R.  
+- Between instances, all per-instance derived data is overwritten; no state is preserved across instances other than continued reading.
+
+9. Non-functional Constraints (if inferable)  
+- Time and memory usage scale with the number of cells in each grid; each cell is processed at most once per grid.  
+- Uses fixed-size internal storage; therefore, maximum supported grid sizes and reachable-cell counts are bounded by those fixed capacities.
+```

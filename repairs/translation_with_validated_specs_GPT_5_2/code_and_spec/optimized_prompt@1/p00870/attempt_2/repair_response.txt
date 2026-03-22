@@ -1,0 +1,93 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input. We must mimic scanf("%d %d") and scanf("%s") tokenization.
+    // Using split_whitespace() is appropriate for AOJ-style inputs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n = match it.next() {
+            Some(x) => x.parse::<usize>().unwrap(),
+            None => break,
+        };
+        let m = it.next().unwrap().parse::<usize>().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read patterns
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        let mut lens: Vec<usize> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            let b = s.as_bytes().to_vec();
+            lens.push(b.len());
+            patterns.push(b);
+        }
+
+        // Read and concatenate text fragments.
+        // Spec says: if last character has ASCII < ' ', remove it before concatenation.
+        // With split_whitespace(), such characters are unlikely to appear, but we implement it anyway.
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let mut frag = it.next().unwrap().as_bytes().to_vec();
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            text.extend_from_slice(&frag);
+        }
+
+        let l_s = text.len();
+        let loop_mask = 1usize << n;
+        let full = loop_mask - 1;
+
+        // Use a flat array for better performance and to match the C table semantics.
+        // Index: pos * loop_mask + mask
+        let mut flag = vec![0u8; (l_s + 1) * loop_mask];
+
+        // In the C code, (0, empty) is treated as reachable without setting flag[0][0].
+        // We explicitly set it to simplify and preserve semantics.
+        flag[0 * loop_mask + 0] = 1;
+
+        for i in 0..l_s {
+            let base = i * loop_mask;
+            for j in 0..loop_mask {
+                if flag[base + j] == 0 {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1usize << k;
+                    if (j & mask) != 0 {
+                        continue;
+                    }
+                    let l = lens[k];
+                    if i + l > l_s {
+                        continue;
+                    }
+                    if text[i..i + l] == patterns[k][..] {
+                        let pat = j | mask;
+                        flag[(i + l) * loop_mask + pat] = 1;
+                    }
+                }
+            }
+        }
+
+        let mut cnt: usize = 0;
+        for p in 0..=l_s {
+            cnt += flag[p * loop_mask + full] as usize;
+        }
+
+        out.push_str(&format!("{cnt}\n"));
+    }
+
+    print!("{out}");
+}
+```

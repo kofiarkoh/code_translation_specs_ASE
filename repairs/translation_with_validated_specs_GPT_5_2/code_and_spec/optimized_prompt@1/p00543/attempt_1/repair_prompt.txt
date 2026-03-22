@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads an integer sequence and applies a series of remainder-based adjacent-swap passes. For each modulus value `k` from 1 through a given limit `m`, the program performs exactly one left-to-right sweep over adjacent pairs in the current sequence. During that sweep, for each adjacent pair, if the left element’s remainder modulo `k` is greater than the right element’s remainder modulo `k`, the two elements are swapped. After completing all passes, the program outputs the resulting sequence.
+
+2. Inputs  
+- An integer `n`: the number of elements.  
+- An integer `m`: the number of passes (and the maximum modulus used).  
+- `n` integers forming the initial sequence.
+
+3. Outputs  
+- The final sequence after all passes, printed as `n` integers, one per line, in their resulting order.
+
+4. Preconditions / Assumptions  
+- `1 <= n <= 1000` (the program stores elements in a fixed-size array).  
+- `m >= 1` (the program performs passes for `k = 1..m`).  
+- Exactly `n` integer values are provided after `n` and `m`.  
+- No explicit validation is performed; if inputs are missing, malformed, or outside these assumptions, behavior is unspecified.
+
+5. Transformation / Pass Semantics  
+- The sequence is 1-indexed conceptually for the purpose of describing the behavior.  
+- For each pass index `k` taking values `1, 2, ..., m`, the program performs exactly `n-1` adjacent comparisons in order on the current sequence: it considers pairs `(1,2)`, then `(2,3)`, ..., then `(n-1,n)`.  
+- For each such pair `(i, i+1)`, it computes `a[i] % k` and `a[i+1] % k` using the language’s integer remainder operation. If `a[i] % k` is strictly greater than `a[i+1] % k`, the two elements are swapped; otherwise they are left as-is.  
+- Each pass consists of this single sweep only; the program does not repeat sweeps for the same `k` until no swaps occur. Therefore, after a pass for a given `k`, the sequence is not guaranteed to be fully ordered by remainder modulo `k` across all adjacent pairs.
+
+6. Postconditions  
+- The multiset of input values is preserved; only the order may change due to swaps.  
+- Exactly `n` integers are printed, each on its own line, corresponding to the sequence obtained after applying the above single-sweep transformation for every `k` from 1 through `m` in increasing order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is implemented; behavior is unspecified if preconditions are violated or input cannot be read as required.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int main(void)
+{
+	int a[1000],k,n,m;
+	int i,j;
+	int temp;
+	scanf("%d %d",&n,&m);
+	for(i=1;i<=n;i++)scanf("%d",&a[i]);
+	k=1;
+	do{
+		for(i=1,j=2;i<n,j<=n;i++,j++){
+			if(a[i]%k>a[j]%k){
+				temp=a[i];
+				a[i]=a[j];
+				a[j]=temp;
+			}
+		}
+		k++;
+	}while(k<=m);
+	for(i=1;i<=n;i++)printf("%d\n",a[i]);
+	return 0;
+}
+=== C CODE END ===

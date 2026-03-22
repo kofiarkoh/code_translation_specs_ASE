@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads a single lowercase alphabetic word and computes how many disjoint pairs of identical letters can be formed from it, considering only whether each letter occurs an even or odd number of times. The result equals half the number of distinct letters that occur an odd number of times.
+
+2. Inputs  
+- One whitespace-delimited string token intended to consist of lowercase letters.
+
+3. Outputs  
+- One non-negative integer representing the number of letter-pairs derivable under the rule: each letter contributes 1 to the count if it appears an odd number of times, 0 otherwise; the final output is half the total odd-letter count (integer division).
+
+4. Preconditions  
+- The input token length is at most 1009 characters.  
+- Every character in the token is a lowercase letter in the range ‘a’ through ‘z’.  
+- Input is present and readable.
+
+5. Postconditions  
+- The program outputs ⌊(number of distinct letters with odd occurrence count) / 2⌋.  
+- No other output is produced.
+
+6. Invariants  
+- For each lowercase letter, its tracked parity is always either “even so far” or “odd so far” with respect to the processed prefix of the input.  
+- The computed odd-letter total is between 0 and 30 inclusive.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If the input is missing, too long, or contains characters outside the expected lowercase range, behavior is undefined (may produce incorrect output or access invalid memory).
+
+8. State Transitions (if applicable)  
+- Not applicable; the program has no persistent state beyond a single execution.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is linear in the input length plus a small constant amount of work.  
+- Memory usage is bounded by a fixed-size buffer and fixed-size counters.
+```

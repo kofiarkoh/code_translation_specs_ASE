@@ -1,0 +1,33 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    // Per spec: no explicit error handling; malformed/missing input => undefined behavior.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse::<isize>().unwrap() as usize;
+    let s1 = it.next().unwrap();
+    let s2 = it.next().unwrap();
+
+    // Preconditions say both strings have length exactly N; we do not validate.
+    // Treat strings as sequences of bytes; spec speaks in "characters" but input is tokenized,
+    // and no encoding constraints are given. Using bytes preserves exact token content.
+    let a = s1.as_bytes();
+    let b = s2.as_bytes();
+
+    // Find maximum k in [0, N] such that suffix of a of length k equals prefix of b of length k.
+    let mut best_k: usize = 0;
+    for k in 0..=n {
+        // Compare a[n-k..n] with b[0..k]
+        if a[n - k..n] == b[0..k] {
+            best_k = k;
+        }
+    }
+
+    let out = 2usize * n - best_k;
+    print!("{}", out);
+}
+```

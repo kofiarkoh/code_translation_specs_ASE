@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes and outputs a single integer value modulo a fixed prime modulus, derived from an input integer \(n\) via a summation over \(k = 1 \ldots n-1\). The computation uses factorial-based binomial coefficients modulo the modulus and combines them into an intermediate sequence, then forms a weighted sum of successive differences of that sequence.
+
+2. Inputs  
+- One signed integer \(n\).
+
+3. Outputs  
+- One integer in the range \([0, \text{modulus}-1]\), representing the computed value modulo the fixed modulus.
+
+4. Preconditions  
+- \(0 \le n \le 1{,}000{,}000\) (required to stay within precomputed table bounds).  
+- The input is present and parseable as an integer.  
+- The modulus is prime, and factorial values up to \(1{,}000{,}000\) are invertible modulo it (implied by the chosen modulus and range).
+
+5. Postconditions  
+- If the preconditions hold, the program outputs  
+  \[
+  \text{ans} \equiv \sum_{k=1}^{n-1} k \cdot \left(T(k) - T(k-1)\right) \pmod{\text{modulus}}
+  \]
+  where  
+  \[
+  T(k) \equiv \binom{k-1}{\,n-1-k\,}\cdot k!\cdot (n-1-k)! \pmod{\text{modulus}}
+  \]
+  and \(\binom{a}{b}=0\) when \(a<0\), \(b<0\), or \(b>a\).  
+- The printed value is the canonical non-negative residue modulo the modulus.
+
+6. Invariants  
+- All intermediate arithmetic is interpreted modulo the fixed modulus.  
+- For all \(i\) within the precomputed range, factorial and inverse-factorial tables represent multiplicative inverses consistently modulo the modulus (i.e., factorial\((i)\) · invfactorial\((i)\) ≡ 1 mod modulus).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If \(n\) is outside the supported range or input parsing fails, behavior is undefined (may read/write out of bounds or produce an arbitrary result).  
+
+8. State Transitions (if applicable)  
+- Initializes internal precomputed tables for factorials and inverse factorials up to a fixed maximum.  
+- Computes an intermediate sequence \(T(k)\) for \(k = 0 \ldots n-1\).  
+- Accumulates the final modular answer and outputs it.  
+- Terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity: \(O(N)\) preprocessing for the fixed maximum plus \(O(n)\) per run.  
+- Space complexity: \(O(N)\) for the precomputed tables, where \(N \approx 1{,}000{,}000\).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+
+#define MOD 1000000007
+ll fact[1000010];
+ll invfact[1000010];
+ll temp[1000010];
+
+ll choose(ll n,ll r){
+	if(n<0||r<0||r>n)return 0;
+	return fact[n]*invfact[r]%MOD*invfact[n-r]%MOD;
+}
+
+int main(){
+	fact[0]=1;
+	rep(i,1,1000005)fact[i]=fact[i-1]*i%MOD;
+	invfact[1000000]=pom(fact[1000000],MOD-2,MOD);
+	for(ll i=999999;i>=0;i--)invfact[i]=invfact[i+1]*(i+1)%MOD;
+	
+	ll n;
+	scanf("%lld",&n);
+	rep(k,0,n)temp[k]=choose(k-1,n-1-k)*fact[k]%MOD*fact[n-1-k]%MOD;
+	ll ans=0;
+	rep(k,1,n)ans=(ans+k*(temp[k]-temp[k-1]+MOD))%MOD;
+	printf("%lld\n",ans);
+	return 0;
+}
+=== C CODE END ===

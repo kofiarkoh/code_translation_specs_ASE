@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes the number of distinct common subsequences shared by two integer sequences, counting the empty subsequence, and returns the result reduced modulo a fixed large prime.
+
+2. Inputs  
+- An integer length for the first sequence.  
+- An integer length for the second sequence.  
+- A sequence of integers of the first given length.  
+- A sequence of integers of the second given length.
+
+3. Outputs  
+- A single non-negative integer: the count of distinct common subsequences between the two input sequences (including the empty subsequence), taken modulo 1,000,000,007.
+
+4. Preconditions  
+- The provided lengths are within the supported bounds (at most 2000 each).  
+- The input contains exactly the required number of integers for both sequences.  
+- Sufficient memory is available for the computation.
+
+5. Postconditions  
+- The output equals the number of distinct sequences that are subsequences of both inputs, including the empty subsequence, reduced modulo 1,000,000,007.  
+- The output is in the range \([0, 1{,}000{,}000{,}006]\).
+
+6. Invariants  
+- For any prefix lengths \(i\) and \(j\), the maintained value for those prefixes represents the number of distinct common subsequences between the first \(i\) elements of the first sequence and the first \(j\) elements of the second sequence, modulo 1,000,000,007.  
+- For any \(i = 0\) or \(j = 0\), the value is 1 (only the empty subsequence is common).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for malformed input, out-of-range lengths, or I/O failures; behavior is unspecified in such cases.  
+- If lengths exceed supported bounds, memory may be accessed out of limits, leading to undefined behavior.
+
+8. State Transitions (if applicable)  
+- Not applicable; the program performs a single computation from input to output without persistent external state.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is proportional to the product of the two lengths.  
+- Space usage is proportional to the product of the two lengths.  
+- All results are computed modulo 1,000,000,007 to keep values bounded.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<string.h>
+
+long long dp[2010][2010];
+#define mod 1000000007
+int main(){
+	int n, m;
+	int s[2010], t[2010];
+	scanf("%d%d", &n,&m);	
+	for(int i = 0; i < n; i++) scanf("%d", s+i);
+	for(int i = 0; i < m; i++) scanf("%d", t+i);
+
+	for(int i = 0; i <= n; i++){
+		for(int j = 0; j <= m; j++){
+			if(i == 0 || j == 0){
+				dp[i][j] = 1;
+				continue;
+			}
+			dp[i][j] = (dp[i-1][j] + dp[i][j-1]) % mod;
+			if(s[i-1] != t[j-1]){
+				// dp[i-1][j-1] を mod の世界で引く
+				dp[i][j] -= dp[i-1][j-1];
+				dp[i][j] = dp[i][j] % mod;
+				if(dp[i][j] < 0) {
+					dp[i][j] += mod;
+				}
+			} 	
+		}
+	}
+	printf("%lld\n", dp[n][m]);
+	//cout << dp[n][m] << endl;
+}
+=== C CODE END ===

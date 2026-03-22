@@ -1,0 +1,124 @@
+use std::io::{self, Read};
+
+fn derived_scores(seq: &[i64], score_by_greater: &[i64]) -> Vec<i64> {
+    let n = seq.len();
+    let mut out = vec![0i64; n];
+    for i in 0..n {
+        let mut greater = 0usize;
+        for j in 0..n {
+            if seq[j] > seq[i] {
+                greater += 1;
+            }
+        }
+        out[i] = score_by_greater[greater];
+    }
+    out
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    // Score list indexed by "number of strictly greater elements" in [0, n-1].
+    let mut score_by_greater = vec![0i64; n];
+    for i in 0..n {
+        score_by_greater[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut a = vec![0i64; n];
+    let mut b = vec![0i64; n];
+    let mut c = vec![0i64; n];
+
+    for i in 0..n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 0..n {
+        b[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 0..n {
+        c[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // If n == 0, there is no "first element" to modify; no candidates exist.
+    if n == 0 {
+        println!("No qualifying increase found");
+        return;
+    }
+
+    // Precompute derived scores for the two sequences that are not modified in a given trial.
+    let a_base = derived_scores(&a, &score_by_greater);
+    let b_base = derived_scores(&b, &score_by_greater);
+    let c_base = derived_scores(&c, &score_by_greater);
+
+    let mut best: Option<i64> = None;
+
+    // Evaluate modifications for one chosen sequence at a time.
+    // Candidate new values for the first element are:
+    // - match another element in that same sequence, or
+    // - that value plus one,
+    // but must be strictly greater than the original first element.
+    for which in 0..3 {
+        let (seq, other1, other2) = match which {
+            0 => (&mut a, &b_base, &c_base),
+            1 => (&mut b, &a_base, &c_base),
+            _ => (&mut c, &a_base, &b_base),
+        };
+
+        let orig0 = seq[0];
+
+        // Collect candidate target values from this sequence.
+        let mut candidates: Vec<i64> = Vec::with_capacity(2 * n);
+        for &v in seq.iter() {
+            candidates.push(v);
+            candidates.push(v + 1);
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+
+        for &new0 in candidates.iter() {
+            if new0 <= orig0 {
+                continue;
+            }
+
+            // Temporarily modify first element.
+            seq[0] = new0;
+
+            // Compute derived scores for this modified sequence.
+            let mod_scores = derived_scores(seq, &score_by_greater);
+
+            // Total scores are sum of three derived scores.
+            let mut total0 = mod_scores[0] + other1[0] + other2[0];
+
+            // Count how many elements have strictly greater total score than element 0.
+            let mut strictly_greater = 0usize;
+            for i in 0..n {
+                let tot_i = mod_scores[i] + other1[i] + other2[i];
+                if tot_i > total0 {
+                    strictly_greater += 1;
+                }
+            }
+
+            if strictly_greater <= 7 {
+                let inc = new0 - orig0;
+                best = match best {
+                    None => Some(inc),
+                    Some(cur) => Some(cur.min(inc)),
+                };
+            }
+
+            // Restore original first element before next candidate.
+            seq[0] = orig0;
+        }
+    }
+
+    match best {
+        Some(ans) => println!("{}", ans),
+        None => println!("No qualifying increase found"),
+    }
+}

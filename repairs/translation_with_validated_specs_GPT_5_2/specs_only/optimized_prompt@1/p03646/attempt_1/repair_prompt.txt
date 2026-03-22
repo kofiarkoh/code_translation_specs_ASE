@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+The program reads a single integer `k` and prints an integer `n` followed by exactly `n` integers. The value of `n` and the sequence are deterministically derived from `k` by a fixed case split on `k`.
+
+2. Inputs  
+- One integer `k`, read from standard input.
+
+3. Outputs  
+- First, an integer `n` on its own line.  
+- Then, exactly `n` integers representing the sequence values, printed in order and separated by single spaces (a trailing space after the last number may be present). A final newline after the sequence is not required in all cases.
+
+4. Preconditions / Assumptions  
+- The input must be parseable as a signed 64-bit integer value.  
+- The intended/meaningful domain is `k >= 0`. If `k < 0`, the program’s behavior is still defined by the same branching logic, but no non-negativity guarantees for the sequence are made.
+
+5. Detailed Behavior (Postconditions)  
+Let the input be `k`.
+
+- Case 1: `k >= 50`  
+  - The program outputs `n = 50`.  
+  - Define:
+    - `rem = k / 50` (integer division),
+    - `t = k % 50` (remainder, in the range `0..49` for `k >= 0`),
+    - `x = 49 + rem`.  
+  - It constructs an array `a[0..49]` as follows:
+    - Initialize all `a[i] = x` for `i = 0..49`.
+    - For each `i` from `0` to `t-1` (in increasing order):
+      - Increase `a[i]` by `50`.
+      - Decrease every other element `a[j]` (for all `j != i`) by `1`.
+  - It then prints the 50 values `a[0] a[1] ... a[49]` in index order.
+
+- Case 2: `2 <= k < 50`  
+  - The program outputs `n = k`.  
+  - It prints `n` integers, each equal to `n` (i.e., the value `k` repeated `k` times).
+
+- Case 3: `k == 0`  
+  - The program outputs `n = 4`.  
+  - It prints the sequence `3 3 3 3`.
+
+- Case 4: `k == 1`  
+  - The program outputs `n = 3`.  
+  - It prints the sequence `1 0 3`.
+
+6. Invariants / Guarantees  
+- The first printed number `n` equals the count of subsequent integers printed.  
+- For `k >= 0`, the program’s output always matches exactly one of the four cases above.  
+- For `k >= 0`, the sequence values produced by the program are non-negative.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed. If input is missing, malformed, or outside the representable range of the chosen integer type, behavior is unspecified.
+
+8. Implementation / I/O Representation Requirements (to ensure a valid C program)  
+- The reference behavior uses signed 64-bit arithmetic consistent with C’s `long long` and reads/writes using `scanf`/`printf` with the `%lld` format for `k` and sequence values.  
+- If an implementation chooses to use fixed-width types and format macros (e.g., `int64_t` with `SCNd64`/`PRId64`), it must include the required headers (notably `<inttypes.h>`) and use matching format specifiers so the program is valid and compilable C.
+```

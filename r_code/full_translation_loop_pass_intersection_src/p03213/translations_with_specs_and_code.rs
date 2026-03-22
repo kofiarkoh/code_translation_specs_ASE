@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read input
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let n: usize = s.split_whitespace().next().unwrap().parse().unwrap();
+
+    // yaku[p] = exponent of prime p in n!
+    // Fixed-size storage as in the C code (supports n <= 100 per spec precondition).
+    let mut yaku = vec![0i32; 101];
+
+    // Factorize each i in 2..=n and accumulate prime exponents.
+    for i in 2..=n {
+        let mut a = i;
+        let mut waru = 2usize;
+        while a > 1 {
+            while a % waru == 0 {
+                a /= waru;
+                yaku[waru] += 1;
+            }
+            waru += 1;
+        }
+    }
+
+    // Count primes p with exponent >= (a-1) in n!
+    let num = |a: i32| -> i32 {
+        let mut c = 0i32;
+        for i in 2..=n {
+            if yaku[i] >= a - 1 {
+                c += 1;
+            }
+        }
+        c
+    };
+
+    // Combinational counting for divisor-count = 75 = 3*5*5:
+    // patterns: 75, 25*3, 15*5, 5*5*3
+    let ans = num(75)
+        + num(25) * (num(3) - 1)
+        + num(15) * (num(5) - 1)
+        + num(5) * (num(5) - 1) * (num(3) - 2) / 2;
+
+    print!("{ans}\n");
+}

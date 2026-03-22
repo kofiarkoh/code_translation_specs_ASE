@@ -1,0 +1,170 @@
+use std::io::{self, Read};
+use std::process;
+
+/// Internal end marker value (not printed, not erasable).
+const END: i32 = 1_000_000_001;
+
+#[derive(Clone)]
+struct Node {
+    data: i32,
+    prev: Option<usize>,
+    next: Option<usize>,
+}
+
+struct List {
+    nodes: Vec<Node>,
+    cursor: usize, // always an index into `nodes`
+}
+
+impl List {
+    fn new() -> Self {
+        let mut nodes = Vec::new();
+        nodes.push(Node {
+            data: END,
+            prev: None,
+            next: None,
+        });
+        Self { nodes, cursor: 0 }
+    }
+
+    fn is_end(&self, idx: usize) -> bool {
+        self.nodes[idx].data == END
+    }
+
+    fn is_front(&self, idx: usize) -> bool {
+        self.nodes[idx].prev.is_none()
+    }
+
+    /// Insert `data` immediately before the cursor and move cursor to the new node.
+    fn insert(&mut self, data: i32) {
+        let cur = self.cursor;
+        let new_idx = self.nodes.len();
+
+        let prev = self.nodes[cur].prev;
+
+        self.nodes.push(Node {
+            data,
+            prev,
+            next: Some(cur),
+        });
+
+        // Link new node into list
+        self.nodes[cur].prev = Some(new_idx);
+        if let Some(p) = prev {
+            self.nodes[p].next = Some(new_idx);
+        }
+
+        self.cursor = new_idx;
+    }
+
+    /// Move cursor by signed offset; on invalid movement prints diagnostic and exits non-zero.
+    fn move_cursor(&mut self, mut d: i32) {
+        if d == 0 {
+            return;
+        }
+
+        if d < 0 {
+            while d < 0 {
+                let cur = self.cursor;
+                if self.is_front(cur) {
+                    // Must match C output exactly.
+                    print!("Cursor is already front.\n");
+                    process::exit(1);
+                }
+                self.cursor = self.nodes[cur].prev.expect("non-front must have prev");
+                d += 1;
+            }
+            return;
+        }
+
+        while d > 0 {
+            let cur = self.cursor;
+            if self.nodes[cur].next.is_none() {
+                print!("Cursor has no next.\n");
+                process::exit(2);
+            }
+            self.cursor = self.nodes[cur].next.expect("has next");
+            d -= 1;
+        }
+    }
+
+    /// Erase element at cursor if not END marker; cursor becomes next element.
+    fn erase(&mut self) {
+        let cur = self.cursor;
+        if self.is_end(cur) {
+            return;
+        }
+
+        let next = self.nodes[cur].next.expect("non-end nodes always have a next (at least END)");
+
+        if self.is_front(cur) {
+            // Remove front: next becomes new front.
+            self.nodes[next].prev = None;
+            self.cursor = next;
+            return;
+        }
+
+        let prev = self.nodes[cur].prev.expect("non-front must have prev");
+        self.nodes[prev].next = Some(next);
+        self.nodes[next].prev = Some(prev);
+        self.cursor = next;
+    }
+
+    /// Print from front to end, excluding END marker, one integer per line.
+    fn print_all(&self) {
+        // Move to front
+        let mut idx = self.cursor;
+        while let Some(p) = self.nodes[idx].prev {
+            idx = p;
+        }
+
+        // Follow C's do/while structure: it prints current if not END, then advances,
+        // and stops when current->next == NULL (i.e., at last node).
+        loop {
+            if self.nodes[idx].data != END {
+                println!("{}", self.nodes[idx].data);
+                idx = self.nodes[idx].next.expect("non-last must have next");
+            }
+            if self.nodes[idx].next.is_none() {
+                break;
+            }
+        }
+    }
+}
+
+fn main() {
+    // Read entire stdin; C uses line-based fgets with small buffer, but spec assumes lines fit.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let q: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let mut list = List::new();
+
+    for _ in 0..q {
+        let cmd = it.next().unwrap(); // precondition: present and recognized
+        match cmd.as_bytes().get(0).copied() {
+            Some(b'0') => {
+                let v: i32 = it.next().unwrap().parse().unwrap();
+                list.insert(v);
+            }
+            Some(b'1') => {
+                let d: i32 = it.next().unwrap().parse().unwrap();
+                list.move_cursor(d);
+            }
+            Some(b'2') => {
+                list.erase();
+            }
+            _ => {
+                // Spec says input validity is assumed; behavior for unrecognized is not inferable.
+                // We ignore, matching the C code's effective behavior.
+            }
+        }
+    }
+
+    list.print_all();
+}

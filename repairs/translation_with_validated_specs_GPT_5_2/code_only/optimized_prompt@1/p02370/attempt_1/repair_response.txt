@@ -1,0 +1,108 @@
+```rust
+use std::io::{self, Read};
+
+const MAX_V: usize = 10002;
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+
+impl Scanner {
+    fn new() -> Self {
+        let mut input = Vec::new();
+        io::stdin().read_to_end(&mut input).unwrap();
+        Self { buf: input, idx: 0 }
+    }
+
+    // Emulates the C `in()`:
+    // - assumes the next byte is a digit (no skipping of whitespace)
+    // - reads consecutive digits, stops when next byte is < '0'
+    // This matches the original behavior on valid AOJ input.
+    fn in_u32(&mut self) -> u32 {
+        let mut n: u32 = 0;
+        let mut c = self.buf[self.idx];
+        self.idx += 1;
+        loop {
+            n = (n << 3) + (n << 1) + ((c & 0x0f) as u32);
+            if self.idx >= self.buf.len() {
+                break;
+            }
+            c = self.buf[self.idx];
+            self.idx += 1;
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let v = sc.in_u32() as usize;
+    let mut e = sc.in_u32() as usize;
+
+    // Adjacency lists: to[i] holds outgoing neighbors of i.
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut hi: Vec<usize> = vec![0; v]; // used first as out-degree counts, then as fill indices
+    let mut count: Vec<i32> = vec![0; v]; // indegree counts
+
+    // First pass: read edges into memo and count out-degrees (hi[s]++).
+    // C allocates `memo = malloc(E<<3)` (2*E ints). We'll store pairs in a Vec.
+    let mut memo: Vec<(usize, usize)> = Vec::with_capacity(e);
+    for _ in 0..e {
+        let s = sc.in_u32() as usize;
+        let t = sc.in_u32() as usize;
+        memo.push((s, t));
+        hi[s] += 1;
+    }
+
+    // Allocate adjacency vectors with exact capacities like the C code's malloc(hi[i]<<2).
+    for i in 0..v {
+        if hi[i] != 0 {
+            to[i] = Vec::with_capacity(hi[i]);
+        }
+    }
+
+    // memset(hi, 0, V<<2);
+    for x in hi.iter_mut() {
+        *x = 0;
+    }
+
+    // Second pass: fill adjacency and compute indegrees.
+    for &(s, t) in memo.iter() {
+        to[s].push(t);
+        hi[s] += 1;
+        count[t] += 1;
+    }
+
+    // Topological sort (Kahn), printing each vertex as it is popped.
+    let mut q: Vec<usize> = vec![0; v];
+    let mut top: usize = 0;
+    let mut end: usize = 0;
+
+    for i in 0..v {
+        if count[i] == 0 {
+            q[end] = i;
+            end += 1;
+        }
+    }
+
+    let mut out = String::new();
+    while top < end {
+        let i = q[top];
+        top += 1;
+        out.push_str(&format!("{i}\n"));
+        for &k in to[i].iter() {
+            count[k] -= 1;
+            if count[k] == 0 {
+                q[end] = k;
+                end += 1;
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```

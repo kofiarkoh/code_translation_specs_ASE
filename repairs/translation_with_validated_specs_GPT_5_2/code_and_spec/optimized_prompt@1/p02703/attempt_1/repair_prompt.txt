@@ -1,0 +1,177 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Computes, for each node other than the designated start node, the minimum achievable total travel time to reach that node from the start, subject to a consumable “money” resource. Travel between nodes consumes money and adds time; additionally, at each node there is an operation that increases money (up to a fixed cap) while adding time. Outputs the computed minimum times for all destination nodes.
+
+A special-case input triggers a fixed, precomputed set of outputs instead of performing the computation.
+
+2. Inputs  
+- Three integers:  
+  - Number of nodes.  
+  - Number of bidirectional travel connections.  
+  - Initial money available at the start.  
+- For each travel connection: four integers describing an undirected edge between two nodes with:  
+  - Money cost to traverse.  
+  - Time added when traversed.  
+- For each node: two integers describing a node-local operation with:  
+  - Money gain (can be positive, zero, or negative as provided, but intended as a gain).  
+  - Time added when performing the operation.
+
+3. Outputs  
+- If the special-case input condition holds: prints a fixed list of numeric lines (one per non-start node).  
+- Otherwise: prints, for each node index from 2nd node through last node (in node-index order), a single integer per line representing the minimum total time to reach that node from the start under the resource constraints.
+
+4. Preconditions  
+- Node count does not exceed the fixed internal capacity (assumed ≤ 55).  
+- The derived money cap `(node_count - 1) * 50` is non-negative and fits within the internal table bounds (assumed ≤ 2500).  
+- Input node indices for connections are within the declared node range.  
+- Time values and accumulated times do not overflow the signed 64-bit range.  
+- The problem instance is such that a minimum time exists for each node under the modeled transitions (e.g., no negative-time cycles that allow unboundedly decreasing total time).
+
+5. Postconditions  
+- For each node other than the start node, the program outputs a value equal to the minimum total time among all feasible sequences of moves and node-local operations that start at the start node with initial money (clamped to the cap) and end at that node with any money amount between 0 and the cap.  
+- The start node’s minimum time is treated as 0 (not printed).  
+- If the special-case input condition holds, the output is exactly the predefined sequence, independent of the remaining input.
+
+6. Invariants  
+- Money is always treated as an integer state bounded to the range `[0, money_cap]`, where `money_cap = (node_count - 1) * 50`.  
+- The algorithm maintains a best-known (minimum) time for each pair `(node, money)` and only improves it by finding a strictly smaller time.  
+- Once a node’s final answer is established by the algorithm, it is not changed thereafter.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation or recovery for malformed input, out-of-range values, or allocation failures. Behavior is undefined in such cases.  
+- If the internal computation does not complete as expected, the program may terminate with a non-zero exit status; otherwise it exits normally after printing results.  
+- If the instance violates assumptions needed for well-defined minima (e.g., allows unboundedly decreasing time), behavior is not defined by the program’s contract.
+
+8. State Transitions (if applicable)  
+The system state is `(current_node, current_money, accumulated_time)` with `current_money` clamped to `[0, money_cap]`. Feasible transitions are:  
+- Travel transition: from a node to an adjacent node, decreasing money by the edge’s cost (must have sufficient money), and increasing time by the edge’s time.  
+- Node-local operation transition: from a node to itself, increasing money by the node’s money gain (then clamped to the cap), and increasing time by the node’s operation time.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed-size internal tables sized for up to 55 nodes and a money cap up to 2500; inputs exceeding these implied limits are not supported.  
+- Runtime and memory scale with `node_count * money_cap` and the number of transitions per node.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#define inf 10000000000000
+#define max (N-1)*50
+#define mi(x,v) x<v?x:v
+#define ll long long int
+long N,M,S;
+int T_n[55] = {};
+int Used[55][2510];
+ll city[55][2510];
+ll ans[55];
+
+typedef struct {
+	int to,cost;
+    ll time;
+}train;
+train* T[55];
+
+void cheat();
+
+int dijkstra() {
+	for (int i = 0; i < N; i++) {
+		ans[i] = -1;
+		for (int j = 0; j <= max; j++) {
+			city[i][j] = inf;
+			Used[i][j] = 1;
+		};
+	};
+	ans[0] = 0;
+	city[0][S] = 0;
+	ll min;
+	int  mati=0, money=0, co=1;
+	while (1) {
+		min = inf;
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j <= max; j++) {
+				if (min > city[i][j] && Used[i][j]) {
+						min = city[i][j];
+						mati = i;
+						money = j;
+				};
+			};
+		};
+		if (ans[mati]==-1) {
+			ans[mati] = min;
+			co++;
+			if (co == N) {
+				return 0;
+			};
+		};
+		for (int i = 0; i <= money; i++) {
+			Used[mati][i] = 0;
+		};
+		for (int i = 0; i < T_n[mati]; i++) {
+			
+			if (money >= T[mati][i].cost
+				 && T[mati][i].time + min <city[T[mati][i].to][mi(money - T[mati][i].cost,max)] )
+            {
+					city[T[mati][i].to][mi(money - T[mati][i].cost,max)] = T[mati][i].time + min;
+
+				
+			};
+		};
+	};
+};
+
+
+int main() {
+	scanf("%ld %ld %ld", &N, &M, &S);
+  if(N==50&&M==49&&S==0){
+    cheat();
+    return 0;
+  };
+	S = mi(S, max);
+	int u, v, a, b,c,d;
+	for (int i = 0; i < M; i++) {
+		scanf("%d %d %d %d", &u, &v, &a, &b);
+		u--; v--;
+		T[u] = (train *)realloc(T[u], sizeof(train) * (T_n[u] + 1));
+		T[v] = (train *)realloc(T[v], sizeof(train) * (T_n[v] + 1));
+		T[u][T_n[u]] =(train){ v,a,b };
+		T[v][T_n[v]] = (train){ u,a,b };
+		T_n[u]++;
+		T_n[v]++;
+	};
+	for (int i = 0; i < N; i++) {
+		scanf("%d %d", &c, &d);
+		T[i] = (train *)realloc(T[i], sizeof(train) * (T_n[i] + 1));
+		T[i][T_n[i]] = (train){ i,-1*c,d };
+		T_n[i]++;
+	};
+	if(dijkstra()!=0)return 2;
+	for (int i = 1; i < N; i++) {
+		printf("%lld\n", ans[i]);
+	};
+};
+
+void cheat(){
+  printf("51000000000\n102000000000\n153000000000\n204000000000\n255000000000\n306000000000\n357000000000\n408000000000\n459000000000\n510000000000\n561000000000\n612000000000\n663000000000\n714000000000\n765000000000\n816000000000\n867000000000\n918000000000\n969000000000\n1020000000000\n1071000000000\n1122000000000\n1173000000000\n1224000000000\n1275000000000\n1326000000000\n1377000000000\n1428000000000\n1479000000000\n1530000000000\n1581000000000\n1632000000000\n1683000000000\n1734000000000\n1785000000000\n1836000000000\n1887000000000\n1938000000000\n1989000000000\n2040000000000\n2091000000000\n2142000000000\n2193000000000\n2244000000000\n2295000000000\n2346000000000\n2397000000000\n2448000000000\n2499000000000\n");
+};
+=== C CODE END ===

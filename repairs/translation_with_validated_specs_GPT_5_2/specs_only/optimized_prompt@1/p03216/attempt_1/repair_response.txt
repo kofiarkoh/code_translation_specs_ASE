@@ -1,0 +1,80 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-delimited tokens (no validation, per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let s_token = it.next().unwrap();
+    // Spec assumes s_token length >= n; if not, behavior is undefined.
+    let bytes = s_token.as_bytes();
+
+    let q: usize = it.next().unwrap().parse().unwrap();
+
+    let mut out = String::new();
+
+    for _ in 0..q {
+        let k: usize = it.next().unwrap().parse().unwrap();
+        // Spec assumes 1 <= k <= n; otherwise undefined.
+
+        let mut ans: i64 = 0;
+        let mut d: i64 = 0;
+        let mut m: i64 = 0;
+        let mut dm: i64 = 0;
+
+        // Initialization over first window [0, k-1]
+        for i in 0..k {
+            match bytes[i] {
+                b'D' => {
+                    d = d.wrapping_add(1);
+                }
+                b'M' => {
+                    m = m.wrapping_add(1);
+                    dm = dm.wrapping_add(d);
+                }
+                b'C' => {
+                    ans = ans.wrapping_add(dm);
+                }
+                _ => {}
+            }
+        }
+
+        // Slide window for i = k..n-1
+        for i in k..n {
+            let leaving = bytes[i - k];
+            match leaving {
+                b'D' => {
+                    dm = dm.wrapping_sub(m);
+                    d = d.wrapping_sub(1);
+                }
+                b'M' => {
+                    m = m.wrapping_sub(1);
+                }
+                _ => {}
+            }
+
+            let entering = bytes[i];
+            match entering {
+                b'D' => {
+                    d = d.wrapping_add(1);
+                }
+                b'M' => {
+                    m = m.wrapping_add(1);
+                    dm = dm.wrapping_add(d);
+                }
+                b'C' => {
+                    ans = ans.wrapping_add(dm);
+                }
+                _ => {}
+            }
+        }
+
+        out.push_str(&format!("{}\n", ans));
+    }
+
+    print!("{out}");
+}
+```

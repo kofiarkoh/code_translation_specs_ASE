@@ -1,0 +1,52 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated tokens like scanf("%lf ...").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        // scanf reads 6 doubles per iteration; stop when it can't read the next one (EOF/invalid).
+        let a: f64 = match it.next() {
+            Some(s) => match s.parse() {
+                Ok(v) => v,
+                Err(_) => break,
+            },
+            None => break,
+        };
+        let b: f64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let c: f64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let d: f64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let e: f64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+        let f: f64 = match it.next().and_then(|s| s.parse().ok()) {
+            Some(v) => v,
+            None => break,
+        };
+
+        // Preserve floating-point semantics (including division by zero -> inf/nan) as in C.
+        let bai = d / a;
+        let aa = a * bai;
+        let bb = b * bai;
+        let cc = c * bai;
+        let y = (f - cc) / (e - bb);
+        let x = (c - b * y) / a;
+
+        // Match printf("%.3f %.3f\n", x, y);
+        println!("{:.3} {:.3}", x, y);
+    }
+}
+```

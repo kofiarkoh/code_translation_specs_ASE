@@ -1,0 +1,189 @@
+use std::collections::{HashMap, HashSet};
+use std::io::{self, Read};
+
+fn is_connected_subset(subset: &[usize], adj: &[u32]) -> bool {
+    if subset.len() <= 1 {
+        return true;
+    }
+    let mut in_set_mask: u32 = 0;
+    for &v in subset {
+        in_set_mask |= 1u32 << v;
+    }
+
+    let start = subset[0];
+    let mut visited: u32 = 0;
+    let mut stack = vec![start];
+    visited |= 1u32 << start;
+
+    while let Some(v) = stack.pop() {
+        let neigh_in_set = adj[v] & in_set_mask;
+        let mut m = neigh_in_set & !visited;
+        while m != 0 {
+            let lsb = m & (!m + 1);
+            let u = lsb.trailing_zeros() as usize;
+            visited |= 1u32 << u;
+            stack.push(u);
+            m &= m - 1;
+        }
+    }
+
+    (visited & in_set_mask) == in_set_mask
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut first_dataset = true;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n <= 0 {
+            break;
+        }
+        let g: usize = it.next().unwrap().parse().unwrap();
+
+        // Read candidate names; treat as unique set (duplicates ignored).
+        let mut name_to_idx: HashMap<String, usize> = HashMap::new();
+        let mut idx_to_name: Vec<String> = Vec::new();
+        for _ in 0..(n as usize) {
+            let nm = it.next().unwrap().to_string();
+            if !name_to_idx.contains_key(&nm) {
+                let idx = idx_to_name.len();
+                name_to_idx.insert(nm.clone(), idx);
+                idx_to_name.push(nm);
+            }
+        }
+
+        let m = idx_to_name.len(); // number of distinct candidates (<= 20 by precondition)
+        // Read groups as bitmasks over distinct candidates.
+        let mut groups: Vec<u32> = Vec::with_capacity(g);
+        for _ in 0..g {
+            let k: usize = it.next().unwrap().parse().unwrap();
+            let mut mask: u32 = 0;
+            for _ in 0..k {
+                let nm = it.next().unwrap();
+                if let Some(&idx) = name_to_idx.get(nm) {
+                    mask |= 1u32 << idx;
+                } else {
+                    // Unspecified by contract; ignore unknown names to keep behavior narrow.
+                }
+            }
+            groups.push(mask);
+        }
+
+        // Build adjacency among candidates: edge if co-appear in at least one group.
+        let mut adj: Vec<u32> = vec![0u32; m];
+        for &gm in &groups {
+            // For each pair in group, connect.
+            let mut members: Vec<usize> = Vec::new();
+            let mut mm = gm;
+            while mm != 0 {
+                let lsb = mm & (!mm + 1);
+                let idx = lsb.trailing_zeros() as usize;
+                members.push(idx);
+                mm &= mm - 1;
+            }
+            for i in 0..members.len() {
+                for j in (i + 1)..members.len() {
+                    let a = members[i];
+                    let b = members[j];
+                    adj[a] |= 1u32 << b;
+                    adj[b] |= 1u32 << a;
+                }
+            }
+        }
+
+        // Search for smallest size 1..5 satisfying:
+        // - coverage: each group has at least one chosen person
+        // - connectivity: chosen people connected in induced co-appearance graph
+        let mut best: Option<Vec<usize>> = None;
+
+        // Precompute group masks; if any group mask is 0, it can never be covered.
+        let impossible_due_to_empty_group = groups.iter().any(|&gm| gm == 0);
+
+        if !impossible_due_to_empty_group {
+            let max_k = 5usize.min(m);
+            for k in 1..=max_k {
+                let mut comb: Vec<usize> = (0..k).collect();
+                loop {
+                    // Build chosen mask
+                    let mut chosen_mask: u32 = 0;
+                    for &i in &comb {
+                        chosen_mask |= 1u32 << i;
+                    }
+
+                    // Coverage check
+                    let mut ok = true;
+                    for &gm in &groups {
+                        if (gm & chosen_mask) == 0 {
+                            ok = false;
+                            break;
+                        }
+                    }
+
+                    if ok && is_connected_subset(&comb, &adj) {
+                        best = Some(comb.clone());
+                        break;
+                    }
+
+                    // Next combination in lexicographic order over indices [0..m)
+                    // Standard algorithm.
+                    let mut i = k;
+                    while i > 0 {
+                        i -= 1;
+                        if comb[i] != i + m - k {
+                            break;
+                        }
+                    }
+                    if comb[0] == m - k && (0..k).all(|t| comb[t] == t + m - k) {
+                        // This condition is too strict; use a clearer termination below.
+                    }
+
+                    // Find rightmost element that can be incremented.
+                    let mut pos_opt = None;
+                    for pos in (0..k).rev() {
+                        if comb[pos] < pos + m - k {
+                            pos_opt = Some(pos);
+                            break;
+                        }
+                    }
+                    if pos_opt.is_none() {
+                        break;
+                    }
+                    let pos = pos_opt.unwrap();
+                    comb[pos] += 1;
+                    for j in (pos + 1)..k {
+                        comb[j] = comb[j - 1] + 1;
+                    }
+                }
+
+                if best.is_some() {
+                    break;
+                }
+            }
+        }
+
+        if !first_dataset {
+            println!();
+        }
+        first_dataset = false;
+
+        match best {
+            None => {
+                println!("Impossible");
+            }
+            Some(sol) => {
+                println!("{}", sol.len());
+                for idx in sol {
+                    println!("{}", idx_to_name[idx]);
+                }
+            }
+        }
+    }
+}

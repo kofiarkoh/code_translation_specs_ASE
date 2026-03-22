@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads three integer inputs representing a 3‑value state and emits a single textual decision. For a limited set of recognized input combinations, it outputs either “Open” or “Close”. For any other combination, it produces no decision output.
+
+2. Inputs  
+- Three integers provided from standard input.
+
+3. Outputs  
+- To standard output, either:
+  - The word “Open” followed by a newline, or
+  - The word “Close” followed by a newline, or
+  - No output (if the input combination is not one of the recognized cases).
+
+4. Preconditions  
+- Three integers are available to be read from standard input.
+
+5. Postconditions  
+- If the input triple is one of the following, output is produced as specified:
+  - (1, 0, 0) → “Close”
+  - (0, 1, 0) → “Close”
+  - (1, 1, 0) → “Open”
+  - (0, 0, 1) → “Open”
+  - (0, 0, 0) → “Close”
+- For any other triple, the program terminates without producing “Open” or “Close”.
+
+6. Invariants  
+- At most one of the two decision words (“Open” or “Close”) is emitted.
+- The program terminates after processing the single input triple.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed for missing/invalid input; behavior in such cases is unspecified by the code.
+- Unrecognized input combinations are silently ignored (no decision output).
+
+8. State Transitions (if applicable)  
+- Stateless: no persistent state is maintained across executions.
+
+9. Non-functional Constraints (if inferable)  
+- Constant time and constant memory usage relative to input size (fixed number of integers).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(void)
+{
+	int a,b,c,ans;
+	scanf("%d %d %d",&a,&b,&c);
+	if(a==1 && b==0 && c==0){
+		printf("Close\n");
+	}
+	else if(a==0 && b==1 && c==0){
+		printf("Close\n");
+	}
+	else if(a==1 && b==1 && c==0){
+		printf("Open\n");
+	}
+	else if(a==0 && b==0 && c==1){
+		printf("Open\n");
+	}
+	else if(a==0 && b==0 && c==0){
+		printf("Close\n");
+	}
+	return 0;
+}
+=== C CODE END ===

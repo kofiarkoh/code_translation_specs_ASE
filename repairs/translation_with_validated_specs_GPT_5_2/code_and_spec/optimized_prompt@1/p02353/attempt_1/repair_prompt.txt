@@ -1,0 +1,199 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Maintains a conceptual integer array indexed from `0` and logically of length `num`, supporting two operations over **inclusive** index ranges:  
+- **Range assignment**: set every element in a specified range to a given integer value `x`.  
+- **Range sum query**: return the sum of elements in a specified range.  
+Sum query results are produced in the same order as the corresponding queries appear in the input.
+
+2. Inputs  
+- Two integers:  
+  - `num`: logical length of the array.  
+  - `queries`: number of subsequent operations.  
+- Then `queries` operations, each consisting of:  
+  - `type`, `start`, `end` (three integers).  
+  - If `type` denotes an update, one additional integer `x` follows.  
+Ranges are interpreted as inclusive `[start, end]` in the logical array.
+
+3. Outputs  
+- For each sum query operation, output one line containing the computed range sum as a signed 64-bit value (mathematically), printed in query order.
+
+4. Preconditions / Assumptions  
+- `0 <= num <= 100000`.  
+- `0 <= queries <= 100000`.  
+- For every operation: `0 <= start <= end < num`.  
+- The number of sum queries is at most `100000`.  
+- Input is well-formed and provides all required integers.  
+- Update values `x` are provided as (and fit in) a 32-bit signed `int` as read from input; sums are accumulated using signed 64-bit arithmetic.  
+- Sentinel assumption required by the program’s internal lazy state: no update should cause an internal “pending segment sum” marker to be indistinguishable from the sentinel used for “no pending update”. (Equivalently, avoid update values and segment lengths whose product equals the sentinel constant used internally.)
+
+5. Semantics / State Transitions  
+- **Initial state**: all `num` logical elements are `0`.  
+- **Update (type = 0)** on inclusive range `[start, end]` with value `x`: for all `i` in `[start, end]`, set `A[i] := x`, overwriting any previous values in that range.  
+- **Sum query (type = 1)** on inclusive range `[start, end]`: compute and record `sum_{i=start..end} A[i]`. The array state is unchanged.
+
+6. Edge Cases and Unrecognized Operations  
+- If `type` is neither update nor sum query, the operation is ignored (no output and no state change).  
+- Behavior is unspecified if any precondition is violated (including out-of-range indices, too many queries/results, malformed input, or violating the sentinel assumption).
+
+7. Numeric and I/O Conventions (C-oriented)  
+- Internally, range sums are maintained and returned using signed 64-bit integers; overflow is not checked.  
+- Output formatting corresponds to printing recorded sums as `long long` decimal values with a trailing newline (i.e., using a `%lld`-style format), consistent with a build environment that does not require `<inttypes.h>` formatting macros.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+
+int get_int(void) {
+  int num;
+  scanf("%d", &num);
+  return num;
+}
+
+int get_int2(int *a1, int *a2) {
+  scanf("%d %d", a1, a2);
+  return 0;
+}
+
+int get_int3(int *a1, int *a2, int *a3) {
+  scanf("%d %d %d", a1, a2, a3);
+  return 0;
+}
+
+enum type {
+    COMMAND_UPDATE,
+    COMMAND_GET_SUM
+};
+
+struct range {
+    int start;
+    int end;
+};
+
+struct pair {
+    int64_t lazy;
+    int64_t val;
+};
+
+#define NUM_MAX 100000
+#define NUM2_MAX (1<<17)
+#define QUERY_MAX 100000
+
+int is_overlap(struct range r1, struct range r2) {
+    return r1.end > r2.start && r2.end > r1.start;
+}
+
+int is_contain(struct range this, struct range box) {
+    return box.start <= this.start && this.end <= box.end;
+}
+
+#define INIT_VAL (2e+9)
+
+void unlazy(struct pair *seg, int node, struct range nr) {
+    int64_t lazy = seg[node].lazy;
+    if(lazy == INIT_VAL) return;
+    seg[node].val = lazy; //update
+    seg[node].lazy = INIT_VAL;
+    if(nr.end - nr.start > 1) {
+        seg[node*2].lazy = lazy/2;
+        seg[node*2+1].lazy = lazy/2;
+    }
+    return;
+}
+
+
+void update_range(struct pair *seg, int x, struct range r, int node, struct range nr) {
+    unlazy(seg, node, nr);
+    if(!is_overlap(r, nr)) return;
+    if(is_contain(nr, r)) {
+        seg[node].lazy = x * (nr.end - nr.start);
+        unlazy(seg, node, nr);
+        return;
+    }
+    struct range left = { nr.start, (nr.start + nr.end)/2 };
+    struct range right = { (nr.start + nr.end)/2, nr.end };
+    update_range(seg, x, r, node*2, left);
+    update_range(seg, x, r, node*2+1, right);
+    seg[node].val = seg[node*2].val + seg[node*2+1].val;
+}
+
+int64_t get_sum(struct pair *seg, struct range r, int node, struct range nr) {
+    unlazy(seg, node, nr);
+    if(!is_overlap(r, nr)) return 0;
+    if(is_contain(nr, r)) {
+        return seg[node].val;
+    }
+    struct range left = { nr.start, (nr.start + nr.end)/2 };
+    struct range right = { (nr.start + nr.end)/2, nr.end };
+    int64_t ans = 0;
+    ans += get_sum(seg, r, node*2, left);
+    ans += get_sum(seg, r, node*2+1, right);
+    return ans;
+}
+
+
+#define ROOT_NODE 1
+int main(void) {
+    int num, queries;
+    get_int2(&num, &queries);
+    int num2 = 1;
+    static int64_t ans[QUERY_MAX];
+    int aidx = 0;
+    while(num > num2) num2 *= 2;
+    static struct pair seg[NUM2_MAX*2];
+    int i;
+    for(i = ROOT_NODE; i < num2*2; i++) seg[i].lazy = INIT_VAL;
+
+    struct range whole = {0, num2};
+    for(i = 0; i < queries; i++) {
+        int start, end;
+        int type;
+        get_int3(&type, &start, &end);
+        struct range r = {start, end+1};
+        switch(type) {
+            case COMMAND_UPDATE:
+                {
+                    int x = get_int();
+                    update_range(seg, x, r, ROOT_NODE, whole);
+                }
+                break;
+            case COMMAND_GET_SUM:
+                ans[aidx++] = get_sum(seg, r, ROOT_NODE, whole);
+                break;
+            default:
+                break;
+        }
+    }
+
+    for(i = 0; i < aidx; i++) {
+        printf("%lld\n", ans[i]);
+    }
+    return 0;
+}
+=== C CODE END ===

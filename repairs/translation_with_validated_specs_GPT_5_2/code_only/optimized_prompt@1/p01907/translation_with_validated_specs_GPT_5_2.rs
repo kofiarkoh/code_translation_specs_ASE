@@ -1,0 +1,191 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    to: usize,
+    c: i32,
+}
+
+#[derive(Clone, Copy)]
+struct QItem {
+    n: usize,
+    d: usize,
+}
+
+struct Scanner {
+    buf: Vec<u8>,
+    idx: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self { buf: input.into_bytes(), idx: 0 }
+    }
+
+    #[inline]
+    fn getc(&mut self) -> u8 {
+        if self.idx >= self.buf.len() {
+            0
+        } else {
+            let c = self.buf[self.idx];
+            self.idx += 1;
+            c
+        }
+    }
+
+    // Emulates the C in(): assumes the first char is a digit; no whitespace skipping.
+    fn in_u32_like_c(&mut self) -> i32 {
+        let mut n: i32 = 0;
+        let mut c = self.getc();
+        loop {
+            n = n.wrapping_mul(10).wrapping_add((c & 0x0f) as i32);
+            c = self.getc();
+            if c < b'0' {
+                break;
+            }
+        }
+        n
+    }
+
+    // Emulates the C dbl(): assumes the first char is '-' or a digit; no whitespace skipping.
+    fn dbl_like_c(&mut self) -> f64 {
+        let mut minus = false;
+        let mut n: i64 = 0;
+        let mut c = self.getc();
+        if c == b'-' {
+            minus = true;
+            c = self.getc();
+        }
+        loop {
+            n = n * 10 + ((c & 0x0f) as i64);
+            c = self.getc();
+            if c < b'0' {
+                break;
+            }
+        }
+
+        let mut x: f64;
+        if c == b'.' {
+            let mut frac = 0.0f64;
+            let mut y = 1.0f64;
+            c = self.getc();
+            while c >= b'0' {
+                y *= 0.1;
+                frac += y * ((c & 0x0f) as f64);
+                c = self.getc();
+            }
+            x = (n as f64) + frac;
+        } else {
+            x = n as f64;
+        }
+        if minus {
+            x = -x;
+        }
+        x
+    }
+}
+
+fn main() {
+    const MAX: usize = 100005;
+
+    let mut sc = Scanner::new();
+
+    let p_val = sc.dbl_like_c();
+    let n_i32 = sc.in_u32_like_c();
+    let n = n_i32 as usize;
+
+    // hi: degree counts, 1-based indexing like C.
+    let mut hi = vec![0usize; MAX];
+    // store edges temporarily (x, y, c)
+    let mut memo: Vec<(usize, usize, i32)> = Vec::with_capacity(3 * n);
+
+    for _ in 1..n {
+        let x = sc.in_u32_like_c() as usize;
+        let y = sc.in_u32_like_c() as usize;
+        let c = sc.in_u32_like_c();
+        memo.push((x, y, c));
+        if x < MAX {
+            hi[x] += 1;
+        }
+        if y < MAX {
+            hi[y] += 1;
+        }
+    }
+
+    // adjacency lists sized by degree
+    let mut t: Vec<Vec<Edge>> = vec![Vec::new(); MAX];
+    for i in 1..=n {
+        if hi[i] > 0 {
+            t[i] = Vec::with_capacity(hi[i]);
+        }
+    }
+    // reset hi[1..=n] to 0 (like memset(hi+1,0,sizeof(int)*N))
+    for i in 1..=n {
+        hi[i] = 0;
+    }
+
+    for (x, y, c) in memo {
+        let kx = hi[x];
+        hi[x] = kx + 1;
+        t[x].push(Edge { to: y, c });
+
+        let ky = hi[y];
+        hi[y] = ky + 1;
+        t[y].push(Edge { to: x, c });
+    }
+
+    // dfs() iterative with explicit stack, matching C logic.
+    let mut cost = vec![0i32; MAX];
+    let mut depth = vec![0usize; MAX];
+    let mut depth_max: usize = 0;
+    let mut vis = vec![false; MAX];
+    let mut q = vec![QItem { n: 0, d: 0 }; MAX];
+    let mut top: usize = 0;
+
+    q[0] = QItem { n: 1, d: 0 };
+    top = 1;
+    while top > 0 {
+        top -= 1;
+        let node = q[top].n;
+        let d = q[top].d;
+
+        if vis[node] {
+            continue;
+        }
+        vis[node] = true;
+
+        depth[node] = d;
+        if d > depth_max {
+            depth_max = d;
+        }
+
+        // In C: for (i=0; i<hi[node]; i++) ... but hi[node] equals degree.
+        // Here, t[node].len() is the degree.
+        for e in t[node].iter() {
+            let to = e.to;
+            if !vis[to] {
+                cost[to] = e.c;
+                q[top] = QItem { n: to, d: d + 1 };
+                top += 1;
+            }
+        }
+    }
+
+    // p[0]=1; p[i]=p[i-1]*P
+    let mut p = vec![0f64; MAX];
+    p[0] = 1.0;
+    for i in 1..=depth_max {
+        p[i] = p[i - 1] * p_val;
+    }
+
+    let mut a = 0f64;
+    let mut b = 1f64;
+    for i in 1..=n {
+        a += (cost[i] as f64) * p[depth[i]];
+        b += p[depth[i]];
+    }
+
+    // printf("%.10lf\n", a*b);
+    println!("{:.10}", a * b);
+}

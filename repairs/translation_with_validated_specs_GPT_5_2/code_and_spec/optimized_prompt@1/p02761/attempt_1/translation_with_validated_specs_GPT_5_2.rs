@@ -1,0 +1,81 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Place values for up to 3 digits, as in the C code.
+    // Indexing uses: d[3-N + i] where i is 0-based digit position.
+    let d = [100i32, 10i32, 1i32];
+
+    let mut num: i32 = 0;
+
+    // digit[i] stores the contribution (c * place_value) or -1 if unconstrained.
+    let mut digit = vec![-1i32; n];
+
+    // We must preserve the C program's special error behavior:
+    // output -1 iff the *first provided constraint* is (s=1, c=0) and N>1.
+    // If M==0, s[0]/c[0] are uninitialized in C; spec defines behavior only for M>0.
+    let mut first_s: i32 = 0;
+    let mut first_c: i32 = 0;
+
+    if m == 0 {
+        // Per spec: smallest N-digit integer, with N=1 => 0.
+        num = match n {
+            1 => 0,
+            2 => 10,
+            3 => 100,
+            _ => 0, // outside intended range; behavior not well-defined by spec
+        };
+    } else {
+        for i in 0..m {
+            let s: usize = it.next().unwrap().parse::<usize>().unwrap();
+            let c: i32 = it.next().unwrap().parse::<i32>().unwrap();
+
+            if i == 0 {
+                first_s = s as i32;
+                first_c = c;
+            }
+
+            // Intended preconditions guarantee s in 1..=N and N in 1..=3.
+            let idx = s - 1;
+            let place_idx = 3usize - n + idx;
+            let place = d[place_idx];
+
+            if digit[idx] == -1 {
+                digit[idx] = c * place;
+            } else if digit[idx] / place != c {
+                num = -1; // contradictory constraints
+            }
+        }
+
+        if num != -1 {
+            for i in 0..n {
+                if digit[i] != -1 {
+                    num += digit[i];
+                } else if n > 1 && i == 0 {
+                    // Unconstrained most significant digit: choose smallest nonzero (1).
+                    let place_idx = 3usize - n + i;
+                    num += d[place_idx];
+                }
+            }
+        }
+    }
+
+    // Special-case error behavior from the C code (and required by spec):
+    // If (and only if) the first provided constraint sets the most significant digit to 0
+    // while N>1, output -1 regardless of other constraints.
+    if n > 1 && m > 0 && first_s == 1 && first_c == 0 {
+        print!("-1");
+    } else {
+        print!("{}", num);
+    }
+}

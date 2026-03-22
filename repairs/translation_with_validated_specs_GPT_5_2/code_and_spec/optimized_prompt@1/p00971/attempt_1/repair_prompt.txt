@@ -1,0 +1,150 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. Functional Description  
+Reads two binary strings and outputs a binary string `S` that is **not a subsequence of at least one** of the two inputs. The program constructs `S` to have **minimum possible length** under its internal state/transition model, and if multiple minimum-length answers exist, it outputs one deterministically by a fixed tie-breaking rule.
+
+2. Inputs  
+- Two strings over the alphabet `{ '0', '1' }`, read as whitespace-delimited tokens from standard input (one token per string).
+
+3. Outputs  
+- A string over `{ '0', '1' }` written to standard output, followed by a newline.
+
+4. Preconditions / Assumptions  
+- Each input token is intended to be non-empty and contain only `'0'` and `'1'`.  
+- Each string length is at most 4000 characters.  
+- Sufficient memory is available for tables whose size is proportional to the product of the two lengths (plus linear “next occurrence” tables).
+
+5. Core Semantics (as implemented)  
+
+5.1 Cursor/state meaning  
+- The computation uses a state `(i, j)` where `i` and `j` are indices into the two strings representing the current cursor positions.  
+- From a state `(i, j)`, appending a bit `c ∈ {0,1}` advances each cursor to the index of the **next occurrence** of `c` at or after the current cursor, or to a designated end index if no such occurrence exists.
+
+5.2 Next-occurrence transition  
+- For each string and each cursor position `p`, define `next_c(p)` as:
+  - the smallest index `q > p` such that the character at `q` equals `c`, if such a position exists;
+  - otherwise, the string’s end index (a sentinel representing “no further match”).  
+- The transition for appending `c` from `(i, j)` is exactly:
+  - `(i, j) → ( next_c_in_A(i), next_c_in_B(j) )`  
+  with no additional increment beyond what `next_c` returns.
+
+5.3 Objective minimized by the DP  
+- Let `L(i, j)` be the minimal length of a binary string that, when processed from state `(i, j)` using the transition rule above, reaches the terminal state `(endA, endB)`.  
+- The program computes `L(0, 0)` and outputs a corresponding string achieving that length.
+
+5.4 Terminal condition and recurrence  
+- The only explicit terminal/base condition is:
+  - `L(endA, endB) = 0`.  
+- For all other states, the recurrence is:
+  - `L(i, j) = 1 + min( L(next_0(i), next_0(j)), L(next_1(i), next_1(j)) )`.  
+- Because missing-next transitions map to the end index, reaching `(endA, endB)` (and thus termination) occurs only through these transitions; there is no separate “stop immediately when a character is missing” rule.
+
+5.5 Relationship to subsequences  
+- The produced string `S` is guaranteed to be **not a subsequence of at least one** input string.  
+- Minimality is with respect to the program’s cursor/transition model above: among all binary strings that are not a subsequence of at least one input, the program outputs one with minimum length as determined by `L(0,0)`.
+
+6. Reconstruction and Tie-breaking  
+- The output is reconstructed greedily from `(0,0)` using the computed `L` values:
+  - At each state, output `'0'` if choosing `'0'` yields an optimal step, i.e., if  
+    `L(i,j) = 1 + L(next_0(i), next_0(j))`.  
+  - Otherwise, output `'1'` if it yields an optimal step, i.e., if  
+    `L(i,j) = 1 + L(next_1(i), next_1(j))`.  
+- This implies deterministic tie-breaking: when both choices are optimal, `'0'` is chosen.  
+- Reconstruction continues by moving to the chosen next state and stops when the terminal state `(endA, endB)` is reached (at which point no further characters are output).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit validation is performed for malformed input, missing tokens, non-binary characters, or lengths exceeding the supported maximum; behavior is unspecified in such cases.  
+- No explicit handling is provided for I/O failures.
+
+8. State Transitions (Program-level)  
+- Single-run behavior: read two strings, compute the result, output it, and terminate. No persistent state is maintained across runs.
+
+9. Non-functional Constraints (if inferable)  
+- Intended for lengths up to 4000.  
+- Uses precomputed next-occurrence tables and a memoized dynamic program over pairs of cursor positions; memory and time scale on the order of the product of the two input lengths (plus linear preprocessing).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#define SMAX 4000
+int next0[2][SMAX+2], next1[2][SMAX+2], dp[SMAX+2][SMAX+2];
+
+int dfs(int aloc, int bloc);
+void scns(int aloc, int bloc);
+int main(void)
+{
+  int i, alen, blen;
+  char a[SMAX+2], b[SMAX+2];
+  scanf("%s", a + 1);
+  scanf("%s", b + 1);
+  a[0] = b[0] = '?';
+  alen = strlen(a);
+  blen = strlen(b);
+  memset(dp, -1, sizeof(dp));
+  dp[alen][blen] = 0;
+  next0[0][alen] = next1[0][alen] = next0[0][alen-1] = next1[0][alen-1] = alen;
+  next0[1][blen] = next1[1][blen] = next0[1][blen-1] = next1[1][blen-1] = blen;
+  for (i = alen - 2; i >= 0; i--) {
+    if (a[i+1] == '0') {
+      next0[0][i] = i + 1;
+      next1[0][i] = next1[0][i+1];
+    } else {
+      next0[0][i] = next0[0][i+1];
+      next1[0][i] = i + 1;
+    }
+  }
+  for (i = blen - 2; i >= 0; i--) {
+    if (b[i+1] == '0') {
+      next0[1][i] = i + 1;
+      next1[1][i] = next1[1][i+1];
+    } else {
+      next0[1][i] = next0[1][i+1];
+      next1[1][i] = i + 1;                                                                                                  }
+  }
+  scns(0, 0);
+  putchar_unlocked('\n');
+}
+
+int dfs(int aloc, int bloc)
+{
+  int res, ans = SMAX + 2;
+  if (dp[aloc][bloc] != -1) return dp[aloc][bloc];
+  res = dfs(next0[0][aloc], next0[1][bloc]);
+  if (ans > res) ans = res;
+  res = dfs(next1[0][aloc], next1[1][bloc]);
+  if (ans > res) ans = res;
+  return dp[aloc][bloc] = ans + 1;
+}
+
+void scns(int aloc, int bloc)
+{
+  if (dfs(aloc, bloc) == dfs(next0[0][aloc], next0[1][bloc]) + 1) {
+    putchar_unlocked('0');
+    scns(next0[0][aloc], next0[1][bloc]);
+  } else if (dfs(aloc, bloc) == dfs(next1[0][aloc], next1[1][bloc]) + 1) {
+    putchar_unlocked('1');
+    scns(next1[0][aloc], next1[1][bloc]);
+  }
+}
+=== C CODE END ===
