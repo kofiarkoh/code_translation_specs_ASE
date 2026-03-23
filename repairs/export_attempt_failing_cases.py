@@ -7,17 +7,16 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "full_translation_loop_GPT_5_2_using_GPT_5_2_SPECS"
+PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 PROFILE_NAME = "specs_only"
 ATTEMPT_NUMBER = 3
-TARGET_STATUS = "FAIL"
 OUTPUT_CSV = (
     PROJECT_ROOT
     / "repairs"
     / f"{PIPELINE_NAME}_analysis"
     / DATASET_NAME
-    / f"{PROFILE_NAME}_attempt_{ATTEMPT_NUMBER}_{TARGET_STATUS.lower()}_cases.csv"
+    / f"{PROFILE_NAME}_attempt_{ATTEMPT_NUMBER}_non_pass_cases.csv"
 )
 
 
@@ -75,8 +74,10 @@ def build_rows() -> list[dict[str, str | int]]:
     for problem_dir in sorted(path for path in profile_root.iterdir() if path.is_dir() and path.name.startswith("p")):
         attempt_dir = problem_dir / f"attempt_{ATTEMPT_NUMBER}"
         report_path = attempt_dir / "run_report.txt"
+        if not attempt_dir.is_dir() or not report_path.is_file():
+            continue
         status, summary, detail = parse_status_and_summary(report_path)
-        if status != TARGET_STATUS:
+        if status == "PASS":
             continue
 
         rows.append(
@@ -125,7 +126,7 @@ def main() -> None:
     print(f"Profile root: {get_profile_root()}")
     print(f"Profile: {PROFILE_NAME}")
     print(f"Attempt: {ATTEMPT_NUMBER}")
-    print(f"Target status: {TARGET_STATUS}")
+    print("Target status: all non-PASS statuses")
     print(f"Matching cases: {len(rows)}")
     print(f"Unique problems: {len(unique_problem_ids)}")
     if unique_problem_ids:
