@@ -1,0 +1,46 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next() {
+        Some(s) => match s.parse() {
+            Ok(v) => v,
+            Err(_) => return,
+        },
+        None => return,
+    };
+
+    if n <= 0 {
+        return;
+    }
+
+    let mut out = String::new();
+
+    for case_idx in 1..=n {
+        let mut x: i32 = match it.next() {
+            Some(s) => match s.parse() {
+                Ok(v) => v,
+                Err(_) => return,
+            },
+            None => return,
+        };
+
+        out.push_str(&format!("Case {}:\n", case_idx));
+
+        for _ in 0..10 {
+            // Use i64 intermediates to avoid Rust i32 overflow panics in debug builds.
+            // The specification states C int overflow is undefined; this choice preserves
+            // defined behavior for all inputs representable in i32 without inventing
+            // additional I/O behavior.
+            let xx = (x as i64) * (x as i64);
+            let y = (xx / 100) % 10000; // truncates toward zero, matching C for signed integers
+            x = y as i32;
+            out.push_str(&format!("{}\n", x));
+        }
+    }
+
+    print!("{}", out);
+}

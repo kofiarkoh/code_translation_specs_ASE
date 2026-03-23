@@ -1,0 +1,36 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+    let c: i64 = it.next().unwrap().parse().unwrap();
+
+    if a % 2 == 0 || b % 2 == 0 || c % 2 == 0 {
+        print!("0");
+        return;
+    }
+
+    // All odd: replace one occurrence of the maximum with 1.
+    // If multiple values share the maximum, which one is replaced is not externally observable.
+    let max_v = a.max(b).max(c);
+
+    let mut replaced = false;
+    let mut prod: i64 = 1;
+
+    for &v in &[a, b, c] {
+        if !replaced && v == max_v {
+            prod = prod.wrapping_mul(1);
+            replaced = true;
+        } else {
+            prod = prod.wrapping_mul(v);
+        }
+    }
+
+    // Overflow behavior is unspecified by the spec; wrapping_mul avoids panics in debug builds
+    // while still producing an integer result.
+    print!("{}", prod);
+}

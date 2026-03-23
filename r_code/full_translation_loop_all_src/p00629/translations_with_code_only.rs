@@ -1,0 +1,91 @@
+use std::io::{self, Read};
+
+#[derive(Copy, Clone, Default)]
+struct T {
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut tt = vec![T::default(); 300];
+    let mut tmp: T;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // EOF: C code would block; in batch judge input, EOF ends.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut uu = [0i32; 1001];
+        let mut ss = [0i32; 1001];
+
+        for i in 0..n {
+            let I: i32 = it.next().unwrap().parse().unwrap();
+            let U: i32 = it.next().unwrap().parse().unwrap();
+            let A: i32 = it.next().unwrap().parse().unwrap();
+            let P: i32 = it.next().unwrap().parse().unwrap();
+            tt[i] = T { i: I, u: U, a: A, p: P };
+        }
+
+        // Bubble sort with the exact comparison logic from C:
+        // - A descending
+        // - then P ascending
+        // - then I ascending
+        for i in 0..n {
+            for j in (i + 1..n).rev() {
+                let left = tt[j - 1];
+                let right = tt[j];
+                let swap = if right.a > left.a {
+                    true
+                } else if right.a == left.a && right.p < left.p {
+                    true
+                } else if right.a == left.a && right.p == left.p && right.i < left.i {
+                    true
+                } else {
+                    false
+                };
+                if swap {
+                    tmp = tt[j];
+                    tt[j] = tt[j - 1];
+                    tt[j - 1] = tmp;
+                }
+            }
+        }
+
+        let mut head: usize = 0;
+        for i in 0..n {
+            // C code indexes UU by TT[i].U without bounds checks.
+            // We assume inputs keep U within 0..=1000 as implied by UU[1001].
+            let u = tt[i].u as usize;
+            uu[u] += 1;
+
+            if head < 10 && uu[u] <= 3 {
+                ss[head] = tt[i].i;
+                head += 1;
+            } else if head < 20 && uu[u] <= 2 {
+                ss[head] = tt[i].i;
+                head += 1;
+            } else if head < 26 && uu[u] <= 1 {
+                ss[head] = tt[i].i;
+                head += 1;
+            }
+        }
+
+        let mut out = String::new();
+        for i in 0..head {
+            out.push_str(&format!("{}\n", ss[i]));
+        }
+        print!("{out}");
+    }
+}

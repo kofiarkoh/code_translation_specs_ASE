@@ -1,0 +1,15 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (scanf("%d") skips leading whitespace and reads an int).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let m: i32 = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    // C `int` arithmetic can overflow (UB), but for typical inputs this matches.
+    // Use wrapping to emulate two's-complement wraparound behavior if overflow occurs.
+    let ans = 48i32.wrapping_sub(m);
+
+    print!("{}\n", ans);
+}

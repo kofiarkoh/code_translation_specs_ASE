@@ -1,0 +1,101 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Node {
+    parent: i32,
+    left: i32,
+    right: i32,
+}
+
+fn getdip(r: usize, d: i32, tree: &[Node], dipth: &mut [i32]) {
+    dipth[r] = d;
+    let right = tree[r].right;
+    if right != -1 {
+        getdip(right as usize, d, tree, dipth);
+    }
+    let left = tree[r].left;
+    if left != -1 {
+        getdip(left as usize, d + 1, tree, dipth);
+    }
+}
+
+fn printtree(i: usize, tree: &[Node], dipth: &[i32]) {
+    let mut out = String::new();
+    out.push_str(&format!(
+        "node {}: parent = {}, depth = {}, ",
+        i, tree[i].parent, dipth[i]
+    ));
+
+    if tree[i].parent == -1 {
+        out.push_str("root, [");
+    } else if tree[i].left == -1 {
+        out.push_str("leaf, [");
+    } else {
+        out.push_str("internal node, [");
+    }
+
+    let mut m = tree[i].left;
+    let mut j = 0;
+    while m != -1 {
+        if j != 0 {
+            out.push_str(", ");
+        }
+        out.push_str(&format!("{}", m));
+        m = tree[m as usize].right;
+        j += 1;
+    }
+    out.push_str("]\n");
+    print!("{}", out);
+}
+
+fn main() {
+    // Read entire stdin and parse as whitespace-separated integers (like scanf).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+
+    // C uses fixed-size arrays of 100000; we mirror that to preserve indexing behavior.
+    let mut tree = vec![
+        Node {
+            parent: -1,
+            left: -1,
+            right: -1
+        };
+        100000
+    ];
+    let mut dipth = vec![0i32; 100000];
+
+    for _ in 0..n {
+        let id: usize = it.next().unwrap().parse().unwrap();
+        let num: usize = it.next().unwrap().parse().unwrap();
+        let mut l: i32 = 0; // will be set after first child when num > 0
+        for j in 0..num {
+            let p: i32 = it.next().unwrap().parse().unwrap();
+            if j == 0 {
+                tree[id].left = p;
+            } else {
+                tree[l as usize].right = p;
+            }
+            tree[p as usize].parent = id as i32;
+            l = p;
+        }
+    }
+
+    let mut root: usize = 0;
+    for i in 0..n {
+        if tree[i].parent == -1 {
+            root = i;
+        }
+    }
+
+    getdip(root, 0, &tree, &mut dipth);
+
+    for i in 0..n {
+        printtree(i, &tree, &dipth);
+    }
+}

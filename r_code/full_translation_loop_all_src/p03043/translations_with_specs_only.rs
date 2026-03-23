@@ -1,0 +1,43 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse two integers N and K (C scanf("%d%d")-like).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = it.next().unwrap().parse().unwrap();
+    let k: i32 = it.next().unwrap().parse().unwrap();
+
+    // Preconditions per spec: N > 0, no overflow in intermediate int computations.
+    // We keep i32 arithmetic to mirror C int behavior under the stated assumptions.
+    let n_usize = n as usize;
+    let mut denoms: Vec<i32> = vec![0; n_usize];
+
+    let mut multi: i32 = 1;
+
+    // For i from N down to 1:
+    for i in (1..=n).rev() {
+        // Repeatedly double while K > multi * i (strict inequality).
+        while k > multi * i {
+            multi *= 2;
+        }
+        // denom_i = multi * N
+        denoms[(i - 1) as usize] = multi * n;
+    }
+
+    // denom_1 is the denominator for i=1, stored at index 0.
+    let denom1: i32 = denoms[0];
+
+    // Compute S = sum_{i=1..N} denom1/denom_i using long double accumulation.
+    // Rust has no long double; use f64 as the narrowest reasonable portable choice.
+    let denom1_f = denom1 as f64;
+    let mut s: f64 = 0.0;
+    for &d in &denoms {
+        s += denom1_f / (d as f64);
+    }
+
+    // Print S/denom1 in fixed-point with exactly 12 digits after decimal, no newline.
+    let result = s / denom1_f;
+    print!("{:.12}", result);
+}

@@ -1,0 +1,75 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(v) => v.parse().unwrap(),
+        None => return,
+    };
+    let k_in: i32 = it.next().unwrap().parse().unwrap();
+
+    // 1-based arrays to match C indexing
+    let mut a = vec![0i32; n + 2];
+    for i in 1..=n {
+        a[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    let mut b = vec![0i32; n + 3]; // need up to N+1 inclusive
+    let mut min_val: i32 = 0;
+
+    let mut k: i32 = 1;
+    while k <= k_in && (min_val as usize) < n {
+        min_val = n as i32;
+
+        // B[1..=N+1] = 0
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        for i in 1..=n {
+            let ai = a[i];
+
+            // if (A[i] >= i) B[1]++; else B[i-A[i]]++;
+            // Note: in C, i and A[i] are int; here we keep the same logic with i32.
+            if ai >= i as i32 {
+                b[1] += 1;
+            } else {
+                let idx = (i as i32 - ai) as usize;
+                b[idx] += 1;
+            }
+
+            // if (A[i] >= N - i) B[N+1]--; else B[i+A[i]+1]--;
+            if ai >= (n - i) as i32 {
+                b[n + 1] -= 1;
+            } else {
+                let idx = (i as i32 + ai + 1) as usize;
+                b[idx] -= 1;
+            }
+        }
+
+        let mut tmp: i32 = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_val {
+                min_val = a[i];
+            }
+        }
+
+        k += 1;
+    }
+
+    // Output exactly like C: numbers separated by single spaces, newline at end.
+    let mut out = String::new();
+    if n >= 1 {
+        for i in 1..n {
+            out.push_str(&format!("{} ", a[i]));
+        }
+        out.push_str(&format!("{}\n", a[n]));
+    }
+    print!("{}", out);
+}

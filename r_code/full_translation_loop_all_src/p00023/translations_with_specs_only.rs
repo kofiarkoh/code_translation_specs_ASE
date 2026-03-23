@@ -1,0 +1,51 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let t: usize = match it.next() {
+        Some(s) => s.parse().unwrap(),
+        None => return,
+    };
+
+    let mut out = String::new();
+
+    for _ in 0..t {
+        let x1: f64 = it.next().unwrap().parse().unwrap();
+        let y1: f64 = it.next().unwrap().parse().unwrap();
+        let r1: f64 = it.next().unwrap().parse().unwrap();
+        let x2: f64 = it.next().unwrap().parse().unwrap();
+        let y2: f64 = it.next().unwrap().parse().unwrap();
+        let r2: f64 = it.next().unwrap().parse().unwrap();
+
+        let dx = x1 - x2;
+        let dy = y1 - y2;
+        let d2 = dx * dx + dy * dy;
+
+        let sum = r1 + r2;
+        let diff = r1 - r2;
+
+        let sum2 = sum * sum;
+        let diff2 = diff * diff;
+
+        // Classification is determined solely by comparing:
+        // d^2 with (r1+r2)^2 and (r1-r2)^2.
+        // - If d^2 > (r1+r2)^2 => externally disjoint => 0
+        // - Else if d^2 < (r1-r2)^2 => one strictly contains the other (no common points)
+        // - Else => at least one common point but neither strictly contains the other => 1
+        let code: i32 = if d2 > sum2 {
+            0
+        } else if d2 < diff2 {
+            if r1 > r2 { 2 } else { -2 }
+        } else {
+            1
+        };
+
+        out.push_str(&code.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

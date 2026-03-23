@@ -1,0 +1,57 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin; input is assumed well-formed per spec.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+    const DAY: usize = 24 * 3600;
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // No more datasets.
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break; // Termination marker; no output for this dataset.
+        }
+
+        let mut time = vec![0i32; DAY];
+
+        for _ in 0..n {
+            let start_tok = it.next().unwrap();
+            let end_tok = it.next().unwrap();
+
+            let dep = parse_hms_to_seconds(start_tok);
+            let arr = parse_hms_to_seconds(end_tok);
+
+            // Spec: count every whole second t with start <= t < end.
+            for t in dep..arr {
+                time[t] += 1;
+            }
+        }
+
+        let mut maxv = 0i32;
+        for &v in &time {
+            if v > maxv {
+                maxv = v;
+            }
+        }
+
+        out.push_str(&format!("{maxv}\n"));
+    }
+
+    print!("{out}");
+}
+
+fn parse_hms_to_seconds(tok: &str) -> usize {
+    // Input is guaranteed to be in H:M:S form per spec; no extra error handling.
+    let mut parts = tok.split(':');
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let s: usize = parts.next().unwrap().parse().unwrap();
+    h * 3600 + m * 60 + s
+}

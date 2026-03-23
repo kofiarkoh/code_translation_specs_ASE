@@ -1,0 +1,67 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn add_bit(n: usize, bit: &mut [i64], mut i: usize, k: i64) {
+    // Fenwick tree point-add, all values kept modulo MOD.
+    let mut val = k % MOD;
+    if val < 0 {
+        val += MOD;
+    }
+    while i <= n {
+        bit[i] += val;
+        bit[i] %= MOD;
+        i += i & (!i + 1); // i += lowbit(i)
+    }
+}
+
+fn sum_bit(bit: &[i64], mut r: usize) -> i64 {
+    // Fenwick tree prefix sum modulo MOD.
+    let mut sum = 0i64;
+    while r > 0 {
+        sum += bit[r];
+        sum %= MOD;
+        r &= r - 1; // r -= lowbit(r)
+    }
+    sum
+}
+
+fn main() {
+    // Read single integer n.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let n: usize = input.split_whitespace().next().unwrap().parse().unwrap();
+
+    if n == 1 {
+        // Spec special-case: output 1 (note: differs from A(1) when n>=2).
+        print!("1\n");
+        return;
+    }
+
+    // For n>=2, build A(1..n) using a Fenwick tree for prefix sums.
+    // C uses fixed BIT[1000001]; spec bounds n<=1_000_000, so allocate n+1.
+    let mut bit = vec![0i64; n + 1];
+
+    let n_i64 = n as i64;
+    let mut tmp = (n_i64 * n_i64) % MOD; // A(2)
+
+    // A(1) = n, A(2) = n^2
+    add_bit(n, &mut bit, 1, n_i64 % MOD);
+    add_bit(n, &mut bit, 2, tmp);
+
+    for i in 3..=n {
+        let i_i64 = i as i64;
+
+        // sum_{j=1}^{i-3} A(j) (0 when i-3 <= 0)
+        let s = if i >= 3 { sum_bit(&bit, i - 3) } else { 0 };
+
+        // (i-3)(n-1) + (n-i+2)n
+        let term1 = ((i_i64 - 3) % MOD) * ((n_i64 - 1) % MOD) % MOD;
+        let term2 = ((n_i64 - i_i64 + 2) % MOD) * (n_i64 % MOD) % MOD;
+
+        tmp = (tmp + s + term1 + term2) % MOD;
+        add_bit(n, &mut bit, i, tmp);
+    }
+
+    print!("{tmp}\n");
+}

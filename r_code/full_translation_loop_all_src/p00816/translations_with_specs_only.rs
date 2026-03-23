@@ -1,0 +1,133 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let target_tok = match it.next() {
+            Some(t) => t,
+            None => break,
+        };
+        let target: i64 = target_tok.parse().unwrap();
+        if target == 0 {
+            break;
+        }
+        let paper = it.next().unwrap();
+        let bytes = paper.as_bytes();
+        let n = bytes.len();
+
+        // Enumerate all partitions by bitmask over the (n-1) cut positions.
+        // cut bit i (0-based) means a cut after position i (between i and i+1).
+        let mut best_sum: Option<i64> = None;
+        let mut best_count: u32 = 0;
+        let mut best_mask: u64 = 0;
+
+        if n == 0 {
+            // Per spec, paper is nonempty; if violated, behavior unspecified.
+            // We choose to treat it as no valid partition.
+            println!("error");
+            continue;
+        }
+
+        let cut_positions = n - 1;
+        // If the string is too long to represent all masks in u64, behavior is unspecified.
+        // We choose the narrowest reasonable behavior: only handle up to 64 bits of mask.
+        if cut_positions > 63 {
+            // Unspecified; avoid panicking and produce a deterministic output.
+            println!("error");
+            continue;
+        }
+
+        let total_masks: u64 = 1u64 << cut_positions;
+
+        for mask in 0..total_masks {
+            let mut sum: i64 = 0;
+            let mut start: usize = 0;
+
+            for i in 0..cut_positions {
+                if (mask >> i) & 1 == 1 {
+                    let end = i + 1;
+                    let part = &paper[start..end];
+                    // Spec: "behavior follows the underlying integer conversion used" if non-digits.
+                    // Here we use Rust's parse; on failure, treat as unspecified and skip this partition.
+                    let val: i64 = match part.parse() {
+                        Ok(v) => v,
+                        Err(_) => {
+                            sum = target + 1; // force invalid
+                            break;
+                        }
+                    };
+                    sum = match sum.checked_add(val) {
+                        Some(v) => v,
+                        None => target + 1, // unspecified overflow; force invalid
+                    };
+                    if sum > target {
+                        break;
+                    }
+                    start = end;
+                }
+            }
+
+            if sum <= target {
+                let part = &paper[start..n];
+                let val: i64 = match part.parse() {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                sum = match sum.checked_add(val) {
+                    Some(v) => v,
+                    None => continue,
+                };
+            }
+
+            if sum <= target {
+                match best_sum {
+                    None => {
+                        best_sum = Some(sum);
+                        best_count = 1;
+                        best_mask = mask;
+                    }
+                    Some(b) => {
+                        if sum > b {
+                            best_sum = Some(sum);
+                            best_count = 1;
+                            best_mask = mask;
+                        } else if sum == b {
+                            best_count = best_count.saturating_add(1);
+                        }
+                    }
+                }
+            }
+        }
+
+        match best_sum {
+            None => {
+                println!("error");
+            }
+            Some(b) => {
+                if best_count != 1 {
+                    println!("rejected");
+                } else {
+                    // Render the unique best partition.
+                    let mut out = String::new();
+                    out.push_str(&b.to_string());
+                    out.push(' ');
+
+                    let mut start: usize = 0;
+                    for i in 0..cut_positions {
+                        if (best_mask >> i) & 1 == 1 {
+                            let end = i + 1;
+                            out.push_str(&paper[start..end]);
+                            out.push(' ');
+                            start = end;
+                        }
+                    }
+                    out.push_str(&paper[start..n]);
+                    println!("{out}");
+                }
+            }
+        }
+    }
+}

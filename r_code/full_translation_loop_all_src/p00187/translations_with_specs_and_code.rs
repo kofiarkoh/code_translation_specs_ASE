@@ -1,0 +1,114 @@
+use std::io::{self, Read};
+
+fn segment_intersection(
+    ax: i32,
+    ay: i32,
+    bx: i32,
+    by: i32,
+    cx: i32,
+    cy: i32,
+    dx: i32,
+    dy: i32,
+) -> Option<(f64, f64)> {
+    // Mirrors the C routine L():
+    // - Treats parallel/collinear (denominator == 0) as no unique intersection.
+    // - Uses integer arithmetic for r, s, bunbo comparisons, then computes intersection point.
+    let acx: i64 = (cx as i64) - (ax as i64);
+    let acy: i64 = (cy as i64) - (ay as i64);
+
+    let mut bunbo: i64 = ((bx as i64) - (ax as i64)) * ((dy as i64) - (cy as i64))
+        - ((by as i64) - (ay as i64)) * ((dx as i64) - (cx as i64));
+
+    if bunbo == 0 {
+        return None;
+    }
+
+    let mut r: i64 = ((dy as i64) - (cy as i64)) * acx - ((dx as i64) - (cx as i64)) * acy;
+    let mut s: i64 = ((by as i64) - (ay as i64)) * acx - ((bx as i64) - (ax as i64)) * acy;
+
+    if bunbo < 0 {
+        r = -r;
+        s = -s;
+        bunbo = -bunbo;
+    }
+
+    if r >= 0 && r <= bunbo && s >= 0 && s <= bunbo {
+        let t = (r as f64) / (bunbo as f64);
+        let x = (ax as f64) + t * ((bx - ax) as f64);
+        let y = (ay as f64) + t * ((by - ay) as f64);
+        Some((x, y))
+    } else {
+        None
+    }
+}
+
+fn classify_triangle_area(area: f64) -> &'static str {
+    // Thresholds per spec/C with epsilon margins.
+    if area < 1e-6 {
+        "kyo"
+    } else if area < 100000.0 - 1e-6 {
+        "syo-kichi"
+    } else if area < 1000000.0 - 1e-6 {
+        "kichi"
+    } else if area < 1900000.0 - 1e-6 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}
+
+fn main() {
+    // Read all input, parse as i32 integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect();
+
+    let mut out = String::new();
+
+    // Consume in groups of 3 segments = 12 integers.
+    let mut idx = 0usize;
+    while idx + 12 <= nums.len() {
+        let mut x1 = [0i32; 3];
+        let mut y1 = [0i32; 3];
+        let mut x2 = [0i32; 3];
+        let mut y2 = [0i32; 3];
+
+        for i in 0..3 {
+            x1[i] = nums[idx + 4 * i + 0];
+            y1[i] = nums[idx + 4 * i + 1];
+            x2[i] = nums[idx + 4 * i + 2];
+            y2[i] = nums[idx + 4 * i + 3];
+        }
+        idx += 12;
+
+        let p0 = segment_intersection(x1[0], y1[0], x2[0], y2[0], x1[1], y1[1], x2[1], y2[1]);
+        let p1 = segment_intersection(x1[1], y1[1], x2[1], y2[1], x1[2], y1[2], x2[2], y2[2]);
+        let p2 = segment_intersection(x1[2], y1[2], x2[2], y2[2], x1[0], y1[0], x2[0], y2[0]);
+
+        let line = if let (Some((x0, y0)), Some((x1p, y1p)), Some((x2p, y2p))) = (p0, p1, p2) {
+            let xs = [x0, x1p, x2p];
+            let ys = [y0, y1p, y2p];
+
+            // Same area computation as C:
+            // S += (X[i]-X[i+1])*(Y[i]+Y[i+1])/2; then fabs.
+            let mut s = 0.0f64;
+            for i in 0..3 {
+                let j = (i + 1) % 3;
+                s += (xs[i] - xs[j]) * (ys[i] + ys[j]) / 2.0;
+            }
+            let area = s.abs();
+            classify_triangle_area(area)
+        } else {
+            // If any intersection doesn't exist, output lowest category.
+            "kyo"
+        };
+
+        out.push_str(line);
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

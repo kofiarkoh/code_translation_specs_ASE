@@ -1,0 +1,81 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // dp has fixed size in C: dp[20001][256]
+    // We'll allocate the same to preserve behavior and indexing.
+    let mut dp = vec![[ -1i32; 256 ]; 20001];
+    let mut c = [0i32; 16];
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // no more input
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..m {
+            c[i] = it.next().unwrap().parse().unwrap();
+        }
+
+        // memset(dp, -1, sizeof(dp));
+        for row in dp.iter_mut() {
+            row.fill(-1);
+        }
+        dp[0][128] = 0;
+
+        for i in 0..n {
+            let x: i32 = it.next().unwrap().parse().unwrap();
+            let prev = dp[i]; // copy of the row (256 ints)
+            let curr = &mut dp[i + 1];
+
+            // Note: C code does NOT clear curr each iteration; it relies on dp being
+            // memset to -1 initially and each dp[i+1] being written only in iteration i.
+            // Since we memset all dp rows to -1 above, this matches.
+
+            for j in 0..256usize {
+                let prevj = prev[j];
+                if prevj >= 0 {
+                    for k in 0..m {
+                        let mut t = j as i32 + c[k];
+                        if t < 0 {
+                            t = 0;
+                        } else if t > 255 {
+                            t = 255;
+                        }
+                        let t_usize = t as usize;
+
+                        // f(x, t) = (x - t)^2, computed in int in C.
+                        // Use wrapping ops to emulate potential signed overflow behavior.
+                        let diff = x.wrapping_sub(t);
+                        let sq = diff.wrapping_mul(diff);
+                        let y = prevj.wrapping_add(sq);
+
+                        let curv = curr[t_usize];
+                        curr[t_usize] = if curv < 0 { y } else { curv.min(y) };
+                    }
+                }
+            }
+        }
+
+        let curr = &dp[n];
+        let mut res: i32 = 1 << 30;
+        for &v in curr.iter() {
+            if v >= 0 {
+                res = res.min(v);
+            }
+        }
+
+        // Exact output formatting: one integer and newline.
+        print!("{res}\n");
+    }
+}

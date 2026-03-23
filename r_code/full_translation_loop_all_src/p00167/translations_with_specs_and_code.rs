@@ -1,0 +1,45 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        // If the dataset length cannot be read, stop with no further output.
+        let n: usize = match it.next() {
+            Some(tok) => tok.parse().unwrap(),
+            None => break,
+        };
+
+        // If length is zero, stop with no output for that terminating dataset.
+        if n == 0 {
+            break;
+        }
+
+        // Per spec, exactly n integers are available; otherwise behavior is unspecified.
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
+
+        // Count adjacent swaps performed by bubble sort (equals inversion count).
+        let mut swap_count: i32 = 0;
+        for u in (1..n).rev() {
+            for i in 0..u {
+                if a[i] > a[i + 1] {
+                    a.swap(i, i + 1);
+                    swap_count += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{swap_count}\n"));
+    }
+
+    print!("{out}");
+}

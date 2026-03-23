@@ -1,0 +1,70 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    // C code's in(): reads a non-negative integer, assuming well-formed input.
+    fn read_u32(bytes: &[u8], idx: &mut usize) -> i32 {
+        // Skip non-digits (unspecified behavior if malformed; we mimic permissive scanning)
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: i32 = 0;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c < b'0' || c > b'9' {
+                break;
+            }
+            n = n * 10 + ((c & 0x0f) as i32);
+            *idx += 1;
+        }
+        n
+    }
+
+    let n = read_u32(bytes, &mut idx) as usize;
+    let mut x = vec![0i32; n];
+    let mut y = vec![0i32; n];
+    for i in 0..n {
+        x[i] = read_u32(bytes, &mut idx);
+        y[i] = read_u32(bytes, &mut idx);
+    }
+
+    if n == 0 {
+        // Not in spec (precondition says n>=1); keep behavior benign.
+        print!("0\n");
+        return;
+    }
+    if n == 1 {
+        print!("0\n");
+        return;
+    }
+
+    // dp[i][k] = minimum cost for interval [i..k]
+    // Initialize to a large value similar to memset(0x10) in C.
+    let inf: i32 = 0x10101010;
+    let mut dp = vec![vec![inf; n]; n];
+    for i in 0..n {
+        dp[i][i] = 0;
+    }
+
+    for l in 0..n {
+        for i in 0..(n - l) {
+            let k = i + l;
+            for j in i..k {
+                let t = dp[i][j]
+                    + dp[j + 1][k]
+                    + (x[i] - x[j + 1]).abs()
+                    + (y[j] - y[k]).abs();
+                if t < dp[i][k] {
+                    dp[i][k] = t;
+                }
+            }
+        }
+    }
+
+    print!("{}\n", dp[0][n - 1]);
+}

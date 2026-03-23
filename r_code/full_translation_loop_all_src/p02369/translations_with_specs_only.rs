@@ -1,0 +1,60 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let m: usize = it.next().unwrap().parse().unwrap();
+
+    // Graph representation: adjacency list of outgoing edges.
+    // Duplicates and self-loops are preserved by pushing all targets as given.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut indeg: Vec<usize> = vec![0; n];
+
+    for _ in 0..m {
+        let u: usize = it.next().unwrap().parse().unwrap();
+        let v: usize = it.next().unwrap().parse().unwrap();
+        adj[u].push(v);
+        indeg[v] = indeg[v].wrapping_add(1); // preserve wraparound if it ever occurs
+    }
+
+    // Cycle detection via repeated scan for a vertex with indegree 0 (Kahn-like),
+    // but implemented with O(n^2 + m) behavior as described (vertex-scan step).
+    let mut removed: Vec<bool> = vec![false; n];
+    let mut removed_count: usize = 0;
+
+    loop {
+        // Find an unremoved vertex with indegree 0.
+        let mut found: Option<usize> = None;
+        for i in 0..n {
+            if !removed[i] && indeg[i] == 0 {
+                found = Some(i);
+                break;
+            }
+        }
+
+        let v = match found {
+            Some(v) => v,
+            None => break,
+        };
+
+        removed[v] = true;
+        removed_count = removed_count.wrapping_add(1);
+
+        // "Remove" v: decrement indegree of its outgoing neighbors.
+        for &to in &adj[v] {
+            indeg[to] = indeg[to].wrapping_sub(1); // preserve wraparound if it ever occurs
+        }
+    }
+
+    // If not all vertices were removed, remaining subgraph has a directed cycle.
+    let has_cycle = removed_count != n;
+    if has_cycle {
+        print!("1");
+    } else {
+        print!("0");
+    }
+}

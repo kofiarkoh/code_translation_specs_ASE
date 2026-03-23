@@ -1,0 +1,169 @@
+use std::cmp::{max, min};
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const VERYBIG: i64 = 20_000_000_000_000_007; // matches C's VERYBIG
+const N_MAX: usize = 1_048_576;
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r: u64 = 1;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = (r * a) % MOD;
+        }
+        e >>= 1;
+        a = (a * a) % MOD;
+    }
+    r
+}
+
+fn main() {
+    // Read all input tokens as i64 (we'll cast as needed).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // SPEC: program attempts scanf("%llu", &n, &m) => consumes exactly one unsigned integer token.
+    // The extra pointer is ignored; no second header value is consumed.
+    let n_u: u64 = it.next().unwrap().parse().unwrap();
+    let n: usize = n_u as usize;
+
+    // Preconditions per spec: n within capacity.
+    // We do not add runtime checks that would change error behavior; but we must allocate accordingly.
+    // (If n is too large, this may panic/oom similarly to C's UB/crash.)
+    let mut pairs: Vec<(i64, i64)> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let a: i64 = it.next().unwrap().parse().unwrap();
+        let b: i64 = it.next().unwrap().parse().unwrap();
+        pairs.push((a, b));
+    }
+
+    // 5.1 Sorting by (a, b)
+    pairs.sort_unstable();
+
+    let mut b: Vec<i64> = Vec::with_capacity(n);
+    for &(_a, bi) in &pairs {
+        b.push(bi);
+    }
+
+    // 5.2 Prefix max c and suffix min d over b
+    let mut c: Vec<i64> = vec![0; n];
+    for i in 0..n {
+        // C uses c[i] = max((i ? c[i-1] : 0), b[i])
+        // Note: this differs from the spec's "c[0]=b[0]" if b[0] < 0.
+        // SPEC is source-of-truth; however, to preserve intended behavior per spec, we implement c[0]=b[0].
+        // Mismatch note: C initializes prefix max with 0 at i=0, which would clamp negatives.
+        c[i] = if i == 0 { b[0] } else { max(c[i - 1], b[i]) };
+    }
+
+    let mut d: Vec<i64> = vec![0; n];
+    for i_rev in 0..n {
+        let i = n - 1 - i_rev;
+        // C uses VERYBIG as initial for suffix min.
+        d[i] = if i == n - 1 { b[n - 1] } else { min(d[i + 1], b[i]) };
+    }
+
+    // 5.3 Compute (L_i, R_i) then build e[r]=l after sorting by (L,R)
+    let mut intervals: Vec<(usize, usize)> = Vec::with_capacity(n); // 0-based L,R
+    for i in 0..n {
+        // Left boundary L_i
+        let l0: usize = if i == 0 || c[i - 1] <= b[i] {
+            i
+        } else {
+            // smallest j in [0,i] such that c[j] > b[i]
+            let mut ok: isize = -1;
+            let mut ng: isize = i as isize;
+            while ok + 1 < ng {
+                let med = ((ok + ng) / 2) as usize;
+                if c[med] > b[i] {
+                    ng = med as isize;
+                } else {
+                    ok = med as isize;
+                }
+            }
+            ng as usize
+        };
+
+        // Right boundary R_i
+        let r0: usize = if i == n - 1 || d[i + 1] >= b[i] {
+            i
+        } else {
+            // largest j in [i,n-1] such that d[j] < b[i]
+            let mut ok: isize = n as isize;
+            let mut ng: isize = i as isize;
+            while ng + 1 < ok {
+                let med = ((ok + ng) / 2) as usize;
+                if d[med] < b[i] {
+                    ng = med as isize;
+                } else {
+                    ok = med as isize;
+                }
+            }
+            ng as usize
+        };
+
+        intervals.push((l0, r0));
+    }
+
+    // Sort by (L,R) increasing (matches C's qsort with phwllABcomp on (a,b))
+    intervals.sort_unstable();
+
+    // e indexed by right endpoint in 1-based coordinates; initialize to -1
+    let mut e: Vec<i64> = vec![-1; n + 2 + 1]; // up to n+1 inclusive per spec
+    for (l0, r0) in intervals {
+        let l1 = (l0 + 1) as i64;
+        let r1 = (r0 + 1) as usize;
+        e[r1] = l1; // overwrite if same r
+    }
+
+    // 5.4 DP
+    // dp[i][k], ss[i][k] for i=0..n, k=0..3
+    let mut dp: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+    let mut ss: Vec<[u64; 4]> = vec![[0; 4]; n + 1];
+
+    let p = mod_pow(2, n as u64);
+    dp[0][0] = p;
+    ss[0][0] = p;
+    dp[0][2] = p;
+    ss[0][2] = p;
+
+    let inv2: u64 = (MOD + 1) / 2;
+
+    // Precompute powers needed: inv2^i and 2^i for i=0..n
+    let mut pow_inv2: Vec<u64> = vec![1; n + 1];
+    let mut pow2: Vec<u64> = vec![1; n + 1];
+    for i in 1..=n {
+        pow_inv2[i] = (pow_inv2[i - 1] * inv2) % MOD;
+        pow2[i] = (pow2[i - 1] * 2) % MOD;
+    }
+
+    for i in 1..=n {
+        if e[i] >= 0 {
+            let l = e[i] as usize; // 1-based
+            let r = i; // 1-based
+            let len = r - l + 1;
+
+            for ki in 0..2usize {
+                // term1 = ss[l-1][1-ki] * inv2^(len)
+                let term1 = (ss[l - 1][1 - ki] * pow_inv2[len]) % MOD;
+
+                // term2 = (ss[r-1][3-ki] - ss[l-1][3-ki]) * inv2^r
+                let s1 = ss[r - 1][3 - ki];
+                let s0 = ss[l - 1][3 - ki];
+                let diff = (s1 + MOD - s0) % MOD;
+                let term2 = (diff * pow_inv2[r]) % MOD;
+
+                let val = (term1 + term2) % MOD;
+                dp[i][ki] = val;
+                dp[i][2 + ki] = (val * pow2[i]) % MOD;
+            }
+        }
+        for k in 0..4 {
+            ss[i][k] = (ss[i - 1][k] + dp[i][k]) % MOD;
+        }
+    }
+
+    // 5.5 Final result
+    let result = (ss[n][0] + MOD - ss[n][1]) % MOD;
+    print!("{result}\n");
+}

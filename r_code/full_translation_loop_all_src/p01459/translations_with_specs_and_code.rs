@@ -1,0 +1,199 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin (preconditions guarantee well-formed enough input).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = it.next().unwrap().parse().unwrap();
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let a_lim: usize = it.next().unwrap().parse().unwrap();
+    let b_lim: usize = a_lim;
+
+    let mut grid: Vec<Vec<u8>> = vec![vec![b'#'; w]; h];
+    let (mut sr, mut sc) = (0usize, 0usize);
+    let (mut gr, mut gc) = (0usize, 0usize);
+
+    for r in 0..h {
+        let row = it.next().unwrap().as_bytes().to_vec();
+        // Spec says each line provides at least W columns.
+        for c in 0..w {
+            let ch = row[c];
+            grid[r][c] = ch;
+            if ch == b'S' {
+                sr = r;
+                sc = c;
+            } else if ch == b'G' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    // Postcondition: if cell immediately below start is outside grid or obstacle => -1.
+    if sr + 1 >= h || grid[sr + 1][sc] == b'#' {
+        print!("-1\n");
+        return;
+    }
+
+    // Directions: 0=up,1=right,2=down,3=left (matches C).
+    const MV: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+    // Turn-type matrices from C (ma, mb). Values: -1 disallowed, 0 allowed no cost, 1 costs that type.
+    const MA: [[i8; 4]; 4] = [
+        [0, -1, -1, 1],
+        [-1, 0, 1, -1],
+        [-1, 1, 0, -1],
+        [1, -1, -1, 0],
+    ];
+    const MB: [[i8; 4]; 4] = [
+        [0, 1, -1, -1],
+        [1, 0, -1, -1],
+        [-1, -1, 0, 1],
+        [-1, -1, 1, 0],
+    ];
+
+    // Visited: [H][W][4][A+1][B+1]
+    let mut visited = vec![vec![vec![vec![vec![false; b_lim + 1]; a_lim + 1]; 4]; w]; h];
+
+    // C code pre-marks all states at the start cell as visited for d=0 only, for all a,b.
+    // This is a quirk of the original; it helps enforce "never perform a turn while on S"
+    // together with the explicit check `map[r][c] == 'S'` before charging a turn.
+    for a in 0..=a_lim {
+        for b in 0..=b_lim {
+            visited[sr][sc][0][a][b] = true;
+        }
+    }
+
+    // Queue: fixed capacity ring buffer, as in C (behavior unspecified if exceeded).
+    const QMAX: usize = 51000;
+    #[derive(Copy, Clone)]
+    struct State {
+        r: u8,
+        c: u8,
+        d: u8,
+        a: u8,
+        b: u8,
+    }
+    let mut que = vec![
+        State {
+            r: 0,
+            c: 0,
+            d: 0,
+            a: 0,
+            b: 0
+        };
+        QMAX + 2
+    ];
+    let mut top: usize = 0;
+    let mut end: usize = 1;
+
+    // Initial state: one step below S, orientation down (2), a=b=0.
+    que[0] = State {
+        r: (sr + 1) as u8,
+        c: sc as u8,
+        d: 2,
+        a: 0,
+        b: 0,
+    };
+
+    let mut ans: i32 = 100;
+
+    while top != end {
+        let st = que[top];
+        top += 1;
+        if top == QMAX {
+            top = 0;
+        }
+
+        let r = st.r as usize;
+        let c = st.c as usize;
+        let d = st.d as usize;
+        let a = st.a as usize;
+        let b = st.b as usize;
+
+        if r == gr && c == gc {
+            let s = (a + b) as i32;
+            if s < ans {
+                ans = s;
+            }
+            continue;
+        }
+
+        if visited[r][c][d][a][b] {
+            continue;
+        }
+        visited[r][c][d][a][b] = true;
+
+        for nd in 0..4usize {
+            let (dr, dc) = MV[nd];
+            let nr_i = r as i32 + dr;
+            let nc_i = c as i32 + dc;
+
+            let na = MA[d][nd];
+            let nb = MB[d][nd];
+            if na < 0 && nb < 0 {
+                continue; // disallowed direction change
+            }
+
+            if nr_i < 0 || nr_i >= h as i32 || nc_i < 0 || nc_i >= w as i32 {
+                continue;
+            }
+            let nr = nr_i as usize;
+            let nc = nc_i as usize;
+            if grid[nr][nc] == b'#' {
+                continue;
+            }
+
+            // Prepare enqueue; may be skipped by budget/visited/turn-on-start checks.
+            let mut next_a = a;
+            let mut next_b = b;
+
+            if na > 0 {
+                // Turn type A
+                if a + 1 > a_lim || grid[r][c] == b'S' {
+                    continue;
+                }
+                next_a = a + 1;
+                if visited[nr][nc][nd][next_a][next_b] {
+                    continue;
+                }
+            } else if nb > 0 {
+                // Turn type B
+                if b + 1 > b_lim || grid[r][c] == b'S' {
+                    continue;
+                }
+                next_b = b + 1;
+                if visited[nr][nc][nd][next_a][next_b] {
+                    continue;
+                }
+            } else if na == 0 {
+                // No turn cost
+                if visited[nr][nc][nd][next_a][next_b] {
+                    continue;
+                }
+            } else {
+                // This case shouldn't occur given the tables, but keep semantics conservative.
+                continue;
+            }
+
+            que[end] = State {
+                r: nr as u8,
+                c: nc as u8,
+                d: nd as u8,
+                a: next_a as u8,
+                b: next_b as u8,
+            };
+            end += 1;
+            if end == QMAX {
+                end = 0;
+            }
+        }
+    }
+
+    if ans > 20 {
+        print!("-1\n");
+    } else {
+        print!("{}\n", ans);
+    }
+}

@@ -1,0 +1,140 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Rect {
+    id: usize,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    used: bool,
+}
+
+fn calc(t: &mut [Rect], ans: &mut [i32], order: &mut i32) {
+    // Sort by (x1, y1) ascending, matching C's qsort+cmp.
+    t.sort_by(|a, b| a.x1.cmp(&b.x1).then(a.y1.cmp(&b.y1)));
+
+    // Select leftmost (then lowest y1) among this slice.
+    ans[t[0].id] = *order + 1;
+    *order += 1;
+    t[0].used = true;
+
+    // Determine y and x threshold.
+    let y = t[0].y2;
+    let mut x: i32 = 501;
+    for r in t.iter() {
+        if r.used {
+            continue;
+        }
+        // Strict containment in y: y1 < y < y2
+        if r.y1 < y && y < r.y2 {
+            x = r.x1;
+            break;
+        }
+    }
+
+    // Collect subset to recurse on: y2 <= y && x2 <= x
+    let mut tmp: Vec<Rect> = Vec::with_capacity(10);
+    for r in t.iter_mut() {
+        if r.used {
+            continue;
+        }
+        if r.y2 <= y && r.x2 <= x {
+            tmp.push(*r);
+            r.used = true;
+        }
+    }
+    if !tmp.is_empty() {
+        calc(&mut tmp[..], ans, order);
+    }
+
+    // Recurse on remaining un-used rectangles, starting from the first unused index.
+    // This matches the C loop: for (i=0; i<n; i++) if (t[i].used==0) calc(t+i, n-i);
+    let n = t.len();
+    for i in 0..n {
+        if !t[i].used {
+            calc(&mut t[i..], ans, order);
+        }
+    }
+}
+
+fn main() {
+    // Spec assumption: nonnegative integers only; malformed input => undefined.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    fn read_u32(bytes: &[u8], idx: &mut usize) -> Option<u32> {
+        while *idx < bytes.len() && bytes[*idx].is_ascii_whitespace() {
+            *idx += 1;
+        }
+        if *idx >= bytes.len() {
+            return None;
+        }
+        let mut n: u32 = 0;
+        let mut any = false;
+        while *idx < bytes.len() {
+            let c = bytes[*idx];
+            if c.is_ascii_digit() {
+                any = true;
+                n = n * 10 + (c - b'0') as u32;
+                *idx += 1;
+            } else {
+                break;
+            }
+        }
+        if any { Some(n) } else { None }
+    }
+
+    let mut out = String::new();
+    let mut first_dataset = true;
+
+    loop {
+        let n_opt = read_u32(bytes, &mut idx);
+        if n_opt.is_none() {
+            break;
+        }
+        let n = n_opt.unwrap() as usize;
+        if n == 0 {
+            break;
+        }
+
+        // Fixed capacity per spec (N <= 10). If exceeded, behavior is undefined in C;
+        // here we still proceed but only allocate as needed.
+        let mut tbl: Vec<Rect> = Vec::with_capacity(n);
+        for i in 0..n {
+            let x1 = read_u32(bytes, &mut idx).unwrap() as i32;
+            let y1 = read_u32(bytes, &mut idx).unwrap() as i32;
+            let x2 = read_u32(bytes, &mut idx).unwrap() as i32;
+            let y2 = read_u32(bytes, &mut idx).unwrap() as i32;
+
+            let (nx1, nx2) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
+            let (ny1, ny2) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+
+            tbl.push(Rect {
+                id: i,
+                x1: nx1,
+                y1: ny1,
+                x2: nx2,
+                y2: ny2,
+                used: false,
+            });
+        }
+
+        let mut ans = vec![0i32; n];
+        let mut order: i32 = 0;
+        calc(&mut tbl[..], &mut ans[..], &mut order);
+
+        if !first_dataset {
+            out.push('\n');
+        }
+        first_dataset = false;
+
+        for i in 0..n {
+            out.push_str(&format!("{}\n", ans[i]));
+        }
+    }
+
+    print!("{out}");
+}

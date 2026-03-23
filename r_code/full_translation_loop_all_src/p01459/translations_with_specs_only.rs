@@ -1,0 +1,204 @@
+use std::cmp::min;
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+const MAX_HW: usize = 102;
+const MAX_A: usize = 10;
+const ORI: usize = 4;
+
+// Orientation encoding: 0=Up, 1=Right, 2=Down, 3=Left
+const DR: [i32; 4] = [-1, 0, 1, 0];
+const DC: [i32; 4] = [0, 1, 0, -1];
+
+fn in_bounds(r: i32, c: i32, h: i32, w: i32) -> bool {
+    r >= 0 && r < h && c >= 0 && c < w
+}
+
+// Direction-change cost model is not specified beyond:
+// - some changes disallowed
+// - some allowed with no cost
+// - some allowed with +1 to exactly one of two counters
+//
+// Narrowest reasonable interpretation that still matches the "two distinct turn types":
+// - continuing straight: allowed, no cost
+// - 180-degree reversal: disallowed
+// - 90-degree turn: allowed, costs +1 to one of the two counters depending on left vs right
+fn turn_cost(cur: usize, next: usize) -> Option<(u8, u8)> {
+    if cur == next {
+        return Some((0, 0));
+    }
+    // Disallow U-turns
+    if (cur + 2) % 4 == next {
+        return None;
+    }
+    // 90-degree: determine left/right relative to cur
+    // right turn: (cur+1)%4, left turn: (cur+3)%4
+    if (cur + 1) % 4 == next {
+        // type-1 for right
+        Some((1, 0))
+    } else if (cur + 3) % 4 == next {
+        // type-2 for left
+        Some((0, 1))
+    } else {
+        // Should be unreachable for 4-neighborhood, but keep narrow.
+        None
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let h: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let w: usize = it.next().unwrap().parse().unwrap();
+    let a: usize = it.next().unwrap().parse().unwrap();
+
+    // Preconditions say these are within capacity; behavior unspecified otherwise.
+    // We still allocate based on fixed maxima to match "fixed internal capacity".
+    let mut grid = vec![vec!['#'; MAX_HW]; MAX_HW];
+
+    let mut sr: i32 = -1;
+    let mut sc: i32 = -1;
+    let mut gr: i32 = -1;
+    let mut gc: i32 = -1;
+
+    for r in 0..h {
+        let line = it.next().unwrap_or("");
+        // Preconditions: line has at least w columns.
+        for c in 0..w {
+            let ch = line.as_bytes()[c] as char;
+            grid[r][c] = ch;
+            if ch == 'S' {
+                sr = r as i32;
+                sc = c as i32;
+            } else if ch == 'G' {
+                gr = r as i32;
+                gc = c as i32;
+            }
+        }
+    }
+
+    // Postcondition: if cell immediately below start is outside grid or obstacle => -1
+    let start_down_r = sr + 1;
+    let start_down_c = sc;
+    if !in_bounds(start_down_r, start_down_c, h as i32, w as i32) {
+        println!("-1");
+        return;
+    }
+    let below_ch = grid[start_down_r as usize][start_down_c as usize];
+    if below_ch == '#' {
+        println!("-1");
+        return;
+    }
+
+    // visited[r][c][ori][t1][t2]
+    let mut visited = vec![
+        vec![
+            vec![vec![vec![false; MAX_A + 1]; MAX_A + 1]; ORI];
+            MAX_HW
+        ];
+        MAX_HW
+    ];
+
+    // BFS over state space; each move is one step, but objective is min total turns.
+    // Specification does not mandate algorithm; however it states:
+    // - "A state, once marked as visited, is not processed again."
+    // This matches BFS/queue-style exploration. To preserve semantics with turn costs,
+    // we use 0-1 BFS-like deque with cost = (t1+t2) increments by 0 or 1.
+    // Still, we must respect the "visited once" invariant; we therefore treat
+    // visited as "first time reached" in nondecreasing total-turn order.
+    //
+    // This is achieved by 0-1 BFS on total-turn cost, where each edge cost is 0 or 1.
+    // With the chosen cost model, each transition adds either 0 or 1 to total.
+    //
+    // If a different cost model existed, this would be ambiguous; we keep it narrow.
+    let mut dist = vec![
+        vec![
+            vec![vec![vec![i32::MAX; MAX_A + 1]; MAX_A + 1]; ORI];
+            MAX_HW
+        ];
+        MAX_HW
+    ];
+
+    let init_ori = 2usize; // Downward
+    let init_t1 = 0usize;
+    let init_t2 = 0usize;
+
+    let ir = start_down_r as usize;
+    let ic = start_down_c as usize;
+
+    dist[ir][ic][init_ori][init_t1][init_t2] = 0;
+    visited[ir][ic][init_ori][init_t1][init_t2] = true;
+
+    let mut dq: VecDeque<(usize, usize, usize, usize, usize)> = VecDeque::new();
+    dq.push_back((ir, ic, init_ori, init_t1, init_t2));
+
+    let mut best_total: i32 = i32::MAX;
+
+    while let Some((r, c, ori, t1, t2)) = dq.pop_front() {
+        let cur_total = dist[r][c][ori][t1][t2];
+        if cur_total > best_total {
+            continue;
+        }
+
+        if r as i32 == gr && c as i32 == gc {
+            best_total = min(best_total, cur_total);
+            continue;
+        }
+
+        for next_ori in 0..4usize {
+            let nr = r as i32 + DR[next_ori];
+            let nc = c as i32 + DC[next_ori];
+            if !in_bounds(nr, nc, h as i32, w as i32) {
+                continue;
+            }
+            let cell = grid[nr as usize][nc as usize];
+            if cell == '#' {
+                continue;
+            }
+
+            let (add1, add2) = match turn_cost(ori, next_ori) {
+                Some(x) => x,
+                None => continue,
+            };
+
+            // "never perform a turn operation while located on the start cell"
+            // Since the start cell itself is never an initial state, this only matters
+            // if we later step onto 'S'. If current cell is 'S' and a turn would cost,
+            // disallow.
+            if grid[r][c] == 'S' && (add1 != 0 || add2 != 0) {
+                continue;
+            }
+
+            let nt1 = t1 + add1 as usize;
+            let nt2 = t2 + add2 as usize;
+            if nt1 > a || nt2 > a {
+                continue;
+            }
+
+            let ncost = cur_total + (add1 as i32 + add2 as i32);
+
+            if !visited[nr as usize][nc as usize][next_ori][nt1][nt2] {
+                visited[nr as usize][nc as usize][next_ori][nt1][nt2] = true;
+                dist[nr as usize][nc as usize][next_ori][nt1][nt2] = ncost;
+
+                // 0-1 BFS push policy
+                if add1 == 0 && add2 == 0 {
+                    dq.push_front((nr as usize, nc as usize, next_ori, nt1, nt2));
+                } else {
+                    dq.push_back((nr as usize, nc as usize, next_ori, nt1, nt2));
+                }
+            }
+        }
+    }
+
+    if best_total == i32::MAX || best_total > 20 {
+        println!("-1");
+    } else {
+        println!("{}", best_total);
+    }
+}

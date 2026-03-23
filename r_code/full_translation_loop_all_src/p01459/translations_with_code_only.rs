@@ -1,0 +1,184 @@
+use std::io::{self, Read};
+
+const QMAX: usize = 51000;
+
+#[derive(Copy, Clone, Default)]
+struct Q {
+    r: u8,
+    c: u8,
+    d: u8,
+    a: u8,
+    b: u8,
+}
+
+fn main() {
+    // Read entire stdin; C uses fgets/sscanf, but input is line-based and small.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.lines();
+
+    let first = match it.next() {
+        Some(s) => s,
+        None => return,
+    };
+    let mut parts = first.split_whitespace();
+    let h: usize = parts.next().unwrap().parse().unwrap();
+    let w: usize = parts.next().unwrap().parse().unwrap();
+    let a_max: usize = parts.next().unwrap().parse().unwrap();
+    let b_max: usize = a_max;
+
+    // map[103][103] in C; we only use [0..H)[0..W)
+    let mut map = vec![vec![b'\0'; w]; h];
+    let (mut sr, mut sc, mut gr, mut gc) = (0usize, 0usize, 0usize, 0usize);
+
+    for r in 0..h {
+        let line = it.next().unwrap_or("");
+        let bytes = line.as_bytes();
+        for c in 0..w {
+            let ch = if c < bytes.len() { bytes[c] } else { b'\0' };
+            map[r][c] = ch;
+            if ch == b'S' {
+                sr = r;
+                sc = c;
+            } else if ch == b'G' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    // Early exit condition exactly as C:
+    // if (sr == H-1 || map[sr+1][sc] == '#') { puts("-1"); return 0; }
+    if sr + 1 >= h || map[sr + 1][sc] == b'#' {
+        print!("-1\n");
+        return;
+    }
+
+    // mk[103][103][4][11][11] in C; A is effectively <= 10 in original constraints.
+    // Allocate based on given A to preserve behavior for valid inputs.
+    let mut mk = vec![vec![vec![vec![vec![false; b_max + 1]; a_max + 1]; 4]; w]; h];
+
+    // Initialize queue ring buffer
+    let mut que = vec![Q::default(); QMAX + 2];
+    que[0] = Q {
+        r: (sr + 1) as u8,
+        c: sc as u8,
+        d: 2, // down
+        a: 0,
+        b: 0,
+    };
+
+    // for (a=0..A) for (b=0..B) mk[sr][sc][0][a][b] = 1;
+    for a in 0..=a_max {
+        for b in 0..=b_max {
+            mk[sr][sc][0][a][b] = true;
+        }
+    }
+
+    let mv: [[i32; 2]; 4] = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    let ma: [[i32; 4]; 4] = [
+        [0, -1, -1, 1],
+        [-1, 0, 1, -1],
+        [-1, 1, 0, -1],
+        [1, -1, -1, 0],
+    ];
+    let mb: [[i32; 4]; 4] = [
+        [0, 1, -1, -1],
+        [1, 0, -1, -1],
+        [-1, -1, 0, 1],
+        [-1, -1, 1, 0],
+    ];
+
+    let mut top: usize = 0;
+    let mut end: usize = 1;
+    let mut ans: i32 = 100;
+
+    while top != end {
+        let q = que[top];
+        top += 1;
+        if top == QMAX {
+            top = 0;
+        }
+
+        let r = q.r as usize;
+        let c = q.c as usize;
+        let d = q.d as usize;
+        let a = q.a as usize;
+        let b = q.b as usize;
+
+        if r == gr && c == gc {
+            let s = (a + b) as i32;
+            if s < ans {
+                ans = s;
+            }
+            continue;
+        }
+
+        if mk[r][c][d][a][b] {
+            continue;
+        }
+        mk[r][c][d][a][b] = true;
+
+        for nd in 0..4usize {
+            let nr_i = r as i32 + mv[nd][0];
+            let nc_i = c as i32 + mv[nd][1];
+            let na = ma[d][nd];
+            let nb = mb[d][nd];
+
+            if na < 0 && nb < 0 {
+                continue;
+            }
+            if nr_i < 0 || nr_i >= h as i32 || nc_i < 0 || nc_i >= w as i32 {
+                continue;
+            }
+            let nr = nr_i as usize;
+            let nc = nc_i as usize;
+            if map[nr][nc] == b'#' {
+                continue;
+            }
+
+            // Prepare base enqueue entry (may be discarded by continues below)
+            que[end].r = nr as u8;
+            que[end].c = nc as u8;
+            que[end].d = nd as u8;
+
+            if na > 0 {
+                // if (a+1 > A || map[r][c] == 'S') continue;
+                if a + 1 > a_max || map[r][c] == b'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a + 1][b] {
+                    continue;
+                }
+                que[end].a = (a + 1) as u8;
+                que[end].b = b as u8;
+            } else if nb > 0 {
+                if b + 1 > b_max || map[r][c] == b'S' {
+                    continue;
+                }
+                if mk[nr][nc][nd][a][b + 1] {
+                    continue;
+                }
+                que[end].a = a as u8;
+                que[end].b = (b + 1) as u8;
+            } else if na == 0 {
+                que[end].a = a as u8;
+                que[end].b = b as u8;
+                if mk[nr][nc][nd][a][b] {
+                    continue;
+                }
+            }
+
+            end += 1;
+            if end == QMAX {
+                end = 0;
+            }
+        }
+    }
+
+    if ans > 20 {
+        print!("-1\n");
+    } else {
+        print!("{}\n", ans);
+    }
+}

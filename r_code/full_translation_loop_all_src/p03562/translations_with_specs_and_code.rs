@@ -1,0 +1,169 @@
+use std::io::{self, Read};
+
+const N: usize = 4000;
+const WORD_BITS: usize = 62;
+const K: usize = (N + WORD_BITS - 1) / WORD_BITS;
+const MD: i32 = 998_244_353;
+
+fn shift_poly(src: &[u64; K], dst: &mut [u64; K], s: usize) {
+    // Equivalent to C shift(long long *aa, long long *bb, int s)
+    // using 62-bit limbs packed into u64.
+    dst.fill(0);
+    let q = s / WORD_BITS;
+    let r = s % WORD_BITS;
+
+    for h in 0..K {
+        if h + q >= K {
+            break;
+        }
+        if r == 0 {
+            dst[h + q] |= src[h];
+        } else {
+            // mask = (1<< (WORD_BITS - r)) - 1, but WORD_BITS-r in 1..=61 here.
+            let mask = (1u64 << (WORD_BITS - r)) - 1;
+            dst[h + q] |= (src[h] & mask) << r;
+            if h + q + 1 < K {
+                dst[h + q + 1] |= src[h] >> (WORD_BITS - r);
+            }
+        }
+    }
+}
+
+fn xor_inplace(a: &mut [u64; K], b: &[u64; K]) {
+    for h in 0..K {
+        a[h] ^= b[h];
+    }
+}
+
+fn get_bit(poly: &[u64; K], idx: usize) -> u64 {
+    (poly[idx / WORD_BITS] >> (idx % WORD_BITS)) & 1
+}
+
+fn set_bit(poly: &mut [u64; K], idx: usize) {
+    poly[idx / WORD_BITS] |= 1u64 << (idx % WORD_BITS);
+}
+
+fn main() {
+    // Read all input tokens (matches C scanf behavior for whitespace-separated tokens).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let m: usize = it.next().unwrap().parse().unwrap();
+    let a_str = it.next().unwrap();
+    let n = a_str.len();
+
+    // aa stores A for counting phase; dd is the reduction state D (initially zero).
+    let mut aa = [0u64; K];
+    let mut dd = [0u64; K];
+    let mut bb = [0u64; K];
+    let mut cc = [0u64; K];
+
+    // Parse A into aa (leftmost is highest degree).
+    for (i, ch) in a_str.bytes().enumerate() {
+        if ch == b'1' {
+            let pos = n - 1 - i;
+            // Spec says >N is undefined; we keep the same assumption.
+            set_bit(&mut aa, pos);
+        }
+    }
+
+    // Reduction phase over m additional polynomials.
+    for _ in 0..m {
+        let b_str = it.next().unwrap();
+        let l = b_str.len();
+        bb.fill(0);
+        for (i, ch) in b_str.bytes().enumerate() {
+            if ch == b'1' {
+                let pos = l - 1 - i;
+                set_bit(&mut bb, pos);
+            }
+        }
+
+        // i = highest bit index in dd, j = highest bit index in bb, both start at N-1.
+        let mut i: isize = (N as isize) - 1;
+        let mut j: isize = (N as isize) - 1;
+
+        loop {
+            while i >= 0 && get_bit(&dd, i as usize) == 0 {
+                i -= 1;
+            }
+            while j >= 0 && get_bit(&bb, j as usize) == 0 {
+                j -= 1;
+            }
+            if i < j {
+                std::mem::swap(&mut dd, &mut bb);
+                std::mem::swap(&mut i, &mut j);
+            }
+            if j < 0 {
+                break;
+            }
+            let s = (i - j) as usize;
+            shift_poly(&bb, &mut cc, s);
+            xor_inplace(&mut dd, &cc);
+        }
+    }
+
+    // Determine effective length L = highest_set_bit(dd)+1, or 0 if zero.
+    let mut l_eff: isize = N as isize;
+    while l_eff > 0 && get_bit(&dd, (l_eff as usize) - 1) == 0 {
+        l_eff -= 1;
+    }
+    // l_eff is in [0..=N], matches spec's L.
+
+    // Precompute powers of 2 mod MD up to n-1.
+    let mut p2 = vec![0i32; n.max(1)];
+    let mut p: i32 = 1;
+    for i in 0..n {
+        p2[i] = p;
+        p = ((p as i64) * 2 % (MD as i64)) as i32;
+    }
+
+    // Counting phase.
+    bb.fill(0); // R
+    let mut ans: i32 = 0;
+
+    // We need i after loop to decide whether completed; keep i as isize like C.
+    let mut i: isize = (n as isize) - 1;
+    while i >= 0 {
+        let iu = i as usize;
+        let x = get_bit(&aa, iu) as i32;
+        let y = get_bit(&bb, iu) as i32;
+
+        // Condition i >= l_eff - 1; note l_eff can be 0, so l_eff-1 = -1, always true.
+        if i >= l_eff - 1 && x == 1 {
+            let idx = (i - l_eff + 1) as usize;
+            ans += p2[idx];
+            if ans >= MD {
+                ans -= MD;
+            }
+        }
+
+        if x != y {
+            if i >= l_eff - 1 {
+                let s = (i - l_eff + 1) as usize;
+                shift_poly(&dd, &mut cc, s);
+                xor_inplace(&mut bb, &cc);
+            } else {
+                if x > y {
+                    ans += 1;
+                    if ans >= MD {
+                        ans -= MD;
+                    }
+                }
+                break;
+            }
+        }
+
+        i -= 1;
+    }
+
+    if i < 0 {
+        ans += 1;
+        if ans >= MD {
+            ans -= MD;
+        }
+    }
+
+    print!("{ans}\n");
+}

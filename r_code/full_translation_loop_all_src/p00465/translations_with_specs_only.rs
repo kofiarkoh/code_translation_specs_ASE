@@ -1,0 +1,179 @@
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+use std::io::{self, Read};
+
+const MAX_SEQ: usize = 100_000;
+const MAX_QUEUE: usize = 150_000;
+
+#[derive(Clone)]
+struct Grid {
+    w: usize,
+    h: usize,
+    sx: usize,
+    sy: usize,
+    a: Vec<u32>,
+}
+
+impl Grid {
+    #[inline]
+    fn idx(&self, x: usize, y: usize) -> usize {
+        y * self.w + x
+    }
+
+    fn derive_sequence(&self) -> Vec<u32> {
+        // Sequence S(k): minimal threshold T such that at least k cells are reachable
+        // from start using only cells with value <= T.
+        //
+        // We compute, for each reachable cell, the minimal possible maximum value along
+        // any path from start to that cell (minimax path value). Then sorting these
+        // per-cell minimax values yields the non-decreasing sequence for k=1..n.
+        //
+        // This is Dijkstra on "distance" = minimax value, with relaxation:
+        // d[v] = min(d[v], max(d[u], a[v])).
+        let n = self.w * self.h;
+        let mut dist: Vec<u32> = vec![u32::MAX; n];
+        let s = self.idx(self.sx, self.sy);
+        dist[s] = self.a[s];
+
+        let mut heap: BinaryHeap<(Reverse<u32>, usize)> = BinaryHeap::new();
+        heap.push((Reverse(dist[s]), s));
+
+        // Capacity constraints are assumed by spec; we do not enforce them beyond
+        // avoiding unbounded growth in pathological inputs.
+        let mut pushed: usize = 1;
+
+        while let Some((Reverse(d), u)) = heap.pop() {
+            if d != dist[u] {
+                continue;
+            }
+            let x = u % self.w;
+            let y = u / self.w;
+
+            // 4-neighbors
+            if x > 0 {
+                let v = u - 1;
+                let nd = d.max(self.a[v]);
+                if nd < dist[v] {
+                    dist[v] = nd;
+                    heap.push((Reverse(nd), v));
+                    pushed += 1;
+                }
+            }
+            if x + 1 < self.w {
+                let v = u + 1;
+                let nd = d.max(self.a[v]);
+                if nd < dist[v] {
+                    dist[v] = nd;
+                    heap.push((Reverse(nd), v));
+                    pushed += 1;
+                }
+            }
+            if y > 0 {
+                let v = u - self.w;
+                let nd = d.max(self.a[v]);
+                if nd < dist[v] {
+                    dist[v] = nd;
+                    heap.push((Reverse(nd), v));
+                    pushed += 1;
+                }
+            }
+            if y + 1 < self.h {
+                let v = u + self.w;
+                let nd = d.max(self.a[v]);
+                if nd < dist[v] {
+                    dist[v] = nd;
+                    heap.push((Reverse(nd), v));
+                    pushed += 1;
+                }
+            }
+
+            // Spec says behavior is undefined if queue capacity exceeded; we do not
+            // attempt recovery. This guard only prevents runaway memory usage in
+            // non-conforming inputs.
+            if pushed > MAX_QUEUE * 10 {
+                break;
+            }
+        }
+
+        // Collect reachable cells (dist != INF), sort their minimax thresholds.
+        let mut vals: Vec<u32> = dist.into_iter().filter(|&d| d != u32::MAX).collect();
+        vals.sort_unstable();
+
+        // Spec assumes internal capacity for derived sequence values (<= 100000).
+        if vals.len() > MAX_SEQ {
+            vals.truncate(MAX_SEQ);
+        }
+        vals
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let r_opt = it.next();
+        if r_opt.is_none() {
+            break;
+        }
+        let r: usize = r_opt.unwrap().parse().unwrap();
+        if r == 0 {
+            break;
+        }
+
+        let mut grids: Vec<Grid> = Vec::with_capacity(2);
+        for _ in 0..2 {
+            let w: usize = it.next().unwrap().parse().unwrap();
+            let h: usize = it.next().unwrap().parse().unwrap();
+            let x1: usize = it.next().unwrap().parse().unwrap();
+            let y1: usize = it.next().unwrap().parse().unwrap();
+            // 1-based to 0-based
+            let sx = x1 - 1;
+            let sy = y1 - 1;
+
+            let mut a: Vec<u32> = Vec::with_capacity(w * h);
+            for _ in 0..(w * h) {
+                let v: u32 = it.next().unwrap().parse().unwrap();
+                a.push(v);
+            }
+
+            grids.push(Grid { w, h, sx, sy, a });
+        }
+
+        let seq1 = grids[0].derive_sequence(); // S1(1..=n1) as thresholds
+        let seq2 = grids[1].derive_sequence(); // S2(1..=n2)
+
+        // We need min over k: S1(k) + S2(R-k), with S(0)=0.
+        // seq vectors are 0-based for k=1..len => S(k)=seq[k-1].
+        let n1 = seq1.len();
+        let n2 = seq2.len();
+
+        let mut best: u64 = u64::MAX;
+
+        // k feasible if k==0 or k<=n1; similarly R-k==0 or <=n2.
+        // Iterate all k in [0..=R] but only evaluate feasible ones.
+        for k in 0..=r {
+            let k1 = k;
+            let k2 = r - k;
+
+            if (k1 == 0 || k1 <= n1) && (k2 == 0 || k2 <= n2) {
+                let s1: u64 = if k1 == 0 { 0 } else { seq1[k1 - 1] as u64 };
+                let s2: u64 = if k2 == 0 { 0 } else { seq2[k2 - 1] as u64 };
+                let sum = s1 + s2;
+                if sum < best {
+                    best = sum;
+                }
+            }
+        }
+
+        // If no feasible split exists, spec does not define behavior; we still print
+        // best as u64::MAX would be nonsensical. Narrowest reasonable behavior is to
+        // print 0 only when R==0 (handled above). For nonzero R, assume feasible.
+        out.push_str(&format!("{}\n", best));
+    }
+
+    print!("{}", out);
+}

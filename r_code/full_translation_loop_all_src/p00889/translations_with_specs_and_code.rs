@@ -1,0 +1,146 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Precompute divisibility-by-2/5 table for last digit.
+    let mut tr = [[false; 6]; 10];
+    tr[0][2] = true;
+    tr[2][2] = true;
+    tr[4][2] = true;
+    tr[6][2] = true;
+    tr[8][2] = true;
+    tr[0][5] = true;
+    tr[5][5] = true;
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break; // incomplete case => stop
+        }
+        let s_opt = it.next();
+        let w_opt = it.next();
+        let q_opt = it.next();
+        if s_opt.is_none() || w_opt.is_none() || q_opt.is_none() {
+            break; // incomplete case => stop
+        }
+
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let s: i32 = s_opt.unwrap().parse().unwrap();
+        let w: i32 = w_opt.unwrap().parse().unwrap();
+        let q: i32 = q_opt.unwrap().parse().unwrap();
+
+        if n <= 0 {
+            break; // terminating case not processed
+        }
+
+        let n_usize = n as usize;
+
+        // Generate digits a[0..n)
+        let mut a = vec![0i32; n_usize];
+        let mut g: i32 = s;
+        for i in 0..n_usize {
+            // C semantics: integer division truncates toward zero; % keeps sign of dividend.
+            // Spec expects digits 0..9 as produced by this formula.
+            a[i] = (g / 7) % 10;
+            if (g & 1) != 0 {
+                g = (g >> 1) ^ w; // arithmetic shift on signed i32 matches C on typical targets
+            } else {
+                g >>= 1;
+            }
+        }
+
+        let mut ans: i64 = 0;
+
+        if q == 2 || q == 5 {
+            let mut k: i64 = 0;
+            for i in 0..n_usize {
+                if a[i] != 0 {
+                    k += 1;
+                }
+                let d = a[i] as usize;
+                if tr[d][q as usize] {
+                    ans += k;
+                }
+            }
+        } else {
+            // Hash table as in C: open addressing with linear probing.
+            const HASHSIZ: usize = 300_017;
+
+            #[derive(Clone, Copy)]
+            struct Entry {
+                b: i32,
+                v: i32,
+            }
+
+            let mut hash = vec![Entry { b: 0, v: 0 }; HASHSIZ];
+
+            let mut lookup = |key: i32, hash: &Vec<Entry>| -> i32 {
+                let mut idx = (key.rem_euclid(HASHSIZ as i32)) as usize;
+                loop {
+                    let e = hash[idx];
+                    if e.b == 0 {
+                        return 0;
+                    }
+                    if e.b == key {
+                        return e.v;
+                    }
+                    idx += 1;
+                    if idx == HASHSIZ {
+                        idx = 0;
+                    }
+                }
+            };
+
+            let mut insert = |key: i32, hash: &mut Vec<Entry>| {
+                let mut idx = (key.rem_euclid(HASHSIZ as i32)) as usize;
+                loop {
+                    let e = hash[idx];
+                    if e.b == 0 {
+                        hash[idx] = Entry { b: key, v: 1 };
+                        return;
+                    }
+                    if e.b == key {
+                        hash[idx].v += 1;
+                        return;
+                    }
+                    idx += 1;
+                    if idx == HASHSIZ {
+                        idx = 0;
+                    }
+                }
+            };
+
+            // Compute b[i] = value of suffix a[i..] modulo q, with powers of 10.
+            // b has length n+1 with b[n]=0.
+            let q_i64 = q as i64;
+            let mut b = vec![0i32; n_usize + 1];
+            b[n_usize] = 0;
+
+            let mut k: i64 = 1;
+            for i in (0..n_usize).rev() {
+                let bi1 = b[i + 1] as i64;
+                let ai = a[i] as i64;
+                let val = (k * ai + bi1) % q_i64;
+                b[i] = val as i32;
+                k = (k * 10) % q_i64; // ((k<<3)+(k<<1)) % q
+            }
+
+            for i in 0..n_usize {
+                if a[i] != 0 {
+                    insert(b[i] + 1, &mut hash);
+                }
+                ans += lookup(b[i + 1] + 1, &hash) as i64;
+            }
+        }
+
+        out.push_str(&format!("{ans}\n"));
+    }
+
+    print!("{out}");
+}

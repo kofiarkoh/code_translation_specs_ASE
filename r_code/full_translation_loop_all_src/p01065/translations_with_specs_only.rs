@@ -1,0 +1,80 @@
+use std::io::{self, Read};
+
+const BASE: usize = 300;
+const KMAX: usize = 600;
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Per spec: malformed/missing input => undefined behavior; we unwrap.
+    let n: usize = it.next().unwrap().parse().unwrap();
+    let x: usize = it.next().unwrap().parse().unwrap();
+    let y: usize = it.next().unwrap().parse().unwrap();
+
+    // DP over (j, k) for current i; unreachable states are invalid.
+    // The original spec implies no explicit bounds checks for k-b or k+c;
+    // we therefore index directly and rely on the precondition that indices stay in 0..=600.
+    //
+    // Use i64 for rewards; inputs are non-negative, and n<=100, so i64 is ample.
+    let neg_inf: i64 = i64::MIN / 4;
+
+    let mut dp = vec![vec![neg_inf; KMAX + 1]; x + 1];
+    dp[0][BASE] = 0;
+
+    for _ in 0..n {
+        let a: usize = it.next().unwrap().parse().unwrap();
+        let b: usize = it.next().unwrap().parse().unwrap();
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let d: i64 = it.next().unwrap().parse::<i64>().unwrap();
+
+        let mut next = vec![vec![neg_inf; KMAX + 1]; x + 1];
+
+        for j in 0..=x {
+            for k in 0..=KMAX {
+                let cur = dp[j][k];
+                if cur == neg_inf {
+                    continue;
+                }
+
+                // 1) No-op
+                if cur > next[j][k] {
+                    next[j][k] = cur;
+                }
+
+                // 2) Trade: only if j + a <= x; k-b assumed in range by precondition.
+                if j + a <= x {
+                    let nk = k - b; // may panic if k < b; spec says inputs avoid this (otherwise undefined).
+                    if cur > next[j + a][nk] {
+                        next[j + a][nk] = cur;
+                    }
+                }
+
+                // 3) Reward: k+c assumed in range by precondition.
+                let nk = k + c; // may panic if nk > 600; spec says inputs avoid this (otherwise undefined).
+                let val = cur + d;
+                if val > next[j][nk] {
+                    next[j][nk] = val;
+                }
+            }
+        }
+
+        dp = next;
+    }
+
+    // Result selection: max over j<=x and k<=BASE+y (and k within 0..=600).
+    let upper_k = (BASE + y).min(KMAX);
+    let mut ans: i64 = 0; // per spec: print 0 if no feasible plan yields positive reward.
+    for j in 0..=x {
+        for k in 0..=upper_k {
+            let v = dp[j][k];
+            if v > ans {
+                ans = v;
+            }
+        }
+    }
+
+    println!("{}", ans);
+}

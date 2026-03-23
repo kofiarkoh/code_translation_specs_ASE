@@ -1,0 +1,49 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, then parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        // C code uses int a[100]; and reads n values into it.
+        // We'll store exactly n values; behavior is defined by the given C code assuming n <= 100.
+        let n_usize = n as usize;
+        let mut a: Vec<i32> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            a.push(v);
+        }
+
+        let mut swap_count: i32 = 0;
+
+        // Bubble sort counting swaps, matching the C loops.
+        // for (u = n - 1; u > 0; u--)
+        for u in (1..n_usize).rev() {
+            // for (i = 0; i < u; i++)
+            for i in 0..u {
+                if a[i] > a[i + 1] {
+                    a.swap(i, i + 1);
+                    // In C, signed overflow is UB; we assume swap_count fits in int for given inputs.
+                    swap_count += 1;
+                }
+            }
+        }
+
+        out.push_str(&format!("{}\n", swap_count));
+    }
+
+    print!("{}", out);
+}

@@ -1,0 +1,170 @@
+use std::io::{self, Read};
+
+const MOD_BY: i32 = 1_000_000_007;
+
+fn add(a: i32, b: i32) -> i32 {
+    let mut r = a + b;
+    if r >= MOD_BY {
+        r -= MOD_BY;
+    }
+    r
+}
+
+struct Solver {
+    n: usize,
+    m: usize,
+    exist_pos: usize,
+    a: Vec<u8>, // digits 0..9, length n
+    b: Vec<u8>, // digits 0..9, length n
+    c: Vec<u8>, // digits 0..9, length m
+
+    // C uses "0 means uncomputed, else store ret+1" to distinguish from ret==0.
+    memo: Vec<i32>,            // [n+?][m+?][2][2]
+    number_of_number: Vec<i32>, // [n+?][2][2]
+}
+
+impl Solver {
+    fn idx_memo(&self, pos: usize, seq_pos: usize, ue: usize, sita: usize) -> usize {
+        // Dimensions: pos in [0..=n], seq_pos in [0..=m], ue in [0..2), sita in [0..2)
+        (((pos * (self.m + 1) + seq_pos) * 2 + ue) * 2 + sita)
+    }
+
+    fn idx_non(&self, pos: usize, ue: usize, sita: usize) -> usize {
+        ((pos * 2 + ue) * 2 + sita)
+    }
+
+    fn get_number_of_number(&mut self, pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if pos >= self.n {
+            return 1;
+        }
+        let idx = self.idx_non(pos, ue_flag, sita_flag);
+        let cached = self.number_of_number[idx];
+        if cached > 0 {
+            return cached - 1;
+        }
+
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for i in imin..=imax {
+            let next_ue = if ue_flag != 0 && i == imax { 1 } else { 0 };
+            let next_sita = if sita_flag != 0 && i == imin { 1 } else { 0 };
+            ret = add(ret, self.get_number_of_number(pos + 1, next_ue, next_sita));
+        }
+
+        self.number_of_number[idx] = ret + 1;
+        ret
+    }
+
+    fn search(&mut self, pos: usize, seq_pos: usize, ue_flag: usize, sita_flag: usize) -> i32 {
+        if seq_pos >= self.m {
+            return self.get_number_of_number(pos, ue_flag, sita_flag);
+        }
+        if pos >= self.n {
+            return 0;
+        }
+
+        let idx = self.idx_memo(pos, seq_pos, ue_flag, sita_flag);
+        let cached = self.memo[idx];
+        if cached > 0 {
+            return cached - 1;
+        }
+
+        let imin: u8 = if sita_flag != 0 { self.a[pos] } else { 0 };
+        let imax: u8 = if ue_flag != 0 { self.b[pos] } else { 9 };
+
+        let mut ret: i32 = 0;
+        for i in imin..=imax {
+            let next_ue = if ue_flag != 0 && i == imax { 1 } else { 0 };
+            let next_sita = if sita_flag != 0 && i == imin { 1 } else { 0 };
+
+            if seq_pos == 0 {
+                ret = add(ret, self.search(pos + 1, 0, next_ue, next_sita));
+            }
+
+            // Preserve C condition exactly:
+            // (!sitaFlag || i!=imin || existPos<=pos) && seqPos<M && C[seqPos]==i
+            if (sita_flag == 0 || i != imin || self.exist_pos <= pos)
+                && seq_pos < self.m
+                && self.c[seq_pos] == i
+            {
+                ret = add(ret, self.search(pos + 1, seq_pos + 1, next_ue, next_sita));
+            }
+        }
+
+        self.memo[idx] = ret + 1;
+        ret
+    }
+}
+
+fn main() {
+    // Read all input, then parse three whitespace-separated tokens like scanf("%s%s%s").
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+    let a_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => return, // C would return 1; but no output either way.
+    };
+    let b_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => return,
+    };
+    let c_str = match it.next() {
+        Some(s) => s.to_string(),
+        None => return,
+    };
+
+    let alen = a_str.len();
+    let blen = b_str.len();
+
+    // Emulate the C in-place right-alignment of A into length Blen with leading zeros if Alen<Blen.
+    let mut a_padded = if alen < blen {
+        let mut v = vec![b'0'; blen];
+        // Copy A to the right end.
+        v[blen - alen..].copy_from_slice(a_str.as_bytes());
+        v
+    } else {
+        a_str.as_bytes().to_vec()
+    };
+
+    let n = blen;
+    let m = c_str.len();
+    let exist_pos = blen - alen; // In C this is computed even if alen>=blen (can go negative),
+                                 // but that branch doesn't happen; keep usize with same effective use.
+
+    // Convert to digit arrays by subtracting '0' like C does (assumes valid digits).
+    // Note: C stores in char and subtracts '0' (implementation-defined signedness),
+    // but values are 0..9 so it is safe to model as u8.
+    for ch in &mut a_padded {
+        *ch = ch.wrapping_sub(b'0');
+    }
+    let mut b_digits = b_str.as_bytes().to_vec();
+    for ch in &mut b_digits {
+        *ch = ch.wrapping_sub(b'0');
+    }
+    let mut c_digits = c_str.as_bytes().to_vec();
+    for ch in &mut c_digits {
+        *ch = ch.wrapping_sub(b'0');
+    }
+
+    // Allocate memo tables. C sizes are [10002][502][2][2] and [10002][2][2].
+    // Here we size exactly to (n+1)*(m+1)*2*2 and (n+1)*2*2.
+    let memo = vec![0i32; (n + 1) * (m + 1) * 2 * 2];
+    let number_of_number = vec![0i32; (n + 1) * 2 * 2];
+
+    let mut solver = Solver {
+        n,
+        m,
+        exist_pos,
+        a: a_padded,
+        b: b_digits,
+        c: c_digits,
+        memo,
+        number_of_number,
+    };
+
+    let ans = solver.search(0, 0, 1, 1);
+    print!("{ans}\n");
+}

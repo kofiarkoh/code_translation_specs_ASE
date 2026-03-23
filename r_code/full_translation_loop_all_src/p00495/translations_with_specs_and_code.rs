@@ -1,0 +1,69 @@
+use std::io::{self, Read};
+
+const MAX_K: usize = 5000;
+// const MAX_N: usize = 1000; // Present in C but unused there as well.
+
+fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
+    let mut ai: usize = 0;
+
+    for bi in k0..bn {
+        if ai >= an {
+            return bi - k0;
+        }
+        let b = bis[bi];
+
+        let mut aj = ai;
+        while aj < an && ais[aj] != b {
+            aj += 1;
+        }
+        if aj >= an {
+            return bi - k0;
+        }
+        ai = aj + 1; // next match must be strictly after this position
+    }
+
+    bn - k0
+}
+
+fn main() {
+    // Read all input; behavior is unspecified if malformed (per spec).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let an: usize = it.next().unwrap().parse().unwrap();
+    let bn: usize = it.next().unwrap().parse().unwrap();
+
+    // Fixed-size internal capacity as in the C program.
+    // If lengths exceed capacity, behavior is unspecified by the spec; we do not add explicit handling.
+    let mut ais = vec![0i32; an];
+    let mut bis = vec![0i32; bn];
+
+    for i in 0..an {
+        ais[i] = it.next().unwrap().parse().unwrap();
+    }
+    for i in 0..bn {
+        bis[i] = it.next().unwrap().parse().unwrap();
+    }
+
+    // Mirror the C program's fixed internal storage constraint.
+    // (No explicit error handling; this is just to keep the same implicit capacity assumption.)
+    let _ = MAX_K; // keep constant "used" in Rust terms
+    // Note: We intentionally do not enforce MAX_K at runtime to match "unspecified" behavior.
+
+    let mut max_len: usize = 0;
+
+    for k0 in 0..bn {
+        // Same early-exit condition as C: if k0 + max_len > bn, no later start can beat max_len.
+        if k0 + max_len > bn {
+            break;
+        }
+
+        let len = get_len(an, bn, &ais, &bis, k0);
+        if max_len < len {
+            max_len = len;
+        }
+    }
+
+    print!("{max_len}\n");
+}

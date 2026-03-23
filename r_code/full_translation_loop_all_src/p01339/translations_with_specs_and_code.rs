@@ -1,0 +1,127 @@
+use std::io::{self, Read};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    // Read all input as bytes; input is nonnegative integers separated by non-digits.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    let mut idx = 0usize;
+
+    fn next_usize(bytes: &[u8], idx: &mut usize) -> usize {
+        // Skip non-digits
+        while *idx < bytes.len() && (bytes[*idx] < b'0' || bytes[*idx] > b'9') {
+            *idx += 1;
+        }
+        let mut n: usize = 0;
+        while *idx < bytes.len() && (b'0'..=b'9').contains(&bytes[*idx]) {
+            n = n * 10 + (bytes[*idx] - b'0') as usize;
+            *idx += 1;
+        }
+        n
+    }
+
+    let n = next_usize(bytes, &mut idx);
+    let m = next_usize(bytes, &mut idx);
+
+    // Adjacency lists; edges are appended in input order.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut rg: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let s = next_usize(bytes, &mut idx) - 1;
+        let d = next_usize(bytes, &mut idx) - 1;
+        g[s].push(d);
+        rg[d].push(s);
+    }
+
+    // Kosaraju SCC: first pass to compute finishing order.
+    let mut used = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    // Iterative DFS to avoid recursion depth concerns.
+    for start in 0..n {
+        if used[start] {
+            continue;
+        }
+        // stack of (v, next_edge_index)
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+        used[start] = true;
+        stack.push((start, 0));
+        while let Some((v, ei)) = stack.pop() {
+            if ei < g[v].len() {
+                // Resume v later
+                stack.push((v, ei + 1));
+                let to = g[v][ei];
+                if !used[to] {
+                    used[to] = true;
+                    stack.push((to, 0));
+                }
+            } else {
+                order.push(v);
+            }
+        }
+    }
+
+    // Second pass on reversed graph to assign components in discovery order.
+    used.fill(false);
+    let mut cmp = vec![0usize; n];
+    let mut k = 0usize;
+
+    for &v in order.iter().rev() {
+        if used[v] {
+            continue;
+        }
+        let mut stack: Vec<usize> = Vec::new();
+        used[v] = true;
+        cmp[v] = k;
+        stack.push(v);
+        while let Some(x) = stack.pop() {
+            for &p in &rg[x] {
+                if !used[p] {
+                    used[p] = true;
+                    cmp[p] = k;
+                    stack.push(p);
+                }
+            }
+        }
+        k += 1;
+    }
+
+    // Build nx with overwrite rule:
+    // for i increasing, if i has outgoing edges, set nx[cmp[i]] = cmp[first_out_neighbor_of_i].
+    let mut nx: Vec<i32> = vec![-1; k];
+    for i in 0..n {
+        if !g[i].is_empty() {
+            let j = g[i][0];
+            nx[cmp[i]] = cmp[j] as i32;
+        }
+    }
+
+    // Single forward pass over components.
+    let mut dp: Vec<i64> = vec![0; k];
+    let mut ans: i64 = 1;
+
+    for i in 0..k {
+        if dp[i] != 0 {
+            dp[i] += 1;
+        } else {
+            dp[i] = 2;
+        }
+
+        let t = nx[i];
+        if t < 0 || t as usize == i {
+            ans = (ans * (dp[i] % MOD)) % MOD;
+        } else {
+            let ti = t as usize;
+            if dp[ti] != 0 {
+                dp[ti] = (dp[ti] * (dp[i] % MOD)) % MOD;
+            } else {
+                dp[ti] = dp[i] % MOD;
+            }
+        }
+    }
+
+    print!("{}\n", ans % MOD);
+}

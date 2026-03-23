@@ -1,0 +1,114 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin, parse as whitespace-separated integers (like scanf("%d")).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i32 = n_opt.unwrap().parse().unwrap();
+        let m: i32 = match it.next() {
+            Some(x) => x.parse().unwrap(),
+            None => break,
+        };
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Arrays sized exactly as in C.
+        let mut ic = [0i32; 150];
+        let mut is_arr = [[[0i32; 10]; 150]; 2];
+
+        // c[80][150][11]
+        // In C, there is a local `int c[80][150][11]={0};` then it sets most entries to 2100000000
+        // for j=1..149, leaving j=0 as 0. We reproduce that initialization exactly.
+        let mut c = vec![vec![vec![0i32; 11]; 150]; 80];
+        for i in 0..80usize {
+            for j in 1..150usize {
+                for k in 0..11usize {
+                    c[i][j][k] = 2_100_000_000i32;
+                }
+            }
+        }
+        for i in 0..11usize {
+            c[1][1][i] = 0;
+        }
+
+        // Read ic and is
+        for i in 0..(n as usize) {
+            let v: i32 = it.next().unwrap().parse().unwrap();
+            ic[i] = v;
+            for j in 0..(v as usize) {
+                let a: i32 = it.next().unwrap().parse().unwrap();
+                let b: i32 = it.next().unwrap().parse().unwrap();
+                is_arr[0][i][j] = a;
+                is_arr[1][i][j] = b;
+            }
+        }
+
+        // DP transitions.
+        // Note: C uses signed int arithmetic; overflow is undefined in C, but typical judge inputs
+        // avoid it. We use i64 for intermediate computations and clamp back to i32 range via cast,
+        // matching two's-complement wrap if it ever happens.
+        for i in 0..=(m as usize) {
+            for j in 0..((n as usize).saturating_sub(1)) {
+                for k in 0..(ic[j] as usize) {
+                    for l in 0..(ic[j + 1] as usize) {
+                        let w1 = is_arr[1][j][k] as i64;
+                        let w2 = is_arr[1][j + 1][l] as i64;
+                        let x1 = is_arr[0][j][k] as i64;
+                        let x2 = is_arr[0][j + 1][l] as i64;
+                        let d = (w1 + w2) * (x1 - x2).abs();
+
+                        let cand = (c[i][j][k] as i64).wrapping_add(d);
+                        if (c[i][j + 1][l] as i64) > cand {
+                            c[i][j + 1][l] = cand as i32;
+                        }
+                    }
+
+                    if j + 2 == n as usize {
+                        continue;
+                    }
+                    for l in 0..(ic[j + 2] as usize) {
+                        let w1 = is_arr[1][j][k] as i64;
+                        let w2 = is_arr[1][j + 2][l] as i64;
+                        let x1 = is_arr[0][j][k] as i64;
+                        let x2 = is_arr[0][j + 2][l] as i64;
+                        let d = (w1 + w2) * (x1 - x2).abs();
+
+                        let cand = (c[i][j][k] as i64).wrapping_add(d);
+                        if (c[i + 1][j + 2][l] as i64) > cand {
+                            c[i + 1][j + 2][l] = cand as i32;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Compute min as in C.
+        let mut minv: i32 = 2_100_000_210i32;
+        for i in 0..=(m as usize) {
+            for j in 0..(ic[(n as usize) - 1] as usize) {
+                if minv > c[i][(n as usize) - 1][j] {
+                    minv = c[i][(n as usize) - 1][j];
+                }
+            }
+            if m as usize == i {
+                continue;
+            }
+            for j in 0..(ic[(n as usize) - 2] as usize) {
+                if minv > c[i][(n as usize) - 2][j] {
+                    minv = c[i][(n as usize) - 2][j];
+                }
+            }
+        }
+
+        print!("{minv}\n");
+    }
+}

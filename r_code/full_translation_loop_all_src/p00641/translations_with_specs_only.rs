@@ -1,0 +1,122 @@
+use std::io::{self, Read};
+
+const MOD: i32 = 10007;
+
+#[derive(Clone)]
+struct DSU {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+}
+
+impl DSU {
+    fn new(n: usize) -> Self {
+        let mut parent = Vec::with_capacity(n);
+        for i in 0..n {
+            parent.push(i);
+        }
+        Self {
+            parent,
+            size: vec![1; n],
+        }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        // Path compression
+        if self.parent[x] != x {
+            let p = self.parent[x];
+            let r = self.find(p);
+            self.parent[x] = r;
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        // Union by size
+        if self.size[ra] < self.size[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        self.size[ra] += self.size[rb];
+    }
+}
+
+fn main() {
+    // Input is assumed well-formed per specification; no explicit error handling.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut dsu = DSU::new(n);
+        // Store the two attribute values per entity; indices are only needed for unions.
+        let mut attr1: Vec<i32> = vec![0; n];
+        let mut attr2: Vec<i32> = vec![0; n];
+
+        for i in 0..n {
+            let a: usize = it.next().unwrap().parse().unwrap();
+            let v1: i32 = it.next().unwrap().parse().unwrap();
+            let b: usize = it.next().unwrap().parse().unwrap();
+            let v2: i32 = it.next().unwrap().parse().unwrap();
+
+            dsu.union(i, a);
+            dsu.union(i, b);
+
+            attr1[i] = v1;
+            attr2[i] = v2;
+        }
+
+        // First pass: determine maximum attribute per component.
+        // Use i32::MIN as sentinel; attributes are non-negative per precondition.
+        let mut comp_max: Vec<i32> = vec![i32::MIN; n];
+        for i in 0..n {
+            let r = dsu.find(i);
+            let m = comp_max[r];
+            let v1 = attr1[i];
+            let v2 = attr2[i];
+            let new_m = m.max(v1).max(v2);
+            comp_max[r] = new_m;
+        }
+
+        // Second pass: count occurrences of that maximum per component.
+        let mut comp_cnt: Vec<i32> = vec![0; n];
+        for i in 0..n {
+            let r = dsu.find(i);
+            let m = comp_max[r];
+            if attr1[i] == m {
+                comp_cnt[r] += 1;
+            }
+            if attr2[i] == m {
+                comp_cnt[r] += 1;
+            }
+        }
+
+        // Product over components of floor(count/2) modulo 10007.
+        let mut ans: i32 = 1;
+        for i in 0..n {
+            if dsu.find(i) == i {
+                let factor = comp_cnt[i] / 2; // integer division (floor for non-negative)
+                ans = (ans * (factor % MOD)) % MOD;
+            }
+        }
+
+        outputs.push(ans.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

@@ -1,0 +1,15 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut it = input.split_whitespace();
+    let a: i64 = it.next().unwrap().parse().unwrap();
+    let b: i64 = it.next().unwrap().parse().unwrap();
+
+    // Specification states overflow is undefined; use normal arithmetic (no wrapping).
+    let result = (3 * a + b) / 2;
+
+    print!("{}", result);
+}
