@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "translationg_with_validated_specs_GPT_5_2"
+PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
 DATASET_NAME = "optimized_prompt@1"
 PROFILE_NAMES = ["specs_only", "code_and_spec", "code_only"]
 MAX_ATTEMPT: int | None = None
