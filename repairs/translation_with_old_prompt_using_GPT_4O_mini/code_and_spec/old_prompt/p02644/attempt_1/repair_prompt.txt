@@ -1,0 +1,132 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum number of moves required to reach a target position in a grid, given specific movement constraints.
+- **What problem it solves**: It solves the problem of finding the shortest path in a grid where movement can be made in multiple steps in one of four cardinal directions, constrained by obstacles.
+- **Core behavior**: The program reads the dimensions of a grid, the starting and goal positions, and the maximum number of steps that can be taken in one move. It then calculates the minimum number of moves required to reach the goal position from the starting position, considering obstacles.
+
+## 2. Inputs
+- **Parameters**:
+  - `h`: Height of the grid (number of rows).
+  - `w`: Width of the grid (number of columns).
+  - `k`: Maximum number of steps that can be taken in one move.
+  - `s[0]`, `s[1]`: Starting coordinates (0-indexed).
+  - `g[0]`, `g[1]`: Goal coordinates (0-indexed).
+- **Data types**: 
+  - `int` for all parameters.
+  - `char` array for the grid representation.
+- **Valid ranges or constraints**:
+  - `1 <= h, w <= 1000`
+  - `0 <= s[0], s[1] < h, w`
+  - `0 <= g[0], g[1] < h, w`
+  - `1 <= k <= 1000`
+- **Assumptions about inputs**: The grid is represented as a series of strings where each character is either a '.' (open space) or an obstacle (not specified in the code).
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum number of moves required to reach the goal position from the starting position.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer, which can be:
+  - A non-negative integer indicating the minimum moves.
+  - `-1` if the goal is unreachable.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The grid must be properly initialized and populated with valid characters ('.' for open spaces).
+  - The starting and goal positions must be within the bounds of the grid.
+  - The maximum steps `k` must be a positive integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The variable `d[g[0]][g[1]]` will contain the minimum number of moves to reach the goal or `-1` if unreachable.
+- **State changes**: The distance array `d` will be populated with the minimum distances from the start position to all reachable positions.
+- **Return guarantees**: The output will reflect the correct minimum moves or indicate that the goal is unreachable.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The distance array `d` will always contain valid distances or `INF` for unreachable positions.
+  - The queue used for BFS will maintain valid coordinates within the grid bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; however, the program assumes valid input as per the constraints.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program may exhibit undefined behavior on invalid input.
+- **Edge-case behavior**: If the starting position is the same as the goal position, the output will be `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the current position in the grid and the distance array.
+- **State changes caused by execution**: The state transitions occur as the BFS explores the grid, updating the distance array and queue.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm operates in O(h * w * k) due to the BFS traversal and the maximum steps allowed.
+- **Space complexity**: The space complexity is O(h * w) for the distance array and O(h * w) for the queue.
+- **Performance assumptions**: The algorithm is expected to perform efficiently within the given constraints, but performance may degrade with maximum grid sizes and step limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdint.h>
+#include<tgmath.h>
+#include<stdbool.h>
+#include<sys/queue.h>
+#include<time.h>
+#define ll long long
+#define min(a, b) ((a) > (b) ? (b) : (a))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+const int INF = 1001001001;
+int h, w, k, s[2], g[2], dx[]={1,0,-1,0}, dy[]={0,1,0,-1}, que[1001001][2], r=0, l=0;
+
+int main(){
+    scanf("%d%d%d", &h, &w, &k);
+    scanf("%d%d%d%d", &s[0], &s[1], &g[0], &g[1]);
+    s[0]--;s[1]--;g[0]--;g[1]--;
+    char c[h+5][w+5];
+    int d[h][w];
+    for(int i=0; i<h; i++){
+        scanf("%s", c[i]);
+        for(int j=0; j<w; j++)d[i][j] = INF;
+    }
+    que[r][0] = s[0]; que[r][1] = s[1]; r++; r%=1001001;
+    d[s[0]][s[1]] = 0;
+    while(r != l){
+        int x = que[l][0], y = que[l][1]; l++; l%=1001001;
+        for(int i=0; i<4; i++){
+            for(int j=1; j<=k; j++){
+                if(0<=x+j*dx[i] && x+j*dx[i]<h && 0<=y+j*dy[i] && y+j*dy[i]<w && c[x+j*dx[i]][y+j*dy[i]]=='.' && d[x+j*dx[i]][y+j*dy[i]] >= d[x][y]+1){
+                    if(d[x+j*dx[i]][y+j*dy[i]] == d[x][y]+1)continue;
+                    d[x+j*dx[i]][y+j*dy[i]] = d[x][y] + 1;
+                    que[r][0] = x+j*dx[i]; que[r][1] = y+j*dy[i]; r++; r%=1001001;
+                    //printf("%d %d %d\n", que[r-1][0], que[r-1][1], d[x][y]+1);
+                }else break;
+            }
+        }
+    }
+    if(d[g[0]][g[1]] == INF)d[g[0]][g[1]] = -1;
+    printf("%d\n", d[g[0]][g[1]]);
+    //for(int i=0; i<h; i++){for(int j=0; j<w; j++){if(j)putchar(32);printf("%d", d[i][j]);}putchar(10);}
+    return 0;
+}
+=== C CODE END ===

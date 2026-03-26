@@ -1,0 +1,89 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0434]: can't capture dynamic environment in a fn item
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02114/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:31:27
+   |
+31 |         for &(dx, dy) in &directions {
+   |                           ^^^^^^^^^^
+   |
+   = help: use the `|| { ... }` closure form instead
+
+warning: unused variable: `directions`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02114/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:21:9
+   |
+21 |     let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_directions`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0434`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read the size of the grid
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Initialize the grid
+    let mut grid: Vec<Vec<char>> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        grid.push(line.chars().collect());
+    }
+
+    // Count distinct connected components of 'o'
+    let mut component_count = 0;
+
+    // Directions for moving in the grid (up, down, left, right)
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+    // Function to perform DFS
+    fn dfs(grid: &mut Vec<Vec<char>>, x: usize, y: usize, n: usize) {
+        if x >= n || y >= n || grid[x][y] != 'o' {
+            return;
+        }
+        // Mark the cell as visited
+        grid[x][y] = 'x';
+        // Explore all four directions
+        for &(dx, dy) in &directions {
+            dfs(grid, x.wrapping_add(dx), y.wrapping_add(dy), n);
+        }
+    }
+
+    // Iterate through the grid
+    for i in 0..n {
+        for j in 0..n {
+            if grid[i][j] == 'o' {
+                // Found a new component
+                component_count += 1;
+                // Perform DFS to mark all connected 'o's
+                dfs(&mut grid, i, j, n);
+            }
+        }
+    }
+
+    // Output the number of distinct components divided by three
+    println!("{}", component_count / 3);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

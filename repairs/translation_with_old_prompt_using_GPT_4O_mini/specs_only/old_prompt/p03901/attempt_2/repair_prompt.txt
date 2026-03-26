@@ -1,0 +1,65 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: `main` has invalid return type `i32`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03901/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:3:14
+  |
+3 | fn main() -> i32 {
+  |              ^^^ `main` can only return types that implement `Termination`
+  |
+  = help: consider using `()`, or a `Result`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() -> i32 {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read piPos (position)
+    let pi_pos: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+    // Read sdRate (probability rate) and convert to fraction
+    let sd_rate: f64 = lines.next().unwrap().unwrap().parse::<f64>().unwrap() / 100.0;
+
+    // Compute the expected value
+    let expected_value = compute_expected_value(pi_pos, sd_rate);
+
+    // Output the expected value formatted to seven decimal places
+    println!("{:.7}", expected_value);
+
+    // Return 0 indicating successful execution
+    0
+}
+
+// Recursive function to compute expected value
+fn compute_expected_value(position: i32, rate: f64) -> f64 {
+    // Base case: if position is 0, return 0.0
+    if position == 0 {
+        return 0.0;
+    }
+
+    // Recursive case: calculate expected value based on the position and rate
+    let expected_value = (1.0 - rate) * compute_expected_value(position - 1, rate) + rate * position as f64;
+
+    expected_value
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

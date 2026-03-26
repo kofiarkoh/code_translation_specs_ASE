@@ -1,0 +1,108 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of coordinate pairs
+    let n: u64 = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Initialize vectors for x and y coordinates
+    let mut x: Vec<u64> = Vec::with_capacity(n as usize);
+    let mut y: Vec<u64> = Vec::with_capacity(n as usize);
+
+    // Read x and y coordinates
+    for _ in 0..n {
+        let coords: Vec<u64> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        x.push(coords[0]);
+        y.push(coords[1]);
+    }
+
+    // If n is 0, output cval directly (as per specification)
+    if n == 0 {
+        println!("{}", 0); // Assuming cval is 0 for n = 0
+        return;
+    }
+
+    // Compute the result based on the properties of Pascal's Triangle
+    let result = compute_pascal_value(&x, &y);
+    
+    // Output the computed value
+    println!("{}", result);
+}
+
+// Function to compute the value based on the properties of Pascal's Triangle
+fn compute_pascal_value(x: &[u64], y: &[u64]) -> u64 {
+    let mut result = 0;
+
+    // Iterate through each coordinate pair
+    for (&xi, &yi) in x.iter().zip(y.iter()) {
+        // Calculate the value based on Lucas's Theorem
+        result += lucas_combination(xi, yi);
+    }
+
+    result
+}
+
+// Function to compute combinations modulo 2 using Lucas's Theorem
+fn lucas_combination(n: u64, k: u64) -> u64 {
+    let mut result = 1;
+
+    // While n or k is greater than 0
+    let mut n = n;
+    let mut k = k;
+
+    while n > 0 || k > 0 {
+        // Get the last bits of n and k
+        let n_bit = n % 2;
+        let k_bit = k % 2;
+
+        // If k_bit is greater than n_bit, return 0 (not enough elements)
+        if k_bit > n_bit {
+            return 0;
+        }
+
+        // Update result based on the bits
+        result *= binomial_coefficient(n_bit, k_bit);
+        
+        // Shift n and k to the right
+        n /= 2;
+        k /= 2;
+    }
+
+    result
+}
+
+// Function to compute binomial coefficient C(n, k) for n, k in {0, 1}
+fn binomial_coefficient(n: u64, k: u64) -> u64 {
+    if k > n {
+        return 0;
+    }
+    if k == 0 || k == n {
+        return 1;
+    }
+    1 // C(1, 1) = 1, C(1, 0) = 1
+}
+
+// Function to compute the final result based on the properties of Pascal's Triangle
+fn compute_final_result(x: &[u64], y: &[u64]) -> u64 {
+    let mut result = 0;
+
+    for (&xi, &yi) in x.iter().zip(y.iter()) {
+        result += lucas_combination(xi, yi);
+    }
+
+    // Since the expected output is a long long integer, we need to ensure it fits
+    // within the range of u64. If the result exceeds the maximum value, we can
+    // return the maximum value instead.
+    if result > u64::MAX {
+        return u64::MAX;
+    }
+
+    result
+}

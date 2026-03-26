@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific mathematical result based on the prime factorization of integers from 2 to a user-defined limit `n`.
+- **What problem it solves**: It determines the number of ways to form certain combinations of factors from the prime factorization of numbers up to `n`.
+- **Core behavior**: The program reads an integer `n`, computes the frequency of prime factors for each integer from 2 to `n`, and then uses these frequencies to compute a final result based on a predefined formula.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: an integer representing the upper limit for factorization.
+- **Data types**: 
+  - `n`: `int`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (greater than or equal to 2).
+- **Assumptions about inputs**: 
+  - The input is assumed to be valid and within the range of the `yaku` array size (up to 100).
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer result to the standard output.
+- **Side effects**: 
+  - The program prints the computed result to the console.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input value `n` must be read successfully.
+- **Explicit logical constraints**: 
+  - `n` must be at least 2 to ensure valid processing.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed an integer result based on the calculations performed.
+- **State changes**: 
+  - The `yaku` array will be populated with the counts of prime factors for integers from 2 to `n`.
+- **Return guarantees**: 
+  - The program will terminate normally after printing the result.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `yaku` array will always contain non-negative integers representing the counts of prime factors.
+- **Class-level invariants**: 
+  - Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior on invalid input (e.g., non-integer or negative values) is not defined; the program may exhibit undefined behavior.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: 
+  - If `n` is less than 2, the program may not function as intended.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program operates in a single state where it processes input and computes output.
+- **State changes caused by execution**: 
+  - The state of the `yaku` array changes as it is populated with prime factor counts during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is approximately O(n log n) due to the nested loops for factorization.
+- **Space complexity**: 
+  - The space complexity is O(1) for the `yaku` array, which has a fixed size of 101.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for values of `n` up to 100, as indicated by the size of the `yaku` array.
+```

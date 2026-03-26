@@ -1,0 +1,166 @@
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+const HASHSIZ: usize = 29989;
+const MAX: usize = 6002;
+
+#[derive(Debug)]
+struct HashEntry {
+    city: String,
+    id: Option<usize>,
+}
+
+struct HashTable {
+    table: Vec<HashEntry>,
+}
+
+impl HashTable {
+    fn new() -> Self {
+        let mut table = Vec::with_capacity(HASHSIZ);
+        for _ in 0..HASHSIZ {
+            table.push(HashEntry {
+                city: String::new(),
+                id: None,
+            });
+        }
+        HashTable { table }
+    }
+
+    fn insert(&mut self, city: String, id: usize) -> Option<usize> {
+        let mut hash = Self::hash(&city);
+        while let Some(entry) = self.table.get_mut(hash) {
+            if entry.city == city {
+                return entry.id;
+            }
+            if entry.id.is_none() {
+                entry.city = city.clone();
+                entry.id = Some(id);
+                return None;
+            }
+            hash = (hash + 1) % HASHSIZ;
+        }
+        None
+    }
+
+    fn hash(city: &str) -> usize {
+        let mut hash: usize = 0;
+        for byte in city.bytes() {
+            hash = (hash << 6) + byte as usize;
+        }
+        hash % HASHSIZ
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+struct State {
+    cost: usize,
+    city: usize,
+    fuel: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Reverse ordering for min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+struct Graph {
+    adj: Vec<Vec<(usize, usize)>>, // (neighbor, distance)
+    lpg: Vec<bool>,
+}
+
+impl Graph {
+    fn new(size: usize) -> Self {
+        Graph {
+            adj: vec![Vec::new(); size],
+            lpg: vec![false; size],
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, distance: usize) {
+        self.adj[from].push((to, distance));
+        self.adj[to].push((from, distance)); // Undirected graph
+    }
+
+    fn set_lpg(&mut self, city: usize) {
+        self.lpg[city] = true;
+    }
+}
+
+fn dijkstra(graph: &Graph, cap: usize, start: usize, goal: usize) -> isize {
+    let mut dist = vec![vec![usize::MAX; cap + 1]; graph.adj.len()];
+    let mut heap = BinaryHeap::new();
+    dist[start][cap] = 0;
+    heap.push(State { cost: 0, city: start, fuel: cap });
+
+    while let Some(State { cost, city, fuel }) = heap.pop() {
+        if city == goal {
+            return cost as isize;
+        }
+        if dist[city][fuel] < cost {
+            continue;
+        }
+
+        let current_fuel = if graph.lpg[city] { cap } else { fuel };
+        for &(neighbor, distance) in &graph.adj[city] {
+            let new_cost = cost + distance;
+            let new_fuel = current_fuel.saturating_sub(distance);
+            if new_fuel < dist[neighbor].len() && dist[neighbor][new_fuel] > new_cost {
+                dist[neighbor][new_fuel] = new_cost;
+                heap.push(State { cost: new_cost, city: neighbor, fuel: new_fuel });
+            }
+        }
+    }
+    -1
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().filter_map(Result::ok);
+    
+    let mut hash_table = HashTable::new();
+    
+    while let Some(line) = lines.next() {
+        let n: usize = line.trim().parse().expect("Failed to parse number of cities");
+        let m: usize = lines.next().unwrap().trim().parse().expect("Failed to parse number of LPG stations");
+        let cap: usize = 10 * lines.next().unwrap().trim().parse::<usize>().expect("Failed to parse fuel capacity");
+        
+        let mut graph = Graph::new(MAX);
+        let mut city_ids = Vec::new();
+        
+        for _ in 0..n {
+            let city_a = lines.next().unwrap();
+            let city_b = lines.next().unwrap();
+            let distance: usize = lines.next().unwrap().trim().parse().expect("Failed to parse distance");
+            
+            let id_a = hash_table.insert(city_a.clone(), city_ids.len()).unwrap_or_else(|| {
+                city_ids.push(hash_table.table.iter().position(|entry| entry.city == city_a).unwrap());
+                city_ids.len() - 1
+            });
+            let id_b = hash_table.insert(city_b.clone(), city_ids.len()).unwrap_or_else(|| {
+                city_ids.push(hash_table.table.iter().position(|entry| entry.city == city_b).unwrap());
+                city_ids.len() - 1
+            });
+            
+            graph.add_edge(id_a, id_b, distance);
+        }
+        
+        for _ in 0..m {
+            let lpg_city = lines.next().unwrap();
+            if let Some(id) = hash_table.insert(lpg_city.clone(), 0) {
+                graph.set_lpg(id);
+            }
+        }
+        
+        let result = dijkstra(&graph, cap, 0, 1);
+        println!("{}", result);
+    }
+}

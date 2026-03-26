@@ -1,0 +1,166 @@
+use std::io::{self, BufRead};
+use std::ptr;
+
+const INSERT: char = '0';
+const MOVE: char = '1';
+const ERASE: char = '2';
+const END: i32 = 1000000001;
+
+#[derive(Debug)]
+struct Cell {
+    data: i32,
+    prev: Option<Box<Cell>>,
+    next: Option<Box<Cell>>,
+}
+
+impl Cell {
+    fn new(data: i32) -> Self {
+        Cell {
+            data,
+            prev: None,
+            next: None,
+        }
+    }
+}
+
+fn print_list(cell: &Option<Box<Cell>>) {
+    let mut current = cell;
+
+    // Move to the front
+    while let Some(ref c) = current {
+        if c.prev.is_none() {
+            break;
+        }
+        current = &c.prev;
+    }
+
+    // Print the list
+    let mut current = current;
+    while let Some(ref c) = current {
+        if c.data != END {
+            println!("{}", c.data);
+        }
+        current = &c.next;
+    }
+}
+
+fn is_end(cursor: &Option<Box<Cell>>) -> bool {
+    cursor.as_ref().map_or(false, |c| c.data == END)
+}
+
+fn is_front(cursor: &Option<Box<Cell>>) -> bool {
+    cursor.as_ref().map_or(false, |c| c.prev.is_none())
+}
+
+fn insert(cursor: &mut Option<Box<Cell>>, data: i32) -> Option<Box<Cell>> {
+    let new_cell = Box::new(Cell::new(data));
+
+    if is_front(cursor) {
+        let mut new_cell = new_cell;
+        new_cell.next = cursor.take();
+        if let Some(ref mut next) = new_cell.next {
+            next.prev = Some(new_cell);
+        }
+        return Some(new_cell);
+    }
+
+    let mut new_cell = new_cell;
+    if let Some(ref mut cur) = cursor {
+        let prev = cur.prev.take();
+        new_cell.prev = prev;
+        new_cell.next = Some(cur.clone());
+        cur.prev = Some(Box::new(new_cell));
+        return Some(new_cell);
+    }
+
+    None
+}
+
+fn move_cursor(cursor: &mut Option<Box<Cell>>, d: i32) -> Option<Box<Cell>> {
+    if d == 0 {
+        return cursor.clone();
+    }
+
+    if d < 0 {
+        for _ in 0..-d {
+            if is_front(cursor) {
+                eprintln!("Cursor is already front.");
+                std::process::exit(1);
+            }
+            if let Some(ref mut c) = cursor {
+                cursor = c.prev.as_mut().map(|b| b.clone());
+            }
+        }
+        return cursor.clone();
+    }
+
+    for _ in 0..d {
+        if let Some(ref mut c) = cursor {
+            if c.next.is_none() {
+                eprintln!("Cursor has no next.");
+                std::process::exit(2);
+            }
+            cursor = c.next.as_mut().map(|b| b.clone());
+        }
+    }
+
+    cursor.clone()
+}
+
+fn erase(cursor: &mut Option<Box<Cell>>) -> Option<Box<Cell>> {
+    if is_end(cursor) {
+        return cursor.clone();
+    }
+
+    if is_front(cursor) {
+        if let Some(ref mut c) = cursor {
+            let next = c.next.take();
+            if let Some(ref mut n) = next {
+                n.prev = None;
+            }
+            return next;
+        }
+    }
+
+    if let Some(ref mut c) = cursor {
+        let prev = c.prev.take();
+        let next = c.next.take();
+        if let Some(ref mut p) = prev {
+            p.next = next.clone();
+        }
+        if let Some(ref mut n) = next {
+            n.prev = prev;
+        }
+        return next;
+    }
+
+    None
+}
+
+fn answer() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut cursor = Some(Box::new(Cell::new(END)));
+
+    for _ in 0..q {
+        let command = lines.next().unwrap().unwrap();
+        let command_type = command.chars().next().unwrap();
+        let value: i32 = command[2..].trim().parse().unwrap_or(0);
+
+        match command_type {
+            INSERT => cursor = insert(&mut cursor, value),
+            MOVE => cursor = move_cursor(&mut cursor, value),
+            ERASE => cursor = erase(&mut cursor),
+            _ => {}
+        }
+    }
+
+    print_list(&cursor);
+}
+
+fn main() {
+    answer();
+}

@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of distinct subsequences of a string `t` that match a string `b`.
+- **What problem it solves**: It addresses the problem of counting how many ways the characters of string `b` can be formed from the characters of string `t` while maintaining the order of characters.
+- **Core behavior**: The program reads two strings, computes the number of distinct subsequences of `t` that can form `b`, and outputs this count modulo \(10^9 + 7\).
+
+## 2. Inputs
+- **Parameters**: 
+  - `t`: The source string from which subsequences are formed.
+  - `b`: The target string that needs to be matched as a subsequence.
+- **Data types**: 
+  - `t` and `b` are character arrays (strings).
+- **Valid ranges or constraints**: 
+  - Length of `t` and `b` must be between 0 and 1000 characters.
+- **Assumptions about inputs**: 
+  - Input strings are null-terminated and consist of valid characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer representing the count of distinct subsequences.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - Both strings `t` and `b` must be provided as input.
+  - The lengths of `t` and `b` must not exceed 1000 characters.
+- **Explicit logical constraints**: 
+  - The input must be valid strings; no special characters or invalid formats are allowed.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the number of distinct subsequences of `t` that match `b`.
+- **State changes**: 
+  - The internal state of the array `a` is modified to store intermediate results.
+- **Return guarantees**: 
+  - The output will always be a non-negative integer less than \(10^9 + 7\).
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `a` is always initialized correctly before use.
+  - The values in `a[i][j]` represent the number of ways to form the first `j` characters of `b` from the first `i` characters of `t`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are thrown; the program assumes valid input.
+- **Edge-case behavior**: If either string is empty, the program will return 1 (the empty subsequence).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a 2D array `a` where each entry corresponds to the number of ways to form subsequences.
+- **State changes caused by execution**: The state of the array `a` is updated iteratively based on the characters of `t` and `b`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm runs in \(O(n \times m)\), where \(n\) is the length of `t` and \(m\) is the length of `b`.
+- **Space complexity**: The space complexity is \(O(n \times m)\) due to the 2D array `a`.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input sizes specified (up to 1000 characters for both strings).
+```

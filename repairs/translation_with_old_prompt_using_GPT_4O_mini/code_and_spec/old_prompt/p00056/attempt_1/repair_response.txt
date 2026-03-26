@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 50001;
+
+fn make_prime_table(table: &mut [u8; MAX]) -> i32 {
+    for i in 0..MAX {
+        table[i] = 0;
+    }
+
+    for i in 2..MAX {
+        if table[i] == 0 {
+            for j in 2..(MAX / i) {
+                table[i * j] = 1;
+            }
+        }
+    }
+    0
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = String::new();
+    let mut ptable = [0; MAX];
+
+    make_prime_table(&mut ptable);
+
+    while stdin.lock().read_line(&mut input).unwrap() > 0 {
+        let n: i32 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Assuming valid input as per spec
+        };
+
+        if n == 0 {
+            break;
+        } else {
+            let mut cnt = 0;
+            for i in 2..=(n / 2) {
+                if ptable[i as usize] == 0 && ptable[(n - i) as usize] == 0 {
+                    cnt += 1;
+                }
+            }
+            println!("{}", cnt);
+        }
+        input.clear(); // Clear input for the next read
+    }
+}
+```

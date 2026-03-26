@@ -1,0 +1,73 @@
+use std::io::{self, Write};
+
+fn func(s: &str, n: usize, m: i32) -> i32 {
+    // Ensure the string is valid and within the specified length
+    if n < 1 || n > 9 || s.len() != n {
+        return 0; // Invalid input, return 0
+    }
+
+    let digits: Vec<i32> = s.chars()
+        .map(|c| c.to_digit(10).unwrap() as i32) // Convert characters to digits
+        .collect();
+
+    let mut max_sum = 0;
+    let mut best_partition = String::new();
+    let mut found_valid_partition = false;
+    let mut rejected = false;
+
+    // Iterate over all possible partitions using the bitmask
+    for mask in 0..(1 << (n - 1)) {
+        let mut current_sum = 0;
+        let mut current_partition = String::new();
+        let mut last_index = 0;
+
+        for i in 0..n {
+            // Check if we should split at this position
+            if (mask & (1 << i)) != 0 {
+                let number: i32 = digits[last_index..=i].iter().sum();
+                current_sum += number;
+                current_partition.push_str(&number.to_string());
+                current_partition.push(' '); // Add space for separation
+                last_index = i + 1;
+            }
+        }
+        // Add the last number after the final split
+        if last_index < n {
+            let number: i32 = digits[last_index..].iter().sum();
+            current_sum += number;
+            current_partition.push_str(&number.to_string());
+        }
+
+        // Check if the current sum is valid and within the target
+        if current_sum <= m {
+            if current_sum > max_sum {
+                max_sum = current_sum;
+                best_partition = current_partition.trim_end().to_string(); // Remove trailing space
+                found_valid_partition = true;
+                rejected = false; // Reset rejected flag
+            } else if current_sum == max_sum {
+                rejected = true; // Found another partition with the same max sum
+            }
+        }
+    }
+
+    // Output results based on findings
+    if found_valid_partition {
+        if rejected {
+            println!("rejected");
+        } else {
+            println!("{} {}", max_sum, best_partition);
+        }
+    } else {
+        println!("error");
+    }
+
+    max_sum // Return the maximum sum found
+}
+
+fn main() {
+    let s = "12345"; // Example input
+    let n = s.len();
+    let m = 10; // Example target value
+    func(s, n, m);
+}

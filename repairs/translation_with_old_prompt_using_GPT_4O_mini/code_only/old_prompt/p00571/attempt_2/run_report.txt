@@ -1,0 +1,63 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00571/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:13:9
+   |
+13 |     let mut handle = stdin.lock();
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of moved value: `handle`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00571/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:19:13
+     |
+  13 |     let mut handle = stdin.lock();
+     |         ---------- move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  14 |     let mut n = 0;
+  15 |     let mut c = handle.bytes().next().unwrap().unwrap() as char;
+     |                        ------- `handle` moved due to this method call
+...
+  19 |         c = handle.bytes().next().unwrap().unwrap() as char;
+     |             ^^^^^^ value used here after move
+     |
+note: `bytes` takes ownership of the receiver `self`, which moves `handle`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |              ^^^^
+
+warning: variable does not need to be mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00571/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:26:9
+   |
+26 |     let mut handle = stdin.lock();
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+error[E0382]: use of moved value: `handle`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00571/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:32:13
+     |
+  26 |     let mut handle = stdin.lock();
+     |         ---------- move occurs because `handle` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+  27 |     let mut n = 0;
+  28 |     let mut c = handle.bytes().next().unwrap().unwrap() as char;
+     |                        ------- `handle` moved due to this method call
+...
+  32 |         c = handle.bytes().next().unwrap().unwrap() as char;
+     |             ^^^^^^ value used here after move
+     |
+note: `bytes` takes ownership of the receiver `self`, which moves `handle`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:1162:14
+     |
+1162 |     fn bytes(self) -> Bytes<Self>
+     |              ^^^^
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0382`.

@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Fractal Tree
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a weighted sum based on the depth of nodes in a tree structure, where the weights are determined by a given probability factor.
+- **What problem it solves**: It computes a specific mathematical expression involving node costs and their respective depths in a tree, which can be useful in various applications such as network analysis or fractal geometry.
+- **Core behavior**: The program reads input values to construct a tree, performs a depth-first search (DFS) to determine the depth of each node, and then calculates a final result based on the costs associated with each node and their depths.
+
+## 2. Inputs
+- **Parameters**:
+  - `P`: A double representing the probability factor.
+  - `N`: An integer representing the number of nodes in the tree.
+  - Edges defined by pairs of integers `(x, y)` and an integer `c` representing the cost between nodes `x` and `y`.
+- **Data types**:
+  - `P`: `double`
+  - `N`: `int`
+  - Edges: `int` pairs and `int` cost
+- **Valid ranges or constraints**:
+  - `N` must be a positive integer (N > 0).
+  - Costs `c` must be non-negative integers.
+- **Assumptions about inputs**: The input data is well-formed and adheres to the expected format.
+
+## 3. Outputs
+- **Return values**: The program outputs a single double value representing the computed result.
+- **Side effects**: Memory is allocated for storing edges and node information.
+- **Output format/schema**: The output is a double value printed to 10 decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must include a valid probability factor `P` and a valid number of nodes `N`.
+  - The edges must be provided in pairs with their corresponding costs.
+- **Explicit logical constraints**: The number of edges must be consistent with the number of nodes specified.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will have computed the weighted sum based on node depths and costs.
+- **State changes**: Memory allocated for edges and node information will be populated.
+- **Return guarantees**: The output will be a valid double value representing the computed result.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `depth` array will always contain valid depth values for each node after DFS execution.
+  - The `cost` array will always contain the cost associated with each node.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: No explicit exceptions are thrown; however, memory allocation failures may occur.
+- **Edge-case behavior**: If `N` is 1, the program will still execute but may not perform meaningful calculations.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states for nodes, edges, and their respective costs and depths.
+- **State changes caused by execution**: The state of the `depth` and `cost` arrays will be updated during the DFS traversal.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N + E), where N is the number of nodes and E is the number of edges, due to the DFS traversal.
+- **Space complexity**: O(N + E) for storing the tree structure and additional arrays.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of available memory.
+```

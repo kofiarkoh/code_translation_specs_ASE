@@ -1,0 +1,59 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum cost to travel from a starting town to a destination town using taxis and connections between towns.
+- **What problem it solves**: It solves the problem of finding the least expensive route in a network of towns connected by roads, where each town has a taxi with a specific fare and a limit on the number of rides.
+- **Core behavior**: The program reads the number of towns and connections, initializes the taxi and connection data, and uses a priority queue (heap) to explore the least costly paths until it reaches the destination town.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of towns (integer).
+  - `K`: Number of connections between towns (integer).
+  - `taxi[i].untin`: Cost of taxi fare for town `i` (integer).
+  - `taxi[i].limit`: Maximum number of rides available for town `i` (integer).
+  - `A`, `B`: Pairs of towns that are connected (integers).
+- **Data types**: 
+  - `int` for all numerical inputs.
+  - `short` for town and kaisu in `status_t`.
+- **Valid ranges or constraints**:
+  - `N` and `K` must be non-negative integers.
+  - `taxi[i].untin` and `taxi[i].limit` must be non-negative integers.
+  - `A` and `B` must be valid indices within the range of towns (0 to N-1).
+- **Assumptions about inputs**: The input format is assumed to be correct, and the program does not handle malformed input.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value of `1` if input reading fails; otherwise, it outputs the minimum cost to reach the destination town.
+- **Side effects**: The program modifies global state variables and dynamically allocates memory for loads in `mati_t`.
+- **Output format/schema**: The output is a single integer printed to the standard output, representing the minimum cost.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must be provided with valid input data in the expected format.
+  - Memory for the `status_heap`, `status_mincost`, and `in_heap` must be allocated appropriately.
+- **Explicit logical constraints**: The number of towns (`N`) and connections (`K`) must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - If the destination town is reachable, the minimum cost is printed.
+  - Memory allocated for `loads` in `mati_t` is freed before program termination.
+- **State changes**: The state of the heap and the `status_mincost` array is modified during execution.
+- **Return guarantees**: The program will return `0` upon successful completion if the destination is reached.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `heap_size` variable must accurately reflect the number of elements in the `status_heap`.
+  - The `status_mincost` array must always contain valid costs for each town and kaisu combination.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program returns `1` and terminates if it fails to read the expected number of inputs.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on input validation.
+- **Edge-case behavior**: If no connections exist, the program will not find a path and will not output a cost.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a valid state for `mati_t`, `taxi_t`, and `status_t` structures throughout execution.
+- **State changes caused by execution**: The state of the heap and the `status_mincost` array changes as paths are explored and costs are updated.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is influenced by the number of towns and connections, primarily O((N + K) log N) due to heap operations.
+- **Space complexity**: The space complexity is O(N + K) for storing towns, connections, and heap structures.
+- **Performance assumptions**: The program assumes that the number of towns and connections is manageable within the limits of the heap and memory constraints.

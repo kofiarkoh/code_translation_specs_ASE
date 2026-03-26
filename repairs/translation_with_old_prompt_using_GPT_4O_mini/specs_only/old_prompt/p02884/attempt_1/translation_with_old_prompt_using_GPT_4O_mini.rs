@@ -1,0 +1,73 @@
+use std::io::{self, BufRead};
+use std::fmt;
+
+#[derive(Debug)]
+struct Graph {
+    n: usize,
+    m: usize,
+    edges: Vec<(usize, usize)>,
+}
+
+impl Graph {
+    fn new(n: usize, m: usize, edges: Vec<(usize, usize)>) -> Self {
+        Graph { n, m, edges }
+    }
+
+    fn average_distance(&self, start: usize) -> Vec<f64> {
+        let mut distances = vec![f64::INFINITY; self.n];
+        distances[start] = 0.0;
+
+        // Bellman-Ford-like relaxation for average distance calculation
+        for _ in 0..self.n - 1 {
+            for &(u, v) in &self.edges {
+                if distances[u] != f64::INFINITY {
+                    distances[v] = distances[v].min(distances[u] + 1.0);
+                }
+            }
+        }
+
+        distances
+    }
+
+    fn minimum_average_distance(&self) -> f64 {
+        let original_distances = self.average_distance(0);
+        let mut min_average = original_distances.iter().copied().sum::<f64>() / self.n as f64;
+
+        for &(u, v) in &self.edges {
+            // Temporarily remove edge (u, v)
+            let mut modified_edges = self.edges.clone();
+            modified_edges.retain(|&edge| edge != (u, v));
+            let modified_graph = Graph::new(self.n, self.m - 1, modified_edges);
+            let new_distances = modified_graph.average_distance(0);
+            let new_average = new_distances.iter().copied().sum::<f64>() / self.n as f64;
+
+            min_average = min_average.min(new_average);
+        }
+
+        min_average
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let m: usize = params.next().unwrap().parse().unwrap();
+
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut edge_params = line.split_whitespace();
+        let i: usize = edge_params.next().unwrap().parse().unwrap();
+        let j: usize = edge_params.next().unwrap().parse().unwrap();
+        edges.push((i, j));
+    }
+
+    let graph = Graph::new(n, m, edges);
+    let min_average_distance = graph.minimum_average_distance();
+    println!("{:.10}", min_average_distance);
+}

@@ -1,0 +1,87 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00080/p00080_sample1_output.txt
+Input:
+8
+27
+64
+1000
+-1
+Expected:
+2.000000
+3.000000
+4.000009
+10.000000
+Actual:
+2.000000
+3.000000
+4.000000
+10.000000
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Read input from the user
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse the input as an integer
+        let q: i32 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Ignore invalid input and continue the loop
+        };
+
+        // Check for sentinel value to exit
+        if q == -1 {
+            break;
+        }
+
+        // Ensure q is non-negative
+        if q < 0 {
+            continue; // Ignore negative inputs (though spec assumes valid input)
+        }
+
+        // Calculate the cube root using the Newton-Raphson method
+        let mut x = q as f64; // Initial guess
+        let tolerance = 1e-7; // Define a tolerance for convergence
+
+        loop {
+            let px = x; // Previous estimate
+            x = (2.0 * px + (q as f64) / (px * px)) / 3.0; // Newton-Raphson formula
+
+            // Check for convergence
+            if (x - px).abs() < tolerance {
+                break;
+            }
+        }
+
+        // Output the result formatted to six decimal places
+        println!("{:.6}", x);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

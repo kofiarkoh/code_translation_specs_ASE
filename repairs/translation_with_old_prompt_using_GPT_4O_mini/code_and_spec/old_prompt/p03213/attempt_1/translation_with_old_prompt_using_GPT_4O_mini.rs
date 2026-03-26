@@ -1,0 +1,43 @@
+use std::io;
+
+fn num(yaku: &[usize], a: usize) -> usize {
+    let mut count = 0;
+    for &count in yaku.iter().skip(2).take(yaku.len() - 2) {
+        if count >= a - 1 {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a positive integer");
+
+    // Ensure n is at least 2
+    if n < 2 {
+        return;
+    }
+
+    let mut yaku = vec![0; 101];
+
+    for i in 2..=n {
+        let mut a = i;
+        let mut waru = 2;
+        while a > 1 {
+            while a % waru == 0 {
+                a /= waru;
+                yaku[waru] += 1;
+            }
+            waru += 1;
+        }
+    }
+
+    let ans = num(&yaku, 75)
+        + num(&yaku, 25) * (num(&yaku, 3) - 1)
+        + num(&yaku, 15) * (num(&yaku, 5) - 1)
+        + num(&yaku, 5) * (num(&yaku, 5) - 1) * (num(&yaku, 3) - 2) / 2;
+
+    println!("{}", ans);
+}

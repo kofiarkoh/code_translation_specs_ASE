@@ -1,0 +1,130 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01459/p01459_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01459/p01459_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (35885276) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01459/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:67:21:
+index out of bounds: the len is 11 but the index is 11
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+const MAX_SIZE: usize = 103;
+
+fn bfs_pathfinding(H: usize, W: usize, A: usize, B: usize, map: [[char; MAX_SIZE]; MAX_SIZE]) -> i32 {
+    // Check preconditions
+    if H == 0 || W == 0 || A == 0 || B == 0 {
+        return -1;
+    }
+
+    let mut mk = [[[[false; 11]; 11]; 4]; MAX_SIZE]; // visited states
+    let mut start = (0, 0);
+    let mut goal = (0, 0);
+
+    // Locate 'S' and 'G' in the grid
+    for r in 0..H {
+        for c in 0..W {
+            if map[r][c] == 'S' {
+                start = (r, c);
+            } else if map[r][c] == 'G' {
+                goal = (r, c);
+            }
+        }
+    }
+
+    // Check if 'S' is at the bottom row or adjacent to a wall below
+    if start.0 == H - 1 || (start.0 < H - 1 && map[start.0 + 1][start.1] == '#') {
+        return -1;
+    }
+
+    let directions = [(1, 0), (0, 1), (-1, 0), (0, -1)]; // down, right, up, left
+    let mut que = VecDeque::new();
+    que.push_back((start.0, start.1, 0, 0)); // (row, col, moves in A, moves in B)
+
+    while let Some((r, c, a, b)) = que.pop_front() {
+        // Check if we reached the goal
+        if (r, c) == goal {
+            return (a + b) as i32;
+        }
+
+        // Explore all directions
+        for (d, (dr, dc)) in directions.iter().enumerate() {
+            let mut nr = r;
+            let mut nc = c;
+            let mut na = a;
+            let mut nb = b;
+
+            // Move in the current direction up to A or B times
+            let max_moves = if d % 2 == 0 { A } else { B };
+            for _ in 0..max_moves {
+                nr = (nr as isize + *dr as isize) as usize;
+                nc = (nc as isize + *dc as isize) as usize;
+
+                // Check bounds and obstacles
+                if nr >= H || nc >= W || map[nr][nc] == '#' {
+                    break;
+                }
+
+                // Update moves count
+                if d % 2 == 0 {
+                    na += 1;
+                } else {
+                    nb += 1;
+                }
+
+                // Check if this state has been visited
+                if !mk[nr][nc][na][nb] {
+                    mk[nr][nc][na][nb] = true;
+                    que.push_back((nr, nc, na, nb));
+                }
+            }
+        }
+    }
+
+    // If no path was found
+    -1
+}
+
+// Example usage
+fn main() {
+    let H = 5;
+    let W = 5;
+    let A = 2;
+    let B = 2;
+    let mut map = [['#'; MAX_SIZE]; MAX_SIZE]; // Initialize the map with default values
+    map[1][1] = 'S';
+    map[3][3] = 'G';
+    map[1][2] = '.';
+    map[1][3] = '.';
+    map[2][1] = '.';
+    map[3][2] = '.';
+
+    let result = bfs_pathfinding(H, W, A, B, map);
+    println!("{}", result); // Expected output: minimum moves or -1
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

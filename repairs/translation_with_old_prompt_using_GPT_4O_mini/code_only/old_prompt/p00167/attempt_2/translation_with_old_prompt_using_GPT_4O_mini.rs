@@ -1,0 +1,34 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    let mut buffer = String::new();
+
+    while input.read_line(&mut buffer).unwrap() > 0 {
+        let n: i32 = match buffer.trim().parse() {
+            Ok(num) if num > 0 => num,
+            _ => break,
+        };
+
+        let mut a = Vec::with_capacity(n as usize);
+        for _ in 0..n {
+            buffer.clear();
+            input.read_line(&mut buffer).unwrap();
+            let value: i32 = buffer.trim().parse().unwrap(); // This will panic if input is invalid
+            a.push(value);
+        }
+
+        let mut swap_count = 0;
+        for u in (1..n).rev() {
+            for i in 0..u {
+                if a[i as usize] > a[(i + 1) as usize] {
+                    a.swap(i as usize, (i + 1) as usize);
+                    swap_count += 1;
+                }
+            }
+        }
+        println!("{}", swap_count);
+        buffer.clear(); // Clear buffer for the next iteration
+    }
+}

@@ -1,0 +1,36 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    
+    // Parse the input into n and k
+    let mut parts = input.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize the dynamic programming table
+    let mut pdp = vec![vec![0; k + 1]; n + 1];
+    
+    // Base case: There is one way to partition 0 balls into any number of boxes
+    for j in 0..=k {
+        pdp[0][j] = 1; // One way to partition 0 balls (by not using any)
+    }
+
+    // Fill the dynamic programming table
+    for j in 1..=k {
+        for i in 1..=n {
+            // The number of ways to partition i balls into j boxes
+            pdp[i][j] = pdp[i][j - 1]; // Ways without using the j-th box
+            if i >= j {
+                pdp[i][j] += pdp[i - j][j]; // Ways using at least one ball in the j-th box
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", pdp[n][k]);
+}
+```

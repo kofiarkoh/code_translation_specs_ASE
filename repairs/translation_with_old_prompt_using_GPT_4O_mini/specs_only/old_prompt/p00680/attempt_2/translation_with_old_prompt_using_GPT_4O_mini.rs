@@ -1,0 +1,122 @@
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: f64,
+    cost: f64,
+    flow: f64,
+}
+
+struct Graph {
+    edges: Vec<Vec<Edge>>,
+    source: usize,
+    target: usize,
+}
+
+impl Graph {
+    fn new(n: usize, source: usize, target: usize) -> Self {
+        Self {
+            edges: vec![Vec::new(); n],
+            source,
+            target,
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: f64, cost: f64) {
+        self.edges[from].push(Edge {
+            to,
+            capacity,
+            cost,
+            flow: 0.0,
+        });
+    }
+
+    fn min_cost_flow(&mut self, flow: f64) -> Result<f64, &'static str> {
+        let mut total_cost = 0.0;
+        let mut flow_remaining = flow;
+
+        while flow_remaining > 0.0 {
+            let (dist, parent) = self.bellman_ford()?;
+            if dist[self.target] == f64::INFINITY {
+                return Err("impossible");
+            }
+
+            let mut increment = flow_remaining;
+            let mut v = self.target;
+            while v != self.source {
+                let u = parent[v];
+                let edge = self.edges[u].iter_mut().find(|e| e.to == v).unwrap();
+                increment = increment.min(edge.capacity - edge.flow);
+                v = u;
+            }
+
+            flow_remaining -= increment;
+            v = self.target;
+            while v != self.source {
+                let u = parent[v];
+                let edge = self.edges[u].iter_mut().find(|e| e.to == v).unwrap();
+                edge.flow += increment;
+                total_cost += edge.cost * increment;
+                v = u;
+            }
+        }
+
+        Ok(total_cost)
+    }
+
+    fn bellman_ford(&self) -> Result<(Vec<f64>, Vec<usize>), &'static str> {
+        let n = self.edges.len();
+        let mut dist = vec![f64::INFINITY; n];
+        let mut parent = vec![0; n];
+        dist[self.source] = 0.0;
+
+        for _ in 0..n - 1 {
+            for u in 0..n {
+                for edge in &self.edges[u] {
+                    if edge.flow < edge.capacity {
+                        let new_dist = dist[u] + edge.cost;
+                        if new_dist < dist[edge.to] {
+                            dist[edge.to] = new_dist;
+                            parent[edge.to] = u;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok((dist, parent))
+    }
+}
+
+fn main() {
+    let t: usize = read_input(); // Read number of test cases
+    for _ in 0..t {
+        let (n, s, t, f) = read_graph_parameters(); // Read n, s, t, F
+        let mut graph = Graph::new(n, s, t);
+
+        for _ in 0..n {
+            let (from, to, capacity, cost) = read_edge_parameters(); // Read edge parameters
+            graph.add_edge(from, to, capacity, cost);
+        }
+
+        match graph.min_cost_flow(f) {
+            Ok(cost) => println!("{:.10}", cost),
+            Err(_) => println!("impossible"),
+        }
+    }
+}
+
+// Placeholder functions for reading input
+fn read_input() -> usize {
+    // Implement input reading logic
+    0
+}
+
+fn read_graph_parameters() -> (usize, usize, usize, f64) {
+    // Implement input reading logic
+    (0, 0, 0, 0.0)
+}
+
+fn read_edge_parameters() -> (usize, usize, f64, f64) {
+    // Implement input reading logic
+    (0, 0, 0.0, 0.0)
+}

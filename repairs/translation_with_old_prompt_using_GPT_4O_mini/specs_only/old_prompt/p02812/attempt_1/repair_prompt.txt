@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code counts the occurrences of the substring "ABC" in a given string, where the substring can overlap.
+- **What problem it solves**: It provides a mechanism to identify and quantify specific patterns within a string input.
+- **Core behavior**: The program reads an integer `n` and a string of length up to 50 characters, then counts how many times the substring "ABC" appears in the string, allowing for overlapping occurrences.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: An integer representing the length of the string to be processed.
+  - `string`: A character array (string) of maximum length 50.
+- **Data types**:
+  - `n`: `int`
+  - `string`: `char[51]`
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer (1 ≤ n ≤ 50).
+  - The string must be null-terminated and can contain any characters.
+- **Assumptions about inputs**:
+  - The input string will not exceed 50 characters.
+  - The first input (integer `n`) accurately reflects the length of the second input (string).
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the count of occurrences of "ABC".
+- **Side effects**: The program prints the count to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format (an integer followed by a string).
+  - The integer `n` must be greater than or equal to 3 to allow for at least one occurrence of "ABC".
+- **Explicit logical constraints**: The string must be at least `n` characters long.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the count of "ABC" substrings found in the input string.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The output will be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The length of the string processed is always less than or equal to 50 characters.
+  - The count of "ABC" is non-negative.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if the input does not conform to the expected format.
+- **Exceptions thrown?**: No exceptions are explicitly handled; undefined behavior may occur.
+- **Edge-case behavior**: If `n` is less than 3, the output will be 0, as "ABC" cannot fit.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not maintain persistent state.
+- **State changes caused by execution**: Local variables `count` and `i` are modified during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the length of the string.
+- **Space complexity**: O(1), as only a fixed amount of additional space is used.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size.
+```

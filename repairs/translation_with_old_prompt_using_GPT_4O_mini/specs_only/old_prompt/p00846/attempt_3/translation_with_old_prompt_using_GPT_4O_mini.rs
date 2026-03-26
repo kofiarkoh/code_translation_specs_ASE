@@ -1,0 +1,110 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone)] // Implement Clone for Point to allow cloning
+struct Point {
+    x: i32,
+    y: i32,
+}
+
+// Function to check if a point is inside the square defined by (0,0) to (20000,20000)
+fn is_point_in_square(point: &Point) -> bool {
+    point.x >= 0 && point.x <= 20000 && point.y >= 0 && point.y <= 20000
+}
+
+// Function to check if two line segments intersect
+fn do_lines_intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
+    let orientation = |p: &Point, q: &Point, r: &Point| {
+        let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+        if val == 0 { 0 } else if val > 0 { 1 } else { 2 }
+    };
+
+    let o1 = orientation(p1, p2, q1);
+    let o2 = orientation(p1, p2, q2);
+    let o3 = orientation(q1, q2, p1);
+    let o4 = orientation(q1, q2, p2);
+
+    // General case
+    if o1 != o2 && o3 != o4 {
+        return true;
+    }
+
+    // Special cases (collinear points)
+    // Check if q1 lies on segment p1p2
+    if o1 == 0 && is_point_on_segment(p1, p2, q1) { return true; }
+    // Check if q2 lies on segment p1p2
+    if o2 == 0 && is_point_on_segment(p1, p2, q2) { return true; }
+    // Check if p1 lies on segment q1q2
+    if o3 == 0 && is_point_on_segment(q1, q2, p1) { return true; }
+    // Check if p2 lies on segment q1q2
+    if o4 == 0 && is_point_on_segment(q1, q2, p2) { return true; }
+
+    false
+}
+
+// Function to check if a point lies on a segment
+fn is_point_on_segment(p: &Point, q: &Point, r: &Point) -> bool {
+    r.x <= q.x.max(p.x) && r.x >= q.x.min(p.x) && r.y <= q.y.max(p.y) && r.y >= q.y.min(p.y)
+}
+
+// Function to check if the polygon intersects with the square
+fn does_polygon_intersect_square(vertices: &[Point]) -> bool {
+    // Check if any vertex is inside the square
+    for vertex in vertices {
+        if is_point_in_square(vertex) {
+            return true;
+        }
+    }
+
+    // Define the square vertices
+    let square_vertices = [
+        Point { x: 0, y: 0 },
+        Point { x: 20000, y: 0 },
+        Point { x: 20000, y: 20000 },
+        Point { x: 0, y: 20000 },
+    ];
+
+    for i in 0..vertices.len() {
+        let p1 = &vertices[i];
+        let p2 = &vertices[(i + 1) % vertices.len()]; // Wrap around to the first vertex
+
+        for j in 0..4 {
+            let q1 = &square_vertices[j];
+            let q2 = &square_vertices[(j + 1) % 4]; // Wrap around to the first square vertex
+
+            if do_lines_intersect(p1, p2, q1, q2) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of vertices
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut vertices = Vec::with_capacity(n);
+
+    // Read vertices
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let coords: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        vertices.push(Point { x: coords[0], y: coords[1] });
+    }
+
+    // Ensure the polygon is closed by adding the first vertex at the end
+    vertices.push(vertices[0].clone());
+
+    // Check for intersection and output result
+    if does_polygon_intersect_square(&vertices) {
+        println!("1");
+    } else {
+        println!("0");
+    }
+}

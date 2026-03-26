@@ -1,0 +1,40 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line for N
+    let N: usize = lines.next().unwrap().unwrap().trim().parse().expect("Invalid input for N");
+
+    // Initialize ans to 0
+    let mut ans: i64 = 0;
+
+    // First loop to compute the initial sum
+    for i in 1..=N {
+        ans += (N - i + 2) as i64 * (N - i + 1) as i64 / 2;
+    }
+
+    // Second loop to process pairs of integers
+    for _ in 1..N {
+        let pair = lines.next().unwrap().unwrap();
+        let mut nums: Vec<i32> = pair.split_whitespace()
+            .map(|s| s.parse().expect("Invalid input for pair"))
+            .collect();
+
+        // Ensure u is less than or equal to w
+        if nums[0] > nums[1] {
+            nums.swap(0, 1);
+        }
+
+        let u = nums[0];
+        let w = nums[1];
+
+        // Adjust ans based on the pair
+        ans -= (u as i64) * (N as i64 - w as i64 + 1);
+    }
+
+    // Print the result
+    println!("{}", ans);
+}

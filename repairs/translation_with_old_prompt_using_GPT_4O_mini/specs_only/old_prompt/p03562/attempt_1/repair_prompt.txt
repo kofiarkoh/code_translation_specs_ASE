@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes binary strings and performs a series of bitwise operations to compute a final result based on specific conditions.
+- **What problem it solves**: It determines the number of valid configurations or transformations of a binary string based on a series of input binary strings.
+- **Core behavior**: The program reads an initial binary string and a series of subsequent binary strings, performing bitwise shifts and XOR operations to derive a final count of valid configurations.
+
+## 2. Inputs
+- **Parameters**:
+  - `m`: An integer representing the number of binary strings to process.
+  - `s`: A binary string of length up to `N` (4000).
+- **Data types**:
+  - `m`: `int`
+  - `s`: `char[]`
+- **Valid ranges or constraints**:
+  - `m` must be a non-negative integer.
+  - Length of `s` must be between 0 and `N` (inclusive).
+- **Assumptions about inputs**:
+  - The binary strings consist only of characters '0' and '1'.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid configurations.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format (an integer followed by a binary string).
+  - The binary strings must be valid (only contain '0' and '1').
+- **Explicit logical constraints**: The initial binary string must be non-empty if `m > 0`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output a valid integer result.
+- **State changes**: The internal state of the arrays used for computation will be modified during execution.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The arrays `aa`, `bb`, `cc`, and `dd` maintain their size and type throughout execution.
+  - The values in these arrays represent valid binary configurations at any point during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; behavior is undefined for invalid inputs.
+- **Edge-case behavior**: If `m` is 0, the program will only process the initial binary string and output a result based on that alone.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the binary representations in the arrays.
+- **State changes caused by execution**: The arrays are modified through bitwise operations, reflecting the transformations of the binary strings.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately O(m * N), where `m` is the number of binary strings and `N` is the length of the initial string.
+- **Space complexity**: The space complexity is O(K), where `K` is derived from the constants defined (specifically, K = (N + L - 1) / L).
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints defined (N = 4000).
+```

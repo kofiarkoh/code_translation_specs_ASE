@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to a graph-based problem, specifically finding the maximum number of non-overlapping paths in a weighted undirected graph, where nodes represent locations and edges represent distances between them.
+- **What problem it solves**: It determines how many tasks (or events) can be scheduled without conflicts based on their start and end times, given the distances between locations.
+- **Core behavior**: The program reads input data representing locations and distances, computes the shortest paths between all pairs of locations, and then uses a bipartite matching algorithm to find the maximum number of tasks that can be scheduled.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of locations (vertices in the graph).
+  - `M`: Number of edges (connections between locations).
+  - `L`: Number of tasks (events to be scheduled).
+  - `p[]`: Array of starting locations for each task.
+  - `t[]`: Array of starting times for each task.
+- **Data types**: 
+  - `N`, `M`, `L`, `u`, `v`, `d`: Integers.
+  - `p[]`, `t[]`: Arrays of integers.
+- **Valid ranges or constraints**:
+  - `N`, `M`, `L` must be non-negative integers.
+  - `0 <= u, v < N` for locations.
+  - `0 <= k < L` for tasks.
+- **Assumptions about inputs**: 
+  - Input is provided in a specific format, and all values are valid integers as per the constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum number of tasks that can be scheduled without conflicts.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of locations, edges, and tasks must be initialized and non-negative.
+- **Explicit logical constraints**: 
+  - The graph must be connected enough to allow for meaningful path calculations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the maximum number of non-overlapping tasks that can be scheduled based on the provided distances and times.
+- **State changes**: 
+  - Internal data structures (like `dist`, `match`, etc.) will be modified during execution.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dist` array will always represent the shortest distances between all pairs of locations after the Floyd-Warshall algorithm is executed.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `N`, `M`, or `L` are zero, the output will be `0`, as there are no tasks to schedule.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in a state where it is reading input, processing data, or outputting results.
+- **State changes caused by execution**: 
+  - The state of the `dist`, `match`, and `seen` arrays changes as the program processes the input and computes results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall complexity is O(N^3) due to the Floyd-Warshall algorithm for shortest paths and O(L^2) for the bipartite matching.
+- **Space complexity**: O(N^2) for the distance matrix and O(L) for the task-related arrays.
+- **Performance assumptions**: The program is expected to handle reasonably sized inputs efficiently, but performance may degrade with very large values of `N` or `L`.
+```

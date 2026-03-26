@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a set of pairs of integers, determining a specific count based on conditions applied to these pairs.
+- **What problem it solves**: It calculates a cumulative value based on the input pairs, specifically focusing on pairs where the first element exceeds a given threshold.
+- **Core behavior**: The program reads a number of pairs, modifies them based on a threshold, sorts the modified values, and computes a sum of selected values.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: An integer representing a threshold.
+  - `m`: An integer representing the number of pairs to be processed.
+  - `a[]`: An array of integers representing the first elements of the pairs.
+  - `b[]`: An array of integers representing the second elements of the pairs.
+- **Data types**: 
+  - `n`, `m`, `a[i]`, `b[i]`, `count1`, `count2`, `temp`: All are of type `int`.
+- **Valid ranges or constraints**:
+  - `n`: Any integer value.
+  - `m`: Must be a positive integer (1 ≤ m ≤ 1000).
+  - `a[i]`, `b[i]`: Any integer value.
+- **Assumptions about inputs**: The input values for `n` and `m` are provided correctly, and the pairs are read in a valid format.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer value, which is the computed count.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must include two integers followed by `m` pairs of integers.
+  - `m` must be greater than or equal to 1.
+- **Explicit logical constraints**: The first integer of each pair must be processed according to the threshold `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a non-negative integer representing the computed count.
+- **State changes**: The arrays `a[]` and `b[]` may be modified during execution.
+- **Return guarantees**: The output will reflect the sum of selected values based on the conditions applied.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `a[]` and `b[]` will always have a length of at least `m + 1` (1-based indexing).
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exceptions are handled; the program assumes valid input.
+- **Edge-case behavior**: If `m` is 1, the program will still execute but may not perform sorting or summation if the conditions are not met.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state, processing input and producing output.
+- **State changes caused by execution**: The values in arrays `a[]` and `b[]` may change based on the input and conditions applied.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation results in a time complexity of O(m^2) due to the nested loops.
+- **Space complexity**: The space complexity is O(m) due to the storage of the input pairs in arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraint of `m = 1000`.
+```

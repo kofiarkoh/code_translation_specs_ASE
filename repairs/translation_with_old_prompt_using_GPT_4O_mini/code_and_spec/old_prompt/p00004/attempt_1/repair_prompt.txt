@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a set of six double-precision floating-point numbers from standard input, performs calculations based on these inputs, and outputs two computed values formatted to three decimal places.
+- **What problem it solves**: It solves a system of linear equations derived from the input values, specifically calculating the values of `x` and `y` based on the provided coefficients.
+- **Core behavior**: The program continuously reads input until EOF, computes the values of `x` and `y` using the provided equations, and prints the results.
+
+## 2. Inputs
+- **Parameters**: Six double-precision floating-point numbers: `a`, `b`, `c`, `d`, `e`, `f`.
+- **Data types**: All inputs are of type `double`.
+- **Valid ranges or constraints**: No explicit constraints on the values are enforced, but division by zero must be avoided (i.e., `a` should not be zero).
+- **Assumptions about inputs**: It is assumed that the input will be provided in the correct format and that the equations are solvable.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs two computed values `x` and `y` to standard output.
+- **Output format/schema**: The output is formatted as two floating-point numbers, each rounded to three decimal places, separated by a space.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input can be provided.
+- **Explicit logical constraints**: The variable `a` must not be zero to avoid division by zero errors.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: For each set of inputs, the program will output the corresponding values of `x` and `y` if the inputs are valid.
+- **State changes**: The program does not maintain state between executions; it processes each input set independently.
+- **Return guarantees**: The output will always consist of two floating-point numbers formatted to three decimal places, provided the inputs are valid.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The program will always read six double values before performing calculations.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may produce undefined behavior if invalid input is provided (e.g., non-numeric values).
+- **Exceptions thrown?**: The program does not explicitly handle exceptions; it relies on the behavior of `scanf`.
+- **Edge-case behavior**: If `a` is zero, the program will attempt to divide by zero, leading to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not utilize object-oriented principles.
+- **State changes caused by execution**: The program transitions from reading input to performing calculations and then to outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) where n is the number of input sets processed until EOF.
+- **Space complexity**: The space complexity is O(1) as it uses a fixed amount of memory for variables.
+- **Performance assumptions**: The program assumes that input can be provided in a timely manner and that the system can handle the floating-point operations efficiently.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <math.h>
+int main(void){
+    double a,b,c,d,e,f,aa,bb,cc,x,y,bai;
+    while(scanf("%lf %lf %lf %lf %lf %lf",&a,&b,&c,&d,&e,&f)!=EOF){
+        bai=d/a;
+        aa=a*bai;
+        bb=b*bai;
+        cc=c*bai;
+        y=(f-cc)/(e-bb);
+        x=(c-b*y)/a;
+        printf("%.3f %.3f\n",x,y);
+    }
+        
+        
+        
+        
+    
+    
+    
+}
+=== C CODE END ===

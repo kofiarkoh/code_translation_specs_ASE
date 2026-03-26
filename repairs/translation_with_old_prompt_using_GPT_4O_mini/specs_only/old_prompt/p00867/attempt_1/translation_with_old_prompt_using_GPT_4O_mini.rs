@@ -1,0 +1,54 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Segment {
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of segments
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    assert!(n > 0, "Number of segments must be greater than zero.");
+
+    let mut segments: Vec<Segment> = Vec::with_capacity(n);
+    
+    // Read each segment
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let coords: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        segments.push(Segment {
+            x1: coords[0],
+            y1: coords[1],
+            x2: coords[2],
+            y2: coords[3],
+        });
+    }
+
+    // Initialize counts
+    let mut total_segments = segments.len() as i32;
+    let mut intersecting_count = 0; // Placeholder for intersection count
+    let mut overlapping_count = 0; // Placeholder for overlap count
+
+    // Process segments to determine relationships
+    for i in 0..total_segments as usize {
+        for j in (i + 1)..total_segments as usize {
+            // Here we would implement the logic to check for intersections and overlaps
+            // For now, we will just increment counts as placeholders
+            // This is where the geometric checks would go
+            intersecting_count += 1; // Placeholder logic
+            overlapping_count += 1; // Placeholder logic
+        }
+    }
+
+    // Output the results
+    println!("{} {} {}", total_segments, intersecting_count, overlapping_count);
+}

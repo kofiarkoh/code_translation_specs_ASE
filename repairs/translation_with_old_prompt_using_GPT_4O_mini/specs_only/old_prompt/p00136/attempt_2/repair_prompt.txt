@@ -1,0 +1,76 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: `main` has invalid return type `i32`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00136/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:3:14
+  |
+3 | fn main() -> i32 {
+  |              ^^^ `main` can only return types that implement `Termination`
+  |
+  = help: consider using `()`, or a `Result`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() -> i32 {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of height measurements
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => 0,
+    };
+
+    // Ensure n is greater than 0
+    if n == 0 {
+        return 0; // Early exit if n is not valid
+    }
+
+    // Initialize counts for each height category
+    let mut counts = [0; 6];
+
+    // Read height measurements and categorize them
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(height) = line.trim().parse::<f64>() {
+                // Categorize heights into six ranges
+                match height {
+                    _ if height < 150.0 => counts[0] += 1, // Category 1
+                    _ if height < 160.0 => counts[1] += 1, // Category 2
+                    _ if height < 170.0 => counts[2] += 1, // Category 3
+                    _ if height < 180.0 => counts[3] += 1, // Category 4
+                    _ if height < 190.0 => counts[4] += 1, // Category 5
+                    _ => counts[5] += 1,                    // Category 6
+                }
+            }
+        }
+    }
+
+    // Print the histogram
+    for (i, &count) in counts.iter().enumerate() {
+        println!("{} {}", i + 1, "*".repeat(count));
+    }
+
+    0 // Return 0 upon successful execution
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

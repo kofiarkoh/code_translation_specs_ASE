@@ -1,0 +1,52 @@
+use std::io;
+
+fn main() {
+    // Read the number of iterations from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as a non-negative integer
+    let n: u64 = input.trim().parse().expect("Input must be a valid non-negative integer");
+
+    // If n is 0, we terminate without printing anything
+    if n == 0 {
+        return;
+    }
+
+    // Initialize x to 1, as we need to start from some initial value
+    let mut x = 1;
+
+    // Iterate n times
+    for _ in 0..n {
+        // Print the current value of x
+        println!("{}", x);
+
+        let mut min_ratio = f64::MAX; // Start with the maximum possible ratio
+        let mut best_value = x; // Initialize best_value to the current x
+
+        // Check values from x to x + 15
+        for y in x..=x + 15 {
+            let sum_of_digits = sum_digits(y);
+            if sum_of_digits > 0 { // Avoid division by zero
+                let ratio = y as f64 / sum_of_digits as f64;
+                if ratio < min_ratio {
+                    min_ratio = ratio;
+                    best_value = y; // Update best_value if a new minimum ratio is found
+                }
+            }
+        }
+
+        // Update x to the best value found
+        x = best_value;
+    }
+}
+
+// Function to calculate the sum of digits of a number
+fn sum_digits(mut num: u64) -> u64 {
+    let mut sum = 0;
+    while num > 0 {
+        sum += num % 10; // Add the last digit to sum
+        num /= 10; // Remove the last digit
+    }
+    sum
+}

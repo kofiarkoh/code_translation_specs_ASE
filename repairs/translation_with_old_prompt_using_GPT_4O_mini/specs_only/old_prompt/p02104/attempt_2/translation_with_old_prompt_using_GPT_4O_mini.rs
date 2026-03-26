@@ -1,0 +1,31 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of individuals (chairs)
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    // Initialize the chair preferences array
+    let mut p: Vec<usize> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let preference: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        p.push(preference);
+    }
+
+    // Initialize the answer array to store final chair assignments
+    let mut ans: Vec<usize> = vec![0; n];
+
+    // Process preferences to determine final assignments
+    for (i, &preference) in p.iter().enumerate() {
+        // Store the last individual who prefers each chair
+        ans[preference - 1] = i + 1; // Store 1-based index
+    }
+
+    // Output the final seating arrangement
+    for &assignment in ans.iter() {
+        println!("{}", assignment);
+    }
+}

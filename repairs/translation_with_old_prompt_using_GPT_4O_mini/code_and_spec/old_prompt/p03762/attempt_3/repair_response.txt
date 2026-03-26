@@ -1,0 +1,44 @@
+```rust
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace();
+    
+    let n: usize = nums.next().unwrap().parse().unwrap();
+    let m: usize = nums.next().unwrap().parse().unwrap();
+
+    let mut x = vec![0; n + 1];
+    let mut y = vec![0; m + 1];
+
+    for i in 1..=n {
+        let line = lines.next().unwrap().unwrap();
+        x[i] = line.parse::<i64>().unwrap();
+    }
+    
+    for i in 1..=m {
+        let line = lines.next().unwrap().unwrap();
+        y[i] = line.parse::<i64>().unwrap();
+    }
+
+    let mut t = 0;
+
+    for i in 1..=n {
+        t = (t + ((i as i64 - 1) * x[i] - (n as i64 - i as i64) * x[i]) % MOD + MOD) % MOD) % MOD;
+    }
+
+    let mut k = 0;
+
+    for i in 1..=m {
+        k = (k + ((i as i64 - 1) * y[i] - (m as i64 - i as i64) * y[i]) % MOD + MOD) % MOD) % MOD;
+    }
+
+    println!("{}", (t * k) % MOD);
+}
+```

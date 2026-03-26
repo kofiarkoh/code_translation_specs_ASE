@@ -1,0 +1,76 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 100;
+const PGMAX: usize = 1001;
+const WDMAX: usize = 31;
+
+#[derive(Debug)]
+struct Index {
+    pgnum: [bool; PGMAX],
+    tm: usize,
+    str: String,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut idx: Vec<Index> = Vec::new();
+    let mut rgnum = 0;
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() != 2 {
+            continue; // Skip invalid input
+        }
+
+        let tmp_str = parts[0];
+        let tmp_pgnum: usize = match parts[1].parse() {
+            Ok(num) if num < PGMAX => num,
+            _ => continue, // Skip invalid page numbers
+        };
+
+        let mut flag = true;
+        for i in 0..rgnum {
+            if idx[i].str == tmp_str {
+                idx[i].pgnum[tmp_pgnum] = true;
+                idx[i].tm += 1;
+                flag = false;
+                break;
+            }
+        }
+
+        if flag {
+            if rgnum < MAX {
+                let mut new_entry = Index {
+                    pgnum: [false; PGMAX],
+                    tm: 1,
+                    str: tmp_str.to_string(),
+                };
+                new_entry.pgnum[tmp_pgnum] = true;
+                idx.push(new_entry);
+                rgnum += 1;
+            }
+        }
+    }
+
+    // Sort the index by string
+    idx.sort_by(|a, b| a.str.cmp(&b.str));
+
+    // Output the results
+    for entry in idx.iter() {
+        println!("{}", entry.str);
+        let mut first = true; // Track if it's the first page number
+        for j in 0..PGMAX {
+            if entry.pgnum[j] {
+                if first {
+                    print!("{}", j);
+                    first = false; // Set first to false after printing the first page number
+                } else {
+                    print!(" {}", j);
+                }
+            }
+        }
+        println!(); // Print a newline after all page numbers
+    }
+}

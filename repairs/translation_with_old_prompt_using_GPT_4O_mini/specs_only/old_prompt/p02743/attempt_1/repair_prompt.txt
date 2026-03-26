@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program determines whether a specific mathematical condition involving three input values is satisfied.
+- **What problem it solves**: It checks if the difference between the third input and the sum of the first two inputs meets a certain condition related to the product of the first two inputs.
+- **Core behavior**: The program reads three long double values, computes the difference, and evaluates a condition to print either "Yes" or "No".
+
+## 2. Inputs
+- **Parameters**: 
+  - `a`: First long double input.
+  - `b`: Second long double input.
+  - `c`: Third long double input.
+- **Data types**: All inputs are of type `long double`.
+- **Valid ranges or constraints**: Not explicitly defined; assumes valid long double values can be input.
+- **Assumptions about inputs**: Inputs are provided in a format compatible with `scanf` for `long double`.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value of `0` upon successful execution.
+- **Side effects**: The program prints either "Yes" or "No" to the standard output based on the evaluation of the condition.
+- **Output format/schema**: The output is a string ("Yes" or "No").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available.
+- **Explicit logical constraints**: Inputs must be valid long double values; no specific constraints on their values are enforced.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed either "Yes" or "No" based on the evaluation of the condition.
+- **State changes**: No state changes occur; the program is stateless.
+- **Return guarantees**: The program will return `0` upon completion.
+
+## 6. Invariants
+- **Conditions that must always remain true**: Not applicable as the program does not maintain state across multiple executions.
+- **Class-level invariants**: Not applicable as this is a procedural program without classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program does not include error handling for input.
+- **Edge-case behavior**: If inputs are not valid long doubles, the output may be unpredictable.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: No state changes occur; the program operates in a single execution context.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the program performs a constant amount of work regardless of input size.
+- **Space complexity**: O(1) - the program uses a fixed amount of memory for variables.
+- **Performance assumptions**: Assumes that input reading and output printing are performed in a reasonable time frame.
+```

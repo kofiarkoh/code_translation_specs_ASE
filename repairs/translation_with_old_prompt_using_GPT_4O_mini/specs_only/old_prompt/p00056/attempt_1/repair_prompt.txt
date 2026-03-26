@@ -1,0 +1,97 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code generates a table of prime numbers up to a specified maximum and counts the number of ways a given integer can be expressed as the sum of two prime numbers.
+- **What problem it solves**: It addresses the problem of determining the number of distinct pairs of prime numbers that sum up to a given integer.
+- **Core behavior**: The program initializes a prime number table, reads integers from input, and for each integer, counts and outputs the number of unique pairs of primes that sum to that integer.
+
+## 2. Inputs
+- **Parameters**: 
+  - `table`: A pointer to an integer array where the prime number table will be stored.
+  - `n`: An integer read from standard input representing the number to be analyzed.
+- **Data types**: 
+  - `int` for both `n` and elements of `table`.
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - The maximum value for `n` is constrained by `MAX` (50000).
+- **Assumptions about inputs**: 
+  - Input is assumed to be valid integers, and the program will terminate when `0` is entered.
+
+## 3. Outputs
+- **Return values**: 
+  - The function `makePrimeTable` returns `0` upon successful execution.
+- **Side effects**: 
+  - Outputs the count of distinct pairs of prime numbers for each valid input integer.
+- **Output format/schema**: 
+  - Each count is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The `table` array must be allocated and have a size of at least `MAX`.
+- **Explicit logical constraints**: 
+  - The program must be executed in an environment where standard input can be read.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The `table` array will be populated with `0` for prime indices and `1` for non-prime indices.
+- **State changes**: 
+  - The `ptable` array will contain the prime number status for indices from `0` to `MAX-1`.
+- **Return guarantees**: 
+  - The function `makePrimeTable` will always return `0`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `ptable` array will always have a size of `MAX`.
+  - The values in `ptable` will correctly represent the primality of indices from `0` to `MAX-1`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input explicitly; it assumes valid integers are provided.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program relies on standard input behavior.
+- **Edge-case behavior**: 
+  - If `n` is `0`, the program terminates without outputting any counts.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The state of the `ptable` array transitions from uninitialized to populated with prime status.
+- **State changes caused by execution**: 
+  - The state of the `ptable` is modified during the execution of `makePrimeTable`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The prime table generation has a time complexity of O(n log log n) due to the Sieve of Eratosthenes algorithm.
+- **Space complexity**: 
+  - The space complexity is O(n) for storing the prime table.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for inputs up to `MAX` (50000).
+```

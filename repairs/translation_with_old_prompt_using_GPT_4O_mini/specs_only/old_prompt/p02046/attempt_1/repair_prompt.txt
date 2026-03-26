@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads pairs of integers from standard input, processes them to compute a specific integer result based on their values, and outputs the result.
+- **What problem it solves**: It determines a computed value based on the absolute values of two integers, which can represent various conditions based on their parity and sum.
+- **Core behavior**: For each pair of integers, the code calculates a value `t` based on specific rules regarding the integers' absolute values and their parity, then prints the result.
+
+## 2. Inputs
+- **Parameters**: Two integers, `x` and `y`.
+- **Data types**: Both `x` and `y` are of type `int`.
+- **Valid ranges or constraints**: The integers can be any valid integer value, including negative values.
+- **Assumptions about inputs**: Input is expected to be provided in pairs until EOF (End of File) is reached.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it prints the computed integer `t` to standard output.
+- **Side effects**: The primary side effect is the output to standard output (console).
+- **Output format/schema**: Each computed integer `t` is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input can be provided, and the input must be formatted as pairs of integers.
+- **Explicit logical constraints**: The input must be valid integers; otherwise, the behavior is undefined.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: For each valid pair of integers read, a corresponding integer `t` is printed.
+- **State changes**: The program does not maintain state across executions; it processes each input pair independently.
+- **Return guarantees**: The output will always be an integer based on the defined rules.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The values of `x` and `y` are always non-negative after applying the `abs` function. The output `t` is computed based on the current values of `x` and `y`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: If the input is not valid integers, the behavior is undefined; the program may not handle such cases gracefully.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on the input being valid.
+- **Edge-case behavior**: If EOF is reached without any input, the program terminates without output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable, as the code does not maintain state across iterations.
+- **State changes caused by execution**: The values of `x` and `y` change with each iteration based on the input provided.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n), where n is the number of input pairs processed.
+- **Space complexity**: The space complexity is O(1), as only a fixed amount of additional space is used for variables.
+- **Performance assumptions**: The program assumes that input can be provided efficiently until EOF, and that the system can handle the input size within reasonable limits.
+```

@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a simple 2D grid-based game where a player can move, push, pull, climb, and get down on a map filled with various elements, including blocks and goals.
+- **What problem it solves**: It provides a framework for simulating player movement and interactions with obstacles in a grid-based environment, allowing for basic game mechanics.
+- **Core behavior**: The player can execute commands to navigate the grid, manipulate blocks, and check for game-over conditions based on the player's position and the state of the grid.
+
+## 2. Inputs
+- **Parameters**:
+  - `height`: The number of rows in the grid.
+  - `width`: The number of columns in the grid.
+  - `map`: A 2D character array representing the game grid.
+  - `command_num`: The number of commands to be executed.
+  - `command`: The command to be executed (e.g., MOVETO, PUSH, PULL, GETDOWN, CLIMB).
+  - `command2`: Additional parameter for commands (e.g., direction or position).
+- **Data types**: 
+  - `int` for dimensions and command numbers.
+  - `char` for the grid representation and commands.
+- **Valid ranges or constraints**: 
+  - `height` and `width` must be positive integers.
+  - `command_num` must be non-negative.
+  - `command` must be one of the predefined command strings.
+- **Assumptions about inputs**: The input grid is well-formed and contains valid characters representing the player, blocks, and goals.
+
+## 3. Outputs
+- **Return values**: The program does not return values but prints game-over messages based on the outcome.
+- **Side effects**: Modifies the `map` array and player position based on executed commands.
+- **Output format/schema**: Game-over messages are printed to the console, indicating the reason for game termination.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The `map` must be initialized with valid characters representing the game state.
+  - The player must be placed on the grid (indicated by 'S').
+  - A goal must be defined on the grid (indicated by 'G').
+- **Explicit logical constraints**: The grid must not exceed the defined dimensions (51x51).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The game state is updated based on player actions.
+  - The game-over state is determined and printed if applicable.
+- **State changes**: The player's position and the state of the grid are modified based on commands.
+- **Return guarantees**: The program will print a game-over message when the game ends.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The player's position (`px`, `py`) must always be within the bounds of the grid.
+  - The `gameover` variable must accurately reflect the current game state.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or termination.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on input constraints.
+- **Edge-case behavior**: If the player attempts to move outside the grid or into an invalid position, the command will be ignored.
+
+## 8. State Transitions
+- **Valid object states**: The player can be in various states based on their position and the state of the grid (e.g., moving, pushing, pulling).
+- **State changes caused by execution**: Executing commands modifies the player's position and the grid state, potentially leading to a game-over state.
+
+## 9. Non-functional Constraints
+- **Time complexity**: The complexity of command execution varies; moving and pushing may involve linear scans of the grid.
+- **Space complexity**: The space complexity is O(height * width) due to the grid representation.
+- **Performance assumptions**: The program assumes that the grid size is manageable within the constraints of typical computational resources.
+```

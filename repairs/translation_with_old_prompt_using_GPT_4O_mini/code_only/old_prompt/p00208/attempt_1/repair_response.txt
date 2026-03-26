@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut n = [0; 200]; // Array to hold the octal digits
+    loop {
+        let mut a = String::new();
+        io::stdout().flush().unwrap(); // Ensure prompt is printed before reading input
+        io::stdin().read_line(&mut a).unwrap();
+        let a: i32 = match a.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Ignore invalid input
+        };
+
+        if a == 0 {
+            break;
+        }
+
+        let mut b = 0;
+        let mut temp_a = a; // Use a temporary variable to avoid modifying `a`
+        while temp_a != 0 {
+            n[b] = (temp_a % 8) as i32; // Store the octal digit
+            temp_a /= 8; // Divide by 8
+            b += 1;
+        }
+
+        n[b] = 0; // Null-terminate the array (not strictly necessary in Rust)
+
+        let mut c = 0; // Unused variable, kept for semantic preservation
+        let mut i = 0;
+        while i <= b {
+            if n[i] > 3 {
+                n[i] += 1; // Increment if greater than 3
+            }
+            if n[i] > 5 {
+                n[i] += 1; // Increment if greater than 5
+            }
+            i += 1;
+        }
+
+        for i in (0..b).rev() { // Print in reverse order
+            print!("{}", n[i]);
+        }
+        println!(); // Print newline
+    }
+}
+```

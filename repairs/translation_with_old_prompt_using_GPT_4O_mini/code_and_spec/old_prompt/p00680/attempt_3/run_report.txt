@@ -1,0 +1,42 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0499]: cannot borrow `self.edges` as mutable more than once at a time
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p00680/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:182:39
+    |
+178 |                 let ep = &mut self.edges[prev][edge_index];
+    |                               ---------- first mutable borrow occurs here
+...
+182 |                 let (before, after) = self.edges[v].split_at_mut(ep.rev);
+    |                                       ^^^^^^^^^^                 ------ first borrow later used here
+    |                                       |
+    |                                       second mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+
+warning: unused variable: `before`
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p00680/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:182:22
+    |
+182 |                 let (before, after) = self.edges[v].split_at_mut(ep.rev);
+    |                      ^^^^^^ help: if this is intentional, prefix it with an underscore: `_before`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0596]: cannot borrow `handle` as mutable, as it is not declared as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p00680/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:234:5
+    |
+234 |     handle.read_line(&mut input).unwrap();
+    |     ^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+232 |     let mut handle = stdin.lock();
+    |         +++
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0499, E0596.
+For more information about an error, try `rustc --explain E0499`.

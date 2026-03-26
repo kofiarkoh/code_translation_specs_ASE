@@ -1,0 +1,107 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02370/p02370_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02370/p02370_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (36121913) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02370/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:38:14:
+index out of bounds: the len is 1 but the index is 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MAX_V: usize = 10002;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read number of vertices and edges
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let v: usize = parts.next().unwrap().parse().unwrap();
+    let e: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize adjacency list and in-degree count
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut count = vec![0; v];
+    let mut hi = vec![0; v];
+
+    // Read edges and populate the graph
+    let mut edges = Vec::with_capacity(e);
+    for _ in 0..e {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let s: usize = edge_parts.next().unwrap().parse().unwrap();
+        let t: usize = edge_parts.next().unwrap().parse().unwrap();
+        edges.push((s, t));
+        hi[s] += 1;
+    }
+
+    // Allocate adjacency lists based on hi counts
+    for i in 0..v {
+        to[i] = vec![0; hi[i]];
+    }
+
+    // Populate adjacency list and in-degree counts
+    for (s, t) in edges {
+        to[s][count[s]] = t;
+        count[t] += 1;
+    }
+
+    // Perform topological sort
+    topological_sort(v, &to, &mut count);
+}
+
+fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &mut Vec<usize>) {
+    let mut q = Vec::new();
+    let mut top = 0;
+
+    // Initialize queue with vertices having zero in-degree
+    for i in 0..v {
+        if count[i] == 0 {
+            q.push(i);
+        }
+    }
+
+    // Process the queue
+    while top < q.len() {
+        let i = q[top];
+        top += 1;
+        println!("{}", i);
+
+        for &k in &to[i] {
+            if let Some(c) = count.get_mut(k) {
+                *c -= 1;
+                if *c == 0 {
+                    q.push(k);
+                }
+            }
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

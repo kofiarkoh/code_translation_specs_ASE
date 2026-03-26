@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to the problem of determining the minimum combined authentication level required to traverse two separate areas in a grid, where each cell has a specific authentication level.
+- **What problem it solves**: It calculates the minimum sum of authentication levels needed to access two distinct areas in a grid, given their respective starting points.
+- **Core behavior**: The program reads multiple test cases, processes a grid for each case, and uses a priority queue (min-heap) to explore the grid cells based on their authentication levels, ultimately computing the minimum combined level for two areas.
+
+## 2. Inputs
+- **Parameters**:
+  - `R`: Number of test cases.
+  - `W`: Width of the grid.
+  - `H`: Height of the grid.
+  - `X`: Starting column index for the first area (1-based).
+  - `Y`: Starting row index for the first area (1-based).
+  - `l[r][c]`: 2D array representing the authentication levels of each cell in the grid.
+- **Data types**: 
+  - `int` for all parameters and grid values.
+  - `short` for row and column indices in the queue structure.
+- **Valid ranges or constraints**:
+  - `1 <= R <= 100` (number of test cases).
+  - `1 <= W, H <= 500` (dimensions of the grid).
+  - `1 <= X <= W` and `1 <= Y <= H` (starting positions).
+- **Assumptions about inputs**: The input values are well-formed and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs the minimum combined authentication level for each test case.
+- **Side effects**: The program prints results to the standard output.
+- **Output format/schema**: Each result is printed as a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The grid dimensions and starting positions must be valid as per the constraints.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the minimum combined authentication level for each test case.
+- **State changes**: The internal state of the queue and grid will be modified during processing.
+- **Return guarantees**: The output will always be a valid integer representing the minimum combined level.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The queue maintains a valid min-heap structure throughout its operations.
+  - The `mk` array correctly tracks visited cells to prevent reprocessing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If the grid is empty or dimensions are zero, the program may not handle it gracefully.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The queue can be empty or contain elements representing grid cells.
+  - The `mk` array can have cells marked as visited or unvisited.
+- **State changes caused by execution**: 
+  - Cells are added to or removed from the queue as they are processed.
+  - The `level` array is updated with the maximum authentication levels encountered.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm primarily operates in O(N log N) time due to the priority queue operations, where N is the number of cells in the grid.
+- **Space complexity**: The space complexity is O(N) for storing the grid and the queue.
+- **Performance assumptions**: The program is expected to perform efficiently within the given constraints, handling the maximum input sizes in a reasonable time frame.
+```

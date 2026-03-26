@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to minimize a cost function based on a series of queries related to index movements in an array.
+- **What problem it solves**: It addresses the problem of finding the minimum cost of moving between indices in an array while considering previous movements and costs.
+- **Core behavior**: The program maintains two Fenwick trees (also known as Binary Indexed Trees) to efficiently update and query minimum costs associated with index movements.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of elements in the array.
+  - `q`: Number of queries.
+  - `i`: Initial index.
+  - `j`: Target index for the first update.
+- **Data types**: 
+  - `n`, `q`, `i`, `j`: `int`
+  - `d`, `ans`, `x`: `long long`
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer (1 ≤ n ≤ 200,000).
+  - `q` must be a non-negative integer (0 ≤ q).
+  - `i`, `j` must be within the range of the array indices (0 ≤ i, j < n).
+- **Assumptions about inputs**: Inputs are assumed to be provided in a valid format as specified.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` value representing the minimum cost after processing all queries.
+- **Side effects**: The program modifies the internal state of the Fenwick trees and the `dp` array.
+- **Output format/schema**: The output is a single integer printed to the standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input values must be read correctly and must adhere to the specified constraints.
+  - The `dp` array must be initialized to a state that allows for valid comparisons (infinity).
+- **Explicit logical constraints**: The initial values of the Fenwick trees must be set to a high value (infinity) to ensure correct minimum comparisons.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The `ans` variable contains the minimum cost calculated based on the queries.
+- **State changes**: The `dp`, `ft1`, and `ft2` arrays are modified during execution.
+- **Return guarantees**: The output will always be a valid `long long` integer representing the minimum cost.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The values in `ft1` and `ft2` must always represent the minimum costs associated with their respective indices.
+  - The `dp` array must always contain valid minimum costs for each index.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `q` is 0, the program will compute the minimum cost based solely on the initial state without any queries.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the `dp`, `ft1`, and `ft2` arrays throughout execution.
+- **State changes caused by execution**: Each query modifies the state of the `dp` array and the Fenwick trees based on the current index and the computed costs.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is O(q log n), where `q` is the number of queries and `n` is the size of the array.
+- **Space complexity**: The space complexity is O(n) due to the storage of the `dp`, `ft1`, and `ft2` arrays.
+- **Performance assumptions**: The implementation assumes that the operations on the Fenwick trees (update and query) are efficient and that the input size is manageable within the provided constraints.
+```

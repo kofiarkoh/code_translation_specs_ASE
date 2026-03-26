@@ -1,0 +1,35 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read n and k from input
+    let mut input = String::new();
+    handle.read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    let n: i64 = iter.next().unwrap().parse().expect("Invalid input for n");
+    let k: i64 = iter.next().unwrap().parse().expect("Invalid input for k");
+
+    // Ensure preconditions
+    assert!(n > 0, "n must be greater than 0");
+    assert!(k > 1, "k must be greater than 1");
+
+    // Read the array a
+    let mut a = Vec::with_capacity(n as usize);
+    input.clear();
+    handle.read_line(&mut input).expect("Failed to read line");
+    for num in input.split_whitespace() {
+        let value: i64 = num.parse().expect("Invalid input for array element");
+        a.push(value);
+    }
+
+    // Calculate the minimum number of groups
+    let mut t = (n - k) / (k - 1) + 1;
+    if k + (t - 1) * (k - 1) < n {
+        t += 1;
+    }
+
+    // Output the result
+    println!("{}", t);
+}

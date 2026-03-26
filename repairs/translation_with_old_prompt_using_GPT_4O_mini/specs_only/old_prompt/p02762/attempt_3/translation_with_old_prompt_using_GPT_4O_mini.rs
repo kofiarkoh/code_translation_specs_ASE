@@ -1,0 +1,91 @@
+use std::io::{self, BufRead};
+
+const N_MAX: usize = 100_000;
+
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    removals: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let mut parent = vec![0; n + 1];
+        let size = vec![1; n + 1]; // No need for mut here
+        let removals = vec![0; n + 1];
+
+        for i in 1..=n {
+            parent[i] = i; // Each element is its own parent initially
+        }
+
+        UnionFind { parent, size, removals }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Union by size
+            if self.size[root_x] < self.size[root_y] {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += self.size[root_x];
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += self.size[root_y];
+            }
+        }
+    }
+
+    fn remove(&mut self, x: usize) {
+        let root = self.find(x);
+        self.removals[root] += 1; // Increment removal count for the component
+    }
+
+    fn adjusted_sizes(&self, n: usize) -> Vec<usize> {
+        let mut result = vec![0; n + 1];
+        for i in 1..=n {
+            let root = self.find(i); // This needs to be mutable
+            result[root] = self.size[root] - self.removals[root]; // Adjust size for removals
+        }
+        result[1..=n].to_vec() // Return sizes for elements 1 to n
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut uf = UnionFind::new(n);
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let x: usize = parts.next().unwrap().parse().unwrap();
+        let y: usize = parts.next().unwrap().parse().unwrap();
+        uf.union(x, y);
+    }
+
+    for _ in 0..k {
+        let line = lines.next().unwrap().unwrap();
+        let x: usize = line.parse().unwrap();
+        uf.remove(x);
+    }
+
+    let sizes = uf.adjusted_sizes(n);
+    println!("{}", sizes[1..].iter().map(|s| s.to_string()).collect::<Vec<_>>().join(" "));
+}

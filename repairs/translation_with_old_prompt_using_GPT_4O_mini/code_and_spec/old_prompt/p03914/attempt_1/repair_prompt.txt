@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific combinatorial value based on two input parameters, \( N \) and \( M \), using dynamic programming.
+- **What problem it solves**: It solves the problem of counting the number of ways to distribute \( M \) indistinguishable items into \( N \) distinguishable boxes, with certain constraints on the distribution.
+- **Core behavior**: The program initializes a dynamic programming table and iteratively updates it to compute the final result, which is then printed.
+
+## 2. Inputs
+- **Parameters**: 
+  - \( N \): Number of distinguishable boxes.
+  - \( M \): Number of indistinguishable items.
+- **Data types**: 
+  - \( N \) and \( M \): Integer (int).
+- **Valid ranges or constraints**: 
+  - \( N \) and \( M \) should be non-negative integers (0 ≤ \( N \), 0 ≤ \( M \)).
+- **Assumptions about inputs**: The inputs are provided in a valid format and within the specified range.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer representing the computed value.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single line containing the computed value modulo \( 10^9 + 7 \).
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid integer inputs for \( N \) and \( M \).
+  - The input values must be within the valid range.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a long long integer that represents the number of ways to distribute \( M \) indistinguishable items into \( N \) distinguishable boxes.
+- **State changes**: The dynamic programming table is populated during execution.
+- **Return guarantees**: The output is guaranteed to be within the range of \( 0 \) to \( 10^9 + 6 \) due to the modulo operation.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The dynamic programming table \( dp[i][j] \) holds valid counts of distributions for the current state of \( i \) boxes and \( j \) items.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: The code does not handle exceptions; it assumes valid input.
+- **Edge-case behavior**: If \( N \) or \( M \) is zero, the output will be computed based on the defined logic, which may yield specific results (e.g., 1 way to distribute 0 items).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the dynamic programming table \( dp[i][j] \).
+- **State changes caused by execution**: The state of the \( dp \) table is updated iteratively based on the current values of \( i \), \( j \), and \( k \).
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is \( O(M \times N^2) \) due to the nested loops iterating over \( M \) and \( N \).
+- **Space complexity**: The space complexity is \( O(N^2) \) for the dynamic programming table.
+- **Performance assumptions**: The program is expected to perform efficiently for moderate values of \( N \) and \( M \) within the constraints of typical competitive programming limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define Mod 1000000007
+
+int main()
+{	
+	int N, M;
+	scanf("%d %d", &N, &M);
+	
+	int i, j, k;
+	long long dp[302][302] = {}, tmp;
+	for (k = 1, dp[1][1] = 1; k <= M; k++) {
+		for (i = k; i >= 1; i--) {
+			for (j = i; j >= 1; j--) {
+				tmp = dp[i][j] % Mod;
+				dp[i][j] = 0;
+				dp[i+1][j] += tmp * (N - i);
+				dp[i][i] += tmp * j;
+				dp[i][j] += tmp * (i - j);
+			}
+		}
+	}
+	
+	printf("%lld\n", dp[N][N] % Mod);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

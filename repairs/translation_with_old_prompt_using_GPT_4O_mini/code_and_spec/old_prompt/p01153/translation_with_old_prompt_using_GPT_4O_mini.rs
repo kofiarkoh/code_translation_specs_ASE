@@ -1,0 +1,43 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let t: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    for _ in 0..t {
+        let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+        let mut a = vec![0; n];
+        let mut dp = vec![vec![0; n]; n];
+
+        // Read the array elements
+        let input: Vec<i32> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        a.copy_from_slice(&input);
+
+        for k in 1..n {
+            for i in 0..n {
+                for j in 0..k {
+                    let x = (i + j + 1) % n; // Wrap around using modulo
+                    let mut v = (a[x] - a[i]).abs(); // Absolute difference
+                    v += dp[x][k - j - 1] + dp[i][j];
+                    if v > dp[i][k] {
+                        dp[i][k] = v;
+                    }
+                }
+            }
+        }
+
+        let mut ans = 0;
+        for i in 0..n {
+            if dp[i][n - 1] > ans {
+                ans = dp[i][n - 1];
+            }
+        }
+        println!("{}", ans);
+    }
+}

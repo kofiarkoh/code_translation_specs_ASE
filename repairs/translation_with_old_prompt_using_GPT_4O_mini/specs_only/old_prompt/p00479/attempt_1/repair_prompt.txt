@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a number of queries and computes a specific value based on two input integers for each query, which are constrained by a given integer `n`.
+- **What problem it solves**: It determines a value derived from the positions of two integers within a circular range defined by `n`.
+- **Core behavior**: For each query, it adjusts the input integers if they exceed half of `n`, computes a value based on their adjusted positions, and outputs this value.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Total number defining the circular range.
+  - `k`: Number of queries.
+  - `ai`, `bi`: Two integers for each query.
+- **Data types**:
+  - `n`, `k`, `ai`, `bi`: Integer (`int`).
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer.
+  - `k` must be a non-negative integer.
+  - `ai` and `bi` must be integers within the range [1, n].
+- **Assumptions about inputs**:
+  - The input values are provided in the correct format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs the computed value for each query to the console.
+- **Output format/schema**: Each output is an integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must receive valid input for `n`, `k`, `ai`, and `bi`.
+- **Explicit logical constraints**:
+  - `n > 0`
+  - `k >= 0`
+  - `1 <= ai, bi <= n`
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program outputs `k` integers, each corresponding to a query.
+- **State changes**: No persistent state changes; the program operates statelessly.
+- **Return guarantees**: Each output integer is derived from the calculations based on the inputs.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The values of `ai` and `bi` are always adjusted to be within the range [1, n] after processing.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not inferable from code; standard input handling does not include exception management.
+- **Edge-case behavior**: If `k` is 0, no output is produced.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state.
+- **State changes caused by execution**: No state changes occur; the program is stateless.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(k), where `k` is the number of queries, as each query is processed in constant time.
+- **Space complexity**: O(1), as only a fixed number of variables are used regardless of input size.
+- **Performance assumptions**: The program assumes that input is provided in a timely manner and that the system can handle the input size within reasonable limits.
+```

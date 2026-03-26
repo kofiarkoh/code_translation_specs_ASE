@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the area of a polygon defined by a series of vertices provided by the user.
+- **What problem it solves**: It computes the area of a polygon using the shoelace formula, which is useful in computational geometry.
+- **Core behavior**: The program reads a number of vertices, stores their coordinates, and computes the area based on these coordinates.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of vertices of the polygon.
+  - `p[i][0]`: x-coordinate of the i-th vertex.
+  - `p[i][1]`: y-coordinate of the i-th vertex.
+- **Data types**: 
+  - `n`: `int`
+  - `p[i][0]`, `p[i][1]`: `int`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (greater than 0).
+  - Coordinates can be any integer values.
+- **Assumptions about inputs**: The user will provide valid integer inputs for the number of vertices and their coordinates.
+
+## 3. Outputs
+- **Return values**: The program outputs a single double value representing the area of the polygon.
+- **Side effects**: The program prints the computed area to the standard output.
+- **Output format/schema**: The area is printed as a floating-point number with one decimal place.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input for `n` must be provided and must be greater than 0.
+  - The coordinates for each vertex must be provided in pairs.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The area of the polygon is calculated and printed.
+- **State changes**: No state changes occur as the program does not maintain any persistent state.
+- **Return guarantees**: The output will always be a valid floating-point number representing the area.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `p` will always contain `n` pairs of coordinates after input.
+  - The area calculation will always be based on the vertices provided.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program may crash or produce incorrect results on invalid input.
+- **Edge-case behavior**: If `n` is 1 or 2, the area calculation will not yield a meaningful polygon area.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the program does not maintain an object state.
+- **State changes caused by execution**: The program does not change any state; it only computes and outputs a value.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of vertices, as it processes each vertex in a loop.
+- **Space complexity**: O(n), due to the storage of vertex coordinates in a 2D array.
+- **Performance assumptions**: The program assumes that the input size (number of vertices) will not exceed the array limit of 100.
+```

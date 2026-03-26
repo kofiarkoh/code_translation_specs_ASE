@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes two rooted tree representations in a specific string format, combines them, and outputs the resulting tree.
+- **What problem it solves**: It allows for the addition of two trees by merging their structures and summing their values, facilitating operations on tree data structures.
+- **Core behavior**: The program reads two tree strings, analyzes their structure, combines them into a new tree format, and prints the result.
+
+## 2. Inputs
+- **Parameters**:
+  - Two strings representing trees, read from standard input.
+- **Data types**:
+  - `char input_tree[2][100000]`: Array of strings for input trees.
+  - `mystr_`: A structure containing a pointer to a character string and its length.
+- **Valid ranges or constraints**:
+  - Each input string must not exceed 100,000 characters.
+- **Assumptions about inputs**:
+  - Input strings are well-formed according to the expected tree format (e.g., balanced parentheses, valid integer values).
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to standard output.
+- **Side effects**: The output is printed to the console.
+- **Output format/schema**: The output is a string representing the combined tree in the format `"(left_tree)[value](right_tree)"`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input strings must be provided and must conform to the expected format.
+- **Explicit logical constraints**:
+  - The input strings must represent valid rooted trees.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The combined tree is printed to the console.
+- **State changes**: The `ans` array is populated with the resulting tree string.
+- **Return guarantees**: The output will reflect the correct structure and summed values of the input trees.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `mystr_` structures maintain valid pointers and lengths throughout processing.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect output or crash.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If either tree is empty (represented by a specific format), it will be handled by returning a zero-length string for that subtree.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `mystr_` structures must always point to valid strings and have non-negative lengths.
+- **State changes caused by execution**: The `ap` pointer is updated to reflect the end of the output string, and the `ans` array is modified to contain the new tree representation.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The complexity is O(n) where n is the length of the input strings, as each character is processed a limited number of times.
+- **Space complexity**: The space complexity is O(n) due to the storage of input and output strings.
+- **Performance assumptions**: The program assumes sufficient memory is available to handle the maximum input size.
+```

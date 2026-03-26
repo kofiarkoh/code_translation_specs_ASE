@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of integer pairs from standard input, processes them according to specific arithmetic rules, and outputs the results to standard output.
+- **What problem it solves**: It computes a derived value based on the parity of the first integer in each pair and the second integer, effectively transforming input pairs into a specific output format.
+- **Core behavior**: For each pair of integers (N, D), it calculates a result based on whether N is odd or even, formats the result as a string, and appends it to the output buffer.
+
+## 2. Inputs
+- **Parameters**: 
+  - Input is read from standard input (file descriptor 0).
+- **Data types**: 
+  - Input consists of characters representing digits ('0' to '9').
+- **Valid ranges or constraints**: 
+  - The input must consist of valid non-negative integers.
+  - Each integer must be within the range of a 32-bit signed integer.
+- **Assumptions about inputs**: 
+  - Input is well-formed and contains pairs of integers separated by whitespace.
+
+## 3. Outputs
+- **Return values**: 
+  - The function does not return a value; it writes directly to standard output.
+- **Side effects**: 
+  - Outputs formatted results to standard output (file descriptor 1).
+- **Output format/schema**: 
+  - Each result is followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be available and readable from standard input.
+  - The input must contain at least one valid pair of integers.
+- **Explicit logical constraints**: 
+  - The input must not exceed the buffer size of 10,000 characters.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output buffer contains the results of all processed integer pairs.
+- **State changes**: 
+  - The output buffer is populated with formatted results.
+- **Return guarantees**: 
+  - The output is written to standard output without errors, assuming valid input.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output buffer size does not exceed its allocated size (20,000 characters).
+  - The input buffer is always read from the beginning to the end.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined; the code does not handle invalid input gracefully.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly thrown; the code may lead to undefined behavior on invalid input.
+- **Edge-case behavior**: 
+  - If the input is empty or malformed, the output may be incomplete or incorrect.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with empty input and output buffers.
+- **State changes caused by execution**: 
+  - The input buffer is filled with data from standard input.
+  - The output buffer is populated with results based on processed input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(n), where n is the number of characters read from input.
+- **Space complexity**: 
+  - The space complexity is O(1) for additional variables, but O(20,000) for the output buffer.
+- **Performance assumptions**: 
+  - The program assumes that reading from standard input and writing to standard output are efficient operations.
+```

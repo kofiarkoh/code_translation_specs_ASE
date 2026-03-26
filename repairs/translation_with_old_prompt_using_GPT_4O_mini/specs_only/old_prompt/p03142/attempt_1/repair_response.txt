@@ -1,0 +1,75 @@
+```rust
+use std::collections::{HashMap, HashSet};
+use std::io::{self, BufRead};
+
+fn topological_sort(n: usize, edges: &[(usize, usize)]) -> Vec<usize> {
+    let mut in_degree = vec![0; n + 1]; // in-degree of each node
+    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new(); // adjacency list
+
+    // Build the graph and calculate in-degrees
+    for &(a, b) in edges {
+        graph.entry(a).or_insert_with(Vec::new).push(b);
+        in_degree[b] += 1;
+    }
+
+    let mut zero_in_degree = Vec::new(); // nodes with zero in-degree
+    for i in 1..=n {
+        if in_degree[i] == 0 {
+            zero_in_degree.push(i);
+        }
+    }
+
+    let mut top_order = Vec::new(); // result of topological sort
+
+    while let Some(node) = zero_in_degree.pop() {
+        top_order.push(node);
+        if let Some(neighbors) = graph.get(&node) {
+            for &neighbor in neighbors {
+                in_degree[neighbor] -= 1; // remove edge
+                if in_degree[neighbor] == 0 {
+                    zero_in_degree.push(neighbor); // add to zero in-degree list
+                }
+            }
+        }
+    }
+
+    top_order
+}
+
+fn main() -> i32 {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let m: usize = params.next().unwrap().parse().unwrap();
+
+    if n == 0 || m == 0 {
+        return 1; // Invalid input
+    }
+
+    let mut edges = Vec::new();
+
+    // Read edges
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut edge_params = line.split_whitespace();
+        let a: usize = edge_params.next().unwrap().parse().unwrap();
+        let b: usize = edge_params.next().unwrap().parse().unwrap();
+        edges.push((a, b));
+    }
+
+    // Perform topological sort
+    let top_order = topological_sort(n, &edges);
+
+    // Output the result
+    for node in top_order {
+        println!("{}", node);
+    }
+
+    0 // Successful execution
+}
+```

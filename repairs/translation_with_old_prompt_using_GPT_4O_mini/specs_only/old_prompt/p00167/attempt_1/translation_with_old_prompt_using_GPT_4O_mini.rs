@@ -1,0 +1,36 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // The first number indicates the count of subsequent integers
+        let n = match nums.get(0) {
+            Some(&count) if count > 0 && count <= 100 => count as usize,
+            _ => continue, // Skip invalid input
+        };
+
+        // Ensure we only process the specified number of integers
+        let mut a = nums[1..=n].to_vec();
+        let mut swap_count = 0;
+
+        // Bubble Sort implementation
+        for i in 0..n {
+            for j in 0..(n - 1 - i) {
+                if a[j] > a[j + 1] {
+                    a.swap(j, j + 1);
+                    swap_count += 1; // Count the swap
+                }
+            }
+        }
+
+        // Output the number of swaps
+        println!("{}", swap_count);
+    }
+}

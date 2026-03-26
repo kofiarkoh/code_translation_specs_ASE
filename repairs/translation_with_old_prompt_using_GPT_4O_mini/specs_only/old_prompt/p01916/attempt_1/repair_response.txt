@@ -1,0 +1,27 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+
+    // Array to track the presence of each character
+    // 26 letters + 4 unused slots
+    let mut a = [false; 30];
+
+    // Iterate over each character in the input string
+    for c in input.chars() {
+        // Calculate the index for the character 'a' to 'z'
+        let index = (c as usize) - ('a' as usize);
+        // Toggle the presence of the character
+        a[index] = !a[index];
+    }
+
+    // Count unique characters that have an odd frequency
+    let odd_count = a.iter().filter(|&&present| present).count();
+
+    // Output half the count of unique characters with odd frequencies
+    println!("{}", odd_count / 2);
+}
+```

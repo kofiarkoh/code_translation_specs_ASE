@@ -1,0 +1,68 @@
+use std::collections::HashMap;
+use std::fmt;
+
+#[derive(Debug)]
+struct TreeNode {
+    cost: usize,
+    depth: usize,
+    children: Vec<usize>,
+}
+
+impl TreeNode {
+    fn new(cost: usize) -> Self {
+        TreeNode {
+            cost,
+            depth: 0,
+            children: Vec::new(),
+        }
+    }
+}
+
+struct FractalTree {
+    nodes: Vec<TreeNode>,
+    probability: f64,
+}
+
+impl FractalTree {
+    fn new(probability: f64, num_nodes: usize) -> Self {
+        FractalTree {
+            nodes: vec![TreeNode::new(0); num_nodes],
+            probability,
+        }
+    }
+
+    fn add_edge(&mut self, parent: usize, child: usize, cost: usize) {
+        self.nodes[parent].children.push(child);
+        self.nodes[child].cost = cost;
+    }
+
+    fn dfs(&mut self, node_index: usize, depth: usize) {
+        self.nodes[node_index].depth = depth;
+        for &child in &self.nodes[node_index].children {
+            self.dfs(child, depth + 1);
+        }
+    }
+
+    fn compute_weighted_sum(&self) -> f64 {
+        self.nodes.iter().map(|node| {
+            node.cost as f64 * (self.probability.powi(node.depth as i32))
+        }).sum()
+    }
+
+    fn calculate(&mut self) -> f64 {
+        self.dfs(0, 0); // Start DFS from the root node (assumed to be index 0)
+        self.compute_weighted_sum()
+    }
+}
+
+fn main() {
+    let probability: f64 = 0.5; // Example probability factor
+    let num_nodes: usize = 3; // Example number of nodes
+
+    let mut tree = FractalTree::new(probability, num_nodes);
+    tree.add_edge(0, 1, 10); // Add edge from node 0 to node 1 with cost 10
+    tree.add_edge(0, 2, 20); // Add edge from node 0 to node 2 with cost 20
+
+    let result = tree.calculate();
+    println!("{:.10}", result); // Output the result formatted to 10 decimal places
+}

@@ -1,0 +1,111 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Box<Edge>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02678/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:21:50
+     |
+  21 |     let mut graph: Vec<Option<Box<Edge>>> = vec![None; n + 1];
+     |                                             -----^^^^--------
+     |                                             |    |
+     |                                             |    the trait `Clone` is not implemented for `Box<Edge>`
+     |                                             required by a bound introduced by this call
+     |
+     = note: required for `Box<Edge>` to implement `Clone`
+     = note: 1 redundant requirement hidden
+     = note: required for `Option<Box<Edge>>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  21 |     let mut graph: Vec<Option<Box<Edge>>> = vec![&None; n + 1];
+     |                                                  +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+use std::io::{self, BufRead};
+
+struct Edge {
+    to: usize,
+    next: Option<Box<Edge>>,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize the graph and predecessor array
+    let mut graph: Vec<Option<Box<Edge>>> = vec![None; n + 1];
+    let mut predecessors = vec![-1; n + 1];
+
+    // Read edges and construct the graph
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let a: usize = edge_parts.next().unwrap().parse().unwrap();
+        let b: usize = edge_parts.next().unwrap().parse().unwrap();
+        push(&mut graph, a, b);
+        push(&mut graph, b, a);
+    }
+
+    // BFS initialization
+    predecessors[1] = 0; // Starting node
+    let mut queue = VecDeque::new();
+    queue.push_back(1);
+
+    // BFS traversal
+    while let Some(i) = queue.pop_front() {
+        let mut current_edge = graph[i].as_ref();
+        while let Some(edge) = current_edge {
+            let j = edge.to;
+            if predecessors[j] == -1 {
+                predecessors[j] = i as isize; // Store predecessor
+                queue.push_back(j);
+            }
+            current_edge = edge.next.as_ref();
+        }
+    }
+
+    // Output results
+    println!("Yes");
+    for i in 2..=n {
+        println!("{}", predecessors[i]);
+    }
+}
+
+// Function to add an edge to the graph
+fn push(graph: &mut Vec<Option<Box<Edge>>>, from: usize, to: usize) {
+    let new_edge = Box::new(Edge {
+        to,
+        next: graph[from].take(),
+    });
+    graph[from] = Some(new_edge);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

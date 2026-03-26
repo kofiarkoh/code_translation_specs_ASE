@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of ways to select subsets of integers from a given list such that the sum of the selected integers is a multiple of a specified integer \( A \).
+- **What problem it solves**: It addresses the combinatorial problem of counting valid subsets that meet specific sum criteria based on user-defined parameters.
+- **Core behavior**: The program reads a list of integers and computes the number of valid subsets whose sums are multiples of \( A \), using dynamic programming.
+
+## 2. Inputs
+- **Parameters**:
+  - \( N \): The number of integers in the list.
+  - \( A \): The integer that the sum of selected integers must be a multiple of.
+- **Data types**:
+  - Both \( N \) and \( A \) are of type `long long`.
+  - The list of integers \( x \) is an array of type `long long`.
+- **Valid ranges or constraints**:
+  - \( N \) must be a non-negative integer.
+  - \( A \) must be a positive integer.
+  - Each integer in the list \( x[i] \) can be any `long long` value.
+- **Assumptions about inputs**:
+  - The input values are provided in a valid format as specified.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the count of valid subsets.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the integer count.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format.
+  - \( N \) must be non-negative and \( A \) must be positive.
+- **Explicit logical constraints**: The sum of the integers must be computable without overflow for the given constraints.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the number of valid subsets.
+- **State changes**: The program does not maintain any persistent state beyond local variables.
+- **Return guarantees**: The output will be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The dynamic programming table \( dp[j][k][s] \) is correctly populated based on the defined rules throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If \( N = 0 \) or \( A \) is not positive, the output may not be meaningful.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and computing results.
+- **State changes caused by execution**: The state of the dynamic programming table is updated iteratively based on the input values.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is \( O(N^2 \cdot \text{sum}) \), where \( \text{sum} \) is the total sum of the integers.
+- **Space complexity**: The space complexity is \( O(N^2 \cdot \text{sum}) \) due to the dynamic programming table.
+- **Performance assumptions**: The program assumes that \( N \) and the sum of the integers are within reasonable limits to avoid excessive memory usage and computation time.
+```

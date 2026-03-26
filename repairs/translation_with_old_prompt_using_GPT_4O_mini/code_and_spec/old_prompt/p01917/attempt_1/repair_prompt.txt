@@ -1,0 +1,126 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a set of integer arrays to determine the minimum difference between a modified value and an original value, under specific constraints.
+- **What problem it solves**: It identifies the smallest adjustment needed to a specific element in an array while ensuring that the number of elements exceeding a certain threshold does not exceed a predefined limit.
+- **Core behavior**: The program reads input values, computes transformations based on comparisons, and outputs either the minimum adjustment or a specific message if no valid adjustment exists.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of elements in the input arrays.
+  - `x`: An array of integers representing initial values.
+  - `a`: A 2D array of integers with three rows, each containing `n` elements.
+- **Data types**:
+  - `n`: `int`
+  - `x`: `int[110]`
+  - `a`: `int[3][110]`
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer (1 ≤ n ≤ 110).
+  - Elements of `x` and `a` can be any integer.
+- **Assumptions about inputs**: It is assumed that the input will be provided in the correct format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the minimum adjustment or a specific message.
+- **Side effects**: The program prints results to the standard output.
+- **Output format/schema**: If a valid adjustment is found, it outputs an integer; otherwise, it outputs the string "Saiko".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided correctly, with `n` followed by `n` integers for `x` and `3*n` integers for `a`.
+- **Explicit logical constraints**: `n` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will either output the minimum adjustment or the message "Saiko".
+- **State changes**: The arrays `s`, `t`, and `x` are modified during execution.
+- **Return guarantees**: The output will always be either an integer or a string.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of arrays `s`, `t`, and `x` remains consistent with `n`.
+  - The values in `a` and `x` are not modified outside of the defined logic.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may exhibit undefined behavior or crash.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `n` is 0 or negative, the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates on arrays `s`, `t`, and `x`, which are initialized and modified during execution.
+- **State changes caused by execution**: The arrays `s` and `t` are populated based on the logic defined in the function `f`, and `a` is modified based on the conditions checked in the main loop.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n^2) due to nested loops iterating over `n`.
+- **Space complexity**: The space complexity is O(n) for the arrays used.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraint of `n = 110`.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define min(p,q)((p)<(q)?(p):(q))
+
+//自分より真に大きいのが7人以下
+//取る点としては、nかn+1だけを考慮すればよい
+
+int n;
+int s[110],t[110];
+int a[3][110],x[110];
+
+void f(int*p){
+	for(int i=0;i<n;i++){
+		int cnt=0;
+		for(int j=0;j<n;j++)if(p[j]>p[i])cnt++;
+		t[i]=x[cnt];
+	}
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%d",x+i);
+	for(int i=0;i<n;i++)scanf("%d%d%d",a[0]+i,a[1]+i,a[2]+i);
+	int ans=1000;
+	for(int k=0;k<3;k++){
+		for(int i=0;i<n;i++)s[i]=0;
+		for(int kk=0;kk<3;kk++)if(kk!=k){
+			f(a[kk]);
+			for(int i=0;i<n;i++)s[i]+=t[i];
+		}
+
+		int ori=a[k][0];
+		for(int i=1;i<n;i++){
+			for(int d=0;d<2;d++)if(a[k][i]+d>ori){
+				a[k][0]=a[k][i]+d;
+				f(a[k]);
+				int cnt=0;
+				for(int j=0;j<n;j++)if(s[j]+t[j]>s[0]+t[0])cnt++;
+				if(cnt<=7)ans=min(ans,a[k][0]-ori);
+			}
+		}
+		a[k][0]=ori;
+	}
+	if(ans==1000)puts("Saiko");
+	else printf("%d\n",ans);
+}
+=== C CODE END ===

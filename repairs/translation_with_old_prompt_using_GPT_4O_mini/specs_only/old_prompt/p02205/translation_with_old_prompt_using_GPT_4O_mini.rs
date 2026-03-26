@@ -1,0 +1,28 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read inputs from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut inputs = input.split_whitespace();
+
+    // Parse inputs
+    let n: i64 = inputs.next().unwrap().parse().expect("Invalid input for N");
+    let mut a: i32 = inputs.next().unwrap().parse().expect("Invalid input for A");
+    let mut b: i32 = inputs.next().unwrap().parse().expect("Invalid input for B");
+
+    // Calculate effective iterations (N % 12)
+    let iterations = (n % 12).rem_euclid(12); // Ensure non-negative iterations
+
+    // Perform the arithmetic operations for the specified number of iterations
+    for _ in 0..iterations {
+        a -= 2; // Decrement A by 2
+        b += 1; // Increment B by 1
+    }
+
+    // Output the final values of A and B
+    println!("{} {}", a, b);
+
+    // Return 0 to indicate successful execution
+    std::process::exit(0);
+}

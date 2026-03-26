@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a partitioning algorithm that rearranges elements in an array based on a pivot value, specifically the last element of the array segment.
+- **What problem it solves**: It facilitates the process of sorting by partitioning an array into elements less than or equal to a pivot and those greater than the pivot.
+- **Core behavior**: The `Partition` function rearranges the elements of the array `A` such that all elements less than or equal to the pivot (the last element of the specified segment) are on the left, and all elements greater are on the right. The function returns the index of the pivot after partitioning.
+
+## 2. Inputs
+- **Parameters**: 
+  - `p`: Starting index of the segment to partition (inclusive).
+  - `r`: Ending index of the segment to partition (inclusive).
+- **Data types**: 
+  - Both `p` and `r` are of type `int`.
+- **Valid ranges or constraints**: 
+  - `1 <= p <= r <= N` where `N` is defined as 1,000,000.
+- **Assumptions about inputs**: 
+  - The array `A` is assumed to be initialized and populated with at least `n` elements before calling the `Partition` function.
+
+## 3. Outputs
+- **Return values**: 
+  - The function returns an `int` representing the index of the pivot after partitioning.
+- **Side effects**: 
+  - The function modifies the global array `A` in place.
+- **Output format/schema**: 
+  - The output is printed to the console, with the pivot element enclosed in square brackets and other elements printed normally.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The array `A` must be populated with at least `n` integers.
+  - The indices `p` and `r` must be valid and within the bounds of the array.
+- **Explicit logical constraints**: 
+  - `p` must be less than or equal to `r`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The elements of the array `A` are rearranged such that all elements from index `p` to `r-1` are less than or equal to `A[r]`, and all elements greater than `A[r]` are to its right.
+- **State changes**: 
+  - The global array `A` is modified.
+- **Return guarantees**: 
+  - The function returns a valid index within the range `[p, r]`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `A` remains within the bounds of its defined size `N`.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined if `p` or `r` are out of bounds or if `n` is less than 1.
+- **Exceptions thrown?**: 
+  - The code does not explicitly handle exceptions; it may lead to runtime errors if invalid indices are accessed.
+- **Edge-case behavior**: 
+  - If `n` is 0 or negative, the program may not behave as expected.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The array `A` can be in any state before the partitioning, but must be populated with integers.
+- **State changes caused by execution**: 
+  - The order of elements in the array `A` is altered based on the partitioning logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The partitioning operation runs in O(n) time, where n is the number of elements in the segment being partitioned.
+- **Space complexity**: 
+  - The algorithm operates in O(1) additional space, as it modifies the array in place.
+- **Performance assumptions**: 
+  - The performance is dependent on the distribution of the input data; worst-case scenarios may occur with already sorted or reverse-sorted data.
+```

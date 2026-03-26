@@ -1,0 +1,157 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines whether a given polygon (defined by a set of vertices) intersects with a predefined square region in a 2D plane.
+- **What problem it solves**: It solves the problem of checking if a polygon is completely outside or intersects with a defined square area.
+- **Core behavior**: The program reads the vertices of a polygon, processes them to check for intersections with the square, and outputs whether there is an intersection.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of vertices of the polygon (integer).
+  - `p[i]`: Array of points representing the vertices of the polygon (PP structure).
+- **Data types**:
+  - `n`: `int`
+  - `p`: Array of `PP` structures (each containing two `double` values for coordinates).
+- **Valid ranges or constraints**:
+  - `n` must be greater than 0.
+  - Each vertex coordinate (x, y) can be any valid `int` value.
+- **Assumptions about inputs**:
+  - The polygon is defined in a 2D Cartesian coordinate system.
+  - The input vertices are provided in a sequential manner that forms a closed polygon.
+
+## 3. Outputs
+- **Return values**: The program outputs "1" if the polygon intersects with the square and "0" if it does not.
+- **Side effects**: None.
+- **Output format/schema**: The output is a single line containing either "1" or "0".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be valid and formatted correctly.
+  - The number of vertices `n` must be a positive integer.
+- **Explicit logical constraints**: The vertices must form a valid polygon.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output either "1" or "0" based on the intersection check.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The output will accurately reflect whether the polygon intersects with the square.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `p` will always contain the vertices of the polygon, with the last vertex being a copy of the first to close the polygon.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on valid input.
+- **Edge-case behavior**: If `n` is 0 or negative, the program will terminate without processing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state where it processes the polygon vertices and checks for intersections.
+- **State changes caused by execution**: The state transitions occur within the local variables during the intersection checks but do not affect any external state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) for processing the polygon vertices, where n is the number of vertices.
+- **Space complexity**: The space complexity is O(1) for additional storage, aside from the input storage.
+- **Performance assumptions**: The program assumes that the input size is manageable within typical constraints for competitive programming.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1267: How I Mathematician Wonder What You Are!
+// 2017.12.18 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+
+#define EPS 1e-8
+
+typedef struct { double x, y; } PP;
+typedef struct { PP s, e; } LINE;
+PP p[51];
+
+PP a[5] = {{0,0},{10000,0},{10000,10000},{0,10000},{0,0}};
+
+int dcmp(double x)
+{
+	if (fabs(x) < EPS) return 0;
+	return x < 0 ? -1 : 1;
+}
+
+double cross(double ax, double ay, double bx, double by) { return ax*by - ay*bx; }
+
+void lineIntersection(PP *p, LINE *a, PP *vs, PP *ve)
+{
+    double a1, a2;
+
+	a1 = cross(ve->x  - vs->x, ve->y  - vs->y,
+			   a->s.x - vs->x, a->s.y - vs->y);
+	a2 = cross(ve->x  - vs->x, ve->y  - vs->y,
+			   a->e.x - vs->x, a->e.y - vs->y);
+	p->x = (a->s.x*a2 - a->e.x*a1) / (a2-a1);
+	p->y = (a->s.y*a2 - a->e.y*a1) / (a2-a1);
+}
+
+int convex_cut(LINE *u, int n, PP *p, PP *po)
+{
+	int i, d1, d2, top = 0;
+
+    for (i = 0; i < n; i++) {
+        d1 = dcmp(cross(u->e.x - u->s.x, u->e.y - u->s.y,
+						p[i].x - u->s.x, p[i].y - u->s.y));
+        d2 = dcmp(cross(u->e.x - u->s.x, u->e.y - u->s.y,
+				      p[i+1].x - u->s.x, p[i+1].y - u->s.y));
+        if (d1 >= 0) po[top++] = p[i];
+        if (d1*d2 < 0) lineIntersection(po + top++, u, p+i, p+i+1);
+    }
+	po[top].x = po[0].x, po[top].y = po[0].y;
+    return top;
+}
+
+int main()
+{
+	int n, i, x, y, k, k1, k2;
+	PP pol[2][100];
+	LINE u;
+
+	while(scanf("%d", &n) && n > 0) {
+		for (i = 0; i < n; i++) {
+			scanf("%d%d", &x, &y);
+			p[i].x = x, p[i].y = y;
+		}
+		p[n] = p[0];
+
+		k = 4, memcpy(pol[0], a, sizeof(a));
+
+		for (k1 = 0, k2 = 1, i = 0; i < n; i++, k1 = k2, k2 = !k2) {
+			u.s = p[i], u.e = p[i+1];
+			k = convex_cut(&u, k, pol[k1], pol[k2]);
+			if (k == 0) break;
+		}
+		puts(k > 0 ? "1" : "0");
+	}
+	return 0;
+}
+=== C CODE END ===

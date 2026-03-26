@@ -1,0 +1,131 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00749/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:42:9
+   |
+42 |     let reader = stdin.lock();
+   |         ^^^^^^ not mutable
+...
+45 |     reader.read_line(&mut dimensions).unwrap();
+   |     ------ cannot borrow as mutable
+...
+53 |         reader.read_line(&mut line).unwrap();
+   |         ------ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+42 |     let mut reader = stdin.lock();
+   |         +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashSet;
+use std::io::{self, BufRead};
+
+struct UnionFind {
+    parent: Vec<usize>,
+    rank: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(size: usize) -> Self {
+        UnionFind {
+            parent: (0..size).collect(),
+            rank: vec![0; size],
+        }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+        if root_x != root_y {
+            if self.rank[root_x] > self.rank[root_y] {
+                self.parent[root_y] = root_x;
+            } else if self.rank[root_x] < self.rank[root_y] {
+                self.parent[root_x] = root_y;
+            } else {
+                self.parent[root_y] = root_x;
+                self.rank[root_x] += 1;
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut dimensions = String::new();
+    reader.read_line(&mut dimensions).unwrap();
+    let mut dims = dimensions.split_whitespace();
+    let w: usize = dims.next().unwrap().parse().unwrap();
+    let h: usize = dims.next().unwrap().parse().unwrap();
+
+    let mut grid = Vec::new();
+    for _ in 0..h {
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        grid.push(line.trim().chars().collect::<Vec<_>>());
+    }
+
+    let mut uf = UnionFind::new(w * h);
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+    for i in 0..h {
+        for j in 0..w {
+            if grid[i][j] == '#' {
+                for &(di, dj) in &directions {
+                    let ni = i as isize + di;
+                    let nj = j as isize + dj;
+                    if ni >= 0 && ni < h as isize && nj >= 0 && nj < w as isize {
+                        if grid[ni as usize][nj as usize] == '#' {
+                            uf.union(i * w + j, ni as usize * w + nj as usize);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let mut roots = HashSet::new();
+    for i in 0..h {
+        for j in 0..w {
+            if grid[i][j] == '#' {
+                roots.insert(uf.find(i * w + j));
+            }
+        }
+    }
+
+    // The structure is stable if there is only one connected component of occupied cells
+    if roots.len() == 1 {
+        println!("STABLE");
+    } else {
+        println!("UNSTABLE");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

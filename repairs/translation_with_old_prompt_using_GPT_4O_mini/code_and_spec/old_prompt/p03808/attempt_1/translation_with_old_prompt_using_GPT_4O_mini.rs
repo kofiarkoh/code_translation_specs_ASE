@@ -1,0 +1,58 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n + 1]; // Create a vector of size N + 1
+
+    // Read the array A
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+    a[n] = a[0]; // Set A[N] = A[0]
+
+    let mut sum = 0;
+    let mut diff = vec![0; n + 1]; // Create a vector for differences
+
+    // Calculate the sum and differences
+    for i in 1..=n {
+        sum += a[i];
+        diff[i] = a[i] - a[i - 1];
+    }
+
+    // Check if the sum is divisible by the triangular number
+    if sum % (n * (n + 1) / 2) != 0 {
+        println!("NO");
+    } else {
+        sum /= n * (n + 1) / 2;
+        diff[0] = 0; // Initialize diff[0] to 0
+        let mut valid = true;
+
+        for i in 1..=n {
+            diff[i] = (sum - diff[i]) / n;
+            if diff[i] < 0 || diff[i] > sum {
+                valid = false;
+                break;
+            } else {
+                diff[0] += diff[i];
+            }
+        }
+
+        if !valid || diff[0] != sum {
+            println!("NO");
+        } else {
+            for i in 1..=n {
+                a[n] -= diff[i] * (n - i + 1);
+            }
+            if a[n] != 0 {
+                println!("NO");
+            } else {
+                println!("YES");
+            }
+        }
+    }
+}

@@ -1,0 +1,40 @@
+use std::io;
+
+fn digit_sum(mut n: i32) -> i32 {
+    let mut sum = 0;
+    while n > 0 {
+        sum += n % 10; // Add the last digit to the sum
+        n /= 10; // Remove the last digit
+    }
+    sum
+}
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read input from standard input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<i32> = input
+        .split_whitespace()
+        .map(|s| s.parse().expect("Invalid input"))
+        .collect();
+    
+    // Unpack inputs
+    let n = parts[0]; // Upper limit (N)
+    let a = parts[1]; // Lower bound (A)
+    let b = parts[2]; // Upper bound (B)
+
+    let mut count = 0;
+
+    // Iterate from 1 to N
+    for i in 1..=n {
+        let d_sum = digit_sum(i); // Calculate digit sum
+        // Check if digit sum is within the range [A, B]
+        if d_sum >= a && d_sum <= b {
+            count += i; // Add to count if within range
+        }
+    }
+
+    // Print the result
+    println!("{}", count);
+}

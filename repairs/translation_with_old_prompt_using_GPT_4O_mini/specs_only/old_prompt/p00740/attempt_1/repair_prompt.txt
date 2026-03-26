@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a simulation that determines the first index in a circular array where a specific condition is met based on input parameters.
+- **What problem it solves**: It solves the problem of finding the first index in a circular buffer that can be reached after a specified number of steps, considering the number of steps taken at each index.
+- **Core behavior**: The program continuously reads pairs of integers (n and p) until n is zero. For each pair, it simulates a circular traversal of an array of size n, incrementing counters based on the remaining steps p, and identifies the first index that can be reached without any remaining steps.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Size of the circular array (number of indices).
+  - `p`: Number of steps to take.
+- **Data types**: 
+  - `n`: `int`
+  - `p`: `int`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (n > 0).
+  - `p` can be any non-negative integer (p >= 0).
+- **Assumptions about inputs**: The input is assumed to be well-formed and provided in pairs until a zero is encountered for `n`.
+
+## 3. Outputs
+- **Return values**: The program does not return values but prints the result directly to standard output.
+- **Side effects**: Outputs the first index of the circular array that meets the specified condition.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer inputs for `n` and `p`.
+  - The input must be terminated by a zero for `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will print the first index of the circular array that can be reached with the given steps.
+- **State changes**: The internal state of the array (counter values) is modified during execution.
+- **Return guarantees**: The program guarantees to print an index or terminate without output if `n` is zero.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `c` is always initialized to zero before use.
+  - The index `i` is always incremented in a controlled manner, ensuring it wraps around the size of the array.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it assumes valid input is provided.
+- **Exceptions thrown?**: No exceptions are thrown; the program may enter an infinite loop or terminate unexpectedly if invalid input is encountered.
+- **Edge-case behavior**: If `n` is zero, the program terminates without output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the array `c` and the index `i`.
+- **State changes caused by execution**: The values in the array `c` are updated based on the number of steps taken, and the index `i` is incremented in a circular manner.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) in the worst case for each input pair, as it may require iterating through the array multiple times.
+- **Space complexity**: The space complexity is O(n) due to the storage of the array `c`.
+- **Performance assumptions**: The program is expected to perform efficiently for reasonable values of `n` and `p`, but performance may degrade for very large inputs due to the linear traversal.
+```

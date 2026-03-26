@@ -1,0 +1,96 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: `if` and `else` have incompatible types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03722/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:57:56
+   |
+57 |         let result = if min[n] == inf { "inf" } else { min[n].to_string() };
+   |                                         -----          ^^^^^^^^^^^^^^^^^^ expected `&str`, found `String`
+   |                                         |
+   |                                         expected because of this
+   |
+help: consider borrowing here
+   |
+57 |         let result = if min[n] == inf { "inf" } else { &min[n].to_string() };
+   |                                                        +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize the min array with "infinity" (using a large value)
+    let inf = std::i64::MAX;
+    let mut min = vec![inf; n + 1];
+    min[1] = 0; // Starting node cost is 0
+
+    // Read edges
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let u: usize = parts.next().unwrap().parse().unwrap();
+        let w: usize = parts.next().unwrap().parse().unwrap();
+        let c: i64 = parts.next().unwrap().parse().unwrap();
+        edges.push((u, w, -c)); // Negate cost as per specification
+    }
+
+    // Bellman-Ford algorithm
+    for _ in 1..n {
+        let mut updated = false;
+        for &(u, w, c) in &edges {
+            if min[u] != inf && min[u] + c < min[w] {
+                min[w] = min[u] + c;
+                updated = true;
+            }
+        }
+        if !updated {
+            break; // No updates means we can stop early
+        }
+    }
+
+    // Check for negative cycles
+    let mut has_negative_cycle = false;
+    for &(u, w, c) in &edges {
+        if min[u] != inf && min[u] + c < min[w] {
+            has_negative_cycle = true;
+            break;
+        }
+    }
+
+    // Output result
+    if has_negative_cycle {
+        println!("inf");
+    } else {
+        let result = if min[n] == inf { "inf" } else { min[n].to_string() };
+        println!("{}", result);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

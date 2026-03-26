@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to a card game problem where pairs of cards can be removed from a set of 20 cards based on specific matching rules.
+- **What problem it solves**: It determines the maximum number of pairs of cards that can be removed from a given set, thereby calculating the minimum number of cards left after all possible removals.
+- **Core behavior**: The program reads multiple sets of cards, processes each set to find and remove pairs, and outputs the number of cards remaining after all possible removals.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of test cases (sets of cards).
+  - `buf`: An array of characters representing the cards.
+- **Data types**: 
+  - `n`: Integer.
+  - `buf`: Character array of size 20.
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer.
+  - Each character in `buf` must represent a digit (0-9).
+- **Assumptions about inputs**: The input format is strictly followed, with exactly 20 characters for each test case.
+
+## 3. Outputs
+- **Return values**: The program outputs the number of cards remaining after all possible removals for each test case.
+- **Side effects**: The program prints results to the standard output.
+- **Output format/schema**: Each result is printed on a new line, representing the number of remaining cards.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of cards must be exactly 20 for each test case.
+- **Explicit logical constraints**: The input must consist of valid characters (digits) and must not exceed the specified limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the number of remaining cards for each test case.
+- **State changes**: The `max_` variable will hold the maximum depth of recursion reached during the processing of card removals.
+- **Return guarantees**: The output will always be a non-negative integer representing the number of remaining cards.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `buf` array will always contain exactly 20 characters during processing.
+  - The `max_` variable will always reflect the maximum depth of recursive calls made.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not implement exception handling.
+- **Edge-case behavior**: If the input does not conform to the expected format, the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a state where it processes card arrays and tracks the maximum depth of removals.
+- **State changes caused by execution**: The state of `max_` changes as pairs of cards are removed and the depth of recursion increases.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is not explicitly defined but is likely exponential due to the recursive nature of the solution.
+- **Space complexity**: The space complexity is O(1) for the variables used, but O(n) for the recursion stack, where n is the depth of recursion.
+- **Performance assumptions**: The program is expected to handle a reasonable number of test cases efficiently, but performance may degrade with larger inputs due to recursion depth.
+```

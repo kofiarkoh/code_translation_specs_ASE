@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_V: usize = 10002;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read number of vertices and edges
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let v: usize = parts.next().unwrap().parse().unwrap();
+    let e: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize adjacency list and in-degree count
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); v];
+    let mut count = vec![0; v];
+    let mut hi = vec![0; v];
+
+    // Read edges and populate the graph
+    let mut edges = Vec::with_capacity(e);
+    for _ in 0..e {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let s: usize = edge_parts.next().unwrap().parse().unwrap();
+        let t: usize = edge_parts.next().unwrap().parse().unwrap();
+        edges.push((s, t));
+        hi[s] += 1;
+    }
+
+    // Allocate adjacency lists based on hi counts
+    for i in 0..v {
+        to[i] = vec![0; hi[i]];
+    }
+
+    // Populate adjacency list and in-degree counts
+    for (s, t) in edges {
+        to[s][count[s]] = t;
+        count[t] += 1;
+    }
+
+    // Perform topological sort
+    topological_sort(v, &to, &mut count);
+}
+
+fn topological_sort(v: usize, to: &Vec<Vec<usize>>, count: &mut Vec<usize>) {
+    let mut q = Vec::new();
+    let mut top = 0;
+
+    // Initialize queue with vertices having zero in-degree
+    for i in 0..v {
+        if count[i] == 0 {
+            q.push(i);
+        }
+    }
+
+    // Process the queue
+    while top < q.len() {
+        let i = q[top];
+        top += 1;
+        println!("{}", i);
+
+        for &k in &to[i] {
+            if let Some(c) = count.get_mut(k) {
+                *c -= 1;
+                if *c == 0 {
+                    q.push(k);
+                }
+            }
+        }
+    }
+}
+```

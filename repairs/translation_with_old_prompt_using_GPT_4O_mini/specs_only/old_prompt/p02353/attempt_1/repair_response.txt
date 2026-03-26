@@ -1,0 +1,112 @@
+```rust
+use std::io::{self, BufRead};
+
+const INIT_VAL: i64 = 0;
+
+struct SegmentTree {
+    size: usize,
+    tree: Vec<i64>,
+    lazy: Vec<i64>,
+}
+
+impl SegmentTree {
+    fn new(size: usize) -> Self {
+        let tree_size = size.next_power_of_two() * 2; // Ensure size is a power of two
+        SegmentTree {
+            size,
+            tree: vec![INIT_VAL; tree_size],
+            lazy: vec![INIT_VAL; tree_size],
+        }
+    }
+
+    fn update_range(&mut self, start: usize, end: usize, value: i64) {
+        self.update_range_util(1, 0, self.size - 1, start, end, value);
+    }
+
+    fn update_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize, value: i64) {
+        if self.lazy[node] != INIT_VAL {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = INIT_VAL;
+        }
+
+        if node_start > node_end || node_start > end || node_end < start {
+            return;
+        }
+
+        if node_start >= start && node_end <= end {
+            self.tree[node] += value * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += value;
+                self.lazy[node * 2 + 1] += value;
+            }
+            return;
+        }
+
+        let mid = (node_start + node_end) / 2;
+        self.update_range_util(node * 2, node_start, mid, start, end, value);
+        self.update_range_util(node * 2 + 1, mid + 1, node_end, start, end, value);
+        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
+    }
+
+    fn query_range(&mut self, start: usize, end: usize) -> i64 {
+        self.query_range_util(1, 0, self.size - 1, start, end)
+    }
+
+    fn query_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize) -> i64 {
+        if node_start > node_end || node_start > end || node_end < start {
+            return 0;
+        }
+
+        if self.lazy[node] != INIT_VAL {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = INIT_VAL;
+        }
+
+        if node_start >= start && node_end <= end {
+            return self.tree[node];
+        }
+
+        let mid = (node_start + node_end) / 2;
+        let left_sum = self.query_range_util(node * 2, node_start, mid, start, end);
+        let right_sum = self.query_range_util(node * 2 + 1, mid + 1, node_end, start, end);
+        left_sum + right_sum
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let num: usize = parts.next().unwrap().parse().unwrap();
+    let queries: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut segment_tree = SegmentTree::new(num);
+
+    for _ in 0..queries {
+        let query_line = lines.next().unwrap().unwrap();
+        let mut query_parts = query_line.split_whitespace();
+        let query_type: i32 = query_parts.next().unwrap().parse().unwrap();
+        let start: usize = query_parts.next().unwrap().parse().unwrap();
+        let end: usize = query_parts.next().unwrap().parse().unwrap();
+
+        if query_type == 1 {
+            let x: i64 = query_parts.next().unwrap().parse().unwrap();
+            segment_tree.update_range(start, end, x);
+        } else if query_type == 2 {
+            let result = segment_tree.query_range(start, end);
+            println!("{}", result);
+        }
+    }
+}
+```

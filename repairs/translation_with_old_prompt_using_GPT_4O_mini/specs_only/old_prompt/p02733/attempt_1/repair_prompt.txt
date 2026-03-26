@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a grid of binary characters ('0' and '1') to determine the minimum number of contiguous segments of rows that can be selected such that the number of '1's in each selected segment does not exceed a specified limit.
+- **What problem it solves**: It addresses the problem of segmenting a binary grid while adhering to constraints on the number of '1's in each segment, optimizing for the minimum number of segments required.
+- **Core behavior**: The program reads dimensions and a binary grid, iteratively checks segments of rows for the count of '1's, and calculates the minimum number of segments needed to satisfy the constraints.
+
+## 2. Inputs
+- **Parameters**:
+  - `H`: Number of rows in the grid.
+  - `W`: Number of columns in the grid.
+  - `K`: Maximum allowed number of '1's in any selected segment.
+- **Data types**:
+  - `H`, `W`, `K`: Integer.
+  - `S`: 2D character array (array of strings).
+- **Valid ranges or constraints**:
+  - `H`: 1 ≤ H ≤ 12
+  - `W`: 1 ≤ W ≤ 1000
+  - `K`: 0 ≤ K ≤ H
+- **Assumptions about inputs**: The input grid is well-formed, with each row containing exactly `W` characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum number of segments required.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format.
+  - The dimensions `H` and `W` must be within the specified ranges.
+- **Explicit logical constraints**: The grid must contain only '0' and '1' characters.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the minimum number of segments that can be formed under the given constraints.
+- **State changes**: The internal state of the program includes the processed grid and computed values for segments.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The count of '1's in any segment does not exceed `K` during processing.
+  - The indices used for accessing the grid remain within valid bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `K` is 0, the program will look for segments with no '1's, which may lead to a specific output based on the grid content.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states for row segments and counts of '1's.
+- **State changes caused by execution**: The state transitions occur as segments are evaluated and counts are updated.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The complexity is approximately O(H * W^2) due to nested loops iterating over rows and columns.
+- **Space complexity**: The space complexity is O(H) for storing counts and flags.
+- **Performance assumptions**: The program is expected to perform efficiently within the given constraints, but may struggle with maximum input sizes due to the nested loops.
+```

@@ -1,0 +1,100 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a set of line segments defined by their endpoints and analyzes their geometric relationships to produce a summary of specific intersection and overlap characteristics.
+- **What problem it solves**: It determines how many segments are connected, intersecting, or overlapping based on their endpoints and outputs various counts related to these relationships.
+- **Core behavior**: The program reads multiple line segments, checks for intersections and overlaps, and categorizes them into predefined groups, returning counts of each category.
+
+## 2. Inputs
+- **Parameters**: 
+  - Number of segments `n`
+  - Each segment defined by two endpoints `(x1, y1)` and `(x2, y2)`
+- **Data types**: 
+  - `int` for coordinates and counts
+  - `char` for flags
+  - `struct` for segment representation
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer.
+  - Coordinates `(x1, y1)` and `(x2, y2)` must be within the bounds of the defined array sizes.
+- **Assumptions about inputs**: 
+  - Input is well-formed and adheres to the expected format.
+
+## 3. Outputs
+- **Return values**: 
+  - Outputs a series of counts related to the segments, printed to standard output.
+- **Side effects**: 
+  - Modifies global state variables to store counts of various segment relationships.
+- **Output format/schema**: 
+  - Outputs a single line containing counts separated by spaces, with the first count being the total number of segments processed.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The program must be initialized with valid segment data.
+- **Explicit logical constraints**: 
+  - The number of segments `n` must be greater than zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the counts of segments based on their relationships.
+- **State changes**: 
+  - Global arrays and variables will be populated with counts and segment data.
+- **Return guarantees**: 
+  - The output will always include the total count of segments and counts for specific categories.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The segment data structures must remain consistent throughout processing.
+  - The counts in the `ans` array must accurately reflect the relationships identified during execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - Not explicitly handled; behavior is undefined for malformed input.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program may produce incorrect output or crash.
+- **Edge-case behavior**: 
+  - If no segments are provided, the output will reflect that no segments were processed.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in an "initial" state before reading input or a "processed" state after executing the main logic.
+- **State changes caused by execution**: 
+  - The state transitions from uninitialized to initialized as segments are read and processed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - Not inferable from code; depends on the number of segments and their relationships.
+- **Space complexity**: 
+  - O(n) for storing segment data and counts.
+- **Performance assumptions**: 
+  - Assumes that the input size is manageable within the defined limits of the arrays.
+```

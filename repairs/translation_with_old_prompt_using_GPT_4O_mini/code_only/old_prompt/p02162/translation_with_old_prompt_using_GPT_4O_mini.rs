@@ -1,0 +1,53 @@
+use std::io::{self, Write};
+
+fn main() {
+    let a = "Alice";
+    let b = "Bob";
+    let d = "Draw";
+    
+    let mut input = String::new();
+    // Read input from stdin
+    if io::stdin().read_line(&mut input).is_err() {
+        return; // Handle read error
+    }
+
+    // Split the input into parts and parse them
+    let mut numbers = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok());
+
+    let t1 = match numbers.next() {
+        Some(n) => n,
+        None => return, // Not enough input
+    };
+    let t2 = match numbers.next() {
+        Some(n) => n,
+        None => return, // Not enough input
+    };
+    let r1 = match numbers.next() {
+        Some(n) => n,
+        None => return, // Not enough input
+    };
+    let r2 = match numbers.next() {
+        Some(n) => n,
+        None => return, // Not enough input
+    };
+
+    // Check conditions and print the appropriate result
+    if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            println!("{}", a);
+        } else if t1 > t2 {
+            println!("{}", b);
+        } else {
+            println!("{}", d);
+        }
+    } else {
+        if r1 > r2 {
+            println!("{}", a);
+        } else if r1 < r2 {
+            println!("{}", b);
+        } else {
+            println!("{}", d);
+        }
+    }
+}

@@ -1,0 +1,55 @@
+fn main() {
+    // Read the dimensions of the grid
+    let (m, n) = read_dimensions();
+    
+    // Ensure that M and N are within the specified constraints
+    if m <= 0 || n <= 0 || n > 106 {
+        panic!("Invalid dimensions for the grid.");
+    }
+
+    // Initialize the grid
+    let mut a = [[0; 106]; 106]; // Fixed size array as per specification
+    let mut total_operations = 0;
+
+    // Read the grid values
+    for i in 0..m {
+        for j in 0..n {
+            a[i][j] = read_binary_value(); // Assume this function reads a binary value (0 or 1)
+        }
+    }
+
+    // Process each row
+    for i in 0..m {
+        let mut left = 0;
+        let mut right = n - 1;
+
+        while left <= right {
+            // Count '1's from both ends towards the center
+            if a[i][left] == 1 {
+                total_operations += 1;
+            }
+            if left != right && a[i][right] == 1 {
+                total_operations += 1;
+            }
+            left += 1;
+            right -= 1;
+        }
+    }
+
+    // Output the total count of operations
+    println!("{}", total_operations);
+}
+
+// Placeholder function to read dimensions
+fn read_dimensions() -> (usize, usize) {
+    // Implementation to read M and N from input
+    // For example purposes, returning fixed values
+    (5, 5) // Replace with actual input reading logic
+}
+
+// Placeholder function to read a binary value
+fn read_binary_value() -> i32 {
+    // Implementation to read a binary value (0 or 1) from input
+    // For example purposes, returning a fixed value
+    1 // Replace with actual input reading logic
+}

@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Pump up Batteries
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates a battery management system that tracks the usage and recharging of multiple batteries over a specified time limit.
+- **What problem it solves**: It determines how many times batteries are used without being recharged within a given time frame.
+- **Core behavior**: The program reads the number of batteries and their recharge cycles, simulates their usage over a defined time limit, and counts the number of times batteries are used without being recharged.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of batteries (integer).
+  - `lim`: Time limit for simulation (integer).
+  - `u`: Usage time for each battery (integer).
+  - `c`: Recharge time for each battery (integer).
+- **Data types**: 
+  - `n`, `lim`, `u`, `c`: Integer values.
+- **Valid ranges or constraints**:
+  - `n > 0`: Number of batteries must be positive.
+  - `u > 0`: Usage time must be positive.
+  - `c > 0`: Recharge time must be positive.
+- **Assumptions about inputs**: Input values are provided in a valid format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the count of battery usages without recharging.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: A single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must contain valid integers for `n` and `lim`.
+  - The input must be terminated by a non-positive integer for `n`.
+- **Explicit logical constraints**: The input must adhere to the specified ranges for `n`, `u`, and `c`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the total count of battery usages without recharging.
+- **State changes**: The internal state of the battery management system is updated based on the usage and recharge cycles.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The number of batteries (`n`) remains constant throughout the execution.
+  - The usage and recharge times for each battery do not change after being set.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will terminate without producing output if invalid input is encountered.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `n` is zero or negative, the program will exit without processing further.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Each battery can be in a "used" or "recharging" state.
+- **State changes caused by execution**: 
+  - Batteries transition from "used" to "recharging" when their usage time reaches zero and vice versa.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n * lim), where `n` is the number of batteries and `lim` is the time limit.
+- **Space complexity**: The space complexity is O(n) due to the storage of battery states and usage/recharge times.
+- **Performance assumptions**: The program is expected to perform efficiently for reasonable values of `n` and `lim` within the constraints of typical input sizes.
+```

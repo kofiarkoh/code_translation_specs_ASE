@@ -1,0 +1,51 @@
+```rust
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+const P: i64 = 998244353;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn compare(a: &i64, b: &i64) -> Ordering {
+    a.cmp(b)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N");
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+
+    // Read array A
+    for _ in 0..n {
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse value");
+        a.push(value);
+    }
+
+    // Sort the array A
+    a.sort_by(compare);
+
+    let mut ans = 1;
+    for (i, &value) in a.iter().enumerate() {
+        ans = (ans * gcd(value, i as i64)) % P;
+    }
+
+    // Print the result
+    println!("{}", ans);
+}
+``` 
+
+### Changes Made:
+1. **Error Handling**: The error messages were retained, but the parsing logic was kept the same. If the input format is incorrect, it will still panic, but now it will provide a clearer message.
+2. **Whitespace Handling**: The `trim()` method is used to ensure that any leading or trailing whitespace does not affect parsing.
+
+If the input format is guaranteed to be correct, the code should work as intended. If the input might contain unexpected characters, further validation would be necessary.

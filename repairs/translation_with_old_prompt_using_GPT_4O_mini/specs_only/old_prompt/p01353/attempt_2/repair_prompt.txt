@@ -1,0 +1,67 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `translation_with_old_prompt_using_GPT_4O_mini`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01353/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:38:2
+   |
+38 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01353/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Latest Rust code:
+```rust
+fn calculate_score(n: usize, h: &[i32], a: &[i32], d: &[i32], s: &[i32]) -> i64 {
+    // Check for the edge case where there are no players
+    if n == 0 {
+        return -1; // Output -1 if there are no players
+    }
+
+    // Ensure all attributes are non-negative
+    for &health in h.iter() {
+        if health < 0 {
+            return -1; // Invalid health value
+        }
+    }
+    for &attack in a.iter() {
+        if attack < 0 {
+            return -1; // Invalid attack value
+        }
+    }
+    for &defense in d.iter() {
+        if defense < 0 {
+            return -1; // Invalid defense value
+        }
+    }
+    for &special in s.iter() {
+        if special < 0 {
+            return -1; // Invalid special attribute value
+        }
+    }
+
+    // Calculate the score based on the provided attributes
+    let mut score: i64 = 0;
+    for i in 0..n {
+        // Example scoring logic (this can be adjusted based on actual game rules)
+        score += (h[i] as i64) + (a[i] as i64) - (d[i] as i64) + (s[i] as i64);
+    }
+
+    // Return the calculated score
+    score
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>());
+    let n = nums.next().unwrap().unwrap();
+    let m = nums.next().unwrap().unwrap();
+
+    // Read arrays s and t
+    let mut s = vec![0; n];
+    let mut t = vec![0; m];
+    for i in 0..n {
+        s[i] = lines.next().unwrap().unwrap().parse::<i64>().unwrap();
+    }
+    for i in 0..m {
+        t[i] = lines.next().unwrap().unwrap().parse::<i64>().unwrap();
+    }
+
+    // Initialize dp array
+    let mut dp = vec![vec![0; 2010]; 2010];
+
+    for i in 0..=n {
+        for j in 0..=m {
+            if i == 0 || j == 0 {
+                dp[i][j] = 1;
+                continue;
+            }
+            dp[i][j] = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
+            if s[i - 1] != t[j - 1] {
+                // Subtract dp[i-1][j-1] in the modular world
+                dp[i][j] = (dp[i][j] - dp[i - 1][j - 1]) % MOD;
+                if dp[i][j] < 0 {
+                    dp[i][j] += MOD; // Ensure non-negative result
+                }
+            }
+        }
+    }
+
+    println!("{}", dp[n][m]);
+}
+```

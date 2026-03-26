@@ -1,0 +1,58 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first line for the number of binary strings
+    let m: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Read the second line for the initial binary string
+    let binding = lines.next().unwrap().unwrap(); // Create a binding to extend the lifetime
+    let s = binding.trim();
+
+    // Ensure the initial binary string is valid
+    assert!(s.len() <= 4000 && s.chars().all(|c| c == '0' || c == '1'));
+
+    // Initialize arrays to hold binary configurations
+    let n = s.len();
+    let mut aa = vec![0; n];
+    let mut bb = vec![0; n];
+    let mut cc = vec![0; n];
+    let mut dd = vec![0; n];
+
+    // Process the initial binary string into the arrays
+    for (i, c) in s.chars().enumerate() {
+        aa[i] = if c == '1' { 1 } else { 0 };
+        bb[i] = aa[i];
+        cc[i] = aa[i];
+        dd[i] = aa[i];
+    }
+
+    // Perform bitwise operations based on the number of binary strings
+    for _ in 0..m {
+        // Read the next binary string
+        let next_binding = lines.next().unwrap().unwrap();
+        let next_s = next_binding.trim();
+
+        // Ensure the next binary string is valid
+        assert!(next_s.len() == n && next_s.chars().all(|c| c == '0' || c == '1'));
+
+        // Update bb based on the new binary string
+        for (i, c) in next_s.chars().enumerate() {
+            bb[i] = if c == '1' { 1 } else { 0 };
+        }
+
+        // Perform bitwise operations (XOR) with the new binary string
+        for i in 0..n {
+            dd[i] ^= bb[i];
+        }
+    }
+
+    // Count valid configurations (count the number of 1s in dd)
+    let result = dd.iter().filter(|&&x| x == 1).count();
+
+    // Output the result
+    println!("{}", result);
+}

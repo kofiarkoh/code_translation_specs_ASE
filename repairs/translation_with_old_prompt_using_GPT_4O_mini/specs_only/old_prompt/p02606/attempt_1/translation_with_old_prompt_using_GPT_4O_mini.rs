@@ -1,0 +1,23 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into three integers: L, R, and d
+    let mut iter = input.split_whitespace();
+    let l: i32 = iter.next().unwrap().parse().expect("Invalid input for L");
+    let r: i32 = iter.next().unwrap().parse().expect("Invalid input for R");
+    let d: i32 = iter.next().unwrap().parse().expect("Invalid input for d");
+
+    // Ensure that the preconditions are met
+    assert!(l <= r, "L must be less than or equal to R");
+    assert!(d > 0, "d must be greater than 0");
+
+    // Calculate the count of integers divisible by d in the range [L, R]
+    let count = (r / d) - ((l - 1) / d);
+
+    // Output the result
+    println!("{}", count);
+}

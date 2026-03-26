@@ -1,0 +1,51 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    let first_line = input.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i64>().unwrap());
+    let n = nums.next().unwrap();
+    let a = nums.next().unwrap();
+
+    let mut x = vec![0; (n + 1) as usize];
+    let mut sum = 0;
+
+    for i in 1..=n {
+        let line = input.next().unwrap().unwrap();
+        x[i as usize] = line.trim().parse::<i64>().unwrap();
+        sum += x[i as usize];
+    }
+
+    let dp_size = (n + 1) as usize;
+    let dp = vec![vec![vec![0; (sum + 1) as usize]; dp_size]; dp_size];
+
+    let mut dp = dp;
+
+    for j in 0..=n {
+        for k in 0..=n {
+            for s in 0..=sum {
+                if j >= 1 && s < x[j as usize] {
+                    dp[j as usize][k as usize][s as usize] = dp[(j - 1) as usize][k as usize][s as usize];
+                } else if j >= 1 && k >= 1 && s >= x[j as usize] {
+                    dp[j as usize][k as usize][s as usize] = dp[(j - 1) as usize][k as usize][s as usize]
+                        + dp[(j - 1) as usize][(k - 1) as usize][(s - x[j as usize]) as usize];
+                } else if j == 0 && k == 0 && s == 0 {
+                    dp[j as usize][k as usize][s as usize] = 1;
+                } else {
+                    dp[j as usize][k as usize][s as usize] = 0;
+                }
+            }
+        }
+    }
+
+    let mut ans = 0;
+    let max = if sum / a < n { sum / a } else { n };
+
+    for k in 1..=max {
+        ans += dp[n as usize][k as usize][(k * a) as usize];
+    }
+
+    println!("{}", ans);
+}

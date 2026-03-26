@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read N and Q
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let q: i32 = parts.next().unwrap().parse().unwrap();
+
+    // Initialize names array
+    let mut names: Vec<String> = Vec::with_capacity(n);
+    let mut answer = String::new();
+
+    // Read years and names
+    for i in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut year_name = line.split_whitespace();
+        let year: i32 = year_name.next().unwrap().parse().unwrap();
+        let name = year_name.next().unwrap().to_string();
+        names.push(name);
+
+        // Update answer if the year is less than or equal to Q
+        if year <= q {
+            answer = names[i].clone(); // Clone the name to update answer
+        }
+    }
+
+    // If no valid year was found, return the first name
+    if answer.is_empty() {
+        answer = names[0].clone();
+    }
+
+    // Output the answer
+    println!("{}", answer);
+}
+```

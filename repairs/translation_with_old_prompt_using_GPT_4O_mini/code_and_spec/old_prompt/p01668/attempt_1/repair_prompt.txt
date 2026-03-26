@@ -1,0 +1,169 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of valid sequences of digits that can be formed between two given strings of digits, constrained by a third string.
+- **What problem it solves**: It addresses the problem of counting the number of ways to form a sequence of digits that lies within a specified range defined by two strings, while also matching a specific sequence.
+- **Core behavior**: The program reads three strings of digits, processes them to determine valid digit sequences, and outputs the count of such sequences.
+
+## 2. Inputs
+- **Parameters**:
+  - `A`: A string representing the lower bound of the digit range.
+  - `B`: A string representing the upper bound of the digit range.
+  - `C`: A string representing the sequence to match.
+- **Data types**: All inputs are strings of characters representing digits (0-9).
+- **Valid ranges or constraints**:
+  - Length of `A` and `B` can be up to 10240 characters.
+  - Length of `C` can be up to 512 characters.
+- **Assumptions about inputs**: 
+  - The input strings are valid and contain only digit characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid sequences.
+- **Side effects**: The program reads from standard input and writes to standard output.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive exactly three strings as input.
+  - The lengths of the strings must be non-negative.
+- **Explicit logical constraints**: 
+  - The lengths of `A` and `B` must be compatible for comparison (i.e., `A` can be padded to match the length of `B`).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a valid integer count of sequences.
+- **State changes**: The program modifies global variables to store intermediate results.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values in the `memo` and `numberOfNumber` arrays are initialized to zero and updated correctly during execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will return an error code (1) if the input does not consist of exactly three strings.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program handles errors by returning early.
+- **Edge-case behavior**: If `A` is shorter than `B`, it is padded with zeros, which may affect the sequence counting.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states in the `memo` and `numberOfNumber` arrays, which track the results of subproblems.
+- **State changes caused by execution**: The state of the `memo` and `numberOfNumber` arrays is updated as the recursive functions are called.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is not explicitly defined but is influenced by the lengths of the input strings and the recursive nature of the search.
+- **Space complexity**: The space complexity is determined by the size of the `memo` and `numberOfNumber` arrays, which are proportional to the lengths of `A`, `B`, and `C`.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input sizes defined by the constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+#define MOD_BY 1000000007
+
+int add(int a,int b) {
+	int r=a+b;
+	if(r>=MOD_BY)r-=MOD_BY;
+	return r;
+}
+
+/*
+int mul(int a,int b) {
+	return (int)(((long long)a*(long long)b)%MOD_BY);
+}
+*/
+
+int N,M;
+int existPos;
+char A[10240];
+char B[10240];
+char C[512];
+
+int memo[10002][502][2][2];
+int numberOfNumber[10002][2][2];
+
+int getNumberOfNumber(int pos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+	if(pos>=N)return 1;
+	if(numberOfNumber[pos][ueFlag][sitaFlag]>0)return numberOfNumber[pos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		ret=add(ret,getNumberOfNumber(pos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+	}
+
+	numberOfNumber[pos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int search(int pos,int seqPos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+
+	if(seqPos>=M)return getNumberOfNumber(pos,ueFlag,sitaFlag);
+	if(pos>=N)return 0;
+	if(memo[pos][seqPos][ueFlag][sitaFlag]>0)return memo[pos][seqPos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		if(seqPos==0) {
+			ret=add(ret,search(pos+1,0,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+		if((!sitaFlag || i!=imin || existPos<=pos) && seqPos<M && C[seqPos]==i) {
+			ret=add(ret,search(pos+1,seqPos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+	}
+
+	memo[pos][seqPos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int main(void) {
+	int Alen,Blen;
+	int i;
+	if(scanf("%s%s%s",A,B,C)!=3)return 1;
+	Alen=strlen(A);
+	Blen=strlen(B);
+	if(Alen<Blen) {
+		for(i=0;i<Alen;i++)A[Blen-i-1]=A[Alen-i-1];
+		for(i=0;i<Blen-Alen;i++)A[i]='0';
+	}
+	N=Blen;
+	M=strlen(C);
+	existPos=Blen-Alen;
+	for(i=0;i<N;i++) {
+		A[i]-='0';
+		B[i]-='0';
+	}
+	for(i=0;i<M;i++)C[i]-='0';
+	printf("%d\n",search(0,0,1,1));
+	return 0;
+}
+=== C CODE END ===

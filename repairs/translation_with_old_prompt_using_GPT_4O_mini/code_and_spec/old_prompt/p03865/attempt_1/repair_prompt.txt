@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of characters from standard input into a buffer and determines if the first character is the same as the last character of the input.
+- **What problem it solves**: It identifies whether the first and last characters of the input are identical, providing a simple categorization based on this comparison.
+- **Core behavior**: The program reads up to 114514 characters, checks the first and last characters, and outputs either "First" or "Second" based on their equality.
+
+## 2. Inputs
+- **Parameters**: None explicitly defined; relies on standard input.
+- **Data types**: Character array (buffer) of type `char`.
+- **Valid ranges or constraints**: The input can be up to 114514 characters long.
+- **Assumptions about inputs**: Input is assumed to be valid and can contain any character, including special characters and whitespace.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs a string to standard output.
+- **Side effects**: Outputs either "First" or "Second" to standard output.
+- **Output format/schema**: The output is a plain string with no additional formatting.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available.
+- **Explicit logical constraints**: The input must be at least one character long to perform the comparison.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will output either "First" or "Second" based on the comparison of the first and last characters.
+- **State changes**: The buffer will contain the input data read from standard input.
+- **Return guarantees**: The program guarantees output based on the comparison of the first and last characters.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The buffer will always be initialized and can hold up to 114514 characters.
+- **Class-level invariants**: Not applicable as the code does not define a class.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input (e.g., no input or input longer than 114514 characters) is not explicitly handled; the program may exhibit undefined behavior.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on standard input behavior.
+- **Edge-case behavior**: If the input is empty, the program may not behave as intended since it attempts to access characters in the buffer.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The buffer can be in a state containing valid input data or uninitialized.
+- **State changes caused by execution**: The buffer is populated with input data upon execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of characters read from input (up to 114514).
+- **Space complexity**: O(1) additional space, as the buffer size is fixed.
+- **Performance assumptions**: The program assumes that reading from standard input and outputting to standard output are efficient operations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+char buf[114514];
+main(n){
+	n=read(0,buf,114514);
+	n--;
+	puts(n+(buf[0]==buf[n-1])&1?"First":"Second");
+}
+=== C CODE END ===

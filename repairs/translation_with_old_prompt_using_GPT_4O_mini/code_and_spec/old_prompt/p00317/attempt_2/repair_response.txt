@@ -1,0 +1,120 @@
+```rust
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+const MAX_WORDS: usize = 50000;
+const MAX_LENGTH: usize = 204;
+
+fn read_input() -> (usize, usize, Vec<String>) {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut words = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let word = lines.next().unwrap().unwrap();
+        words.push(word);
+    }
+
+    (n, m, words)
+}
+
+fn binary_search(words: &[&str], s: &str, n: usize, idx: bool, part: bool) -> usize {
+    let mut low = 0;
+    let mut high = n;
+
+    if part {
+        while low < high {
+            let mid = (low + high) / 2;
+            if words[mid].get(..s.len()).unwrap_or("") <= s {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        let k = low as isize - 1;
+
+        low = 0;
+        high = n;
+        while low < high {
+            let mid = (low + high) / 2;
+            if words[mid].get(..s.len()).unwrap_or("") < s {
+                low = mid + 1;
+            } else {
+                high = mid;
+            }
+        }
+        return (k - low as isize + 1) as usize;
+    } else {
+        while low < high {
+            let mid = (low + high) / 2;
+            match words[mid].cmp(s) {
+                Ordering::Equal => return 1,
+                Ordering::Less => low = mid + 1,
+                Ordering::Greater => high = mid,
+            }
+        }
+    }
+    0
+}
+
+fn main() {
+    let (n, m, mut words) = read_input();
+    let mut sorted_words: Vec<&str> = words.iter().map(|s| s.as_str()).collect();
+    sorted_words.sort();
+
+    let mut one = 0;
+    for word in &words {
+        if word.len() == 1 {
+            one += 1;
+        }
+    }
+
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().skip(2 + n); // Skip the first two lines and the words
+
+    for _ in 0..m {
+        let slate = lines.next().unwrap().unwrap();
+        let n = slate.len();
+        let mut k = slate.chars().position(|c| c == '?').unwrap_or(n);
+        let (mut part, mut f_res) = (0, 0);
+        let mut s = slate.as_str();
+
+        if slate.starts_with('*') {
+            part = 1;
+            let new_slate = &slate[1..];
+            k = if k >= new_slate.len() { usize::MAX } else { k };
+            s = new_slate;
+        } else if slate.ends_with('*') {
+            f_res = 1;
+            let new_slate = &slate[..n - 1];
+            k = if k >= new_slate.len() + 1 { usize::MAX } else { k };
+            s = new_slate;
+        } else if k >= n {
+            k = usize::MAX;
+        }
+
+        let ans = if k < usize::MAX {
+            if n == 1 {
+                if part == 1 { n } else { one }
+            } else {
+                let mut count = 0;
+                for i in 'a'..='z' {
+                    let mut temp_s = s.to_string();
+                    temp_s.replace_range(k..k + 1, &i.to_string());
+                    count += binary_search(&sorted_words, &temp_s, n, f_res != 0, part != 0);
+                }
+                count
+            }
+        } else {
+            binary_search(&sorted_words, s, n, f_res != 0, part != 0)
+        };
+
+        println!("{}", ans);
+    }
+}
+```

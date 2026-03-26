@@ -1,0 +1,133 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a modified version of the Bellman-Ford algorithm to find the shortest path in a directed graph with weighted edges, where the weights are negated.
+- **What problem it solves**: It determines the minimum cost to reach a specified node (node N) from a starting node (node 1) in a graph defined by edges with costs.
+- **Core behavior**: The program reads a graph's edges, computes the shortest path costs using dynamic programming, and checks for negative cycles affecting the path to the target node.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes in the graph.
+  - `M`: Number of edges in the graph.
+  - `u`: Starting node of an edge.
+  - `w`: Ending node of an edge.
+  - `c`: Cost associated with the edge (negated in the algorithm).
+- **Data types**: 
+  - `int` for `N`, `M`, `u`, `w`, `c`, and loop counters.
+  - `long long` for `min` array and `ans`.
+- **Valid ranges or constraints**:
+  - `N` must be greater than or equal to 1.
+  - `M` must be greater than or equal to 0.
+  - `u` and `w` must be within the range [1, N].
+  - `c` can be any integer.
+- **Assumptions about inputs**: The input is assumed to be well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs either the minimum cost to reach node N or "inf" if a negative cycle affects the path.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: 
+  - If a valid path exists: a single long long integer representing the negated minimum cost.
+  - If no valid path exists due to a negative cycle: the string "inf".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of nodes (N) and edges (M) must be non-negative integers.
+- **Explicit logical constraints**: The graph must be directed, and edges must connect valid nodes.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either a valid minimum cost or "inf".
+- **State changes**: The `min` array will contain the minimum costs to reach each node from the starting node.
+- **Return guarantees**: The output will reflect the shortest path cost or indicate the presence of a negative cycle.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `min` array will always have a valid state representing the minimum costs calculated up to the current iteration.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exception handling is implemented.
+- **Edge-case behavior**: If there are no edges (M = 0) and N > 1, the output will be "inf" since node N cannot be reached.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the `min` array, which reflects the minimum costs to reach each node.
+- **State changes caused by execution**: The `min` array is updated iteratively based on the edges processed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N * M), where N is the number of nodes and M is the number of edges, due to the nested loops iterating over edges.
+- **Space complexity**: O(N), for storing the `min` array.
+- **Performance assumptions**: The algorithm is expected to perform efficiently for graphs with a reasonable number of nodes and edges, but may struggle with very large graphs due to its time complexity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+const long long sup = (long long)1 << 60;
+
+typedef struct {
+	int t, h, cost;
+} edge;
+
+int main()
+{
+	int i, u, w, c, N, M;
+	edge e[2001];
+	scanf("%d %d", &N, &M);
+	for (i = 0; i < M; i++) {
+		scanf("%d %d %d", &u, &w, &c);
+		e[i].t = u;
+		e[i].h = w;
+		e[i].cost = -c;
+	}
+
+	int k;
+	long long min[1001], ans;
+	for (i = 2, min[1] = 0; i <= N; i++) min[i] = sup;
+	for (k = 1; k < N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	ans = min[N];
+	for (k = 1; k <= N; k++) {
+		for (i = 0; i < M; i++) {
+			u = e[i].t;
+			w = e[i].h;
+			c = e[i].cost;
+			if (min[u] < sup && min[w] > min[u] + c) min[w] = min[u] + c;
+		}
+	}
+	
+	if (min[N] == ans) printf("%lld\n", -ans);
+	else printf("inf\n");
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

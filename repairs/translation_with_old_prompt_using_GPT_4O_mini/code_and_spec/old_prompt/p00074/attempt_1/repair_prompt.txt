@@ -1,0 +1,104 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program calculates and displays the remaining time in hours, minutes, and seconds until a specified two-hour mark based on user input.
+- **What problem it solves**: It helps users determine how much time is left until a two-hour limit from a given time input.
+- **Core behavior**: The program continuously accepts time inputs in hours, minutes, and seconds, computes the remaining time until two hours from the input, and outputs this time in a formatted manner.
+
+## 2. Inputs
+- **Parameters**: 
+  - `h`: hours
+  - `m`: minutes
+  - `s`: seconds
+- **Data types**: 
+  - All parameters are integers.
+- **Valid ranges or constraints**: 
+  - `h` should be in the range [0, 23].
+  - `m` and `s` should be in the range [0, 59].
+- **Assumptions about inputs**: 
+  - The input is expected to be in the format of three integers separated by spaces.
+  - The input terminates when `-1 -1 -1` is entered.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: Outputs formatted time strings to the standard output.
+- **Output format/schema**: 
+  - Outputs are in the format `HH:MM:SS`, where each component is zero-padded to two digits.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+  - Valid integer inputs must be provided in the expected format.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the remaining time until two hours from the input time, followed by the remaining time multiplied by three.
+- **State changes**: No state changes occur as the program does not maintain any persistent state.
+- **Return guarantees**: The program will terminate gracefully upon receiving the termination input.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The input time must always be valid (within the specified ranges) for each iteration of the loop.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will ignore invalid inputs and continue to prompt for valid time inputs until the termination condition is met.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on input validation through the loop condition.
+- **Edge-case behavior**: If the input time exceeds two hours, the program will still compute the remaining time, which may result in negative values.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program does not maintain state; it processes each input independently.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of valid input sets processed.
+- **Space complexity**: O(1), as it uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: The program is expected to perform efficiently for a reasonable number of inputs, limited by user interaction speed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+
+int main(void) {
+    int h, m, s, cur_sec, remaining;
+    while (scanf("%d%d%d", &h, &m, &s) == 3 &&
+           h != -1 && m != -1 && s != -1) {
+        cur_sec = h * 3600 + m * 60 + s;
+        remaining = 2 * 3600 - cur_sec;
+        printf("%02d:%02d:%02d\n",
+               remaining / 3600,
+               (remaining % 3600) / 60,
+               remaining % 60);
+        remaining *= 3;
+        printf("%02d:%02d:%02d\n",
+               remaining / 3600,
+               (remaining % 3600) / 60,
+               remaining % 60);
+    }
+
+    return 0;
+}
+=== C CODE END ===

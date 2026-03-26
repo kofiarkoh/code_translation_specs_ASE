@@ -1,0 +1,71 @@
+```rust
+use std::io::{self, Write};
+
+const NUM_MAX: usize = 100_000;
+const BUF_SIZE: usize = NUM_MAX + 50;
+
+fn get_int2() -> (i32, i32) {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let a1 = iter.next().unwrap().parse::<i32>().unwrap();
+    let a2 = iter.next().unwrap().parse::<i32>().unwrap();
+    (a1, a2)
+}
+
+fn get_str(size: usize) -> String {
+    let mut input = String::new();
+    if size > 0 {
+        io::stdin().read_line(&mut input).unwrap();
+        input.truncate(size); // Ensure we only take the specified size
+    }
+    input
+}
+
+fn main() {
+    let (num, changes) = get_int2();
+    
+    let str_input = get_str(BUF_SIZE);
+    let str_len = str_input.trim().len();
+    
+    // Ensure the binary string is of the expected length
+    assert_eq!(str_len, num as usize, "Input string length does not match specified num.");
+
+    let mut str_vec: Vec<bool> = str_input.chars().take(num as usize).map(|c| c == '1').collect();
+    str_vec.push(!str_vec[num as usize - 1]); // Append the negation of the last element
+
+    let mut arr = vec![0; NUM_MAX * 4];
+    let mut aidx = 0;
+    let mut prev = true;
+    let mut cnt = 0;
+
+    for &value in &str_vec {
+        if value == prev {
+            cnt += 1;
+            continue;
+        }
+        arr[aidx] = cnt;
+        aidx += 1;
+        prev = value;
+        cnt = 1;
+    }
+    arr[aidx] = cnt; // Capture the last segment count
+    aidx += 1; // Increment aidx to account for the last segment
+
+    let mut cum = vec![0; NUM_MAX * 4];
+    for i in 1..(NUM_MAX * 4) {
+        cum[i] = cum[i - 1] + arr[i - 1];
+    }
+
+    let mut ans = 0;
+    let ranges = 2 * changes + 1;
+    for i in (0..aidx).step_by(2) {
+        if i + ranges > aidx {
+            break;
+        }
+        ans = ans.max(cum[i + ranges] - cum[i]);
+    }
+
+    println!("{}", ans);
+}
+```

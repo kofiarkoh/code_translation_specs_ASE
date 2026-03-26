@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line to get N
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Exit if input is not valid
+    };
+
+    // Initialize the array A with size N + 1 for 1-based indexing
+    let mut a: Vec<i64> = vec![0; n + 1];
+
+    // Read the next N long long integers into the array A
+    for i in 1..=n {
+        a[i] = match lines.next() {
+            Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+            _ => return, // Exit if input is not valid
+        };
+    }
+
+    // Initialize the answer variable
+    let mut ans: i64 = 0;
+
+    // Process the array A according to the specification
+    for i in 1..=n {
+        // Halve the current integer
+        ans += a[i] / 2;
+
+        // If the current integer is odd, adjust the next integer
+        if a[i] % 2 != 0 {
+            if i < n { // Ensure we don't go out of bounds
+                a[i + 1] += 1; // Increment the next integer
+            }
+        }
+    }
+
+    // Print the result
+    println!("{}", ans);
+}
+```

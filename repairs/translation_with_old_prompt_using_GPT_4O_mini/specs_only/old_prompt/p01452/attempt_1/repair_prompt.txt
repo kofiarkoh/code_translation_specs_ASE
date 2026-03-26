@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific combinatorial value based on input parameters, utilizing modular arithmetic to handle large numbers.
+- **What problem it solves**: It computes the number of ways to arrange certain elements under given constraints, specifically in combinatorial contexts involving two variables and a parameter `k`.
+- **Core behavior**: The program initializes a memoization table for factorial values, computes modular inverses, and evaluates combinations to derive a final result based on the inputs.
+
+## 2. Inputs
+- **Parameters**: 
+  - `x`: An integer representing one dimension of the problem.
+  - `y`: An integer representing another dimension of the problem.
+  - `k`: An integer representing a constraint or limit in the combinatorial calculations.
+- **Data types**: 
+  - `x`, `y`, `k`: `int`
+  - Intermediate calculations: `lli` (long long int)
+- **Valid ranges or constraints**: 
+  - `x`, `y`, `k` must be non-negative integers.
+  - The sum `x + y + 2*k` must not exceed the bounds of the memoization array (up to 220,001).
+- **Assumptions about inputs**: Inputs are assumed to be provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer, which is the computed result of the combinatorial calculation.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer value, printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input values for `x`, `y`, and `k` must be read successfully.
+  - The memoization table must be initialized for the range `x + y + 2*k`.
+- **Explicit logical constraints**: 
+  - The values of `n`, `r`, and `m` in the combinatorial functions must satisfy the conditions for valid combinations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a valid integer result based on the combinatorial calculations.
+- **State changes**: The memoization table will be populated with factorial values up to `n`.
+- **Return guarantees**: The output will always be a non-negative integer due to the modular arithmetic applied.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values in the `memo` array remain valid factorial values modulo `N` for indices from `1` to `n`.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may produce incorrect results or undefined behavior if inputs are out of expected ranges.
+- **Exceptions thrown?**: The code does not throw exceptions; it relies on the input being valid.
+- **Edge-case behavior**: If `n`, `r`, or `m` are invalid for combinatorial calculations, the function will return `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the state is maintained through global variables.
+- **State changes caused by execution**: The `memo` array is populated and modified during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The initialization of the memoization table is O(n), where n is `x + y + 2*k`. The overall complexity of the main computation is O(k).
+- **Space complexity**: The space complexity is O(n) due to the memoization array.
+- **Performance assumptions**: The program is expected to perform efficiently for inputs within the specified constraints, but performance may degrade for maximum input sizes due to the linear complexity of the memoization initialization.
+```

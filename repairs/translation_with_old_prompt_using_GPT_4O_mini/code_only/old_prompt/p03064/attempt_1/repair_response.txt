@@ -1,0 +1,50 @@
+```rust
+use std::io::{self, Write};
+
+const M: i64 = 998244353;
+const SIZE: usize = 90310;
+
+fn main() {
+    let mut d = vec![0; SIZE];
+    let mut e = vec![0; SIZE];
+    let mut s = 0;
+    let mut r = 1;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let a: i64 = input.trim().parse().unwrap();
+    
+    d[0] = 1; // Equivalent to *d = 1
+    e[0] = 0; // Equivalent to *e = 0
+
+    loop {
+        input.clear();
+        if io::stdin().read_line(&mut input).is_err() {
+            break;
+        }
+        let a: i64 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => break,
+        };
+
+        let mut t = s;
+        while t >= 0 {
+            let t_usize = t as usize;
+            d[t_usize + a] = (d[t_usize + a] + d[t_usize] * 2 % M) % M;
+            e[t_usize + a] = (e[t_usize + a] + e[t_usize]) % M;
+            t -= 1;
+        }
+        s += a;
+        r = r * 3 % M;
+    }
+
+    let mut t = s / 2;
+    while t >= 0 {
+        r = (r - d[t as usize] * 3) % M;
+        t -= 1;
+    }
+
+    let result = (r - (if s % 2 == 1 { e[s as usize / 2] * 3 } else { 0 }) + M) % M;
+    println!("{}", result);
+}
+```

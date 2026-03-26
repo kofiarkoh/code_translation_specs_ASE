@@ -1,0 +1,86 @@
+```rust
+use std::io::{self, BufRead};
+
+struct FenwickTree {
+    size: usize,
+    tree: Vec<i32>,
+}
+
+impl FenwickTree {
+    fn new(size: usize) -> Self {
+        let mut tree = vec![0; size + 1];
+        tree[0] = (2 * size + 1) as i32; // Invariant: first element holds 2*n + 1
+        FenwickTree { size, tree }
+    }
+
+    fn add(&mut self, index: usize, value: i32) {
+        let mut idx = index as usize;
+        while idx < self.tree.len() {
+            self.tree[idx] += value;
+            idx += idx & (!idx + 1); // Move to the next index
+        }
+    }
+
+    fn sum(&self, index: usize) -> i32 {
+        let mut sum = 0;
+        let mut idx = index as usize;
+        while idx > 0 {
+            sum += self.tree[idx];
+            idx -= idx & (!idx + 1); // Move to the parent index
+        }
+        sum
+    }
+}
+
+fn count_pairs(a: &[i32], l: i32) -> i32 {
+    let n = a.len();
+    let mut bit = FenwickTree::new(2 * n + 2);
+    let mut count = 0;
+
+    for &value in a {
+        if value < l {
+            bit.add(value as usize + 1, 1); // Increment count for values < l
+        } else {
+            count += bit.sum(value as usize + 1); // Count pairs where a[j] >= l
+        }
+    }
+    count
+}
+
+fn binary_search(a: &[i32], m: i32) -> i32 {
+    let mut low = i32::MIN;
+    let mut high = i32::MAX;
+    let mut result = low;
+
+    while low <= high {
+        let mid = low + (high - low) / 2;
+        let pairs = count_pairs(a, mid);
+
+        if pairs >= m {
+            result = mid; // Found a valid threshold
+            low = mid + 1; // Try for a larger threshold
+        } else {
+            high = mid - 1; // Try for a smaller threshold
+        }
+    }
+    result
+}
+
+fn run() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        a.push(value);
+    }
+
+    let m: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+    let result = binary_search(&a, m);
+    println!("{}", result);
+}
+```

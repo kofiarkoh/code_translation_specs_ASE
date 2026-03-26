@@ -1,0 +1,152 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01339/p01339_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01339/p01339_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (35885538) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01339/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:28:16:
+index out of bounds: the len is 5 but the index is 5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::collections::{HashMap, HashSet};
+use std::io::{self, BufRead};
+
+const MOD: usize = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize graph structures
+    let mut graph: Vec<HashSet<usize>> = vec![HashSet::new(); n];
+    let mut r_graph: Vec<HashSet<usize>> = vec![HashSet::new(); n];
+
+    // Read edges
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let s: usize = edge_parts.next().unwrap().parse().unwrap();
+        let d: usize = edge_parts.next().unwrap().parse().unwrap();
+        graph[s].insert(d);
+        r_graph[d].insert(s);
+    }
+
+    // Step 1: Find SCCs using Kosaraju's algorithm
+    let mut visited = vec![false; n];
+    let mut finish_stack = Vec::new();
+
+    // First DFS to fill the finish stack
+    for i in 0..n {
+        if !visited[i] {
+            dfs(&graph, i, &mut visited, &mut finish_stack);
+        }
+    }
+
+    // Second DFS to find SCCs
+    visited.fill(false);
+    let mut components = Vec::new();
+    while let Some(v) = finish_stack.pop() {
+        if !visited[v] {
+            let mut component = Vec::new();
+            reverse_dfs(&r_graph, v, &mut visited, &mut component);
+            components.push(component);
+        }
+    }
+
+    // Step 2: Count paths through SCCs
+    let scc_count = components.len();
+    let mut scc_graph = vec![Vec::new(); scc_count];
+    let mut scc_indegree = vec![0; scc_count];
+    let mut scc_map = vec![0; n];
+
+    // Map vertices to their SCC index
+    for (i, component) in components.iter().enumerate() {
+        for &v in component {
+            scc_map[v] = i;
+        }
+    }
+
+    // Build the SCC graph
+    for u in 0..n {
+        for &v in &graph[u] {
+            let u_scc = scc_map[u];
+            let v_scc = scc_map[v];
+            if u_scc != v_scc {
+                scc_graph[u_scc].push(v_scc);
+                scc_indegree[v_scc] += 1;
+            }
+        }
+    }
+
+    // Step 3: Count paths using dynamic programming
+    let mut dp = vec![0; scc_count];
+    for i in 0..scc_count {
+        if scc_indegree[i] == 0 {
+            dp[i] = 1; // Start from SCCs with no incoming edges
+        }
+    }
+
+    for i in 0..scc_count {
+        for &next in &scc_graph[i] {
+            dp[next] = (dp[next] + dp[i]) % MOD;
+        }
+    }
+
+    // The result is the sum of paths leading to all SCCs
+    let result: usize = dp.iter().sum::<usize>() % MOD;
+    println!("{}", result);
+}
+
+// Depth-first search to fill the finish stack
+fn dfs(graph: &Vec<HashSet<usize>>, v: usize, visited: &mut Vec<bool>, finish_stack: &mut Vec<usize>) {
+    visited[v] = true;
+    for &neighbor in &graph[v] {
+        if !visited[neighbor] {
+            dfs(graph, neighbor, visited, finish_stack);
+        }
+    }
+    finish_stack.push(v);
+}
+
+// Reverse DFS to find components
+fn reverse_dfs(graph: &Vec<HashSet<usize>>, v: usize, visited: &mut Vec<bool>, component: &mut Vec<usize>) {
+    visited[v] = true;
+    component.push(v);
+    for &neighbor in &graph[v] {
+        if !visited[neighbor] {
+            reverse_dfs(graph, neighbor, visited, component);
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

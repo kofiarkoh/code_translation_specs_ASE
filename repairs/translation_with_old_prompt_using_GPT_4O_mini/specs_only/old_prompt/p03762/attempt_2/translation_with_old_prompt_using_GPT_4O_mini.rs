@@ -1,0 +1,45 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for n and m
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let m: usize = params.next().unwrap().parse().unwrap();
+
+    // Read the second line for array x
+    let x: Vec<i64> = if n > 0 {
+        lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    // Read the third line for array y
+    let y: Vec<i64> = if m > 0 {
+        lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    // Compute the weighted sums
+    let sum_x: i64 = x.iter().sum();
+    let sum_y: i64 = y.iter().sum();
+
+    // Calculate the product modulo MOD
+    let result = (sum_x % MOD * sum_y % MOD) % MOD;
+
+    // Output the result
+    println!("{}", result);
+}

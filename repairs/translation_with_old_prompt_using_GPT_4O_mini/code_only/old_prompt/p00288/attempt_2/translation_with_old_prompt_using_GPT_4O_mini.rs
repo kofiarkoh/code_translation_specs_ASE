@@ -1,0 +1,285 @@
+// AOJ 0293 Algorithm Exam
+// 2018.3.10 bal4u
+
+use std::io::{self, Read};
+
+const QMAX: usize = 3005;
+const INF: i32 = 0x10101010;
+const MAX: usize = 110;
+
+#[derive(Clone, Copy)]
+struct QUE {
+    t: i32,
+    s: usize,
+}
+
+#[derive(Clone)]
+struct EDGE {
+    to: usize,
+    rev: usize,
+    cap: i32,
+    cost: i32,
+}
+
+struct MinCostFlow {
+    que: Vec<QUE>,
+    qsize: usize,
+    edge: Vec<Vec<EDGE>>,
+    hi: Vec<usize>,
+    V: usize,
+    potential: Vec<i32>,
+    dist: Vec<i32>,
+    prevv: Vec<usize>,
+    preve: Vec<usize>,
+}
+
+impl MinCostFlow {
+    fn new(v: usize) -> Self {
+        Self {
+            que: Vec::with_capacity(QMAX),
+            qsize: 0,
+            edge: vec![Vec::new(); v],
+            hi: vec![0; v],
+            V: v,
+            potential: vec![0; v],
+            dist: vec![0; v],
+            prevv: vec![0; v],
+            preve: vec![0; v],
+        }
+    }
+
+    fn parent(i: usize) -> usize {
+        i >> 1
+    }
+
+    fn left(i: usize) -> usize {
+        i << 1
+    }
+
+    fn right(i: usize) -> usize {
+        (i << 1) + 1
+    }
+
+    fn min_heapify(&mut self, i: usize) {
+        let l = Self::left(i);
+        let r = Self::right(i);
+        let mut min = if l < self.qsize && self.que[l].t < self.que[i].t {
+            l
+        } else {
+            i
+        };
+        if r < self.qsize && self.que[r].t < self.que[min].t {
+            min = r;
+        }
+        if min != i {
+            self.que.swap(i, min);
+            self.min_heapify(min);
+        }
+    }
+
+    fn deq(&mut self) {
+        self.que[0] = self.que[self.qsize - 1];
+        self.qsize -= 1;
+        self.min_heapify(0);
+    }
+
+    fn enq(&mut self, s: usize, t: i32) {
+        self.que.push(QUE { s, t });
+        self.qsize += 1;
+        let mut i = self.qsize - 1;
+        while i > 0 {
+            let min = Self::parent(i);
+            if self.que[min].t > self.que[i].t {
+                self.que.swap(i, min);
+                i = min;
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, cap: i32, cost: i32) {
+        let f = self.hi[from];
+        let t = self.hi[to];
+        self.edge[from].push(EDGE { to, cap, cost, rev: t });
+        self.edge[to].push(EDGE { to: from, cap: 0, cost: -cost, rev: f });
+        self.hi[from] += 1;
+        self.hi[to] += 1;
+    }
+
+    fn min_cost_flow(&mut self, S: usize, T: usize, F: &mut i32) -> i32 {
+        let mut ret = 0;
+        self.potential.fill(0);
+
+        while *F > 0 {
+            self.dist.fill(INF);
+            self.qsize = 0;
+            self.enq(S, 0);
+            self.dist[S] = 0;
+
+            while self.qsize > 0 {
+                let v = self.que[0].s;
+                let t = self.que[0].t;
+                self.deq();
+                if self.dist[v] < t {
+                    continue;
+                }
+                for i in 0..self.hi[v] {
+                    let ep = &self.edge[v][i];
+                    if ep.cap <= 0 {
+                        continue;
+                    }
+                    let nv = ep.to;
+                    let nt = t + ep.cost - self.potential[nv] + self.potential[v];
+                    if self.dist[nv] > nt {
+                        self.dist[nv] = nt;
+                        self.prevv[nv] = v;
+                        self.preve[nv] = i;
+                        self.enq(nv, nt);
+                    }
+                }
+            }
+            if self.dist[T] == INF {
+                return -1;
+            }
+            for v in 0..self.V {
+                self.potential[v] += self.dist[v];
+            }
+
+            let mut t = *F;
+            let mut v = T;
+            while v != S {
+                let ep = &self.edge[self.prevv[v]][self.preve[v]];
+                if t > ep.cap {
+                    t = ep.cap;
+                }
+                v = self.prevv[v];
+            }
+            *F -= t;
+
+            ret += t * self.potential[T];
+            let mut v = T;
+            while v != S {
+                let ep = &mut self.edge[self.prevv[v]][self.preve[v]];
+                ep.cap -= t;
+                let rev_edge = &mut self.edge[v][ep.rev];
+                rev_edge.cap += t;
+                v = self.prevv[v];
+            }
+        }
+        ret
+    }
+}
+
+fn in_int() -> i32 {
+    let mut n = 0;
+    let mut c = std::io::stdin().bytes().next().unwrap().unwrap() as char;
+    if c == '-' {
+        c = std::io::stdin().bytes().next().unwrap().unwrap() as char;
+        while c.is_digit(10) {
+            n = 10 * n + (c as i32 - '0' as i32);
+            c = std::io::stdin().bytes().next().unwrap().unwrap() as char;
+        }
+        return -n;
+    }
+    while c.is_digit(10) {
+        n = 10 * n + (c as i32 - '0' as i32);
+        c = std::io::stdin().bytes().next().unwrap().unwrap() as char;
+    }
+    n
+}
+
+fn abs(a: i32) -> i32 {
+    if a >= 0 { a } else { -a }
+}
+
+fn make_edge(flow: &mut MinCostFlow, s: usize, mi: i32, N: usize, M: usize, source: usize, sink: usize, ax: &[i32], ay: &[i32], bx: &[i32], by: &[i32], c: &[i32]) {
+    flow.hi.fill(0);
+    for i in 0..N {
+        flow.add_edge(source, i, 1, 0);
+    }
+    for i in 0..M {
+        if (1 << i) & s != 0 {
+            for j in 0..N {
+                let x = abs(ax[j] - bx[i]) + abs(ay[j] - by[i]) - mi;
+                let x = if x < 0 { 0 } else { x };
+                flow.add_edge(j, N + i, 1, x);
+            }
+            flow.add_edge(N + i, sink, c[i], 0);
+        }
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut lines = input.lines();
+
+    while let Some(line) = lines.next() {
+        let N: usize = line.parse().unwrap();
+        let M: usize = lines.next().unwrap().parse().unwrap();
+        let B: i32 = lines.next().unwrap().parse().unwrap();
+        let mut ax = vec![0; N];
+        let mut ay = vec![0; N];
+        let mut bx = vec![0; M];
+        let mut by = vec![0; M];
+        let mut c = vec![0; M];
+        let mut f = vec![0; M];
+
+        for i in 0..N {
+            let coords: Vec<i32> = lines.next().unwrap().split_whitespace().map(|x| x.parse().unwrap()).collect();
+            ax[i] = coords[0];
+            ay[i] = coords[1];
+        }
+        for i in 0..M {
+            let params: Vec<i32> = lines.next().unwrap().split_whitespace().map(|x| x.parse().unwrap()).collect();
+            bx[i] = params[0];
+            by[i] = params[1];
+            c[i] = params[2];
+            f[i] = params[3];
+        }
+
+        let source = N + M;
+        let sink = source + 1;
+        let mut flow = MinCostFlow::new(sink + 1);
+
+        let mut ans = INF;
+        let lim = 1 << M;
+        for s in 0..lim {
+            let mut res = 0;
+            let mut cnt = 0;
+            for i in 0..M {
+                if (s >> i) & 1 != 0 {
+                    res += f[i];
+                    cnt += 1;
+                }
+            }
+            let mut lb = 0;
+            let mut ub = 4002;
+            while lb + 1 < ub {
+                let mi = (lb + ub) >> 1;
+                make_edge(&mut flow, s, mi, N, M, source, sink, &ax, &ay, &bx, &by, &c);
+                let mut F = N as i32;
+                let a1 = flow.min_cost_flow(source, sink, &mut F) + mi * B * cnt;
+                make_edge(&mut flow, s, mi - 1, N, M, source, sink, &ax, &ay, &bx, &by, &c);
+                let mut F = N as i32;
+                let a2 = flow.min_cost_flow(source, sink, &mut F) + (mi - 1) * B * cnt;
+                if a1 < 0 || a2 < 0 {
+                    break;
+                }
+                if a1 < a2 {
+                    lb = mi;
+                } else {
+                    ub = mi;
+                }
+            }
+            make_edge(&mut flow, s, lb, N, M, source, sink, &ax, &ay, &bx, &by, &c);
+            let mut F = N as i32;
+            res += flow.min_cost_flow(source, sink, &mut F) + lb * B * cnt;
+            if ans > res {
+                ans = res;
+            }
+        }
+        println!("{}", ans);
+    }
+}

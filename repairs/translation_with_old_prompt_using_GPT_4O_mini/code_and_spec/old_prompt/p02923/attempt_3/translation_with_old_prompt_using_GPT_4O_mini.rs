@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of heights
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Handle invalid input gracefully
+    };
+
+    // Initialize the heights array with zeros
+    let mut h = vec![0; n + 10];
+
+    // Read the heights
+    for i in 0..n {
+        h[i] = match lines.next() {
+            Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+            _ => return, // Handle invalid input gracefully
+        };
+    }
+
+    let mut max_count = 0;
+    let mut count = 1; // Start count at 1 to include the first element
+
+    // Calculate the maximum length of consecutive non-increasing heights
+    for i in 0..n - 1 {
+        if h[i + 1] <= h[i] {
+            count += 1;
+        } else {
+            max_count = max_count.max(count);
+            count = 1; // Reset count to 1 for the next sequence
+        }
+    }
+    max_count = max_count.max(count); // Check the last sequence
+
+    // Output the result
+    println!("{}", max_count);
+}

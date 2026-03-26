@@ -35,8 +35,8 @@ from dotenv import load_dotenv
 # Configure these values
 # =========================
 PROBLEMS_ROOT = Path("./collected_dataset/C/final_problems")
-OUTPUT_ROOT = Path("./api_responses/open_ai/C/specs_WITH_GPT_5_2")
-MODEL = "gpt-5.2"
+OUTPUT_ROOT = Path("./api_responses/open_ai/optimized_prompt@1/C/specs_WITH_GPT_4o_mini_old_prompt")
+MODEL = "gpt-4o-mini"
 FILE_GLOB = "*.c"
 MAX_PROBLEMS_TO_PROCESS = 300
 MAX_FILES_PER_PROBLEM = 1
@@ -47,29 +47,65 @@ PARALLEL_REQUESTS = 10
 SYSTEM_PROMPT = "You are a helpful coding assistant."
 
 USER_PROMPT_TEMPLATE = """You are an expert senior software engineer.
-Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
 
-Output must use exactly these sections and headings:
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
 1. Functional Description
-2. Inputs
-3. Outputs
-4. Preconditions
-5. Postconditions
-6. Invariants
-7. Error Handling / Exceptional Behavior
-8. State Transitions (if applicable)
-9. Non-functional Constraints (if inferable)
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
 
-Content requirements:
-- Be concise and contract-focused; omit incidental or low-level details.
-- Do not reference language/library APIs, format strings, or identifiers (e.g., no mentions of scanf, printf, fgets, variable or function names, loop types, or recursion).
-- Describe I/O abstractly (e.g., "reads values from standard input" or "returns a value"); never cite exact parsing patterns or format specifiers.
-- Do not restate implementation structure or control flow. Focus on observable behavior, data constraints, and guarantees.
-- If behavior is ambiguous, state explicit assumptions. If something cannot be deduced, write "Not inferable from code."
-- Avoid extreme assumptions. Capture only behavior implied by the code’s observable contract.
-- If the program is an executable, treat printing/writing as side effects in Outputs.
-- No code, no pseudocode, no preamble or epilogue text. Use only the nine sections above. 
-- Return only the nine sections with the exact headings and numbering specified. Do not include any other text, examples, or code.
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
 Now generate the specification for the code below:
 
 ```{language}

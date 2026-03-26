@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Tree Construction (AOJ 2488)
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code computes the minimum cost to connect a set of points in a 2D space, represented by their coordinates, using a dynamic programming approach.
+- **What problem it solves**: It addresses the problem of finding the optimal way to connect points in a 2D plane to minimize the total distance traveled, which is relevant in various applications such as network design and path optimization.
+- **Core behavior**: The program reads a number of points and their coordinates, then calculates the minimum connection cost using a dynamic programming table to store intermediate results.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of points.
+  - `x[i]`: The x-coordinate of the i-th point.
+  - `y[i]`: The y-coordinate of the i-th point.
+- **Data types**: 
+  - `n`: Integer.
+  - `x[]`, `y[]`: Arrays of integers.
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (1 ≤ n ≤ 1000).
+  - Coordinates `x[i]` and `y[i]` can be any integer value.
+- **Assumptions about inputs**: The input is assumed to be well-formed, with the first integer indicating the number of points followed by pairs of integers representing the coordinates.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum cost to connect all points.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must contain at least one point.
+  - The input must be provided in the expected format.
+- **Explicit logical constraints**: The number of points `n` must be greater than zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the minimum connection cost.
+- **State changes**: The dynamic programming table `dp` will be populated with computed costs.
+- **Return guarantees**: The output will always be a non-negative integer representing the minimum cost.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dp` array will always contain valid computed costs for all subproblems.
+  - The values in `dp[i][j]` will represent the minimum cost to connect points from index `i` to `j`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may produce incorrect results or undefined behavior.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `n` is 0 or negative, the program may not function correctly, as it assumes at least one point.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state where it processes input and computes the minimum cost.
+- **State changes caused by execution**: The state of the `dp` array changes as it is filled with computed values during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n^3) due to the three nested loops iterating over the points.
+- **Space complexity**: The space complexity is O(n^2) for the `dp` array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraint of `n = 1000`.
+```

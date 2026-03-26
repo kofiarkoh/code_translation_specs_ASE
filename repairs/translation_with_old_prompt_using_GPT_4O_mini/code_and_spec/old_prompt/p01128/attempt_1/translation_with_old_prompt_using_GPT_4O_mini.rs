@@ -1,0 +1,112 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+const EPS: f64 = 1e-10;
+
+#[derive(Debug, Clone)]
+struct Point {
+    x: f64,
+    y: f64,
+    o: i32,
+    l: i32,
+}
+
+fn cmp_points(a: &Point, b: &Point) -> Ordering {
+    if (a.x - b.x).abs() < EPS {
+        if (a.y - b.y).abs() < EPS {
+            Ordering::Equal
+        } else {
+            if a.y < b.y {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        }
+    } else {
+        if a.x < b.x {
+            Ordering::Less
+        } else {
+            Ordering::Greater
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let c: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..c {
+        let mut st: Vec<Point> = Vec::new();
+        let first_line: Vec<i32> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        
+        let (xa, ya, xb, yb, n) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
+
+        for _ in 0..n {
+            let segment_line: Vec<i32> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            
+            let (xs, ys, xt, yt, o, l) = (segment_line[0], segment_line[1], segment_line[2], segment_line[3], segment_line[4], segment_line[5]);
+            let tx = xs - xa;
+            let ty = ys - ya;
+            let b = (xb - xa) * (yt - ys) - (yb - ya) * (xt - xs);
+
+            if b == 0 {
+                continue; // Lines are parallel
+            }
+
+            let r = (yt - ys) as f64 * tx as f64 - (xt - xs) as f64 * ty as f64 / b as f64;
+            let s = (yb - ya) as f64 * tx as f64 - (xb - xa) as f64 * ty as f64 / b as f64;
+
+            if r < EPS || s < EPS || 1.0 - r < EPS || 1.0 - s < EPS {
+                continue; // Intersection is not valid
+            }
+
+            if r > EPS && 1.0 - r > EPS {
+                st.push(Point {
+                    x: xa as f64 + r * (xb - xa) as f64,
+                    y: ya as f64 + r * (yb - ya) as f64,
+                    o,
+                    l,
+                });
+            } else {
+                st.push(Point {
+                    x: xs as f64 + s * (xt - xs) as f64,
+                    y: ys as f64 + s * (yt - ys) as f64,
+                    o,
+                    l,
+                });
+            }
+        }
+
+        st.sort_by(|a, b| cmp_points(a, b));
+
+        let mut r = i32::MAX;
+
+        for l in 0..2 {
+            let mut t = l;
+            let mut b = 0;
+
+            for point in &st {
+                if point.o == 1 && point.l != t {
+                    b += 1;
+                    t ^= 1;
+                }
+                if point.o != 1 && point.l == t {
+                    b += 1;
+                    t ^= 1;
+                }
+            }
+            r = r.min(b);
+        }
+
+        println!("{}", r);
+    }
+}

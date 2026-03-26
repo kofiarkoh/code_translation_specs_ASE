@@ -1,0 +1,63 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused imports: `max` and `min`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02347/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:1:16
+  |
+1 | use std::cmp::{min, max};
+  |                ^^^  ^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::collections::VecDeque`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02347/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:2:5
+  |
+2 | use std::collections::VecDeque;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0277]: the trait bound `Point: Clone` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02347/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:32:56
+    |
+ 32 |             Some(Box::new(KDTree::new(points[..median].to_vec(), depth + 1)))
+    |                                                        ^^^^^^ the trait `Clone` is not implemented for `Point`
+    |
+note: required by a bound in `slice::<impl [T]>::to_vec`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs:374:12
+    |
+372 |     pub fn to_vec(&self) -> Vec<T>
+    |            ------ required by a bound in this associated function
+373 |     where
+374 |         T: Clone,
+    |            ^^^^^ required by this bound in `slice::<impl [T]>::to_vec`
+help: consider annotating `Point` with `#[derive(Clone)]`
+    |
+  6 + #[derive(Clone)]
+  7 | struct Point {
+    |
+
+error[E0277]: the trait bound `Point: Clone` is not satisfied
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02347/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:37:60
+    |
+ 37 |             Some(Box::new(KDTree::new(points[median + 1..].to_vec(), depth + 1)))
+    |                                                            ^^^^^^ the trait `Clone` is not implemented for `Point`
+    |
+note: required by a bound in `slice::<impl [T]>::to_vec`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/slice.rs:374:12
+    |
+372 |     pub fn to_vec(&self) -> Vec<T>
+    |            ------ required by a bound in this associated function
+373 |     where
+374 |         T: Clone,
+    |            ^^^^^ required by this bound in `slice::<impl [T]>::to_vec`
+help: consider annotating `Point` with `#[derive(Clone)]`
+    |
+  6 + #[derive(Clone)]
+  7 | struct Point {
+    |
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0277`.

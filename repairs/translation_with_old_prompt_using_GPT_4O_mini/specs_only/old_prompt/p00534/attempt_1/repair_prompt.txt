@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum cost of selecting items based on given weights and costs, using a dynamic programming approach.
+- **What problem it solves**: It addresses the problem of optimizing the selection of items to minimize total cost while adhering to specific constraints.
+- **Core behavior**: The program reads two sets of integers representing item weights and costs, computes a cost matrix, and outputs the minimum cost for selecting items.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of items (weights).
+  - `m`: Number of selections (costs).
+  - `k[]`: Array of weights for each item (1-indexed).
+  - `t[]`: Array of costs for each selection (1-indexed).
+- **Data types**: 
+  - `int` for all parameters and arrays.
+- **Valid ranges or constraints**:
+  - `1 ≤ n, m ≤ 1000`
+  - Weights and costs are assumed to be non-negative integers.
+- **Assumptions about inputs**: 
+  - The input values are provided in the correct format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum cost.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must receive valid integer inputs for `n` and `m`.
+  - The arrays `k` and `t` must be populated with valid integers before computation.
+- **Explicit logical constraints**: 
+  - The input must not exceed the defined limits for `n` and `m`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The minimum cost is computed and printed.
+- **State changes**: The `hi` matrix is populated with computed costs.
+- **Return guarantees**: The output will always be a valid integer representing the minimum cost.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `hi` matrix is initialized correctly before computation.
+  - The values in `hi[i][j]` represent valid computed costs based on the defined logic.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No explicit exceptions are thrown; behavior is undefined for out-of-bounds access.
+- **Edge-case behavior**: If `n` or `m` is zero, the program may not function as intended since it assumes at least one item and one selection.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the `hi` matrix and the input arrays.
+- **State changes caused by execution**: The `hi` matrix is updated iteratively based on the computed costs.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(m * n), where `m` is the number of selections and `n` is the number of items.
+- **Space complexity**: O(m * n) due to the `hi` matrix.
+- **Performance assumptions**: The program is expected to perform efficiently within the constraints provided (up to 1000 items and selections).
+```

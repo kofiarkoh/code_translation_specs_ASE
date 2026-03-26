@@ -1,0 +1,43 @@
+use std::io::{self, Write};
+
+fn main() -> i32 {
+    let mut input = String::new();
+    
+    // Read the integer N
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = match input.trim().parse() {
+        Ok(num) if num <= 127 => num,
+        _ => return 1, // Return 1 on input error
+    };
+
+    // Read the string s
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let s = input.trim();
+
+    // Ensure the string is at least N characters long
+    if s.len() < n {
+        return 1; // Return 1 on input error
+    }
+
+    // Initialize the counter
+    let mut counter = 0;
+
+    // Evaluate the string based on the specified criteria
+    for c in s.chars().take(n) {
+        if c == 'R' {
+            counter += 1; // Increment for 'R'
+        } else {
+            counter -= 1; // Decrement for any other character
+        }
+    }
+
+    // Output the result based on the counter
+    if counter > 0 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+
+    0 // Return 0 on successful execution
+}

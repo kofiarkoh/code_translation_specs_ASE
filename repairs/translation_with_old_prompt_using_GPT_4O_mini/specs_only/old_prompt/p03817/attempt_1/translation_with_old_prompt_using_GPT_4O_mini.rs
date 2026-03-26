@@ -1,0 +1,34 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Parse the input as a long long integer (i64 in Rust)
+    let n: i64 = input.trim().parse().expect("Invalid input");
+
+    // Calculate how many times n can be divided by 11
+    let mut count = 0;
+    let mut value = n;
+
+    // Count the number of times value can be divided by 11
+    while value % 11 == 0 {
+        count += 1;
+        value /= 11;
+    }
+
+    // Classify the remainder when n is divided by 11
+    let remainder = n % 11;
+
+    // Compute the final result based on the count and remainder
+    let result = match remainder {
+        0 => count * 10, // If remainder is 0, multiply count by 10
+        1 => count * 5,  // If remainder is 1, multiply count by 5
+        2 => count * 2,  // If remainder is 2, multiply count by 2
+        _ => count,      // For other remainders, just return count
+    };
+
+    // Print the result as a long long integer
+    println!("{}", result);
+}

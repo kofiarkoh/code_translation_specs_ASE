@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific mathematical product based on two sequences of integers, `x` and `y`, and outputs the result modulo \(10^9 + 7\).
+- **What problem it solves**: It computes a derived value from two input lists, which can be useful in combinatorial or algorithmic contexts where such products are relevant.
+- **Core behavior**: The program reads two sequences of integers, computes weighted sums for each sequence, and then multiplies these sums together, returning the result modulo \(10^9 + 7\).
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of elements in the first sequence.
+  - `m`: Number of elements in the second sequence.
+  - `x`: Array of integers of size `n`.
+  - `y`: Array of integers of size `m`.
+- **Data types**: 
+  - `n` and `m`: `int`
+  - `x` and `y`: `long long`
+- **Valid ranges or constraints**: 
+  - `n` and `m` should be non-negative integers.
+  - The values in `x` and `y` can be any valid `long long` integers.
+- **Assumptions about inputs**: It is assumed that the input will be provided in the correct format and that `n` and `m` will not exceed the limits of memory allocation.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the computed value.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid integer inputs for `n` and `m`.
+  - The input arrays `x` and `y` must be populated with valid `long long` integers.
+- **Explicit logical constraints**: 
+  - `n` and `m` must be greater than or equal to 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed value based on the input sequences.
+- **State changes**: No persistent state changes occur; the program operates in a stateless manner.
+- **Return guarantees**: The output will be the product of the computed sums modulo \(10^9 + 7\).
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `x` and `y` remain unchanged throughout the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or runtime errors.
+- **Exceptions thrown?**: No explicit exceptions are thrown; behavior is undefined for invalid inputs.
+- **Edge-case behavior**: If `n` or `m` is 0, the program will compute a product involving zero-length sequences, which may lead to a result of 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not utilize object-oriented principles.
+- **State changes caused by execution**: The program does not maintain state; it computes values based solely on input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is \(O(n + m)\) due to the linear scans of the input arrays.
+- **Space complexity**: The space complexity is \(O(n + m)\) for storing the input arrays.
+- **Performance assumptions**: The program assumes that the input sizes are manageable within the constraints of typical system memory.
+```

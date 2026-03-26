@@ -1,0 +1,118 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code generates and prints all possible permutations of a sequence of integers from 1 to n.
+- **What problem it solves**: It provides a method to explore all arrangements of a given set of integers, which is useful in combinatorial problems and algorithm design.
+- **Core behavior**: The function `enumeration` recursively constructs permutations by selecting elements from an array and printing them once a complete permutation is formed.
+
+## 2. Inputs
+- **Parameters**:
+  - `result[]`: An array to store the current permutation being constructed.
+  - `used[]`: An array containing the integers available for permutation.
+  - `n`: An integer representing the total number of elements to permute.
+  - `d`: An integer representing the current depth in the recursive permutation construction.
+- **Data types**: 
+  - `result[]` and `used[]`: Integer arrays.
+  - `n` and `d`: Integers.
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - `d` must be in the range [0, n].
+- **Assumptions about inputs**: The input `n` is provided by the user and is expected to be a valid integer.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it prints permutations directly to the standard output.
+- **Side effects**: Outputs permutations of integers to the console.
+- **Output format/schema**: Each permutation is printed on a new line, with integers separated by spaces.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input `n` must be initialized and read from standard input.
+  - The arrays `used[]` and `result[]` must be allocated with a size of `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - All permutations of the integers from 1 to n are printed.
+- **State changes**: The console output reflects the permutations generated.
+- **Return guarantees**: No return value; the function completes after printing.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `result[]` array contains valid integers from the `used[]` array during the recursive calls.
+  - The `used[]` array is modified to exclude already selected integers for the current permutation.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if `n` is negative or if memory allocation fails.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on the environment to manage invalid inputs.
+- **Edge-case behavior**: If `n` is 0, no output is generated, as there are no integers to permute.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The function operates in a recursive state, where each call represents a state of the permutation being constructed.
+- **State changes caused by execution**: The `result[]` array is updated with selected integers, and the `used[]` array is modified to reflect remaining integers.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n!), as the number of permutations grows factorially with n.
+- **Space complexity**: O(n), due to the recursive call stack and the storage of the `result[]` and `used[]` arrays.
+- **Performance assumptions**: The function may become inefficient for large values of n due to the rapid growth of permutations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+void enumeration(int result[],int used[],int n,int d){
+    int i;
+    if(d>=n){
+        for(i=0;i<n;i++){
+            if(i==0)printf("%d",result[i]);
+            else printf(" %d",result[i]);
+        }
+        printf("\n");
+        return;
+    }
+    
+    int used2[n-d-1];
+    int j,k;
+    for(i=0;i<n-d;i++){
+        result[d]=used[i];
+        for(j=0,k=0;j<n-d;j++)if(j!=i)used2[k++]=used[j];
+        enumeration(result,used2,n,d+1);
+    }
+    
+    return;
+}
+int main(void){
+    int i;
+    
+    int n;
+    scanf("%d\n",&n);
+    
+    int used[n];
+    for(i=0;i<n;i++)used[i]=i+1;
+    
+    int result[n];
+    
+    enumeration(result,used,n,0);
+    
+    return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,169 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01255/p01255_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01255/p01255_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (36100844) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p01255/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:75:74:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+use std::collections::HashSet;
+
+const EPS: f64 = 1e-6;
+
+#[derive(Clone, Copy, Debug)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Segment {
+    start: Point,
+    end: Point,
+}
+
+fn eq(a: f64, b: f64) -> bool {
+    (a - b).abs() < EPS
+}
+
+fn add(p1: Point, p2: Point) -> Point {
+    Point {
+        x: p1.x + p2.x,
+        y: p1.y + p2.y,
+    }
+}
+
+fn sub(p1: Point, p2: Point) -> Point {
+    Point {
+        x: p1.x - p2.x,
+        y: p1.y - p2.y,
+    }
+}
+
+fn cross(p1: Point, p2: Point) -> f64 {
+    p1.x * p2.y - p1.y * p2.x
+}
+
+fn ccw(p: Point, q: Point, r: Point) -> i32 {
+    let dx = q.x - p.x;
+    let dy = q.y - p.y;
+    let dx_ = r.x - p.x;
+    let dy_ = r.y - p.y;
+    let t = dx * dy_ - dy * dx_;
+    if eq(t, 0.0) {
+        0
+    } else if t < 0.0 {
+        -1
+    } else {
+        1
+    }
+}
+
+fn intersect(s1: Segment, s2: Segment) -> bool {
+    ccw(s1.start, s1.end, s2.start) * ccw(s1.start, s1.end, s2.end) <= 0 &&
+    ccw(s2.start, s2.end, s1.start) * ccw(s2.start, s2.end, s1.end) <= 0
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    while let Some(line) = lines.next() {
+        let lim: usize = line.unwrap().trim().parse().unwrap();
+        if lim == 0 {
+            break;
+        }
+
+        let mut segments = Vec::new();
+        let mut n = 0;
+
+        for i in 0..lim {
+            let s: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+            if s == 0 {
+                continue;
+            }
+            let start_x: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+            let start_y: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+            let mut start_segment = Segment {
+                start: Point { x: start_x, y: start_y },
+                end: Point { x: 0.0, y: 0.0 },
+            };
+
+            for _ in 1..s {
+                let end_x: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                let end_y: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+                start_segment.end = Point { x: end_x, y: end_y };
+                segments.push(start_segment);
+                n += 1;
+                start_segment.start = Point { x: end_x, y: end_y };
+            }
+        }
+
+        let result = welsh_powell(&segments, n);
+        println!("{}", result);
+    }
+}
+
+fn welsh_powell(segments: &[Segment], n: usize) -> usize {
+    let mut graph: Vec<HashSet<usize>> = vec![HashSet::new(); n];
+    let mut colors = vec![0; n];
+
+    for i in 0..n {
+        for j in (i + 1)..n {
+            if intersect(segments[i], segments[j]) {
+                graph[i].insert(j);
+                graph[j].insert(i);
+            }
+        }
+    }
+
+    let mut degree: Vec<usize> = graph.iter().map(|g| g.len()).collect();
+    let mut vertices: Vec<usize> = (0..n).collect();
+    vertices.sort_by(|&a, &b| degree[b].cmp(&degree[a]));
+
+    let mut color_count = 0;
+
+    for &u in &vertices {
+        if colors[u] == 0 {
+            color_count += 1;
+            colors[u] = color_count;
+
+            for &v in &graph[u] {
+                if colors[v] == 0 {
+                    colors[v] = color_count;
+                }
+            }
+        }
+    }
+
+    color_count
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

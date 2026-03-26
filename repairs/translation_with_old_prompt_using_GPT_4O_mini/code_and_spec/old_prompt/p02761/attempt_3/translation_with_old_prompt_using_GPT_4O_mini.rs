@@ -1,0 +1,56 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().unwrap();
+    let m: usize = iter.next().unwrap().parse().unwrap();
+
+    let mut s = vec![0; m];
+    let mut c = vec![0; m];
+    let mut digit = vec![-1; n]; // Use isize to allow for -1
+    let d = [100, 10, 1];
+    let mut num = 0;
+
+    if m == 0 {
+        // Handle the case where M is 0
+        num = match n {
+            1 => 0,
+            2 => 10,
+            3 => 100,
+            _ => 0, // Default case for N > 3
+        };
+    } else {
+        for i in 0..m {
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+            let mut iter = input.split_whitespace();
+            s[i] = iter.next().unwrap().parse::<usize>().unwrap();
+            c[i] = iter.next().unwrap().parse::<usize>().unwrap();
+
+            let index = s[i] - 1; // Convert to 0-based index
+            if digit[index] == -1 {
+                digit[index] = c[i] as isize * d[3 - n + index] as isize; // Cast to isize
+            } else if digit[index] / d[3 - n + index] as isize != c[i] as isize {
+                num = -1; // Conflict detected
+            }
+        }
+
+        if num != -1 {
+            for i in 0..n {
+                if digit[i] != -1 {
+                    num += digit[i];
+                } else if n > 1 && i == 0 && digit[i] != 0 {
+                    num += d[3 - n + i];
+                }
+            }
+        }
+    }
+
+    if n > 1 && s[0] == 1 && c[0] == 0 {
+        println!("-1");
+    } else {
+        println!("{}", num);
+    }
+}

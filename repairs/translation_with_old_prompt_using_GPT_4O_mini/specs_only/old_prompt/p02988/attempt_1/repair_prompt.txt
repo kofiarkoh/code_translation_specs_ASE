@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of integers and counts the number of times a triplet of consecutive integers forms a strictly increasing or strictly decreasing sequence.
+- **What problem it solves**: It identifies and counts patterns of consecutive integers that either increase or decrease, providing insight into the trends within the input data.
+- **Core behavior**: The program reads an integer `n` followed by `n` integers, then iterates through the list to count the number of valid triplets that are either strictly increasing or strictly decreasing.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers to be read.
+  - `num[]`: An array to store the integers.
+- **Data types**: 
+  - `n`: `int`
+  - `num[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` should be a positive integer (1 ≤ n ≤ 1000).
+  - The array `num` can hold up to 1000 integers.
+- **Assumptions about inputs**: 
+  - The input integers can be any valid integer value.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid triplets.
+- **Side effects**: The program prints the count to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format (an integer followed by that many integers).
+  - `n` must be greater than or equal to 3 to form at least one triplet.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the count of valid triplets.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `num` will always contain `n` integers after input.
+  - The count variable will always be non-negative.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `n < 3`, the program will not count any triplets, resulting in an output of 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain persistent state.
+- **State changes caused by execution**: The `count` variable is modified based on the input data.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of integers read, due to the two loops iterating through the array.
+- **Space complexity**: O(n) for storing the input integers in the array.
+- **Performance assumptions**: The program assumes that the input can be processed within reasonable time limits for n up to 1000.
+```

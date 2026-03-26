@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a grid of integers to count specific conditions based on neighboring cells.
+- **What problem it solves**: It identifies and counts the number of grid cells that are adjacent to certain marked cells, based on a set of movement directions.
+- **Core behavior**: The program reads a grid, marks certain cells based on movement from an initial position, and counts how many unmarked cells are adjacent to these marked cells.
+
+## 2. Inputs
+- **Parameters**: 
+  - `w`: Width of the grid.
+  - `h`: Height of the grid.
+- **Data types**: 
+  - `int` for `w`, `h`, and grid values.
+- **Valid ranges or constraints**: 
+  - `w` and `h` must be positive integers.
+  - The grid values can be any integer.
+- **Assumptions about inputs**: 
+  - The grid is provided in a specific format where each row contains `w` integers.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer representing the count of specific adjacent cells.
+- **Side effects**: 
+  - The program modifies the grid in memory by marking certain cells.
+- **Output format/schema**: 
+  - The output is a single integer printed to the standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The grid dimensions must be valid (i.e., `w` and `h` must be positive).
+- **Explicit logical constraints**: 
+  - The grid must be initialized and populated before processing.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the count of unmarked cells adjacent to marked cells.
+- **State changes**: 
+  - The grid will have certain cells marked as processed.
+- **Return guarantees**: 
+  - The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The grid dimensions (`w` and `h`) remain constant throughout execution.
+  - The arrays `x` and `y` maintain valid indices during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: 
+  - Not inferable from code.
+- **Edge-case behavior**: 
+  - If the grid is empty or dimensions are zero, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The grid can be in an unmarked state or a marked state.
+- **State changes caused by execution**: 
+  - Cells in the grid transition from unmarked to marked based on the processing logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(h * w) due to the nested loops iterating over the grid.
+- **Space complexity**: 
+  - The space complexity is O(h * w) for the grid storage and O(n) for the arrays `x` and `y`.
+- **Performance assumptions**: 
+  - The program assumes that the grid fits within the memory limits of the execution environment.
+```

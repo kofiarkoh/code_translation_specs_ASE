@@ -1,0 +1,244 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements various mathematical and algorithmic functions, including GCD, LCM, prime checking, substring matching, factorization, permutations, combinations, and Fibonacci sequence generation.
+- **What problem it solves**: It provides utility functions for mathematical computations and combinatorial algorithms, which can be used in various applications such as number theory, combinatorics, and algorithm design.
+- **Core behavior**: The main functionality includes calculating the Fibonacci number for a given input, along with several helper functions for mathematical operations.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: An integer representing the index for Fibonacci sequence calculation.
+  - `a[]`: An array of integers for GCD and LCM calculations.
+  - `p[]`: An array of integers for generating the next permutation.
+  - `size1`, `size2`: Dimensions for the combination matrix.
+  - `s[]`, `t[]`: Character arrays for substring matching.
+  - `ftr[]`: An array to store factors of a number.
+  - `num`: A pointer to store the count of factors.
+- **Data types**: 
+  - `int`, `long long`, `char`
+- **Valid ranges or constraints**:
+  - `n` should be a non-negative integer.
+  - Array sizes should be appropriately allocated before use.
+- **Assumptions about inputs**: 
+  - Input values are assumed to be within the limits of their respective data types.
+
+## 3. Outputs
+- **Return values**:
+  - `ngcd`: Returns the GCD of an array of integers.
+  - `lcm`: Returns the LCM of two integers.
+  - `is_prime`: Returns 1 if the number is prime, otherwise 0.
+  - `is_substr`: Returns 1 if `t` is a substring of `s` starting at index `i`, otherwise 0.
+  - `factorize`: Updates `num` with the count of factors and fills `ftr` with the factors of `n`.
+  - `nextperm`: Returns 1 if the next permutation exists, otherwise 0.
+  - `comb`: Populates a 2D array with combination values.
+  - `abs_val`: Returns the absolute difference between two integers.
+- **Side effects**: 
+  - Modifies the input arrays in functions like `factorize`, `nextperm`, and `comb`.
+- **Output format/schema**: 
+  - Outputs the nth Fibonacci number as a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - Arrays must be initialized and allocated with sufficient size.
+  - Input values must be valid integers as per the function requirements.
+- **Explicit logical constraints**:
+  - For `ngcd`, `n` must be greater than 0.
+  - For `factorize`, `n` must be a non-negative integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The output of the Fibonacci calculation is guaranteed to be the correct Fibonacci number for the input `n`.
+- **State changes**:
+  - The state of input arrays may change based on the operations performed.
+- **Return guarantees**:
+  - Functions return expected values based on their definitions.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The input arrays must remain within their allocated bounds during function execution.
+  - The GCD and LCM functions must always return non-negative integers.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**:
+  - Undefined behavior may occur if inputs are out of bounds or improperly initialized.
+- **Exceptions thrown?**: 
+  - Not inferable from code; C does not have built-in exception handling.
+- **Edge-case behavior**:
+  - Functions like `gcd` and `lcm` may not handle negative inputs correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**:
+  - Arrays must be in a valid state (allocated and initialized) before being passed to functions.
+- **State changes caused by execution**:
+  - Functions that modify arrays will change their contents based on the algorithmic logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**:
+  - Fibonacci calculation: O(n) for the loop.
+  - GCD: O(log(min(a, b))) using the Euclidean algorithm.
+  - LCM: O(log(min(a, b))) as it relies on GCD.
+  - Factorization: O(sqrt(n)) in the worst case.
+  - Next permutation: O(N) for finding the next permutation.
+- **Space complexity**:
+  - O(N) for storing the Fibonacci sequence.
+  - O(N) for storing factors in `factorize`.
+- **Performance assumptions**:
+  - Assumes that the input sizes are manageable within the limits of the data types used.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef long long ll;
+typedef char keytype;
+
+int gcd(int a, int b){ return (a % b) ? gcd(b, a % b) : b;}
+int lcm(int a, int b){ return (a / gcd(a, b)) * b;}
+
+/* a[0], ..., a[n-1] の数の最大公約数 */
+int ngcd(int n, int a[])
+{
+    int i, d;
+
+    d = a[0];
+    for (i = 1; i < n && d != 1; i++)
+        d = gcd(a[i], d);
+    return d;
+}
+
+void quicksort(keytype a[], int first, int last)
+{
+    int i, j;
+    keytype x, t;
+
+    x = a[(first + last) / 2];
+    i = first;  j = last;
+    for ( ; ; ) {
+        while (a[i] < x) i++;
+        while (x < a[j]) j--;
+        if (i >= j) break;
+        t = a[i];  a[i] = a[j];  a[j] = t;
+        i++;  j--;
+    }
+    if (first  < i - 1) quicksort(a, first , i - 1);
+    if (j + 1 < last) quicksort(a, j + 1, last);
+}
+
+int is_prime(int x){
+    if(x <= 1) return 0;
+    for(int i = 2; i * i <= x; i++){
+        if(x % i == 0) return 0;
+    }
+    return 1;
+}
+
+int is_substr(char s[], char t[], int i){
+    int flag = 1;
+
+    if(s[i] == '\0') flag = 0;
+
+    for(int j = 0; j < strlen(t); ++j, ++i){
+        if(s[i] != t[j]){
+            flag = 0;
+            break;
+        }
+    }
+    return flag;
+}
+
+// factor list, number of factors, natural number
+void factorize(int ftr[], int *num, int n){
+    int a = 2, cnt = 0;
+
+    while(n >= a){
+        if(n % a == 0){
+            n = n / a;
+            ftr[cnt++] = a;
+        }else{
+            a++;
+        }
+    }
+    *num = cnt;
+}
+
+//#define N 5
+//int p[N + 1];
+int nextperm(int p[], int N)  /* 辞書式順序で次の順列 */
+{
+    int i, j, t;
+
+    i = N - 1;
+    p[0] = 0;  /* 番人 */
+    while (p[i] >= p[i + 1]) i--;
+    if (i == 0) return 0;  /* 完了 */
+    j = N;
+    while (p[i] >= p[j]) j--;
+    t = p[i];  p[i] = p[j];  p[j] = t;
+    i++;  j = N;
+    while (i < j) {
+        t = p[i];  p[i] = p[j];  p[j] = t;  i++;  j--;
+    }
+    return 1;  /* 未了 */
+}
+
+void comb(int size1, int size2, int v[size1][size2]){
+  for(int i = 0; i < size1; i++){
+    v[i][0] = 1;
+    v[i][i] = 1;
+  }
+  for(int k = 1; k < size1; k++){
+    for(int j = 1; j < k; j++){
+      v[k][j] = (v[k-1][j-1] + v[k-1][j]);
+    }
+  }
+}
+
+int abs_val(int a, int b){
+    if(a > b) return a - b;
+    else return b - a;
+}
+
+const int inf = 1012345678;
+int main(){
+    int n;
+    ll l[100];
+
+    scanf("%d", &n);
+#if 1
+    l[0]=2LL, l[1]=1LL;
+    for(int i = 2; i <= n; i++){
+        l[i]= l[i-2] + l[i-1];
+    }
+    printf("%lld\n", l[n]);
+#endif
+    //ll ans = lucas(n);
+
+    //printf("%lld\n", ans);
+
+    return 0;
+}
+=== C CODE END ===

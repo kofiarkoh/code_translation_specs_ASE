@@ -1,0 +1,224 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to find the shortest path in a grid-like structure, specifically from a starting point to a goal point, using Dijkstra's algorithm.
+- **What problem it solves**: It addresses the problem of navigating through a grid with obstacles, determining the minimum distance required to reach a destination from a given starting point.
+- **Core behavior**: The program reads grid dimensions and obstacle positions, constructs a graph representation, and computes the shortest path using a priority queue.
+
+## 2. Inputs
+- **Parameters**:
+  - `m`: Number of rows in the grid.
+  - `n`: Number of columns in the grid.
+  - `k`: Number of obstacles.
+  - `x`, `y`: Coordinates of obstacles.
+- **Data types**:
+  - `int` for grid dimensions and coordinates.
+  - `long long` for distance calculations.
+- **Valid ranges or constraints**:
+  - `m`, `n` must be positive integers.
+  - `k` must be non-negative.
+  - Coordinates `x` and `y` must be within the bounds of the grid (1 to `m` and 1 to `n`).
+- **Assumptions about inputs**: The input is assumed to be well-formed and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The function returns the minimum distance as a `long long` integer. If no path exists, it returns `-1`.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single line containing the minimum distance or `-1`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The grid dimensions (`m`, `n`) and the number of obstacles (`k`) must be initialized.
+  - The obstacle coordinates must be provided and processed correctly.
+- **Explicit logical constraints**: The starting and goal positions must be defined within the grid.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The shortest path distance from the start to the goal is computed and printed.
+- **State changes**: The internal state of the priority queue and graph representation is modified during execution.
+- **Return guarantees**: The function guarantees a valid distance or `-1` if unreachable.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The priority queue maintains the min-heap property throughout its operations.
+  - The graph representation remains consistent with the input obstacles and connections.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: Not inferable from code; assumes valid input.
+- **Exceptions thrown?**: No explicit exception handling is present; behavior on invalid input is not defined.
+- **Edge-case behavior**: If the start or goal position is not defined, the output may be `-1`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state for the priority queue and the graph structure.
+- **State changes caused by execution**: The state of the queue changes as elements are enqueued and dequeued; the `used` array tracks visited nodes.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The Dijkstra's algorithm runs in O((V + E) log V), where V is the number of vertices and E is the number of edges.
+- **Space complexity**: O(V) for storing the graph and the priority queue.
+- **Performance assumptions**: The implementation assumes that the input size is manageable within the defined limits (e.g., `QMAX` and array sizes).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 	0605: Modern Mansion
+// 2018.1.10 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#define QMAX 80000
+typedef struct { int s; long long t; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(int s, long long t)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+#define ABS(a)  ((a)>=0?(a):-(a))
+#define INF 0x7ffffff
+typedef struct { int x, y, id; } T;
+T sw[200005];
+int sz;
+int to[400005][5], dt[400005][5], hi[400005];
+char used[400005];
+
+int xcmp(T *a, T *b) { if (a->x - b->x) return a->x - b->x; return a->y - b->y; }
+int ycmp(T *a, T *b) { if (a->y - b->y) return a->y - b->y; return a->x - b->x; }
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+long long dijkstra(int start, int flag, int goal)
+{
+	int i, s, e;
+	long long d;
+
+	qsize = 0;
+	enq(start, 0);
+	if (flag < 0) {
+		for (i = 0; i < hi[start]; i++) if (to[start][i] == start+1) {
+			dt[start][i] = INF, hi[start+1] = 0;
+		}
+	}
+
+	while (qsize) {
+		s = que[0].s, d = que[0].t, deq();
+		if (s == goal || s == goal+1) return d;
+		if (used[s]) continue;
+		used[s] = 1;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i];
+			if (used[e]) continue;
+			enq(e, d+dt[s][i]);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int m, n, k, i, j;
+	int s, ss, g, a, b, d;
+
+	m = in(), n = in(), k = in();
+	sz = 0, s = g = -1;
+	for (i = 0; i < k; i++) {
+		int x, y;
+		sw[i].x = x = in(), sw[i].y = y = in(), sw[i].id = sz;
+		if (x == 1 && y == 1) s = sz;
+		else if (x == m && y == n) g = sz;
+		sz += 2;
+	}
+	ss = s;
+	if (s < 0) sw[k].x = 1, sw[k].y = 1, sw[k].id = sz, s = sz, k++, sz+=2;
+	if (g < 0) sw[k].x = m, sw[k].y = n, sw[k].id = sz, g = sz, k++, sz+=2;
+
+	qsort(sw, k, sizeof(T), xcmp);
+	a = sw[0].id, b = a+1;
+	to[a][0] = b, dt[a][0] = 1, hi[a] = 1;
+	to[b][0] = a, dt[b][0] = 1, hi[b] = 1;
+
+	for (i = 1; i < k; i++) {
+		a = sw[i].id, b = a+1;
+		j = hi[a]++, to[a][j] = b, dt[a][j] = 1;
+		j = hi[b]++, to[b][j] = a, dt[b][j] = 1;
+		if (sw[i-1].x == sw[i].x) {
+			a = sw[i-1].id, b = sw[i].id, d =  ABS(sw[i-1].y - sw[i].y);
+			j = hi[a]++, to[a][j] = b, dt[a][j] = d;
+			j = hi[b]++, to[b][j] = a, dt[b][j] = d;
+		}
+	}
+
+	qsort(sw, k, sizeof(T), ycmp);
+	for (i = 1; i < k; i++) {
+		if (sw[i-1].y == sw[i].y) {
+			a = sw[i-1].id+1, b = sw[i].id+1, d =  ABS(sw[i-1].x - sw[i].x);
+			j = hi[a]++, to[a][j] = b, dt[a][j] = d;
+			j = hi[b]++, to[b][j] = a, dt[b][j] = d;
+		}
+	}
+
+	printf("%lld\n", dijkstra(s, ss, g));
+	return 0;
+}
+=== C CODE END ===

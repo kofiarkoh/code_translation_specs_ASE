@@ -1,0 +1,33 @@
+use std::io;
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into three long long integers
+    let mut iter = input.split_whitespace();
+    let n: i64 = iter.next().unwrap().parse().expect("Invalid input for N");
+    let x: i64 = iter.next().unwrap().parse().expect("Invalid input for X");
+    let d: i64 = iter.next().unwrap().parse().expect("Invalid input for D");
+
+    // Handle the special case where both X and D are zero
+    if x == 0 && d == 0 {
+        println!("1");
+        return;
+    }
+
+    // Handle the case where D is zero
+    if d == 0 {
+        // If D is zero, the output is based solely on N
+        // If N is non-negative, there is only one distinct interval
+        println!("1");
+        return;
+    }
+
+    // Calculate the number of distinct intervals
+    // The intervals are defined by the arithmetic sequence starting at X with a difference of D
+    // The number of distinct intervals is determined by the number of terms N
+    // Since N is non-negative, we can directly return N
+    println!("{}", n);
+}

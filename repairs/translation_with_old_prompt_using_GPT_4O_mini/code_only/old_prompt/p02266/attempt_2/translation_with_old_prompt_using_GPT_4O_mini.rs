@@ -1,0 +1,89 @@
+use std::io::{self, Read};
+
+struct Stack {
+    data: i32,
+    next: Option<Box<Stack>>,
+}
+
+struct Pool {
+    area: i32,
+    x: i32,
+    next: Option<Box<Pool>>,
+}
+
+fn output(p: &Option<Box<Pool>>) {
+    if let Some(pool) = p {
+        output(&pool.next);
+        print!(" {}", pool.area);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+
+    let mut x = 1;
+    let mut stack: Option<Box<Stack>> = None;
+    let mut pool: Option<Box<Pool>> = None;
+
+    for in_char in input.chars() {
+        match in_char {
+            '\\' => {
+                let tmp = Box::new(Stack {
+                    data: x,
+                    next: stack.take(),
+                });
+                stack = Some(tmp);
+            }
+            '_' => {}
+            '/' => {
+                if let Some(stack_node) = stack.take() {
+                    if pool.is_none() {
+                        pool = Some(Box::new(Pool {
+                            area: x - stack_node.data,
+                            x: stack_node.data,
+                            next: None,
+                        }));
+                    } else {
+                        let mut p = pool.as_mut().unwrap();
+                        if stack_node.data < p.x {
+                            while let Some(next_pool) = p.next.as_mut() {
+                                if next_pool.x > stack_node.data {
+                                    next_pool.area += p.area;
+                                    p = next_pool;
+                                } else {
+                                    break;
+                                }
+                            }
+                            p.area += x - stack_node.data;
+                            p.x = stack_node.data;
+                        } else {
+                            let new_pool = Box::new(Pool {
+                                area: x - stack_node.data,
+                                x: stack_node.data,
+                                next: pool,
+                            });
+                            pool = Some(new_pool);
+                        }
+                    }
+                }
+            }
+            _ => {}
+        }
+        x += 1;
+    }
+
+    let mut sum = 0;
+    let mut count = 0;
+    let mut p = pool.as_ref();
+    while let Some(pool_node) = p {
+        sum += pool_node.area;
+        count += 1;
+        p = pool_node.next.as_ref();
+    }
+    println!("{}\n{}", sum, count);
+    output(&pool);
+    if pool.is_some() {
+        println!(); // Ensure a newline only if there are pools to output
+    }
+}

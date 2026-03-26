@@ -1,0 +1,101 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates a ski resort management system that processes course data and analyzes ski patterns based on user input.
+- **What problem it solves**: It allows users to input the dimensions of a ski course and the course data, then analyzes the data to compute a specific pattern sum related to ski paths.
+- **Core behavior**: The program continuously prompts the user for course dimensions and data, processes this data, and outputs a computed sum based on the analysis of the ski course.
+
+## 2. Inputs
+- **Parameters**:
+  - `X`: Number of courses (rows).
+  - `Y`: Number of data points per course (columns).
+  - `course`: A 2D array representing the ski course data.
+- **Data types**:
+  - `X` and `Y`: `int`
+  - `course`: `int**` (pointer to pointer of integers)
+- **Valid ranges or constraints**:
+  - `X` and `Y` must be non-negative integers.
+- **Assumptions about inputs**:
+  - The user will provide valid integers for `X` and `Y`.
+  - The course data will be provided in a specific format (space-separated integers).
+
+## 3. Outputs
+- **Return values**: 
+  - The `SkiResort` function returns `1` to continue or `0` to terminate the program.
+- **Side effects**: 
+  - Outputs the computed sum of ski patterns to the standard output.
+- **Output format/schema**: 
+  - A single integer printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must be run in an environment that supports standard input and output.
+  - The user must provide valid input for course dimensions and data.
+- **Explicit logical constraints**:
+  - The input for `X` and `Y` must not be negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output a computed sum based on the provided course data.
+- **State changes**:
+  - The internal state of the program will reflect the processed course data.
+- **Return guarantees**:
+  - The function will return `0` if both `X` and `Y` are `0`, otherwise it will return `1`.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The dimensions `X` and `Y` must always be non-negative integers during execution.
+- **Class-level invariants**: 
+  - Not applicable as the code does not utilize classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**:
+  - The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect outputs.
+- **Exceptions thrown?**:
+  - No explicit exceptions are thrown; however, invalid input may cause runtime errors.
+- **Edge-case behavior**:
+  - If `X` and `Y` are both `0`, the program terminates without further processing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**:
+  - The program can be in a state of waiting for user input or processing input data.
+- **State changes caused by execution**:
+  - The state changes from waiting for input to processing input and finally to outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(X * Y^2) due to nested loops in the `analyzeCourse` function.
+- **Space complexity**: 
+  - The space complexity is O(X * (Y + 2)) for the `pattern` array.
+- **Performance assumptions**:
+  - The program assumes that the input sizes are manageable within the constraints of typical stack and heap sizes.
+```

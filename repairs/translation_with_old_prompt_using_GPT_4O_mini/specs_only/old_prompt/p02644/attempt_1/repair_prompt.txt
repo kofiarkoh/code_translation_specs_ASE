@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum number of moves required to reach a target position in a grid, given specific movement constraints.
+- **What problem it solves**: It solves the problem of finding the shortest path in a grid where movement can be made in multiple steps in one of four cardinal directions, constrained by obstacles.
+- **Core behavior**: The program reads the dimensions of a grid, the starting and goal positions, and the maximum number of steps that can be taken in one move. It then calculates the minimum number of moves required to reach the goal position from the starting position, considering obstacles.
+
+## 2. Inputs
+- **Parameters**:
+  - `h`: Height of the grid (number of rows).
+  - `w`: Width of the grid (number of columns).
+  - `k`: Maximum number of steps that can be taken in one move.
+  - `s[0]`, `s[1]`: Starting coordinates (0-indexed).
+  - `g[0]`, `g[1]`: Goal coordinates (0-indexed).
+- **Data types**: 
+  - `int` for all parameters.
+  - `char` array for the grid representation.
+- **Valid ranges or constraints**:
+  - `1 <= h, w <= 1000`
+  - `0 <= s[0], s[1] < h, w`
+  - `0 <= g[0], g[1] < h, w`
+  - `1 <= k <= 1000`
+- **Assumptions about inputs**: The grid is represented as a series of strings where each character is either a '.' (open space) or an obstacle (not specified in the code).
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum number of moves required to reach the goal position from the starting position.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer, which can be:
+  - A non-negative integer indicating the minimum moves.
+  - `-1` if the goal is unreachable.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The grid must be properly initialized and populated with valid characters ('.' for open spaces).
+  - The starting and goal positions must be within the bounds of the grid.
+  - The maximum steps `k` must be a positive integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The variable `d[g[0]][g[1]]` will contain the minimum number of moves to reach the goal or `-1` if unreachable.
+- **State changes**: The distance array `d` will be populated with the minimum distances from the start position to all reachable positions.
+- **Return guarantees**: The output will reflect the correct minimum moves or indicate that the goal is unreachable.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The distance array `d` will always contain valid distances or `INF` for unreachable positions.
+  - The queue used for BFS will maintain valid coordinates within the grid bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; however, the program assumes valid input as per the constraints.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program may exhibit undefined behavior on invalid input.
+- **Edge-case behavior**: If the starting position is the same as the goal position, the output will be `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the current position in the grid and the distance array.
+- **State changes caused by execution**: The state transitions occur as the BFS explores the grid, updating the distance array and queue.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm operates in O(h * w * k) due to the BFS traversal and the maximum steps allowed.
+- **Space complexity**: The space complexity is O(h * w) for the distance array and O(h * w) for the queue.
+- **Performance assumptions**: The algorithm is expected to perform efficiently within the given constraints, but performance may degrade with maximum grid sizes and step limits.
+```

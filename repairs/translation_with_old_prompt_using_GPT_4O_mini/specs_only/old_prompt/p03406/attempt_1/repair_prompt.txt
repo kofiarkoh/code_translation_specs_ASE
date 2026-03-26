@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific combinatorial value based on input parameters, utilizing modular arithmetic to handle large numbers.
+- **What problem it solves**: It solves the problem of counting specific combinations of subsets from a set of size `n`, given certain constraints defined by the input.
+- **Core behavior**: The program initializes factorial and inverse factorial arrays, processes input values, and computes a result based on combinatorial choices and dynamic programming.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: An integer representing the size of the set.
+  - `m`: An integer representing the number of constraints.
+  - `aa[]`: An array of integers representing the constraints.
+- **Data types**: 
+  - `n`, `m`: `int`
+  - `aa[]`: `int[]`
+- **Valid ranges or constraints**:
+  - `0 <= n <= 16`
+  - `0 <= m <= 16`
+  - Each element in `aa[]` must be a non-negative integer.
+- **Assumptions about inputs**: 
+  - The input values for `n` and `m` are provided in a valid format.
+  - The values in `aa[]` are within the range of `0` to `2^n - 1`.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer result, which is the computed combinatorial value.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The `init()` function must be called before any combinatorial calculations.
+  - The input values for `n` and `m` must be read successfully.
+- **Explicit logical constraints**: 
+  - The values of `n` and `m` must be within the specified ranges.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The variable `ans` contains the final computed value.
+- **State changes**: 
+  - The arrays `vv`, `ff`, and `gg` are populated with precomputed values.
+  - The `dp` array is modified based on the dynamic programming logic.
+- **Return guarantees**: 
+  - The output is guaranteed to be a non-negative integer modulo `MD`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values in `ff[]` and `gg[]` remain valid factorial and inverse factorial values throughout the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exceptions are handled; the program assumes valid input.
+- **Edge-case behavior**: If `k > n` in the `choose` function, it returns `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the program uses static arrays.
+- **State changes caused by execution**: The state of the `dp` array changes as it is filled based on the dynamic programming logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is O(m * 2^n * n), where `m` is the number of constraints and `n` is the size of the set.
+- **Space complexity**: The space complexity is O(2^n) due to the `dp` array and O(N) for the `vv`, `ff`, and `gg` arrays.
+- **Performance assumptions**: The program is expected to run efficiently within the constraints of `n` and `m` being at most `16`.
+```

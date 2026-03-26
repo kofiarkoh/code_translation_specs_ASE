@@ -1,0 +1,49 @@
+```rust
+use std::io;
+use std::cmp::min;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn main() {
+    // Read the number of elements
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input for N");
+
+    // Ensure N is positive
+    assert!(n > 0, "N must be greater than 0");
+
+    // Read the elements into a vector
+    let mut a: Vec<i64> = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    for num in input.trim().split_whitespace() {
+        let value: i64 = num.parse().expect("Invalid input for elements");
+        a.push(value);
+    }
+
+    // Sort the array
+    a.sort();
+
+    // Define the modulo constant
+    const MOD: i64 = 998244353;
+
+    // Initialize the product
+    let mut ans: i64 = 1;
+
+    // Compute the product of GCDs
+    for i in 0..n {
+        let gcd_value = gcd(a[i], i as i64);
+        ans = (ans * gcd_value) % MOD;
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

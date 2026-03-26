@@ -1,0 +1,32 @@
+```rust
+use std::io::{self, BufRead};
+use std::collections::HashSet;
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the first line to get the number of integers
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Initialize a vector to hold the integers
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    
+    // Read the integers from the input
+    for line in lines.take(n) {
+        let value: i32 = line.unwrap().trim().parse().unwrap();
+        a.push(value);
+    }
+    
+    // Sort the array
+    a.sort_unstable(); // Using sort_unstable for better performance, as we don't need to maintain order of equal elements
+    
+    // Use a HashSet to count unique integers
+    let unique_count = a.iter().collect::<HashSet<_>>().len();
+    
+    // Print the count of unique integers
+    println!("{}", unique_count);
+}
+```

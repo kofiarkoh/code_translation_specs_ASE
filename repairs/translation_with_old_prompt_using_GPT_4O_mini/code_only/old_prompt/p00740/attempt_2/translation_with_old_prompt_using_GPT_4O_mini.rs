@@ -1,0 +1,50 @@
+use std::io;
+
+const INF: i64 = 9223372036854775807;
+const MOD: i64 = 1_000_000_007;
+
+fn in_int() -> i32 {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn main() {
+    let mut c = [0; 50];
+    
+    loop {
+        let n = in_int();
+        let p = in_int();
+        if n == 0 {
+            break;
+        }
+        
+        let mut i = 0;
+        let mut w = p;
+        c.fill(0); // Reset array to zero
+        
+        loop {
+            if w > 0 {
+                w -= 1;
+                c[i as usize % n as usize] += 1;
+                if w == 0 {
+                    let mut j = 0;
+                    while j < n {
+                        if j != (i as usize % n as usize) && c[j as usize] > 0 {
+                            break;
+                        }
+                        j += 1;
+                    }
+                    if j == n {
+                        println!("{}", i as usize % n as usize);
+                        break;
+                    }
+                }
+            } else {
+                w += c[i as usize % n as usize];
+                c[i as usize % n as usize] = 0;
+            }
+            i += 1;
+        }
+    }
+}

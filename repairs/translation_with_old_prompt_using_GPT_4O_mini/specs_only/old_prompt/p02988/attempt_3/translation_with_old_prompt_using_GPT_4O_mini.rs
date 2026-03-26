@@ -1,0 +1,52 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line to get the number of integers
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => {
+            println!("0");
+            return;
+        }
+    };
+
+    // Ensure n is at least 3 to form triplets
+    if n < 3 {
+        println!("0");
+        return;
+    }
+
+    // Read the integers into a vector
+    let mut num: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let value: i32 = match lines.next() {
+            Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+            _ => {
+                println!("0");
+                return;
+            }
+        };
+        num.push(value);
+    }
+
+    // Count valid triplets
+    let mut count = 0;
+    for i in 0..(n - 2) {
+        // Check for strictly increasing triplet
+        if num[i] < num[i + 1] && num[i + 1] < num[i + 2] {
+            count += 1;
+        }
+        // Check for strictly decreasing triplet
+        if num[i] > num[i + 1] && num[i + 1] > num[i + 2] {
+            count += 1;
+        }
+    }
+
+    // Output the count of valid triplets
+    println!("{}", count);
+}

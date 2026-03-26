@@ -1,0 +1,72 @@
+use std::io::{self, Read};
+
+const INF: i64 = 0x1010101010101010;
+
+#[derive(Debug)]
+struct T {
+    a: i64,
+    b: i32,
+}
+
+fn in_int() -> i32 {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut n = 0;
+    let mut c = handle.bytes().next().unwrap().unwrap() as char;
+
+    while c.is_digit(10) {
+        n = 10 * n + (c as i32 - '0' as i32);
+        c = handle.bytes().next().unwrap().unwrap() as char;
+    }
+    n
+}
+
+fn big() -> i64 {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut n = 0;
+    let mut c = handle.bytes().next().unwrap().unwrap() as char;
+
+    while c.is_digit(10) {
+        n = 10 * n + (c as i64 - '0' as i64);
+        c = handle.bytes().next().unwrap().unwrap() as char;
+    }
+    n
+}
+
+fn main() {
+    let n = in_int() as usize;
+    let mut tbl: Vec<T> = Vec::with_capacity(n);
+    let mut s: Vec<i64> = vec![0; n + 1];
+
+    for _ in 0..n {
+        let a = big();
+        let b = in_int();
+        tbl.push(T { a, b });
+    }
+
+    tbl.sort_by(|a, b| {
+        if a.a == b.a {
+            a.b.cmp(&b.b)
+        } else {
+            a.a.cmp(&b.a)
+        }
+    });
+
+    let mut min = INF;
+    let mut max = i64::MIN;
+
+    for i in 1..=n {
+        let t = s[i - 1] - tbl[i - 1].a;
+        if t < min {
+            min = t;
+        }
+        s[i] = s[i - 1] + tbl[i - 1].b as i64; // Cast b to i64 for addition
+        let t = s[i] - tbl[i - 1].a - min;
+        if t > max {
+            max = t;
+        }
+    }
+
+    println!("{}", max);
+}

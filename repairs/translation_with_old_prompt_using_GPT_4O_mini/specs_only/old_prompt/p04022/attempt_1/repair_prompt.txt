@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of integers, performing various mathematical operations and checks to count specific conditions related to prime factors and their powers.
+- **What problem it solves**: It identifies and counts integers based on their prime factorization properties, particularly focusing on squares and cubes of primes, and their combinations.
+- **Core behavior**: The program reads a list of integers, factors them using precomputed prime numbers, and counts how many of these integers meet certain criteria based on their prime factorization.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers to process.
+  - `a[]`: An array of integers of size `n`.
+- **Data types**: 
+  - `n`: `long long`
+  - `a[]`: `long long[]`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - Each integer in `a[]` should be a non-negative `long long`.
+- **Assumptions about inputs**: 
+  - The input integers are within the range of typical `long long` values.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the count of integers that meet the specified conditions.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing a `long long` integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The program must be executed in an environment where standard input is available.
+- **Explicit logical constraints**: 
+  - The number of integers `n` must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the count of integers that satisfy the defined conditions.
+- **State changes**: 
+  - The program does not maintain state beyond local variables and outputs.
+- **Return guarantees**: 
+  - The output will always be a valid `long long` integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The prime lists and their squares/cubes are correctly initialized and maintained throughout the execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: The code does not explicitly throw exceptions; it relies on the input being valid.
+- **Edge-case behavior**: If `n` is zero, the program will output `0` without processing any integers.
+
+## 8. State Transitions
+- **Valid object states**: Not applicable as the code does not maintain persistent object states.
+- **State changes caused by execution**: The program initializes arrays and variables based on input and processes them to produce an output.
+
+## 9. Non-functional Constraints
+- **Time complexity**: The overall complexity is influenced by the sorting operation (`O(n log n)`) and the prime factorization checks, which can be approximated as `O(n * sqrt(n))` in the worst case.
+- **Space complexity**: The space complexity is `O(n)` for storing the input integers and additional space for prime-related arrays.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical computational limits for `long long` operations.
+```

@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Mirror Illusion
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates the movement of a point in a 2D space, reflecting its trajectory based on defined mirror positions.
+- **What problem it solves**: It determines the final position of a point after a series of movements and reflections based on mirror placements.
+- **Core behavior**: The program reads mirror configurations and simulates the movement of a point starting from a specific position, adjusting its direction upon encountering mirrors.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of mirrors.
+  - `s`: Type of mirror ('x' for vertical, 'y' for horizontal).
+  - `x`, `y`: Coordinates for mirror placement.
+- **Data types**:
+  - `int` for `n`, `x`, `y`, and `d`.
+  - `char` for `s`.
+- **Valid ranges or constraints**:
+  - `n` must be a non-negative integer (0 ≤ n).
+  - `x` and `y` must be within the range of the defined grid (0 ≤ x, y < 800).
+- **Assumptions about inputs**: The input format is strictly followed, and the coordinates provided for mirrors are valid.
+
+## 3. Outputs
+- **Return values**: The program outputs the final coordinates of the point after processing all movements and reflections.
+- **Side effects**: The program prints the final position to the standard output.
+- **Output format/schema**: The output is formatted as two integers separated by a space, representing the final coordinates (x, y).
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The input must be provided in the correct format, and the initial state of the mirrors must be valid.
+- **Explicit logical constraints**: The number of mirrors (`n`) must be non-negative, and the coordinates must be within the defined grid limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will output the final coordinates of the point after all movements and reflections.
+- **State changes**: The internal state of the mirror array is modified based on the input mirrors.
+- **Return guarantees**: The output will always consist of two integers representing the final position.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The mirror array (`mir`) remains a 4D array initialized to zero, and the coordinates (`x`, `y`) are updated based on valid movements.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will terminate without producing output if the input does not conform to the expected format or constraints.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `n` is 0, the program will simply output the initial position after the first movement.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state defined by the current position (`x`, `y`), direction (`d`), and the mirror configuration.
+- **State changes caused by execution**: The position and direction of the point change based on movements and reflections.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) for processing the mirrors, where n is the number of mirrors.
+- **Space complexity**: The space complexity is O(1) for the main variables, but O(1) for the fixed-size mirror array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints defined by the problem.
+```

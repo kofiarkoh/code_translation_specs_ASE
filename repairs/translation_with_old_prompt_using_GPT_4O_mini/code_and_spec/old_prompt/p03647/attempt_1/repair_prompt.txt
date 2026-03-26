@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines whether a specific condition can be satisfied based on input values.
+- **What problem it solves**: It checks if a certain configuration of values (a and b) can lead to a valid outcome, specifically whether a solution is possible or impossible.
+- **Core behavior**: The program reads a series of integer pairs (a, b) and evaluates them against a condition involving a counter (n). It outputs "POSSIBLE" or "IMPOSSIBLE" based on the evaluation.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: An integer representing the number of iterations or checks.
+  - `a`: An integer input for the first condition.
+  - `b`: An integer input for the second condition.
+- **Data types**: 
+  - All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - `a` and `b` should be integers within the range of valid integer values.
+- **Assumptions about inputs**: 
+  - The input format is correct and follows the expected sequence.
+
+## 3. Outputs
+- **Return values**: The program does not return a value but prints a string.
+- **Side effects**: Outputs either "POSSIBLE" or "IMPOSSIBLE" to the standard output.
+- **Output format/schema**: A single line containing either "POSSIBLE" or "IMPOSSIBLE".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer inputs as specified.
+- **Explicit logical constraints**: 
+  - The first input must be read successfully to initialize `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "POSSIBLE" or "IMPOSSIBLE".
+- **State changes**: 
+  - The state of the output buffer is modified to reflect the result.
+- **Return guarantees**: 
+  - The output will always be one of the two specified strings.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable `n` must remain non-negative throughout execution.
+- **Class-level invariants**: Not applicable as the code does not define a class.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce unexpected results or terminate.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: If `n` is zero or negative, the output will be "IMPOSSIBLE".
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects defined.
+- **State changes caused by execution**: The output state changes based on the evaluation of the input conditions.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n) due to the loop iterating based on the value of `n`.
+- **Space complexity**: O(1) for the variables used, aside from the static array `m`.
+- **Performance assumptions**: The program assumes that input reading and processing are efficient and that the input size is manageable within the constraints of the environment.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+m[1<<18];*p;main(n,a,b){for(scanf("%d%*d",&n);~scanf("%d%d",&a,&b);p-m&&*p?n=0:++*p)p=m+(a-1?b-n?0:a:b);puts(n?"IMPOSSIBLE":"POSSIBLE");}
+=== C CODE END ===

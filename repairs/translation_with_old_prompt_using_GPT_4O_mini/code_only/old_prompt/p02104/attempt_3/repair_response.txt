@@ -1,0 +1,70 @@
+```rust
+use std::io::{self, Read};
+
+const MAX: usize = 100003;
+
+fn in_number() -> usize {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock(); // Make handle mutable
+    let mut n = 0;
+    let mut buffer = [0; 1]; // Buffer to read one byte at a time
+
+    // Read the first byte
+    if handle.read(&mut buffer).unwrap() == 0 {
+        return n; // Return 0 if no input
+    }
+    let mut c = buffer[0] as char;
+
+    while c.is_ascii_digit() {
+        n = (n << 3) + (n << 1) + (c as usize - '0' as usize);
+        handle.read(&mut buffer).unwrap(); // Read the next byte
+        c = buffer[0] as char;
+    }
+    n
+}
+
+fn main() {
+    let n = in_number();
+    let mut p = vec![0; MAX];
+    let mut sp = vec![0; MAX];
+    let mut top = 0;
+    let mut q: Vec<Vec<usize>> = vec![Vec::new(); MAX];
+    let mut hi = vec![0; MAX];
+    let mut ans = vec![0; MAX];
+
+    for i in 1..=n {
+        let a = in_number();
+        p[i] = a;
+        hi[a] += 1;
+    }
+
+    for i in 1..=n {
+        q[i] = vec![0; hi[i]];
+    }
+
+    hi.fill(0); // Reset hi to zero
+    for i in 1..=n {
+        let a = p[i];
+        q[a][hi[a]] = i;
+        hi[a] += 1;
+    }
+
+    for _j in 0..2 { // Prefix j with underscore to silence warning
+        for i in 1..=n {
+            while hi[i] > 0 {
+                top += 1;
+                sp[top] = q[i][hi[i] - 1];
+                hi[i] -= 1;
+            }
+            if ans[i] == 0 && top > 0 {
+                ans[i] = sp[top];
+                top -= 1;
+            }
+        }
+    }
+
+    for i in 1..=n {
+        println!("{}", ans[i]);
+    }
+}
+```

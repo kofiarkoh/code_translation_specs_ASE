@@ -1,0 +1,109 @@
+```rust
+use std::io::{self, BufRead};
+use std::collections::{HashSet, HashMap};
+
+#[derive(Debug, Clone)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+#[derive(Debug, Clone)]
+struct Segment {
+    start: Point,
+    end: Point,
+}
+
+impl Segment {
+    // Check if two segments intersect
+    fn intersects(&self, other: &Segment) -> bool {
+        let orientation = |p: &Point, q: &Point, r: &Point| {
+            let val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+            if val == 0.0 { 0 } else if val > 0.0 { 1 } else { 2 }
+        };
+
+        let o1 = orientation(&self.start, &self.end, &other.start);
+        let o2 = orientation(&self.start, &self.end, &other.end);
+        let o3 = orientation(&other.start, &other.end, &self.start);
+        let o4 = orientation(&other.start, &other.end, &self.end);
+
+        (o1 != o2 && o3 != o4) || (o1 == 0 && self.on_segment(&other.start)) || (o2 == 0 && self.on_segment(&other.end)) ||
+        (o3 == 0 && other.on_segment(&self.start)) || (o4 == 0 && other.on_segment(&self.end))
+    }
+
+    // Check if point q lies on segment pr
+    fn on_segment(&self, q: &Point) -> bool {
+        (q.x <= self.start.x.max(self.end.x) && q.x >= self.start.x.min(self.end.x)) &&
+        (q.y <= self.start.y.max(self.end.y) && q.y >= self.start.y.min(self.end.y))
+    }
+}
+
+fn welsh_powell(segments: &[Segment]) -> usize {
+    let mut graph: HashMap<usize, HashSet<usize>> = HashMap::new();
+
+    // Build the graph based on intersections
+    for (i, seg1) in segments.iter().enumerate() {
+        for (j, seg2) in segments.iter().enumerate() {
+            if i != j && seg1.intersects(seg2) {
+                graph.entry(i).or_insert_with(HashSet::new).insert(j);
+                graph.entry(j).or_insert_with(HashSet::new).insert(i);
+            }
+        }
+    }
+
+    let mut colors = vec![None; segments.len()];
+    let mut available_colors = vec![true; segments.len()];
+
+    for u in 0..segments.len() {
+        // Reset available colors
+        available_colors.fill(true);
+
+        // Mark colors of adjacent vertices as unavailable
+        if let Some(neighbors) = graph.get(&u) {
+            for &v in neighbors {
+                if let Some(color) = colors[v] {
+                    available_colors[color] = false;
+                }
+            }
+        }
+
+        // Find the first available color
+        let color = available_colors.iter().position(|&available| available).unwrap();
+        colors[u] = Some(color);
+    }
+
+    // The number of unique colors used
+    let unique_colors: HashSet<_> = colors.into_iter().filter_map(|c| c).collect();
+    unique_colors.len()
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    if let Some(Ok(line)) = lines.next() {
+        let lim: usize = line.trim().parse().expect("Invalid number of segments");
+        if lim == 0 {
+            println!("0");
+            return;
+        }
+
+        let mut segments = Vec::with_capacity(lim);
+        for _ in 0..lim {
+            if let Some(Ok(line)) = lines.next() {
+                let coords: Vec<f64> = line.split_whitespace()
+                    .map(|s| s.parse().expect("Invalid coordinate"))
+                    .collect();
+                segments.push(Segment {
+                    start: Point { x: coords[1], y: coords[2] }, // Adjusted index for correct input format
+                    end: Point { x: coords[3], y: coords[4] },   // Adjusted index for correct input format
+                });
+            }
+        }
+
+        let min_colors = welsh_powell(&segments);
+        println!("{}", min_colors);
+    }
+}
+```

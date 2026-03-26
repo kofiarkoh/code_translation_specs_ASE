@@ -1,0 +1,56 @@
+use std::io::{self, BufRead};
+
+const MAX_K: usize = 5000;
+const MAX_N: usize = 1000;
+
+fn get_len(an: usize, bn: usize, ais: &[i32], bis: &[i32], k0: usize) -> usize {
+    let mut ai = 0;
+    for bi in k0..bn {
+        if ai >= an {
+            return bi - k0;
+        }
+        let b = bis[bi];
+        let mut aj = ai;
+        while aj < an && ais[aj] != b {
+            aj += 1;
+        }
+        if aj >= an {
+            return bi - k0;
+        }
+        ai = aj + 1;
+    }
+    bn - k0
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let an: usize = lines.next().unwrap().expect("Failed to read an").parse().expect("Invalid input for an");
+    let bn: usize = lines.next().unwrap().expect("Failed to read bn").parse().expect("Invalid input for bn");
+
+    let mut ais = vec![0; an];
+    let mut bis = vec![0; bn];
+
+    for i in 0..an {
+        ais[i] = lines.next().unwrap().expect("Failed to read ais").parse().expect("Invalid input for ais");
+    }
+    for i in 0..bn {
+        bis[i] = lines.next().unwrap().expect("Failed to read bis").parse().expect("Invalid input for bis");
+    }
+
+    let mut max_len = 0;
+
+    for k0 in 0..bn {
+        if k0 + max_len > bn {
+            break;
+        }
+        let len = get_len(an, bn, &ais, &bis, k0);
+        if max_len < len {
+            max_len = len;
+        }
+    }
+
+    println!("{}", max_len);
+}

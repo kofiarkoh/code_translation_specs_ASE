@@ -1,0 +1,64 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to a graph-based problem involving finding the maximum number of non-overlapping paths in a weighted undirected graph, specifically in the context of scheduling tasks with time constraints.
+- **What problem it solves**: It determines how many tasks can be scheduled without conflicts based on their start and end times, given the distances between locations.
+- **Core behavior**: The program reads a graph representation, computes the shortest paths between nodes, and uses a bipartite matching algorithm to find the maximum number of tasks that can be scheduled.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes in the graph.
+  - `M`: Number of edges in the graph.
+  - `L`: Number of tasks to schedule.
+  - `p[]`: Array of starting locations for tasks.
+  - `t[]`: Array of starting times for tasks.
+- **Data types**: 
+  - `N`, `M`, `L`, `u`, `v`, `d`: `int`
+  - `p[]`, `t[]`: `short[]`
+- **Valid ranges or constraints**:
+  - `N`, `M`, `L` must be non-negative integers.
+  - `0 <= u, v < N` for edges.
+  - `0 <= d` for distances.
+- **Assumptions about inputs**: 
+  - The input is well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum number of tasks that can be scheduled without conflicts.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The graph must be connected enough to allow for potential paths between tasks.
+- **Explicit logical constraints**: 
+  - The number of tasks `L` must not exceed the number of nodes `N`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output reflects the maximum number of tasks that can be scheduled based on the provided constraints.
+- **State changes**: 
+  - Internal data structures (like `dist`, `match`, and `seen`) are modified during execution.
+- **Return guarantees**: 
+  - The output is guaranteed to be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dist` array remains a valid representation of the shortest paths between nodes throughout the execution.
+  - The `match` array maintains valid pairings of tasks to nodes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `N`, `M`, or `L` are zero, the program will output `0` as no tasks can be scheduled.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in a state where it has read the input but not yet computed the results, or it can be in a state where it has completed execution and produced output.
+- **State changes caused by execution**: 
+  - The state of the `dist`, `match`, and `seen` arrays changes as the algorithm processes the input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm primarily involves a graph traversal and bipartite matching, leading to a time complexity of O(N^3) in the worst case due to the Floyd-Warshall algorithm for shortest paths and the bipartite matching.
+- **Space complexity**: The space complexity is O(N^2) for the `dist` array and O(L) for the `match` and `seen` arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for reasonably sized graphs, but may struggle with very large inputs due to the cubic time complexity.

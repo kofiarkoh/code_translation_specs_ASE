@@ -1,0 +1,87 @@
+use std::io::{self, BufRead};
+use std::collections::VecDeque;
+
+const MAX: usize = 1_000_002;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().filter_map(Result::ok);
+    
+    let n: usize = lines.next().unwrap().parse().unwrap();
+    let mut m = vec![0; n];
+    let mut memo = vec![0; n];
+    let mut hi = vec![0; n];
+    let mut to: Vec<Vec<usize>> = vec![Vec::new(); n];
+    let mut base = Vec::new();
+    
+    for i in 0..n {
+        let line: Vec<i32> = lines.next().unwrap().split_whitespace()
+            .map(|x| x.parse().unwrap()).collect();
+        m[i] = line[0];
+        memo[i] = line[1];
+        if memo[i] == -1 {
+            base.push(i);
+        } else {
+            hi[memo[i] as usize] += 1;
+        }
+    }
+
+    for i in 0..n {
+        if hi[i] > 0 {
+            to[i] = vec![0; hi[i]];
+        }
+    }
+
+    let mut bsz = 0;
+    for i in 0..n {
+        let l = memo[i];
+        if l == -1 {
+            bsz += 1;
+        } else {
+            to[l as usize][hi[l as usize] - 1] = i;
+            hi[l as usize] -= 1;
+        }
+    }
+
+    let mut ans: i64 = 0;
+    let mut dp = vec![0; n];
+    let mut s = vec![0; n];
+    let mut a = vec![0; n];
+    
+    for &root in &base {
+        let mut que = VecDeque::new();
+        let mut top = 0;
+        que.push_back(root);
+        
+        while let Some(t) = que.pop_back() {
+            if a[t] < to[t].len() {
+                que.push_back(to[t][a[t]]);
+                a[t] += 1;
+            } else {
+                calc(t, &m, &to, &mut s, &mut dp);
+                top -= 1;
+            }
+        }
+        ans += dp[root];
+    }
+    
+    println!("{}", ans);
+}
+
+fn calc(u: usize, m: &[i32], to: &[Vec<usize>], s: &mut [i32], dp: &mut [i64]) {
+    let mut b = Vec::new();
+    s[u] = m[u];
+    dp[u] = 0;
+
+    for &v in &to[u] {
+        b.push(s[v]);
+        s[u] += s[v];
+        dp[u] += dp[v];
+    }
+
+    b.sort_unstable_by(|a, b| b.cmp(a)); // Sort in ascending order
+    for (i, &value) in b.iter().enumerate() {
+        dp[u] += value as i64 * i as i64;
+    }
+}

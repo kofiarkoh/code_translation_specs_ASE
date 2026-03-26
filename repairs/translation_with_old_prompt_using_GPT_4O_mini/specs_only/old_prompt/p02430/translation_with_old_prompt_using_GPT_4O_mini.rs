@@ -1,0 +1,40 @@
+use std::io;
+
+fn main() {
+    let (n, k) = read_input();
+    
+    if k > n {
+        return; // No valid combinations if k > n
+    }
+
+    // Generate and print all combinations of n bits with exactly k bits set to 1
+    let max = 1 << n; // 2^n
+    for i in 0..max {
+        if i.count_ones() == k {
+            let positions: Vec<usize> = (0..n)
+                .filter(|&bit| (i & (1 << bit)) != 0)
+                .collect();
+            print_combination(i, &positions);
+        }
+    }
+}
+
+// Reads input from standard input and returns a tuple of (n, k)
+fn read_input() -> (u32, u32) {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    let n: u32 = iter.next().unwrap_or("0").parse().unwrap_or(0);
+    let k: u32 = iter.next().unwrap_or("0").parse().unwrap_or(0);
+    (n, k)
+}
+
+// Prints the combination in the specified format
+fn print_combination(pat: u32, positions: &[usize]) {
+    print!("{}: ", pat);
+    let pos_str = positions.iter()
+        .map(|&pos| pos.to_string())
+        .collect::<Vec<String>>()
+        .join(" ");
+    println!("{}", pos_str);
+}

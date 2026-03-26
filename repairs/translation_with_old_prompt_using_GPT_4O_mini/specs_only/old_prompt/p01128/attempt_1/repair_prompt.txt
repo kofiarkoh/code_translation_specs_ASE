@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes multiple test cases to determine the minimum number of transitions required between two states based on given line segments and their properties.
+- **What problem it solves**: It identifies intersections between line segments defined by their endpoints and calculates the minimum number of state changes needed to traverse these segments.
+- **Core behavior**: For each test case, it reads line segment data, computes potential intersection points, and evaluates the transitions between states based on these intersections.
+
+## 2. Inputs
+- **Parameters**:
+  - `C`: Number of test cases.
+  - `XA`, `YA`: Coordinates of the first endpoint of the line segment.
+  - `XB`, `YB`: Coordinates of the second endpoint of the line segment.
+  - `N`: Number of line segments to process.
+  - For each line segment:
+    - `XS`, `YS`: Starting coordinates of the segment.
+    - `XT`, `YT`: Ending coordinates of the segment.
+    - `O`: An integer representing a state or type.
+    - `L`: An integer representing a label or category.
+- **Data types**: 
+  - `int` for integers.
+  - `double` for floating-point numbers.
+- **Valid ranges or constraints**: 
+  - `C`, `N` must be non-negative integers.
+  - Coordinates (`XA`, `YA`, `XB`, `YB`, `XS`, `YS`, `XT`, `YT`) can be any double values.
+- **Assumptions about inputs**: 
+  - Input values are provided in the expected format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the minimum number of transitions required for each test case.
+- **Side effects**: Outputs results to the standard output (console).
+- **Output format/schema**: Each result is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be correctly formatted and contain valid integers and floating-point numbers.
+  - The number of test cases (`C`) and the number of segments (`N`) must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the minimum number of transitions for each test case.
+- **State changes**: The internal state of the program is modified to store intersection points and transition counts.
+- **Return guarantees**: The output will always be an integer for each test case.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `ST` will only contain valid intersection points that meet the criteria defined in the code.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not explicitly handle invalid input; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on the input being valid.
+- **Edge-case behavior**: If no valid intersections are found, the output will reflect that with the minimum transitions calculated.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state based on the current test case and the segments being processed.
+- **State changes caused by execution**: The state changes as segments are processed and intersections are calculated, affecting the transition count.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The complexity is primarily O(N log N) due to the sorting of intersection points.
+- **Space complexity**: The space complexity is O(N) for storing intersection points.
+- **Performance assumptions**: The program assumes that the number of segments (`N`) is manageable within the constraints of the system's memory and processing capabilities.
+```

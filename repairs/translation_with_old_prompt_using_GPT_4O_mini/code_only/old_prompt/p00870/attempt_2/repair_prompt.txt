@@ -1,0 +1,102 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+/*
+  AOJ 1291
+  Title: Search of Concatenated Strings
+  @kankichi573
+*/
+
+use std::io::{self, BufRead};
+use std::collections::HashMap;
+
+const MAX_N: usize = 12;
+const MAX_M: usize = 5001;
+const MAX_FLAG: usize = 4096;
+
+fn dump_flag(flag: &[[u8; MAX_FLAG]; MAX_M], len: usize) {
+    for i in 0..len {
+        for j in 0..MAX_FLAG {
+            if flag[i][j] != 0 {
+                println!("{} {}", i, j);
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut input = reader.lines().map(|line| line.unwrap());
+
+    loop {
+        let first_line = input.next().unwrap();
+        let mut nums = first_line.split_whitespace();
+        let n: usize = nums.next().unwrap().parse().unwrap();
+        let m: usize = nums.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut e = [[0u8; 21]; MAX_N];
+        let mut len = [0; MAX_N];
+        let mut t = String::new();
+        let mut flag = [[0u8; MAX_FLAG]; MAX_M];
+
+        for i in 0..n {
+            let word = input.next().unwrap();
+            e[i][..word.len()].copy_from_slice(word.as_bytes());
+            len[i] = word.len();
+        }
+
+        for _ in 0..m {
+            let mut buf = input.next().unwrap();
+            let ln = buf.len();
+            if ln > 0 && buf.as_bytes()[ln - 1] < b' ' {
+                buf.truncate(ln - 1);
+            }
+            t.push_str(&buf);
+        }
+
+        let l_s = t.len();
+        let loop_count = 1 << n;
+
+        for i in 0..l_s {
+            for j in 0..loop_count {
+                if j != 0 && flag[i][j] == 0 {
+                    continue;
+                }
+                let mut mask = 1;
+                for k in 0..n {
+                    if j & mask != 0 {
+                        mask <<= 1;
+                        continue;
+                    }
+                    let l = len[k];
+                    if &t[i..].starts_with(&e[k][..l]) {
+                        let pat = j | mask;
+                        flag[i + l][pat] = 1;
+                    }
+                    mask <<= 1;
+                }
+            }
+        }
+
+        let cnt = (0..=l_s).map(|i| flag[i][loop_count - 1]).sum::<u8>();
+        println!("{}", cnt);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

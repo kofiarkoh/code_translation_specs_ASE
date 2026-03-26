@@ -1,0 +1,59 @@
+use std::io;
+
+const MOD: i64 = 1_000_000_007;
+
+struct BIT {
+    size: usize,
+    tree: Vec<i64>,
+}
+
+impl BIT {
+    fn new(size: usize) -> Self {
+        BIT {
+            size,
+            tree: vec![0; size + 1],
+        }
+    }
+
+    fn update(&mut self, index: usize, value: i64) {
+        let mut idx = index as usize;
+        while idx <= self.size {
+            self.tree[idx] = (self.tree[idx] + value) % MOD;
+            idx += idx & (!idx + 1); // Move to the next index
+        }
+    }
+
+    fn query(&self, index: usize) -> i64 {
+        let mut sum = 0;
+        let mut idx = index as usize;
+        while idx > 0 {
+            sum = (sum + self.tree[idx]) % MOD;
+            idx -= idx & (!idx + 1); // Move to the parent index
+        }
+        sum
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    // Edge case: if n is 1, directly output 1
+    if n == 1 {
+        println!("{}", 1);
+        return;
+    }
+
+    let mut bit = BIT::new(n);
+    bit.update(1, 1); // Initialize the first term
+
+    for i in 2..=n {
+        // Compute the next term based on the recurrence relation
+        let value = (bit.query(i - 1) + bit.query(i - 1)) % MOD; // Corrected to use the same index for the recurrence
+        bit.update(i, value); // Update BIT with the new term
+    }
+
+    // Output the nth term
+    println!("{}", bit.query(n));
+}

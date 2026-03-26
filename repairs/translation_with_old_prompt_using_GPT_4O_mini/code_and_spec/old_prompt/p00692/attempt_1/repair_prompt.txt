@@ -1,0 +1,179 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to a card game problem where pairs of cards can be removed from a set of 20 cards based on specific matching rules.
+- **What problem it solves**: It determines the maximum number of pairs of cards that can be removed from a given set, thereby calculating the minimum number of cards left after all possible removals.
+- **Core behavior**: The program reads multiple sets of cards, processes each set to find and remove pairs, and outputs the number of cards remaining after all possible removals.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of test cases (sets of cards).
+  - `buf`: An array of characters representing the cards.
+- **Data types**: 
+  - `n`: Integer.
+  - `buf`: Character array of size 20.
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer.
+  - Each character in `buf` must represent a digit (0-9).
+- **Assumptions about inputs**: The input format is strictly followed, with exactly 20 characters for each test case.
+
+## 3. Outputs
+- **Return values**: The program outputs the number of cards remaining after all possible removals for each test case.
+- **Side effects**: The program prints results to the standard output.
+- **Output format/schema**: Each result is printed on a new line, representing the number of remaining cards.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of cards must be exactly 20 for each test case.
+- **Explicit logical constraints**: The input must consist of valid characters (digits) and must not exceed the specified limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the number of remaining cards for each test case.
+- **State changes**: The `max_` variable will hold the maximum depth of recursion reached during the processing of card removals.
+- **Return guarantees**: The output will always be a non-negative integer representing the number of remaining cards.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `buf` array will always contain exactly 20 characters during processing.
+  - The `max_` variable will always reflect the maximum depth of recursive calls made.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not implement exception handling.
+- **Edge-case behavior**: If the input does not conform to the expected format, the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a state where it processes card arrays and tracks the maximum depth of removals.
+- **State changes caused by execution**: The state of `max_` changes as pairs of cards are removed and the depth of recursion increases.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is not explicitly defined but is likely exponential due to the recursive nature of the solution.
+- **Space complexity**: The space complexity is O(1) for the variables used, but O(n) for the recursion stack, where n is the depth of recursion.
+- **Performance assumptions**: The program is expected to handle a reasonable number of test cases efficiently, but performance may degrade with larger inputs due to recursion depth.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 1110
+  Title:Patience
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+#define max(x,y) (((x)>(y))?(x):(y))
+int max_;
+char buf[20];
+
+void remove2(char cards[],char out[],int m1,int m2)
+{
+  int i,j;
+ 
+  //printf("rm %d %d\n",m1,m2);
+
+  for(i=j=0;i<20;i++)
+    {
+      if(i != m1 && i!= m2)
+	{
+	  out[j]=cards[i];
+	  j++;
+	}
+    }
+}
+void dump(char buf[],int depth)
+{
+  int i,j;
+  for(i=0;i<5;i++)
+    {
+      for(j=0;j<4;j++)
+	{
+	  if(i*4+j >= 20-depth*2)
+	    goto END;
+	  printf("%d|",buf[i*4+j]);
+	}
+      if(i<4)
+	printf("\n");
+    }
+ END:
+  printf("\n------- [%d]\n",depth);
+  return;
+}
+int solve(char buf[],int depth)
+{
+  int  i,last_;
+  char mybuf[4][20];
+
+
+  last_=20-2*depth;
+#ifdef DEBUG
+  dump(buf,depth);
+#endif
+  for(i=0;i<last_;i++)
+    {
+      if(i < 16 && i+4 < last_ && buf[i]==buf[i+4])
+	{
+	  remove2(buf,&mybuf[0][0],i,i+4);
+	  solve(&mybuf[0][0],depth+1);
+	}
+      if((i % 4)< 3 && i+1 < last_ && buf[i]==buf[i+1])
+	{
+	  remove2(buf,&mybuf[1][0],i,i+1);
+	  solve(&mybuf[1][0],depth+1);
+	}
+      if(i < 16 && (i % 4)< 3 && i+5 < last_ && buf[i]==buf[i+5])
+	{
+	  remove2(buf,&mybuf[2][0],i,i+5);
+	  solve(&mybuf[2][0],depth+1);
+	}
+      if(i < 16 && (i % 4)> 0 && i+3 < last_ && buf[i]==buf[i+3])
+	{
+	  remove2(buf,&mybuf[3][0],i,i+3);
+	  solve(&mybuf[3][0],depth+1);
+	}
+    }
+  max_=max(max_,depth);
+}
+
+main()
+{
+  
+  int i,j,n,ret;
+
+  scanf("%d ",&n);
+  for(i=0;i<n;i++)
+    {
+      for(j=0;j<20;j++)
+	{
+	  scanf("%c ",&buf[j]);
+	  buf[j] -= '0';
+	}
+      max_=0;
+      ret=solve(buf,0);
+      printf("%d\n",20-max_*2);
+    }
+  return(0);
+}
+=== C CODE END ===

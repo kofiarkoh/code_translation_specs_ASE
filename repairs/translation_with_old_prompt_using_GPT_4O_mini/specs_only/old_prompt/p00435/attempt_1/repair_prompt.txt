@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a string input from the user, applies a transformation to each character based on its ASCII value, and then outputs the modified string.
+- **What problem it solves**: It provides a simple form of character encoding/decoding, shifting uppercase letters backward by 3 and other characters forward by 23 in the ASCII table.
+- **Core behavior**: The program modifies each character in the input string according to specific rules and prints the resulting string.
+
+## 2. Inputs
+- **Parameters**: 
+  - A single string input from the user.
+- **Data types**: 
+  - `char[]` for the input string.
+- **Valid ranges or constraints**: 
+  - The input string can be up to 999 characters long (plus a null terminator).
+- **Assumptions about inputs**: 
+  - The input consists of valid characters that can be processed by the transformation rules.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns an integer (0) indicating successful execution.
+- **Side effects**: 
+  - Outputs the transformed string to the standard output.
+- **Output format/schema**: 
+  - The output is a single line containing the transformed string.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - The input string must be provided by the user.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The original input string is transformed according to the specified rules.
+- **State changes**: 
+  - The contents of the input string are modified in memory.
+- **Return guarantees**: 
+  - The program will always return 0 upon successful completion.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The input string remains a valid C string (null-terminated).
+- **Class-level invariants**: 
+  - Not applicable (the code is not object-oriented).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input explicitly; it assumes valid input is provided.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; behavior on invalid input is undefined.
+- **Edge-case behavior**: 
+  - If the input string is empty, the output will also be an empty string.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with an uninitialized state and transitions to a state where the input string is processed.
+- **State changes caused by execution**: 
+  - The input string is modified character by character during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(n), where n is the length of the input string.
+- **Space complexity**: 
+  - O(1) additional space, as the transformation is done in place.
+- **Performance assumptions**: 
+  - The program assumes that the input can be processed in a reasonable time frame for typical string lengths.
+```

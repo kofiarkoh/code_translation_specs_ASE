@@ -1,0 +1,54 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the first line to get the number of intervals
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // If n is 0, we exit without processing any intervals
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    // Initialize a time array to count overlapping intervals for each second in a 24-hour period
+    let mut time = [0; 86400]; // 24 * 60 * 60 = 86400 seconds
+
+    // Process each time interval
+    for _ in 0..n {
+        // Read the departure and arrival times
+        let line = lines.next().unwrap().unwrap();
+        let times: Vec<&str> = line.split_whitespace().collect();
+        
+        // Parse departure time
+        let dep_time = parse_time(times[0]);
+        // Parse arrival time
+        let arr_time = parse_time(times[1]);
+
+        // Increment the count for each second in the interval
+        // Ensure we do not exceed the bounds of the time array
+        for t in dep_time..arr_time.min(86400) {
+            time[t] += 1;
+        }
+    }
+
+    // Find the maximum count of overlapping intervals
+    let max_overlaps = time.iter().copied().max().unwrap_or(0);
+
+    // Output the maximum number of overlapping intervals
+    println!("{}", max_overlaps);
+}
+
+// Helper function to parse time in HH:MM:SS format to seconds since start of the day
+fn parse_time(time_str: &str) -> usize {
+    let parts: Vec<&str> = time_str.split(':').collect();
+    let hours: usize = parts[0].parse().unwrap();
+    let minutes: usize = parts[1].parse().unwrap();
+    let seconds: usize = parts[2].parse().unwrap();
+    // Convert to total seconds
+    hours * 3600 + minutes * 60 + seconds
+}

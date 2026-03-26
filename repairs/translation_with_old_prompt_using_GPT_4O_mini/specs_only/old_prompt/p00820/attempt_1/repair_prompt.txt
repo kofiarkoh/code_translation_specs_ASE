@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Lagrange's Four-Square Theorem Implementation
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a recursive algorithm to determine the number of ways a given positive integer can be expressed as the sum of four square integers, in accordance with Lagrange's Four-Square Theorem.
+- **What problem it solves**: It solves the problem of finding all possible combinations of four square numbers that sum up to a specified integer.
+- **Core behavior**: The function recursively explores combinations of square integers, counting valid representations until all possibilities are exhausted.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: The target integer to be expressed as a sum of squares.
+  - `c`: A counter for the number of squares used in the current combination.
+  - `low`: The lower bound for the next integer to consider in the combination.
+- **Data types**:
+  - All parameters are of type `int`.
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer (greater than 0).
+  - `c` must be less than or equal to 4 (as only four squares are allowed).
+  - `low` must be a positive integer (starting from 1).
+- **Assumptions about inputs**:
+  - The input `n` is read from standard input until a zero is encountered, which indicates termination.
+
+## 3. Outputs
+- **Return values**: The function returns an integer representing the count of distinct combinations of four square integers that sum to `n`.
+- **Side effects**: The program prints the result to standard output for each valid input `n`.
+- **Output format/schema**: Each result is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be a valid positive integer.
+  - The program must be executed in an environment that supports standard input and output operations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the number of ways to express the input integer as a sum of four squares.
+- **State changes**: The program does not maintain state across different executions; it processes each input independently.
+- **Return guarantees**: The function will return a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The count of combinations (`ret`) is always non-negative.
+  - The recursion will only proceed if `c` is less than 4 and `low` is a valid integer.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will terminate if a non-positive integer is provided (specifically, zero).
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program relies on valid input.
+- **Edge-case behavior**: If `n` is 1, the output will be 1, as 1 can be expressed as \(1^2 + 0^2 + 0^2 + 0^2\).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable, as the code does not utilize object-oriented principles.
+- **State changes caused by execution**: The state of the output changes with each valid input processed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is exponential in nature due to the recursive exploration of combinations.
+- **Space complexity**: The space complexity is primarily determined by the recursion stack, which can go up to a depth of 4 (due to the limit on `c`).
+- **Performance assumptions**: The algorithm may become inefficient for larger values of `n` due to the combinatorial nature of the problem.
+```

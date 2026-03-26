@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+    
+    let mut input = String::new();
+    while reader.read_line(&mut input).unwrap() > 0 {
+        let mut iter = input.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        let q: usize = iter.next().unwrap().parse().unwrap();
+        
+        if n == 0 {
+            break;
+        }
+
+        let mut p = vec![0; n + 1];
+        let mut m = vec![0; n + 1];
+        let mut v = vec![0; q];
+        let mut query_types = vec![' '; q];
+
+        m[1] = 1; // Mark the first element
+
+        for i in 2..=n {
+            let t: usize = iter.next().unwrap().parse().unwrap();
+            p[i] = t;
+        }
+
+        for i in 0..q {
+            let mut query = String::new();
+            reader.read_line(&mut query).unwrap();
+            let parts: Vec<&str> = query.split_whitespace().collect();
+            query_types[i] = parts[0].chars().next().unwrap();
+            v[i] = parts[1].parse::<usize>().unwrap();
+            if query_types[i] == 'M' {
+                m[v[i]] += 1;
+            }
+        }
+
+        let mut r: i64 = 0;
+
+        for i in (0..q).rev() {
+            if query_types[i] == 'M' {
+                m[v[i]] -= 1;
+            } else {
+                let mut t = v[i];
+                while t > 0 && m[t] == 0 {
+                    t = p[t];
+                }
+                if t > 0 {
+                    r += t as i64;
+                } else {
+                    // If no marked element is found, we should not add anything to r
+                    // This handles the case where we might have gone out of bounds
+                    continue;
+                }
+            }
+        }
+
+        println!("{}", r);
+        input.clear(); // Clear input for the next iteration
+    }
+}
+```

@@ -1,0 +1,68 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize the distance matrix
+    const INF: i32 = 1_000_000_000; // A large number to represent infinity
+    let mut dist = vec![vec![INF; n]; n];
+
+    // Read edges and weights
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let a: usize = parts.next().unwrap().parse().unwrap();
+        let b: usize = parts.next().unwrap().parse().unwrap();
+        let c: i32 = parts.next().unwrap().parse().unwrap();
+        
+        // Store edges
+        edges.push((a, b, c));
+        
+        // Since the graph is undirected, set both directions
+        dist[a][b] = dist[a][b].min(c);
+        dist[b][a] = dist[b][a].min(c);
+    }
+
+    // Set distance to self as 0
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] < INF && dist[k][j] < INF {
+                    dist[i][j] = dist[i][j].min(dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    // Count edges not part of any shortest path
+    let mut count = 0;
+    for (a, b, c) in edges {
+        // Check if the edge (a, b) is part of any shortest path
+        let is_part_of_shortest_path = (0..n).any(|k| {
+            dist[a][k] + dist[k][b] == dist[a][b] || dist[b][k] + dist[k][a] == dist[b][a]
+        });
+        if !is_part_of_shortest_path {
+            count += 1;
+        }
+    }
+
+    // Output the result
+    println!("{}", count);
+}
+```

@@ -1,0 +1,71 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_N: usize = 20001;
+const MAX_M: usize = 256;
+const MAX_C: usize = 16;
+
+fn min(x: i32, y: i32) -> i32 {
+    if x < y { x } else { y }
+}
+
+fn max(x: i32, y: i32) -> i32 {
+    if x > y { x } else { y }
+}
+
+fn f(x: i32, y: i32) -> i32 {
+    (x - y) * (x - y)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut dp = [[-1; MAX_M]; MAX_N];
+    let mut c = [0; MAX_C];
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap(); // Change to usize
+        let m: usize = iter.next().unwrap().parse().unwrap(); // Change to usize
+
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..m {
+            c[i] = iter.next().unwrap().parse().unwrap();
+        }
+
+        dp[0][128] = 0;
+
+        for i in 0..n {
+            let x: i32 = iter.next().unwrap().parse().unwrap();
+            let prev = dp[i];
+            let curr = &mut dp[i + 1]; // No need for casting
+
+            for j in 0..MAX_M {
+                if prev[j] >= 0 {
+                    for k in 0..m {
+                        let t = min(255, max(0, j as i32 + c[k]));
+                        let y = prev[j] + f(x, t);
+                        curr[t] = if curr[t] < 0 {
+                            y
+                        } else {
+                            min(curr[t], y)
+                        };
+                    }
+                }
+            }
+        }
+
+        let mut res = i32::MAX;
+        for i in 0..MAX_M {
+            if dp[n][i] >= 0 { // Use dp[n] directly
+                res = min(res, dp[n][i]);
+            }
+        }
+        println!("{}", res);
+    }
+}
+```

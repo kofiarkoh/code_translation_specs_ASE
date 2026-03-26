@@ -1,0 +1,105 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03647/p03647_sample1_output.txt
+Input:
+2
+1 2
+2 1
+Expected:
+POSSIBLE
+Actual:
+IMPOSSIBLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first line to get `n`
+    let n: i32 = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Handle invalid input gracefully
+    };
+
+    // If n is zero or negative, output "IMPOSSIBLE"
+    if n <= 0 {
+        println!("IMPOSSIBLE");
+        return;
+    }
+
+    let mut p = 0; // Counter for conditions
+
+    // Read pairs of (a, b) until EOF
+    for line in lines {
+        if let Ok(line) = line {
+            let nums: Vec<i32> = line.split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+
+            if nums.len() < 2 {
+                break; // Exit if we don't have enough numbers
+            }
+
+            let a = nums[0];
+            let b = nums[1];
+
+            // Evaluate the conditions
+            if p != 0 && n != 0 {
+                // If p is not zero and n is not zero, set n to 0
+                // Note: We cannot reassign to `n`, so we will use a flag instead
+                let mut impossible = true;
+                if impossible {
+                    println!("IMPOSSIBLE");
+                    return;
+                }
+            } else {
+                // Increment p
+                p += 1;
+            }
+
+            // Update p based on conditions
+            p = if a != 0 {
+                if b != n {
+                    0
+                } else {
+                    a
+                }
+            } else {
+                b
+            };
+        }
+    }
+
+    // Output the result based on the final value of n
+    if p == 0 {
+        println!("IMPOSSIBLE");
+    } else {
+        println!("POSSIBLE");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

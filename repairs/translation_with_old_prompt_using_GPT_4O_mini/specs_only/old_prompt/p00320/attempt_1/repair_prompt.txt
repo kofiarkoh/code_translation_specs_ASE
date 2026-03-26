@@ -1,0 +1,97 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines if there exists a valid configuration of a set of hardware components such that certain connection constraints are satisfied.
+- **What problem it solves**: It checks if any permutation of the hardware components can satisfy specific length equality conditions based on given connections.
+- **Core behavior**: The program reads dimensions of hardware components, generates permutations of their indices, and evaluates connection constraints to determine if a valid configuration exists.
+
+## 2. Inputs
+- **Parameters**: 
+  - `hw`: A 2D array representing the dimensions of 6 hardware components.
+- **Data types**: 
+  - `int` for all inputs and outputs.
+- **Valid ranges or constraints**: 
+  - The dimensions of each hardware component are assumed to be non-negative integers.
+  - The input must consist of exactly 6 pairs of integers.
+- **Assumptions about inputs**: 
+  - The input is provided in a valid format (6 pairs of integers) and is read successfully.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns `0` if a valid configuration is found and `1` if the input is invalid.
+- **Side effects**: 
+  - The program prints "yes" if a valid configuration exists and "no" otherwise.
+- **Output format/schema**: 
+  - Outputs are plain text strings ("yes" or "no").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with exactly 6 pairs of integers via standard input.
+- **Explicit logical constraints**: 
+  - The input must be read successfully without errors.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "yes" or "no" based on the evaluation of the permutations.
+- **State changes**: 
+  - The state of the `permutation` array is modified throughout the execution to explore different configurations.
+- **Return guarantees**: 
+  - The program will return `0` or `1` based on the success of finding a valid configuration or input validity.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `permutation` array will always contain a valid permutation of indices from `0` to `5`.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input does not consist of exactly 6 pairs of integers, the program returns `1`.
+- **Exceptions thrown?**: 
+  - The program does not explicitly throw exceptions but may terminate with an error code.
+- **Edge-case behavior**: 
+  - If all dimensions are equal, the program will still evaluate permutations and may return "yes".
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program maintains a state defined by the current permutation of hardware indices and the current rotation configuration.
+- **State changes caused by execution**: 
+  - The state changes as the program iterates through permutations and evaluates connection constraints.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - The time complexity is O(n! * m), where n is the number of hardware components (6) and m is the number of connection constraints (12).
+- **Space complexity**: 
+  - The space complexity is O(n) for storing the permutation and hardware dimensions.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for the fixed size of input (6 hardware components).
+```

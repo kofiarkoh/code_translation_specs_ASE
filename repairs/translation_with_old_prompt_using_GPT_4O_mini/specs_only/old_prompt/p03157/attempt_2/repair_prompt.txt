@@ -1,0 +1,146 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0434]: can't capture dynamic environment in a fn item
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03157/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:64:31
+   |
+64 |             for &(dx, dy) in &directions {
+   |                               ^^^^^^^^^^
+   |
+   = help: use the `|| { ... }` closure form instead
+
+error[E0277]: `main` has invalid return type `i32`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03157/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:5:14
+  |
+5 | fn main() -> i32 {
+  |              ^^^ `main` can only return types that implement `Termination`
+  |
+  = help: consider using `()`, or a `Result`
+
+warning: unused variable: `directions`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03157/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:36:9
+   |
+36 |     let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+   |         ^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_directions`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0277, E0434.
+For more information about an error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MAX_SIZE: usize = 512;
+
+fn main() -> i32 {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read height and width
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace();
+    let h: usize = dimensions.next().unwrap().parse().unwrap();
+    let w: usize = dimensions.next().unwrap().parse().unwrap();
+
+    // Validate dimensions
+    if h < 1 || h > MAX_SIZE || w < 1 || w > MAX_SIZE {
+        return 1; // Invalid input
+    }
+
+    // Read the grid
+    let mut grid = [['\0'; MAX_SIZE]; MAX_SIZE];
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        for (j, c) in line.chars().enumerate() {
+            grid[i][j] = c;
+        }
+    }
+
+    // Initialize group and count arrays
+    let mut group = [[0; MAX_SIZE]; MAX_SIZE];
+    let mut count = vec![(0, 0); MAX_SIZE * MAX_SIZE]; // (dot_count, other_count)
+    let mut group_id = 0;
+
+    // Directions for DFS (up, down, left, right)
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+    // DFS function to explore the grid
+    fn dfs(
+        grid: &[[char; MAX_SIZE]; MAX_SIZE],
+        group: &mut [[usize; MAX_SIZE]; MAX_SIZE],
+        count: &mut Vec<(usize, usize)>,
+        x: usize,
+        y: usize,
+        group_id: usize,
+    ) {
+        let mut dot_count = 0;
+        let mut other_count = 0;
+        let char_type = grid[x][y];
+
+        let mut stack = vec![(x, y)];
+        while let Some((cx, cy)) = stack.pop() {
+            if group[cx][cy] != 0 {
+                continue; // Already visited
+            }
+            group[cx][cy] = group_id;
+
+            if char_type == '.' {
+                dot_count += 1;
+            } else {
+                other_count += 1;
+            }
+
+            for &(dx, dy) in &directions {
+                let nx = cx as isize + dx;
+                let ny = cy as isize + dy;
+                if nx >= 0 && nx < grid.len() as isize && ny >= 0 && ny < grid[0].len() as isize {
+                    let nx = nx as usize;
+                    let ny = ny as usize;
+                    if group[nx][ny] == 0 && grid[nx][ny] != char_type {
+                        stack.push((nx, ny));
+                    }
+                }
+            }
+        }
+        count[group_id] = (dot_count, other_count);
+    }
+
+    // Process the grid to find groups
+    for i in 0..h {
+        for j in 0..w {
+            if group[i][j] == 0 {
+                group_id += 1;
+                dfs(&grid, &mut group, &mut count, i, j, group_id);
+            }
+        }
+    }
+
+    // Calculate the metric based on counts
+    let mut metric: u64 = 0;
+    for &(dot_count, other_count) in &count[1..=group_id] {
+        metric += dot_count as u64 * other_count as u64;
+    }
+
+    // Output the result
+    println!("{}", metric);
+    0 // Successful execution
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

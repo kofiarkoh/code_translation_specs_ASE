@@ -1,0 +1,113 @@
+use std::collections::{BinaryHeap, HashMap};
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: i32,
+    cost: i32,
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: HashMap<usize, Vec<Edge>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            edges: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: i32, cost: i32) {
+        self.edges.entry(from).or_insert_with(Vec::new).push(Edge { to, capacity, cost });
+    }
+
+    fn min_cost_flow(&self, source: usize, sink: usize, flow: i32) -> i32 {
+        let mut total_cost = 0;
+        let mut flow_remaining = flow;
+
+        while flow_remaining > 0 {
+            let (cost, path_flow) = self.dijkstra(source, sink, flow_remaining);
+            if path_flow == 0 {
+                return -1; // Flow cannot be achieved
+            }
+            total_cost += cost;
+            flow_remaining -= path_flow;
+        }
+
+        total_cost
+    }
+
+    fn dijkstra(&self, source: usize, sink: usize, flow: i32) -> (i32, i32) {
+        let mut dist = vec![i32::MAX; self.edges.len()];
+        let mut prev = vec![None; self.edges.len()];
+        let mut heap = BinaryHeap::new();
+        dist[source] = 0;
+        heap.push((0, source));
+
+        while let Some((cost, u)) = heap.pop() {
+            if -cost > dist[u] {
+                continue;
+            }
+
+            if let Some(edges) = self.edges.get(&u) {
+                for edge in edges {
+                    if edge.capacity > 0 {
+                        let next_cost = cost + edge.cost;
+                        if next_cost < dist[edge.to] {
+                            dist[edge.to] = next_cost;
+                            prev[edge.to] = Some((u, edge.capacity));
+                            heap.push((-next_cost, edge.to));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Reconstruct path and calculate flow
+        let mut total_flow = 0;
+        let mut total_cost = 0;
+        let mut current = sink;
+
+        while let Some((u, _)) = prev[current] {
+            if current == source {
+                break;
+            }
+            if let Some(edges) = self.edges.get(&u) {
+                for edge in edges {
+                    if edge.to == current && edge.capacity > 0 {
+                        total_flow += edge.capacity; // Assume we can push the full capacity
+                        total_cost += edge.cost; // Cost to reach this node
+                        break;
+                    }
+                }
+            }
+            current = u;
+        }
+
+        // Ensure we do not exceed the flow limit
+        total_flow = total_flow.min(flow);
+
+        (total_cost, total_flow)
+    }
+}
+
+fn main() {
+    let n: usize = 5; // Example number of nodes
+    let m: usize = 6; // Example number of edges
+    let b: i32 = 10; // Example constant affecting costs
+
+    let mut graph = Graph::new();
+
+    // Example edges (from, to, capacity, cost)
+    graph.add_edge(0, 1, 10, 2);
+    graph.add_edge(1, 2, 5, 1);
+    graph.add_edge(0, 2, 15, 3);
+    graph.add_edge(2, 3, 10, 2);
+    graph.add_edge(1, 3, 10, 1);
+    graph.add_edge(3, 4, 10, 2);
+
+    let min_cost = graph.min_cost_flow(0, 4, 10);
+    println!("{}", min_cost); // Output the minimum cost
+}

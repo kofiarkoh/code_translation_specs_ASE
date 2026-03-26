@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read dimensions H and W
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace();
+    let h: usize = dimensions.next().unwrap().parse().unwrap();
+    let w: usize = dimensions.next().unwrap().parse().unwrap();
+
+    // Read maximum allowed number of '1's in any selected segment
+    let k: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Read the binary grid
+    let mut grid: Vec<Vec<char>> = Vec::with_capacity(h);
+    for _ in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        grid.push(line.chars().collect());
+    }
+
+    // Calculate the minimum number of segments
+    let mut min_segments = 0;
+    let mut current_ones_count = 0;
+
+    let mut start_row = 0;
+    while start_row < h {
+        current_ones_count = 0;
+        let mut end_row = start_row;
+
+        // Count '1's in the current segment
+        while end_row < h && current_ones_count + grid[end_row].iter().filter(|&&c| c == '1').count() <= k {
+            current_ones_count += grid[end_row].iter().filter(|&&c| c == '1').count();
+            end_row += 1;
+        }
+
+        // We can finalize the current segment
+        min_segments += 1;
+        start_row = end_row; // Move to the next segment
+    }
+
+    // Output the result
+    println!("{}", min_segments);
+}
+```

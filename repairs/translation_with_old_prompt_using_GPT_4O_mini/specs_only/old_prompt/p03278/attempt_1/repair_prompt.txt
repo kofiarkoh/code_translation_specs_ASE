@@ -1,0 +1,101 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to compute a specific combinatorial value related to tree structures, utilizing dynamic programming and depth-first search (DFS) techniques.
+- **What problem it solves**: It calculates a value based on the number of ways to form pairs from nodes in a tree, considering certain constraints on the pairing.
+- **Core behavior**: The program constructs a tree from input edges, performs DFS to compute dynamic programming tables, and finally aggregates results to produce a single output value.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of nodes in the tree.
+  - Edges between nodes represented as pairs of integers.
+- **Data types**: 
+  - `n`: Integer.
+  - Edges: Pairs of integers (0-indexed).
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (1 ≤ n ≤ 5000).
+  - Each edge connects two distinct nodes within the range [0, n-1].
+- **Assumptions about inputs**: 
+  - The input tree is connected and undirected.
+
+## 3. Outputs
+- **Return values**: 
+  - A single long long integer representing the computed combinatorial value.
+- **Side effects**: 
+  - Outputs the result to standard output.
+- **Output format/schema**: 
+  - The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be correctly formatted and represent a valid tree structure.
+  - Memory for arrays must be allocated and initialized properly.
+- **Explicit logical constraints**: 
+  - The number of edges must be exactly `n-1` for a valid tree.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The variable `ans` contains the final computed value based on the tree structure.
+- **State changes**: 
+  - The state of the `dp` array and other related structures is modified during execution.
+- **Return guarantees**: 
+  - The output value is non-negative and less than `mod` (1000000007).
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dp` array maintains valid states throughout the DFS traversal.
+  - The `sz` array accurately reflects the size of each subtree.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program relies on correct input.
+- **Edge-case behavior**: 
+  - If `n` is 1, the output will be 1, as there are no edges to process.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains valid states for `dp`, `sz`, and other arrays during execution.
+- **State changes caused by execution**: 
+  - The state of the `dp` array is updated during the DFS based on subtree sizes and combinations.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(n^2) due to nested loops in the DFS and dynamic programming updates.
+- **Space complexity**: 
+  - O(n^2) for the `dp` array and O(n) for other auxiliary arrays.
+- **Performance assumptions**: 
+  - The algorithm is expected to run efficiently within the constraints provided (up to 5000 nodes).
+```

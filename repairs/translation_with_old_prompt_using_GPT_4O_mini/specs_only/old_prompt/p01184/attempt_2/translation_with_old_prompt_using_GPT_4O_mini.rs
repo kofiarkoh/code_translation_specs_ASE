@@ -1,0 +1,72 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of participants and preference groups
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Safely parse n and m, handling potential parsing errors
+    let n: usize = match lines.next().unwrap() {
+        Ok(line) => line.parse().unwrap_or(0),
+        Err(_) => 0,
+    };
+    let m: usize = match lines.next().unwrap() {
+        Ok(line) => line.parse().unwrap_or(0),
+        Err(_) => 0,
+    };
+
+    // Preconditions: n and m must be greater than zero
+    if n == 0 || m == 0 {
+        println!("Impossible");
+        return;
+    }
+
+    // Initialize a hash map to store participant names
+    let mut participants: HashMap<String, usize> = HashMap::new();
+    let mut names = Vec::new();
+
+    // Read participant names
+    for _ in 0..n {
+        let name = lines.next().unwrap().unwrap();
+        participants.insert(name.clone(), names.len());
+        names.push(name);
+    }
+
+    // Initialize a vector to store preferences
+    let mut preferences: Vec<Vec<usize>> = vec![Vec::new(); m];
+
+    // Read preferences
+    for i in 0..n {
+        let pref_line = lines.next().unwrap().unwrap();
+        let prefs: Vec<usize> = pref_line.split_whitespace()
+            .filter_map(|s| s.parse::<usize>().ok())
+            .collect();
+        for &pref in &prefs {
+            if pref < m {
+                preferences[pref].push(i);
+            }
+        }
+    }
+
+    // Process preferences to determine maximum groups
+    let mut max_groups = 0;
+    let mut group_participants = Vec::new();
+
+    for group in preferences {
+        if !group.is_empty() {
+            max_groups += 1;
+            group_participants.push(group.iter().map(|&id| names[id].clone()).collect::<Vec<String>>());
+        }
+    }
+
+    // Output results
+    if max_groups > 0 {
+        println!("{}", max_groups);
+        for group in group_participants {
+            println!("{:?}", group);
+        }
+    } else {
+        println!("Impossible");
+    }
+}

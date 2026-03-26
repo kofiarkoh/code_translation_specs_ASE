@@ -1,0 +1,186 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum cost to travel from a starting node to a goal node in a graph, where nodes represent locations and edges represent paths with associated costs.
+- **What problem it solves**: It solves the problem of finding the least-cost path in a weighted undirected graph, allowing for a limited number of "free" moves.
+- **Core behavior**: The algorithm uses a modified Dijkstra's approach with a priority queue (min-heap) to explore paths, considering both the cost of travel and the number of free moves available.
+
+## 2. Inputs
+- **Parameters**:
+  - `size`: Number of nodes in the graph.
+  - `m`: Number of edges in the graph.
+  - `a`, `b`, `c`: For each edge, `a` and `b` are the connected nodes (0-indexed), and `c` is the cost of the edge.
+- **Data types**: 
+  - `int` for all parameters.
+- **Valid ranges or constraints**:
+  - `size` must be greater than 0.
+  - `m` must be non-negative.
+  - Node indices `a` and `b` must be within the range `[0, size-1]`.
+  - Cost `c` must be non-negative.
+- **Assumptions about inputs**: The input graph is undirected, and there are no duplicate edges between the same pair of nodes.
+
+## 3. Outputs
+- **Return values**: The function returns the minimum cost to reach the goal node from the start node, considering the available free moves.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single integer representing the minimum cost.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be properly formatted as specified.
+  - The graph must be connected enough to allow for a path from the start to the goal node.
+- **Explicit logical constraints**: The number of nodes and edges must be valid as per the input constraints.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The minimum cost to reach the goal node is computed and printed.
+- **State changes**: The internal state of the priority queue and node cost tracking arrays are modified during execution.
+- **Return guarantees**: The function guarantees a valid minimum cost or indicates that no path exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The priority queue (min-heap) maintains the correct order of nodes based on their current cost.
+  - The `node` array consistently reflects the minimum costs to reach each node with the available free moves.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may produce undefined behavior or incorrect results if inputs do not conform to the expected format or constraints.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If there are no edges (`m = 0`), the output will be based on whether the start and goal nodes are the same.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The algorithm operates on a state where the priority queue is populated with nodes and their associated costs.
+- **State changes caused by execution**: Nodes are added to or removed from the priority queue, and the costs in the `node` array are updated as paths are explored.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm operates in O((V + E) log V) time, where V is the number of vertices (nodes) and E is the number of edges.
+- **Space complexity**: The space complexity is O(V) for the node cost tracking and O(E) for the adjacency list representation.
+- **Performance assumptions**: The algorithm assumes that the graph is sparse enough for efficient processing within the given constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// Aizu 0244: Hot Spring Trip
+// 2017.9.10 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define INF 0x7fffffff
+#define MAX 5000
+#define min(a,b) ((a)<=(b)?(a):(b))
+typedef struct { int t, k, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+  int l, r;
+  int smallest;
+
+  l = LEFT(i), r = RIGHT(i);
+  if (l < qsize && que[l].t < que[i].t) smallest = l; else smallest = i;
+  if (r < qsize && que[r].t < que[smallest].t) smallest = r;
+  if (smallest != i) {
+    QUE t = que[i]; que[i] = que[smallest]; que[smallest] = t;
+    min_heapify(smallest);
+  }
+}
+
+int deq(int *k, int *c)
+{
+  if (qsize == 0) return 0;
+  *k = que[0].k, *c = que[0].c;
+  que[0] = que[--qsize];
+  min_heapify(0);
+  return 1;
+}
+
+void enq(int k, int t, int c)
+{
+  int i, ii;
+
+  i = qsize++;
+  que[i].t = t, que[i].k = k, que[i].c = c;
+  while (i > 0 && que[ii = PARENT(i)].t > que[i].t) {
+    QUE tt = que[i]; que[i] = que[ii]; que[ii] = tt;
+    i = ii;
+  }
+}
+
+typedef struct { int len, to[102], c[102]; } TBL;
+TBL tbl[102];
+int node[102][3]; int size;
+int start, goal;
+
+int search()
+{
+	int s, i, c, s2, f2, c2, k;
+	TBL *p;
+
+	qsize = 0;
+	memset(node, -1, sizeof(node));
+	node[start][2] = 0;
+	enq(start, 0, 2);
+	while(deq(&s, &c)) {
+		if (s == goal) {
+			if (c != 1) break;
+		}
+		for (p = tbl+s, i = 0; i < p->len; i++) {
+			s2 = p->to[i], f2 = p->c[i];
+			k = node[s][c] + f2;
+			if (c != 1) {
+				if (node[s2][c] < 0 || k < node[s2][c]) node[s2][c] = k, enq(s2, k, c);
+			}
+			if (c > 0) {
+				c2 = c-1;
+				k = node[s][c];
+				if (node[s2][c2] < 0 || k < node[s2][c2]) node[s2][c2] = k, enq(s2, k, c2);
+			}
+		}
+	}
+	if (node[goal][0] >= 0 && node[goal][2] >= 0) return min(node[goal][0], node[goal][2]);
+	if (node[goal][0] >= 0) return node[goal][0];
+	return node[goal][2];
+}
+
+int main()
+{
+	int m, a, b, c;
+	TBL *p;
+
+	while (scanf("%d%d", &size, &m) && size) {
+		memset(tbl, 0, sizeof(TBL)*size);
+		start = 0, goal = size-1;
+		while (m-- > 0) {
+			scanf("%d%d%d", &a, &b, &c), a--, b--;
+			p = tbl + a, p->to[p->len] = b, p->c[p->len] = c, p->len++;
+			p = tbl + b, p->to[p->len] = a, p->c[p->len] = c, p->len++;
+		}
+		printf("%d\n", search());
+	}
+	return 0;
+}
+=== C CODE END ===

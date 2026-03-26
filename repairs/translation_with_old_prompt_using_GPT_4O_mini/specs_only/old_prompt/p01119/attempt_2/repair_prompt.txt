@@ -1,0 +1,111 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01119/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:6:9
+   |
+ 6 |     let reader = stdin.lock();
+   |         ^^^^^^ not mutable
+...
+10 |     reader.read_line(&mut first_line).unwrap();
+   |     ------ cannot borrow as mutable
+...
+24 |     reader.read_line(&mut second_line).unwrap();
+   |     ------ cannot borrow as mutable
+...
+32 |     reader.read_line(&mut third_line).unwrap();
+   |     ------ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+ 6 |     let mut reader = stdin.lock();
+   |         +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashSet;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for n and m
+    let mut first_line = String::new();
+    reader.read_line(&mut first_line).unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // If there are no integers or weights, output -1
+    if n == 0 || m == 0 {
+        println!("-1");
+        return;
+    }
+
+    // Read the integers a[]
+    let mut a = Vec::with_capacity(n);
+    let mut second_line = String::new();
+    reader.read_line(&mut second_line).unwrap();
+    for num in second_line.split_whitespace() {
+        a.push(num.parse::<i32>().unwrap());
+    }
+
+    // Read the weights w[]
+    let mut w = Vec::with_capacity(m);
+    let mut third_line = String::new();
+    reader.read_line(&mut third_line).unwrap();
+    for weight in third_line.split_whitespace() {
+        w.push(weight.parse::<i32>().unwrap());
+    }
+
+    // Use a HashSet to store all possible sums of weights
+    let mut possible_sums = HashSet::new();
+    possible_sums.insert(0); // Start with the zero sum
+
+    // Generate all possible sums of weights using bit manipulation
+    for i in 0..m {
+        let current_weight = w[i];
+        let current_sums: Vec<i32> = possible_sums.iter().copied().collect();
+        for sum in current_sums {
+            possible_sums.insert(sum + current_weight);
+            possible_sums.insert(sum - current_weight);
+        }
+    }
+
+    // Find the minimum absolute difference
+    let mut min_diff = i32::MAX;
+    for &target in &a {
+        for &sum in &possible_sums {
+            let diff = (sum - target).abs();
+            if diff < min_diff {
+                min_diff = diff;
+            }
+        }
+    }
+
+    // If min_diff is still MAX, it means no suitable weight was found
+    if min_diff == i32::MAX {
+        println!("-1");
+    } else {
+        println!("{}", min_diff);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

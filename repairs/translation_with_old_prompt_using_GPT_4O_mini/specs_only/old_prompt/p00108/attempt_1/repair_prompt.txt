@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a series of integer sequences, transforming each sequence until it reaches a stable state where further transformations yield no changes.
+- **What problem it solves**: It identifies the number of transformation iterations required to stabilize a sequence of integers based on their frequency counts.
+- **Core behavior**: The program reads sequences of integers, counts the occurrences of each integer, and replaces the original sequence with the counts until the sequence no longer changes.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers in the sequence.
+  - `numline[]`: An array of integers representing the input sequence.
+- **Data types**: 
+  - `int` for all variables.
+- **Valid ranges or constraints**: 
+  - `n` must be between 1 and 13 (inclusive).
+  - Each integer in `numline` must be between 0 and 100 (inclusive).
+- **Assumptions about inputs**: 
+  - Input is provided in a valid format, and the first integer indicates the number of subsequent integers.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs the number of transformation iterations and the final transformed sequence.
+- **Output format/schema**: 
+  - First line: Number of iterations (an integer).
+  - Second line: The final transformed sequence of integers, space-separated.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer input as specified.
+  - The first integer must indicate a valid count of subsequent integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program outputs the number of iterations taken to stabilize the sequence.
+  - The final transformed sequence is printed.
+- **State changes**: The contents of `numline` are modified to reflect the final transformed sequence.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of `numline` remains constant at `n` throughout the execution.
+  - The values in `numline` and `tmpline` are always non-negative integers.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on valid input.
+- **Edge-case behavior**: If `n` is 0, the program terminates without processing.
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program can be in a state of reading input, processing transformations, or outputting results.
+- **State changes caused by execution**: 
+  - The state transitions from reading input to processing transformations and finally to outputting results.
+
+## 9. Non-functional Constraints
+- **Time complexity**: The time complexity is O(n^2) in the worst case due to the nested loops for counting and transforming.
+- **Space complexity**: The space complexity is O(n) for storing the sequences and counts.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints defined (n ≤ 13).
+```

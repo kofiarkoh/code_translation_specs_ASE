@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn cmp(a: &i32, b: &i32) -> bool {
+    a > b
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n];
+
+    for i in 0..n {
+        a[i] = lines.next().unwrap().unwrap().parse().unwrap();
+    }
+
+    let mut r = [9999999999, 9999999999, 9999999999];
+
+    for i in 0..n {
+        for j in 0..n {
+            if i != j {
+                let mut k = 10;
+                while a[j] % k != a[j] {
+                    k *= 10;
+                }
+                let mut value = a[i] * k + a[j];
+                for k in 0..3 {
+                    if r[k] > value {
+                        // Swap values using XOR trick
+                        value ^= r[k];
+                        r[k] ^= value;
+                        value ^= r[k];
+                    }
+                }
+            }
+        }
+    }
+
+    println!("{}", r[2]);
+}

@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program calculates and outputs the c-th common divisor of two integers, a and b.
+- **What problem it solves**: It identifies the c-th largest common divisor of two given integers, which can be useful in mathematical computations involving divisibility.
+- **Core behavior**: The program reads two integers and a count, then iteratively finds common divisors and outputs the c-th one.
+
+## 2. Inputs
+- **Parameters**: 
+  - `a`: First integer
+  - `b`: Second integer
+  - `c`: The index of the common divisor to retrieve
+- **Data types**: 
+  - All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - `a`, `b`, and `c` should be positive integers (greater than 0).
+- **Assumptions about inputs**: 
+  - The user will provide valid integer inputs as expected by the `scanf` function.
+
+## 3. Outputs
+- **Return values**: The program outputs the c-th common divisor of a and b.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input is available.
+  - The inputs must be provided in the correct format (three integers).
+- **Explicit logical constraints**: 
+  - `a`, `b`, and `c` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the c-th common divisor if it exists; otherwise, it may output an undefined value.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The output will be the last computed value of `l` if the c-th common divisor is found.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variables `sum` and `l` are initialized before use.
+  - The loop iterates only while `i` is greater than 0.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may exhibit undefined behavior or produce incorrect results if non-integer or negative values are provided.
+- **Exceptions thrown?**: The program does not handle exceptions explicitly; it relies on the user to provide valid input.
+- **Edge-case behavior**: If `c` exceeds the number of common divisors, the output may be undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the program does not maintain persistent state.
+- **State changes caused by execution**: The variable `l` is updated during the execution based on the found common divisors.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(min(a, b)), as it iterates downwards from the smaller of the two integers.
+- **Space complexity**: O(1), as it uses a fixed amount of space for variables.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate values of `a` and `b`, but may become slower for large values due to the linear search for divisors.
+```

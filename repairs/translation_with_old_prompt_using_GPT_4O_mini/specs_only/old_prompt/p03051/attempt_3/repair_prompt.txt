@@ -1,0 +1,103 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03051/p03051_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03051/p03051_sample1_output.txt
+Input:
+5
+1 2 3 4 5
+Expected:
+2
+Actual:
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const M: usize = 1 << 20; // M = 2^20
+const MODULUS: i64 = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of integers N
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or(0),
+        _ => return, // Exit if input is invalid
+    };
+
+    // Initialize arrays
+    let mut s = vec![0; M];
+    let mut onum = vec![0; M];
+    let mut prev = vec![0; M];
+    let mut dp = vec![0; M];
+    let mut sum = vec![0; M];
+    let mut osum = vec![0; M];
+
+    // Read the sequence of integers
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(Ok(value)) = lines.next() {
+            if let Ok(num) = value.parse::<i64>() {
+                a.push(num);
+            }
+        }
+    }
+
+    // Compute cumulative XOR values and count occurrences of zero XOR results
+    let mut xor_sum = 0;
+    let mut zero_count = 0;
+
+    for &value in &a {
+        xor_sum ^= value;
+        if xor_sum == 0 {
+            zero_count += 1;
+        }
+    }
+
+    // The final result is based on the zero_count
+    let result = modular_exponentiation(2, zero_count as i64, MODULUS);
+    
+    // Output the result
+    println!("{}", result);
+}
+
+// Function to perform modular exponentiation
+fn modular_exponentiation(base: i64, exp: i64, modulus: i64) -> i64 {
+    let mut result = 1;
+    let mut b = base % modulus;
+    let mut e = exp;
+
+    while e > 0 {
+        if e % 2 == 1 {
+            result = (result * b) % modulus;
+        }
+        b = (b * b) % modulus;
+        e /= 2;
+    }
+    result
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

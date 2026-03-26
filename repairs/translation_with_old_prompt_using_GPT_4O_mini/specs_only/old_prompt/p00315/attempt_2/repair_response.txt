@@ -1,0 +1,63 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock(); // Locking stdin for reading
+
+    // Read the number of updates and the size of the grid
+    let mut first_line = String::new();
+    reader.read_line(&mut first_line).unwrap();
+    let mut params = first_line.split_whitespace();
+    let c: usize = params.next().unwrap().parse().unwrap();
+    let n: usize = params.next().unwrap().parse().unwrap();
+
+    // Initialize the grid
+    let mut grid = vec![vec![0; n]; n];
+    for i in 0..n {
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        for (j, ch) in line.trim().chars().enumerate() {
+            grid[i][j] = ch.to_digit(10).unwrap() as i32; // Convert '0'/'1' to 0/1
+        }
+    }
+
+    let mut symmetry_count = 0;
+
+    // Function to check symmetry
+    fn check_symmetry(grid: &Vec<Vec<i32>>, n: usize) -> i32 {
+        let mut count = 0;
+        for i in 0..n {
+            for j in 0..n {
+                if grid[i][j] == grid[n - 1 - i][j] && grid[i][j] == grid[i][n - 1 - j] {
+                    count += 1;
+                }
+            }
+        }
+        count
+    }
+
+    // Initial symmetry check
+    symmetry_count += check_symmetry(&grid, n);
+
+    // Process updates
+    for _ in 0..c {
+        let mut update_line = String::new();
+        reader.read_line(&mut update_line).unwrap();
+        let coords: Vec<usize> = update_line.split_whitespace()
+            .map(|x| x.parse::<usize>().unwrap() - 1) // Convert to 0-based index
+            .collect();
+        let x = coords[0];
+        let y = coords[1];
+
+        // Toggle the value at (x, y)
+        grid[x][y] ^= 1; // Toggle between 0 and 1
+
+        // Check symmetry after the update
+        symmetry_count += check_symmetry(&grid, n);
+    }
+
+    // Output the total count of symmetry conditions satisfied
+    println!("{}", symmetry_count);
+}
+```

@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a string input and calculates a specific integer value based on the frequency of characters in the string.
+- **What problem it solves**: It quantifies the diversity of characters in the input string while applying a penalty for consecutive character occurrences beyond a threshold.
+- **Core behavior**: The program counts unique characters and adjusts the count based on the number of consecutive characters that exceed a limit.
+
+## 2. Inputs
+- **Parameters**: 
+  - A single string input read from standard input.
+- **Data types**: 
+  - `char s[100]`: A character array to hold the input string.
+- **Valid ranges or constraints**: 
+  - The string can be up to 99 characters long (plus a null terminator).
+  - The string is expected to be null-terminated.
+- **Assumptions about inputs**: 
+  - The input string consists of ASCII characters.
+
+## 3. Outputs
+- **Return values**: 
+  - An integer value printed to standard output, representing the calculated score based on the input string.
+- **Side effects**: 
+  - Outputs the result to the console.
+- **Output format/schema**: 
+  - A single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input string must be provided and should not exceed 99 characters.
+- **Explicit logical constraints**: 
+  - The input must be a valid string (not NULL).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output an integer value based on the character analysis of the input string.
+- **State changes**: 
+  - No persistent state changes; the program operates in a stateless manner.
+- **Return guarantees**: 
+  - The output will always be an integer, which may be positive, zero, or negative.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The character frequency array `b` will always have a size of 256.
+  - The variable `a` will always represent the adjusted count of unique characters.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input exceeds 99 characters, it may lead to undefined behavior due to buffer overflow.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled; the program does not include error handling for input.
+- **Edge-case behavior**: 
+  - If the input string is empty, the output will be `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program does not maintain object states; it operates on local variables.
+- **State changes caused by execution**: 
+  - The character frequency array is populated based on the input string.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(n), where n is the length of the input string, due to the linear scan for character counting.
+- **Space complexity**: 
+  - O(1), as the size of the character frequency array is constant (256).
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for typical string lengths within the defined constraints.
+```

@@ -1,0 +1,54 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid number of watches");
+
+    if n == 0 {
+        return; // Early exit if n is 0, as per specification
+    }
+
+    let mut times = Vec::new();
+
+    for _ in 0..n {
+        let mut time_input = String::new();
+        io::stdin().read_line(&mut time_input).expect("Failed to read line");
+        let t: Vec<u32> = time_input
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().expect("Invalid time input"))
+            .collect();
+
+        // Ensure the time input is valid
+        if t.len() == 3 && t.iter().all(|&x| x <= 59) {
+            let total_seconds = t[0] * 3600 + t[1] * 60 + t[2];
+            times.push(total_seconds);
+        }
+    }
+
+    let mut min_interval = u32::MAX;
+    let mut max_interval = 0;
+
+    for i in 0..times.len() {
+        for j in (i + 1)..times.len() {
+            let interval = (times[j] as i32 - times[i] as i32).abs() as u32;
+            min_interval = min_interval.min(interval);
+            max_interval = max_interval.max(interval);
+        }
+    }
+
+    // Convert seconds back to HH:MM:SS format
+    let min_h = min_interval / 3600;
+    let min_m = (min_interval % 3600) / 60;
+    let min_s = min_interval % 60;
+
+    let max_h = max_interval / 3600;
+    let max_m = (max_interval % 3600) / 60;
+    let max_s = max_interval % 60;
+
+    // Print the results in the specified format
+    println!("{:02}:{:02}:{:02} {:02}:{:02}:{:02}", min_h, min_m, min_s, max_h, max_m, max_s);
+}
+```

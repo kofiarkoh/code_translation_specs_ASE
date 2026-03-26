@@ -1,0 +1,138 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of ways to partition `n` indistinguishable balls into `k` distinguishable boxes.
+- **What problem it solves**: It addresses the combinatorial problem of distributing indistinguishable objects into distinguishable containers, which is a common problem in combinatorics.
+- **Core behavior**: The program reads two integers, `n` (number of balls) and `k` (number of boxes), initializes a dynamic programming table to compute the number of partitions, and outputs the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of indistinguishable balls.
+  - `k`: Number of distinguishable boxes.
+- **Data types**: 
+  - Both `n` and `k` are integers (`int`).
+- **Valid ranges or constraints**: 
+  - `0 <= n <= 1000`
+  - `0 <= k <= 1000`
+- **Assumptions about inputs**: 
+  - Input is provided in a single line as two space-separated integers.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer representing the number of ways to partition `n` balls into `k` boxes.
+- **Side effects**: 
+  - The program prints the result to standard output.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input can be read.
+- **Explicit logical constraints**: 
+  - The input must consist of two integers within the specified ranges.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed the number of partitions of `n` balls into `k` boxes.
+- **State changes**: 
+  - The dynamic programming table `pdp` will be populated with computed values.
+- **Return guarantees**: 
+  - The program will return `0` upon successful execution.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `pdp` array will always have `pdp[0][0]` initialized to `1`.
+  - For any valid `i` and `j`, `pdp[i][j]` will hold the correct number of partitions computed up to that point.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input cannot be read or parsed correctly, the function `get_int2` will return `-1`, but this case is not handled in the main function.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly thrown; however, the program may exhibit undefined behavior if invalid input is provided.
+- **Edge-case behavior**: 
+  - If `n` or `k` is `0`, the output will be `1` (one way to partition zero balls).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with an uninitialized `pdp` array and transitions to a fully populated state after the `init` function is called.
+- **State changes caused by execution**: 
+  - The state of the `pdp` array changes as it is populated with computed values during the execution of the `init` function.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity of the `init` function is O(K * N), where K is the maximum number of boxes and N is the maximum number of balls.
+- **Space complexity**: 
+  - The space complexity is O(K * N) due to the storage of the `pdp` array.
+- **Performance assumptions**: 
+  - The program is expected to run efficiently within the constraints provided, given the maximum values for `n` and `k`.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+#define NUM_MAX 1000
+#define K_MAX 1000
+
+// pdp[# of partitions][# of balls]
+static uint64_t pdp[K_MAX+1][NUM_MAX+1];
+void init() {
+    pdp[0][0] = 1;
+    int i, j;
+    for(i = 1; i <= K_MAX; i++) {
+        for(j = 0; j <= NUM_MAX; j++) {
+            pdp[i][j] = pdp[i-1][j];
+            if(j>=i) pdp[i][j] = (pdp[i][j] + pdp[i][j-i])%DIVISOR;
+        }
+    }
+    return;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+    init();
+    printf("%d\n", (int)pdp[k][n]);
+    return 0;
+}
+=== C CODE END ===

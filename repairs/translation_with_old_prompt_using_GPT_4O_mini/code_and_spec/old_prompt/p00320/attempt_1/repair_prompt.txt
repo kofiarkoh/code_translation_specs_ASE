@@ -1,0 +1,172 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines if there exists a valid configuration of a set of hardware components such that certain connection constraints are satisfied.
+- **What problem it solves**: It checks if any permutation of the hardware components can satisfy specific length equality conditions based on given connections.
+- **Core behavior**: The program reads dimensions of hardware components, generates permutations of their indices, and evaluates connection constraints to determine if a valid configuration exists.
+
+## 2. Inputs
+- **Parameters**: 
+  - `hw`: A 2D array representing the dimensions of 6 hardware components.
+- **Data types**: 
+  - `int` for all inputs and outputs.
+- **Valid ranges or constraints**: 
+  - The dimensions of each hardware component are assumed to be non-negative integers.
+  - The input must consist of exactly 6 pairs of integers.
+- **Assumptions about inputs**: 
+  - The input is provided in a valid format (6 pairs of integers) and is read successfully.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns `0` if a valid configuration is found and `1` if the input is invalid.
+- **Side effects**: 
+  - The program prints "yes" if a valid configuration exists and "no" otherwise.
+- **Output format/schema**: 
+  - Outputs are plain text strings ("yes" or "no").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with exactly 6 pairs of integers via standard input.
+- **Explicit logical constraints**: 
+  - The input must be read successfully without errors.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "yes" or "no" based on the evaluation of the permutations.
+- **State changes**: 
+  - The state of the `permutation` array is modified throughout the execution to explore different configurations.
+- **Return guarantees**: 
+  - The program will return `0` or `1` based on the success of finding a valid configuration or input validity.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `permutation` array will always contain a valid permutation of indices from `0` to `5`.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input does not consist of exactly 6 pairs of integers, the program returns `1`.
+- **Exceptions thrown?**: 
+  - The program does not explicitly throw exceptions but may terminate with an error code.
+- **Edge-case behavior**: 
+  - If all dimensions are equal, the program will still evaluate permutations and may return "yes".
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program maintains a state defined by the current permutation of hardware indices and the current rotation configuration.
+- **State changes caused by execution**: 
+  - The state changes as the program iterates through permutations and evaluates connection constraints.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - The time complexity is O(n! * m), where n is the number of hardware components (6) and m is the number of connection constraints (12).
+- **Space complexity**: 
+  - The space complexity is O(n) for storing the permutation and hardware dimensions.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for the fixed size of input (6 hardware components).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+/* {1,2,3} -> ... -> {3,2,1} */
+int next_permutation(int arr[],int n) {
+	int target;
+	int i;
+	int temp;
+	for (i = n - 2; i >= 0; i--) {
+		if (arr[i] < arr[i + 1]) break;
+	}
+	if (i < 0) return 0;
+	target = i;
+
+	for (i = 0; target + i + 1 < n - i - 1; i++) {
+		temp = arr[target + 1 + i];
+		arr[target + 1 + i] = arr[n - 1 - i];
+		arr[n - i - 1] = temp;
+	}
+
+	for (i = target + 1; i < n; i++) {
+		if (arr[i] > arr[target]) break;
+	}
+	temp = arr[i];
+	arr[i] = arr[target];
+	arr[target] = temp;
+	return 1;
+}
+
+/*
+ 1
+4025
+ 3
+*/
+int connect[12][4] = {
+	/* {pos, h/w, pos, h/w} */
+	{0, 1, 1, 1},
+	{0, 0, 2, 0},
+	{0, 1, 3, 1},
+	{0, 0, 4, 0},
+
+	{1, 0, 2, 1},
+	{2, 1, 3, 0},
+	{3, 0, 4, 1},
+	{4, 1, 1, 0},
+
+	{5, 1, 1, 1},
+	{5, 0, 4, 0},
+	{5, 1, 3, 1},
+	{5, 0, 4, 0}
+};
+
+int main(void) {
+	int hw[6][2];
+	int i;
+	int permutation[6] = {0, 1, 2, 3, 4, 5};
+	int rotate;
+	for (i = 0; i < 6; i++) {
+		if (scanf("%d%d", &hw[i][0], &hw[i][1]) != 2) return 1;
+	}
+	do {
+		for (rotate = 0; rotate < (1 << 6); rotate++) {
+			int ng = 0;
+			for (i = 0; i < 12; i++) {
+				int len1 = hw[permutation[connect[i][0]]][connect[i][1] ^ ((rotate >> connect[i][0]) & 1)];
+				int len2 = hw[permutation[connect[i][2]]][connect[i][3] ^ ((rotate >> connect[i][2]) & 1)];
+				if (len1 != len2) {
+					ng = 1;
+					break;
+				}
+			}
+			if (!ng) {
+				puts("yes");
+				return 0;
+			}
+		}
+	} while (next_permutation(permutation, 6));
+	puts("no");
+	return 0;
+}
+=== C CODE END ===

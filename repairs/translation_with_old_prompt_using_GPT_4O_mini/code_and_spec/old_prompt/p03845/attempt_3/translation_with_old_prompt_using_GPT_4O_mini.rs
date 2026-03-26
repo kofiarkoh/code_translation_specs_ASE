@@ -1,0 +1,36 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the number of elements in the array
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse n");
+    let mut t = vec![0; n];
+
+    // Read the elements of the array
+    for i in 0..n {
+        t[i] = lines.next().unwrap().unwrap().parse::<i32>().expect("Failed to parse t[i]");
+    }
+
+    // Read the number of updates
+    let m: usize = lines.next().unwrap().unwrap().parse().expect("Failed to parse m");
+    let mut p = vec![0; m];
+    let mut x = vec![0; m];
+
+    // Read the updates
+    for i in 0..m {
+        p[i] = lines.next().unwrap().unwrap().parse::<usize>().expect("Failed to parse p[i]");
+        x[i] = lines.next().unwrap().unwrap().parse::<i32>().expect("Failed to parse x[i]");
+    }
+
+    // Calculate the initial sum of the array
+    let sum: i32 = t.iter().sum();
+
+    // Process each update and print the modified sum
+    for i in 0..m {
+        // p[i] is 1-based index, so we need to subtract 1 for 0-based indexing
+        let modified_sum = sum - t[p[i] - 1] + x[i];
+        println!("{}", modified_sum);
+    }
+}

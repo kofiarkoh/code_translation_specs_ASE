@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to find the shortest path in a grid-like structure, specifically from a starting point to a goal point, using Dijkstra's algorithm.
+- **What problem it solves**: It addresses the problem of navigating through a grid with obstacles, determining the minimum distance required to reach a destination from a given starting point.
+- **Core behavior**: The program reads grid dimensions and obstacle positions, constructs a graph representation, and computes the shortest path using a priority queue.
+
+## 2. Inputs
+- **Parameters**:
+  - `m`: Number of rows in the grid.
+  - `n`: Number of columns in the grid.
+  - `k`: Number of obstacles.
+  - `x`, `y`: Coordinates of obstacles.
+- **Data types**:
+  - `int` for grid dimensions and coordinates.
+  - `long long` for distance calculations.
+- **Valid ranges or constraints**:
+  - `m`, `n` must be positive integers.
+  - `k` must be non-negative.
+  - Coordinates `x` and `y` must be within the bounds of the grid (1 to `m` and 1 to `n`).
+- **Assumptions about inputs**: The input is assumed to be well-formed and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The function returns the minimum distance as a `long long` integer. If no path exists, it returns `-1`.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single line containing the minimum distance or `-1`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The grid dimensions (`m`, `n`) and the number of obstacles (`k`) must be initialized.
+  - The obstacle coordinates must be provided and processed correctly.
+- **Explicit logical constraints**: The starting and goal positions must be defined within the grid.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The shortest path distance from the start to the goal is computed and printed.
+- **State changes**: The internal state of the priority queue and graph representation is modified during execution.
+- **Return guarantees**: The function guarantees a valid distance or `-1` if unreachable.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The priority queue maintains the min-heap property throughout its operations.
+  - The graph representation remains consistent with the input obstacles and connections.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: Not inferable from code; assumes valid input.
+- **Exceptions thrown?**: No explicit exception handling is present; behavior on invalid input is not defined.
+- **Edge-case behavior**: If the start or goal position is not defined, the output may be `-1`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state for the priority queue and the graph structure.
+- **State changes caused by execution**: The state of the queue changes as elements are enqueued and dequeued; the `used` array tracks visited nodes.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The Dijkstra's algorithm runs in O((V + E) log V), where V is the number of vertices and E is the number of edges.
+- **Space complexity**: O(V) for storing the graph and the priority queue.
+- **Performance assumptions**: The implementation assumes that the input size is manageable within the defined limits (e.g., `QMAX` and array sizes).
+```

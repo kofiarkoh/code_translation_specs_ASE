@@ -1,0 +1,188 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of data pairs, performs sorting and transformations, and computes a specific mathematical result based on the transformed data.
+- **What problem it solves**: It calculates a value derived from the input data pairs, which involves sorting, counting, and applying modular arithmetic.
+- **Core behavior**: The program reads pairs of integers, sorts them, transforms their values based on specific rules, and computes a final result using a combination of bit manipulation and modular arithmetic.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: The number of data pairs.
+  - `d[]`: An array of `data` structures, each containing a `key` and an `id`.
+- **Data types**: 
+  - `N`: `int`
+  - `d[]`: `data` (struct containing `int key` and `int id`)
+- **Valid ranges or constraints**: 
+  - `N` must be a positive integer (1 ≤ N ≤ 200000).
+  - `key` and `id` are integers, with no explicit constraints on their values.
+- **Assumptions about inputs**: The input data is well-formed and adheres to the expected structure.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer representing the computed result.
+- **Side effects**: The program modifies the input array `d` during processing.
+- **Output format/schema**: The output is a single line containing the computed result as a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The array `d` must be allocated with sufficient size to hold `N` elements.
+- **Explicit logical constraints**: `N` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output is computed based on the transformations applied to the input data.
+- **State changes**: The input array `d` is modified, and the BIT (Binary Indexed Tree) is updated during execution.
+- **Return guarantees**: The output is a valid long long integer representing the computed result.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `d` remains within bounds of its allocated size.
+  - The BIT array is correctly updated during the execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on well-formed input.
+- **Edge-case behavior**: If `N` is 0 or negative, the program may not execute correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The array `d` can be in a sorted or unsorted state at various points in execution.
+  - The BIT can be in a state of having certain counts updated.
+- **State changes caused by execution**: The sorting and transformations applied to `d` change its state, and the BIT is updated with counts of `id`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operations are O(N log N), and the BIT operations are O(log N) for updates and queries, leading to an overall complexity of O(N log N).
+- **Space complexity**: The space complexity is O(N) due to the storage of the `data` array and the BIT.
+- **Performance assumptions**: The implementation assumes that the input size does not exceed the defined limits and that operations on the BIT are efficient.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+const int Mod = 998244353;
+
+typedef struct {
+	int key, id;
+} data;
+
+void merge_sort(data x[], int n)
+{
+	static data y[200001] = {};
+	if (n <= 1) return;
+	merge_sort(&(x[0]), n/2);
+	merge_sort(&(x[n/2]), (n+1)/2);
+	
+	int i, p, q;
+	for (i = 0, p = 0, q = n/2; i < n; i++) {
+		if (p >= n/2) y[i] = x[q++];
+		else if (q >= n) y[i] = x[p++];
+		else y[i] = (x[p].key < x[q].key)? x[p++]: x[q++];
+	}
+	for (i = 0; i < n; i++) x[i] = y[i];
+}
+
+void add_BIT(int N, int BIT[], int i, int k)
+{
+	while (i <= N) {
+		BIT[i] += k;
+		i += (i & -i);
+	}
+}
+
+int sum_BIT(int BIT[], int r)
+{
+	int sum = 0;
+	while (r > 0) {
+		sum += BIT[r];
+		r -= (r & -r);
+	}
+	return sum;
+}
+
+int main()
+{
+	int i, j, m, n, N, tmp;
+	data d[200001];
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d %d", &(d[i-1].key), &(d[i-1].id));
+	merge_sort(d, N);
+	for (i = 0, m = 1; i < N; i++, m++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) {
+			d[j].key = d[j].id;
+			d[j].id = m;
+		}
+		j = i - 1;
+	}
+	merge_sort(d, N);
+	for (i = 0, n = 1; i < N; i++, n++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) d[j].key = n;
+		j = i - 1;
+	}
+
+	long long pow[200001];
+	for (i = 1, pow[0] = 1; i <= N; i++) pow[i] = pow[i-1] * 2 % Mod;
+	
+	int BIT[200001] = {};
+	long long ans = (pow[N] - 1 + Mod) * N % Mod;
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[i - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		
+		for (j = i; j < N && d[j].key == d[i].key; j++) add_BIT(m, BIT, d[j].id, 1);
+		i = j - 1;
+	}
+	for (i = 1; i <= m; i++) BIT[i] = 0;
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[N - i - 1 - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) add_BIT(m, BIT, d[j].id, 1);
+		i = j + 1;
+	}
+	
+	for (i = 0; i < N; i++) {
+		d[i].key ^= d[i].id;
+		d[i].id ^= d[i].key;
+		d[i].key ^= d[i].id;
+	}
+	merge_sort(d, N);
+
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++);
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		i = j - 1;
+	}
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--);
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		i = j + 1;
+	}
+	
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,72 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read dimensions of the text grid
+    let first_line = lines.next().unwrap().unwrap();
+    let dimensions: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let (h, w) = (dimensions[0], dimensions[1]);
+
+    // Read dimensions of the pattern grid
+    let second_line = lines.next().unwrap().unwrap();
+    let pattern_dimensions: Vec<usize> = second_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let (r, c) = (pattern_dimensions[0], pattern_dimensions[1]);
+
+    // Read the text grid
+    let mut text_grid = Vec::with_capacity(h);
+    for _ in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        text_grid.push(line.chars().collect::<Vec<char>>());
+    }
+
+    // Read the pattern grid
+    let mut pattern_grid = Vec::with_capacity(r);
+    for _ in 0..r {
+        let line = lines.next().unwrap().unwrap();
+        pattern_grid.push(line.chars().collect::<Vec<char>>());
+    }
+
+    // Check if the pattern can fit in the text
+    if h < r || w < c {
+        return; // No output if the pattern is larger than the text
+    }
+
+    // Hashing function (simple polynomial rolling hash)
+    let base: usize = 31;
+    let mod_val: usize = 1_000_000_007;
+
+    // Compute hash for the pattern
+    let mut pattern_hash = 0;
+    for i in 0..r {
+        for j in 0..c {
+            pattern_hash = (pattern_hash + (pattern_grid[i][j] as usize * base.pow(i + j)) % mod_val) % mod_val;
+        }
+    }
+
+    // Compute hashes for the text grid
+    for i in 0..=h - r {
+        for j in 0..=w - c {
+            let mut text_hash = 0;
+            for x in 0..r {
+                for y in 0..c {
+                    text_hash = (text_hash + (text_grid[i + x][j + y] as usize * base.pow(x + y)) % mod_val) % mod_val;
+                }
+            }
+            // Compare hashes
+            if text_hash == pattern_hash {
+                // Output the position (1-based index)
+                println!("{} {}", i + 1, j + 1);
+            }
+        }
+    }
+}
+```

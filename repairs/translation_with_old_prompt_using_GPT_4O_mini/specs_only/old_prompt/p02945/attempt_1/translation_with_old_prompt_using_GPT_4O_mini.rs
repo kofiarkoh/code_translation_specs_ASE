@@ -1,0 +1,42 @@
+use std::io;
+
+fn main() {
+    // Read two integers from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut numbers = input.split_whitespace();
+
+    // Parse the first integer
+    let a: i32 = numbers.next().expect("Expected an integer").parse().expect("Invalid integer");
+    // Parse the second integer
+    let b: i32 = numbers.next().expect("Expected an integer").parse().expect("Invalid integer");
+
+    // Calculate sum, difference, and product
+    let sum = a + b;
+    let difference = a - b;
+    let product = a * b;
+
+    // Determine the maximum value among sum, difference, and product
+    let max = max_of_three(sum, difference, product);
+
+    // Print the maximum value
+    println!("{}", max);
+}
+
+// Function to find the maximum of three integers
+fn max_of_three(x: i32, y: i32, z: i32) -> i32 {
+    // Compare x and y, then compare the result with z
+    if x >= y {
+        if x >= z {
+            x // x is the maximum
+        } else {
+            z // z is the maximum
+        }
+    } else {
+        if y >= z {
+            y // y is the maximum
+        } else {
+            z // z is the maximum
+        }
+    }
+}

@@ -1,0 +1,32 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of pairs from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the first line to get the number of pairs
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Process each pair of integers
+    for _ in 0..n {
+        // Read the next line containing the pair (x, y)
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace()
+            .map(|s| s.parse::<i32>().unwrap());
+
+        // Unwrap the parsed integers into x and y
+        let x = nums.next().unwrap();
+        let y = nums.next().unwrap();
+
+        // Calculate the transformation (x - 1) % y + 1
+        // Since y must be positive, we assume valid input as per the specification
+        let result = (x - 1) % y + 1;
+
+        // Print the result
+        println!("{}", result);
+    }
+}
+```

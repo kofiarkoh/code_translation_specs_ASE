@@ -1,0 +1,56 @@
+```rust
+use std::io;
+
+fn main() {
+    // Read input values for n and p
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    
+    let n: u64 = iter.next().expect("Missing n").parse().expect("Invalid n");
+    let p: u64 = iter.next().expect("Missing p").parse().expect("Invalid p");
+
+    // Preconditions check
+    if n == 0 {
+        panic!("n must be greater than 0");
+    }
+
+    // Initialize the product result
+    let mut ans: u64 = 1;
+
+    // Handle edge cases for p
+    if p == 0 || p == 1 {
+        println!("{}", ans);
+        return;
+    }
+
+    // Factorization loop
+    let mut factor = 2;
+    let mut temp_p = p;
+
+    while factor * factor <= temp_p {
+        let mut count = 0;
+
+        // Count occurrences of the current factor
+        while temp_p % factor == 0 {
+            temp_p /= factor;
+            count += 1;
+        }
+
+        // If the count of this factor is at least n, multiply it to ans
+        if count >= n {
+            ans *= factor.pow(n as u32); // Use n instead of count for the power
+        }
+
+        factor += 1;
+    }
+
+    // If there's any prime factor greater than sqrt(p), it can only be temp_p itself
+    if temp_p > 1 && 1 >= n { // Check if temp_p can be used
+        ans *= temp_p.pow(n as u32);
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

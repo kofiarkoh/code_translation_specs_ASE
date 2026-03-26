@@ -1,0 +1,185 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification for Fractal Tree
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a weighted sum based on the depth of nodes in a tree structure, where the weights are determined by a given probability factor.
+- **What problem it solves**: It computes a specific mathematical expression involving node costs and their respective depths in a tree, which can be useful in various applications such as network analysis or fractal geometry.
+- **Core behavior**: The program reads input values to construct a tree, performs a depth-first search (DFS) to determine the depth of each node, and then calculates a final result based on the costs associated with each node and their depths.
+
+## 2. Inputs
+- **Parameters**:
+  - `P`: A double representing the probability factor.
+  - `N`: An integer representing the number of nodes in the tree.
+  - Edges defined by pairs of integers `(x, y)` and an integer `c` representing the cost between nodes `x` and `y`.
+- **Data types**:
+  - `P`: `double`
+  - `N`: `int`
+  - Edges: `int` pairs and `int` cost
+- **Valid ranges or constraints**:
+  - `N` must be a positive integer (N > 0).
+  - Costs `c` must be non-negative integers.
+- **Assumptions about inputs**: The input data is well-formed and adheres to the expected format.
+
+## 3. Outputs
+- **Return values**: The program outputs a single double value representing the computed result.
+- **Side effects**: Memory is allocated for storing edges and node information.
+- **Output format/schema**: The output is a double value printed to 10 decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must include a valid probability factor `P` and a valid number of nodes `N`.
+  - The edges must be provided in pairs with their corresponding costs.
+- **Explicit logical constraints**: The number of edges must be consistent with the number of nodes specified.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will have computed the weighted sum based on node depths and costs.
+- **State changes**: Memory allocated for edges and node information will be populated.
+- **Return guarantees**: The output will be a valid double value representing the computed result.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `depth` array will always contain valid depth values for each node after DFS execution.
+  - The `cost` array will always contain the cost associated with each node.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: No explicit exceptions are thrown; however, memory allocation failures may occur.
+- **Edge-case behavior**: If `N` is 1, the program will still execute but may not perform meaningful calculations.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states for nodes, edges, and their respective costs and depths.
+- **State changes caused by execution**: The state of the `depth` and `cost` arrays will be updated during the DFS traversal.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N + E), where N is the number of nodes and E is the number of edges, due to the DFS traversal.
+- **Space complexity**: O(N + E) for storing the tree structure and additional arrays.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of available memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2807 Fractal Tree
+// 2018.3.21 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// 高速数値入出力
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+int in()   // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+double dbl()    // 実数の入力
+{
+	int minus = 0;
+	double x, y;
+	int n = 0, c = gc();
+	if (c == '-') minus = 1, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+
+	if (c == '.') {
+		x = 0;
+		y = 1, c = gc();
+		do y *= 0.1, x += y * (c & 0xf), c = gc(); while (c >= '0');
+		x += n;
+	}
+	else x = n;
+	if (minus) x = -x;
+	return x;
+}
+
+
+// 本問題関連
+#define MAX 100005
+typedef struct { int to, c; } T;
+int hi[MAX]; T *t[100005]; int N;
+int cost[MAX], depth[MAX], depth_max;
+double p[MAX], P;
+
+typedef struct { int n, d; } Q;
+Q q[MAX]; int top;
+char vis[MAX];
+
+void dfs()
+{
+	int i, node, d, to;
+
+	q[0].n = 1, q[0].d = 0, top = 1;
+	while (top) {
+		node = q[--top].n, d = q[top].d;
+
+		if (vis[node]) continue;
+		vis[node] = 1;
+
+		depth[node] = d;
+		if (d > depth_max) depth_max = d;
+		for (i = 0; i < hi[node]; i++) {
+			to = t[node][i].to;
+			if (!vis[to]) {
+				cost[to] = t[node][i].c;
+				q[top].n = to, q[top++].d = d + 1;
+			}
+		}
+	}
+}
+
+int main()
+{
+	int i, k, x, y, c;
+	int *memo, sz;
+	double a, b;
+
+	// 入力受付
+	P = dbl(), N = in();
+	memo = malloc(sizeof(int) * 3 * N);
+	sz = 0; for (i = 1; i < N; i++) {
+		memo[sz++] = x = in(), memo[sz++] = y = in(), memo[sz++] = in();
+		hi[x]++, hi[y]++;
+	}
+	for (i = 1; i <= N; i++) if (hi[i]) t[i] = malloc(sizeof(T)*hi[i]);
+	memset(hi+1, 0, sizeof(int)*N);
+	i = 0; while (i < sz) {
+		x = memo[i++], y = memo[i++], c = memo[i++];
+		k = hi[x]++, t[x][k].to = y, t[x][k].c = c;
+		k = hi[y]++, t[y][k].to = x, t[y][k].c = c;
+	}
+//	free(memo);
+
+	dfs();
+	p[0] = 1; for (i = 1; i <= depth_max; i++) p[i] = p[i - 1] * P;
+	a = 0, b = 1; for (i = 1; i <= N; i++)
+		a += cost[i] * p[depth[i]], b += p[depth[i]];
+	printf("%.10lf\n", a*b);
+	return 0;
+}
+=== C CODE END ===

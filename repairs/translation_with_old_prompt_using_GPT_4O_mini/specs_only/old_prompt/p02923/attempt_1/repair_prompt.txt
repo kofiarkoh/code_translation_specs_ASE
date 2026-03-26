@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of integers, representing heights, and calculates the maximum number of consecutive non-increasing heights.
+- **What problem it solves**: It identifies the longest stretch of heights that do not increase, which can be useful in various applications such as terrain analysis or monitoring trends.
+- **Core behavior**: The program reads an integer `n` followed by `n` integers, then computes and outputs the maximum length of consecutive elements where each subsequent element is less than or equal to the previous one.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of height values to read.
+  - `h[]`: Array of integers representing heights.
+- **Data types**: 
+  - `n`: `int`
+  - `h[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - The heights can be any integer value.
+- **Assumptions about inputs**: 
+  - The input for `n` is provided correctly and is within reasonable limits to avoid excessive memory allocation.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum count of consecutive non-increasing heights.
+- **Side effects**: The program reads from standard input and writes to standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format (an integer followed by that many integers).
+  - The program must have sufficient memory to allocate the array `h` of size `n + 10`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the maximum count of consecutive non-increasing heights.
+- **State changes**: The array `h` will be populated with the input heights.
+- **Return guarantees**: The program will terminate successfully after printing the result.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `h` is always initialized to zero for indices `0` to `n + 9`.
+  - The variable `max` holds the maximum count of consecutive non-increasing heights at any point during execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if the input does not conform to the expected format or if `n` is negative.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `n` is `0`, the output will be `0` since there are no heights to compare.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state where `h` is populated with heights and `max` tracks the maximum count of non-increasing sequences.
+- **State changes caused by execution**: The state of `max` changes as the program iterates through the heights.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where `n` is the number of heights, as it processes each height in a single pass.
+- **Space complexity**: O(n), due to the storage of the heights in the array `h`.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical stack and heap sizes in C.
+```

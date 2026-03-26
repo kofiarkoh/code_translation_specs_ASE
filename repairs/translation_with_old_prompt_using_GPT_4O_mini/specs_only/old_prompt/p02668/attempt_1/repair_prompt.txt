@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a combinatorial algorithm that calculates a specific result based on input parameters, utilizing dynamic programming and modular arithmetic.
+- **What problem it solves**: It solves a combinatorial counting problem, likely related to arrangements or selections, constrained by the parameters `n` and `m`.
+- **Core behavior**: The program initializes necessary data structures, computes factorials and their inverses, and uses dynamic programming to fill a table that ultimately leads to the calculation of a result, which is printed.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Represents one dimension of the problem (e.g., number of items).
+  - `m`: Represents another dimension (e.g., number of selections).
+- **Data types**: 
+  - `sll` (signed long long) for `n`, `m`, and other variables.
+  - `ull` (unsigned long long) for large integer calculations.
+- **Valid ranges or constraints**: 
+  - `n` and `m` must be non-negative integers.
+  - `n` should not exceed `N_MAX` (1,048,576).
+- **Assumptions about inputs**: The inputs are assumed to be provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The function `solve()` returns an integer indicating success (0) or failure (1).
+- **Side effects**: The program prints the result of the computation to standard output.
+- **Output format/schema**: The output is a single integer, which may represent a count or a specific result based on the input parameters.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input values for `n` and `m` must be read correctly.
+  - The program must be executed in an environment that supports the required data types and libraries.
+- **Explicit logical constraints**: 
+  - `n` and `m` must be non-negative and within the defined limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a result based on the calculations performed.
+- **State changes**: 
+  - The internal state of the program (e.g., dynamic programming tables) will be modified during execution.
+- **Return guarantees**: 
+  - The function will return 0 on successful execution or 1 on failure.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays and data structures used for calculations (e.g., `frac`, `invf`, `dp`, `dq`) must maintain valid states throughout the execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not explicitly handle invalid input; it may produce incorrect results or undefined behavior.
+- **Exceptions thrown?**: Not inferable from code; the code does not include exception handling mechanisms.
+- **Edge-case behavior**: If `n` or `m` is negative or exceeds `N_MAX`, the behavior is undefined, and the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains several arrays and variables that represent the state of the computation.
+- **State changes caused by execution**: The state changes as the dynamic programming tables (`dp`, `dq`) are filled based on the input parameters.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is primarily O(n * m) due to the nested loops in the `solve()` function.
+- **Space complexity**: The space complexity is O(n + m) for the dynamic programming tables and other arrays.
+- **Performance assumptions**: The program is expected to perform efficiently within the constraints of `n` and `m` being reasonably sized, given the limits defined by `N_MAX`.
+```

@@ -1,0 +1,49 @@
+use std::io::{self, Write};
+
+fn transform_array(n: usize, k: usize, a: &mut Vec<i32>) {
+    // Create a temporary array to hold the transformed values
+    let mut b = vec![0; n];
+
+    for _ in 0..k {
+        // Apply the transformation logic
+        for i in 0..n {
+            // The transformation logic is assumed to be based on the index and value
+            // Here we use a simple transformation as a placeholder
+            // This should be replaced with the actual transformation logic as per the specification
+            b[i] = a[i] - (i as i32); // Example transformation
+        }
+        // Copy the transformed values back to the original array
+        a.copy_from_slice(&b);
+    }
+}
+
+fn main() {
+    // Read input values
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let params: Vec<usize> = input.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    let n = params[0];
+    let k = params[1];
+
+    // Read the array A
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    a.extend(input.split_whitespace().map(|s| s.parse().unwrap()));
+
+    // Ensure the array has the correct size
+    assert_eq!(a.len(), n);
+
+    // Transform the array
+    transform_array(n, k, &mut a);
+
+    // Output the transformed array
+    let output = a.iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(" ");
+    println!("{}", output);
+}

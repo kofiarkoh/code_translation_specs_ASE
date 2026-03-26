@@ -1,0 +1,87 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: `main` has invalid return type `i32`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02162/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:3:14
+  |
+3 | fn main() -> i32 {
+  |              ^^^ `main` can only return types that implement `Termination`
+  |
+  = help: consider using `()`, or a `Result`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() -> i32 {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next();
+
+    // Check if we successfully read the input
+    let input = match input {
+        Some(Ok(line)) => line,
+        _ => return 1, // Return 1 if input reading fails
+    };
+
+    // Split the input into parts and parse them as integers
+    let scores: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    // Check if we have exactly four scores
+    if scores.len() != 4 {
+        return 1; // Return 1 if fewer than four integers are provided
+    }
+
+    let (t1, t2, r1, r2) = (scores[0], scores[1], scores[2], scores[3]);
+
+    // Check the conditions for R1 and R2
+    if r1 < 0 || r2 < 0 {
+        // If R1 or R2 is negative, we only compare T1 and T2
+        if t1 > t2 {
+            println!("Alice");
+        } else if t2 > t1 {
+            println!("Bob");
+        } else {
+            println!("Draw");
+        }
+    } else {
+        // Normal case: both R1 and R2 are non-negative
+        if r1 > r2 {
+            println!("Alice");
+        } else if r2 > r1 {
+            println!("Bob");
+        } else {
+            // If R1 == R2, compare T1 and T2
+            if t1 > t2 {
+                println!("Alice");
+            } else if t2 > t1 {
+                println!("Bob");
+            } else {
+                println!("Draw");
+            }
+        }
+    }
+
+    0 // Return 0 on successful execution
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,93 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code generates and prints a sequence of integers based on the input value `k`.
+- **What problem it solves**: It provides a way to distribute a given integer `k` into a specific format of integer sequences, ensuring certain constraints are met based on the value of `k`.
+- **Core behavior**: Depending on the value of `k`, the program outputs different sequences:
+  - For `k >= 50`, it generates a sequence of 50 integers.
+  - For `2 <= k < 50`, it generates a sequence of `k` integers.
+  - For `k == 0`, it outputs a fixed sequence of four integers.
+  - For `k < 0`, it outputs a specific sequence of three integers.
+
+## 2. Inputs
+- **Parameters**: 
+  - `k`: an integer input read from standard input.
+- **Data types**: 
+  - `k`: `long long` (ll).
+- **Valid ranges or constraints**: 
+  - `k` can be any integer value.
+- **Assumptions about inputs**: 
+  - The input is expected to be a valid integer that can be read by `scanf`.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it prints output directly to standard output.
+- **Side effects**: Outputs sequences of integers to the console.
+- **Output format/schema**: 
+  - For `k >= 50`: Outputs "50" followed by 50 integers.
+  - For `2 <= k < 50`: Outputs the value of `n` followed by `n` integers.
+  - For `k == 0`: Outputs "4" followed by four integers.
+  - For `k < 0`: Outputs "3" followed by three integers.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be a valid integer.
+- **Explicit logical constraints**: 
+  - The program assumes that the input can be processed without errors.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed a sequence of integers based on the value of `k`.
+- **State changes**: 
+  - No internal state changes; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always conform to the specified formats based on the value of `k`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output sequences will always contain integers.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may exhibit undefined behavior or crash.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program relies on valid input.
+- **Edge-case behavior**: 
+  - For negative values of `k`, it outputs a specific sequence without error.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects.
+- **State changes caused by execution**: The program does not maintain state; it simply processes input and produces output.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n) where n is the number of integers printed (up to 50).
+- **Space complexity**: O(1) for variables, O(n) for the array when `k >= 50`.
+- **Performance assumptions**: The program is expected to run efficiently for typical integer inputs within the range of `long long`.
+```

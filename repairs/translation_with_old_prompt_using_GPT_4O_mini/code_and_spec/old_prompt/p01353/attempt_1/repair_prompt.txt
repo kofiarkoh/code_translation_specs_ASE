@@ -1,0 +1,139 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific game-related score based on input parameters representing players' attributes and their interactions.
+- **What problem it solves**: It determines the total score a player can achieve while ensuring that certain conditions regarding health and damage are met.
+- **Core behavior**: The program reads player attributes, processes them to compute a score, and checks for conditions that may lead to an invalid game state.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of players (including a reference player).
+  - `h[]`: Array of health values for each player.
+  - `a[]`: Array of attack values for each player.
+  - `d[]`: Array of defense values for each player.
+  - `s[]`: Array of special attributes for each player.
+- **Data types**: 
+  - `n`: `int`
+  - `h[]`, `a[]`, `d[]`, `s[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - Health, attack, defense, and special attributes should be non-negative integers.
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a long long integer representing the calculated score.
+- **Side effects**: 
+  - The program may print `-1` to standard output if certain conditions are not met.
+- **Output format/schema**: 
+  - The output is a single long long integer or `-1`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of players `n` must be non-negative.
+- **Explicit logical constraints**: 
+  - The health, attack, defense, and special attributes must be non-negative integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - If valid, the program outputs a score or `-1` if conditions are violated.
+- **State changes**: 
+  - The program does not maintain state beyond local variables.
+- **Return guarantees**: 
+  - The output will either be a valid score or `-1`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `h`, `a`, `d`, and `s` must always contain valid non-negative integers.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it assumes valid input is provided.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program may terminate with `-1` if conditions are not met.
+- **Edge-case behavior**: If `n` is 0, the program will not process any players and will output `-1`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not define any objects.
+- **State changes caused by execution**: The program modifies local variables to compute the score but does not maintain persistent state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n log n) due to the sorting operation.
+- **Space complexity**: The space complexity is O(n) for storing player attributes and the temporary table.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of the system's memory and processing capabilities.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2236 Rabbit Plays Games!
+// 2018.2.10 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct { long long a; int d; } T;
+T tbl[40002];
+int h[40002], a[40002], d[40002], s[40002];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int cmp(T *a, T *b) { return a->a * b->d > b->a * a->d; }
+
+int main()
+{
+	int n, i, k, sz;
+	long long turn, ans;
+
+	n = in();
+	for (i = 0; i <= n; i++) h[i] = in(), a[i] = in(), d[i] = in(), s[i] = in();
+	
+	sz = 0, ans = turn = 0;
+	for (i = 1; i <= n; i++) {
+		k = a[i] - d[0];
+		if (k <= 0) continue;
+		if (a[0] <= d[i]) { puts("-1"); return 0; }
+
+		turn += k; if (s[i] > s[0]) ans += k;
+		tbl[sz].d = k;
+		tbl[sz++].a = ((long long)h[i]-d[i]+a[0]-1)/(a[0]-d[i]);
+	}
+	qsort(tbl, sz, sizeof(T), cmp);
+
+	for (i = 0; i < sz; i++) {
+		ans += turn*tbl[i].a - tbl[i].d;
+		if (h[0] <= ans) { puts("-1"); return 0; }
+		turn -= tbl[i].d;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+=== C CODE END ===

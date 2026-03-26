@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a series of integer pairs and computes a specific transformation based on the second integer of each pair.
+- **What problem it solves**: It provides a way to repeatedly transform and output a value based on user input, specifically cycling through a range defined by the second integer.
+- **Core behavior**: For each input pair `(x, y)`, it calculates `(x - 1) % y + 1` and prints the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of input pairs to process.
+  - `x`: An integer value from the input pair.
+  - `y`: An integer value from the input pair.
+- **Data types**: 
+  - `n`: Integer
+  - `x`: Integer
+  - `y`: Integer
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - `y` must be a positive integer (to avoid division/modulo by zero).
+- **Assumptions about inputs**: 
+  - Input values are provided in the correct format as specified.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs the computed values to the console.
+- **Output format/schema**: Each output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must include a valid integer for `n` followed by `n` pairs of integers `(x, y)`.
+- **Explicit logical constraints**: 
+  - `y` must be greater than 0 for valid modulo operations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output `n` integers, each corresponding to the transformation of the input pairs.
+- **State changes**: The program does not maintain state beyond the scope of execution.
+- **Return guarantees**: No return value; execution ends after output.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output for each pair is computed based on the current values of `x` and `y` as long as `y` is valid.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; invalid input may lead to incorrect outputs or runtime errors.
+- **Exceptions thrown?**: Not inferable from code; the code does not explicitly handle exceptions.
+- **Edge-case behavior**: If `y` is 0, the modulo operation will lead to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the code does not maintain state.
+- **State changes caused by execution**: Not applicable; the code operates statelessly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where `n` is the number of input pairs.
+- **Space complexity**: O(1), as it uses a constant amount of space regardless of input size.
+- **Performance assumptions**: Assumes that input is provided in a timely manner and that the system can handle the input size within reasonable limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+n,x;main(y){for(scanf("%d",&n);n--;printf("%d\n",(x-1)%y+1))scanf("%d%d",&x,&y);exit(0);}
+=== C CODE END ===

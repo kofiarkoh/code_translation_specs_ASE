@@ -1,0 +1,61 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:68:16
+   |
+66 |         self.t.push(Node {
+   |         ------ ---- first borrow later used by call
+   |         |
+   |         first mutable borrow occurs here
+67 |             location: mid,
+68 |             l: self.make_kd_tree(l, mid, depth + 1),
+   |                ^^^^ second mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:68:16
+   |
+68 |             l: self.make_kd_tree(l, mid, depth + 1),
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:66:9
+   |
+66 | /         self.t.push(Node {
+67 | |             location: mid,
+68 | |             l: self.make_kd_tree(l, mid, depth + 1),
+69 | |             r: self.make_kd_tree(mid + 1, r, depth + 1),
+70 | |         });
+   | |__________^
+
+error[E0499]: cannot borrow `*self` as mutable more than once at a time
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:69:16
+   |
+66 |         self.t.push(Node {
+   |         ------ ---- first borrow later used by call
+   |         |
+   |         first mutable borrow occurs here
+...
+69 |             r: self.make_kd_tree(mid + 1, r, depth + 1),
+   |                ^^^^ second mutable borrow occurs here
+   |
+help: try adding a local storing this argument...
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:69:16
+   |
+69 |             r: self.make_kd_tree(mid + 1, r, depth + 1),
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: ...and then using that local as the argument to this call
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p02347/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:66:9
+   |
+66 | /         self.t.push(Node {
+67 | |             location: mid,
+68 | |             l: self.make_kd_tree(l, mid, depth + 1),
+69 | |             r: self.make_kd_tree(mid + 1, r, depth + 1),
+70 | |         });
+   | |__________^
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0499`.

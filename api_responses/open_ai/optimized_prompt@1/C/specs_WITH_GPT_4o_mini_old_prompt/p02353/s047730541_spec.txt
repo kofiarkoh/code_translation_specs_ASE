@@ -1,0 +1,61 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a segment tree to efficiently handle range updates and queries for the sum of values in specified ranges.
+- **What problem it solves**: It allows for multiple updates and sum queries on a dynamic range of integers, optimizing the operations to handle large datasets efficiently.
+- **Core behavior**: The program reads a number of queries and either updates a specified range with a value or retrieves the sum of values in a specified range.
+
+## 2. Inputs
+- **Parameters**:
+  - `num`: The size of the range (number of elements).
+  - `queries`: The number of operations to perform.
+  - `type`: The type of operation (update or get sum).
+  - `start`, `end`: The range for the operation.
+  - `x`: The value to update the range with (only for update operations).
+- **Data types**:
+  - `int` for `num`, `queries`, `type`, `start`, `end`, and `x`.
+  - `int64_t` for storing results of sum queries.
+- **Valid ranges or constraints**:
+  - `num` must be a positive integer.
+  - `queries` must be a non-negative integer.
+  - `start` and `end` must be within the bounds of the range defined by `num`.
+- **Assumptions about inputs**: It is assumed that the input values are provided in the correct format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program does not return values from the `main` function but prints results to standard output.
+- **Side effects**: The program modifies the internal state of the segment tree based on the operations performed.
+- **Output format/schema**: The output consists of one or more lines, each containing a single integer representing the sum of the specified range for each `COMMAND_GET_SUM`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The segment tree must be initialized properly before any operations are performed.
+- **Explicit logical constraints**: The `num` must be a power of two or be adjusted to the next power of two for proper segment tree functionality.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The segment tree reflects all updates made during the execution.
+  - The printed output contains the correct sums for all `COMMAND_GET_SUM` operations.
+- **State changes**: The internal state of the segment tree is modified based on the updates performed.
+- **Return guarantees**: The program guarantees that the sums returned are accurate for the specified ranges.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `lazy` values in the segment tree nodes are correctly maintained to reflect pending updates.
+  - The `val` in each segment tree node accurately represents the sum of the corresponding range after all updates.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input.
+- **Edge-case behavior**: If `start` equals `end`, the sum returned will be zero, as there are no elements in the range.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The segment tree can be in an uninitialized state, a partially updated state, or a fully updated state.
+- **State changes caused by execution**: Each update modifies the `lazy` and `val` fields of the segment tree nodes, while sum queries read from these fields without modifying them.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - Update operations: O(log n) per update.
+  - Sum queries: O(log n) per query.
+- **Space complexity**: O(n) for storing the segment tree.
+- **Performance assumptions**: The implementation assumes that the number of queries and the size of the range are within reasonable limits for efficient execution.

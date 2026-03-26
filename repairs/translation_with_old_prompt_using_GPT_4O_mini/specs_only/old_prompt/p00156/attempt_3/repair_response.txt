@@ -1,0 +1,98 @@
+```rust
+use std::collections::VecDeque;
+
+fn min_changes_to_edges(w: usize, h: usize, m: Vec<Vec<char>>) -> i32 {
+    // Directions for moving in the grid: up, down, left, right
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    
+    // Find the starting point '&'
+    let mut start_x = 0;
+    let mut start_y = 0;
+    let mut found = false;
+    
+    for i in 0..h {
+        for j in 0..w {
+            if m[i][j] == '&' {
+                start_x = j;
+                start_y = i;
+                found = true;
+                break;
+            }
+        }
+        if found {
+            break;
+        }
+    }
+
+    // Initialize the change count array with a large number
+    let mut c = vec![vec![i32::MAX; w]; h];
+    c[start_y][start_x] = 0; // No changes needed at the starting point
+
+    // BFS queue
+    let mut queue = VecDeque::new();
+    queue.push_back((start_x, start_y));
+
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &directions {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            // Check if the new position is within bounds
+            if new_x < w && new_y < h {
+                // Calculate the cost of changing the character
+                let change_cost = if m[new_y][new_x] == '&' { 0 } else { 1 };
+                let new_change_count = c[y][x] + change_cost;
+
+                // If we found a cheaper way to reach (new_x, new_y), update and enqueue
+                if new_change_count < c[new_y][new_x] {
+                    c[new_y][new_x] = new_change_count;
+                    queue.push_back((new_x, new_y));
+                }
+            }
+        }
+    }
+
+    // Find the minimum changes required to reach any edge of the grid
+    let mut min_changes = i32::MAX;
+
+    // Check the top and bottom edges
+    for x in 0..w {
+        min_changes = min_changes.min(c[0][x]).min(c[h - 1][x]);
+    }
+    // Check the left and right edges
+    for y in 0..h {
+        min_changes = min_changes.min(c[y][0]).min(c[y][w - 1]);
+    }
+
+    // If no changes were made, return 0; otherwise, return the minimum changes found
+    if min_changes == i32::MAX {
+        0
+    } else {
+        min_changes
+    }
+}
+
+fn main() {
+    // Example usage with input from the problem statement
+    let inputs = vec![
+        (5, 5, vec![
+            vec!['#', '#', '#', '#', '#'],
+            vec!['#', '&', '.', '.', '#'],
+            vec!['#', '.', '.', '.', '#'],
+            vec!['#', '.', '.', '#', '#'],
+            vec!['#', '#', '#', '#', '#'],
+        ]),
+        (4, 4, vec![
+            vec!['#', '&', '.', '.'],
+            vec!['#', '.', '.', '.'],
+            vec!['#', '.', '#', '.'],
+            vec!['#', '#', '.', '#'],
+        ]),
+    ];
+
+    for (w, h, m) in inputs {
+        let result = min_changes_to_edges(w, h, m);
+        println!("{}", result);
+    }
+}
+```

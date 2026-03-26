@@ -1,0 +1,51 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a binary search algorithm to find a threshold value `l` such that the number of pairs of elements in an array that satisfy a certain condition is at least a specified fraction of the total possible pairs.
+- **What problem it solves**: It determines a value `l` for which the number of pairs `(i, j)` in the array `a` where `a[i] < l` and `a[j] >= l` is significant relative to the total number of pairs.
+- **Core behavior**: The program reads an integer array, performs a binary search on possible threshold values, and counts valid pairs using a Fenwick Tree (Binary Indexed Tree) to efficiently compute prefix sums.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: The number of elements in the array.
+  - `a`: An array of integers of size `n`.
+  - `m`: A threshold value used in the counting function.
+- **Data types**:
+  - `n`: `int`
+  - `a`: `int*` (pointer to an array of integers)
+  - `m`: `int`
+- **Valid ranges or constraints**:
+  - `n` must be a positive integer.
+  - Elements of `a` can be any integer.
+- **Assumptions about inputs**:
+  - The input for `n` is provided correctly and is within reasonable limits for memory allocation.
+
+## 3. Outputs
+- **Return values**: The function `run()` outputs a single integer value `l` to the standard output.
+- **Side effects**: Allocates memory for the array `a` and the Fenwick Tree `bit`.
+- **Output format/schema**: The output is a single integer printed to the console.
+
+## 4. Preconditions
+- The input must be provided in the expected format (first an integer `n`, followed by `n` integers).
+- Memory allocation for the array `a` and the Fenwick Tree `bit` must succeed.
+
+## 5. Postconditions
+- The output integer `l` is guaranteed to be the largest value such that the number of valid pairs is at least `4 * cnt >= n * (n + 1)`.
+- The memory allocated for `a` and `bit` remains allocated after execution unless explicitly freed (not handled in the code).
+
+## 6. Invariants
+- The size of the Fenwick Tree `bit` is always `2*n + 2` after initialization.
+- The first element of `bit` always holds the size of the array.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails for `a` or `bit`, the program may crash or exhibit undefined behavior.
+- Invalid input (e.g., non-integer values) will lead to undefined behavior during parsing.
+
+## 8. State Transitions (if applicable)
+- The state of the Fenwick Tree `bit` changes as elements are incremented and sums are computed.
+- The variable `sum` is updated based on the comparison of elements in `a` with `m`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall complexity is O(n log n) due to the binary search combined with the operations on the Fenwick Tree.
+- **Space complexity**: O(n) for the array `a` and O(n) for the Fenwick Tree `bit`.
+- **Performance assumptions**: The algorithm is expected to perform efficiently for reasonably sized inputs, but performance may degrade with very large values of `n` due to memory constraints.

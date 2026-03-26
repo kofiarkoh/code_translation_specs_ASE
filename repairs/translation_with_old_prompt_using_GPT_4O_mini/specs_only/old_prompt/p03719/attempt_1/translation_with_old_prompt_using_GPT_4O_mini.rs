@@ -1,0 +1,119 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let nums: Vec<i32> = input
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    let (a, b, c) = (nums[0], nums[1], nums[2]);
+    if c >= a && c <= b {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+
+fn gcd(a: i32, b: i32) -> i32 {
+    if b == 0 {
+        a.abs() // Ensure non-negative result
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn lcm(a: i32, b: i32) -> i32 {
+    (a / gcd(a, b)) * b // Ensure non-negative result
+}
+
+fn ngcd(n: usize, a: &[i32]) -> i32 {
+    a.iter().copied().reduce(gcd).unwrap_or(0) // Handle empty array case
+}
+
+fn quicksort(arr: &mut [i32], first: usize, last: usize) {
+    if first < last {
+        let pivot_index = partition(arr, first, last);
+        if pivot_index > 0 {
+            quicksort(arr, first, pivot_index - 1);
+        }
+        quicksort(arr, pivot_index + 1, last);
+    }
+}
+
+fn partition(arr: &mut [i32], first: usize, last: usize) -> usize {
+    let pivot = arr[last];
+    let mut i = first as isize - 1;
+    for j in first..last {
+        if arr[j] <= pivot {
+            i += 1;
+            arr.swap(i as usize, j);
+        }
+    }
+    arr.swap((i + 1) as usize, last);
+    (i + 1) as usize
+}
+
+fn is_prime(n: i32) -> i32 {
+    if n <= 1 {
+        return 0;
+    }
+    for i in 2..=((n as f64).sqrt() as i32) {
+        if n % i == 0 {
+            return 0;
+        }
+    }
+    1
+}
+
+fn is_substr(s: &str, t: &str, i: usize) -> i32 {
+    if i + t.len() <= s.len() && &s[i..i + t.len()] == t {
+        1
+    } else {
+        0
+    }
+}
+
+fn factorize(n: i32, ftr: &mut Vec<i32>, num: &mut i32) {
+    *num = 0;
+    let mut temp = n;
+    for i in 2..=n {
+        while temp % i == 0 {
+            ftr.push(i);
+            temp /= i;
+            *num += 1;
+        }
+    }
+}
+
+fn nextperm(p: &mut [i32], n: usize) -> i32 {
+    let mut i = n as isize - 1;
+    while i > 0 && p[i as usize - 1] >= p[i as usize] {
+        i -= 1;
+    }
+    if i <= 0 {
+        return 0; // No next permutation
+    }
+    let mut j = n as isize - 1;
+    while p[j as usize] <= p[i as usize - 1] {
+        j -= 1;
+    }
+    p.swap(i as usize - 1, j as usize);
+    p[i as usize..].reverse();
+    1
+}
+
+fn comb(size1: usize, size2: usize, v: &mut Vec<Vec<i32>>) {
+    for i in 0..=size1 {
+        v.push(vec![0; size2 + 1]);
+        for j in 0..=i.min(size2) {
+            if j == 0 || j == i {
+                v[i][j] = 1;
+            } else {
+                v[i][j] = v[i - 1][j - 1] + v[i - 1][j];
+            }
+        }
+    }
+}

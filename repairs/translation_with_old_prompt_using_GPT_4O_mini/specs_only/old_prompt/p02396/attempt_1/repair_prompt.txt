@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads integer inputs from the user in a loop and outputs each input along with a case number until a sentinel value (0) is entered.
+- **What problem it solves**: It allows users to input a series of integers and provides a structured output for each input, facilitating tracking of the number of inputs.
+- **Core behavior**: Continuously accepts integer inputs, counts them, and prints them in a formatted manner until the input is zero.
+
+## 2. Inputs
+- **Parameters**: 
+  - User input via standard input (stdin).
+- **Data types**: 
+  - Integer (`int`).
+- **Valid ranges or constraints**: 
+  - Any integer value, including negative and positive integers, except for the sentinel value (0).
+- **Assumptions about inputs**: 
+  - The input is expected to be a valid integer. No validation for non-integer inputs is performed.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns an integer value of `0` upon successful completion.
+- **Side effects**: 
+  - Outputs formatted strings to standard output (stdout) for each valid integer input.
+- **Output format/schema**: 
+  - Each output line follows the format: "Case X: Y", where X is the case number (starting from 1) and Y is the integer input.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input is available.
+- **Explicit logical constraints**: 
+  - No specific constraints on the environment or input method.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed a line for each integer input received before the sentinel value (0).
+- **State changes**: 
+  - The program maintains a count of inputs processed.
+- **Return guarantees**: 
+  - The program will return `0` upon normal termination.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The case number (`i`) is always incremented for each valid input.
+- **Class-level invariants**: 
+  - Not applicable (the code is not object-oriented).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input (e.g., non-integer values) and may behave unexpectedly.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program may enter an infinite loop or produce undefined behavior on invalid input.
+- **Edge-case behavior**: 
+  - If the first input is `0`, no output will be generated, and the program will terminate immediately.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains a state of the current input count (`i`).
+- **State changes caused by execution**: 
+  - The state changes with each valid integer input, incrementing the count (`i`).
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(n), where n is the number of valid integer inputs before the sentinel value.
+- **Space complexity**: 
+  - O(1), as only a fixed amount of space is used for variables.
+- **Performance assumptions**: 
+  - The program assumes that input can be provided in a timely manner and that the system can handle standard input/output operations efficiently.
+```

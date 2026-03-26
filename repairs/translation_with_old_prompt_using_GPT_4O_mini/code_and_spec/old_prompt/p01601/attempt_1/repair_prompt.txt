@@ -1,0 +1,138 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code identifies and prints the nearest palindrome number to a given integer input.
+- **What problem it solves**: It finds the closest palindrome number that is either less than or equal to, or greater than or equal to the input number.
+- **Core behavior**: The program reads an integer, checks both directions (decreasing and increasing) for the nearest palindrome, and outputs the first palindrome found.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: an integer input from the user.
+- **Data types**: 
+  - `int` for the input number and loop counter.
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer (0 or greater).
+- **Assumptions about inputs**: 
+  - The input is assumed to be a valid integer as per the constraints of the `scanf` function.
+
+## 3. Outputs
+- **Return values**: 
+  - The function `rev` returns an integer that is the reverse of the input number.
+- **Side effects**: 
+  - The program prints the nearest palindrome number to the standard output.
+- **Output format/schema**: 
+  - The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - The input must be a non-negative integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed the nearest palindrome number to the input.
+- **State changes**: 
+  - No state changes occur outside of the output.
+- **Return guarantees**: 
+  - The program will terminate after printing the nearest palindrome.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable `i` is always non-negative during its use.
+- **Class-level invariants**: 
+  - Not applicable as the code does not utilize classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input is invalid (e.g., non-integer), the behavior is undefined; the program may not function as intended.
+- **Exceptions thrown?**: 
+  - No explicit exceptions are thrown; the program relies on the behavior of `scanf`.
+- **Edge-case behavior**: 
+  - If `n` is 0, the output will be 0, as it is a palindrome.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as there are no objects; the program operates with primitive data types.
+- **State changes caused by execution**: 
+  - The variable `i` increments until a palindrome is found.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(k), where k is the number of iterations needed to find the nearest palindrome.
+- **Space complexity**: 
+  - The space complexity is O(1) as it uses a constant amount of space.
+- **Performance assumptions**: 
+  - The performance is dependent on the size of the input number and the distribution of palindromes in relation to it.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int rev(int n)
+{
+	int out;
+
+//printf("(%d ", n);
+	
+	out = 0;
+	
+	while (n > 0){
+		out = out * 10 + (n % 10);
+		n /= 10;
+	}
+
+//printf("%d)", out);
+	
+	return (out);
+}
+
+
+int main(void)
+{
+	int n;
+	int i;
+	
+	scanf("%d", &n);
+	
+	i = 0;
+	
+	while (1){
+		if (n - i >= 0){
+			if (rev(n - i) == n - i){
+				printf("%d\n", n - i);
+				break;
+			}
+		}
+		if (rev(n + i) == n + i){
+			printf("%d\n", n + i);
+			break;
+		}
+		i++;
+	}
+	
+	return (0);
+}
+=== C CODE END ===

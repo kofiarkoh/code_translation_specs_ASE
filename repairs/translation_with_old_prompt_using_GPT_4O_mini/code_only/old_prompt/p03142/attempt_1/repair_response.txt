@@ -1,0 +1,82 @@
+```rust
+use std::io::{self, BufRead};
+use std::ptr;
+
+const MAX_SIZE: usize = 114514;
+
+struct Graph {
+    ec: Vec<usize>,
+    es: Vec<Vec<usize>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            ec: vec![0; MAX_SIZE],
+            es: vec![Vec::new(); MAX_SIZE],
+        }
+    }
+
+    fn ae(&mut self, f: usize, t: usize) {
+        self.es[f].push(t);
+        self.ec[f] += 1;
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace();
+    let n: usize = nums.next().unwrap().parse().unwrap();
+    let m: usize = nums.next().unwrap().parse().unwrap();
+
+    let mut graph = Graph::new();
+    let mut sansyo = vec![0; MAX_SIZE];
+    let mut next_count = [0; 2];
+    let mut next_buffer = [[0; MAX_SIZE]; 2];
+    let mut answer = vec![0; MAX_SIZE];
+
+    for _ in 0..(n - 1 + m) {
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace();
+        let a: usize = nums.next().unwrap().parse().unwrap();
+        let b: usize = nums.next().unwrap().parse().unwrap();
+        graph.ae(a, b);
+        sansyo[b] += 1;
+    }
+
+    next_count[0] = 0;
+    for i in 1..=n {
+        if sansyo[i] == 0 {
+            next_buffer[0][next_count[0]] = i;
+            next_count[0] += 1;
+        }
+    }
+
+    let mut phase = 0;
+    while next_count[phase] > 0 {
+        next_count[1 - phase] = 0;
+        for i in 0..next_count[phase] {
+            let target = next_buffer[phase][i];
+            for &neighbor in &graph.es[target] {
+                if sansyo[neighbor] > 0 {
+                    sansyo[neighbor] -= 1;
+                    if sansyo[neighbor] == 0 {
+                        answer[neighbor] = target;
+                        next_buffer[1 - phase][next_count[1 - phase]] = neighbor;
+                        next_count[1 - phase] += 1;
+                    }
+                }
+            }
+        }
+        phase = 1 - phase;
+    }
+
+    for i in 1..=n {
+        println!("{}", answer[i]);
+    }
+}
+```

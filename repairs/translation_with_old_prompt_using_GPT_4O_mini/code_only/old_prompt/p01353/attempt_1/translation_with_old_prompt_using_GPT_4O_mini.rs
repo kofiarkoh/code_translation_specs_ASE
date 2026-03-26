@@ -1,0 +1,82 @@
+// AOJ 2236 Rabbit Plays Games!
+// 2018.2.10 bal4u
+
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct T {
+    a: i64,
+    d: i32,
+}
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut n = 0;
+    let mut c = handle.bytes().filter_map(Result::ok).next().unwrap();
+    
+    while c >= b'0' {
+        n = (n << 3) + (n << 1) + (c - b'0') as i32;
+        c = handle.bytes().filter_map(Result::ok).next().unwrap();
+    }
+    n
+}
+
+fn cmp(a: &T, b: &T) -> std::cmp::Ordering {
+    let left = a.a * b.d as i64;
+    let right = b.a * a.d as i64;
+    left.cmp(&right)
+}
+
+fn main() {
+    let n = in_number();
+    let mut tbl: Vec<T> = Vec::new();
+    let mut h = vec![0; (n + 1) as usize];
+    let mut a = vec![0; (n + 1) as usize];
+    let mut d = vec![0; (n + 1) as usize];
+    let mut s = vec![0; (n + 1) as usize];
+
+    for i in 0..=n {
+        h[i as usize] = in_number();
+        a[i as usize] = in_number();
+        d[i as usize] = in_number();
+        s[i as usize] = in_number();
+    }
+
+    let mut sz = 0;
+    let mut turn = 0;
+    let mut ans = 0;
+
+    for i in 1..=n {
+        let k = a[i as usize] - d[0];
+        if k <= 0 {
+            continue;
+        }
+        if a[0] <= d[i as usize] {
+            println!("-1");
+            return;
+        }
+
+        turn += k;
+        if s[i as usize] > s[0] {
+            ans += k;
+        }
+        tbl.push(T {
+            d: k,
+            a: (h[i as usize] - d[i as usize] + a[0] - 1) / (a[0] - d[i as usize]),
+        });
+        sz += 1;
+    }
+
+    tbl.sort_by(cmp);
+
+    for i in 0..sz {
+        ans += turn * tbl[i].a - tbl[i].d as i64;
+        if h[0] <= ans {
+            println!("-1");
+            return;
+        }
+        turn -= tbl[i].d as i64;
+    }
+    println!("{}", ans);
+}

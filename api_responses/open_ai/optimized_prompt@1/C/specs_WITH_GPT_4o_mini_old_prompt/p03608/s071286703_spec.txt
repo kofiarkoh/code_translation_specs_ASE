@@ -1,0 +1,68 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum distance required to visit a specified set of nodes (represented as cities) in a graph, starting from an arbitrary node and returning to it.
+- **What problem it solves**: It addresses the Traveling Salesman Problem (TSP) for a subset of nodes in a weighted graph, where the weights represent distances between nodes.
+- **Core behavior**: The program reads a graph's structure, computes the shortest paths between all pairs of nodes, and then uses a depth-first search (DFS) approach to find the minimum distance to visit all specified nodes.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes in the graph.
+  - `M`: Number of edges in the graph.
+  - `R`: Number of specific nodes to visit.
+  - `r[]`: Array of specific nodes to visit.
+- **Data types**:
+  - `N`, `M`, `R`: `int`
+  - `r[]`: `int[]`
+  - `d[][]`: `int[][]` (2D array for distances)
+- **Valid ranges or constraints**:
+  - `1 <= N <= 200`
+  - `1 <= M <= N*(N-1)/2` (maximum edges in a complete graph)
+  - `1 <= R <= 8` (limited number of nodes to visit)
+- **Assumptions about inputs**: 
+  - Input values are valid and within specified ranges.
+  - The graph is undirected and may contain multiple edges between nodes.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum distance to visit all specified nodes.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format.
+  - The graph must be initialized with valid distances.
+- **Explicit logical constraints**: 
+  - The number of nodes and edges must be non-negative and within the specified limits.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The variable `res` contains the minimum distance to visit all specified nodes.
+- **State changes**: The distance matrix `d[][]` is updated to reflect the shortest paths between all nodes.
+- **Return guarantees**: The output will always be a valid integer representing the minimum distance.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The distance matrix `d[][]` must always contain valid distances between nodes after initialization and updates.
+  - The `used[]` array must accurately reflect which nodes have been visited during the DFS.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not inferable from code; C does not have built-in exception handling.
+- **Edge-case behavior**: If `R` is 0, the output will be `0` since no nodes need to be visited.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in an uninitialized state before input is read, or in a state where the distance matrix is fully populated and ready for DFS.
+- **State changes caused by execution**: 
+  - The distance matrix `d[][]` is modified during the Floyd-Warshall algorithm execution.
+  - The `used[]` array changes state during the DFS traversal.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The Floyd-Warshall algorithm runs in O(N^3).
+  - The DFS runs in O(R!), where R is the number of nodes to visit.
+- **Space complexity**: 
+  - O(N^2) for the distance matrix `d[][]`.
+  - O(R) for the `used[]` array and recursion stack.
+- **Performance assumptions**: The algorithm is efficient for the given constraints, particularly with R limited to 8, making the DFS feasible.

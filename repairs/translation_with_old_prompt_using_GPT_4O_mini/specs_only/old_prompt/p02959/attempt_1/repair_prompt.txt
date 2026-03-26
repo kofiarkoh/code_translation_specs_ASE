@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the total amount of resources that can be transferred from two arrays, A and B, based on certain conditions.
+- **What problem it solves**: It addresses the problem of determining the maximum transferable resources between two sets while respecting the limits imposed by each set.
+- **Core behavior**: The program reads two arrays of integers, computes the transferable resources based on comparisons, and outputs the total amount transferred.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: The number of elements in array B (and N+1 elements in array A).
+  - `A`: An array of long long integers representing available resources.
+  - `B`: An array of long long integers representing limits on resources.
+- **Data types**: 
+  - `N`: `int`
+  - `A`: `long long int[]`
+  - `B`: `long long int[]`
+- **Valid ranges or constraints**: 
+  - `N` should be a non-negative integer (0 ≤ N ≤ 200,000).
+  - Elements of `A` and `B` should be within the range of `long long int`.
+- **Assumptions about inputs**: 
+  - The input values for `A` and `B` are provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer representing the total transferable resources.
+- **Side effects**: None.
+- **Output format/schema**: The output is a single line containing a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The size of the arrays must not exceed the defined limits.
+- **Explicit logical constraints**: 
+  - `N` must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The total transferable resources `S` is calculated and printed.
+- **State changes**: The arrays `A` and `B` are modified during execution.
+- **Return guarantees**: The output will always be a valid long long integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The lengths of arrays `A` and `B` remain consistent with the value of `N`.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `N` is 0, the program will handle empty arrays and output 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with uninitialized arrays and transitions to modified states after processing input.
+- **State changes caused by execution**: 
+  - The values in arrays `A` and `B` are updated based on the calculations performed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N), as the program processes each element of the arrays in a linear fashion.
+- **Space complexity**: O(N), due to the storage of two arrays of size N+1.
+- **Performance assumptions**: The program is expected to perform efficiently within the constraints of typical input sizes.
+```

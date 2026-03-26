@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates an explosion effect on a 2D grid, where certain cells can trigger further explosions based on their state.
+- **What problem it solves**: It models a scenario where an explosion in a specific cell can affect adjacent cells, propagating the explosion if those cells meet certain criteria.
+- **Core behavior**: The `explode` function modifies the grid by marking cells as '0' (indicating they have exploded) and recursively triggering explosions in adjacent cells that are marked as '1'.
+
+## 2. Inputs
+- **Parameters**:
+  - `field`: A 10x10 character array representing the grid.
+  - `px`: An integer representing the x-coordinate of the explosion's origin.
+  - `py`: An integer representing the y-coordinate of the explosion's origin.
+- **Data types**: 
+  - `field`: `char[10][10]`
+  - `px`, `py`: `int`
+- **Valid ranges or constraints**: 
+  - `px` and `py` must be in the range [1, 8] (inclusive).
+- **Assumptions about inputs**: The grid is initialized correctly, and the input coordinates for the explosion are valid.
+
+## 3. Outputs
+- **Return values**: The function `explode` does not return a value (void).
+- **Side effects**: The function modifies the `field` array in place, changing the state of certain cells.
+- **Output format/schema**: The modified grid is printed to the console after each explosion event.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The `field` array must be properly initialized with valid characters ('0' or '1').
+  - The coordinates `px` and `py` must be valid and within the specified range.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - Cells that were '1' and affected by the explosion will be changed to '0'.
+  - The state of the `field` array will reflect the results of the explosion and any subsequent explosions triggered.
+- **State changes**: The state of the `field` array is altered based on the explosion logic.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The dimensions of the `field` array remain 10x10.
+  - The values in the `field` array are either '0' or '1' (or uninitialized).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if `px` or `py` are outside the valid range; the function may access out-of-bounds memory.
+- **Exceptions thrown?**: No explicit exceptions are thrown; however, undefined behavior may occur.
+- **Edge-case behavior**: If the explosion is triggered at the edge of the grid, it may not propagate correctly due to boundary checks.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `field` can be in a state where cells are either '0' (exploded) or '1' (not exploded).
+- **State changes caused by execution**: Cells marked '1' may change to '0' based on the explosion logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The worst-case time complexity is O(N) where N is the number of cells that can be affected by the explosion, potentially leading to a recursive depth proportional to the number of connected '1's.
+- **Space complexity**: The space complexity is O(1) for the function itself, as it modifies the input array in place without requiring additional data structures.
+- **Performance assumptions**: The function assumes that the grid size is fixed and small (10x10), allowing for efficient processing.
+```

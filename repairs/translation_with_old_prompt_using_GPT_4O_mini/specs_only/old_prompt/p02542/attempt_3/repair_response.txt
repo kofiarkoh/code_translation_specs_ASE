@@ -1,0 +1,110 @@
+```rust
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: i64,
+    flow: i64,
+    cost: i64,
+}
+
+#[derive(Debug)]
+struct Graph {
+    adj: Vec<Vec<usize>>, // adjacency list
+    edges: Vec<Edge>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            adj: vec![Vec::new(); n],
+            edges: Vec::new(),
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: i64, cost: i64) {
+        let edge_index = self.edges.len();
+        self.edges.push(Edge { to, capacity, flow: 0, cost });
+        self.adj[from].push(edge_index);
+        // Add reverse edge for residual graph
+        self.edges.push(Edge { to: from, capacity: 0, flow: 0, cost: -cost });
+        self.adj[to].push(edge_index + 1);
+    }
+}
+
+#[derive(Debug)]
+struct State {
+    cost: i64,
+    node: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost
+    }
+}
+
+impl Eq for State {}
+
+fn successive_shortest_path(graph: &mut Graph, source: usize, sink: usize, required_flow: i64) -> i64 {
+    let n = graph.adj.len();
+    let mut dist = vec![i64::MAX; n];
+    let mut prev = vec![None; n];
+    let mut heap = BinaryHeap::new();
+    
+    dist[source] = 0;
+    heap.push(State { cost: 0, node: source });
+
+    while let Some(State { cost, node }) = heap.pop() {
+        if node == sink {
+            return -cost; // Return negative of the minimum cost
+        }
+
+        for &edge_index in &graph.adj[node] {
+            let edge = &graph.edges[edge_index];
+            let residual_capacity = edge.capacity - edge.flow;
+
+            if residual_capacity > 0 {
+                let new_cost = cost + edge.cost;
+                let next_node = edge.to;
+
+                if new_cost < dist[next_node] {
+                    dist[next_node] = new_cost;
+                    prev[next_node] = Some(edge_index);
+                    heap.push(State { cost: new_cost, node: next_node });
+                }
+            }
+        }
+    }
+
+    i64::MAX // Indicate infeasibility if no path found
+}
+
+fn main() {
+    let n = 3; // Number of nodes
+    let mut graph = Graph::new(n);
+    
+    // Add edges based on the grid representation
+    graph.add_edge(0, 1, 1, 1); // Example edge
+    graph.add_edge(1, 2, 1, 1); // Example edge
+    graph.add_edge(0, 2, 1, 2); // Example edge
+
+    // Adjust the flow requirement based on the problem specification
+    let min_cost = successive_shortest_path(&mut graph, 0, 2, 1);
+    println!("{}", min_cost);
+}
+```

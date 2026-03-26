@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
+    
+    // Handle potential parsing errors
+    let n = nums.next().expect("Failed to read n").expect("Invalid number for n");
+    let m = nums.next().expect("Failed to read m").expect("Invalid number for m");
+
+    // Initialize the array with 1001 elements (0 to 1000)
+    let mut a = vec![0; 1001];
+
+    // Read the array elements
+    for i in 1..=n {
+        let line = lines.next().unwrap().unwrap();
+        a[i as usize] = line.trim().parse::<i32>().expect("Invalid number in array");
+    }
+
+    let mut k = 1;
+    // Perform the sorting based on the given logic
+    while k <= m {
+        for i in 1..n {
+            let j = i + 1;
+            if j <= n && a[i as usize] % k > a[j as usize] % k {
+                // Swap elements
+                a.swap(i as usize, j as usize);
+            }
+        }
+        k += 1;
+    }
+
+    // Print the sorted array
+    for i in 1..=n {
+        println!("{}", a[i as usize]);
+    }
+}

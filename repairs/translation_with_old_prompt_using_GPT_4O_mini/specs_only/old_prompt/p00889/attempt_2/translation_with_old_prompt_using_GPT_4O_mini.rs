@@ -1,0 +1,43 @@
+use std::collections::HashMap;
+
+fn count_valid_subsequences(n: i32, s: i32, w: i32, q: i32) -> i32 {
+    // Preconditions check
+    if n <= 0 || q <= 0 {
+        return 0; // Early exit for invalid input
+    }
+
+    // Initialize the hash table to store counts of computed values
+    let mut counts: HashMap<i32, i32> = HashMap::new();
+    let mut current_value = s;
+
+    // Generate the sequence and populate the hash table
+    for _ in 0..n {
+        // Transform the current value based on the given algorithm
+        current_value = (current_value + w) % q; // Ensure we stay within bounds of q
+        *counts.entry(current_value).or_insert(0) += 1; // Update the count in the hash table
+    }
+
+    // Count valid subsequences based on the hash table
+    let valid_count = counts.values().filter(|&&count| count > 0).count() as i32; // Count unique values
+
+    // Output the result
+    println!("{}", valid_count);
+    valid_count // Return the count of valid subsequences
+}
+
+fn main() {
+    // Read input until a non-positive n is encountered
+    let inputs = vec![
+        (10, 123, 456, 2),
+        (15, 789, 654, 3),
+        (20, 987, 321, 5),
+        (0, 0, 0, 0), // Termination condition
+    ];
+
+    for (n, s, w, q) in inputs {
+        if n <= 0 {
+            break; // Stop processing on non-positive n
+        }
+        count_valid_subsequences(n, s, w, q);
+    }
+}

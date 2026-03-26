@@ -1,0 +1,57 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Hash: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00889/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:21:25
+     |
+  21 |             table: vec![Hash::default(); HASHSIZ + 2],
+     |                    -----^^^^^^^^^^^^^^^--------------
+     |                    |    |
+     |                    |    the trait `Clone` is not implemented for `Hash`
+     |                    required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `Hash` with `#[derive(Clone)]`
+     |
+   9 + #[derive(Clone)]
+  10 | struct Hash {
+     |
+
+error[E0599]: no method named `split_whitespace` found for enum `Result<T, E>` in the current scope
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00889/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:70:29
+     |
+  70 |         let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+     |                             ^^^^^^^^^^^^^^^^ method not found in `Result<String, std::io::Error>`
+     |
+note: the method `split_whitespace` exists on the type `String`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/str/mod.rs:1182:5
+     |
+1182 |     pub fn split_whitespace(&self) -> SplitWhitespace<'_> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `String` value, panicking if the value is a `Result::Err`
+     |
+  70 |         let mut nums = line.expect("REASON").split_whitespace().map(|s| s.parse::<i32>().unwrap());
+     |                            +++++++++++++++++
+
+error[E0282]: type annotations needed
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00889/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:70:53
+   |
+70 |         let mut nums = line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+   |                                                     ^  - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+70 |         let mut nums = line.split_whitespace().map(|s: /* Type */| s.parse::<i32>().unwrap());
+   |                                                      ++++++++++++
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0282, E0599.
+For more information about an error, try `rustc --explain E0277`.

@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes and ranks teams based on their performance in a series of games, calculating scores based on wins and draws.
+- **What problem it solves**: It provides a way to input team performance data and outputs a ranked list of teams based on their scores.
+- **Core behavior**: The program continuously accepts input for multiple sets of teams, calculates their scores, sorts them in descending order, and prints the results until a termination condition is met.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of teams (integer).
+  - `team[i].name`: Name of the team (string).
+  - `win`: Number of wins (integer).
+  - `lose`: Number of losses (integer).
+  - `draw`: Number of draws (integer).
+- **Data types**: 
+  - `n`: `int`
+  - `team[i].name`: `char[30]`
+  - `win`, `lose`, `draw`: `int`
+- **Valid ranges or constraints**: 
+  - `n` must be between 1 and 10 (inclusive).
+  - `win`, `lose`, `draw` must be non-negative integers.
+- **Assumptions about inputs**: Input is assumed to be well-formed and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: Outputs the ranked list of teams to the console.
+- **Output format/schema**: Each line of output contains a team name followed by its score, formatted as `name,score`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: The input must start with a valid integer `n` followed by `n` lines of team data.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will output the scores of the teams in descending order based on their calculated scores.
+- **State changes**: The program maintains a list of teams and their scores, which is modified during execution.
+- **Return guarantees**: The program will terminate gracefully when `n` is input as `0`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The `team` array will always contain valid team data for the number of teams specified by `n`.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on correct input format.
+- **Edge-case behavior**: If `n` is `0`, the program terminates without processing any teams.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state where it can either be waiting for input or processing and outputting results.
+- **State changes caused by execution**: The state changes from input collection to sorting and outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation has a time complexity of O(n^2) due to the nested loops.
+- **Space complexity**: The space complexity is O(n) for storing team data.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size of 10 teams.
+```

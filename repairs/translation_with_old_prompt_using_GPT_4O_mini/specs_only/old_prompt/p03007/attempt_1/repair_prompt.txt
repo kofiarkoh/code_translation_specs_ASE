@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes an array of integers, computes a specific sum based on their values, and outputs pairs of values along with intermediate results.
+- **What problem it solves**: It calculates a modified sum of absolute values from an array and outputs relationships between these values based on their signs.
+- **Core behavior**: The program reads an array of integers, sorts them, and depending on their sign distribution, either computes a straightforward sum or invokes a recursive function to handle mixed signs.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of integers in the array.
+  - `a[]`: Array of integers.
+- **Data types**: 
+  - `n`: `int`
+  - `a[]`: `long long` (ll)
+- **Valid ranges or constraints**: 
+  - `n` should be a positive integer (1 ≤ n ≤ 100,000).
+  - Each element in `a[]` can be any `long long` integer.
+- **Assumptions about inputs**: 
+  - The input is well-formed and contains valid integers.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs pairs of values and computed sums to the standard output.
+- **Output format/schema**: 
+  - The first output is a single long long integer (the computed sum).
+  - Subsequent outputs are pairs of long long integers printed in the format: `value1 value2`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must contain a valid integer `n` followed by `n` long long integers.
+- **Explicit logical constraints**: 
+  - The array must have at least one element (n > 0).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed sum and pairs of values based on the input array.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The program guarantees output of results based on the input values.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `a[]` remains unchanged throughout the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exception handling is present.
+- **Edge-case behavior**: If `n` is 1, the program will handle it correctly by outputting the sum of the single element.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects.
+- **State changes caused by execution**: The program does not maintain state; it operates on local variables.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n log n) due to sorting, followed by O(n) for processing.
+- **Space complexity**: O(n) for storing the input array.
+- **Performance assumptions**: The program is expected to handle the maximum input size efficiently within reasonable time limits.
+```

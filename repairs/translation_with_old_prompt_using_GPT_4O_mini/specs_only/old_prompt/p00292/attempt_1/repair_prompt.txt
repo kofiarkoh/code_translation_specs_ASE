@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a series of integer pairs and computes a specific transformation based on the second integer of each pair.
+- **What problem it solves**: It provides a way to repeatedly transform and output a value based on user input, specifically cycling through a range defined by the second integer.
+- **Core behavior**: For each input pair `(x, y)`, it calculates `(x - 1) % y + 1` and prints the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of input pairs to process.
+  - `x`: An integer value from the input pair.
+  - `y`: An integer value from the input pair.
+- **Data types**: 
+  - `n`: Integer
+  - `x`: Integer
+  - `y`: Integer
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - `y` must be a positive integer (to avoid division/modulo by zero).
+- **Assumptions about inputs**: 
+  - Input values are provided in the correct format as specified.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs the computed values to the console.
+- **Output format/schema**: Each output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must include a valid integer for `n` followed by `n` pairs of integers `(x, y)`.
+- **Explicit logical constraints**: 
+  - `y` must be greater than 0 for valid modulo operations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output `n` integers, each corresponding to the transformation of the input pairs.
+- **State changes**: The program does not maintain state beyond the scope of execution.
+- **Return guarantees**: No return value; execution ends after output.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output for each pair is computed based on the current values of `x` and `y` as long as `y` is valid.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; invalid input may lead to incorrect outputs or runtime errors.
+- **Exceptions thrown?**: Not inferable from code; the code does not explicitly handle exceptions.
+- **Edge-case behavior**: If `y` is 0, the modulo operation will lead to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the code does not maintain state.
+- **State changes caused by execution**: Not applicable; the code operates statelessly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where `n` is the number of input pairs.
+- **Space complexity**: O(1), as it uses a constant amount of space regardless of input size.
+- **Performance assumptions**: Assumes that input is provided in a timely manner and that the system can handle the input size within reasonable limits.
+```

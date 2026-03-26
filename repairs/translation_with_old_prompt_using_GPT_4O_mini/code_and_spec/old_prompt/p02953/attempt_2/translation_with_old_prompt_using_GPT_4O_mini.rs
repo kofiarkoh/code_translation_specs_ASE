@@ -1,0 +1,39 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read the number of elements
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap(),
+        _ => return, // Handle case where input is not valid
+    };
+    
+    // Read the array elements
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            if let Ok(num) = line.trim().parse() {
+                a.push(num);
+            } else {
+                return; // Handle case where input is not valid
+            }
+        } else {
+            return; // Handle case where input is not valid
+        }
+    }
+    
+    // Check if the array can be transformed into non-decreasing order
+    for i in (1..n).rev() {
+        if a[i] < a[i - 1] {
+            a[i - 1] -= 1; // Decrement the previous element
+        }
+        if a[i] < a[i - 1] {
+            println!("No");
+            return;
+        }
+    }
+    
+    println!("Yes");
+}

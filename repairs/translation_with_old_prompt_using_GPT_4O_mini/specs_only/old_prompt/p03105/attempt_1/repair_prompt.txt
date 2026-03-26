@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program reads three integer values and computes a result based on a comparison of a derived value and a given threshold.
+- **What problem it solves**: It determines the minimum of the quotient of two integers and a third integer, effectively capping the result at a specified limit.
+- **Core behavior**: The program calculates the integer division of `b` by `a` and compares it to `c`, printing the smaller of the two values.
+
+## 2. Inputs
+- **Parameters**: 
+  - `a`: the divisor
+  - `b`: the dividend
+  - `c`: the cap value
+- **Data types**: All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - `a` must be a non-zero integer (to avoid division by zero).
+  - `b` and `c` can be any integer.
+- **Assumptions about inputs**: The user will provide valid integer inputs in the expected format.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value, which is either the result of `b/a` or `c`.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+  - The input must include three integers.
+- **Explicit logical constraints**: `a` must not be zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will be the smaller of `b/a` and `c`, provided `a` is not zero.
+- **State changes**: No state changes occur; the program is stateless.
+- **Return guarantees**: The program will always return 0 upon successful execution.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The program will always read three integers from input.
+  - The output will always be an integer.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `a` is zero, the program will attempt to divide by zero, leading to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state.
+- **State changes caused by execution**: No state changes occur.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the operations performed are constant time.
+- **Space complexity**: O(1) - only a fixed amount of space is used for variables.
+- **Performance assumptions**: The program assumes that input and output operations are efficient and that the input is provided in a timely manner.
+```

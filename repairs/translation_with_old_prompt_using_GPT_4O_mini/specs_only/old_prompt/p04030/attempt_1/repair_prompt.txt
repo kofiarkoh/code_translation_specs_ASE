@@ -1,0 +1,97 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a string input by removing characters based on specific rules, particularly handling the character 'B' as a backspace.
+- **What problem it solves**: It simulates a text input system where the user can delete the last character by entering 'B', effectively allowing for text editing.
+- **Core behavior**: The program reads a string, processes it to remove characters as dictated by the presence of 'B', and outputs the resulting string.
+
+## 2. Inputs
+- **Parameters**: 
+  - A single string input from the user.
+- **Data types**: 
+  - `char S[11]`: Input string of characters.
+- **Valid ranges or constraints**: 
+  - The input string must be at most 10 characters long (plus a null terminator).
+- **Assumptions about inputs**: 
+  - The input string is null-terminated and does not exceed the defined length.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns an integer (0) upon successful execution.
+- **Side effects**: 
+  - Outputs a processed string to the standard output.
+- **Output format/schema**: 
+  - The output is a null-terminated string containing the processed characters.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input string must be provided and must not exceed 10 characters.
+- **Explicit logical constraints**: 
+  - The input must be a valid string that can be read by `scanf`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output string contains characters from the input string, with 'B' characters removed and their preceding characters deleted.
+- **State changes**: 
+  - The output string is populated based on the processing of the input string.
+- **Return guarantees**: 
+  - The program will always return 0 if executed without errors.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output string will always be null-terminated.
+  - The index `j` will always reflect the number of valid characters in the output string.
+- **Class-level invariants**: 
+  - Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input exceeds the expected length, behavior is undefined; it may lead to buffer overflow.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled; the program may crash or produce unexpected results on invalid input.
+- **Edge-case behavior**: 
+  - If the input string is empty, the output will also be an empty string.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains a state defined by the input string and the processed output string.
+- **State changes caused by execution**: 
+  - The state transitions occur as characters are read from the input and processed into the output based on the rules defined.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(n), where n is the length of the input string, as each character is processed once.
+- **Space complexity**: 
+  - O(n), where n is the length of the output string, as it stores the processed characters.
+- **Performance assumptions**: 
+  - The program assumes that input and output operations are performed efficiently within the constraints of the environment.
+```

@@ -1,0 +1,139 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of ways to select subsets of integers from a given list such that the sum of the selected integers is a multiple of a specified integer \( A \).
+- **What problem it solves**: It addresses the combinatorial problem of counting valid subsets that meet specific sum criteria based on user-defined parameters.
+- **Core behavior**: The program reads a list of integers and computes the number of valid subsets whose sums are multiples of \( A \), using dynamic programming.
+
+## 2. Inputs
+- **Parameters**:
+  - \( N \): The number of integers in the list.
+  - \( A \): The integer that the sum of selected integers must be a multiple of.
+- **Data types**:
+  - Both \( N \) and \( A \) are of type `long long`.
+  - The list of integers \( x \) is an array of type `long long`.
+- **Valid ranges or constraints**:
+  - \( N \) must be a non-negative integer.
+  - \( A \) must be a positive integer.
+  - Each integer in the list \( x[i] \) can be any `long long` value.
+- **Assumptions about inputs**:
+  - The input values are provided in a valid format as specified.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the count of valid subsets.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the integer count.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format.
+  - \( N \) must be non-negative and \( A \) must be positive.
+- **Explicit logical constraints**: The sum of the integers must be computable without overflow for the given constraints.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the number of valid subsets.
+- **State changes**: The program does not maintain any persistent state beyond local variables.
+- **Return guarantees**: The output will be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The dynamic programming table \( dp[j][k][s] \) is correctly populated based on the defined rules throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If \( N = 0 \) or \( A \) is not positive, the output may not be meaningful.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and computing results.
+- **State changes caused by execution**: The state of the dynamic programming table is updated iteratively based on the input values.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is \( O(N^2 \cdot \text{sum}) \), where \( \text{sum} \) is the total sum of the integers.
+- **Space complexity**: The space complexity is \( O(N^2 \cdot \text{sum}) \) due to the dynamic programming table.
+- **Performance assumptions**: The program assumes that \( N \) and the sum of the integers are within reasonable limits to avoid excessive memory usage and computation time.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+int main(void){
+
+    long long N;
+    long long A;
+
+    scanf("%lld%lld", &N, &A);
+
+    long long x[N+1];
+
+    long long sum = 0;
+
+    for(long long i = 1; i <= N; i++){
+        scanf("%lld", &x[i]);
+        sum += x[i];
+    }
+
+    long long dp[N+1][N+1][sum+1];
+
+    for(long long j = 0; j <= N; j++){
+        for(long long k = 0; k <= N; k++){
+            for(long long s = 0; s <= sum; s++){
+                if(j >= 1 && s < x[j]){
+                    dp[j][k][s] = dp[j-1][k][s];
+                }else if(j >= 1 && k >= 1 && s >= x[j]){
+                    dp[j][k][s] = dp[j-1][k][s] + dp[j-1][k-1][s-x[j]];
+                }else if(j == 0 && k == 0 && s == 0){
+                    dp[j][k][s] = 1;
+                }else{
+                    dp[j][k][s] = 0;
+                }
+            }
+        }
+    }
+
+    long long ans = 0;
+
+    long long max;
+
+    if(sum/A < N){
+        max = sum/A;
+    }else{
+        max = N;
+    }
+
+    for(long long k = 1; k <= max; k++){
+        ans += dp[N][k][k*A];
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+}
+=== C CODE END ===

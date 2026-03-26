@@ -1,0 +1,127 @@
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+use std::io::{self, BufRead};
+
+type I32 = i32;
+type I64 = i64;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Node {
+    v: I32,
+    d: I64,
+}
+
+// Implementing Ord for Node to use in BinaryHeap
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // We want a max-heap, so we reverse the order
+        other.d.cmp(&self.d)
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Debug)]
+struct Graph {
+    edge: Vec<(I32, I32)>, // (vertex, cost)
+    start: Vec<I32>,
+    pointer: I32,
+    vertex_num: I32,
+    edge_max_size: I32,
+}
+
+impl Graph {
+    fn new(vertex_num: I32) -> Self {
+        let start = vec![-1; vertex_num as usize];
+        Self {
+            edge: Vec::with_capacity(1),
+            start,
+            pointer: 0,
+            vertex_num,
+            edge_max_size: 1,
+        }
+    }
+
+    fn add_edge(&mut self, from: I32, to: I32, cost: I32) {
+        if self.pointer as usize == self.edge_max_size as usize {
+            self.edge_max_size *= 2;
+            self.edge.reserve(self.edge_max_size as usize);
+        }
+        self.edge.push((to, cost));
+        self.start[from as usize] = self.pointer;
+        self.pointer += 1;
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: I32 = params.next().unwrap().parse().unwrap();
+    let m: I32 = params.next().unwrap().parse().unwrap();
+    let k: I32 = params.next().unwrap().parse().unwrap();
+
+    let mut p: Vec<I32> = Vec::with_capacity(3 * n as usize);
+    for _ in 0..3 * n {
+        let value: I32 = lines.next().unwrap().unwrap().parse().unwrap();
+        p.push(value);
+    }
+
+    let sup = 1_000_000_001;
+    let mut graph = Graph::new(2 * n);
+    for i in 0..n {
+        graph.add_edge(i, i + n, sup - p[i as usize]);
+    }
+
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_params = edge_line.split_whitespace();
+        let a: I32 = edge_params.next().unwrap().parse().unwrap() - 1;
+        let b: I32 = edge_params.next().unwrap().parse().unwrap() - 1;
+        let d: I32 = edge_params.next().unwrap().parse().unwrap();
+
+        graph.add_edge(a, b, d);
+        graph.add_edge(b, a, d);
+        graph.add_edge(a + n, b + n, d);
+        graph.add_edge(b + n, a + n, d);
+    }
+
+    let mut dp: Vec<I64> = vec![1_000_000_001 * 2 * n as I64; (2 * n) as usize];
+    dp[0] = 0;
+
+    let mut heap = BinaryHeap::new();
+    heap.push(Node { v: 0, d: 0 });
+
+    while let Some(Node { v, d }) = heap.pop() {
+        if d > dp[v as usize] {
+            continue;
+        }
+        let start_index = graph.start[v as usize];
+        for i in start_index..graph.pointer {
+            let (u, cost) = graph.edge[i as usize];
+            let new_d = d + cost as I64;
+            if new_d >= dp[u as usize] {
+                continue;
+            }
+            dp[u as usize] = new_d;
+            heap.push(Node { v: u, d: new_d });
+        }
+    }
+
+    let mut max = vec![2 - (1_000_000_001 * 2 * n) as I64; (k + 1) as usize];
+    for i in 0..n {
+        let v = (sup - dp[(i + n) as usize]) - dp[i as usize] + p[(i + 2 * n) as usize];
+        max[p[i as usize] as usize] = max[p[i as usize] as usize].max(v);
+    }
+
+    for i in 1..=k {
+        println!("{}", max[i as usize]);
+    }
+}

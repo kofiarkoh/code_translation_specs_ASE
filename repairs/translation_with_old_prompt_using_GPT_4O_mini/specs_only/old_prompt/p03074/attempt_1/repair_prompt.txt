@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a binary string representation and calculates the maximum number of contiguous segments of '1's that can be formed by changing a specified number of '0's to '1's.
+- **What problem it solves**: It addresses the problem of maximizing the length of contiguous '1's in a binary string after performing a limited number of changes from '0' to '1'.
+- **Core behavior**: The program reads an integer number of segments and a number of allowed changes, processes a binary string, and computes the maximum length of contiguous '1's achievable with the specified changes.
+
+## 2. Inputs
+- **Parameters**:
+  - `num`: Number of characters in the binary string.
+  - `changes`: Number of '0's that can be changed to '1's.
+  - `str`: A binary string of length `num`.
+- **Data types**:
+  - `num` and `changes`: `int`
+  - `str`: `char[]`
+- **Valid ranges or constraints**:
+  - `num`: Must be a non-negative integer.
+  - `changes`: Must be a non-negative integer.
+  - `str`: Must be a valid binary string of length `num`.
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program returns `0` upon successful execution.
+- **Side effects**: Outputs the maximum length of contiguous '1's to the standard output.
+- **Output format/schema**: A single integer printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The binary string must be of length `num`.
+- **Explicit logical constraints**: `num` and `changes` must be non-negative integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The maximum length of contiguous '1's after allowed changes is computed and printed.
+- **State changes**: The static arrays `arr` and `cum` are populated based on the input string.
+- **Return guarantees**: The function will always return `0` upon completion.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The length of `str` is always equal to `num`.
+  - The values in `arr` and `cum` are derived from the processed binary string.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; invalid inputs may lead to incorrect results or runtime errors.
+- **Exceptions thrown?**: No explicit exceptions are handled; the program assumes valid input.
+- **Edge-case behavior**: If `num` is `0`, the program will not process any characters and will output `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains the state of the binary string and the computed arrays.
+- **State changes caused by execution**: The arrays `arr` and `cum` are populated based on the input string, and the maximum length of contiguous '1's is computed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the length of the binary string, due to linear scans for processing.
+- **Space complexity**: O(n), due to the storage of intermediate results in arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for input sizes up to the defined limits (e.g., `NUM_MAX`).
+```

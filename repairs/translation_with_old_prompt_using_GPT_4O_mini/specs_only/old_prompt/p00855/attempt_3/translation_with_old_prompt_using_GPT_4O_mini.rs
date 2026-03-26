@@ -1,0 +1,55 @@
+use std::io::{self, BufRead};
+
+fn is_prime(n: i32) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as i32) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn nearest_primes(l: i32, u: &mut i32) -> (i32, i32) {
+    let mut lower_prime = -1;
+    let mut upper_prime = -1;
+
+    // Find the largest prime less than or equal to l
+    for i in (2..=l).rev() {
+        if is_prime(i) {
+            lower_prime = i;
+            break;
+        }
+    }
+
+    // Find the smallest prime greater than or equal to u
+    while upper_prime == -1 {
+        if is_prime(*u) {
+            upper_prime = *u;
+        }
+        *u += 1; // Increment u to find the next prime
+    }
+
+    (lower_prime, upper_prime)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+
+    // Read input
+    handle.read_line(&mut input).expect("Failed to read line");
+    let mut parts = input.split_whitespace();
+    
+    let l: i32 = parts.next().unwrap().parse().expect("Invalid input for l");
+    let mut u: i32 = parts.next().unwrap().parse().expect("Invalid input for u");
+
+    // Get nearest primes
+    let (lower_prime, upper_prime) = nearest_primes(l, &mut u);
+
+    // Output the difference
+    println!("{}", upper_prime - lower_prime);
+}

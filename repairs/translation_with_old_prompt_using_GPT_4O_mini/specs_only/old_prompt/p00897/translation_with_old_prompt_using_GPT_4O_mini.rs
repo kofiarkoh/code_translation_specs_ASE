@@ -1,0 +1,100 @@
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    distance: usize,
+}
+
+#[derive(Debug)]
+struct Node {
+    city: usize,
+    distance: usize,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.distance.cmp(&self.distance) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance == other.distance
+    }
+}
+
+impl Eq for Node {}
+
+fn dijkstra(
+    graph: &Vec<Vec<Edge>>,
+    _fuel_capacity: usize, // Marked as unused to avoid warnings
+    start: usize,
+    destination: usize,
+) -> isize {
+    let mut distances = vec![isize::MAX; graph.len()];
+    distances[start] = 0;
+
+    let mut heap = BinaryHeap::new();
+    heap.push(Node { city: start, distance: 0 });
+
+    while let Some(Node { city, distance }) = heap.pop() {
+        if distance > distances[city] as usize {
+            continue;
+        }
+
+        for edge in &graph[city] {
+            let new_distance = distance + edge.distance;
+            if new_distance < distances[edge.to] as usize {
+                distances[edge.to] = new_distance as isize;
+                heap.push(Node { city: edge.to, distance: new_distance });
+            }
+        }
+    }
+
+    if distances[destination] == isize::MAX {
+        -1
+    } else {
+        distances[destination]
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let params: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap()).collect();
+    
+    let n = params[0]; // Number of cities
+    let m = params[1]; // Number of LPG stations
+    let _fuel_capacity = params[2]; // Fuel capacity, marked as unused
+
+    let mut graph = vec![Vec::with_capacity(0); n]; // Initialize with empty vectors
+
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let from: usize = parts[0].parse().unwrap();
+        let to: usize = parts[1].parse().unwrap();
+        let distance: usize = parts[2].parse().unwrap();
+        graph[from].push(Edge { to, distance });
+        graph[to].push(Edge { to: from, distance }); // Assuming undirected roads
+    }
+
+    let start = 0; // Assuming starting city index is 0
+    let destination = n - 1; // Assuming destination city index is n-1
+
+    let result = dijkstra(&graph, _fuel_capacity, start, destination);
+    println!("{}", result);
+}

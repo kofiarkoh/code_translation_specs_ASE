@@ -1,0 +1,81 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 100_000;
+
+struct PrimeGenerator {
+    is_prime: [bool; MAX],
+    primes: Vec<usize>,
+}
+
+impl PrimeGenerator {
+    fn new() -> Self {
+        let mut is_prime = [true; MAX];
+        is_prime[0] = false;
+        is_prime[1] = false;
+
+        let mut primes = Vec::new();
+        for i in 2..MAX {
+            if is_prime[i] {
+                primes.push(i);
+                for j in (i * 2..MAX).step_by(i) {
+                    is_prime[j] = false;
+                }
+            }
+        }
+
+        PrimeGenerator { is_prime, primes }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let mut prime_gen = PrimeGenerator::new();
+
+    loop {
+        let line = lines.next();
+        if let Some(Ok(input)) = line {
+            let mut parts = input.split_whitespace();
+            let m: usize = parts.next().unwrap().parse().unwrap();
+            let a: usize = parts.next().unwrap().parse().unwrap();
+            let b: usize = parts.next().unwrap().parse().unwrap();
+
+            if m == 0 && a == 0 && b == 0 {
+                break;
+            }
+
+            let (mut p, mut q) = (0, 0);
+            let primenum = prime_gen.primes.len();
+
+            for i in 0..primenum {
+                let mut l = i + 1; // Start l from i + 1 to ensure l > i
+                let mut r = primenum - 1;
+
+                while l <= r {
+                    let j = (l + r) / 2;
+                    if (prime_gen.primes[i] as u64 * prime_gen.primes[j] as u64) <= m as u64
+                        && (a as u64 * prime_gen.primes[j] as u64) <= (prime_gen.primes[i] as u64 * b as u64)
+                    {
+                        l = j + 1;
+                    } else {
+                        r = j - 1;
+                    }
+                }
+
+                if l > i + 1 && (prime_gen.primes[i] as u64 * prime_gen.primes[l - 1] as u64) <= m as u64
+                    && (a as u64 * prime_gen.primes[l - 1] as u64) <= (prime_gen.primes[i] as u64 * b as u64)
+                    && prime_gen.primes[i] * prime_gen.primes[l - 1] > p * q
+                {
+                    p = prime_gen.primes[i];
+                    q = prime_gen.primes[l - 1];
+                }
+            }
+
+            println!("{} {}", p, q);
+        }
+    }
+}
+```

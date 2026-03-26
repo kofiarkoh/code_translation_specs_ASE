@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code computes a specific mathematical result based on a series of integer inputs, utilizing modular arithmetic.
+- **What problem it solves**: It addresses a combinatorial problem involving the accumulation of values based on input integers, likely related to counting or generating sequences.
+- **Core behavior**: The program reads a sequence of integers, processes them to update two arrays (`d` and `e`), and computes a final result using modular arithmetic.
+
+## 2. Inputs
+- **Parameters**: 
+  - The first input is an integer that initializes the first element of arrays `d` and `e`.
+  - Subsequent inputs are integers that are added to the current state of the arrays.
+- **Data types**: 
+  - All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - The first input must be a non-negative integer.
+  - Subsequent inputs can be any integer, including negative values.
+- **Assumptions about inputs**: 
+  - The input sequence ends when a non-integer is encountered (EOF).
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer result.
+- **Side effects**: 
+  - The program prints the result to standard output.
+- **Output format/schema**: 
+  - The output is a single integer, formatted as a decimal number.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive at least one valid integer input.
+- **Explicit logical constraints**: 
+  - The first input must be a valid integer to initialize the arrays.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed integer based on the processed inputs.
+- **State changes**: 
+  - The arrays `d` and `e` will be modified based on the input values.
+- **Return guarantees**: 
+  - The output will be a non-negative integer modulo `998244353`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values in arrays `d` and `e` remain within the bounds of the modular arithmetic defined by `M`.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define a class structure.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program will terminate if a non-integer input is encountered after the first integer.
+- **Exceptions thrown?**: 
+  - Not applicable; the program does not handle exceptions explicitly.
+- **Edge-case behavior**: 
+  - If no valid integers are provided, the program may not produce any output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains the state of arrays `d` and `e` throughout execution.
+- **State changes caused by execution**: 
+  - The arrays are updated based on the input values, affecting the final output.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is linear with respect to the number of inputs, O(n).
+- **Space complexity**: 
+  - The space complexity is O(1) for the variables and O(n) for the arrays `d` and `e`.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for a reasonable number of inputs, constrained by the size of the arrays.
+```

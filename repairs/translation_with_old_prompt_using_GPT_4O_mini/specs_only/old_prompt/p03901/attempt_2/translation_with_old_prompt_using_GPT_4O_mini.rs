@@ -1,0 +1,34 @@
+use std::io::{self, BufRead};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read piPos (position)
+    let pi_pos: i32 = lines.next().unwrap()?.parse()?;
+    // Read sdRate (probability rate) and convert to fraction
+    let sd_rate: f64 = lines.next().unwrap()?.parse::<f64>()? / 100.0;
+
+    // Compute the expected value
+    let expected_value = compute_expected_value(pi_pos, sd_rate);
+
+    // Output the expected value formatted to seven decimal places
+    println!("{:.7}", expected_value);
+
+    // Return Ok indicating successful execution
+    Ok(())
+}
+
+// Recursive function to compute expected value
+fn compute_expected_value(position: i32, rate: f64) -> f64 {
+    // Base case: if position is 0, return 0.0
+    if position == 0 {
+        return 0.0;
+    }
+
+    // Recursive case: calculate expected value based on the position and rate
+    let expected_value = (1.0 - rate) * compute_expected_value(position - 1, rate) + rate * position as f64;
+
+    expected_value
+}

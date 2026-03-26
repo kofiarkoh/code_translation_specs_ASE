@@ -1,0 +1,85 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0599]: cannot write into `String`
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03977/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:34:22
+    |
+ 34 |             writeln!(output_buffer, "{}", result).unwrap(); // Assumes valid output
+    |                      ^^^^^^^^^^^^^
+    |
+   ::: /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/fmt/mod.rs:212:8
+    |
+212 |     fn write_fmt(&mut self, args: Arguments<'_>) -> Result {
+    |        --------- the method is available for `String` here
+    |
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p03977/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:34:22
+    |
+ 34 |             writeln!(output_buffer, "{}", result).unwrap(); // Assumes valid output
+    |                      ^^^^^^^^^^^^^
+    = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+    |
+  1 + use std::fmt::Write;
+    |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0599`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead, Write};
+
+fn main() {
+    // Create a buffer to hold the output
+    let mut output_buffer = String::with_capacity(20_000);
+    
+    // Read from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Process each line of input
+    for line in reader.lines() {
+        // Unwrap the line to handle the Result
+        let line = line.unwrap();
+        
+        // Split the line into pairs of integers
+        let mut iter = line.split_whitespace();
+        
+        while let (Some(n_str), Some(d_str)) = (iter.next(), iter.next()) {
+            // Parse the integers
+            let n: i32 = n_str.parse().unwrap(); // Assumes valid input as per specification
+            let d: i32 = d_str.parse().unwrap(); // Assumes valid input as per specification
+            
+            // Calculate the result based on the parity of N
+            let result = if n % 2 == 0 {
+                // N is even
+                n + d
+            } else {
+                // N is odd
+                n - d
+            };
+            
+            // Append the result to the output buffer
+            writeln!(output_buffer, "{}", result).unwrap(); // Assumes valid output
+        }
+    }
+    
+    // Write the output buffer to standard output
+    print!("{}", output_buffer);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

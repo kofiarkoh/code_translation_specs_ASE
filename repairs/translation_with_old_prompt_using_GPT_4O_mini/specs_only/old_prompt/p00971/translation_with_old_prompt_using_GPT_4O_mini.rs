@@ -1,0 +1,51 @@
+use std::io::{self, BufRead};
+
+const SMAX: usize = 4000;
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read the two binary strings
+    let a = lines.next().unwrap().unwrap();
+    let b = lines.next().unwrap().unwrap();
+
+    // Ensure the lengths do not exceed SMAX
+    assert!(a.len() <= SMAX && b.len() <= SMAX);
+
+    // Call the function to find the smallest interleaved string
+    let result = smallest_interleaved_string(&a, &b);
+    
+    // Output the result
+    println!("{}", result);
+}
+
+fn smallest_interleaved_string(a: &str, b: &str) -> String {
+    let n = a.len();
+    let m = b.len();
+    
+    // Create a dp array to store the smallest interleaved strings
+    let mut dp = vec![vec![String::new(); m + 1]; n + 1];
+
+    // Fill the dp array
+    for i in 0..=n {
+        for j in 0..=m {
+            if i == 0 && j == 0 {
+                continue; // Skip the initial state
+            }
+            let mut candidates = Vec::new();
+            if i > 0 {
+                candidates.push(dp[i - 1][j].clone() + &a[i - 1..i]);
+            }
+            if j > 0 {
+                candidates.push(dp[i][j - 1].clone() + &b[j - 1..j]);
+            }
+            // Select the lexicographically smallest candidate
+            dp[i][j] = candidates.into_iter().min().unwrap_or_default();
+        }
+    }
+
+    // The result is in dp[n][m]
+    dp[n][m].clone()
+}

@@ -1,0 +1,119 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads two strings of equal length and computes a specific integer value based on the comparison of these strings.
+- **What problem it solves**: It determines how many characters from the second string can be matched with the first string when traversed from the end, and calculates a derived value based on these matches.
+- **Core behavior**: The program reads two strings, compares them in reverse order, and calculates an integer result based on the number of matching characters.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: An integer representing the length of the strings.
+  - `S`: A character array (string) of length `N`.
+  - `T`: A character array (string) of length `N`.
+- **Data types**:
+  - `N`: `int`
+  - `S`: `char[]`
+  - `T`: `char[]`
+- **Valid ranges or constraints**:
+  - `N` must be a non-negative integer.
+  - The lengths of `S` and `T` must be exactly `N`.
+- **Assumptions about inputs**:
+  - The input strings `S` and `T` are null-terminated and contain valid characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer value `ans`.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must include a valid integer `N` followed by two strings of length `N`.
+- **Explicit logical constraints**:
+  - `N` must be greater than or equal to 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The variable `ans` contains a computed integer based on the comparison of the two strings.
+- **State changes**: The program does not maintain any persistent state beyond the execution of the main function.
+- **Return guarantees**: The output will always be an integer derived from the comparison logic.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The lengths of `S` and `T` remain equal to `N` throughout the execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if the input does not conform to the expected format (e.g., non-integer for `N`, strings of different lengths).
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it may lead to runtime errors if inputs are invalid.
+- **Edge-case behavior**: If `N` is 0, the program will output `0` since there are no characters to compare.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the program operates with local variables.
+- **State changes caused by execution**: The variable `ans` is modified based on the comparison results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The worst-case time complexity is O(N^2) due to nested loops.
+- **Space complexity**: The space complexity is O(N) for storing the input strings.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical stack and heap sizes for C programs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+  int N,ans=0;
+  scanf("%d",&N);
+  char S[N+1];
+  char T[N+1];
+  scanf("%s",S);
+  scanf("%s",T);
+
+  int i=N-1;
+  int j=i;
+  while (i>=0)
+  {
+    int i=N-1;
+    while (j>=0&&S[i]!=T[j])
+    {
+      j--;
+    }
+    if(j>=0){
+      while (j>=0&&S[i]==T[j]){ i--; j--; }
+      if (j<0){
+        ans=2*N-(N-i-1);
+        break;
+      }
+    }else
+    {
+      ans=2*N-(N-i-1);
+      break;
+    }
+  }
+
+  printf("%d",ans);
+
+  return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,61 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize the min array with "infinity" (using a large value)
+    let inf = std::i64::MAX;
+    let mut min = vec![inf; n + 1];
+    min[1] = 0; // Starting node cost is 0
+
+    // Read edges
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let u: usize = parts.next().unwrap().parse().unwrap();
+        let w: usize = parts.next().unwrap().parse().unwrap();
+        let c: i64 = parts.next().unwrap().parse().unwrap();
+        edges.push((u, w, c)); // Keep cost as is for the algorithm
+    }
+
+    // Bellman-Ford algorithm
+    for _ in 1..n {
+        let mut updated = false;
+        for &(u, w, c) in &edges {
+            if min[u] != inf && min[u] + c < min[w] {
+                min[w] = min[u] + c;
+                updated = true;
+            }
+        }
+        if !updated {
+            break; // No updates means we can stop early
+        }
+    }
+
+    // Check for negative cycles
+    let mut has_negative_cycle = false;
+    for &(u, w, c) in &edges {
+        if min[u] != inf && min[u] + c < min[w] {
+            has_negative_cycle = true;
+            break;
+        }
+    }
+
+    // Output result
+    if has_negative_cycle {
+        println!("inf");
+    } else {
+        // Output the minimum cost to reach node N
+        let result = if min[n] == inf { "inf" } else { min[n].to_string() };
+        println!("{}", result);
+    }
+}

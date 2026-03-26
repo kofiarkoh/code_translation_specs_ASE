@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific combinatorial value based on two input strings of equal length.
+- **What problem it solves**: It determines the number of ways to form a sequence based on the characters of two input strings, considering specific matching conditions.
+- **Core behavior**: The program reads two strings, compares their characters, and computes a result based on the matching characters and their positions.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: An integer representing the length of the strings.
+  - `S1`: A string of length `N`.
+  - `S2`: A string of length `N`.
+- **Data types**: 
+  - `N`: `int`
+  - `S1`, `S2`: `char[]`
+- **Valid ranges or constraints**: 
+  - `N` must be a positive integer.
+  - `S1` and `S2` must be null-terminated strings of length `N`.
+- **Assumptions about inputs**: 
+  - The input strings are guaranteed to be of the same length as specified by `N`.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the computed value.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the computed value modulo `1000000007`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format (an integer followed by two strings).
+  - The strings must not exceed the length specified by `N`.
+- **Explicit logical constraints**: 
+  - `N` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a valid `long long` integer.
+- **State changes**: No persistent state changes occur; the program only outputs a result.
+- **Return guarantees**: The output will always be a non-negative integer less than `1000000007`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The lengths of `S1` and `S2` must always equal `N`.
+  - The computed value `ans` is always non-negative and updated based on the character comparisons.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `N` is 0 or negative, the program may not behave as expected.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and producing output.
+- **State changes caused by execution**: The variable `ans` changes based on the comparisons of characters in `S1` and `S2`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N), where N is the length of the input strings, as it processes each character in a single loop.
+- **Space complexity**: O(N), due to the storage of the two input strings.
+- **Performance assumptions**: The program assumes that input reading and processing can be done efficiently within the constraints of typical input sizes.
+```

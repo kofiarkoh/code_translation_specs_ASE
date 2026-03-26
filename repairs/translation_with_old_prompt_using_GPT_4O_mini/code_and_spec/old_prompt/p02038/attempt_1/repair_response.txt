@@ -1,0 +1,51 @@
+```rust
+use std::io::{self, Write};
+
+fn souti(a: char, b: char) -> char {
+    if a == 'T' && b == 'F' {
+        'F'
+    } else {
+        'T'
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the first line for N
+    if io::stdin().read_line(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    
+    let n: usize = match input.trim().parse() {
+        Ok(num) if num > 0 => num,
+        _ => {
+            std::process::exit(1);
+        }
+    };
+
+    let mut p = Vec::with_capacity(n);
+    
+    // Read the boolean values
+    for _ in 0..n {
+        let mut hoge = String::new();
+        if io::stdin().read_line(&mut hoge).is_err() || hoge.trim().len() != 1 {
+            std::process::exit(1);
+        }
+        let ch = hoge.chars().next().unwrap();
+        if ch != 'T' && ch != 'F' {
+            std::process::exit(1);
+        }
+        p.push(ch);
+    }
+
+    // Compute the result
+    let mut notomamiko = souti(p[0], p[1]);
+    for &value in &p[2..] {
+        notomamiko = souti(notomamiko, value);
+    }
+
+    // Print the result
+    print!("{}\n", notomamiko);
+}
+```

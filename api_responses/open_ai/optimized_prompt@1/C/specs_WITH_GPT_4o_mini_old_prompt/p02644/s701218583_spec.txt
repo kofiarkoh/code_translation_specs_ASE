@@ -1,0 +1,59 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum number of moves required to reach a target position in a grid, given specific movement constraints.
+- **What problem it solves**: It solves the problem of finding the shortest path in a grid where movement can be made in multiple steps in one of four cardinal directions, constrained by a maximum step size.
+- **Core behavior**: The program reads the dimensions of a grid, the starting and goal positions, and the maximum step size. It then calculates the minimum number of moves required to reach the goal position from the starting position, considering obstacles represented by characters in the grid.
+
+## 2. Inputs
+- **Parameters**:
+  - `h`: Height of the grid (number of rows).
+  - `w`: Width of the grid (number of columns).
+  - `k`: Maximum number of cells that can be moved in one step.
+  - `s[0]`, `s[1]`: Starting coordinates (0-indexed).
+  - `g[0]`, `g[1]`: Goal coordinates (0-indexed).
+  - `c[h][w]`: Grid representation where each cell can be either a passable cell ('.') or an obstacle.
+- **Data types**: 
+  - `int` for dimensions and coordinates.
+  - `char` for grid representation.
+- **Valid ranges or constraints**:
+  - `h` and `w` must be positive integers.
+  - `0 <= s[0] < h`, `0 <= s[1] < w`.
+  - `0 <= g[0] < h`, `0 <= g[1] < w`.
+  - `1 <= k <= min(h, w)`.
+- **Assumptions about inputs**: The grid is well-formed, and the starting and goal positions are within the grid bounds.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum number of moves required to reach the goal position from the starting position, or `-1` if the goal is unreachable.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The grid must be initialized and populated with valid characters ('.' for passable, obstacles otherwise).
+  - The starting and goal positions must be valid and within the grid bounds.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The output will either be the minimum number of moves to reach the goal or `-1` if the goal is unreachable.
+- **State changes**: The distance array `d` will be populated with the minimum distances from the starting position to each cell in the grid.
+- **Return guarantees**: The output will always be an integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The distance array `d` will always contain valid distances or `INF` for unreachable cells.
+  - The queue used for BFS will maintain valid coordinates within the grid bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program assumes valid input as per the constraints.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program may exhibit undefined behavior on invalid input.
+- **Edge-case behavior**: If the starting position is the same as the goal position, the output will be `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the current position in the grid and the distance array.
+- **State changes caused by execution**: The state transitions occur as the BFS explores the grid, updating the distance array and queue.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm runs in O(h * w * k) due to the BFS traversal and the maximum step size.
+- **Space complexity**: The space complexity is O(h * w) for the distance array and O(h * w) for the queue.
+- **Performance assumptions**: The algorithm is expected to perform efficiently for reasonably sized grids, but performance may degrade for very large values of `h`, `w`, or `k`.

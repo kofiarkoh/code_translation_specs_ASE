@@ -1,0 +1,111 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+const MAX_N: usize = 5005;
+
+static mut PW: [i64; MAX_N] = [1; MAX_N]; // Use static mut for global access
+
+fn calc(x: usize) -> i64 {
+    if x & 1 == 1 {
+        0
+    } else {
+        unsafe { PW[x >> 1] } // Access the static mutable array
+    }
+}
+
+fn add_edge(u: usize, v: usize, tot: &mut usize, lst: &mut Vec<i32>, to: &mut Vec<usize>, pre: &mut Vec<i32>) {
+    to[*tot] = v;
+    pre[*tot] = lst[u];
+    lst[u] = *tot as i32;
+    *tot += 1;
+}
+
+fn init_dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, sz: &mut Vec<usize>, pre: &Vec<i32>) {
+    sz[u] = 1;
+    let mut i = lst[u];
+    while i != -1 {
+        let v = to[i as usize];
+        if v as i32 == fa {
+            i = pre[i as usize];
+            continue;
+        }
+        init_dfs(v, u as i32, lst, to, sz, pre);
+        sz[u] += sz[v];
+        i = pre[i as usize];
+    }
+}
+
+fn dfs(u: usize, fa: i32, lst: &Vec<i32>, to: &Vec<usize>, dp: &mut Vec<Vec<[i64; 2]>>, dp_sz: &mut Vec<usize>, sz: &Vec<usize>, pre: &Vec<i32>) {
+    dp[u][0][0] = 1;
+    let mut i = lst[u];
+    while i != -1 {
+        let v = to[i as usize];
+        if v as i32 == fa {
+            i = pre[i as usize];
+            continue;
+        }
+        dfs(v, u as i32, lst, to, dp, dp_sz, sz, pre);
+        let mut tmp = [[0; 2]; MAX_N];
+        for x in (0..=dp_sz[u]).rev() {
+            for y in (0..=dp_sz[v]).rev() {
+                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][0] * dp[v][y][0]) % MOD;
+                tmp[x + y][0] = (tmp[x + y][0] + dp[u][x][1] * dp[v][y][1]) % MOD;
+                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][0] * dp[v][y][1]) % MOD;
+                tmp[x + y][1] = (tmp[x + y][1] + dp[u][x][1] * dp[v][y][0]) % MOD;
+            }
+        }
+        for x in 0..=dp_sz[u] {
+            dp[u][x] = tmp[x];
+        }
+        dp_sz[u] += dp_sz[v];
+        i = pre[i as usize];
+    }
+    if u > 0 {
+        for x in (0..=dp_sz[u]).rev() {
+            dp[u][sz[u]][0] = (dp[u][sz[u]][0] + dp[u][x][1] * calc(sz[u] - x)) % MOD;
+            dp[u][sz[u]][1] = (dp[u][sz[u]][1] + dp[u][x][0] * calc(sz[u] - x)) % MOD;
+        }
+    }
+    dp_sz[u] += 1;
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut lst = vec![-1; MAX_N];
+    let mut to = vec![0; 10005];
+    let mut pre = vec![-1; 10005];
+    let mut tot = 0;
+    let mut sz = vec![0; MAX_N];
+    let mut dp_sz = vec![0; MAX_N];
+    let mut dp = vec![vec![[0; 2]; MAX_N]; MAX_N];
+    let mut ans = 0;
+
+    unsafe {
+        for i in 1..=n {
+            PW[i] = (PW[i - 1] * (i as i64 * 2 - 1) % MOD) % MOD; // Ensure correct type
+        }
+    }
+
+    for _ in 1..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let u: usize = parts.next().unwrap().parse().unwrap() - 1;
+        let v: usize = parts.next().unwrap().parse().unwrap() - 1;
+        add_edge(u, v, &mut tot, &mut lst, &mut to, &mut pre);
+        add_edge(v, u, &mut tot, &mut lst, &mut to, &mut pre);
+    }
+
+    init_dfs(0, -1, &lst, &to, &mut sz, &pre);
+    dfs(0, -1, &lst, &to, &mut dp, &mut dp_sz, &sz, &pre);
+
+    for i in 0..=n {
+        ans = (ans + dp[0][i][0] * calc(n - i)) % MOD;
+        ans = (ans - dp[0][i][1] * calc(n - i) + MOD) % MOD; // Ensure non-negative
+    }
+
+    println!("{}", (ans + MOD) % MOD);
+}

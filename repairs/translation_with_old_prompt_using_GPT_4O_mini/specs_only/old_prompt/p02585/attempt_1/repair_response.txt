@@ -1,0 +1,50 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and K
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    // Read P array
+    let p_line = lines.next().unwrap().unwrap();
+    let p: Vec<usize> = p_line.split_whitespace()
+        .map(|x| x.parse::<usize>().unwrap() - 1) // Convert to 0-based index
+        .collect();
+
+    // Read C array
+    let c_line = lines.next().unwrap().unwrap();
+    let c: Vec<i64> = c_line.split_whitespace()
+        .map(|x| x.parse::<i64>().unwrap())
+        .collect();
+
+    // Initialize the distance array to hold maximum cumulative values
+    let mut dist = vec![i64::MIN; n];
+    dist[0] = c[0]; // Start from the first node
+
+    // Perform the traversal up to K steps
+    for _ in 0..k {
+        let mut tmp = dist.clone(); // Temporary array to hold new values
+        for i in 0..n {
+            if dist[i] != i64::MIN {
+                let next_index = p[i];
+                tmp[next_index] = tmp[next_index].max(dist[i] + c[next_index]);
+            }
+        }
+        dist = tmp; // Update dist with new values
+    }
+
+    // Calculate the maximum cumulative value
+    let max_value = *dist.iter().max().unwrap();
+
+    // Print the result
+    println!("{}", max_value);
+}
+```

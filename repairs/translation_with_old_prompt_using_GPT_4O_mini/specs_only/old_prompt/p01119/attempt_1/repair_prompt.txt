@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for AOJ 1634 Balance Scale
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to the balance scale problem, where it determines the minimum difference between a set of weights and a given set of integers.
+- **What problem it solves**: It identifies the closest weight that can balance a given set of integers, minimizing the absolute difference.
+- **Core behavior**: The program reads a list of integers and a list of weights, computes all possible sums and differences of the weights, and checks how closely these can match the integers.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of integers.
+  - `m`: Number of weights.
+  - `a[]`: Array of integers of size `n`.
+  - `w[]`: Array of weights of size `m`.
+- **Data types**:
+  - `n`, `m`: `int`
+  - `a[]`, `w[]`: `int[]`
+- **Valid ranges or constraints**:
+  - `n` and `m` must be non-negative integers.
+  - The values in `a[]` and `w[]` must be non-negative integers.
+- **Assumptions about inputs**: The input values are assumed to be within the range of typical integer values in C.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum absolute difference or `-1` if no suitable weight is found.
+- **Side effects**: Outputs are printed to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The number of integers (`n`) and weights (`m`) must be valid non-negative integers.
+- **Explicit logical constraints**: The program assumes that the input will not exceed memory limits for the arrays used.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output either the minimum absolute difference or `-1`.
+- **State changes**: The internal state of the hash tables used for lookups and insertions will be modified based on the input data.
+- **Return guarantees**: The output will always be an integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The hash tables (`ha1` and `ha2`) will always contain valid entries or be empty.
+  - The arrays `q`, `a`, and `w` will maintain their respective sizes throughout execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exceptions are handled; the program relies on valid input.
+- **Edge-case behavior**: If `n` or `m` is zero, the program will not perform any calculations and will output `-1`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states for the hash tables and the queue used for weight combinations.
+- **State changes caused by execution**: The state of the hash tables and the queue will be updated as weights are processed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately O(m * 2^m + n * end), where `end` is the number of weight combinations generated.
+- **Space complexity**: The space complexity is O(HASHSIZ + n + m), where `HASHSIZ` is the size of the hash tables.
+- **Performance assumptions**: The program is expected to perform efficiently for moderate values of `n` and `m`, but may struggle with larger inputs due to exponential growth in combinations.
+```

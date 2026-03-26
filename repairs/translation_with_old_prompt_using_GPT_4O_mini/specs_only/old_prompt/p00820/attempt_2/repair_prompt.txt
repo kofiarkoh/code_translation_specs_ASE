@@ -1,0 +1,77 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00820/p00820_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00820/p00820_sample1_output.txt
+Input:
+10
+25
+30
+50
+0
+Expected:
+2
+3
+2
+5
+Actual:
+1
+1
+1
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn count_squares(n: i32, c: i32, low: i32) -> i32 {
+    // Base case: if we have used 4 squares, check if we have reached the target
+    if c == 4 {
+        return if n == 0 { 1 } else { 0 };
+    }
+    // Initialize the count of combinations
+    let mut ret = 0;
+    // Start from the current low value and explore further
+    let mut i = low;
+    while i * i <= n {
+        // Recursively count combinations with the next square
+        ret += count_squares(n - i * i, c + 1, i);
+        i += 1;
+    }
+    ret
+}
+
+fn main() {
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let input = line.unwrap().trim().parse::<i32>().unwrap();
+        // Terminate on zero input
+        if input == 0 {
+            break;
+        }
+        // Call the recursive function and print the result
+        let result = count_squares(input, 0, 1);
+        println!("{}", result);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

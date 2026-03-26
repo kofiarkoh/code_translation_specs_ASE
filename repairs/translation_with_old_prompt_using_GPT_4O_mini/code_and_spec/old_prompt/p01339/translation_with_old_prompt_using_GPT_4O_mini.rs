@@ -1,0 +1,158 @@
+use std::io::{self, BufRead};
+
+const MAX_V: usize = 1002;
+const MOD: i64 = 1_000_000_007;
+
+struct Graph {
+    to: Vec<Vec<usize>>,
+    r_to: Vec<Vec<usize>>,
+    hi: Vec<usize>,
+    r_hi: Vec<usize>,
+    lim: Vec<usize>,
+    r_lim: Vec<usize>,
+    vs: Vec<usize>,
+    vsz: usize,
+    used: Vec<bool>,
+    cmp: Vec<usize>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            to: vec![Vec::new(); n],
+            r_to: vec![Vec::new(); n],
+            hi: vec![0; n],
+            r_hi: vec![0; n],
+            lim: vec![0; n],
+            r_lim: vec![0; n],
+            vs: Vec::new(),
+            vsz: 0,
+            used: vec![false; n],
+            cmp: vec![0; n],
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize) {
+        self.check_lim(from);
+        self.check_r_lim(to);
+        self.to[from].push(to);
+        self.hi[from] += 1;
+        self.r_to[to].push(from);
+        self.r_hi[to] += 1;
+    }
+
+    fn check_lim(&mut self, a: usize) {
+        if self.hi[a] < self.lim[a] {
+            return;
+        }
+        if self.lim[a] == 0 {
+            self.lim[a] = 8;
+            self.hi[a] = 0;
+        } else {
+            let k = self.lim[a].min(256);
+            self.lim[a] += k;
+        }
+    }
+
+    fn check_r_lim(&mut self, a: usize) {
+        if self.r_hi[a] < self.r_lim[a] {
+            return;
+        }
+        if self.r_lim[a] == 0 {
+            self.r_lim[a] = 8;
+            self.r_hi[a] = 0;
+        } else {
+            let k = self.r_lim[a].min(256);
+            self.r_lim[a] += k;
+        }
+    }
+
+    fn dfs(&mut self, v: usize) {
+        self.used[v] = true;
+        for &next in &self.to[v] {
+            if !self.used[next] {
+                self.dfs(next);
+            }
+        }
+        self.vs.push(v);
+        self.vsz += 1;
+    }
+
+    fn rdfs(&mut self, v: usize, k: usize) {
+        self.used[v] = true;
+        self.cmp[v] = k;
+        for &next in &self.r_to[v] {
+            if !self.used[next] {
+                self.rdfs(next, k);
+            }
+        }
+    }
+
+    fn scc(&mut self) -> usize {
+        self.used.fill(false);
+        self.vsz = 0;
+        for v in 0..self.to.len() {
+            if !self.used[v] {
+                self.dfs(v);
+            }
+        }
+        self.used.fill(false);
+        let mut k = 0;
+        for &v in self.vs.iter().rev() {
+            if !self.used[v] {
+                self.rdfs(v, k);
+                k += 1;
+            }
+        }
+        k
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().map(|line| line.unwrap());
+
+    let first_line = lines.next().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut graph = Graph::new(n);
+    
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let s: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        let d: usize = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        graph.add_edge(s, d);
+    }
+
+    let k = graph.scc();
+    let mut nx = vec![-1; k]; // Changed to isize to allow negative values
+    let mut dp = vec![0; k];
+    let mut ans = 1;
+
+    for i in 0..n {
+        if graph.hi[i] > 0 {
+            nx[graph.cmp[i]] = graph.cmp[graph.to[i][0]] as isize; // Cast to isize
+        }
+    }
+
+    for i in 0..k {
+        if dp[i] > 0 {
+            dp[i] += 1;
+        } else {
+            dp[i] = 2;
+        }
+        if nx[i] < 0 || nx[i] == i as isize {
+            ans = (ans * dp[i] as i64) % MOD;
+        } else if dp[nx[i] as usize] > 0 {
+            dp[nx[i] as usize] = (dp[nx[i] as usize] as i64 * dp[i] as i64) % MOD;
+        } else {
+            dp[nx[i] as usize] = dp[i];
+        }
+    }
+
+    println!("{}", ans);
+}

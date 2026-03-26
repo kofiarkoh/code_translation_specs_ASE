@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code computes and prints a sequence of numbers based on a specific mathematical transformation involving the sum of their digits.
+- **What problem it solves**: It generates a series of numbers that minimize a ratio of the number to the sum of its digits, iterating this process for a user-defined count.
+- **Core behavior**: For each iteration, it calculates a new number that minimizes the ratio of the number to the sum of its digits, starting from an initial value and updating it based on the computed minimum.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of iterations to perform.
+- **Data types**: 
+  - `long int` for `n`, `x`, `y`, `r`, `s`.
+  - `double` for `m`, `o`.
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer (0 ≤ n).
+- **Assumptions about inputs**: 
+  - The input is assumed to be valid and within the range of a `long int`.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it prints output directly.
+- **Side effects**: The program prints a sequence of numbers to the standard output.
+- **Output format/schema**: Each number is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive a valid `long int` input for `n`.
+- **Explicit logical constraints**: 
+  - `n` must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed `n` numbers to the standard output.
+- **State changes**: 
+  - The variable `x` is updated iteratively based on the computed minimum.
+- **Return guarantees**: 
+  - No return value; output is printed directly.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable `x` is always incremented and updated based on the computed minimum.
+- **Class-level invariants**: Not applicable (the code is not object-oriented).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may not handle invalid input gracefully.
+- **Exceptions thrown?**: No explicit exception handling is present.
+- **Edge-case behavior**: If `n` is 0, the program will terminate without printing any output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The state of `x` changes with each iteration based on the computed minimum.
+- **State changes caused by execution**: 
+  - `x` is incremented and updated to a new value based on the minimum ratio found in each iteration.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The outer loop runs `n` times, and the inner loop runs a fixed number of times (15), leading to a time complexity of O(n).
+- **Space complexity**: O(1), as the space used does not grow with input size.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate values of `n`, but performance may degrade for very large values due to the nature of the calculations involved.
+```

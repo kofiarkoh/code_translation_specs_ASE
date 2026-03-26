@@ -1,0 +1,45 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let n: i32 = parts.next().unwrap().parse().unwrap();
+        let mut i: i64 = parts.next().unwrap().parse().unwrap();
+        let mut j: i64 = parts.next().unwrap().parse().unwrap();
+
+        // Check precondition
+        if n <= 0 {
+            break; // Exit if n is not greater than 0
+        }
+
+        let mut low = vec![0; 62]; // Array to hold the low bits
+        let mut ans = vec![' '; 62]; // Array to hold the answer
+
+        for k in 1..=n {
+            low[(n - k) as usize] = ((i >> (n - k)) & 1) as i32; // Get the low bit
+            if low[(n - k) as usize] == 0 {
+                i = !i; // Flip bits if low bit is 0
+            }
+        }
+
+        for k in 1..=n {
+            ans[k as usize] = if ((j >> (n - k)) & 1) == low[(k - 1) as usize] as i32 {
+                'L'
+            } else {
+                'R'
+            };
+            if low[(k - 1) as usize] == 0 {
+                j = !j; // Flip bits if low bit is 0
+            }
+        }
+
+        // Output the result
+        println!("{}", ans[1..=n as usize].iter().collect::<String>());
+    }
+}
+```

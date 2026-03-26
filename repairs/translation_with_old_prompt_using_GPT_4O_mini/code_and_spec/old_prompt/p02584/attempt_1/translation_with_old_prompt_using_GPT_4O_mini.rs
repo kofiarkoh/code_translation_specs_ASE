@@ -1,0 +1,34 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from stdin
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let mut iter = input.split_whitespace();
+
+    // Parse the input values
+    let x: i64 = iter.next().unwrap().parse().unwrap();
+    let k: i64 = iter.next().unwrap().parse().unwrap();
+    let d: i64 = iter.next().unwrap().parse().unwrap();
+
+    // Preconditions check
+    assert!(k >= 0, "k must be non-negative");
+    assert!(d > 0, "d must be positive");
+
+    // Calculate the absolute value of x
+    let mut now = x.abs();
+    
+    // Core logic based on the specification
+    if now / d <= k {
+        now -= d * (now / d);
+        let remaining_k = k - (now / d);
+        if remaining_k % 2 != 0 {
+            now -= d;
+        }
+    } else {
+        now -= d * k;
+    }
+
+    // Output the result
+    println!("{}", now.abs());
+}

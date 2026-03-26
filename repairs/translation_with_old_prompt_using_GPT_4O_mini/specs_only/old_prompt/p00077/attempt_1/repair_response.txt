@@ -1,0 +1,50 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read from standard input line by line
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        // Unwrap the line to handle the Result type
+        let input = line.unwrap();
+        // Process and output the transformed string
+        let output = process_string(&input);
+        println!("{}", output);
+    }
+}
+
+// Function to process the input string according to the specification
+fn process_string(input: &str) -> String {
+    let mut result = String::new();
+    let mut chars = input.chars().peekable(); // Use peekable to look ahead
+
+    while let Some(c) = chars.next() {
+        if c == '@' {
+            // Check if the next character is a digit
+            if let Some(digit) = chars.next() {
+                if digit.is_digit(10) {
+                    // Convert the digit character to a number
+                    let count = digit.to_digit(10).unwrap() as usize; // Safe due to digit check
+                    // Get the next character to repeat
+                    if let Some(repeat_char) = chars.next() {
+                        // Append the repeated character to the result
+                        result.push_str(&repeat_char.to_string().repeat(count));
+                    }
+                } else {
+                    // If the character after '@' is not a digit, output as-is
+                    result.push('@');
+                    result.push(digit);
+                }
+            } else {
+                // If '@' is the last character, just output it
+                result.push('@');
+            }
+        } else {
+            // If not '@', just append the character to the result
+            result.push(c);
+        }
+    }
+
+    result
+}
+```

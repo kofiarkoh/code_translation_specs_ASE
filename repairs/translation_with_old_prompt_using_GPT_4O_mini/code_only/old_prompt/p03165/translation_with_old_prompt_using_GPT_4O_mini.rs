@@ -1,0 +1,75 @@
+use std::io::{self, Write};
+use std::ptr;
+use std::ffi::CString;
+
+fn max(a: i32, b: i32) -> i32 {
+    if a >= b { a } else { b }
+}
+
+fn main() {
+    let mut s1 = vec![0; 3000];
+    let mut s2 = vec![0; 3000];
+
+    // Read input strings
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.read_line(&mut input).expect("Failed to read line");
+    let mut parts = input.split_whitespace();
+    if let Some(first) = parts.next() {
+        s1[..first.len()].copy_from_slice(first.as_bytes());
+    }
+    if let Some(second) = parts.next() {
+        s2[..second.len()].copy_from_slice(second.as_bytes());
+    }
+
+    let l_s1 = s1.iter().position(|&c| c == 0).unwrap_or(3000);
+    let l_s2 = s2.iter().position(|&c| c == 0).unwrap_or(3000);
+
+    // Allocate 2D array for dynamic programming
+    let mut arr = vec![vec![0; l_s2 + 1]; l_s1 + 1];
+
+    // Initialize the first row and column
+    for i in 0..=l_s2 {
+        arr[0][i] = 0;
+    }
+    for i in 0..=l_s1 {
+        arr[i][0] = 0;
+    }
+
+    // Fill the DP table
+    for i in 1..=l_s1 {
+        for j in 1..=l_s2 {
+            if s1[i - 1] == s2[j - 1] {
+                arr[i][j] = arr[i - 1][j - 1] + 1;
+            } else {
+                arr[i][j] = max(arr[i - 1][j], arr[i][j - 1]);
+            }
+        }
+    }
+
+    let len = arr[l_s1][l_s2];
+    let mut ans = vec![0; len as usize];
+    let mut ind = len - 1;
+    let mut r = l_s1;
+    let mut c = l_s2;
+
+    // Backtrack to find the longest common subsequence
+    while r >= 1 && c >= 1 {
+        if s1[r - 1] == s2[c - 1] {
+            ans[ind as usize] = s1[r - 1];
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if arr[r][c] == arr[r - 1][c] {
+            r -= 1;
+        } else {
+            c -= 1;
+        }
+    }
+
+    // Print the result
+    for &c in &ans {
+        print!("{}", c as char);
+    }
+    io::stdout().flush().unwrap(); // Ensure all output is flushed
+}

@@ -1,0 +1,113 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to compute the minimum cost of merging a sequence of integers.
+- **What problem it solves**: It solves the problem of finding the optimal way to merge a sequence of numbers such that the total cost of merging is minimized.
+- **Core behavior**: The function recursively calculates the minimum cost of merging subarrays of the input array, utilizing memoization to store previously computed results.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: The number of integers in the sequence.
+  - `a[]`: An array of integers representing the sequence to be merged.
+- **Data types**: 
+  - `N`: `int`
+  - `a[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `N` should be a positive integer (1 ≤ N ≤ 400).
+  - Each element in `a[]` can be any integer value.
+- **Assumptions about inputs**: The input is assumed to be well-formed, with `N` followed by `N` integers.
+
+## 3. Outputs
+- **Return values**: The function returns a `long long` integer representing the minimum cost of merging the entire sequence.
+- **Side effects**: The function modifies the `dp` array to store computed results for subproblems.
+- **Output format/schema**: The output is a single `long long` integer printed to standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be read correctly, with `N` followed by `N` integers.
+  - The `dp` and `sum` arrays must be initialized properly.
+- **Explicit logical constraints**: `N` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The minimum cost of merging the sequence is computed and printed.
+- **State changes**: The `dp` array will contain the minimum costs for all subarrays.
+- **Return guarantees**: The function guarantees a valid `long long` integer as output.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dp` array is initialized to zero and updated only with valid computed costs.
+  - The `sum` array correctly reflects the cumulative sums of the input array.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `N` is 1, the output will be 0, as no merging is needed.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The `dp` array can be in a state of uninitialized (zero) or contain computed minimum costs.
+  - The `sum` array is always in a state of containing cumulative sums.
+- **State changes caused by execution**: The `dp` array is updated with minimum costs during the recursive calls.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N^3) due to the nested loops and recursive calls.
+- **Space complexity**: O(N^2) for the `dp` array.
+- **Performance assumptions**: The algorithm is expected to perform efficiently for the maximum constraint of N = 400.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int N, a[401];
+long long dp[401][401] = {}, sum[401];
+const long long sup = (long long)1 << 60;
+
+long long recursion(int l, int r)
+{
+	if (dp[l][r] != 0 || l == r) return dp[l][r];
+	else dp[l][r] = sup;
+	
+	int k;
+	long long tmp;
+	for (k = l + 1; k <= r; k++) {
+		tmp = recursion(l, k - 1) + recursion(k, r);
+		if (tmp < dp[l][r]) dp[l][r] = tmp;
+	}
+	dp[l][r] += sum[r] - sum[l-1];
+	return dp[l][r];
+}
+
+int main()
+{
+	int i;
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d", &(a[i]));
+	for (i = 1, sum[0] = 0; i <= N; i++) sum[i] = sum[i-1] + a[i];
+	printf("%lld\n", recursion(1, N));
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

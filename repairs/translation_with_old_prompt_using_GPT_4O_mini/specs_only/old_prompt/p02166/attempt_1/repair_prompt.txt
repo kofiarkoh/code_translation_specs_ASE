@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes an array of integers to determine a specific condition based on the values and their indices.
+- **What problem it solves**: It checks whether a certain condition holds true for the elements of the array based on the input size and a secondary parameter.
+- **Core behavior**: The program reads an integer array and evaluates conditions based on the relationship between the array elements and their indices, using a depth-first search (DFS) approach to mark visited elements.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: The number of elements in the array.
+  - `k`: A secondary integer parameter.
+- **Data types**:
+  - `n` and `k`: `int`
+  - `a`: `int[]` (array of integers)
+- **Valid ranges or constraints**:
+  - `1 <= n <= 100000` (implied by the array size)
+  - `0 <= k <= n` (implied by the logic)
+- **Assumptions about inputs**: The input values for the array are integers, and the first element of the array is indexed from 1.
+
+## 3. Outputs
+- **Return values**: The program does not return a value but prints a result to the standard output.
+- **Side effects**: Modifies the global array `a` by marking elements as `-1` during the DFS traversal.
+- **Output format/schema**: Outputs "Yes" or "No" based on the evaluation of conditions.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The array `a` must be initialized and populated with `n` integers.
+  - The values of `n` and `k` must be read successfully from input.
+- **Explicit logical constraints**: The input must conform to the specified ranges.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "Yes" or "No" based on the evaluation of the conditions.
+- **State changes**: The elements of the array `a` may be modified to `-1` during execution.
+- **Return guarantees**: The output will always be a string ("Yes" or "No").
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the array `a` remains constant at 100010.
+  - The values in `a` are either the original input values or `-1` after execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `n` equals `k`, the program checks a specific condition; otherwise, it processes the array with DFS.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The array `a` can contain original integers or `-1` after processing.
+- **State changes caused by execution**: Elements of `a` are marked as `-1` during the DFS traversal.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n) for the DFS traversal and condition checks.
+- **Space complexity**: O(1) additional space, aside from the input array.
+- **Performance assumptions**: The program is expected to handle the maximum input size efficiently within the constraints.
+```

@@ -1,0 +1,28 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+    
+    // Read a line of input
+    handle.read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the three integers from the input
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let b: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let c: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+
+    // Check precondition: a must not be zero
+    if a == 0 {
+        panic!("Division by zero is not allowed");
+    }
+
+    // Calculate the result of b / a
+    let result = b / a;
+
+    // Print the smaller of result and c
+    println!("{}", if result < c { result } else { c });
+}

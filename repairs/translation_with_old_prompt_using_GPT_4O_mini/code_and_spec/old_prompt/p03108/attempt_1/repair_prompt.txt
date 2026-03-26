@@ -1,0 +1,149 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a union-find (disjoint-set) data structure to manage and analyze connected components in a graph based on union operations.
+- **What problem it solves**: It calculates the number of connected pairs of nodes in a graph after a series of union operations, effectively determining the size of connected components dynamically as edges are added.
+- **Core behavior**: The program reads a number of nodes and edges, processes union operations, and outputs the number of connected pairs of nodes after each operation in reverse order.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of nodes (vertices) in the graph.
+  - `m`: Number of edges (connections) to be processed.
+  - `a[i]`, `b[i]`: Arrays representing the edges between nodes.
+- **Data types**:
+  - `n`, `m`: `long long int`
+  - `a[i]`, `b[i]`: `int`
+- **Valid ranges or constraints**:
+  - `1 <= n <= 100000`
+  - `0 <= m <= 100000`
+  - `0 <= a[i], b[i] < n`
+- **Assumptions about inputs**: The input is well-formed, and the edges do not contain self-loops or duplicate edges.
+
+## 3. Outputs
+- **Return values**: The program does not return values but prints results directly.
+- **Side effects**: Outputs the number of connected pairs of nodes after each union operation.
+- **Output format/schema**: Each output is a `long long int` printed on a new line, representing the number of connected pairs.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The arrays `a` and `b` must be initialized and populated with valid edge data.
+  - The union-find structure must be initialized with each node as its own parent.
+- **Explicit logical constraints**: The number of edges `m` must not exceed the maximum allowed size of the arrays.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The `ans` array contains the number of connected pairs of nodes after each union operation.
+- **State changes**: The parent array `par` and the root count array `root_cnt` are modified to reflect the union operations.
+- **Return guarantees**: The program guarantees that the output corresponds to the number of connected pairs after each edge is processed.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - Each node's parent in the `par` array points to itself or to another node, maintaining a valid disjoint-set structure.
+  - The `root_cnt` array accurately reflects the size of each connected component.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exceptions are handled; the program assumes valid input.
+- **Edge-case behavior**: If `m` is 0, the output will be empty since no edges are processed.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Each node can be in a state where it is its own parent or part of a larger connected component.
+- **State changes caused by execution**: The union operations modify the parent-child relationships and the sizes of connected components.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is approximately O(m * α(n)), where α is the inverse Ackermann function, which is very slow-growing.
+- **Space complexity**: O(n) for the arrays used to store parent pointers and component sizes.
+- **Performance assumptions**: The program is expected to handle the upper limits of input sizes efficiently within reasonable time constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+int a[100000], b[100000], par[100000], root_cnt[100000];
+int root(int x){
+    if(par[x] == x){return x;}
+    return par[x] = root(par[x]);
+}
+
+int unite(int x, int y){
+    int rx = root(x);
+    int ry = root(y);
+    if(rx == ry){
+        return 0;
+    }
+    par[rx] = ry;
+    return 1;
+}
+
+int same(int x, int y){
+    int rx = root(x);
+    int ry = root(y);
+    if(rx == ry){
+        return 1;
+    }
+    return 0;
+}
+
+long long int ans[100000];
+int main(void){
+    long long int n, m;
+    int i, j, k;
+    scanf("%lld%lld", &n, &m);
+    for(i = 0; i < m; i++){
+        scanf("%d%d", &a[i], &b[i]);
+        a[i]--;
+        b[i]--;
+    }
+
+    for(i = 0; i < n; i++){
+        par[i] = i;
+        root_cnt[i] = 1;
+    }
+
+    ans[m-1] = n*(n-1)/2;
+    root_cnt[root(b[m-1])] += root_cnt[root(a[m-1])];
+    root_cnt[root(a[m-1])] = 0;
+    unite(a[m-1], b[m-1]);//bのrootにaが統合される
+    if(m-2 >= 0){
+        ans[m-2] = n*(n-1)/2 - 1;
+    }
+    for(i = m-2; i >= 0; i--){
+        if(same(a[i], b[i])){
+            ans[i-1] = ans[i];
+        }else{
+            ans[i-1] = ans[i] - root_cnt[root(b[i])] * root_cnt[root(a[i])];
+            root_cnt[root(b[i])] += root_cnt[root(a[i])];
+            root_cnt[root(a[i])] = 0;
+            unite(a[i], b[i]);//bのrootにaが統合される
+            
+            
+        }
+    }
+
+    for(i = 0; i < m; i++){
+        printf("%lld\n",ans[i]);
+    }
+}
+=== C CODE END ===

@@ -1,0 +1,82 @@
+// AOJ 2236 Rabbit Plays Games!
+// 2018.2.10 bal4u
+
+use std::io::{self, Read};
+
+#[derive(Debug)]
+struct T {
+    a: i64,
+    d: i32,
+}
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock(); // Change to mutable to allow multiple reads
+    let mut n = 0;
+    let mut c = handle.bytes().filter_map(Result::ok).next().unwrap();
+    
+    while c >= b'0' {
+        n = (n << 3) + (n << 1) + (c - b'0') as i32;
+        c = handle.bytes().filter_map(Result::ok).next().unwrap();
+    }
+    n
+}
+
+fn cmp(a: &T, b: &T) -> std::cmp::Ordering {
+    let left = a.a * b.d as i64;
+    let right = b.a * a.d as i64;
+    left.cmp(&right)
+}
+
+fn main() {
+    let n = in_number();
+    let mut tbl: Vec<T> = Vec::new();
+    let mut h = vec![0; (n + 1) as usize];
+    let mut a = vec![0; (n + 1) as usize];
+    let mut d = vec![0; (n + 1) as usize];
+    let mut s = vec![0; (n + 1) as usize];
+
+    for i in 0..=n {
+        h[i as usize] = in_number();
+        a[i as usize] = in_number();
+        d[i as usize] = in_number();
+        s[i as usize] = in_number();
+    }
+
+    let mut sz = 0;
+    let mut turn: i64 = 0; // Change to i64 to match the type used in calculations
+    let mut ans: i64 = 0;   // Change to i64 to match the type used in calculations
+
+    for i in 1..=n {
+        let k = a[i as usize] - d[0];
+        if k <= 0 {
+            continue;
+        }
+        if a[0] <= d[i as usize] {
+            println!("-1");
+            return;
+        }
+
+        turn += k as i64; // Cast k to i64
+        if s[i as usize] > s[0] {
+            ans += k as i64; // Cast k to i64
+        }
+        tbl.push(T {
+            d: k,
+            a: (h[i as usize] - d[i as usize] + a[0] - 1) / (a[0] - d[i as usize]) as i64, // Cast to i64
+        });
+        sz += 1;
+    }
+
+    tbl.sort_by(cmp);
+
+    for i in 0..sz {
+        ans += turn * tbl[i].a - tbl[i].d as i64; // Cast tbl[i].d to i64
+        if i64::from(h[0]) <= ans { // Cast h[0] to i64
+            println!("-1");
+            return;
+        }
+        turn -= tbl[i].d as i64; // Cast tbl[i].d to i64
+    }
+    println!("{}", ans);
+}

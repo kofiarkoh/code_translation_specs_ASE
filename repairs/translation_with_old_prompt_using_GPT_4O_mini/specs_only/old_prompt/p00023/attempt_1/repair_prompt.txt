@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines the spatial relationship between two circles based on their coordinates and radii.
+- **What problem it solves**: It identifies whether two circles are separate, intersecting, or one circle is contained within the other.
+- **Core behavior**: For each pair of circles, it reads their properties and outputs a numerical code representing their relationship.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of circle pairs to evaluate.
+  - `a.x`, `a.y`, `a.r`: Properties of the first circle (center coordinates and radius).
+  - `b.x`, `b.y`, `b.r`: Properties of the second circle (center coordinates and radius).
+- **Data types**: 
+  - `n`: `int`
+  - `a.x`, `a.y`, `a.r`, `b.x`, `b.y`, `b.r`: `double`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - Circle radii (`a.r`, `b.r`) should be non-negative.
+- **Assumptions about inputs**: Input values are provided in the correct format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs the relationship status of the circles to the standard output.
+- **Output format/schema**: 
+  - Outputs an integer:
+    - `0`: Circles are separate.
+    - `1`: Circles intersect.
+    - `2`: Circle A contains Circle B.
+    - `-2`: Circle B contains Circle A.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive a valid integer input for `n`.
+  - The subsequent inputs for circle properties must be provided in the correct format.
+- **Explicit logical constraints**: 
+  - The input for `n` must be greater than or equal to zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a relationship code for each pair of circles processed.
+- **State changes**: No internal state changes; outputs are directly printed.
+- **Return guarantees**: The program will terminate after processing all pairs.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The properties of the circles (coordinates and radii) remain unchanged throughout the execution of the program.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may exhibit undefined behavior or crash.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `n` is zero, the program will terminate without output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects with states; the program operates on local variables.
+- **State changes caused by execution**: No state changes occur; the program simply processes input and outputs results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of circle pairs processed.
+- **Space complexity**: O(1), as only a fixed amount of memory is used regardless of input size.
+- **Performance assumptions**: The program assumes that input is provided in a timely manner and that the system can handle the input size within reasonable limits.
+```

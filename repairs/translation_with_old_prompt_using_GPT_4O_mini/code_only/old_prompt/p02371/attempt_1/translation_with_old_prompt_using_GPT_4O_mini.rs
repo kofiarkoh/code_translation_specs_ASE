@@ -1,0 +1,122 @@
+use std::io::{self, BufRead};
+
+fn max(a: i32, b: i32) -> i32 {
+    if a < b { b } else { a }
+}
+
+const MAX_V: usize = 100010;
+const MAX_E: usize = 200010;
+
+let mut q = vec![0; 1000000];
+let mut C = vec![0; MAX_V + 10];
+let mut ta = vec![-1; MAX_V + 10];
+let mut nt = vec![0; MAX_E + 10];
+let mut fr = vec![0; MAX_E + 10];
+let mut to = vec![0; MAX_E + 10];
+let mut co = vec![0; MAX_E + 10];
+let mut f = vec![0; MAX_V + 10];
+
+fn dfs(v: usize, e: usize, s: usize, d: i32) -> i32 {
+    let mut max = d;
+    let mut i = ta[s];
+    while i != -1 {
+        if f[to[i as usize]] != 0 {
+            i = nt[i as usize];
+            continue;
+        }
+        f[to[i as usize]] = 1;
+        C[to[i as usize]] = C[s] + co[i as usize];
+        max = max(max, dfs(v, e, to[i as usize], d + co[i as usize]));
+        i = nt[i as usize];
+    }
+    max
+}
+
+fn bfs(v: usize, e: usize, s: usize, g: &mut usize) -> i32 {
+    let mut t = 0;
+    let mut r = 1;
+    let mut max = 0;
+    for i in 0..v {
+        C[i] = 1_000_000_000;
+    }
+    C[q[0] as usize] = 0;
+    while t < r {
+        let current = q[t as usize];
+        let mut i = ta[current as usize];
+        while i != -1 {
+            if C[to[i as usize]] > C[fr[i as usize]] + co[i as usize] {
+                C[to[i as usize]] = C[fr[i as usize]] + co[i as usize];
+                if max < C[to[i as usize]] {
+                    max = C[to[i as usize]];
+                    *g = to[i as usize];
+                }
+                q[r as usize] = to[i as usize];
+                r += 1;
+            }
+            i = nt[i as usize];
+        }
+        t += 1;
+    }
+    max
+}
+
+fn tyokkei(v: usize, e: usize, a: &[i32], b: &[i32], c: &[i32]) -> i32 {
+    let mut max = 0;
+    let mut g = 0;
+
+    for i in 0..v {
+        ta[i] = -1;
+        C[i] = 1_000_000_000;
+        f[i] = 0;
+    }
+    C[0] = 0;
+    f[0] = 1;
+
+    for i in 0..e {
+        nt[i] = ta[a[i as usize] as usize];
+        fr[i] = a[i as usize];
+        to[i] = b[i as usize];
+        co[i] = c[i as usize];
+        ta[a[i as usize] as usize] = i as i32;
+        nt[i + e] = ta[b[i as usize] as usize];
+        fr[i + e] = b[i as usize];
+        to[i + e] = a[i as usize];
+        co[i + e] = c[i as usize];
+        ta[b[i as usize] as usize] = (i + e) as i32;
+    }
+
+    max = dfs(v, e * 2, 0, 0);
+    for i in 0..v {
+        if max == C[i] {
+            g = i;
+        }
+        C[i] = 1_000_000_000;
+        f[i] = 0;
+    }
+    C[g] = 0;
+    f[g] = 1;
+    dfs(v, e * 2, g, 0)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n - 1];
+    let mut b = vec![0; n - 1];
+    let mut c = vec![0; n - 1];
+
+    for i in 0..n - 1 {
+        let line = lines.next().unwrap().unwrap();
+        let nums: Vec<i32> = line.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        a[i] = nums[0];
+        b[i] = nums[1];
+        c[i] = nums[2];
+    }
+
+    println!("{}", tyokkei(n, n - 1, &a, &b, &c));
+}

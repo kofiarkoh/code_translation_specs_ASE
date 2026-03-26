@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read two strings from user input
+    let mut s1 = String::new();
+    let mut s2 = String::new();
+
+    // Read first string
+    print!("Enter first string: ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+    io::stdin().read_line(&mut s1).expect("Failed to read line");
+    let s1 = s1.trim(); // Remove any trailing newline
+
+    // Read second string
+    print!("Enter second string: ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+    io::stdin().read_line(&mut s2).expect("Failed to read line");
+    let s2 = s2.trim(); // Remove any trailing newline
+
+    // Calculate the longest common subsequence
+    let lcs = longest_common_subsequence(s1, s2);
+
+    // Output the longest common subsequence
+    println!("{}", lcs);
+}
+
+// Function to compute the longest common subsequence using dynamic programming
+fn longest_common_subsequence(s1: &str, s2: &str) -> String {
+    let n = s1.len();
+    let m = s2.len();
+
+    // Create a 2D vector for dynamic programming
+    let mut dp = vec![vec![0; m + 1]; n + 1];
+
+    // Fill the dp array
+    for i in 1..=n {
+        for j in 1..=m {
+            if s1.chars().nth(i - 1) == s2.chars().nth(j - 1) {
+                dp[i][j] = dp[i - 1][j - 1] + 1; // Characters match
+            } else {
+                dp[i][j] = dp[i - 1][j].max(dp[i][j - 1]); // Take the max
+            }
+        }
+    }
+
+    // Reconstruct the longest common subsequence from the dp array
+    let mut lcs = String::new();
+    let (mut i, mut j) = (n, m);
+    while i > 0 && j > 0 {
+        if s1.chars().nth(i - 1) == s2.chars().nth(j - 1) {
+            lcs.push(s1.chars().nth(i - 1).unwrap()); // Append matching character
+            i -= 1;
+            j -= 1;
+        } else if dp[i - 1][j] >= dp[i][j - 1] {
+            i -= 1; // Move up in the dp array
+        } else {
+            j -= 1; // Move left in the dp array
+        }
+    }
+
+    // The lcs is constructed in reverse order, so reverse it
+    lcs.chars().rev().collect()
+}
+```

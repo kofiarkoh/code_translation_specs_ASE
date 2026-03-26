@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a segment tree to efficiently handle range updates and queries for sums over a range of integers.
+- **What problem it solves**: It allows for multiple updates to ranges of values and retrieval of the sum of values over specified ranges, optimizing performance for large datasets.
+- **Core behavior**: The program reads a number of queries, processes updates to ranges, and computes sums over specified ranges, outputting the results.
+
+## 2. Inputs
+- **Parameters**:
+  - `num`: The size of the array (number of elements).
+  - `queries`: The number of operations to perform.
+  - `type`: The type of operation (update or get sum).
+  - `start`, `end`: The range for the operation.
+  - `x`: The value to update the range with (for update operations).
+- **Data types**:
+  - `int` for `num`, `queries`, `type`, `start`, `end`, and `x`.
+  - `int64_t` for storing results of sum queries.
+- **Valid ranges or constraints**:
+  - `num` must be a positive integer.
+  - `queries` must be a non-negative integer.
+  - `start` and `end` must be within the bounds of the array (0 to `num - 1`).
+- **Assumptions about inputs**: It is assumed that the input is well-formed and adheres to the expected types and ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return values from the `main` function but outputs results directly to standard output.
+- **Side effects**: The program modifies the segment tree structure and prints results to the console.
+- **Output format/schema**: The output consists of one line per sum query, each containing a 64-bit integer representing the sum of the specified range.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The segment tree must be initialized properly.
+- **Explicit logical constraints**: The number of elements (`num`) must be a power of two or the next power of two must be used for segment tree construction.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The segment tree reflects all updates made during the execution.
+  - The results of sum queries are printed to standard output.
+- **State changes**: The state of the segment tree is modified based on the update operations.
+- **Return guarantees**: The program guarantees that all valid sum queries will return the correct sum based on the current state of the segment tree.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The segment tree structure must maintain the correct values and lazy propagation states.
+  - The `lazy` values must be initialized to `INIT_VAL` before any updates.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input.
+- **Edge-case behavior**: If `num` is less than or equal to 1, the behavior of the segment tree operations may not be meaningful.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The segment tree can be in an uninitialized state, an initialized state with no updates, or an updated state with applied lazy values.
+- **State changes caused by execution**: Each update modifies the segment tree's nodes, and each query reads from the tree, potentially altering the lazy states.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - Update operations: O(log n) per update.
+  - Sum queries: O(log n) per query.
+- **Space complexity**: O(n) for the segment tree storage.
+- **Performance assumptions**: The implementation assumes that the number of queries and updates will not exceed the defined limits (e.g., `QUERY_MAX`, `NUM2_MAX`).
+```

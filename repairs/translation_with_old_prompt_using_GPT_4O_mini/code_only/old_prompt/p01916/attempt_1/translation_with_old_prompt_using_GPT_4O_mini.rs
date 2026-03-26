@@ -1,0 +1,25 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    
+    let mut a = [0; 30]; // Array to track occurrences of characters
+    let mut sum = 0;
+
+    // Iterate over each character in the input string
+    for ch in input.chars() {
+        if ch.is_ascii_lowercase() {
+            // Toggle the occurrence of the character
+            a[(ch as usize) - ('a' as usize)] ^= 1;
+        }
+    }
+
+    // Sum the toggled occurrences
+    for count in a.iter() {
+        sum += count;
+    }
+
+    // Print the result divided by 2
+    println!("{}", sum / 2);
+}

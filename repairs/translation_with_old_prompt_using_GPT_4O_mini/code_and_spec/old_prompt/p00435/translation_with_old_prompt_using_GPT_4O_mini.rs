@@ -1,0 +1,33 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Create a buffer to hold the input string, with a maximum length of 999 characters.
+    let mut input = String::new();
+    
+    // Read a line of input from the user.
+    // The input is expected to be valid as per the specification.
+    io::stdin().read_line(&mut input).expect("Failed to read input");
+    
+    // Trim the input to remove any trailing newline characters.
+    let input = input.trim();
+    
+    // Create a mutable String to hold the transformed characters.
+    let mut transformed = String::with_capacity(input.len());
+    
+    // Process each character according to the specified transformation rules.
+    for c in input.chars() {
+        if ('D'..='Z').contains(&c) {
+            // Shift uppercase letters backward by 3.
+            transformed.push((c as u8 - 3) as char);
+        } else {
+            // Shift other characters forward by 23.
+            transformed.push((c as u8 + 23) as char);
+        }
+    }
+    
+    // Print the transformed string.
+    println!("{}", transformed);
+    
+    // Return 0 to indicate successful execution.
+    std::process::exit(0);
+}

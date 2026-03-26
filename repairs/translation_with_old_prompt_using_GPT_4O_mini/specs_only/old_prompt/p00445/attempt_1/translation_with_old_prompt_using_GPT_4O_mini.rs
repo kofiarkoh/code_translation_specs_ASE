@@ -1,0 +1,32 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read from standard input until EOF
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        // Unwrap the line to handle the Result type
+        let input = line.unwrap();
+        
+        // Initialize counts for "JOI" and "IOI"
+        let mut count_joi = 0;
+        let mut count_ioi = 0;
+
+        // Count occurrences of "JOI" and "IOI"
+        let mut idx = 0;
+        while idx <= input.len() - 3 {
+            // Check for "JOI"
+            if &input[idx..idx + 3] == "JOI" {
+                count_joi += 1;
+            }
+            // Check for "IOI"
+            if &input[idx..idx + 3] == "IOI" {
+                count_ioi += 1;
+            }
+            idx += 1; // Move to the next character
+        }
+
+        // Print the counts for the current input string
+        println!("{}", count_joi);
+        println!("{}", count_ioi);
+    }
+}

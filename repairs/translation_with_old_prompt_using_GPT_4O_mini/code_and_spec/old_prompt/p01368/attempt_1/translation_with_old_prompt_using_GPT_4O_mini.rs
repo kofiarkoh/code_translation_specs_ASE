@@ -1,0 +1,96 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 2002;
+const INF: i32 = 0x1010;
+
+fn bpm(u: usize, hi: &[usize], to: &[Vec<usize>], match_: &mut [i32], seen: &mut [bool]) -> bool {
+    for &v in &to[u][..hi[u]] {
+        if seen[v] {
+            continue;
+        }
+        seen[v] = true;
+        if match_[v] < 0 || bpm(match_[v] as usize, hi, to, match_, seen) {
+            match_[u] = v as i32;
+            match_[v] = u as i32;
+            return true;
+        }
+    }
+    false
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut dist = [[INF; 102]; 102];
+    let mut p = vec![0; 1002];
+    let mut t = vec![0; 1002];
+    let mut hi = vec![0; MAX];
+    let mut to = vec![vec![]; MAX];
+    let mut match_ = vec![-1; MAX];
+    let mut seen = vec![false; MAX];
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m: usize = iter.next().unwrap().parse().unwrap();
+        let l: usize = iter.next().unwrap().parse().unwrap();
+
+        for k in 0..n {
+            dist[k][k] = 0;
+        }
+        for _ in 0..m {
+            let u: usize = iter.next().unwrap().parse().unwrap();
+            let v: usize = iter.next().unwrap().parse().unwrap();
+            let d: i32 = iter.next().unwrap().parse().unwrap();
+            dist[u][v] = d;
+            dist[v][u] = d;
+        }
+
+        for k in 0..n {
+            for u in 0..n {
+                if dist[u][k] != INF {
+                    for v in 0..n {
+                        if dist[k][v] != INF {
+                            let d = dist[u][k] + dist[k][v];
+                            if dist[u][v] > d {
+                                dist[u][v] = d;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for k in 0..l {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut iter = line.split_whitespace();
+            p[k] = iter.next().unwrap().parse().unwrap();
+            t[k] = iter.next().unwrap().parse().unwrap();
+        }
+
+        for u in 0..l {
+            for v in 0..l {
+                if u != v {
+                    if dist[p[u]][p[v]] <= t[v] - t[u] {
+                        to[u].push(v + l);
+                        hi[u] += 1;
+                    }
+                }
+            }
+        }
+
+        let mut k = l;
+        for u in 0..l {
+            seen.fill(false);
+            if bpm(u, &hi, &to, &mut match_, &mut seen) {
+                k -= 1;
+            }
+        }
+        println!("{}", k);
+    }
+}

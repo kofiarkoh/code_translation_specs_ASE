@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code constructs a binary tree from user input, calculates the depth of each node, and prints the structure of the tree along with each node's parent and depth information.
+- **What problem it solves**: It allows users to represent hierarchical data in a binary tree format, providing insights into the relationships and depths of nodes.
+- **Core behavior**: The program reads the number of nodes and their relationships, builds the tree structure, computes the depth of each node, and outputs the details of each node.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of nodes in the tree.
+  - For each node, the following inputs are expected:
+    - `id`: The identifier for the node.
+    - `num`: The number of children for the node.
+    - `p`: The identifiers of the children nodes.
+- **Data types**:
+  - `int` for all parameters.
+- **Valid ranges or constraints**:
+  - `n` must be a non-negative integer (0 ≤ n ≤ 100,000).
+  - `id` and `p` must be valid indices within the range of the tree array (0 ≤ id, p < n).
+  - `num` must be a non-negative integer (0 ≤ num).
+- **Assumptions about inputs**:
+  - The input data is well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: The program modifies the global `tree` and `dipth` arrays to store the tree structure and node depths.
+- **Output format/schema**: Each node's information is printed in the format:
+  ```
+  node <id>: parent = <parent_id>, depth = <depth>, <node_type>, [<children_ids>]
+  ```
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must be provided with valid input as specified in the Inputs section.
+  - The `tree` and `dipth` arrays must be initialized properly.
+- **Explicit logical constraints**: The number of nodes `n` must not exceed the size of the `tree` array (100,000).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The `tree` array contains the parent, left, and right child indices for each node.
+  - The `dipth` array contains the depth of each node.
+- **State changes**: The global state of the `tree` and `dipth` arrays is modified to reflect the constructed tree and computed depths.
+- **Return guarantees**: The program will output the structure of the tree for all nodes.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - Each node's `parent`, `left`, and `right` fields in the `tree` array must be valid indices or -1 (indicating no parent or child).
+  - The `dipth` array must always contain valid depth values for each node.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input.
+- **Edge-case behavior**: If `n` is 0, the program will not output any nodes.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program transitions from an uninitialized state to a fully constructed tree state after processing input.
+- **State changes caused by execution**: The `tree` and `dipth` arrays are populated based on the input relationships and depth calculations.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of nodes, as each node is processed a constant number of times.
+- **Space complexity**: O(n) for storing the tree structure and depths.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of memory and processing time for typical use cases.
+```

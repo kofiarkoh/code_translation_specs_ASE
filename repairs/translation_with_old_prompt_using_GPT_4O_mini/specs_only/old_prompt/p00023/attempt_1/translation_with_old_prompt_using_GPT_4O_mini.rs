@@ -1,0 +1,49 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Invalid input for n");
+
+    for _ in 0..n {
+        let mut circle_a = String::new();
+        let mut circle_b = String::new();
+
+        io::stdin().read_line(&mut circle_a).expect("Failed to read line");
+        io::stdin().read_line(&mut circle_b).expect("Failed to read line");
+
+        let (ax, ay, ar): (f64, f64, f64) = parse_circle(&circle_a);
+        let (bx, by, br): (f64, f64, f64) = parse_circle(&circle_b);
+
+        let relationship_code = determine_relationship(ax, ay, ar, bx, by, br);
+        println!("{}", relationship_code);
+    }
+}
+
+fn parse_circle(circle: &str) -> (f64, f64, f64) {
+    let parts: Vec<&str> = circle.trim().split_whitespace().collect();
+    let x = parts[0].parse().expect("Invalid x coordinate");
+    let y = parts[1].parse().expect("Invalid y coordinate");
+    let r = parts[2].parse().expect("Invalid radius");
+    (x, y, r)
+}
+
+fn determine_relationship(ax: f64, ay: f64, ar: f64, bx: f64, by: f64, br: f64) -> i32 {
+    let dx = ax - bx;
+    let dy = ay - by;
+    let distance_squared = dx * dx + dy * dy;
+    let radius_sum_squared = (ar + br) * (ar + br);
+    let radius_diff_squared = (ar - br).max(0.0).powi(2);
+
+    if distance_squared > radius_sum_squared {
+        0 // Circles are separate
+    } else if distance_squared < radius_diff_squared {
+        if ar > br {
+            2 // Circle A contains Circle B
+        } else {
+            -2 // Circle B contains Circle A
+        }
+    } else {
+        1 // Circles intersect
+    }
+}

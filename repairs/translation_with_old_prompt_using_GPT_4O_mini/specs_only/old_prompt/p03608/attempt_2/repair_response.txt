@@ -1,0 +1,100 @@
+```rust
+use std::cmp::min;
+use std::io::{self, BufRead};
+
+const INF: i32 = 1_000_000_000; // A large constant to represent unreachable paths
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of nodes, edges, and nodes to visit
+    let mut first_line = String::new();
+    reader.read_line(&mut first_line).unwrap();
+    let mut params = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let n = params.next().unwrap(); // Total number of nodes
+    let m = params.next().unwrap(); // Total number of edges
+    let r_count = params.next().unwrap(); // Number of nodes to visit
+
+    // Read the nodes to visit
+    let mut r = vec![0; r_count];
+    let mut r_line = String::new();
+    reader.read_line(&mut r_line).unwrap();
+    for (i, node) in r_line.split_whitespace().enumerate() {
+        r[i] = node.parse::<usize>().unwrap() - 1; // Convert to 0-based index
+    }
+
+    // Initialize the distance matrix
+    let mut d = vec![vec![INF; n]; n];
+    for i in 0..n {
+        d[i][i] = 0; // Distance to self is 0
+    }
+
+    // Read edges and populate the distance matrix
+    for _ in 0..m {
+        let mut edge_line = String::new();
+        reader.read_line(&mut edge_line).unwrap();
+        let mut edge_params = edge_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        let u = edge_params.next().unwrap() - 1; // Convert to 0-based index
+        let v = edge_params.next().unwrap() - 1; // Convert to 0-based index
+        let weight = edge_params.next().unwrap() as i32; // Convert weight to i32
+        d[u][v] = min(d[u][v], weight);
+        d[v][u] = min(d[v][u], weight); // Undirected graph
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                d[i][j] = min(d[i][j], d[i][k] + d[k][j]);
+            }
+        }
+    }
+
+    // DFS to find the minimum distance to visit all specified nodes
+    let mut used = vec![false; r_count];
+    let mut res = INF;
+
+    fn dfs(
+        d: &Vec<Vec<i32>>,
+        r: &Vec<usize>,
+        used: &mut Vec<bool>,
+        pos: usize,
+        count: usize,
+        current_dist: i32,
+        min_dist: &mut i32,
+    ) {
+        if count == used.len() {
+            *min_dist = min(*min_dist, current_dist + d[r[pos]][r[0]]);
+            return;
+        }
+
+        for i in 0..used.len() {
+            if !used[i] {
+                used[i] = true;
+                dfs(
+                    d,
+                    r,
+                    used,
+                    i,
+                    count + 1,
+                    current_dist + d[r[pos]][r[i]],
+                    min_dist,
+                );
+                used[i] = false;
+            }
+        }
+    }
+
+    // Start DFS from the first node in the r array
+    used[0] = true;
+    dfs(&d, &r, &mut used, 0, 1, 0, &mut res);
+
+    // Output the result
+    if res == INF {
+        println!("0"); // If no valid path exists, output 0
+    } else {
+        println!("{}", res);
+    }
+}
+```

@@ -1,0 +1,44 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and A
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let a: i64 = params.next().unwrap().parse().unwrap();
+
+    // Read the list of integers
+    let mut x: Vec<i64> = Vec::new();
+    if n > 0 {
+        let second_line = lines.next().unwrap().unwrap();
+        x.extend(second_line.split_whitespace().map(|s| s.parse::<i64>().unwrap()));
+    }
+
+    // Initialize the dynamic programming table
+    let sum: i64 = x.iter().sum();
+    let dp_size = (sum + 1) as usize;
+    let mut dp = vec![0; dp_size];
+    dp[0] = 1; // There's one way to make sum 0: select no elements
+
+    // Fill the dynamic programming table
+    for &num in &x {
+        let abs_num = num.abs() as usize;
+        for j in (0..dp_size.saturating_sub(abs_num)).rev() {
+            dp[j + abs_num] += dp[j];
+        }
+    }
+
+    // Count valid subsets whose sums are multiples of A
+    let mut count = 0;
+    for i in (0..dp_size).step_by(a as usize) {
+        count += dp[i];
+    }
+
+    // Output the result
+    println!("{}", count);
+}

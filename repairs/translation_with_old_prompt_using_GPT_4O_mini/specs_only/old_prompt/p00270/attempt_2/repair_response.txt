@@ -1,0 +1,102 @@
+```rust
+use std::collections::{BinaryHeap, HashMap};
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Edge {
+    node: usize,
+    weight: u64,
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: HashMap<usize, Vec<Edge>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            edges: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, u: usize, v: usize, weight: u64) {
+        self.edges.entry(u).or_default().push(Edge { node: v, weight });
+        self.edges.entry(v).or_default().push(Edge { node: u, weight });
+    }
+
+    fn dijkstra(&self, start: usize) -> Vec<u64> {
+        let mut dist = vec![u64::MAX; self.edges.len()];
+        dist[start] = 0;
+
+        let mut heap = BinaryHeap::new();
+        heap.push((0, start)); // (distance, node)
+
+        while let Some((d, node)) = heap.pop() {
+            if d > dist[node] {
+                continue;
+            }
+
+            if let Some(neighbors) = self.edges.get(&node) {
+                for edge in neighbors {
+                    let next = edge.node;
+                    let next_dist = d + edge.weight;
+
+                    if next_dist < dist[next] {
+                        dist[next] = next_dist;
+                        heap.push((next_dist, next));
+                    }
+                }
+            }
+        }
+
+        dist
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let params: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    let (s, r, q) = (params[0], params[1], params[2]);
+    let mut graph = Graph::new();
+
+    for _ in 0..r {
+        let line = lines.next().unwrap().unwrap();
+        let edge_params: Vec<u64> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        let (u, v, w) = (edge_params[0] as usize, edge_params[1] as usize, edge_params[2]);
+        graph.add_edge(u, v, w);
+    }
+
+    let dist = graph.dijkstra(0); // Assuming we start from station 0
+
+    for _ in 0..q {
+        let line = lines.next().unwrap().unwrap();
+        let query_params: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        
+        // Ensure the indices are within bounds
+        let (c, d) = (query_params[0], query_params[1]);
+        if d >= dist.len() {
+            println!("No"); // If the destination index is out of bounds, output "No"
+            continue;
+        }
+
+        // Check if there's a path by checking if the distance is not MAX
+        if dist[d] < u64::MAX {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}
+```

@@ -1,0 +1,59 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of integers to process
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read Q
+    let q_line = lines.next().unwrap().expect("Failed to read input");
+    let q: usize = q_line.trim().parse().expect("Invalid number of integers");
+
+    // If Q is 0 or negative, terminate early
+    if q == 0 {
+        return;
+    }
+
+    // Prepare to store the counts
+    let mut counts = Vec::with_capacity(q);
+
+    // Process each integer
+    for _ in 0..q {
+        let n_line = lines.next().unwrap().expect("Failed to read input");
+        let n: usize = n_line.trim().parse().expect("Invalid integer");
+
+        // Calculate the count based on prime factors
+        let count = count_multiplicative_condition(n);
+        counts.push(count);
+    }
+
+    // Output the results
+    for count in counts {
+        println!("{}", count);
+    }
+}
+
+// Function to count integers satisfying the multiplicative condition based on prime factors
+fn count_multiplicative_condition(n: usize) -> usize {
+    let mut unique_prime_factors = 0;
+    let mut num = n;
+
+    // Factorization process
+    for i in 2..=num {
+        if num % i == 0 {
+            unique_prime_factors += 1; // Found a new prime factor
+            while num % i == 0 {
+                num /= i; // Divide out all occurrences of the prime factor
+            }
+        }
+        if num == 1 {
+            break; // No more factors left
+        }
+    }
+
+    // Return the count of unique prime factors
+    unique_prime_factors
+}
+```

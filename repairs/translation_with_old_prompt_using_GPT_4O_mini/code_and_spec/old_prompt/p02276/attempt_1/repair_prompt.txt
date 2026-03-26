@@ -1,0 +1,133 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a partitioning algorithm that rearranges elements in an array based on a pivot value, specifically the last element of the array segment.
+- **What problem it solves**: It facilitates the process of sorting by partitioning an array into elements less than or equal to a pivot and those greater than the pivot.
+- **Core behavior**: The `Partition` function rearranges the elements of the array `A` such that all elements less than or equal to the pivot (the last element of the specified segment) are on the left, and all elements greater are on the right. The function returns the index of the pivot after partitioning.
+
+## 2. Inputs
+- **Parameters**: 
+  - `p`: Starting index of the segment to partition (inclusive).
+  - `r`: Ending index of the segment to partition (inclusive).
+- **Data types**: 
+  - Both `p` and `r` are of type `int`.
+- **Valid ranges or constraints**: 
+  - `1 <= p <= r <= N` where `N` is defined as 1,000,000.
+- **Assumptions about inputs**: 
+  - The array `A` is assumed to be initialized and populated with at least `n` elements before calling the `Partition` function.
+
+## 3. Outputs
+- **Return values**: 
+  - The function returns an `int` representing the index of the pivot after partitioning.
+- **Side effects**: 
+  - The function modifies the global array `A` in place.
+- **Output format/schema**: 
+  - The output is printed to the console, with the pivot element enclosed in square brackets and other elements printed normally.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The array `A` must be populated with at least `n` integers.
+  - The indices `p` and `r` must be valid and within the bounds of the array.
+- **Explicit logical constraints**: 
+  - `p` must be less than or equal to `r`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The elements of the array `A` are rearranged such that all elements from index `p` to `r-1` are less than or equal to `A[r]`, and all elements greater than `A[r]` are to its right.
+- **State changes**: 
+  - The global array `A` is modified.
+- **Return guarantees**: 
+  - The function returns a valid index within the range `[p, r]`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `A` remains within the bounds of its defined size `N`.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined if `p` or `r` are out of bounds or if `n` is less than 1.
+- **Exceptions thrown?**: 
+  - The code does not explicitly handle exceptions; it may lead to runtime errors if invalid indices are accessed.
+- **Edge-case behavior**: 
+  - If `n` is 0 or negative, the program may not behave as expected.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The array `A` can be in any state before the partitioning, but must be populated with integers.
+- **State changes caused by execution**: 
+  - The order of elements in the array `A` is altered based on the partitioning logic.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The partitioning operation runs in O(n) time, where n is the number of elements in the segment being partitioned.
+- **Space complexity**: 
+  - The algorithm operates in O(1) additional space, as it modifies the array in place.
+- **Performance assumptions**: 
+  - The performance is dependent on the distribution of the input data; worst-case scenarios may occur with already sorted or reverse-sorted data.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define N 1000000
+int A[N];
+int Partition(int p, int r){
+  int x, i, j, tmp;
+  x = A[r];
+  i = p-1;
+  for(j = p; j < r; j++){
+    if(A[j] <= x){
+      i++;
+      tmp = A[i];
+      A[i] = A[j];
+      A[j] = tmp;
+} }
+  tmp = A[i+1];
+  A[i+1] = A[r];
+  A[r] = tmp;
+  return i+1;
+}
+ int main(){
+  int n, i, x;
+  scanf("%d", &n);
+  for(i = 1; i <= n; i++){
+    scanf("%d", &A[i]);
+  }
+  x = Partition(1, n);
+ for(i = 1; i <= n; i++){
+  if(i == x){
+    printf("[%d]",A[i]);
+} else {
+    printf("%d",A[i]);
+  }
+if(i < n) {
+    printf(" ");
+  }
+ }
+  printf("\n");
+  return 0;
+}
+=== C CODE END ===

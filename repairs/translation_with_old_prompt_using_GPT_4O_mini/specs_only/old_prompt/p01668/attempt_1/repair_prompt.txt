@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of valid sequences of digits that can be formed between two given strings of digits, constrained by a third string.
+- **What problem it solves**: It addresses the problem of counting the number of ways to form a sequence of digits that lies within a specified range defined by two strings, while also matching a specific sequence.
+- **Core behavior**: The program reads three strings of digits, processes them to determine valid digit sequences, and outputs the count of such sequences.
+
+## 2. Inputs
+- **Parameters**:
+  - `A`: A string representing the lower bound of the digit range.
+  - `B`: A string representing the upper bound of the digit range.
+  - `C`: A string representing the sequence to match.
+- **Data types**: All inputs are strings of characters representing digits (0-9).
+- **Valid ranges or constraints**:
+  - Length of `A` and `B` can be up to 10240 characters.
+  - Length of `C` can be up to 512 characters.
+- **Assumptions about inputs**: 
+  - The input strings are valid and contain only digit characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid sequences.
+- **Side effects**: The program reads from standard input and writes to standard output.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive exactly three strings as input.
+  - The lengths of the strings must be non-negative.
+- **Explicit logical constraints**: 
+  - The lengths of `A` and `B` must be compatible for comparison (i.e., `A` can be padded to match the length of `B`).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a valid integer count of sequences.
+- **State changes**: The program modifies global variables to store intermediate results.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values in the `memo` and `numberOfNumber` arrays are initialized to zero and updated correctly during execution.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will return an error code (1) if the input does not consist of exactly three strings.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program handles errors by returning early.
+- **Edge-case behavior**: If `A` is shorter than `B`, it is padded with zeros, which may affect the sequence counting.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states in the `memo` and `numberOfNumber` arrays, which track the results of subproblems.
+- **State changes caused by execution**: The state of the `memo` and `numberOfNumber` arrays is updated as the recursive functions are called.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is not explicitly defined but is influenced by the lengths of the input strings and the recursive nature of the search.
+- **Space complexity**: The space complexity is determined by the size of the `memo` and `numberOfNumber` arrays, which are proportional to the lengths of `A`, `B`, and `C`.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input sizes defined by the constraints.
+```

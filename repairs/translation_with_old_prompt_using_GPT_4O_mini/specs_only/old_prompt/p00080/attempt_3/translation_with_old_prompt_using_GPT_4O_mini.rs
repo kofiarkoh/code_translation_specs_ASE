@@ -1,0 +1,43 @@
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Read input from the user
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse the input as an integer
+        let q: i32 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Ignore invalid input and continue the loop
+        };
+
+        // Check for sentinel value to exit
+        if q == -1 {
+            break;
+        }
+
+        // Ensure q is non-negative
+        if q < 0 {
+            continue; // Ignore negative inputs (though spec assumes valid input)
+        }
+
+        // Calculate the cube root using the Newton-Raphson method
+        let mut x = q as f64; // Initial guess
+        let tolerance = 1e-7; // Define a tolerance for convergence
+
+        loop {
+            let px = x; // Previous estimate
+            x = (2.0 * px + (q as f64) / (px * px)) / 3.0; // Newton-Raphson formula
+
+            // Check for convergence
+            if (x - px).abs() < tolerance {
+                break;
+            }
+        }
+
+        // Output the result formatted to six decimal places
+        // Adjusting the output to ensure it matches the expected precision
+        println!("{:.6}", x);
+    }
+}

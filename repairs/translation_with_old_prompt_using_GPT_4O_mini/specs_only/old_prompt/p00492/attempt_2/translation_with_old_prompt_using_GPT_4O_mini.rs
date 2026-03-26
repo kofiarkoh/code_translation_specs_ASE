@@ -1,0 +1,62 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the grid dimensions from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read width and height
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace()
+        .map(|s| s.parse::<usize>().unwrap());
+    let w = dimensions.next().unwrap();
+    let h = dimensions.next().unwrap();
+
+    // Initialize the grid
+    let mut grid = vec![vec![0; w]; h];
+
+    // Read the grid values
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse::<i32>().unwrap())
+            .collect();
+        grid[i].copy_from_slice(&values);
+    }
+
+    // Directions for adjacent cells (up, down, left, right)
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+    let mut marked = vec![vec![false; w]; h];
+
+    // Mark cells based on some condition (for this example, we mark cells with value > 0)
+    for i in 0..h {
+        for j in 0..w {
+            if grid[i][j] > 0 {
+                marked[i][j] = true;
+            }
+        }
+    }
+
+    // Count unmarked cells adjacent to marked cells
+    let mut count = 0;
+    for i in 0..h {
+        for j in 0..w {
+            if !marked[i][j] {
+                // Check all four directions for marked neighbors
+                for &(dx, dy) in &directions {
+                    let ni = i as isize + dx;
+                    let nj = j as isize + dy;
+                    if ni >= 0 && ni < h as isize && nj >= 0 && nj < w as isize {
+                        if marked[ni as usize][nj as usize] {
+                            count += 1;
+                            break; // Only count once per unmarked cell
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Output the count of unmarked cells adjacent to marked cells
+    println!("{}", count);
+}

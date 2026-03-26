@@ -1,0 +1,65 @@
+use std::io::{self, BufRead};
+use std::f64;
+
+const MAX_N: usize = 100;
+const MAX_T: usize = 100;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut inputs = line.split_whitespace()
+            .map(|s| s.parse::<i32>().unwrap());
+        
+        let n = inputs.next().unwrap();
+        let t = inputs.next().unwrap();
+        let l = inputs.next().unwrap();
+        let b = inputs.next().unwrap();
+        
+        // Termination condition
+        if n == 0 && t == 0 && l == 0 && b == 0 {
+            break;
+        }
+        
+        let mut sq = [' '; MAX_N];
+        let mut memo = vec![vec![f64::MAX; MAX_T + 1]; MAX_N + 1];
+        
+        // Populate the sq array based on L and B counts
+        for i in 0..l {
+            sq[i as usize] = 'L';
+        }
+        for i in 0..b {
+            sq[(l + i) as usize] = 'B';
+        }
+        
+        let probability = solve(n, t, &sq, &mut memo);
+        println!("{}", probability);
+    }
+}
+
+fn solve(n: i32, t: i32, sq: &[char; MAX_N], memo: &mut Vec<Vec<f64>>) -> f64 {
+    // Base case: if no turns left
+    if t == 0 {
+        return if n == 0 { 1.0 } else { 0.0 };
+    }
+    
+    // Check memoization
+    if memo[n as usize][t as usize] != f64::MAX {
+        return memo[n as usize][t as usize];
+    }
+    
+    let mut prob = 0.0;
+    
+    // Recursive case: try to move to the next square
+    if n > 0 {
+        if sq[n as usize - 1] != 'B' { // Can only move if not blocked
+            prob += solve(n - 1, t - 1, sq, memo);
+        }
+    }
+    
+    // Store the computed probability in memo
+    memo[n as usize][t as usize] = prob;
+    prob
+}

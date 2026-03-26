@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a breadth-first search (BFS) algorithm to determine the maximum distance from any wall (represented by `#`) to the nearest empty cell (represented by `.`) in a grid.
+- **What problem it solves**: It calculates the farthest distance from any wall to the nearest empty cell in a 2D grid, which can be useful in pathfinding and spatial analysis.
+- **Core behavior**: The program reads a grid of characters, initializes distances, and uses BFS to propagate distance values from walls to empty cells, ultimately finding the maximum distance.
+
+## 2. Inputs
+- **Parameters**: 
+  - `h`: Height of the grid (number of rows).
+  - `w`: Width of the grid (number of columns).
+  - `a`: 2D array of characters representing the grid.
+- **Data types**: 
+  - `h` and `w`: `int`
+  - `a`: `char[1001][1001]`
+- **Valid ranges or constraints**: 
+  - `1 <= h, w <= 1000`
+- **Assumptions about inputs**: The grid contains only `#` and `.` characters.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum distance from any wall to the nearest empty cell.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the correct format (two integers followed by `h` lines of `w` characters).
+  - The grid must contain at least one wall (`#`).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The maximum distance from any wall to the nearest empty cell is computed and printed.
+- **State changes**: The distance array `b` is populated with distance values.
+- **Return guarantees**: The output is a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The distance array `b` is initialized to `INF` for all empty cells and `0` for wall cells.
+  - The queue maintains valid coordinates for BFS processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If there are no walls, the output will be `INF`, which is not a valid distance.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The grid can be in a state where all cells are either walls or empty.
+- **State changes caused by execution**: The distance values in the array `b` are updated as BFS progresses.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(h * w), where `h` is the height and `w` is the width of the grid, due to the BFS traversal.
+- **Space complexity**: O(h * w) for the distance array and the queue.
+- **Performance assumptions**: The algorithm is efficient for the maximum grid size of 1000x1000.
+```

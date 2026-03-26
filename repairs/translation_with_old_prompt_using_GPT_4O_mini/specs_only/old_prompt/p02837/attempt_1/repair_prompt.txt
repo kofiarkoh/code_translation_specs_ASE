@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines the maximum number of bits set to 1 in any valid subset of a given set of conditions.
+- **What problem it solves**: It solves the problem of finding the largest subset of a binary representation that satisfies specific constraints defined by pairs of conditions.
+- **Core behavior**: The program reads a number of conditions and their respective constraints, evaluates all possible subsets of these conditions, and counts the maximum number of conditions that can be satisfied simultaneously.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of conditions.
+  - `a[i]`: An array where each element represents the number of constraints for the i-th condition.
+  - `x[i][j]`: A 2D array where each element represents the bit position for the j-th constraint of the i-th condition.
+  - `y[i][j]`: A 2D array where each element represents the expected value (0 or 1) for the j-th constraint of the i-th condition.
+- **Data types**: 
+  - `int` for all parameters.
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - Each `a[i]` must be a non-negative integer and less than or equal to 20.
+  - Each `x[i][j]` must be a positive integer representing a bit position.
+  - Each `y[i][j]` must be either 0 or 1.
+- **Assumptions about inputs**: 
+  - The input values are provided in a valid format as expected by the program.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum number of bits set to 1 in any valid subset.
+- **Side effects**: The program reads from standard input and writes to standard output.
+- **Output format/schema**: The output is a single integer printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of conditions `n` must be within the valid range.
+- **Explicit logical constraints**: 
+  - The constraints defined by `x` and `y` must be logically consistent.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the maximum count of valid bits set to 1.
+- **State changes**: 
+  - The program does not maintain state beyond local variables.
+- **Return guarantees**: 
+  - The output will be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `x` and `y` must always be accessed within their defined bounds.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or runtime errors.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; behavior on invalid input is not defined.
+- **Edge-case behavior**: If `n` is 0, the program will output 0, as there are no conditions to evaluate.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not define any objects.
+- **State changes caused by execution**: The program transitions through various states based on the evaluation of subsets of conditions.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(2^n * a_max), where `a_max` is the maximum number of constraints across all conditions.
+- **Space complexity**: The space complexity is O(n * a_max) due to the storage of constraints in arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for small values of `n` (up to 20) but may become inefficient for larger values due to exponential growth in subsets.
+```

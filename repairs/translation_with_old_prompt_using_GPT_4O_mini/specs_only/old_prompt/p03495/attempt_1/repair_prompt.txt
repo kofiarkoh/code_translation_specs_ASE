@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a program that counts the occurrences of integers in an input array and calculates the sum of the counts of the first `N-K` unique integers after sorting their counts.
+- **What problem it solves**: It addresses the problem of determining how many times each integer appears in a given list and computes a specific sum based on the sorted counts of these integers.
+- **Core behavior**: The program reads an array of integers, counts their occurrences, sorts these counts, and sums the counts of the first `N-K` unique integers.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: The number of integers in the input array.
+  - `K`: A parameter that determines how many unique counts to exclude from the sum.
+  - `A[]`: An array of integers of size `N`.
+- **Data types**:
+  - `N` and `K`: `int`
+  - `A[]`: `int[]`
+  - `c[]`: `long long[]`
+- **Valid ranges or constraints**:
+  - `N` must be a positive integer.
+  - `K` must be a non-negative integer less than or equal to `N`.
+  - Elements of `A[]` should be within a valid range for indexing `c[]`.
+- **Assumptions about inputs**: It is assumed that the input integers are non-negative and that the maximum value does not exceed the size of the `c[]` array.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the computed sum.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the sum of counts.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format (two integers followed by `N` integers).
+  - `N` must be greater than `K`.
+- **Explicit logical constraints**: The input values must be valid integers, and the array `A[]` must not contain values that exceed the bounds of the `c[]` array.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the sum of the counts of the first `N-K` unique integers.
+- **State changes**: The array `c[]` will be populated with counts of occurrences of integers from `A[]`.
+- **Return guarantees**: The output will be a valid `long long` integer representing the computed sum.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The array `c[]` will always have a size of `N+1` and will be initialized to zero.
+  - The counts in `c[]` will accurately reflect the occurrences of integers in `A[]` after processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No explicit exceptions are thrown; however, invalid input may cause runtime errors.
+- **Edge-case behavior**: If `K` equals `N`, the output will be `0` since there are no counts to sum.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program transitions from an uninitialized state to a state where the counts are computed and sorted.
+- **State changes caused by execution**: The array `c[]` is populated and sorted, and the final sum is computed based on the counts.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is O(N log N) due to the merge sort operation.
+- **Space complexity**: The space complexity is O(N) for the auxiliary arrays used in the merge operation.
+- **Performance assumptions**: The program assumes that the input size `N` is manageable within the constraints of memory and processing time for typical use cases.
+```

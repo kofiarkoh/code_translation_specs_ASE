@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+static mut SD_RATE: f64 = 0.0; // Global variable for the probability rate
+
+// Function to output a line
+fn output_line(line: &str) {
+    print!("{}", line);
+}
+
+// Recursive function to calculate expected value
+fn get_val(pos: i32) -> f64 {
+    // Even case
+    if pos % 2 == 0 {
+        return (pos as f64 / 2.0) / unsafe { SD_RATE };
+    }
+
+    // Odd case
+    let mut val = 1.0;
+    val += get_val(pos - 1) * unsafe { SD_RATE };
+    val += get_val(pos + 1) * (1.0 - unsafe { SD_RATE });
+
+    val
+}
+
+// Main execution function
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Get position
+    let li_pos: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    // Get probability rate
+    let sd_rate: f64 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    unsafe {
+        SD_RATE = sd_rate / 100.0; // Convert to fraction
+    }
+
+    // Calculate expected value
+    let expected_value = get_val(li_pos);
+
+    // Output the result
+    let output = format!("{:.7}\n", expected_value);
+    output_line(&output);
+}

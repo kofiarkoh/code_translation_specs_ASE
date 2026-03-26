@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the count of integers divisible by a given integer `d` within a specified range `[L, R]`.
+- **What problem it solves**: It provides a method to determine how many multiples of `d` exist between two bounds, `L` and `R`, inclusive.
+- **Core behavior**: The program reads three integers from input, computes the number of integers divisible by `d` in the range, and outputs this count.
+
+## 2. Inputs
+- **Parameters**: 
+  - `L`: Lower bound of the range.
+  - `R`: Upper bound of the range.
+  - `d`: The divisor.
+- **Data types**: All parameters are of type `int`.
+- **Valid ranges or constraints**: 
+  - `L` and `R` should be integers where `L <= R`.
+  - `d` should be a positive integer (greater than 0).
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of integers divisible by `d` in the range `[L, R]`.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must consist of three integers.
+  - `L` must be less than or equal to `R`.
+  - `d` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the correct count of integers divisible by `d` in the range `[L, R]`.
+- **State changes**: The program does not maintain any state beyond the execution of the current run.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `L`, `R`, and `d` must remain within their defined constraints throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not handle exceptions explicitly.
+- **Edge-case behavior**: If `d` is 0, the program will lead to a division by zero error, which is not handled.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state across executions.
+- **State changes caused by execution**: The program does not change any persistent state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the computation is performed in constant time.
+- **Space complexity**: O(1) - the program uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: The program is expected to perform efficiently for typical integer inputs within the range of `int`.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main()
+{
+	int L, R, d;
+	scanf("%d %d %d", &L, &R, &d);
+	printf("%d\n", R / d - (L - 1) / d);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,129 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines the spatial relationship between two circles based on their coordinates and radii.
+- **What problem it solves**: It identifies whether two circles are separate, intersecting, or one circle is contained within the other.
+- **Core behavior**: For each pair of circles, it reads their properties and outputs a numerical code representing their relationship.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of circle pairs to evaluate.
+  - `a.x`, `a.y`, `a.r`: Properties of the first circle (center coordinates and radius).
+  - `b.x`, `b.y`, `b.r`: Properties of the second circle (center coordinates and radius).
+- **Data types**: 
+  - `n`: `int`
+  - `a.x`, `a.y`, `a.r`, `b.x`, `b.y`, `b.r`: `double`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - Circle radii (`a.r`, `b.r`) should be non-negative.
+- **Assumptions about inputs**: Input values are provided in the correct format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs the relationship status of the circles to the standard output.
+- **Output format/schema**: 
+  - Outputs an integer:
+    - `0`: Circles are separate.
+    - `1`: Circles intersect.
+    - `2`: Circle A contains Circle B.
+    - `-2`: Circle B contains Circle A.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive a valid integer input for `n`.
+  - The subsequent inputs for circle properties must be provided in the correct format.
+- **Explicit logical constraints**: 
+  - The input for `n` must be greater than or equal to zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a relationship code for each pair of circles processed.
+- **State changes**: No internal state changes; outputs are directly printed.
+- **Return guarantees**: The program will terminate after processing all pairs.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The properties of the circles (coordinates and radii) remain unchanged throughout the execution of the program.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may exhibit undefined behavior or crash.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `n` is zero, the program will terminate without output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects with states; the program operates on local variables.
+- **State changes caused by execution**: No state changes occur; the program simply processes input and outputs results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of circle pairs processed.
+- **Space complexity**: O(1), as only a fixed amount of memory is used regardless of input size.
+- **Performance assumptions**: The program assumes that input is provided in a timely manner and that the system can handle the input size within reasonable limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define SQ(x) ((x) * (x))
+ 
+typedef struct{
+    double x;
+    double y;
+    double r;
+} CIRCLE;
+ 
+int main(void)
+{
+    CIRCLE a, b;
+    int n;
+     
+    scanf("%d", &n);
+     
+    while (n-- != 0){
+        scanf("%lf%lf%lf%lf%lf%lf", &a.x, &a.y, &a.r, &b.x, &b.y, &b.r);
+         
+        if (SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r + b.r)){
+            printf("0\n");
+        }
+         
+        else if (SQ(a.r + b.r) > SQ(a.x - b.x) + SQ(a.y - b.y) && SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r - b.r)){
+            printf("1\n");
+        }
+         
+        else if (SQ(a.x - b.x) + SQ(a.y - b.y) < SQ(a.r - b.r)){
+            if (a.r > b.r){
+                printf("2\n");
+            }
+            else {
+                printf("-2\n");
+            }
+        }
+        else {
+            printf("1\n");
+        }
+    }
+     
+    return (0);
+}
+=== C CODE END ===

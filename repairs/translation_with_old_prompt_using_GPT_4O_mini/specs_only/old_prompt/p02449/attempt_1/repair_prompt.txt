@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of integers and computes both the previous and next permutations of that sequence.
+- **What problem it solves**: It provides a way to find and display the immediate previous and next permutations of a given sequence of integers.
+- **Core behavior**: The program reads an integer `n` followed by `n` integers, calculates the previous and next permutations, and prints them along with the original sequence.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers in the sequence.
+  - `A[]`: The array of integers representing the sequence.
+- **Data types**: 
+  - `n`: `int`
+  - `A[]`: `int[9]` (fixed size array)
+- **Valid ranges or constraints**: 
+  - `n` must be between 1 and 9 (inclusive).
+  - Each integer in `A` can be any valid integer.
+- **Assumptions about inputs**: 
+  - The input is well-formed and consists of an integer followed by that many integers.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: Outputs the previous permutation, the original sequence, and the next permutation to the standard output.
+- **Output format/schema**: Each permutation is printed on a new line, with integers separated by spaces.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - `n` must be a positive integer not exceeding 9.
+- **Explicit logical constraints**: The program assumes that the input integers can be compared and swapped.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the previous permutation (if it exists), the original sequence, and the next permutation (if it exists).
+- **State changes**: No internal state changes are maintained beyond local variables.
+- **Return guarantees**: The program will always print the original sequence.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `next_A` and `prev_A` will always contain the same elements as `A` at the start of the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; behavior is undefined for invalid input.
+- **Edge-case behavior**: If `n` is 1, the program will output "1" for both previous and next permutations, as there are no permutations possible.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the program operates on primitive data types and arrays.
+- **State changes caused by execution**: The arrays `next_A` and `prev_A` are modified to reflect the next and previous permutations, respectively.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) for reading input and O(n) for finding permutations, leading to an overall complexity of O(n).
+- **Space complexity**: The space complexity is O(n) due to the storage of the input and permutations in arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size of 9 integers.
+```

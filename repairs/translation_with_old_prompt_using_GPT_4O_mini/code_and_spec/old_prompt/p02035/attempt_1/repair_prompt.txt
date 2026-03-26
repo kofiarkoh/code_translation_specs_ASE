@@ -1,0 +1,119 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific combinatorial value based on the input parameters, utilizing factorials and modular arithmetic.
+- **What problem it solves**: It computes a mathematical expression involving combinations and powers, which is useful in combinatorial problems, particularly in graph theory or counting problems.
+- **Core behavior**: The program reads two integers, `n` and `m`, computes factorials and their modular inverses, and then evaluates a complex expression involving combinations and powers of 2, returning the result modulo `m`.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: An integer representing the total number of items.
+  - `m`: An integer representing the modulus for calculations.
+- **Data types**: 
+  - `n`: `int`
+  - `m`: `int`
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer.
+  - `m` should be a positive integer (greater than 1).
+- **Assumptions about inputs**: 
+  - The input values are provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer representing the computed result.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer, formatted as a long long.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input values for `n` and `m` must be read successfully.
+  - `m` must be greater than 1 to avoid division by zero in modular arithmetic.
+- **Explicit logical constraints**: 
+  - `n` must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a valid long long integer.
+- **State changes**: 
+  - The global arrays `fact` and `invfact` are populated with computed factorials and their inverses.
+- **Return guarantees**: 
+  - The output is guaranteed to be within the range of `0` to `m-1`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `fact` and `invfact` arrays maintain valid factorial and inverse factorial values for all indices up to `n`.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on valid input.
+- **Edge-case behavior**: If `n` is `0`, the output will be `0` since no combinations can be formed.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the code operates with global variables.
+- **State changes caused by execution**: The state of the `fact` and `invfact` arrays changes as they are populated during the execution of `makefact`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately O(n^2) due to nested loops in the main computation.
+- **Space complexity**: The space complexity is O(n) for storing factorials and their inverses.
+- **Performance assumptions**: The program is expected to perform efficiently for values of `n` up to 2010, as indicated by the size of the `fact` and `invfact` arrays.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	int n,m;
+	scanf("%d%d",&n,&m);
+	makefact(2010,m);
+	ll ans=0;
+	rep(i,1,n){
+		ll temp=0;
+		rep(j,0,n-i){
+			//赤がi個で、黒n-i個のうちj個が赤と繋がっていない
+			ll aaa=pom(pom(2,(n-i-j),m)-1,i,m)*choose(n-i,j,m)%m;
+			temp+=j%2?-aaa:aaa;
+		}
+		ans+=temp%m*pom(2,i*(i-1)/2,m)%m*pom(2,(n-i)*(n-i-1)/2,m)%m*choose(n,i,m)%m;
+	}
+	printf("%lld\n",(ans%m+m)%m);
+}
+=== C CODE END ===

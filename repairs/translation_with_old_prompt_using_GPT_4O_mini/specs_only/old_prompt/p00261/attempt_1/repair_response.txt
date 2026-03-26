@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Define the state transition map as per the specification.
+    // The map is assumed to be predefined and constant.
+    let map: [[usize; 6]; 6] = [
+        [0, 1, 2, 3, 4, 5], // Transitions from state 0
+        [1, 1, 2, 3, 4, 5], // Transitions from state 1
+        [2, 1, 2, 3, 4, 5], // Transitions from state 2
+        [3, 1, 2, 3, 4, 5], // Transitions from state 3
+        [4, 1, 2, 3, 4, 5], // Transitions from state 4
+        [5, 1, 2, 3, 4, 5], // Transitions from state 5
+    ];
+
+    // Read input from standard input until termination character '#'
+    let stdin = io::stdin();
+    for line in stdin.lock().lines() {
+        let path = line.unwrap();
+        if path == "#" {
+            break; // Termination character encountered
+        }
+
+        // Initialize the current state to 0
+        let mut current_state = 0;
+
+        // Process each character in the input string
+        for c in path.chars() {
+            // Check if the character is a valid transition
+            if let Some(transition) = c.to_digit(10) {
+                let transition_index = transition as usize;
+                // Update the current state based on the transition
+                current_state = map[current_state][transition_index];
+            } else {
+                // Invalid character encountered, terminate processing for this string
+                break;
+            }
+        }
+
+        // Output "Yes" if the final state is 1 (state B), otherwise "No"
+        if current_state == 1 {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}
+```

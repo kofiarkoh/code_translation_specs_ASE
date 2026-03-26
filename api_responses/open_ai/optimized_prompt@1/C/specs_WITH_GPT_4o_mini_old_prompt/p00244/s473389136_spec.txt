@@ -1,0 +1,56 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm to determine the minimum cost to travel from a starting node to a goal node in a graph, where nodes represent locations and edges represent paths with associated costs.
+- **What problem it solves**: It solves the problem of finding the least-cost path in a weighted undirected graph, allowing for a limited number of "free" moves (where the cost is not counted).
+- **Core behavior**: The algorithm uses a modified Dijkstra's approach with a priority queue (min-heap) to explore paths, considering both the cost of travel and the remaining free moves.
+
+## 2. Inputs
+- **Parameters**:
+  - `size`: Number of nodes in the graph.
+  - `m`: Number of edges in the graph.
+  - `a`, `b`, `c`: For each edge, `a` and `b` are the connected nodes (0-indexed), and `c` is the cost of the edge.
+- **Data types**: 
+  - `int` for all parameters.
+- **Valid ranges or constraints**:
+  - `size` must be greater than 0.
+  - `m` must be non-negative.
+  - Node indices `a` and `b` must be within the range `[0, size-1]`.
+  - Cost `c` must be non-negative.
+- **Assumptions about inputs**: The input graph is undirected, and there are no self-loops or negative edge weights.
+
+## 3. Outputs
+- **Return values**: The function returns the minimum cost to reach the goal node from the start node, considering the allowed free moves.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single integer representing the minimum cost.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be properly formatted as specified.
+  - The graph must be initialized with valid nodes and edges.
+- **Explicit logical constraints**: The number of edges `m` must not exceed the maximum possible edges for the given number of nodes.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The minimum cost to reach the goal node is computed and printed.
+- **State changes**: The internal state of the graph representation and the priority queue is modified during execution.
+- **Return guarantees**: The function guarantees a valid minimum cost or indicates that the goal is unreachable.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The priority queue (min-heap) is maintained correctly throughout the execution.
+  - The `node` array accurately reflects the minimum costs to reach each node with the available free moves.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may produce undefined behavior or incorrect results if inputs are out of specified bounds.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If the graph is disconnected, the output will indicate that the goal is unreachable (returning a value that signifies this).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The graph can be in a state where nodes are connected or disconnected based on the edges provided.
+- **State changes caused by execution**: The state of the `node` array and the priority queue changes as nodes are processed and costs are updated.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm operates in O((V + E) log V) time, where V is the number of vertices and E is the number of edges, due to the priority queue operations.
+- **Space complexity**: The space complexity is O(V + E) for storing the graph and the priority queue.
+- **Performance assumptions**: The algorithm assumes that the number of nodes and edges is manageable within the defined limits (e.g., `size` ≤ 102).

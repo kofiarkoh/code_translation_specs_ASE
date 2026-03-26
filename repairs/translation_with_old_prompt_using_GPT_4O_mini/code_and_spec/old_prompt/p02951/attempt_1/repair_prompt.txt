@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads three integers from user input, performs a decrement operation based on the first two integers, and outputs the result of the third integer after a series of decrements.
+- **What problem it solves**: It calculates how many times the third integer can be decremented based on the difference between the first two integers.
+- **Core behavior**: The program reduces the value of the third integer by the difference between the first and second integers, stopping if the third integer reaches zero.
+
+## 2. Inputs
+- **Parameters**: 
+  - Three integers: `a`, `b`, and `c`.
+- **Data types**: 
+  - All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - No explicit constraints on the values of `a`, `b`, and `c` are enforced.
+- **Assumptions about inputs**: 
+  - Inputs are assumed to be valid integers as per the `scanf` format.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer, which is the final value of `c`.
+- **Side effects**: 
+  - The program prints the result to the standard output.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - None specified; however, valid integer input is expected.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the decremented value of `c` after processing.
+- **State changes**: 
+  - The value of `c` is modified based on the decrements.
+- **Return guarantees**: 
+  - The output will be a non-negative integer or zero.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The value of `c` will never be less than zero after execution.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined; invalid input may lead to unexpected results or runtime errors.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: 
+  - If `a` is less than or equal to zero, `c` remains unchanged.
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program operates with three integer states: `a`, `b`, and `c`.
+- **State changes caused by execution**: 
+  - The value of `c` is decremented based on the value of `a - b`.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - O(n), where n is the value of `a - b` (if `a > b`).
+- **Space complexity**: 
+  - O(1), as only a fixed amount of space is used for the integer variables.
+- **Performance assumptions**: 
+  - The program assumes that input and output operations are efficient and that the input values are within a reasonable range for integer operations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(void){
+  int a,b,c;
+  scanf("%d %d %d",&a,&b,&c);
+  a-=b;
+  while(a>0){
+    a--;;
+    c--;
+    if(c==0){
+      break;
+    }
+  }
+  printf("%d\n",c);
+}
+=== C CODE END ===

@@ -1,0 +1,100 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific numerical result based on an input integer \( N \) and a series of pairs of integers.
+- **What problem it solves**: It computes a value that appears to represent a modified sum based on the input size and adjustments from the provided pairs.
+- **Core behavior**: The program first computes a cumulative sum based on \( N \) and then adjusts this sum based on pairs of integers read from input.
+
+## 2. Inputs
+- **Parameters**: 
+  - An integer \( N \) representing the number of pairs to be processed.
+  - Pairs of integers \( (u, w) \) for \( N-1 \) iterations.
+- **Data types**: 
+  - \( N \): `int`
+  - \( u, w \): `int`
+- **Valid ranges or constraints**: 
+  - \( N \) must be a positive integer.
+  - \( u \) and \( w \) must be integers where \( 1 \leq u, w \leq N \).
+- **Assumptions about inputs**: 
+  - The input format is strictly followed, with \( N \) followed by \( N-1 \) pairs of integers.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single `long long` integer representing the computed result.
+- **Side effects**: 
+  - The program prints the result to standard output.
+- **Output format/schema**: 
+  - The output is a single line containing a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the correct format.
+  - \( N \) must be greater than or equal to 1.
+- **Explicit logical constraints**: 
+  - The pairs \( (u, w) \) must be valid integers within the range defined above.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed value based on the initial \( N \) and the pairs of integers.
+- **State changes**: 
+  - No persistent state changes occur; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always be a valid long long integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable \( ans \) is initialized to 0 and is updated based on the calculations performed.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program may exhibit undefined behavior or crash if the input does not conform to the expected format.
+- **Exceptions thrown?**: 
+  - The code does not explicitly handle exceptions; it relies on the input being valid.
+- **Edge-case behavior**: 
+  - If \( N = 1 \), the program will compute a result based solely on the initial sum without any adjustments from pairs.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as the code does not maintain state across multiple executions.
+- **State changes caused by execution**: 
+  - The variable \( ans \) transitions through various states as it accumulates values based on the calculations.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is \( O(N) \) due to the two loops iterating through \( N \) and \( N-1 \) respectively.
+- **Space complexity**: 
+  - The space complexity is \( O(1) \) as it uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for reasonably sized inputs, but performance may degrade for very large values of \( N \) due to the nature of integer arithmetic.
+```

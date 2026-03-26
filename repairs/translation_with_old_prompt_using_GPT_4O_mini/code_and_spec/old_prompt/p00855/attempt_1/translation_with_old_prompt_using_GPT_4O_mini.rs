@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn prime_count(n: usize) -> usize {
+    if n < 2 {
+        return 0;
+    }
+    let mut count = 0;
+    for i in 2..=((n as f64).sqrt() as usize) {
+        if n % i == 0 {
+            count += 1;
+        }
+    }
+    count
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    
+    for line in handle.lines() {
+        let l: i32 = match line {
+            Ok(input) => input.trim().parse().unwrap(),
+            Err(_) => continue, // Handle invalid input gracefully
+        };
+        
+        let mut lower = l;
+        let mut upper = l;
+
+        // Find the largest prime <= l
+        while prime_count(lower as usize) > 0 {
+            lower -= 1;
+        }
+
+        // Find the smallest prime >= l
+        while prime_count(upper as usize) > 0 {
+            upper += 1;
+        }
+
+        // Output the difference
+        println!("{}", upper - lower);
+    }
+}

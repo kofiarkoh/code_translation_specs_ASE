@@ -1,0 +1,188 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a sequence of characters to calculate and output the total area and count of distinct pools formed by the characters, which represent terrain elevation.
+- **What problem it solves**: It computes the total area of pools formed between elevations represented by the characters and counts the number of distinct pools.
+- **Core behavior**: The program reads characters from input, constructs a stack to track elevations, and when a pool is formed (indicated by specific characters), it calculates the area and stores it in a linked list. Finally, it outputs the total area, the count of pools, and the areas of each pool.
+
+## 2. Inputs
+- **Parameters**: 
+  - Input characters representing terrain elevation and pool boundaries.
+- **Data types**: 
+  - Characters (char) for input.
+  - Integers (int) for area and stack data.
+- **Valid ranges or constraints**: 
+  - Input characters must be one of: '\\', '_', '/'.
+- **Assumptions about inputs**: 
+  - Input is provided until EOF (End of File).
+  - The input is well-formed and does not contain invalid characters.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs directly to standard output.
+- **Side effects**: 
+  - Outputs the total area, count of pools, and the areas of each pool to the console.
+- **Output format/schema**: 
+  - Outputs the total area and count on one line, followed by the areas of each pool on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where it can read input until EOF.
+- **Explicit logical constraints**: 
+  - The input must consist of valid characters as specified.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The total area and count of pools are calculated and printed.
+- **State changes**: 
+  - Memory allocated for stacks and pools is freed before the program exits.
+- **Return guarantees**: 
+  - The output will always include the total area and count, followed by the areas of each pool.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The stack always contains the most recent elevation data.
+  - The pool linked list maintains the correct areas and x-values for each pool.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input; it may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: 
+  - The code does not explicitly throw exceptions; it relies on standard C behavior.
+- **Edge-case behavior**: 
+  - If no valid input is provided, the output will be `0` for both area and count.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The stack can be empty or contain one or more elements.
+  - The pool can be empty or contain one or more linked list nodes.
+- **State changes caused by execution**: 
+  - The stack state changes as elevations are pushed and popped.
+  - The pool state changes as areas are calculated and nodes are added or removed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(n) for processing input, where n is the number of characters read.
+- **Space complexity**: 
+  - The space complexity is O(m) where m is the number of distinct pools formed, due to the linked list storage.
+- **Performance assumptions**: 
+  - The program assumes that memory allocation will succeed and that the input size is manageable within system limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct _stack{
+    int data;
+    struct _stack *next;
+}STACK;
+typedef struct _pool{
+    int area;
+    int x;
+    struct _pool *next;
+}POOL;
+void output(POOL *p){
+    if(p==NULL)return;
+    
+    output(p->next);
+    printf(" %d",p->area);
+    return;
+}
+
+int main(void){
+    char in;
+    int x=1;
+    STACK *stack,*tmp;
+    stack=NULL;
+    POOL *pool,*p;
+    pool=NULL;
+    while(scanf("%c",&in)==1){
+        switch(in){
+            case '\\':
+                tmp=(STACK*)malloc(sizeof(STACK));
+                tmp->data=x;
+                if(stack==NULL){
+                    tmp->next=NULL;
+                }else{
+                    tmp->next=stack;
+                }
+                stack=tmp;
+                break;
+            case '_':
+                break;
+            case '/':
+                if(stack==NULL)break;
+                
+                if(pool==NULL){
+                    pool=(POOL*)malloc(sizeof(POOL));
+                    pool->area=x-stack->data;
+                    pool->x=stack->data;
+                    pool->next=NULL;
+                }else{
+                    if(stack->data<pool->x){
+                        p=pool->next;
+                        while(p!=NULL&&p->x>stack->data){
+                            p->area+=pool->area;
+                            p=pool;
+                            pool=pool->next;
+                            free(p);
+                            p=pool->next;
+                        }
+                        pool->area+=x-stack->data;
+                        pool->x=stack->data;
+                    }else{
+                        p=(POOL*)malloc(sizeof(POOL));
+                        p->area=x-stack->data;
+                        p->x=stack->data;
+                        p->next=pool;
+                        pool=p;
+                    }
+                }
+                tmp=stack;
+                stack=stack->next;
+                free(tmp);
+
+                break;
+        }
+        x++;
+    }
+    
+    int sum=0,count=0;
+    p=pool;
+    while(p!=NULL){
+        sum+=p->area;
+        count++;
+        p=p->next;
+    }
+    printf("%d\n%d",sum,count);
+    output(pool);
+    printf("\n");
+
+    return 0;
+}
+=== C CODE END ===

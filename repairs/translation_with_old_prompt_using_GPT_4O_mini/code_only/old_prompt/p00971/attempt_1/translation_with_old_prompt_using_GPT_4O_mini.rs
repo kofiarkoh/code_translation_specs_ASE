@@ -1,0 +1,88 @@
+use std::io::{self, BufRead};
+use std::mem;
+
+const SMAX: usize = 4000;
+let mut next0 = [[0; SMAX + 2]; 2];
+let mut next1 = [[0; SMAX + 2]; 2];
+let mut dp = [[-1; SMAX + 2]; SMAX + 2];
+
+fn dfs(aloc: usize, bloc: usize) -> usize {
+    if dp[aloc][bloc] != -1 {
+        return dp[aloc][bloc] as usize;
+    }
+    let mut ans = SMAX + 2;
+    let res = dfs(next0[0][aloc], next0[1][bloc]);
+    if ans > res {
+        ans = res;
+    }
+    let res = dfs(next1[0][aloc], next1[1][bloc]);
+    if ans > res {
+        ans = res;
+    }
+    dp[aloc][bloc] = ans as isize + 1;
+    dp[aloc][bloc] as usize
+}
+
+fn scns(aloc: usize, bloc: usize) {
+    if dfs(aloc, bloc) == dfs(next0[0][aloc], next0[1][bloc]) + 1 {
+        print!("0");
+        scns(next0[0][aloc], next0[1][bloc]);
+    } else if dfs(aloc, bloc) == dfs(next1[0][aloc], next1[1][bloc]) + 1 {
+        print!("1");
+        scns(next1[0][aloc], next1[1][bloc]);
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+    
+    let mut a = vec!['?'; SMAX + 2];
+    let mut b = vec!['?'; SMAX + 2];
+    
+    let a_input = input.next().unwrap().unwrap();
+    let b_input = input.next().unwrap().unwrap();
+    
+    let alen = a_input.len();
+    let blen = b_input.len();
+    
+    a[1..alen + 1].copy_from_slice(&a_input.chars().collect::<Vec<_>>());
+    b[1..blen + 1].copy_from_slice(&b_input.chars().collect::<Vec<_>>());
+    
+    unsafe {
+        mem::zeroed(&mut dp);
+    }
+    
+    dp[alen][blen] = 0;
+    next0[0][alen] = alen;
+    next1[0][alen] = alen;
+    next0[0][alen - 1] = alen - 1;
+    next1[0][alen - 1] = alen - 1;
+    next0[1][blen] = blen;
+    next1[1][blen] = blen;
+    next0[1][blen - 1] = blen - 1;
+    next1[1][blen - 1] = blen - 1;
+
+    for i in (0..alen - 1).rev() {
+        if a[i + 1] == '0' {
+            next0[0][i] = i + 1;
+            next1[0][i] = next1[0][i + 1];
+        } else {
+            next0[0][i] = next0[0][i + 1];
+            next1[0][i] = i + 1;
+        }
+    }
+    
+    for i in (0..blen - 1).rev() {
+        if b[i + 1] == '0' {
+            next0[1][i] = i + 1;
+            next1[1][i] = next1[1][i + 1];
+        } else {
+            next0[1][i] = next0[1][i + 1];
+            next1[1][i] = i + 1;
+        }
+    }
+    
+    scns(0, 0);
+    println!();
+}

@@ -1,0 +1,53 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates an explosion effect on a 2D grid, where certain cells can trigger further explosions based on their state.
+- **What problem it solves**: It models a scenario where an explosion in one part of a grid can affect adjacent parts, allowing for a cascading effect.
+- **Core behavior**: The `explode` function marks a cell as exploded and recursively triggers explosions in adjacent cells if they are marked as '1'.
+
+## 2. Inputs
+- **Parameters**:
+  - `field[10][10]`: A 2D character array representing the grid.
+  - `px`: The x-coordinate (column) of the explosion's starting point.
+  - `py`: The y-coordinate (row) of the explosion's starting point.
+- **Data types**: 
+  - `field`: `char[10][10]`
+  - `px`, `py`: `int`
+- **Valid ranges or constraints**: 
+  - `px` and `py` must be in the range [1, 8] (inclusive).
+- **Assumptions about inputs**: The grid is initialized correctly, and the input format is adhered to.
+
+## 3. Outputs
+- **Return values**: The function `explode` does not return a value (void).
+- **Side effects**: Modifies the `field` array in place, changing the state of cells based on the explosion logic.
+- **Output format/schema**: The modified grid is printed to the console after each explosion event.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The `field` array must be populated with valid characters ('0' or '1').
+  - The starting coordinates `px` and `py` must be valid and within the specified range.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The cell at `(py, px)` is set to '0' to indicate it has exploded.
+  - Any adjacent cells marked as '1' that are within bounds will also be recursively exploded.
+- **State changes**: The state of the `field` array is altered based on the explosion logic.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The grid dimensions remain 10x10.
+  - The values in the grid are either '0' or '1' (or uninitialized characters).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if `px` or `py` are out of bounds or if the grid is not properly initialized.
+- **Exceptions thrown?**: No explicit exceptions are thrown; however, accessing out-of-bounds indices may lead to undefined behavior.
+- **Edge-case behavior**: If the explosion starts at a cell with '0', no further action occurs.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The grid can be in a state where cells are either '0' (exploded) or '1' (active).
+- **State changes caused by execution**: Cells change from '1' to '0' as they are exploded.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The worst-case time complexity is O(N) where N is the number of cells that can be exploded, potentially up to 64 in a dense grid.
+- **Space complexity**: O(1) additional space is used, as the function modifies the grid in place without requiring extra data structures.
+- **Performance assumptions**: The function assumes that the grid is not excessively large, as it is designed for a fixed size of 10x10.

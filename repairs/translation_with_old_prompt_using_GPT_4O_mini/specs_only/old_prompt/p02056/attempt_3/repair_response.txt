@@ -1,0 +1,120 @@
+```rust
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    weight: i32,
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: Vec<Vec<Edge>>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            edges: vec![Vec::new(); n], // Create a vector of empty vectors for edges
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, weight: i32) {
+        self.edges[from].push(Edge { to, weight });
+    }
+}
+
+#[derive(Debug)]
+struct Node {
+    index: usize,
+    value: i64,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.value.cmp(&self.value) // Max-heap
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl Eq for Node {}
+
+fn modified_shortest_path(n: usize, _m: usize, k: usize, costs: Vec<i64>, edges: Vec<(usize, usize, i32)>) {
+    let mut graph = Graph::new(n);
+    for (a, b, d) in edges {
+        graph.add_edge(a, b, d);
+    }
+
+    let mut max_values = vec![-1; n]; // Initialize with -1 to represent unvisited nodes
+    let mut heap = BinaryHeap::new();
+
+    for (i, &cost) in costs.iter().enumerate() {
+        max_values[i] = cost; // Start with node costs
+        heap.push(Node { index: i, value: cost });
+    }
+
+    while let Some(Node { index, value }) = heap.pop() {
+        if value < max_values[index] {
+            continue; // Skip if we have already found a better value
+        }
+
+        for edge in &graph.edges[index] {
+            let new_value = value + edge.weight as i64;
+            if new_value > max_values[edge.to] {
+                max_values[edge.to] = new_value;
+                heap.push(Node { index: edge.to, value: new_value });
+            }
+        }
+    }
+
+    for i in 0..k {
+        if i < max_values.len() {
+            println!("{}", max_values[i]);
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let params: Vec<usize> = first_line.split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+    
+    let n = params[0];
+    let m = params[1];
+    let k = params[2];
+
+    let costs: Vec<i64> = lines.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let edge: Vec<usize> = edge_line.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        edges.push((edge[0], edge[1], edge[2] as i32));
+    }
+
+    modified_shortest_path(n, m, k, costs, edges);
+}
+```

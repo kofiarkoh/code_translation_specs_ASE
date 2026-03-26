@@ -1,0 +1,123 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 210;
+
+const VAL: i32 = 10;
+const LEFT: i32 = -1;
+const RIGHT: i32 = -2;
+const PLUS: i32 = 0;
+const MINUS: i32 = 1;
+const MUL: i32 = 2;
+
+#[derive(Clone, Copy)]
+struct Token {
+    v: i64,
+    id: i32,
+}
+
+fn get_int(p: &mut std::str::Chars) -> i64 {
+    let mut n = 0;
+    while let Some(c) = p.next() {
+        if c.is_digit(10) {
+            n = 10 * n + (c.to_digit(10).unwrap() as i64);
+        } else {
+            break;
+        }
+    }
+    n
+}
+
+fn token(c: char) -> i32 {
+    match c {
+        '+' => PLUS,
+        '-' => MINUS,
+        '*' => MUL,
+        _ => unreachable!(),
+    }
+}
+
+fn rank(op: i32, rid: usize, tbl: &[[i32; 3]; 13]) -> i32 {
+    if op == LEFT {
+        LEFT
+    } else {
+        tbl[rid][op as usize]
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let mut ans = std::i64::MIN;
+
+    let tbl: [[i32; 3]; 13] = [
+        [1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2],
+        [3, 2, 1], [1, 1, 1], [1, 1, 2], [2, 2, 1], [1, 2, 1],
+        [2, 1, 2], [1, 2, 2], [2, 1, 1],
+    ];
+
+    for rid in 0..13 {
+        let mut stack: Vec<Token> = Vec::new();
+        let mut buf: Vec<Token> = Vec::new();
+        let mut p = input.chars().peekable();
+
+        while let Some(&c) = p.peek() {
+            if c.is_digit(10) {
+                buf.push(Token { id: VAL, v: get_int(&mut p) });
+            } else if c == ')' {
+                while let Some(top) = stack.last() {
+                    if top.id == LEFT {
+                        stack.pop();
+                        break;
+                    }
+                    buf.push(stack.pop().unwrap());
+                }
+                p.next(); // consume ')'
+            } else if c == '(' {
+                stack.push(Token { id: LEFT, v: 0 });
+                p.next(); // consume '('
+            } else {
+                let id = token(c);
+                while let Some(top) = stack.last() {
+                    if rank(id, rid, &tbl) <= rank(top.id, rid, &tbl) {
+                        buf.push(stack.pop().unwrap());
+                    } else {
+                        break;
+                    }
+                }
+                stack.push(Token { id, v: 0 });
+                p.next(); // consume operator
+            }
+        }
+
+        while let Some(top) = stack.pop() {
+            buf.push(top);
+        }
+
+        let mut top = 0;
+        for i in 0..buf.len() {
+            let id = buf[i].id;
+            if id == VAL {
+                stack.push(Token { v: buf[i].v, id });
+                top += 1;
+            } else {
+                let v1 = stack.pop().unwrap().v;
+                let v2 = stack.pop().unwrap().v;
+                let result = match id {
+                    PLUS => v2 + v1,
+                    MINUS => v2 - v1,
+                    MUL => v2 * v1,
+                    _ => unreachable!(),
+                };
+                stack.push(Token { v: result, id: VAL });
+                top -= 1;
+            }
+        }
+
+        if top == 1 {
+            let current_ans = stack.pop().unwrap().v;
+            ans = ans.max(current_ans);
+        }
+    }
+
+    println!("{}", ans);
+}

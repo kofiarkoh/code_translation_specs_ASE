@@ -1,0 +1,85 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03977/p03977_sample1_output.txt
+Input:
+123 456
+789 1011
+246 135
+0 0
+Expected:
+57123
+128516
+17018
+0
+Actual:
+-333
+-222
+381
+0
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead, Write};
+use std::fmt::Write as FmtWrite; // Import the trait for String formatting
+
+fn main() {
+    // Create a buffer to hold the output
+    let mut output_buffer = String::with_capacity(20_000);
+    
+    // Read from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Process each line of input
+    for line in reader.lines() {
+        // Unwrap the line to handle the Result
+        let line = line.unwrap();
+        
+        // Split the line into pairs of integers
+        let mut iter = line.split_whitespace();
+        
+        while let (Some(n_str), Some(d_str)) = (iter.next(), iter.next()) {
+            // Parse the integers
+            let n: i32 = n_str.parse().unwrap(); // Assumes valid input as per specification
+            let d: i32 = d_str.parse().unwrap(); // Assumes valid input as per specification
+            
+            // Calculate the result based on the parity of N
+            let result = if n % 2 == 0 {
+                // N is even
+                n + d
+            } else {
+                // N is odd
+                n - d
+            };
+            
+            // Append the result to the output buffer
+            writeln!(output_buffer, "{}", result).unwrap(); // Assumes valid output
+        }
+    }
+    
+    // Write the output buffer to standard output
+    print!("{}", output_buffer);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

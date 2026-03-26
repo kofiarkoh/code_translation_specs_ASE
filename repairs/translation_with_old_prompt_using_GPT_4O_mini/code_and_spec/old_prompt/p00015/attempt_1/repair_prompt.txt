@@ -1,0 +1,157 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads pairs of numeric strings, converts them into integer arrays, sums them, and prints the result.
+- **What problem it solves**: It addresses the need to perform addition on large numbers represented as strings, which may exceed standard integer limits.
+- **Core behavior**: The program reads a specified number of datasets, processes each pair of numeric strings, computes their sum, and handles potential overflow scenarios.
+
+## 2. Inputs
+- **Parameters**: 
+  - `charNum[]`: A string representing the first number.
+  - `intNum[]`: An array to store the integer representation of `charNum`.
+- **Data types**: 
+  - `charNum[]`: `char[]` (string).
+  - `intNum[]`: `int[]` (array of integers).
+- **Valid ranges or constraints**: 
+  - Each numeric string must not exceed 80 characters in length.
+- **Assumptions about inputs**: 
+  - Input strings are valid numeric representations (i.e., contain only digits).
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it prints results directly to standard output.
+- **Side effects**: Outputs the sum of the two numbers or an "overflow" message if applicable.
+- **Output format/schema**: 
+  - If the sum is valid, it prints the result as a sequence of digits.
+  - If overflow occurs, it prints "overflow".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with a valid integer indicating the number of datasets.
+  - Each dataset must consist of two valid numeric strings.
+- **Explicit logical constraints**: 
+  - The lengths of the numeric strings must not exceed 80 characters.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will either print the sum of the two numbers or an "overflow" message.
+- **State changes**: 
+  - The internal arrays (`fNum`, `sNum`, `sum`) are modified to reflect the converted and summed values.
+- **Return guarantees**: 
+  - The program will not return a value but will output results to the console.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The lengths of `firstNum` and `secondNum` are always checked to ensure they do not exceed 80 characters.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input strings exceed 80 characters, the program outputs "overflow" and continues to the next dataset.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: 
+  - If both input strings are empty, the program will still execute but may not produce meaningful output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains valid states for the arrays used to store the converted numbers and their sum.
+- **State changes caused by execution**: 
+  - The arrays `fNum`, `sNum`, and `sum` are populated and modified during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the length of the input strings (up to 80).
+- **Space complexity**: O(1) for the fixed-size arrays used (LEN = 128).
+- **Performance assumptions**: The program is expected to handle multiple datasets efficiently, but performance may degrade with very large input sizes or numerous datasets.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#define LEN 128
+
+void convert(char charNum[], int intNum[]) {
+    int i, j = 0;
+    for (i = (int)strlen(charNum) - 1; i >= 0 ; i --) {
+        intNum[j] = (int)charNum[i] - 48;
+        j ++;
+    }
+}
+
+int main(int argc, const char * argv[]) {
+    int dataSet;
+    int count = 1;
+    scanf("%d", &dataSet);
+    char firstNum[LEN], secondNum[LEN];
+    int fNum[LEN], sNum[LEN], sum[LEN];
+    int i, j, k, l;
+    while (count <= dataSet) {
+        count ++;
+        while (scanf("%s", firstNum) != EOF) {
+            break;
+        }
+        while (scanf("%s", secondNum) != EOF) {
+            break;
+        }
+        if (strlen(firstNum) > 80 || strlen(secondNum) > 80) {
+            printf("overflow\n");
+            continue;
+        }
+        for (i = 0; i < LEN; i ++) {
+            fNum[i] = 0;
+            sNum[i] = 0;
+            sum[i] = 0;
+        }
+        convert(firstNum, fNum);
+        convert(secondNum, sNum);
+        for (i = 0; i < LEN; i ++) {
+            sum[i] = fNum[i] + sNum[i];
+        }
+        for (i = 0; i < LEN; i ++) {
+            if (sum[i] >= 10) {
+                sum[i] %= 10;
+                sum[i + 1] += 1;
+            }
+        }
+        k = 0;
+        j = LEN - 1;
+        while (j >= 0) {
+            if (sum[j] == 0 && j != 0) {
+                k ++;
+                j --;
+            } else {
+                break;
+            }
+        }
+        if (k < LEN - 80) {
+            printf("overflow");
+        } else {
+            for (l = LEN - k - 1; l >= 0; l --) {
+                printf("%d", sum[l]);
+            }
+        }
+        printf("\n");
+    }
+    return 0;
+}
+=== C CODE END ===

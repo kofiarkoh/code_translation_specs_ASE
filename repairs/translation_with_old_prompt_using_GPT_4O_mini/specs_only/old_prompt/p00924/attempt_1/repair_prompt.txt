@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Bit String Reordering
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code is designed to reorder a bit string based on specified run lengths, aiming to minimize the number of bit flips required to achieve a desired configuration.
+- **What problem it solves**: It addresses the problem of transforming a given bit string into a target configuration while adhering to constraints defined by run lengths, thereby optimizing the number of changes made.
+- **Core behavior**: The function recursively evaluates the bit string and its run lengths, determining the minimum number of bit flips needed to achieve the desired configuration based on the starting bit.
+
+## 2. Inputs
+- **Parameters**:
+  - `char bit[]`: The input bit string to be reordered.
+  - `int runlen[]`: An array representing the lengths of runs of bits.
+  - `int len`: The length of the bit string.
+  - `int runlenlen`: The length of the run lengths array.
+  - `char start`: The starting bit ('0' or '1') for the transformation.
+- **Data types**:
+  - `char[]` for the bit string.
+  - `int[]` for the run lengths.
+  - `int` for lengths and indices.
+- **Valid ranges or constraints**:
+  - `len` and `runlenlen` must be non-negative integers.
+  - The length of `bit` must match `len`.
+  - The length of `runlen` must match `runlenlen`.
+- **Assumptions about inputs**: The input bit string consists solely of '0's and '1's, and the run lengths are non-negative integers.
+
+## 3. Outputs
+- **Return values**: The function returns an integer representing the minimum number of bit flips required.
+- **Side effects**: The input bit string may be modified during execution.
+- **Output format/schema**: The output is a single integer printed to the standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input bit string must be properly initialized and contain valid characters ('0' or '1').
+  - The run lengths array must be initialized and contain valid non-negative integers.
+- **Explicit logical constraints**: The lengths of the bit string and run lengths must be consistent with their respective parameters.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The function guarantees that the returned integer is the minimum number of flips required to achieve the desired configuration.
+- **State changes**: The input bit string may be altered to reflect the changes made during the computation.
+- **Return guarantees**: The return value is always a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The bit string remains a valid sequence of '0's and '1's throughout the execution.
+  - The run lengths array remains consistent with the number of bits processed.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; however, invalid inputs may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If the bit string length is 1, the function returns 0, indicating no flips are needed.
+
+## 8. State Transitions
+- **Valid object states**: The bit string can be in any configuration of '0's and '1's.
+- **State changes caused by execution**: The bit string may be modified to reflect the optimal configuration as determined by the algorithm.
+
+## 9. Non-functional Constraints
+- **Time complexity**: The time complexity is not explicitly defined but is likely exponential due to the recursive nature of the solution.
+- **Space complexity**: The space complexity is primarily determined by the recursion stack and the size of the input arrays.
+- **Performance assumptions**: The algorithm may not perform efficiently for large inputs due to its recursive structure.
+```

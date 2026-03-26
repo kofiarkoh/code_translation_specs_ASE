@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to a minimum cost flow problem in a flow network, specifically designed to handle multiple source-sink pairs with associated costs and capacities.
+- **What problem it solves**: It determines the minimum cost to transport a specified flow from a source node to a sink node in a directed graph, where edges have capacities and costs associated with them.
+- **Core behavior**: The program reads input data defining the graph structure, constructs the flow network, and computes the minimum cost to achieve the desired flow using a modified Dijkstra's algorithm.
+
+## 2. Inputs
+- **Parameters**:
+  - Number of nodes (N)
+  - Number of edges (M)
+  - A constant B affecting cost calculations
+  - Coordinates for N source nodes (ax, ay)
+  - Coordinates for M sink nodes (bx, by)
+  - Capacities (c) and flow limits (f) for each sink node
+- **Data types**: 
+  - Integers for node counts, coordinates, capacities, and costs.
+- **Valid ranges or constraints**:
+  - N and M must be non-negative integers.
+  - Coordinates and capacities must be within reasonable bounds (not explicitly defined in the code).
+- **Assumptions about inputs**: 
+  - Input is provided in a specific format, and all necessary values are present.
+
+## 3. Outputs
+- **Return values**: The program outputs the minimum cost for the flow from the source to the sink for each test case.
+- **Side effects**: Outputs results to the standard output (console).
+- **Output format/schema**: Each result is printed as an integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be correctly formatted and contain valid integers.
+  - The number of nodes and edges must be initialized before invoking the main logic.
+- **Explicit logical constraints**: 
+  - The source and sink nodes must be defined within the range of the total number of nodes.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The minimum cost for the specified flow is computed and printed.
+- **State changes**: 
+  - The internal state of the flow network is modified as edges are added and capacities are adjusted.
+- **Return guarantees**: 
+  - The function returns the minimum cost or -1 if the flow cannot be achieved.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The flow network structure remains valid throughout execution.
+  - The capacities of edges are non-negative.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may produce undefined behavior or incorrect results if the input is malformed.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If the flow cannot be achieved, the program returns -1.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The flow network can be in a state where edges are fully utilized, partially utilized, or not utilized at all.
+- **State changes caused by execution**: 
+  - The capacities of edges are updated as flow is pushed through the network.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm's complexity is primarily influenced by the number of nodes and edges, typically O(V^2 log V) for the min-cost flow algorithm.
+- **Space complexity**: The space complexity is O(V + E) due to the storage of edges and other auxiliary data structures.
+- **Performance assumptions**: The algorithm is expected to perform efficiently for moderate-sized graphs, but performance may degrade with very large inputs.
+```

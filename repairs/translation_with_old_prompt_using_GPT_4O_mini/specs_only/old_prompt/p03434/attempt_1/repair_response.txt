@@ -1,0 +1,80 @@
+```rust
+use std::io::{self, BufRead};
+
+fn merge_sort(arr: &mut Vec<i64>) {
+    let len = arr.len();
+    if len <= 1 {
+        return;
+    }
+    
+    let mid = len / 2;
+    let mut left = arr[0..mid].to_vec();
+    let mut right = arr[mid..len].to_vec();
+    
+    merge_sort(&mut left);
+    merge_sort(&mut right);
+    
+    let mut i = 0;
+    let mut j = 0;
+    let mut k = 0;
+    
+    while i < left.len() && j < right.len() {
+        if left[i] <= right[j] {
+            arr[k] = left[i];
+            i += 1;
+        } else {
+            arr[k] = right[j];
+            j += 1;
+        }
+        k += 1;
+    }
+    
+    while i < left.len() {
+        arr[k] = left[i];
+        i += 1;
+        k += 1;
+    }
+    
+    while j < right.len() {
+        arr[k] = right[j];
+        j += 1;
+        k += 1;
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+    
+    // Read the number of elements
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // Read the array elements
+    let mut a: Vec<i64> = lines
+        .next()
+        .unwrap()
+        .unwrap()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    // Sort the array using merge sort
+    merge_sort(&mut a);
+    
+    // Calculate the sums based on even and odd indices
+    let mut sum_even = 0;
+    let mut sum_odd = 0;
+    
+    for (i, &value) in a.iter().enumerate() {
+        if i % 2 == 0 {
+            sum_even += value;
+        } else {
+            sum_odd += value;
+        }
+    }
+    
+    // Output the difference
+    println!("{}", sum_even - sum_odd);
+}
+```

@@ -1,0 +1,66 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Arrays to hold counts of item types for both groups, initialized to zero.
+    let mut a = [0; 21]; // For item types 1 to 20
+    let mut b = [0; 21]; // For item types 1 to 20
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut nums = line.split_whitespace()
+            .filter_map(|s| s.parse::<usize>().ok());
+
+        // Read the first number which indicates the number of items in the first group
+        let w = match nums.next() {
+            Some(w) => w,
+            None => continue, // If no input, skip to the next iteration
+        };
+
+        // Termination condition: if w is zero, stop processing
+        if w == 0 {
+            break;
+        }
+
+        // Read the item types for the first group
+        for _ in 0..w {
+            if let Some(item_type) = nums.next() {
+                if item_type >= 1 && item_type <= 20 {
+                    a[item_type] += 1; // Increment count for this item type
+                }
+            }
+        }
+
+        // Read the number of items in the second group
+        let d = match nums.next() {
+            Some(d) => d,
+            None => continue, // If no input, skip to the next iteration
+        };
+
+        // Read the item types for the second group
+        for _ in 0..d {
+            if let Some(item_type) = nums.next() {
+                if item_type >= 1 && item_type <= 20 {
+                    b[item_type] += 1; // Increment count for this item type
+                }
+            }
+        }
+
+        // Calculate the weighted sum based on maximum counts from both groups
+        let mut weighted_sum = 0;
+        for i in 1..=20 {
+            // Use max count for each item type and multiply by the item type value
+            weighted_sum += a[i].max(b[i]) * i; 
+        }
+
+        // Output the calculated weighted sum
+        println!("{}", weighted_sum);
+        
+        // Reset counts for the next iteration
+        a = [0; 21];
+        b = [0; 21];
+    }
+}

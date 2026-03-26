@@ -1,0 +1,100 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01545/p01545_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01545/p01545_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (35884625) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01545/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:51:61:
+called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+struct SegmentTree {
+    size: usize,
+    data: Vec<i32>,
+}
+
+impl SegmentTree {
+    fn new(size: usize) -> Self {
+        let data = vec![0; size * 4]; // Allocate space for the segment tree
+        SegmentTree { size, data }
+    }
+
+    fn update(&mut self, idx: usize, value: i32, node: usize, start: usize, end: usize) {
+        if start == end {
+            self.data[node] = value; // Leaf node
+        } else {
+            let mid = (start + end) / 2;
+            if idx <= mid {
+                self.update(idx, value, node * 2 + 1, start, mid);
+            } else {
+                self.update(idx, value, node * 2 + 2, mid + 1, end);
+            }
+            self.data[node] = self.data[node * 2 + 1].max(self.data[node * 2 + 2]); // Update the current node
+        }
+    }
+
+    fn query(&self, l: usize, r: usize, node: usize, start: usize, end: usize) -> i32 {
+        if r < start || end < l {
+            return 0; // Out of range
+        }
+        if l <= start && end <= r {
+            return self.data[node]; // Current segment is fully in range
+        }
+        let mid = (start + end) / 2;
+        let left_max = self.query(l, r, node * 2 + 1, start, mid);
+        let right_max = self.query(l, r, node * 2 + 2, mid + 1, end);
+        left_max.max(right_max) // Return the maximum value in the range
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap(); // Read number of houses
+    let mut positions = Vec::new();
+
+    for _ in 0..n {
+        let x: i32 = lines.next().unwrap().unwrap().parse().unwrap(); // Read position of each house
+        positions.push(x);
+    }
+
+    let mut seg_tree = SegmentTree::new(n);
+    let mut total_cost = 0;
+
+    for (i, &pos) in positions.iter().enumerate() {
+        seg_tree.update(i, pos, 0, 0, n - 1); // Update segment tree with house positions
+        let max_pos = seg_tree.query(0, i, 0, 0, n - 1); // Query maximum position up to current house
+        total_cost += (pos - max_pos).abs(); // Calculate cost based on distance moved
+    }
+
+    println!("{}", total_cost); // Output the total cost
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

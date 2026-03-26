@@ -1,0 +1,74 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock(); // Changed to mutable
+
+    // Read the number of datasets
+    let mut dataset_count = String::new();
+    reader.read_line(&mut dataset_count).unwrap();
+    let dataset_count: usize = dataset_count.trim().parse().unwrap();
+
+    for _ in 0..dataset_count {
+        let mut first_num = String::new();
+        let mut second_num = String::new();
+        
+        // Read the two numeric strings
+        reader.read_line(&mut first_num).unwrap();
+        reader.read_line(&mut second_num).unwrap();
+        
+        // Trim newline characters
+        let first_num = first_num.trim();
+        let second_num = second_num.trim();
+        
+        // Check for length constraints
+        if first_num.len() > 80 || second_num.len() > 80 {
+            println!("overflow");
+            continue;
+        }
+
+        // Convert strings to integer arrays
+        let f_num: Vec<u32> = first_num.chars().rev().map(|c| c.to_digit(10).unwrap()).collect();
+        let s_num: Vec<u32> = second_num.chars().rev().map(|c| c.to_digit(10).unwrap()).collect();
+        
+        let mut sum = Vec::new();
+        let mut carry = 0;
+        let max_length = f_num.len().max(s_num.len());
+
+        for i in 0..max_length {
+            let f_digit = *f_num.get(i).unwrap_or(&0);
+            let s_digit = *s_num.get(i).unwrap_or(&0);
+            let total = f_digit + s_digit + carry;
+
+            if total >= 10 {
+                carry = 1;
+                sum.push(total - 10);
+            } else {
+                carry = 0;
+                sum.push(total);
+            }
+        }
+
+        // Handle final carry
+        if carry > 0 {
+            if sum.len() >= 80 {
+                println!("overflow");
+                continue;
+            }
+            sum.push(carry);
+        }
+
+        // Print the result
+        if sum.len() > 80 {
+            println!("overflow");
+        } else {
+            // Print the sum in reverse order
+            for digit in sum.iter().rev() {
+                print!("{}", digit);
+            }
+            println!();
+        }
+    }
+}
+```

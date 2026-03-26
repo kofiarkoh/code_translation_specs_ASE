@@ -1,0 +1,87 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a sequence of integers to determine if a specific ordering condition is met based on a set of constraints.
+- **What problem it solves**: It checks if a sequence of operations can be completed in a valid order, ensuring that each operation is performed only when its prerequisites are satisfied.
+- **Core behavior**: The program reads a series of integers representing operations, tracks their completion status, and verifies if they can be executed in a sequential manner without violating the defined constraints.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Total number of operations that can be performed.
+  - `m`: Total number of unique operations.
+  - `q`: Total number of operations to be processed.
+  - `a`: An array of integers representing the sequence of operations.
+- **Data types**:
+  - `int` for `n`, `m`, `q`, and array elements.
+  - `data` struct for tracking operation states.
+  - `bool` for completion status.
+- **Valid ranges or constraints**:
+  - `n`, `m`, `q` must be non-negative integers.
+  - The values in array `a` must be within the range `[0, m]`.
+- **Assumptions about inputs**: It is assumed that the input values are provided correctly and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program outputs either "Yes" or "No" based on whether the operations can be completed in the required order.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing either "Yes" or "No".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the correct format.
+  - The values of `n`, `m`, and `q` must be initialized and valid.
+- **Explicit logical constraints**: The operations in array `a` must reference valid indices within the range of `0` to `m`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output "Yes" if all operations can be completed in the required order; otherwise, it will output "No".
+- **State changes**: The program allocates memory for arrays and structures, which are released upon program termination.
+- **Return guarantees**: The output will always be either "Yes" or "No".
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `count` field in the `data` struct must not exceed `n` at any point.
+  - The linked list structure of `data` must maintain valid pointers throughout execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on correct input.
+- **Edge-case behavior**: If `q` is `0`, the program will output "Yes" since there are no operations to process.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `data` struct can be in a state where `count` is between `0` and `n`, and the linked list can be traversed from the head to the tail.
+- **State changes caused by execution**: The `count` values of operations are updated based on the input sequence, and the linked list structure is modified as operations are processed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(q + m), where `q` is the number of operations processed and `m` is the number of unique operations.
+- **Space complexity**: The space complexity is O(m + q) due to the allocation of arrays and linked list structures.
+- **Performance assumptions**: The program assumes that memory allocation succeeds and that the input size is manageable within system limits.
+```

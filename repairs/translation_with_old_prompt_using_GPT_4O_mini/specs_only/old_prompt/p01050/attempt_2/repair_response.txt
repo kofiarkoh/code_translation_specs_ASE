@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read input string from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Trim the input to remove any trailing newline characters
+    let input = input.trim();
+
+    // Ensure the input does not exceed 99 characters
+    if input.len() > 99 {
+        // This would lead to undefined behavior in C; we will just return 0 for safety
+        println!("0");
+        return;
+    }
+
+    // Character frequency array for ASCII characters
+    let mut frequency = [0; 256];
+    let mut unique_count = 0;
+    let mut consecutive_count = 1;
+
+    // Iterate through the input string
+    for (i, c) in input.chars().enumerate() {
+        // Count unique characters
+        if frequency[c as usize] == 0 {
+            unique_count += 1;
+        }
+        frequency[c as usize] += 1;
+
+        // Check for consecutive characters
+        if i > 0 && c == input.chars().nth(i - 1).unwrap() {
+            consecutive_count += 1;
+        } else {
+            // If the consecutive count exceeds 2, apply penalty
+            if consecutive_count > 2 {
+                unique_count -= (consecutive_count - 2);
+            }
+            consecutive_count = 1; // Reset for the new character
+        }
+    }
+
+    // Final check for the last sequence of characters
+    if consecutive_count > 2 {
+        unique_count -= (consecutive_count - 2);
+    }
+
+    // Ensure unique_count does not go below zero
+    if unique_count < 0 {
+        unique_count = 0;
+    }
+
+    // Output the result
+    // The expected output is the total number of unique characters
+    // plus the total number of characters in the input string
+    let total_score = unique_count + input.len();
+    println!("{}", total_score);
+}
+```

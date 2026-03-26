@@ -1,0 +1,62 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX_N: usize = 4001;
+const INF: i64 = 0x3f3f3f3f3f3f3f3f; // A large value to represent infinity
+
+fn get_long(p: &mut std::str::Chars) -> i64 {
+    let mut n = 0;
+    while let Some(c) = p.next() {
+        if c < '0' || c > '9' {
+            break;
+        }
+        n = (n << 3) + (n << 1) + (c as i64 - '0' as i64);
+    }
+    n
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut buf = String::new();
+    reader.read_line(&mut buf).unwrap();
+    let n: usize = buf.trim().parse().unwrap();
+
+    buf.clear();
+    reader.read_line(&mut buf).unwrap();
+    let mut p = buf.chars();
+    
+    let mut w = vec![0; n];
+    w[0] = get_long(&mut p);
+    for i in 1..n {
+        w[i] = w[i - 1] + get_long(&mut p);
+    }
+
+    let mut dp = vec![vec![INF; MAX_N]; MAX_N];
+    let mut k = vec![vec![0; MAX_N]; MAX_N];
+
+    for i in 0..n {
+        dp[i][i] = 0;
+        k[i][i] = i;
+    }
+
+    for a in 1..=n {
+        for i in 0..n - a + 1 {
+            let j = i + a - 1;
+            for b in k[i][j - 1]..=k[i + 1][j] {
+                let mut c = dp[i][b] + dp[b + 1][j] + w[j];
+                if i > 0 {
+                    c -= w[i - 1];
+                }
+                if dp[i][j] > c {
+                    dp[i][j] = c;
+                    k[i][j] = b;
+                }
+            }
+        }
+    }
+
+    println!("{}", dp[0][n - 1]);
+}
+```

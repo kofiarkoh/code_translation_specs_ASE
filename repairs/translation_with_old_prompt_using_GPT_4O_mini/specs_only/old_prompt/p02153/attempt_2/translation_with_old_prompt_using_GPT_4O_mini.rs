@@ -1,0 +1,96 @@
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct State {
+    cost: usize,
+    position: (usize, usize),
+}
+
+// Implementing Ord and PartialOrd for State to use in the priority queue
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // We want the lowest cost to come out first
+        other.cost.cmp(&self.cost)
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read grid dimensions
+    let first_line = lines.next().unwrap().unwrap();
+    let dimensions: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap()).collect();
+    let (h, w) = (dimensions[0], dimensions[1]);
+
+    // Read movement costs
+    let second_line = lines.next().unwrap().unwrap();
+    let costs: Vec<usize> = second_line.split_whitespace()
+        .map(|s| s.parse().unwrap()).collect();
+    let (a, b) = (costs[0], costs[1]);
+
+    // Read the grid
+    let mut grid = Vec::new();
+    let mut start = (0, 0);
+    let mut goal = (0, 0);
+    
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        let row: Vec<char> = line.chars().collect();
+        for j in 0..w {
+            if row[j] == 's' {
+                start = (i, j);
+            } else if row[j] == 'g' {
+                goal = (i, j);
+            }
+        }
+        grid.push(row);
+    }
+
+    // Dijkstra's algorithm
+    let mut vis = vec![vec![false; w]; h];
+    let mut pq = BinaryHeap::new();
+    pq.push(State { cost: 0, position: start });
+
+    // Directions for movement: right, down, left, up
+    let directions = [(0, 1), (1, 0), (0, 1usize.wrapping_neg()), (1usize.wrapping_neg(), 0)];
+
+    while let Some(State { cost, position }) = pq.pop() {
+        let (x, y) = position;
+
+        // If we reached the goal
+        if position == goal {
+            println!("{}", cost);
+            return;
+        }
+
+        // If already visited, skip
+        if vis[x][y] {
+            continue;
+        }
+        vis[x][y] = true;
+
+        // Explore neighbors
+        for &(dx, dy) in &directions {
+            let (nx, ny) = (x.wrapping_add(dx), y.wrapping_add(dy));
+            if nx < h && ny < w && !vis[nx][ny] {
+                let movement_cost = if grid[nx][ny] == '*' { b } else { a };
+                let new_cost = cost + movement_cost;
+                pq.push(State { cost: new_cost, position: (nx, ny) });
+            }
+        }
+    }
+
+    // If we exit the loop without finding the goal
+    println!("INF");
+}

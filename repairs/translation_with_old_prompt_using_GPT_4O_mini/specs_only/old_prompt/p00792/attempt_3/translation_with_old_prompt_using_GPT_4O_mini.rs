@@ -1,0 +1,56 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of mirrors
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Initialize the mirror configuration
+    let mut mirrors: HashMap<(i32, i32), char> = HashMap::new();
+
+    // Read mirror configurations
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        let s: char = parts[0].chars().next().unwrap();
+        let x: i32 = parts[1].parse().unwrap();
+        let y: i32 = parts[2].parse().unwrap();
+        mirrors.insert((x, y), s);
+    }
+
+    // Starting position and direction
+    let mut x = 0;
+    let mut y = 0;
+    let mut direction = (1, 0); // Moving right initially
+
+    // Simulate the movement
+    loop {
+        // Move in the current direction
+        x += direction.0;
+        y += direction.1;
+
+        // Check for boundary conditions
+        if x < 0 || x >= 800 || y < 0 || y >= 800 {
+            // If out of bounds, break the loop
+            break;
+        }
+
+        // Check if there is a mirror at the new position
+        if let Some(&mirror_type) = mirrors.get(&(x, y)) {
+            // Reflect the direction based on the mirror type
+            match mirror_type {
+                'x' => direction = (direction.0, -direction.1), // Vertical mirror
+                'y' => direction = (-direction.0, direction.1), // Horizontal mirror
+                _ => unreachable!(), // Should not happen as per specification
+            }
+        }
+    }
+
+    // Output the final coordinates
+    println!("{} {}", x, y);
+}

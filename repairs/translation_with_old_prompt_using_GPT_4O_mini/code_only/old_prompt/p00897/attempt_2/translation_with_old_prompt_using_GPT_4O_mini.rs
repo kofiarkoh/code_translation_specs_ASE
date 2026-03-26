@@ -1,0 +1,260 @@
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+use std::io::{self, BufRead};
+
+const HASHSIZ: usize = 29989;
+const QMAX: usize = 1200000;
+const MAX: usize = 6002;
+
+#[derive(Clone)]
+struct HashEntry {
+    s: Option<String>,
+    id: i16,
+}
+
+struct QueueEntry {
+    t: i32,
+    s: i16,
+    c: i16,
+}
+
+struct MinHeap {
+    que: Vec<QueueEntry>,
+    qsize: usize,
+}
+
+impl MinHeap {
+    fn new() -> Self {
+        MinHeap {
+            que: Vec::with_capacity(QMAX),
+            qsize: 0,
+        }
+    }
+
+    fn min_heapify(&mut self, i: usize) {
+        let l = self.left(i);
+        let r = self.right(i);
+        let mut min = i;
+
+        if l < self.qsize && self.que[l].t < self.que[min].t {
+            min = l;
+        }
+        if r < self.qsize && self.que[r].t < self.que[min].t {
+            min = r;
+        }
+        if min != i {
+            self.que.swap(i, min);
+            self.min_heapify(min);
+        }
+    }
+
+    fn deq(&mut self) {
+        if self.qsize > 0 {
+            self.que[0] = self.que[self.qsize - 1].clone();
+            self.qsize -= 1;
+            self.min_heapify(0);
+        }
+    }
+
+    fn enq(&mut self, s: i16, t: i32, c: i16) {
+        let i = self.qsize;
+        self.que.push(QueueEntry { s, t, c });
+        self.qsize += 1;
+
+        let mut i = i;
+        while i > 0 {
+            let parent = self.parent(i);
+            if self.que[parent].t > self.que[i].t {
+                self.que.swap(i, parent);
+                i = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn parent(&self, i: usize) -> usize {
+        i >> 1
+    }
+
+    fn left(&self, i: usize) -> usize {
+        i << 1
+    }
+
+    fn right(&self, i: usize) -> usize {
+        (i << 1) + 1
+    }
+}
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.lock().read_line(&mut input).unwrap();
+    input.trim().parse().unwrap()
+}
+
+fn ins(buf: &mut String) {
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.lock().read_line(&mut input).unwrap();
+    *buf = input.trim().to_string();
+}
+
+fn dijkstra(n: usize, cap: i16, start: i16, goal: i16, dist: &mut Vec<Vec<i32>>, heap: &mut MinHeap, lpg: &[bool], to: &[Vec<i16>], dd: &[Vec<i16>]) -> i32 {
+    for i in 0..n {
+        for j in 0..=cap {
+            dist[i][j as usize] = i32::MAX;
+        }
+    }
+    heap.enq(start, 0, cap);
+    dist[start as usize][cap as usize] = 0;
+
+    while heap.qsize > 0 {
+        let QueueEntry { s, t, c } = heap.que[0].clone();
+        heap.deq();
+
+        if s == goal {
+            return t;
+        }
+
+        if dist[s as usize][c as usize] < t {
+            continue;
+        }
+
+        let current_cap = if lpg[s as usize] { cap } else { c };
+        for (i, &e) in to[s as usize].iter().enumerate() {
+            let nd = t + dd[s as usize][i] as i32; // Cast to i32 for addition
+            let nc = current_cap - dd[s as usize][i];
+            if nc < 0 {
+                continue;
+            }
+            if dist[e as usize][nc as usize] > nd {
+                dist[e as usize][nc as usize] = nd;
+                heap.enq(e, nd, nc);
+            }
+        }
+    }
+    -1
+}
+
+fn main() {
+    let mut hash: Vec<HashEntry> = vec![HashEntry { s: None, id: -1 }; HASHSIZ + 2];
+    let mut dist = vec![vec![i32::MAX; 2002]; MAX];
+    let mut heap = MinHeap::new();
+    let mut lpg = vec![false; MAX];
+    let mut to: Vec<Vec<i16>> = vec![Vec::new(); MAX];
+    let mut dd: Vec<Vec<i16>> = vec![Vec::new(); MAX];
+    let mut hi = vec![0; MAX];
+    let mut memo = Vec::new();
+    let mut city = vec![String::new(); MAX];
+
+    loop {
+        let n = in_number();
+        if n == 0 {
+            break;
+        }
+        let m = in_number();
+        let cap = 10 * in_number();
+
+        hash.iter_mut().for_each(|entry| {
+            entry.s = None;
+            entry.id = -1;
+        });
+
+        ins(&mut city[0]);
+        ins(&mut city[1]);
+        insert(&mut hash, &city[0], 0);
+        insert(&mut hash, &city[1], 1);
+
+        hi.fill(0);
+        let mut sz = 2;
+        let mut j = 0;
+        for _ in 0..n {
+            ins(&mut city[sz]);
+            let a = insert(&mut hash, &city[sz], sz.try_into().unwrap()); // Convert to i16
+            let a = if a < 0 { sz.try_into().unwrap() } else { a }; // Convert to i16
+            memo.push(a);
+            hi[a as usize] += 1;
+
+            sz += 1;
+            ins(&mut city[sz]);
+            let b = insert(&mut hash, &city[sz], sz.try_into().unwrap()); // Convert to i16
+            let b = if b < 0 { sz.try_into().unwrap() } else { b }; // Convert to i16
+            memo.push(b);
+            hi[b as usize] += 1;
+
+            memo.push(in_number());
+            j += 3;
+        }
+
+        for a in 0..sz {
+            if hi[a] > 0 {
+                to[a].resize(hi[a] as usize * 2, 0);
+                dd[a].resize(hi[a] as usize * 2, 0);
+            }
+        }
+
+        hi.fill(0);
+        j = 0;
+        while n > 0 {
+            let a = memo[j];
+            let b = memo[j + 1];
+            let c = memo[j + 2];
+            j += 3;
+
+            let i = hi[a as usize];
+            to[a as usize][i as usize] = b;
+            dd[a as usize][i as usize] = c;
+            hi[a as usize] += 1;
+
+            let i = hi[b as usize];
+            to[b as usize][i as usize] = a;
+            dd[b as usize][i as usize] = c;
+            hi[b as usize] += 1;
+
+            n -= 1;
+        }
+
+        lpg.fill(false);
+        for _ in 0..m {
+            let mut buf = String::new();
+            ins(&mut buf);
+            let a = insert(&mut hash, &buf, -1);
+            if a >= 0 {
+                lpg[a as usize] = true;
+            }
+        }
+
+        println!("{}", dijkstra(sz, cap, 0, 1, &mut dist, &mut heap, &lpg, &to, &dd));
+
+        for a in 0..sz {
+            if hi[a] > 0 {
+                to[a].clear();
+                dd[a].clear();
+            }
+        }
+    }
+}
+
+fn insert(hash: &mut Vec<HashEntry>, s: &str, id: i16) -> i16 {
+    let mut i: u64 = 0;
+    for byte in s.bytes() {
+        i = (i << 6) + byte as u64;
+    }
+    let index = (i % HASHSIZ as u64) as usize;
+    let mut tp = index;
+
+    while hash[tp].s.is_some() {
+        if hash[tp].s.as_ref().unwrap() == s {
+            return hash[tp].id;
+        }
+        tp += 1;
+        if tp == hash.len() {
+            tp = 0;
+        }
+    }
+    hash[tp].s = Some(s.to_string());
+    hash[tp].id = id;
+    -1
+}

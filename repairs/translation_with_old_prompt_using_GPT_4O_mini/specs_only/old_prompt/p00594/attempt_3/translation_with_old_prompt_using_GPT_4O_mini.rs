@@ -1,0 +1,67 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    // Read the first line to get the number of integers
+    let n: usize = match input.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0), // Use unwrap_or to handle parse errors
+        _ => return,
+    };
+
+    // If n is 0, terminate without processing
+    if n == 0 {
+        return;
+    }
+
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    
+    // Read the integers into the array
+    for _ in 0..n {
+        if let Some(Ok(line)) = input.next() {
+            if let Ok(value) = line.trim().parse::<i32>() { // Handle parse errors gracefully
+                a.push(value);
+            }
+        }
+    }
+
+    // Ensure we have read the expected number of integers
+    if a.len() != n {
+        println!("NO COLOR");
+        return;
+    }
+
+    // Sort the array to find the longest sequence of identical integers
+    a.sort();
+
+    let mut max_count = 1;
+    let mut current_count = 1;
+    let mut dominant_color = a[0];
+
+    // Iterate through the sorted array to find the longest sequence
+    for i in 1..n {
+        if a[i] == a[i - 1] {
+            current_count += 1;
+        } else {
+            if current_count > max_count {
+                max_count = current_count;
+                dominant_color = a[i - 1];
+            }
+            current_count = 1; // Reset count for the new number
+        }
+    }
+
+    // Check the last sequence
+    if current_count > max_count {
+        max_count = current_count;
+        dominant_color = a[n - 1];
+    }
+
+    // Output the result based on the count of the dominant color
+    if max_count > n / 2 {
+        println!("{}", dominant_color);
+    } else {
+        println!("NO COLOR");
+    }
+}

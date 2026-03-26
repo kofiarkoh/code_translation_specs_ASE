@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to find the minimum cost of traveling through a series of nodes (cities) connected by roads, considering both direct and indirect paths.
+- **What problem it solves**: It addresses the problem of determining the least expensive route between a set of specified nodes in a weighted graph, where edges can represent either direct roads or indirect connections.
+- **Core behavior**: The program reads a graph's structure, processes the connections, and computes the minimum travel cost using dynamic programming and the Floyd-Warshall algorithm for shortest paths.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes (cities).
+  - `M`: Number of edges (connections).
+  - `R`: Number of specified nodes to visit in order.
+  - `x`, `y`: Nodes connected by an edge.
+  - `s`: Cost associated with the edge.
+  - `t`: Type of edge ('L' for a direct road, 'S' for a shortcut).
+- **Data types**: 
+  - `int` for all numerical inputs.
+  - `char` for edge type.
+- **Valid ranges or constraints**:
+  - `N` and `M` must be positive integers.
+  - `x` and `y` must be within the range [0, N-1].
+  - `s` must be a non-negative integer.
+  - `R` must be a positive integer.
+- **Assumptions about inputs**: 
+  - The input is well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum travel cost.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must contain valid integers for `N`, `M`, and `R`.
+  - The graph must have at least one node and one edge.
+- **Explicit logical constraints**: 
+  - The number of edges `M` must not exceed the maximum possible edges for `N` nodes.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the minimum cost to traverse the specified nodes.
+- **State changes**: The internal state of the distance matrices and dynamic programming table will be modified during execution.
+- **Return guarantees**: The output will be the minimum cost or a predefined constant if no valid path exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The distance matrices `S` and `L` will always represent the shortest paths between nodes as computed by the Floyd-Warshall algorithm.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not implement exception handling.
+- **Edge-case behavior**: If no valid paths exist, the output may be the initialized constant `INF`, indicating no feasible route.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the distance matrices and the dynamic programming table throughout execution.
+- **State changes caused by execution**: The matrices `S` and `L` are updated to reflect the shortest paths, and the `dp` table is populated with minimum costs.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is O(N^3) due to the Floyd-Warshall algorithm and the dynamic programming approach.
+- **Space complexity**: The space complexity is O(N^2) for the distance matrices and O(R * N) for the dynamic programming table.
+- **Performance assumptions**: The program is expected to perform efficiently for moderate values of `N` and `M`, but may become slow for large inputs due to cubic time complexity.
+```

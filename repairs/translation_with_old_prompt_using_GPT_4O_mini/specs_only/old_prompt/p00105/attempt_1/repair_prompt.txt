@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of strings and their associated page numbers, counting occurrences and sorting the strings alphabetically.
+- **What problem it solves**: It allows for the aggregation of page numbers associated with each unique string and outputs the strings in sorted order along with their respective page numbers.
+- **Core behavior**: The program reads strings and page numbers from input, tracks the number of occurrences of each string, and outputs the strings sorted alphabetically with their associated page numbers.
+
+## 2. Inputs
+- **Parameters**: 
+  - Strings (up to `WDMAX` characters)
+  - Page numbers (integers)
+- **Data types**: 
+  - `char` for strings
+  - `int` for page numbers
+- **Valid ranges or constraints**: 
+  - Strings must not exceed `WDMAX` (31 characters).
+  - Page numbers must be non-negative integers and less than `PGMAX` (1001).
+- **Assumptions about inputs**: Input is provided in pairs of strings and integers until EOF.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to standard output.
+- **Side effects**: Outputs sorted strings and their associated page numbers to the console.
+- **Output format/schema**: Each unique string is printed on a new line, followed by its associated page numbers (space-separated), with the last page number printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The input must be formatted correctly as pairs of strings and integers.
+- **Explicit logical constraints**: The program assumes that the input will not exceed the maximum limits defined by `MAX`, `PGMAX`, and `WDMAX`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed all unique strings in alphabetical order, each followed by their associated page numbers.
+- **State changes**: The internal array `idx` will be populated with unique strings and their page numbers.
+- **Return guarantees**: The program will terminate after processing all input without returning a value.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `idx` array will only contain unique strings and their corresponding page numbers.
+  - The count of unique strings (`rgnum`) will not exceed `MAX`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input format.
+- **Edge-case behavior**: If no input is provided, the program will output nothing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `idx` array can transition from empty to populated with unique strings and their page numbers.
+- **State changes caused by execution**: Each valid input pair modifies the state of the `idx` array, either by adding a new entry or updating an existing one.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation has a time complexity of O(n^2) due to the nested loops used for sorting.
+- **Space complexity**: The space complexity is O(n) for storing the unique strings and their page numbers in the `idx` array.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate input sizes but may degrade for larger datasets due to the sorting algorithm used.
+```

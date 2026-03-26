@@ -1,0 +1,68 @@
+```rust
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+    ratio: f64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let mut w: f64 = parts.next().unwrap().parse().unwrap();
+
+    let mut items: Vec<Item> = Vec::new();
+    let mut ans: f64 = 0.0;
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let weight: i32 = parts.next().unwrap().parse().unwrap();
+        let value: i32 = parts.next().unwrap().parse().unwrap();
+
+        if weight >= 0 && value <= 0 {
+            continue;
+        }
+        if weight < 0 && value > 0 {
+            ans += value as f64;
+            w -= weight as f64;
+        } else {
+            let item = Item {
+                weight: weight.abs(),
+                value: value.abs(),
+                ratio: value as f64 / weight.abs() as f64,
+            };
+            items.push(item);
+        }
+    }
+
+    items.sort_by(|a, b| {
+        if (b.ratio - a.ratio).abs() < 1e-8 {
+            Ordering::Equal
+        } else if a.ratio <= b.ratio {
+            Ordering::Greater
+        } else {
+            Ordering::Less
+        }
+    });
+
+    for item in items.iter() {
+        if w <= 0.0 {
+            break;
+        }
+        let x = (w / item.weight as f64).min(1.0);
+        w -= x * item.weight as f64;
+        ans += x * item.value as f64;
+    }
+
+    println!("{:.6}", ans);
+}
+```

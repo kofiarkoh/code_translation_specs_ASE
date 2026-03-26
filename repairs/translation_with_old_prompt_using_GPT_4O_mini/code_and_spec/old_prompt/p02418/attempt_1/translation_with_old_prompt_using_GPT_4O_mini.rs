@@ -1,0 +1,31 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut str1 = String::new();
+    let mut str2 = String::new();
+
+    // Read the first string
+    io::stdin().read_line(&mut str1).expect("Failed to read input");
+    // Read the second string
+    io::stdin().read_line(&mut str2).expect("Failed to read input");
+
+    // Trim the strings to remove any trailing newline characters
+    let str1 = str1.trim();
+    let str2 = str2.trim();
+
+    // Check the lengths to ensure they do not exceed the specified limits
+    if str1.len() > 100 || str2.len() > 100 {
+        eprintln!("Input strings must not exceed 100 characters.");
+        return;
+    }
+
+    // Concatenate str1 with itself
+    let concatenated = format!("{}{}", str1, str1);
+
+    // Check if str2 is a substring of the concatenated string
+    if concatenated.contains(str2) {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

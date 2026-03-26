@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn p(mut n: i32) -> i32 {
+    if n < 2 {
+        return 0; // Handle edge case for n < 2
+    }
+    
+    let mut t = 2; // Start with t = 2
+    let mut i = 2; // Start with i = 2
+    while i * i <= n {
+        if n % i != 0 {
+            t += 1; // Increment t if n is not divisible by i
+        }
+        i += 1; // Increment i
+    }
+    t - 2 // Return t - 2
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    while let Some(Ok(line)) = lines.next() {
+        let mut l: i32 = line.trim().parse().unwrap(); // Read l as mutable
+        let mut u = l; // Initialize u to l
+
+        // Decrement l until p(l) returns 0
+        while p(l) > 0 && l > 0 {
+            l -= 1;
+        }
+
+        // Increment u until p(u) returns 0
+        while p(u) > 0 {
+            u += 1;
+        }
+
+        // Print the difference
+        println!("{}", u - l);
+    }
+}

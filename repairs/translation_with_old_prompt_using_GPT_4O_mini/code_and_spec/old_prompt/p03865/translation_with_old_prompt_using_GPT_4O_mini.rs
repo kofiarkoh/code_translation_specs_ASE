@@ -1,0 +1,26 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Create a buffer to hold up to 114514 characters
+    let mut buf = [0u8; 114514];
+    
+    // Read from standard input
+    let n = io::stdin().read(&mut buf).expect("Failed to read from stdin");
+    
+    // Check if there is at least one character
+    if n == 0 {
+        // If no input, we do not output anything as per the spec's behavior on invalid input
+        return;
+    }
+
+    // Determine the first and last characters
+    let first_char = buf[0] as char;
+    let last_char = buf[n - 1] as char;
+
+    // Output "First" if they are the same, otherwise "Second"
+    if first_char == last_char {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}

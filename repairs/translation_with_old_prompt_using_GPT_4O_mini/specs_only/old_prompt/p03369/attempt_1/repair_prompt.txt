@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a string of three characters and counts the occurrences of the character 'o' within that string.
+- **What problem it solves**: It calculates a score based on the number of 'o' characters in the input string, providing a simple scoring mechanism.
+- **Core behavior**: The program outputs a score that starts at 700 and increases by 100 for each 'o' found in the input string.
+
+## 2. Inputs
+- **Parameters**: 
+  - A single string input from the user.
+- **Data types**: 
+  - `char S[3]`: A character array of fixed size 3.
+- **Valid ranges or constraints**: 
+  - The input string must be exactly 3 characters long.
+- **Assumptions about inputs**: 
+  - The input will be a valid string of characters, and no additional validation is performed.
+
+## 3. Outputs
+- **Return values**: 
+  - The program returns an integer score based on the input.
+- **Side effects**: 
+  - The program prints the calculated score to the standard output.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - The input must be provided in the expected format (a string of exactly 3 characters).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed a score based on the input string.
+- **State changes**: 
+  - No persistent state changes occur; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always be an integer score.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The input string will always be treated as a character array of size 3.
+- **Class-level invariants**: 
+  - Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior on invalid input (e.g., less than or more than 3 characters) is not defined; it may lead to undefined behavior.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled; the program may crash or produce incorrect results on invalid input.
+- **Edge-case behavior**: 
+  - If fewer than 3 characters are entered, the program may read uninitialized memory, leading to unpredictable results.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as there are no objects; the program operates with local variables.
+- **State changes caused by execution**: 
+  - The variable `m` changes based on the count of 'o' characters in the input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(1) since the input size is fixed at 3 characters.
+- **Space complexity**: 
+  - O(1) as the space used does not depend on input size.
+- **Performance assumptions**: 
+  - The program is expected to execute in constant time due to the fixed input size.
+```

@@ -1,0 +1,240 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates a ski resort management system that processes course data and analyzes ski patterns based on user input.
+- **What problem it solves**: It allows users to input the dimensions of a ski course and the course data, then analyzes the data to compute a specific pattern sum related to ski paths.
+- **Core behavior**: The program continuously prompts the user for course dimensions and data, processes this data, and outputs a computed sum based on the analysis of the ski course.
+
+## 2. Inputs
+- **Parameters**:
+  - `X`: Number of courses (rows).
+  - `Y`: Number of data points per course (columns).
+  - `course`: A 2D array representing the ski course data.
+- **Data types**:
+  - `X` and `Y`: `int`
+  - `course`: `int**` (pointer to pointer of integers)
+- **Valid ranges or constraints**:
+  - `X` and `Y` must be non-negative integers.
+- **Assumptions about inputs**:
+  - The user will provide valid integers for `X` and `Y`.
+  - The course data will be provided in a specific format (space-separated integers).
+
+## 3. Outputs
+- **Return values**: 
+  - The `SkiResort` function returns `1` to continue or `0` to terminate the program.
+- **Side effects**: 
+  - Outputs the computed sum of ski patterns to the standard output.
+- **Output format/schema**: 
+  - A single integer printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must be run in an environment that supports standard input and output.
+  - The user must provide valid input for course dimensions and data.
+- **Explicit logical constraints**:
+  - The input for `X` and `Y` must not be negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output a computed sum based on the provided course data.
+- **State changes**:
+  - The internal state of the program will reflect the processed course data.
+- **Return guarantees**:
+  - The function will return `0` if both `X` and `Y` are `0`, otherwise it will return `1`.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The dimensions `X` and `Y` must always be non-negative integers during execution.
+- **Class-level invariants**: 
+  - Not applicable as the code does not utilize classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**:
+  - The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect outputs.
+- **Exceptions thrown?**:
+  - No explicit exceptions are thrown; however, invalid input may cause runtime errors.
+- **Edge-case behavior**:
+  - If `X` and `Y` are both `0`, the program terminates without further processing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**:
+  - The program can be in a state of waiting for user input or processing input data.
+- **State changes caused by execution**:
+  - The state changes from waiting for input to processing input and finally to outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(X * Y^2) due to nested loops in the `analyzeCourse` function.
+- **Space complexity**: 
+  - The space complexity is O(X * (Y + 2)) for the `pattern` array.
+- **Performance assumptions**:
+  - The program assumes that the input sizes are manageable within the constraints of typical stack and heap sizes.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+void listen(char str[],int size);
+void listenSize(int *X,int *Y);
+void listenCourse(int **course,int X,int Y);
+void analyzeCourse(int **course,int X,int Y);
+
+int SkiResort();
+
+int main()
+{
+	while(SkiResort());
+	return 0;
+}
+
+int SkiResort()
+{
+	int X,Y;
+	listenSize(&X,&Y);
+	if(X==0 && Y==0)
+	{
+		return 0;
+	}
+	int course[X][Y];
+	int *pCourse[X];
+	int i;
+	for(i=0;i<X;i++)
+	{
+		pCourse[i]=course[i];
+	}
+	listenCourse(pCourse,X,Y);
+	analyzeCourse(pCourse,X,Y);
+	
+	return 1;
+}
+
+void listen(char str[],int size)
+{
+	for(;1;)
+	{
+		fgets(str,size,stdin);
+		if(strcmp(str,"\n")!=0)
+		{
+			break;
+		}
+	}
+}
+
+void listenSize(int *X,int *Y)
+{
+	char str[64];
+	listen(str,sizeof(str));
+	
+	*X=atoi(strtok(str," "));
+	*Y=atoi(strtok(NULL," "));
+}
+	
+
+void listenCourse(int **course,int X,int Y)
+{
+	char str[1024];
+	int i,j;
+	for(j=0;j<Y;j++)
+	{
+		listen(str,sizeof(str));
+		course[0][j]=atoi(strtok(str," "));
+		for(i=1;i<X;i++)
+		{
+			course[i][j]=atoi(strtok(NULL," "));
+		}
+	}
+}
+
+void analyzeCourse(int **course,int X,int Y)
+{
+	int i,j,k,m;
+	int pattern[X][Y+2];
+	for(i=0;i<X;i++)
+	{
+		for(j=0;j<Y+2;j++)
+		{
+			pattern[i][j]=0;
+		}
+	}
+	
+	for(i=0;i<X;i++)
+	{
+		if(course[i][0]==0)
+		{
+			pattern[i][0]=1;
+		}
+	}
+	for(j=0;j<Y-1;j++)
+	{
+		for(i=0;i<X;i++)
+		{
+			for(k=i-1;k<=i+1;k++)
+			{
+				if(k<0 || X<=k)
+				{
+					continue;
+				}
+				switch(course[k][j+1])
+				{
+				  case 0:
+					pattern[k][j+1]+=pattern[i][j];
+					break;
+				  case 1:
+					pattern[k][j+1]=0;
+					break;
+				  default:
+					if(k==i)
+					{
+						m=0;
+						while(j+3+m<Y)
+						{
+							if(course[k][j+3+m]==2)
+							{
+								m+=2;
+							}
+							else
+							{
+								break;
+							}
+						}
+						pattern[k][j+3+m]+=pattern[i][j];
+					}
+				}
+			}
+		}
+	}
+	int sum=0;
+	for(i=0;i<X;i++)
+	{
+		for(k=Y-1;k<=Y+1;k++)
+		{
+			sum+=pattern[i][k];
+		}
+	}
+	printf("%d\n",sum);
+}
+=== C CODE END ===

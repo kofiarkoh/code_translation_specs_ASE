@@ -1,0 +1,95 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code computes and prints the longest common subsequence (LCS) of two input strings.
+- **What problem it solves**: It addresses the problem of finding the longest sequence that can appear in both strings in the same order, but not necessarily consecutively.
+- **Core behavior**: The program reads two strings from user input, calculates their LCS using dynamic programming, and outputs the LCS.
+
+## 2. Inputs
+- **Parameters**: 
+  - Two strings `s1` and `s2`.
+- **Data types**: 
+  - `s1` and `s2` are character arrays (strings).
+- **Valid ranges or constraints**: 
+  - Each string can be up to 2999 characters long (due to memory allocation of 3000).
+- **Assumptions about inputs**: 
+  - Input strings are null-terminated and do not exceed the allocated memory.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs directly to the console.
+- **Side effects**: 
+  - Outputs the longest common subsequence to the standard output.
+- **Output format/schema**: 
+  - The output is a string representing the LCS, printed character by character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - Memory allocation for `s1`, `s2`, and the dynamic programming array `arr` must succeed.
+- **Explicit logical constraints**: 
+  - The input must consist of valid strings (no special characters or whitespace).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The longest common subsequence of the two input strings is printed.
+- **State changes**: 
+  - Memory allocated for `s1`, `s2`, and `arr` is utilized.
+- **Return guarantees**: 
+  - The program will output the LCS if it exists; otherwise, it will output an empty string.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The lengths of `s1` and `s2` are correctly calculated and stored.
+  - The dynamic programming array `arr` is correctly populated based on the LCS algorithm.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly thrown; however, memory allocation failures may lead to segmentation faults.
+- **Edge-case behavior**: 
+  - If either string is empty, the output will be an empty string.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program transitions from an uninitialized state to a state where it has allocated memory and processed input.
+- **State changes caused by execution**: 
+  - Memory is allocated and populated, and the program state changes as it computes the LCS.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(n * m), where n and m are the lengths of `s1` and `s2`, respectively.
+- **Space complexity**: 
+  - The space complexity is O(n * m) due to the dynamic programming array.
+- **Performance assumptions**: 
+  - The program assumes that the input strings are of reasonable length to avoid excessive memory usage.
+```

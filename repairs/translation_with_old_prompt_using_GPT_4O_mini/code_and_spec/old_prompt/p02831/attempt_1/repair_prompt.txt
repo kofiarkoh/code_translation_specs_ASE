@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification for C-Snack
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates and outputs the smallest multiple of a given integer `a` that is also a multiple of another integer `b`.
+- **What problem it solves**: It determines the least common multiple (LCM) of two integers `a` and `b` by finding the smallest multiple of `a` that is divisible by `b`.
+- **Core behavior**: The program reads two integers from user input, iterates through multiples of `a`, and prints the first multiple that is divisible by `b`.
+
+## 2. Inputs
+- **Parameters**: 
+  - `a`: First integer input.
+  - `b`: Second integer input.
+- **Data types**: 
+  - Both `a` and `b` are of type `long int`.
+- **Valid ranges or constraints**: 
+  - `a` and `b` should be non-negative integers (0 ≤ a, b).
+- **Assumptions about inputs**: 
+  - The user will provide valid integer inputs as expected by the `scanf` function.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value of `0` upon successful execution.
+- **Side effects**: The program outputs a single `long int` value to the standard output, which is the smallest multiple of `a` that is also a multiple of `b`.
+- **Output format/schema**: The output is a single line containing the computed multiple, formatted as a long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input is available.
+  - The user must provide two valid integers.
+- **Explicit logical constraints**: 
+  - Both `a` and `b` must be non-negative integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - If `b` is greater than `0`, the program will output a valid multiple of `a`.
+- **State changes**: 
+  - The program does not maintain any persistent state; it only performs calculations and outputs results.
+- **Return guarantees**: 
+  - The program will always return `0` upon successful completion.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `a` and `b` remain unchanged throughout the execution of the program.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input is not a valid integer, the behavior is undefined; the program may not produce the expected output.
+- **Exceptions thrown?**: Not inferable from code; C does not have built-in exception handling.
+- **Edge-case behavior**: 
+  - If `b` is `0`, the program will enter an infinite loop since no multiple of `a` can be divisible by `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program does not maintain any state; it simply computes and outputs a result.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The worst-case time complexity is O(b) in terms of the number of iterations, as it may iterate up to `b + 1` times.
+- **Space complexity**: O(1), as the program uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate values of `b`, but may become inefficient for large values due to the linear search for multiples.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+//C-Snack
+
+#include <stdio.h>
+
+
+
+int main(void) {
+    long int a;
+    long int b;
+    scanf("%ld%ld", &a, &b);
+    //printf("%d%d\n", a, b);
+    long int i;
+    for (i = 1;i <= b + 1;i++) {
+        if ((a * i) % b == 0) {
+            printf("%ld\n", a * i);
+            break;
+          }
+
+      }
+    return 0;
+
+  }
+=== C CODE END ===

@@ -1,0 +1,42 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .map(|s| s.parse().expect("Invalid input"))
+        .collect();
+
+    let (a, b, c, d) = (nums[0], nums[1], nums[2], nums[3]);
+
+    // Initialize arrays to track the ranges
+    let mut a_range = [0; 101];
+    let mut b_range = [0; 101];
+    let mut overlap_count = 0;
+
+    // Mark the integers in the first range
+    for i in a..=b {
+        a_range[i as usize] = 1;
+    }
+
+    // Mark the integers in the second range
+    for i in c..=d {
+        b_range[i as usize] = 1;
+    }
+
+    // Count overlaps
+    for i in 0..=100 {
+        if a_range[i] == 1 && b_range[i] == 1 {
+            overlap_count += 1;
+        }
+    }
+
+    // Output the result based on the overlap count
+    if overlap_count == 0 {
+        println!("{}", overlap_count);
+    } else {
+        println!("{}", overlap_count - 1);
+    }
+}

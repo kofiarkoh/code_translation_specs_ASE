@@ -1,0 +1,142 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of items characterized by four attributes and outputs a selection of these items based on specific sorting and filtering criteria.
+- **What problem it solves**: It organizes and filters a collection of items to ensure that only a limited number of unique items are selected based on their attributes.
+- **Core behavior**: The program reads multiple sets of items, sorts them by specific criteria, and outputs a limited selection of items based on their uniqueness and predefined rules.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of items to process.
+  - `TT[i]`: Array of items, each with four attributes: `I`, `U`, `A`, and `P`.
+- **Data types**: 
+  - `int` for all parameters and attributes.
+- **Valid ranges or constraints**: 
+  - `n` must be greater than 0 and less than or equal to 300.
+  - `U` must be an integer within the range of 0 to 1000.
+- **Assumptions about inputs**: 
+  - Input values for `I`, `U`, `A`, and `P` are valid integers as per the defined constraints.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: Outputs selected item identifiers to the standard output.
+- **Output format/schema**: Each selected item identifier is printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid integer input for `n` and the attributes of each item.
+  - The input must not exceed the defined limits (e.g., `n` ≤ 300).
+- **Explicit logical constraints**: The input must be terminated by a `0` for the program to exit gracefully.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program outputs a maximum of 26 item identifiers based on the filtering criteria.
+- **State changes**: The arrays `UU` and `SS` are populated based on the processed items.
+- **Return guarantees**: The program will output the identifiers of the selected items or nothing if no valid items are found.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `TT` will always contain the items read from input.
+  - The counts in `UU` will accurately reflect the number of times each unique `U` value has been encountered.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or infinite loops.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on valid input.
+- **Edge-case behavior**: If `n` is 0, the program exits without processing any items.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in a state of waiting for input, processing input, or outputting results.
+- **State changes caused by execution**: 
+  - The state transitions from input collection to sorting and filtering, and finally to outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation has a time complexity of O(n^2) due to the nested loops.
+- **Space complexity**: The space complexity is O(n) for storing the items and O(1) for auxiliary variables.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size of 300 items.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+typedef struct{
+  int I;
+  int U;
+  int A;
+  int P;
+}T;
+
+T TT[300],tmp;
+
+int main()
+{
+  int i,j,n,UU[1001],SS[1001],head;
+
+  while(1){
+    scanf("%d",&n);   
+    if(n==0)break;
+    for(i=0;i<1001;i++)UU[i]=0;
+    for(i=0;i<n;i++){
+      scanf("%d%d%d%d",&TT[i].I,&TT[i].U,&TT[i].A,&TT[i].P);
+    }  
+    for(i=0;i<n;i++){
+      for(j=n-1;j>i;j--){
+	if(TT[j].A>TT[j-1].A){
+          tmp=TT[j];
+	  TT[j]=TT[j-1];
+	  TT[j-1]=tmp;
+	}
+        else if(TT[j].A==TT[j-1].A && TT[j].P<TT[j-1].P){
+	  tmp=TT[j];
+	  TT[j]=TT[j-1];
+	  TT[j-1]=tmp;
+	}
+        else if(TT[j].A==TT[j-1].A && TT[j].P==TT[j-1].P && TT[j].I<TT[j-1].I){
+	  tmp=TT[j];
+	  TT[j]=TT[j-1];
+	  TT[j-1]=tmp;
+	}
+      }
+    }
+    for(i=0,head=0;i<n;i++){
+      UU[TT[i].U]++;
+      if(head<10 && UU[TT[i].U]<=3){
+        SS[head]=TT[i].I;
+	head++;
+      }
+      else if(head<20 && UU[TT[i].U]<=2){ 
+	SS[head]=TT[i].I;
+	head++;
+      }
+      else if(head<26 && UU[TT[i].U]<=1){
+ 	SS[head]=TT[i].I;
+	head++;
+      }
+    }
+    for(i=0;i<head;i++)printf("%d\n",SS[i]);
+  }
+  return 0;
+}
+=== C CODE END ===

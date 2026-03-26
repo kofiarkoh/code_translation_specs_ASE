@@ -1,0 +1,35 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the three integers from the input
+    let mut nums = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect::<Vec<i32>>();
+
+    // Ensure we have exactly three integers
+    if nums.len() != 3 {
+        eprintln!("Expected three integers as input.");
+        return;
+    }
+
+    let (mut a, b, mut c) = (nums[0], nums[1], nums[2]);
+    a -= b; // Calculate the difference
+
+    // Decrement c based on the value of a
+    while a > 0 {
+        a -= 1; // Decrement a
+        c -= 1; // Decrement c
+        if c == 0 {
+            break; // Stop if c reaches zero
+        }
+    }
+
+    // Output the final value of c
+    println!("{}", c);
+}
+```

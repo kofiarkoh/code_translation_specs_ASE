@@ -1,0 +1,124 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused variable: `n`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01471/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:20:24
+   |
+20 | fn fractional_knapsack(n: usize, w: f64, items: &mut Vec<Item>) -> f64 {
+   |                        ^ help: if this is intentional, prefix it with an underscore: `_n`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p01471/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:63:20
+     |
+  52 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+...
+  55 |     let first_line = reader.lines().next().unwrap().unwrap();
+     |                             ------- `reader` moved due to this method call
+...
+  63 |         let line = reader.lines().next().unwrap().unwrap();
+     |                    ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error: aborting due to 1 previous error; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+}
+
+impl Item {
+    // Calculate value-to-weight ratio
+    fn value_per_weight(&self) -> f64 {
+        if self.weight == 0 {
+            return 0.0; // Avoid division by zero; treat as zero value
+        }
+        self.value as f64 / self.weight as f64
+    }
+}
+
+fn fractional_knapsack(n: usize, w: f64, items: &mut Vec<Item>) -> f64 {
+    // Sort items by value-to-weight ratio in descending order
+    items.sort_by(|a, b| {
+        b.value_per_weight()
+            .partial_cmp(&a.value_per_weight())
+            .unwrap_or(Ordering::Equal)
+    });
+
+    let mut total_value = 0.0;
+    let mut remaining_weight = w;
+
+    for item in items {
+        if remaining_weight <= 0.0 {
+            break; // No more weight capacity
+        }
+
+        if item.weight <= remaining_weight as i32 {
+            // Take the whole item
+            total_value += item.value as f64;
+            remaining_weight -= item.weight as f64;
+        } else {
+            // Take the fraction of the item
+            total_value += item.value_per_weight() * remaining_weight;
+            remaining_weight = 0.0; // All weight capacity used
+        }
+    }
+
+    total_value
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for N and W
+    let first_line = reader.lines().next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let w: f64 = parts.next().unwrap().parse().unwrap();
+
+    // Read the items
+    let mut items = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = reader.lines().next().unwrap().unwrap();
+        let mut item_parts = line.split_whitespace();
+        let weight: i32 = item_parts.next().unwrap().parse().unwrap();
+        let value: i32 = item_parts.next().unwrap().parse().unwrap();
+        items.push(Item { weight, value });
+    }
+
+    // Calculate the maximum value
+    let max_value = fractional_knapsack(n, w, &mut items);
+
+    // Output the result
+    println!("{:.6}", max_value); // Format output to six decimal places
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

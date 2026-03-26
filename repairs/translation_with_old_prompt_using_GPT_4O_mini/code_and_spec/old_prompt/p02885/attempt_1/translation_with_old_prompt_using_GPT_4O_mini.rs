@@ -1,0 +1,20 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read input from standard input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Split the input into two parts and parse them as integers
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    let b: i32 = iter.next().expect("Expected an integer").parse().expect("Invalid integer");
+    
+    // Calculate the result based on the specification
+    let result = a - 2 * b;
+    
+    // Output the result, ensuring it is non-negative
+    let output = if result > 0 { result } else { 0 };
+    print!("{}", output);
+}

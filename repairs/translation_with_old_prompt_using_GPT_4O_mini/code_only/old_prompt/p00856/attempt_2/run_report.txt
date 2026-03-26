@@ -1,0 +1,48 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: expected a pattern, found an expression
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00856/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:31:17
+   |
+31 |                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
+   |                 ^^^^^^^^^^ not a pattern
+   |
+   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
+help: consider moving the expression to a match arm guard
+   |
+31 -                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
+31 +                 val if val == 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
+   |
+help: consider extracting the expression into a `const`
+   |
+29 +             const VAL: /* Type */ = 'L' as i32;
+30 |             match sq[n - next_pos as usize] {
+31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo, n),
+32 ~                 VAL => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
+   |
+
+error: expected a pattern, found an expression
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_only/old_prompt/p00856/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:32:17
+   |
+32 |                 'B' as i32 => ret += ONE_SIXTH * solve(n, turn - 1, sq, memo, n),
+   |                 ^^^^^^^^^^ not a pattern
+   |
+   = note: arbitrary expressions are not allowed in patterns: <https://doc.rust-lang.org/book/ch19-00-patterns.html>
+help: consider moving the expression to a match arm guard
+   |
+32 -                 'B' as i32 => ret += ONE_SIXTH * solve(n, turn - 1, sq, memo, n),
+32 +                 val if val == 'B' as i32 => ret += ONE_SIXTH * solve(n, turn - 1, sq, memo, n),
+   |
+help: consider extracting the expression into a `const`
+   |
+29 +             const VAL: /* Type */ = 'B' as i32;
+30 |             match sq[n - next_pos as usize] {
+31 |                 0 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 1, sq, memo, n),
+32 |                 'L' as i32 => ret += ONE_SIXTH * solve(next_pos as usize, turn - 2, sq, memo, n),
+33 ~                 VAL => ret += ONE_SIXTH * solve(n, turn - 1, sq, memo, n),
+   |
+
+error: aborting due to 2 previous errors

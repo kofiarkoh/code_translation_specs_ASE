@@ -1,0 +1,153 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code sorts an array of `card` structures based on their `val` attribute and checks if the sorting is stable.
+- **What problem it solves**: It determines the stability of the quicksort algorithm when applied to a collection of cards, where stability means that cards with equal values maintain their original relative order.
+- **Core behavior**: The program reads a number of cards, sorts them using quicksort, and checks for stability by comparing the original indices of cards with equal values.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of cards to be sorted.
+  - `A`: Array of `card` structures containing character and integer values.
+- **Data types**: 
+  - `n`: `int`
+  - `A`: `card[]` (array of `card` structures)
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (greater than 0).
+  - Each `card` structure contains:
+    - `c`: a character (no specific constraints on the character).
+    - `val`: an integer (no specific constraints on the integer).
+- **Assumptions about inputs**: The input format is strictly followed, and the user provides valid data as specified.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs the sorted cards and stability status to the console.
+- **Output format/schema**: 
+  - Stability status: "Stable" or "Not stable".
+  - Sorted cards: Each card is printed in the format `c val` on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must include a valid integer followed by pairs of character and integer values.
+  - The number of pairs must match the integer provided.
+- **Explicit logical constraints**: 
+  - `n > 0`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The array of cards is sorted based on the `val` attribute.
+- **State changes**: The original array `A` is modified to reflect the sorted order.
+- **Return guarantees**: The program outputs the stability status and the sorted list of cards.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `card` structure's fields (`c`, `val`, `num`) remain valid throughout the execution.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may exhibit undefined behavior or crash if the input does not conform to the expected format.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If `n` is 0 or negative, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The array of `card` structures can be in an unsorted or sorted state.
+- **State changes caused by execution**: The array transitions from an unsorted state to a sorted state after the execution of the quicksort function.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: Average-case time complexity of quicksort is O(n log n); worst-case is O(n^2).
+- **Space complexity**: O(log n) due to recursive stack space.
+- **Performance assumptions**: The performance is dependent on the input distribution; the algorithm performs best with random data.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+=== C CODE END ===

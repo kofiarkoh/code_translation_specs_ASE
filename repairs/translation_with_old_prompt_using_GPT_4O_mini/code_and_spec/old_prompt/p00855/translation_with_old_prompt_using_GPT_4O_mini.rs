@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn is_prime(n: usize) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as usize) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    
+    for line in handle.lines() {
+        let l: i32 = match line {
+            Ok(input) => input.trim().parse().unwrap(),
+            Err(_) => continue, // Handle invalid input gracefully
+        };
+        
+        let mut lower = l;
+        let mut upper = l;
+
+        // Find the largest prime <= l
+        while lower >= 2 && !is_prime(lower as usize) {
+            lower -= 1;
+        }
+
+        // Find the smallest prime >= l
+        while !is_prime(upper as usize) {
+            upper += 1;
+        }
+
+        // Output the difference
+        if lower >= 2 {
+            println!("{}", upper - lower);
+        } else {
+            // If no valid lower prime is found, output the difference as 0
+            println!("{}", upper);
+        }
+    }
+}

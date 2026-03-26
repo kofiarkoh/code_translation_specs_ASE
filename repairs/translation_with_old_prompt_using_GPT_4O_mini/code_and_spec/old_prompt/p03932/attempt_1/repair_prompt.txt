@@ -1,0 +1,349 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to calculate the maximum sum of values collected by two entities moving through a grid from the top-left to the bottom-right corner.
+- **What problem it solves**: It solves the problem of maximizing the sum of values collected from a grid while allowing two entities to move simultaneously, with specific movement constraints.
+- **Core behavior**: The program reads a grid of integers, processes the grid to compute the maximum collectible sum for two entities, and outputs the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - Input is read from a file or standard input.
+- **Data types**: 
+  - Grid dimensions (width and height) are integers.
+  - Grid values are integers.
+- **Valid ranges or constraints**: 
+  - Width and height must be positive integers.
+  - Grid values can be any integer (no explicit constraints).
+- **Assumptions about inputs**: 
+  - The input grid is well-formed and matches the specified dimensions.
+
+## 3. Outputs
+- **Return values**: 
+  - The function returns the maximum sum of values collected by the two entities.
+- **Side effects**: 
+  - Outputs the result to standard output or a test file.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format (dimensions followed by grid values).
+  - The grid must not exceed the defined maximum size (205x205).
+- **Explicit logical constraints**: 
+  - The input must contain at least one row and one column.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The maximum sum of values collected by the two entities is computed and output.
+- **State changes**: 
+  - Internal state variables (like `si3Cnt`) are modified to store computed values.
+- **Return guarantees**: 
+  - The function will return a valid integer representing the maximum sum.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The grid dimensions (`siW`, `siH`) must always reflect the current input dimensions.
+  - The `si3Cnt` array must always be initialized before use.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: 
+  - No explicit exception handling is implemented; errors in file operations or input parsing may lead to undefined behavior.
+- **Edge-case behavior**: 
+  - If the grid is empty or improperly formatted, the program may not handle it gracefully.
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program starts with uninitialized state variables and transitions to a state where the maximum sum is computed.
+- **State changes caused by execution**: 
+  - The internal arrays (`si2Mass`, `si3Cnt`) are populated and modified throughout the execution.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - The time complexity is O(W * H * (W + H)), where W is the width and H is the height of the grid.
+- **Space complexity**: 
+  - The space complexity is O(W * H * (W + H)) due to the storage of intermediate results in `si3Cnt`.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for the maximum grid size defined (205x205).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// 内部定数
+#define D_SIZE_MAX		205										// 最大サイズ
+
+// 内部変数
+static FILE *szpFpI;											// 入力
+static int siW, siH;											// 幅・高さ
+static int si2Mass[D_SIZE_MAX][D_SIZE_MAX];						// マス
+static int si3Cnt[D_SIZE_MAX][D_SIZE_MAX][D_SIZE_MAX * 2];		// 個数[行][列][距離]
+
+// 内部変数 - テスト用
+#ifdef D_TEST
+	static int siRes;
+	static FILE *szpFpA;
+	static int siTNo;
+#endif
+
+// １行出力
+int
+fOutLine(
+	char *pcpLine				// <I> １行
+)
+{
+	char lc1Buf[1024];
+
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, pcpLine)) {
+		siRes = -1;
+	}
+#else
+	printf("%s", pcpLine);
+#endif
+
+	return 0;
+}
+
+// 最大値 - 取得
+int
+fGetMax(
+	int piVal1					// <I> 値１
+	, int piVal2				// <I> 値２
+)
+{
+	if (piVal1 > piVal2) {
+		return piVal1;
+	}
+	else {
+		return piVal2;
+	}
+}
+
+// 右下移動
+int
+fMove(
+	int *pipRow					// <IO> 行
+	, int *pipCol				// <IO> 列
+)
+{
+	// 右上移動
+	(*pipRow)--;
+	(*pipCol)++;
+
+	// マス外
+	if (*pipRow < 0) {
+		return -1;
+	}
+	if (*pipCol >= siW) {
+		return -1;
+	}
+
+	return 0;
+}
+
+// 加算個数 - 取得
+int
+fGetAdd(
+	int piRow					// <I> 行
+	, int piCol					// <I> 列
+	, int piRow2				// <I> 行２
+	, int piCol2				// <I> 列２
+)
+{
+	int liAdd = si2Mass[piRow][piCol];
+	if (piRow == piRow2) {
+		if (piCol == piCol2) {
+			return liAdd;
+		}
+	}
+	liAdd += si2Mass[piRow2][piCol2];
+
+	return liAdd;
+}
+
+// 実行メイン
+int
+fMain(
+)
+{
+	int i, j, liRet;
+	char lc1Buf[1024];
+
+	// データ - 初期化
+	memset(si3Cnt, 0, sizeof(si3Cnt));
+
+	// 幅・高さ - 取得
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%d%d", &siH, &siW);
+
+	// マス - 取得
+	for (i = 0; i < siH; i++) {
+		for (j = 0; j < siW; j++) {
+			fscanf(szpFpI, "%d", &si2Mass[i][j]);
+		}
+		fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	}
+
+	// 個数 - 初期値
+	si3Cnt[0][0][0] = si2Mass[0][0];
+
+	// 移動回数でループ
+	for (i = 0; i < siW + siH - 2; i++) {
+
+		// １人目の位置でループ
+		int liRow, liCol;
+		if (i < siH) {
+			liRow = i;
+			liCol = 0;
+		}
+		else {
+			liRow = siH - 1;
+			liCol = i - liRow;
+		}
+		while (1) {
+
+			// ２人目の位置でループ
+			int liRow2 = liRow;
+			int liCol2 = liCol;
+			for (j = 0; ; j++) {
+
+				// 下・下
+				int liAdd = fGetAdd(liRow + 1, liCol, liRow2 + 1, liCol2);
+				si3Cnt[liRow + 1][liCol][j] = fGetMax(si3Cnt[liRow + 1][liCol][j], si3Cnt[liRow][liCol][j] + liAdd);
+
+				// 下・右
+				liAdd = fGetAdd(liRow + 1, liCol, liRow2, liCol2 + 1);
+				si3Cnt[liRow + 1][liCol][j + 1] = fGetMax(si3Cnt[liRow + 1][liCol][j + 1], si3Cnt[liRow][liCol][j] + liAdd);
+
+				// 右・下
+				if (j > 0) {
+					liAdd = fGetAdd(liRow, liCol + 1, liRow2 + 1, liCol2);
+					si3Cnt[liRow][liCol + 1][j - 1] = fGetMax(si3Cnt[liRow][liCol + 1][j - 1], si3Cnt[liRow][liCol][j] + liAdd);
+				}
+
+				// 右・右
+				liAdd = fGetAdd(liRow, liCol + 1, liRow2, liCol2 + 1);
+				si3Cnt[liRow][liCol + 1][j] = fGetMax(si3Cnt[liRow][liCol + 1][j], si3Cnt[liRow][liCol][j] + liAdd);
+
+				// 次の位置
+				liRet = fMove(&liRow2, &liCol2);
+				if (liRet != 0) {
+					break;
+				}
+			}
+
+			// 次の位置
+			liRet = fMove(&liRow, &liCol);
+			if (liRet != 0) {
+				break;
+			}
+		}
+	}
+
+	return si3Cnt[siH - 1][siW - 1][0];
+}
+
+// １回実行
+int
+fOne(
+)
+{
+	int liRet;
+	char lc1Buf[1024];
+
+	// 入力 - セット
+#ifdef D_TEST
+	sprintf(lc1Buf, ".\\Test\\T%d.txt", siTNo);
+	szpFpI = fopen(lc1Buf, "r");
+	sprintf(lc1Buf, ".\\Test\\A%d.txt", siTNo);
+	szpFpA = fopen(lc1Buf, "r");
+	siRes = 0;
+#else
+	szpFpI = stdin;
+#endif
+
+	// 実行メイン
+	liRet = fMain();
+
+	// 出力
+	sprintf(lc1Buf, "%d\n", liRet);
+	fOutLine(lc1Buf);
+
+	// 残データ有無
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, "")) {
+		siRes = -1;
+	}
+#endif
+
+	// テストファイルクローズ
+#ifdef D_TEST
+	fclose(szpFpI);
+	fclose(szpFpA);
+#endif
+
+	// テスト結果
+#ifdef D_TEST
+	if (siRes == 0) {
+		printf("OK %d\n", siTNo);
+	}
+	else {
+		printf("NG %d\n", siTNo);
+	}
+#endif
+
+	return 0;
+}
+
+// プログラム開始
+int
+main()
+{
+
+#ifdef D_TEST
+	int i;
+	for (i = D_TEST_SNO; i <= D_TEST_ENO; i++) {
+		siTNo = i;
+		fOne();
+	}
+#else
+	fOne();
+#endif
+
+	return 0;
+}
+=== C CODE END ===

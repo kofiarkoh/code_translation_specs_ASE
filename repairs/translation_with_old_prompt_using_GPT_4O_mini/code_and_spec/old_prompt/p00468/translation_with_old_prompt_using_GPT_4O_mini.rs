@@ -1,0 +1,63 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    
+    let mut student = [[0; 501]; 501];
+    let mut list = [0; 501];
+    
+    loop {
+        let mut line = String::new();
+        input.read_line(&mut line).unwrap();
+        let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        
+        let n = nums.next().unwrap();
+        let m = nums.next().unwrap();
+        
+        if n == 0 && m == 0 {
+            break;
+        }
+        
+        // Reset the adjacency matrix and list
+        for i in 0..=500 {
+            list[i] = 0;
+            for j in 0..=500 {
+                student[i][j] = 0;
+            }
+        }
+        
+        // Read connections
+        for _ in 0..m {
+            let mut line = String::new();
+            input.read_line(&mut line).unwrap();
+            let mut nums = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+            let p1 = nums.next().unwrap();
+            let p2 = nums.next().unwrap();
+            student[p1][p2] = 1;
+            student[p2][p1] = 1;
+        }
+        
+        // Mark direct connections from student 1
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                list[i] = 1;
+            }
+        }
+        
+        // Mark indirect connections
+        for i in 2..=n {
+            if student[1][i] == 1 {
+                for j in 2..=n {
+                    if student[i][j] == 1 {
+                        list[j] = 1;
+                    }
+                }
+            }
+        }
+        
+        // Count the number of connected students
+        let count: usize = list.iter().skip(2).sum();
+        println!("{}", count);
+    }
+}

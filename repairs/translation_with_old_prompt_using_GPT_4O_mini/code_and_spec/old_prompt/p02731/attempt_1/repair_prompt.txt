@@ -1,0 +1,102 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the cube of one-third of an integer input and prints the result with high precision.
+- **What problem it solves**: It provides a method to compute and display the cube of a value derived from user input, specifically one-third of that input.
+- **Core behavior**: The program reads an integer, computes one-third of it, cubes that result, and outputs the cube with twelve decimal places.
+
+## 2. Inputs
+- **Parameters**: 
+  - `l`: An integer input from the user.
+- **Data types**: 
+  - `l`: `int`
+- **Valid ranges or constraints**: 
+  - `l` should be a valid integer (no specific range enforced).
+- **Assumptions about inputs**: 
+  - The input is assumed to be a valid integer and does not handle non-integer or invalid inputs.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs directly to the console.
+- **Side effects**: 
+  - Outputs the computed cube of one-third of the input integer to the standard output.
+- **Output format/schema**: 
+  - The output is a floating-point number formatted to twelve decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output operations.
+- **Explicit logical constraints**: 
+  - The input must be an integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a floating-point number representing the cube of one-third of the input integer.
+- **State changes**: 
+  - No internal state changes; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always be a valid floating-point number formatted to twelve decimal places.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output will always be a floating-point number derived from the input integer.
+- **Class-level invariants**: 
+  - Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not handle invalid input; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program may crash or produce incorrect results on invalid input.
+- **Edge-case behavior**: 
+  - If `l` is zero, the output will be `0.000000000000`. Negative integers will yield a negative cube.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as there are no objects or states in the code.
+- **State changes caused by execution**: 
+  - Not applicable; the program does not maintain state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(1) - The operations performed are constant time.
+- **Space complexity**: 
+  - O(1) - The program uses a fixed amount of space for variables.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for typical integer inputs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main ()
+{
+    double x,y;
+    int l;
+    scanf("%d", &l);
+    y=l/3.0;
+    x=y*y*y;
+    printf("%.12lf\n", x);
+}
+=== C CODE END ===

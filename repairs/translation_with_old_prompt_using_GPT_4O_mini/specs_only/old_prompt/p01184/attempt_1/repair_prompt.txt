@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to the "International Party" problem, which involves determining the maximum number of distinct groups that can be formed based on given preferences.
+- **What problem it solves**: It identifies the largest subset of participants that can attend a party based on their preferences, ensuring that all preferences are satisfied.
+- **Core behavior**: The program reads participant names and their preferences, processes this information, and outputs the maximum number of groups that can be formed along with the names of participants in those groups.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of participants.
+  - `m`: Number of preference groups.
+  - `name[]`: Array of participant names.
+  - `buf`: Temporary storage for reading names.
+- **Data types**:
+  - `int` for `n`, `m`, `id`, `ans`, `i`, `j`, `k`, `s`.
+  - `char` arrays for `name` and `buf`.
+- **Valid ranges or constraints**:
+  - `n` and `m` must be positive integers.
+  - Each name can be up to 21 characters long (plus null terminator).
+- **Assumptions about inputs**: 
+  - Input is well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs the maximum number of groups and the names of participants in those groups.
+- **Output format/schema**:
+  - If a solution exists, it prints the maximum number of groups followed by the names of the participants in those groups.
+  - If no solution exists, it prints "Impossible".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The hash table must be initialized to handle participant names.
+- **Explicit logical constraints**: 
+  - `n` and `m` must be greater than zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program outputs either the maximum number of groups and the corresponding participant names or "Impossible".
+- **State changes**: The hash table and the array of preferences are populated based on the input.
+- **Return guarantees**: The output is guaranteed to reflect the maximum number of groups or indicate impossibility.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The hash table remains consistent with the names and their corresponding IDs throughout the execution.
+  - The array of preferences is correctly populated based on the input.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `n` or `m` is zero or negative, the program will terminate without processing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The hash table can be in an empty state or populated with participant names and IDs.
+- **State changes caused by execution**: The state of the hash table and the preferences array changes as names and preferences are inserted.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The complexity is primarily dependent on the number of participants and preference groups, with hash table operations being average O(1) for lookups and inserts.
+- **Space complexity**: The space complexity is O(n) for storing participant names and preferences.
+- **Performance assumptions**: The program assumes that the hash table size is sufficient to minimize collisions for the expected number of participants.
+```

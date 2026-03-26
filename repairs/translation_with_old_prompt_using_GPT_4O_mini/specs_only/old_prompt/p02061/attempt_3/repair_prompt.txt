@@ -1,0 +1,115 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02061/p02061_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02061/p02061_sample1_output.txt
+Input:
+3
+10
+15
+20
+Expected:
+0
+1
+4
+Actual:
+1
+1
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of integers to process
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read Q
+    let q_line = lines.next().unwrap().expect("Failed to read input");
+    let q: usize = q_line.trim().parse().expect("Invalid number of integers");
+
+    // If Q is 0 or negative, terminate early
+    if q == 0 {
+        return;
+    }
+
+    // Prepare to store the counts
+    let mut counts = Vec::with_capacity(q);
+
+    // Process each integer
+    for _ in 0..q {
+        let n_line = lines.next().unwrap().expect("Failed to read input");
+        let n: usize = n_line.trim().parse().expect("Invalid integer");
+
+        // Calculate the count based on the multiplicative condition
+        let count = count_multiplicative_condition(n);
+        counts.push(count);
+    }
+
+    // Output the results
+    for count in counts {
+        println!("{}", count);
+    }
+}
+
+// Function to count integers satisfying the multiplicative condition based on prime factors
+fn count_multiplicative_condition(n: usize) -> usize {
+    let mut count = 0;
+
+    // Check all integers from 1 to n
+    for i in 1..=n {
+        if has_same_prime_factors(i, n) {
+            count += 1; // Increment count if the condition is satisfied
+        }
+    }
+
+    count
+}
+
+// Function to check if two numbers have the same prime factors
+fn has_same_prime_factors(a: usize, b: usize) -> bool {
+    let a_factors = prime_factors(a);
+    let b_factors = prime_factors(b);
+    a_factors == b_factors
+}
+
+// Function to get the unique prime factors of a number
+fn prime_factors(mut num: usize) -> Vec<usize> {
+    let mut factors = Vec::new();
+    for i in 2..=num {
+        if num % i == 0 {
+            factors.push(i);
+            while num % i == 0 {
+                num /= i; // Divide out all occurrences of the prime factor
+            }
+        }
+        if num == 1 {
+            break; // No more factors left
+        }
+    }
+    factors
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

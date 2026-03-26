@@ -1,0 +1,44 @@
+use std::io;
+
+fn main() {
+    // Read input from the user
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as a non-negative integer
+    let n: u32 = input.trim().parse().expect("Invalid input, expected a non-negative integer");
+
+    // Find and print the nearest palindrome
+    let nearest_palindrome = find_nearest_palindrome(n);
+    println!("{}", nearest_palindrome);
+}
+
+// Function to find the nearest palindrome to a given number
+fn find_nearest_palindrome(n: u32) -> u32 {
+    // Check for the palindrome at the input number first
+    if is_palindrome(n) {
+        return n;
+    }
+
+    // Initialize variables to search for the nearest palindrome
+    let mut lower = n;
+    let mut upper = n;
+
+    // Search for the nearest palindrome in both directions
+    loop {
+        if lower > 0 && is_palindrome(lower) {
+            return lower; // Return the lower palindrome if found
+        }
+        if is_palindrome(upper) {
+            return upper; // Return the upper palindrome if found
+        }
+        lower -= 1; // Decrement to check the lower number
+        upper += 1; // Increment to check the upper number
+    }
+}
+
+// Function to check if a number is a palindrome
+fn is_palindrome(num: u32) -> bool {
+    let str_num = num.to_string();
+    str_num == str_num.chars().rev().collect::<String>() // Check if the string is the same forwards and backwards
+}

@@ -1,0 +1,66 @@
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Prompt for user input
+        print!("Enter time (HH MM SS) or -1 -1 -1 to exit: ");
+        io::stdout().flush().unwrap(); // Ensure prompt is displayed
+
+        // Read input
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse input
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            continue; // Ignore invalid input
+        }
+
+        // Convert input to integers
+        let h: i32 = match parts[0].parse() {
+            Ok(num) if (0..=23).contains(&num) => num,
+            _ => continue, // Ignore invalid hours
+        };
+        let m: i32 = match parts[1].parse() {
+            Ok(num) if (0..=59).contains(&num) => num,
+            _ => continue, // Ignore invalid minutes
+        };
+        let s: i32 = match parts[2].parse() {
+            Ok(num) if (0..=59).contains(&num) => num,
+            _ => continue, // Ignore invalid seconds
+        };
+
+        // Check for termination condition
+        if h == -1 && m == -1 && s == -1 {
+            break; // Exit the loop
+        }
+
+        // Calculate total seconds until two hours
+        let total_seconds = h * 3600 + m * 60 + s;
+        let two_hours = 2 * 3600;
+        let remaining_seconds = two_hours - total_seconds;
+
+        // Format remaining time
+        let remaining_time = if remaining_seconds < 0 {
+            0 // If negative, set to 0
+        } else {
+            remaining_seconds
+        };
+
+        let hours = remaining_time / 3600;
+        let minutes = (remaining_time % 3600) / 60;
+        let seconds = remaining_time % 60;
+
+        // Output formatted time
+        println!("{:02}:{:02}:{:02}", hours, minutes, seconds);
+
+        // Output remaining time multiplied by three
+        let multiplied_time = remaining_time * 3;
+        let hours_multiplied = multiplied_time / 3600;
+        let minutes_multiplied = (multiplied_time % 3600) / 60;
+        let seconds_multiplied = multiplied_time % 60;
+
+        // Output formatted multiplied time
+        println!("{:02}:{:02}:{:02}", hours_multiplied, minutes_multiplied, seconds_multiplied);
+    }
+}

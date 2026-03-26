@@ -1,0 +1,138 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum cost to traverse a series of points defined by their coordinates and associated weights, based on a specific distance metric.
+- **What problem it solves**: It addresses the problem of finding the least costly path through a set of points, where the cost is determined by the distance between points and their associated weights.
+- **Core behavior**: The program reads multiple sets of points and their weights, computes the costs of moving between these points, and outputs the minimum cost for each set until a termination condition is met.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of groups of points.
+  - `m`: Maximum number of transitions allowed.
+- **Data types**: 
+  - `int` for `n`, `m`, and other loop variables.
+- **Valid ranges or constraints**:
+  - `n` and `m` must be non-negative integers.
+  - The number of points in each group (`ic[i]`) must be non-negative.
+- **Assumptions about inputs**:
+  - Input is provided in a valid format as specified, with `n` and `m` followed by the respective point data.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum cost.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must contain at least one valid set of `n` and `m` values.
+  - The input must be terminated by a pair of zeros (`0 0`).
+- **Explicit logical constraints**: 
+  - `n` and `m` must not be negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The minimum cost for the last valid input set is printed.
+- **State changes**: The program does not maintain state across different runs; it processes each input set independently.
+- **Return guarantees**: The output will always be an integer representing the minimum cost or a large constant if no valid path exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The cost array `c` is initialized to a large constant value, ensuring that comparisons for minimum cost are valid.
+  - The input data structure `is` is populated correctly before cost calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on valid input.
+- **Edge-case behavior**: If `n` or `m` is zero, the program will terminate without processing further.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and calculating costs.
+- **State changes caused by execution**: The cost array `c` is updated based on the computed distances and weights.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n^2 * m * k^2), where `k` is the maximum number of points in any group.
+- **Space complexity**: The space complexity is O(n * m * k), primarily due to the cost array `c`.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical computational resources.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main(){
+  int n,m,i,j,k,l,min,d;
+  int ic[150],is[2][150][10];
+  int c[80][150][11];
+  while(scanf("%d %d",&n,&m),n||m){
+    int c[80][150][11]={0};
+    for(i=0;i<80;i++){
+      for(j=1;j<150;j++){
+	for(k=0;k<11;k++)c[i][j][k]=2100000000;
+      }
+    }
+    for(i=0;i<11;i++)c[1][1][i]=0;
+    for(i=0;i<n;i++){
+      scanf("%d",&ic[i]);
+      for(j=0;j<ic[i];j++){
+	scanf("%d %d",&is[0][i][j],&is[1][i][j]);
+      }
+    }
+    for(i=0;i<=m;i++){
+      for(j=0;j+1<n;j++){
+	for(k=0;k<ic[j];k++){
+	  for(l=0;l<ic[j+1];l++){
+	    d=(is[1][j][k]+is[1][j+1][l])*abs(is[0][j][k]-is[0][j+1][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+1][l],is[1][j+1][l]);
+	    if(c[i][j+1][l]>c[i][j][k]+d)c[i][j+1][l]=c[i][j][k]+d;
+	  }
+	  if(j+2==n)continue;
+	  for(l=0;l<ic[j+2];l++){
+	    d=(is[1][j][k]+is[1][j+2][l])*abs(is[0][j][k]-is[0][j+2][l]);
+	    //printf("d%d from %d %d to %d %d\n",
+	    //	   d,is[0][j][k],is[1][j][k],is[0][j+2][l],is[1][j+2][l]);
+	    if(c[i+1][j+2][l]>c[i][j][k]+d)c[i+1][j+2][l]=c[i][j][k]+d;
+	  }
+	}
+      }
+    }
+    /*for(i=0;i<=m;i++){
+      for(j=0;j<n;j++){
+	for(k=0;k<ic[j];k++)printf("%d ",c[i][j][k]);printf("\n");
+      }printf("\n");
+      }//*/
+    min=2100000210;
+    for(i=0;i<=m;i++){
+      for(j=0;j<ic[n-1];j++){
+	if(min>c[i][n-1][j])min=c[i][n-1][j];
+      }
+      if(m==i)continue;
+      for(j=0;j<ic[n-2];j++){
+	if(min>c[i][n-2][j])min=c[i][n-2][j];
+      }
+    }
+    printf("%d\n",min);
+  }
+  return 0;
+}
+=== C CODE END ===

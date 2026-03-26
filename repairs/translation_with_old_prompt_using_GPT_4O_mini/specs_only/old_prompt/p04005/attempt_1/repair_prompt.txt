@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads three long integer values from user input, checks if any of them are even, and either outputs a specific value or computes and outputs the product of the three integers.
+- **What problem it solves**: It determines whether to output a constant value or the product of three integers based on their parity.
+- **Core behavior**: If any of the three integers is even, it outputs "0". If all are odd, it finds the maximum integer among them, sets that integer to 1, and outputs the product of the three integers.
+
+## 2. Inputs
+- **Parameters**: Three long integers.
+- **Data types**: `long` (specifically `long int` in C).
+- **Valid ranges or constraints**: The input values should be within the range of a `long` type, typically -2,147,483,648 to 2,147,483,647 on a 32-bit system.
+- **Assumptions about inputs**: Inputs are provided in a valid format and are accessible via standard input.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value of `0` upon successful execution.
+- **Side effects**: Outputs either "0" or the product of the three integers to standard output.
+- **Output format/schema**: Outputs "0" as a string or the product as a long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available and can accept three long integer values.
+- **Explicit logical constraints**: The input must be valid long integers; otherwise, undefined behavior may occur.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have either printed "0" or the product of the three integers.
+- **State changes**: The value of the maximum integer among the three is set to 1 if all integers are odd.
+- **Return guarantees**: The program will return `0` upon completion.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The array `X` will always contain three long integers after input is read. The maximum integer's index is correctly identified and modified if all integers are odd.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly handled in C; invalid input may lead to runtime errors.
+- **Edge-case behavior**: If all inputs are odd, the program will modify the maximum integer and compute the product; if any input is even, it will output "0".
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program starts with uninitialized values in the array `X`, transitions to initialized values after input, and may transition to modified values if all inputs are odd.
+- **State changes caused by execution**: The maximum value in `X` is set to 1 if all values are odd.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) since the number of operations is constant regardless of input size.
+- **Space complexity**: O(1) as it uses a fixed amount of space for the array and variables.
+- **Performance assumptions**: The program assumes that input reading and output operations are efficient and do not introduce significant delays.
+```

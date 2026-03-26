@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes multiple sets of time intervals representing departures and arrivals, and determines the maximum number of overlapping intervals at any given second within a 24-hour period.
+- **What problem it solves**: It identifies peak usage times based on given time intervals, which can be useful for scheduling and resource allocation.
+- **Core behavior**: The program reads time intervals, increments a counter for each second within those intervals, and outputs the maximum count of overlapping intervals.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of time intervals to process.
+  - Time intervals in the format `HH:MM:SS` for both departure and arrival.
+- **Data types**: 
+  - `n`: Integer.
+  - `hour`, `min`, `sec`: Integers representing hours, minutes, and seconds.
+- **Valid ranges or constraints**: 
+  - `n` must be a non-negative integer.
+  - Time values must be valid (0 ≤ hour < 24, 0 ≤ min < 60, 0 ≤ sec < 60).
+- **Assumptions about inputs**: 
+  - Input is well-formed and adheres to the specified format.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum number of overlapping intervals.
+- **Side effects**: Outputs to standard output (console).
+- **Output format/schema**: A single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid input as per the specified format.
+  - The first input must be a non-negative integer indicating the number of intervals.
+- **Explicit logical constraints**: 
+  - The input must not contain negative values for `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The maximum number of overlapping intervals is calculated and printed.
+- **State changes**: The internal state of the `time` array is modified to reflect the counts of overlapping intervals.
+- **Return guarantees**: The program will always output a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `time` array will always have a length of 86400 (representing each second in a 24-hour period).
+  - The values in the `time` array will always be non-negative integers.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `n` is 0, the program exits without processing any intervals.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state where it processes input and updates the `time` array.
+- **State changes caused by execution**: The `time` array is populated with counts of overlapping intervals based on the input time intervals.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n + 86400), where `n` is the number of intervals; the first part accounts for reading intervals and the second for finding the maximum.
+- **Space complexity**: O(1) additional space, as the `time` array is fixed in size (86400).
+- **Performance assumptions**: The program is expected to perform efficiently for a reasonable number of intervals, but performance may degrade with a very high number of overlapping intervals due to the linear scan for maximum.
+```

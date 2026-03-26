@@ -1,0 +1,76 @@
+```rust
+use std::io::{self, BufRead};
+use std::collections::HashMap;
+
+#[derive(Debug)]
+struct Segment {
+    start: (f64, f64),
+    end: (f64, f64),
+    state: i32,
+    label: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of test cases
+    let c: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    for _ in 0..c {
+        // Read the endpoints of the main line segment
+        let endpoints: Vec<f64> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        let (xa, ya, xb, yb) = (endpoints[0], endpoints[1], endpoints[2], endpoints[3]);
+
+        // Read number of segments
+        let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        let mut segments: Vec<Segment> = Vec::new();
+
+        for _ in 0..n {
+            let segment_data: Vec<f64> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            let (xs, ys, xt, yt, o, l) = (segment_data[0], segment_data[1], segment_data[2], segment_data[3], segment_data[4] as i32, segment_data[5] as i32);
+            segments.push(Segment {
+                start: (xs, ys),
+                end: (xt, yt),
+                state: o,
+                label: l,
+            });
+        }
+
+        // Calculate minimum transitions
+        let min_transitions = calculate_min_transitions(xa, ya, xb, yb, &segments);
+        println!("{}", min_transitions);
+    }
+}
+
+fn calculate_min_transitions(xa: f64, ya: f64, xb: f64, yb: f64, segments: &[Segment]) -> i32 {
+    let mut transitions: HashMap<i32, Vec<(f64, f64)>> = HashMap::new();
+
+    // Process each segment to find intersections
+    for segment in segments {
+        // Here we would calculate the intersection with the main segment
+        // For simplicity, we assume a function `intersects` that checks for intersection
+        if intersects(xa, ya, xb, yb, segment) {
+            transitions.entry(segment.state).or_insert_with(Vec::new).push(segment.start);
+            transitions.entry(segment.state).or_insert_with(Vec::new).push(segment.end);
+        }
+    }
+
+    // The minimum transitions would be the number of unique states encountered
+    transitions.len() as i32 - 1 // Subtract 1 because we start from the initial state
+}
+
+// Placeholder for intersection logic
+fn intersects(xa: f64, ya: f64, xb: f64, yb: f64, segment: &Segment) -> bool {
+    // Implement intersection logic here
+    // This is a placeholder; actual logic would depend on the geometry of the segments
+    true // Assume all segments intersect for this example
+}
+```

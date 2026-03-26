@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code generates and prints all combinations of bit patterns of a specified length `n` that contain exactly `k` bits set to 1.
+- **What problem it solves**: It provides a way to enumerate all subsets of a set of size `n` with exactly `k` elements, which can be useful in combinatorial problems.
+- **Core behavior**: The program reads two integers from standard input, `n` and `k`, and outputs all integers from `0` to `2^n - 1` that have exactly `k` bits set to 1, along with the positions of those bits.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: The total number of bits (length of the bit pattern).
+  - `k`: The number of bits that must be set to 1.
+- **Data types**:
+  - `n` and `k`: `int`
+- **Valid ranges or constraints**:
+  - `n`: Must be a non-negative integer.
+  - `k`: Must be a non-negative integer and less than or equal to `n`.
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to standard output.
+- **Side effects**: The program prints combinations to the console.
+- **Output format/schema**: Each valid combination is printed in the format `pat: i1 i2 ...`, where `pat` is the integer representation of the bit pattern and `i1, i2, ...` are the indices of the bits set to 1.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available, and the user must provide valid integers for `n` and `k`.
+- **Explicit logical constraints**: `0 <= k <= n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed all valid combinations of bit patterns with exactly `k` bits set to 1.
+- **State changes**: No state changes occur outside of outputting to the console.
+- **Return guarantees**: The program will terminate normally after printing the results.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The values of `n` and `k` must remain within their valid ranges throughout the execution of the program.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: If the input cannot be read or parsed correctly, the program will return `-1` or `0` from the input functions, but it does not handle these cases explicitly in the main logic.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on return values for error signaling.
+- **Edge-case behavior**: If `k` is greater than `n`, no output will be generated since no valid combinations exist.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and generating output.
+- **State changes caused by execution**: The program does not maintain any internal state; it processes input and generates output in a stateless manner.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(2^n) in the worst case, as it generates all possible combinations of `n` bits.
+- **Space complexity**: The space complexity is O(1) for the variables used, but the output space can grow depending on the number of valid combinations printed.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of the system's memory and processing capabilities.
+```

@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Read weights k
+    let mut k = vec![0; n + 1];
+    for i in 1..=n {
+        let line = lines.next().unwrap().unwrap();
+        k[i] = line.trim().parse().unwrap();
+    }
+
+    // Read costs t
+    let mut t = vec![0; m + 1];
+    for i in 1..=m {
+        let line = lines.next().unwrap().unwrap();
+        t[i] = line.trim().parse().unwrap();
+    }
+
+    // Initialize the hi matrix
+    let mut hi = vec![vec![1_000_000_000; n + 1]; m + 1];
+
+    // Base case: hi[i][0] = 0 for all i
+    for i in 0..=m {
+        hi[i][0] = 0;
+    }
+
+    // Fill the hi matrix
+    for i in 1..=m {
+        for j in 1..=n {
+            hi[i][j] = k[j] * t[i] + hi[i - 1][j - 1];
+            if hi[i][j] > hi[i - 1][j] {
+                hi[i][j] = hi[i - 1][j];
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", hi[m][n]);
+}

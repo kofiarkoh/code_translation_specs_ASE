@@ -1,0 +1,69 @@
+use std::io::{self, BufRead};
+
+struct SegmentTree {
+    seg: Vec<i64>,
+    sz: usize,
+}
+
+impl SegmentTree {
+    fn new(size: usize) -> Self {
+        let sz = size.next_power_of_two(); // Ensure size is a power of two
+        let seg = vec![0; 2 * sz];
+        SegmentTree { seg, sz }
+    }
+
+    fn update(&mut self, k: usize, v: i64) {
+        let mut k = k + self.sz - 1;
+        self.seg[k] = v;
+        while k > 0 {
+            if k % 2 == 0 {
+                k -= 1;
+            }
+            let t = k;
+            k /= 2;
+            let v = self.seg[t] max self.seg[t + 1];
+            self.seg[k] = v;
+        }
+    }
+
+    fn query(&self, a: usize, b: usize, k: usize, l: usize, r: usize) -> i64 {
+        if r <= a || b <= l {
+            return 0;
+        }
+        if a <= l && r <= b {
+            return self.seg[k];
+        }
+        let m = (l + r) / 2;
+        let lmax = self.query(a, b, k * 2, l, m);
+        let rmax = self.query(a, b, k * 2 + 1, m, r);
+        lmax.max(rmax)
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    let mut seg_tree = SegmentTree::new(n);
+    let mut total_cost = 0;
+
+    let positions: Vec<usize> = lines
+        .next()
+        .unwrap()
+        .unwrap()
+        .split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+
+    for &x in &positions {
+        let cost = (x as i64) + seg_tree.query(1, x + 1, 1, 0, seg_tree.sz);
+        seg_tree.update(x, cost);
+        total_cost += cost;
+    }
+
+    let ans = ((n as i64) * (n as i64 + 1) / 2) - seg_tree.query(1, n + 1, 1, 0, seg_tree.sz);
+    println!("{}", ans);
+}

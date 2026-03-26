@@ -1,0 +1,85 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03064/p03064_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03064/p03064_sample1_output.txt
+Input:
+5
+1
+2
+3
+4
+5
+Expected:
+66
+Actual:
+998243681
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const M: i64 = 998244353;
+const MAX_SIZE: usize = 90310;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut d = vec![0; MAX_SIZE];
+    let mut e = vec![0; MAX_SIZE];
+    let mut s = 0;
+    let mut r = 1;
+
+    // Read the first input
+    let first_input = stdin.lock().lines().next().unwrap().unwrap();
+    let first_value: i64 = first_input.trim().parse().expect("First input must be a valid integer");
+    d[0] = first_value;
+    e[0] = first_value;
+
+    // Read subsequent inputs
+    for line in stdin.lock().lines() {
+        let line = line.unwrap();
+        if let Ok(a) = line.trim().parse::<i64>() {
+            let t = s;
+            for t in (0..=t).rev() {
+                d[(t + a) as usize] = (d[(t + a) as usize] + d[t as usize] * 2 % M) % M;
+                e[(t + a) as usize] = (e[(t + a) as usize] + e[t as usize]) % M;
+            }
+            s += a;
+            r = r * 3 % M;
+        } else {
+            break; // Stop reading on non-integer input
+        }
+    }
+
+    // Compute the final result
+    let mut t = s / 2;
+    while t > 0 {
+        r = (r - d[t as usize] * 3) % M;
+        t -= 1;
+    }
+
+    // Adjust for the final output
+    let result = (r - (s % 2) * e[(s / 2) as usize] * 3 + M) % M;
+    println!("{}", (result + M) % M); // Ensure non-negative output
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

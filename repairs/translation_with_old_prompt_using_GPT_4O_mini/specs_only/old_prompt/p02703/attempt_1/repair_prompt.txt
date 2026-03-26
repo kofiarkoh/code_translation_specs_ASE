@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a modified Dijkstra's algorithm to find the minimum travel time between cities, considering both travel costs and time.
+- **What problem it solves**: It solves the problem of determining the shortest time to reach each city from a starting city, given a set of train connections with associated costs and travel times.
+- **Core behavior**: The program reads the number of cities, train connections, and a starting budget, then computes the minimum time to reach each city while managing the budget constraints.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of cities (1 to 50).
+  - `M`: Number of train connections (0 to 49).
+  - `S`: Initial budget (0 to max).
+  - Train connections: Each connection consists of two cities (`u`, `v`), a cost (`a`), and a travel time (`b`).
+- **Data types**: 
+  - `N`, `M`, `S`: `long` (long integer).
+  - `u`, `v`, `a`, `b`: `int` (integer).
+  - `cost`: `int` (integer).
+  - `time`: `long long int` (long long integer).
+- **Valid ranges or constraints**: 
+  - `N` must be between 1 and 50.
+  - `M` must be between 0 and 49.
+  - `S` must be non-negative and less than or equal to `max`.
+- **Assumptions about inputs**: 
+  - Input values are provided in the correct format.
+  - The number of train connections does not exceed the maximum allowed.
+
+## 3. Outputs
+- **Return values**: The function returns `0` on successful completion of the Dijkstra's algorithm, or `2` if an error occurs.
+- **Side effects**: Outputs the minimum travel time to each city from the starting city to standard output.
+- **Output format/schema**: Each output is a long long integer representing the minimum time to reach each city, printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input values for `N`, `M`, and `S` must be read successfully.
+  - The train connections must be defined correctly.
+- **Explicit logical constraints**: 
+  - The budget `S` must be non-negative and within the defined maximum.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The `ans` array contains the minimum travel times to each city from the starting city.
+- **State changes**: 
+  - The `city` and `Used` arrays are modified to reflect the computed travel times and used budget states.
+- **Return guarantees**: 
+  - The function guarantees that if it returns `0`, the `ans` array is populated with valid travel times.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `city` array always holds the minimum travel time to each city for each possible budget.
+  - The `Used` array indicates whether a specific budget for a city has been processed.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not explicitly handle invalid input; it assumes valid input is provided.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; however, memory allocation failures may occur during `realloc`.
+- **Edge-case behavior**: If `N` is at its maximum and `M` is at its minimum, the program will still execute but may not find any connections.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with uninitialized travel times and budget states.
+- **State changes caused by execution**: 
+  - The state of the `ans`, `city`, and `Used` arrays changes as the algorithm processes each city and budget combination.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm has a time complexity of O(N^2 * max), where `N` is the number of cities and `max` is the maximum budget.
+- **Space complexity**: The space complexity is O(N * max) due to the `city` and `Used` arrays.
+- **Performance assumptions**: The algorithm is expected to perform efficiently within the constraints of the problem, given the maximum limits on `N` and `M`.
+```

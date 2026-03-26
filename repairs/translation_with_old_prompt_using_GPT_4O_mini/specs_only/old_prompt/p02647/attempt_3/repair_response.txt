@@ -1,0 +1,51 @@
+```rust
+use std::io;
+
+fn transform_array(n: usize, k: usize, a: &mut Vec<i32>) {
+    // Create a temporary array to hold the transformed values
+    let mut b = vec![0; n];
+
+    for _ in 0..k {
+        // Apply the transformation logic
+        for i in 0..n {
+            // The transformation logic is based on the minimum of the current value and the value at the previous index
+            // This ensures that we are minimizing the values in the array
+            let prev_value = if i > 0 { a[i - 1] } else { a[i] };
+            b[i] = a[i].min(prev_value);
+        }
+        // Copy the transformed values back to the original array
+        a.copy_from_slice(&b);
+    }
+}
+
+fn main() {
+    // Read input values
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let params: Vec<usize> = input.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    let n = params[0];
+    let k = params[1];
+
+    // Read the array A
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    a.extend(input.split_whitespace().map(|s| s.parse::<i32>().unwrap())); // Specify i32 type
+
+    // Ensure the array has the correct size
+    assert_eq!(a.len(), n);
+
+    // Transform the array
+    transform_array(n, k, &mut a);
+
+    // Output the transformed array
+    let output = a.iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(" ");
+    println!("{}", output);
+}
+```

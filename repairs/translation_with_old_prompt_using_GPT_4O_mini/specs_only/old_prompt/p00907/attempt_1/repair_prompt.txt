@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code identifies an outlier in a set of numerical values based on a specific calculation method.
+- **What problem it solves**: It determines which value in a list deviates significantly from the expected values calculated using interpolation.
+- **Core behavior**: The program reads a series of numerical inputs, computes expected values for each input based on the others, and identifies the index of the outlier.
+
+## 2. Inputs
+- **Parameters**: 
+  - `d`: An integer representing the number of values to be processed (excluding the outlier).
+  - `v[]`: An array of doubles containing the numerical values.
+- **Data types**: 
+  - `d`: `int`
+  - `v[]`: `double[]`
+- **Valid ranges or constraints**: 
+  - `d` must be a positive integer (0 < d ≤ 7, since `n = d + 3` and `v` can hold a maximum of 10 values).
+  - Each element in `v[]` can be any valid double value.
+- **Assumptions about inputs**: The input will be well-formed, with the first integer followed by the corresponding number of double values.
+
+## 3. Outputs
+- **Return values**: The program outputs the index of the outlier in the array `v[]`.
+- **Side effects**: The program prints the index of the outlier to the standard output.
+- **Output format/schema**: The output is a single integer representing the index of the outlier.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must start with a positive integer followed by the corresponding number of double values.
+  - The input must not exceed the maximum size of the array (10 values).
+- **Explicit logical constraints**: The first input must be greater than zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the index of the outlier or the last valid index if no outlier is found.
+- **State changes**: The program does not maintain state across executions; it only processes the current input.
+- **Return guarantees**: The output will always be a valid index within the range of the input array.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the array `v[]` is always equal to `n`, which is `d + 3`.
+  - The index of the outlier must be within the bounds of the array.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `d` is 0, the program will terminate without processing any values.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and producing output.
+- **State changes caused by execution**: The program transitions from reading input to calculating and finally outputting the result.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n^3) due to the nested loops for calculating expected values.
+- **Space complexity**: The space complexity is O(n) for storing the input values in the array `v[]`.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size of 10 values.
+```

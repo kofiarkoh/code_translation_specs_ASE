@@ -1,0 +1,49 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    let mut n = [0; 200]; // Fixed-size array to hold octal digits
+
+    loop {
+        // Read input from the user
+        input.clear();
+        io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        
+        // Parse the input as an integer
+        let a: i32 = match input.trim().parse() {
+            Ok(num) if num >= 0 => num, // Ensure non-negative integer
+            _ => continue, // Ignore invalid input
+        };
+
+        if a == 0 {
+            break; // Terminate on input of 0
+        }
+
+        let mut b = 0; // Number of octal digits
+        let mut temp_a = a; // Use a temporary variable for conversion
+
+        // Convert decimal to octal
+        while temp_a > 0 {
+            n[b] = temp_a % 8;
+            temp_a /= 8;
+            b += 1;
+        }
+
+        // Modify octal digits according to the specified rules
+        for i in 0..b {
+            if n[i] > 3 {
+                n[i] += 1;
+            }
+            if n[i] > 5 {
+                n[i] += 1;
+            }
+        }
+
+        // Print the modified octal representation in reverse order
+        for i in (0..b).rev() {
+            print!("{}", n[i]);
+        }
+        println!(); // Newline after each output
+    }
+}

@@ -1,0 +1,46 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00190/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:43:15
+   |
+43 |     while let Some((state, moves)) = queue.remove(0) {
+   |               ^^^^^^^^^^^^^^^^^^^^   --------------- this expression has type `(u64, {integer})`
+   |               |
+   |               expected `(u64, {integer})`, found `Option<_>`
+   |
+   = note: expected tuple `(u64, {integer})`
+               found enum `Option<_>`
+
+error[E0515]: cannot return value referencing temporary value
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00190/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:11:26
+   |
+11 |         .flat_map(|line| line.unwrap().split_whitespace().map(|s| s.parse::<i32>().unwrap()))
+   |                          -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |                          |
+   |                          returns a value referencing data owned by the current function
+   |                          temporary value created here
+   |
+   = help: use `.collect()` to allocate the iterator
+
+warning: unused variable: `dx`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00190/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:62:35
+   |
+62 | fn generate_new_state(state: u64, dx: i32, dy: i32) -> Option<u64> {
+   |                                   ^^ help: if this is intentional, prefix it with an underscore: `_dx`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `dy`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00190/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:62:44
+   |
+62 | fn generate_new_state(state: u64, dx: i32, dy: i32) -> Option<u64> {
+   |                                            ^^ help: if this is intentional, prefix it with an underscore: `_dy`
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+Some errors have detailed explanations: E0308, E0515.
+For more information about an error, try `rustc --explain E0308`.

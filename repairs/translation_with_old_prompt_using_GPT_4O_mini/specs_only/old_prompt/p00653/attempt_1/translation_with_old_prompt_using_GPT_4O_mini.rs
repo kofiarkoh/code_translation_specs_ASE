@@ -1,0 +1,97 @@
+use std::cmp;
+
+struct SegmentTree2D {
+    rows: usize,
+    cols: usize,
+    tree: Vec<Vec<i32>>,
+}
+
+impl SegmentTree2D {
+    fn new(rows: usize, cols: usize) -> Self {
+        let h = rows.next_power_of_two();
+        let w = cols.next_power_of_two();
+        let tree = vec![vec![i32::MAX; w * 4]; h * 4]; // Initialize with max values
+        SegmentTree2D { rows: h, cols: w, tree }
+    }
+
+    fn build(&mut self, grid: &Vec<Vec<i32>>, x: usize, y: usize, lx: usize, rx: usize, ly: usize, ry: usize) {
+        if lx + 1 == rx && ly + 1 == ry {
+            self.tree[x][y] = grid[lx][ly];
+        } else {
+            let mx = (lx + rx) / 2;
+            let my = (ly + ry) / 2;
+
+            if lx < mx && ly < my {
+                self.build(grid, x * 2 + 1, y * 2 + 1, lx, mx, ly, my);
+            }
+            if lx < mx && my < ry {
+                self.build(grid, x * 2 + 1, y * 2, lx, mx, my, ry);
+            }
+            if mx < rx && ly < my {
+                self.build(grid, x * 2, y * 2 + 1, mx, rx, ly, my);
+            }
+            if mx < rx && my < ry {
+                self.build(grid, x * 2, y * 2, mx, rx, my, ry);
+            }
+
+            self.tree[x][y] = cmp::min(cmp::min(self.tree[x * 2 + 1][y * 2 + 1], self.tree[x * 2 + 1][y * 2]),
+                                       cmp::min(self.tree[x * 2][y * 2 + 1], self.tree[x * 2][y * 2]));
+        }
+    }
+
+    fn update(&mut self, x: usize, y: usize, value: i32, node_x: usize, lx: usize, rx: usize, node_y: usize, ly: usize, ry: usize) {
+        if lx + 1 == rx && ly + 1 == ry {
+            self.tree[node_x][node_y] = value;
+        } else {
+            let mx = (lx + rx) / 2;
+            let my = (ly + ry) / 2;
+
+            if lx < mx && ly < my {
+                self.update(x, y, value, node_x * 2 + 1, lx, mx, node_y * 2 + 1, ly, my);
+            }
+            if lx < mx && my < ry {
+                self.update(x, y, value, node_x * 2 + 1, lx, mx, node_y * 2, my, ry);
+            }
+            if mx < rx && ly < my {
+                self.update(x, y, value, node_x * 2, lx, rx, node_y * 2 + 1, ly, my);
+            }
+            if mx < rx && my < ry {
+                self.update(x, y, value, node_x * 2, lx, rx, node_y * 2, my, ry);
+            }
+
+            self.tree[node_x][node_y] = cmp::min(cmp::min(self.tree[node_x * 2 + 1][node_y * 2 + 1], self.tree[node_x * 2 + 1][node_y * 2]),
+                                                  cmp::min(self.tree[node_x * 2][node_y * 2 + 1], self.tree[node_x * 2][node_y * 2]));
+        }
+    }
+
+    fn query(&self, r1: usize, c1: usize, r2: usize, c2: usize, node_x: usize, lx: usize, rx: usize, node_y: usize, ly: usize, ry: usize) -> i32 {
+        if lx >= r2 || rx <= r1 || ly >= c2 || ry <= c1 {
+            return i32::MAX; // Out of range
+        }
+        if lx >= r1 && rx <= r2 && ly >= c1 && ry <= c2 {
+            return self.tree[node_x][node_y]; // Fully in range
+        }
+
+        let mx = (lx + rx) / 2;
+        let my = (ly + ry) / 2;
+
+        let left_bottom = self.query(r1, c1, r2, c2, node_x * 2 + 1, lx, mx, node_y * 2 + 1, ly, my);
+        let right_bottom = self.query(r1, c1, r2, c2, node_x * 2 + 1, lx, mx, node_y * 2, my, ry);
+        let left_top = self.query(r1, c1, r2, c2, node_x * 2, lx, rx, node_y * 2 + 1, ly, my);
+        let right_top = self.query(r1, c1, r2, c2, node_x * 2, lx, rx, node_y * 2, my, ry);
+
+        cmp::min(cmp::min(left_bottom, right_bottom), cmp::min(left_top, right_top))
+    }
+}
+
+fn main() {
+    let (R, C, Q) = (3, 3, 2); // Example dimensions and queries
+    let mut grid = vec![vec![1; C]; R]; // Initialize grid with 1s
+    let mut segment_tree = SegmentTree2D::new(R, C);
+    segment_tree.build(&grid, 0, 0, 0, R, 0, C);
+
+    // Example updates and queries
+    segment_tree.update(1, 1, 5, 0, 0, R, 0, 0, C); // Update grid[1][1] to 5
+    let min_value = segment_tree.query(0, 0, 2, 2, 0, 0, R, 0, 0, C); // Query min in rectangle (0,0) to (2,2)
+    println!("{}", min_value); // Output the result
+}

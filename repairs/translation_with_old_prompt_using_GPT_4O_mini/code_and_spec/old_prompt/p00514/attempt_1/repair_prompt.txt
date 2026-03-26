@@ -1,0 +1,145 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates and prints the binomial coefficient \((n+r-1)C(n-1)\) using a custom large number representation.
+- **What problem it solves**: It computes combinations for large values of \(n\) and \(r\) that exceed standard integer limits, specifically for cases where \(n\) and \(r\) are non-negative integers.
+- **Core behavior**: The program reads three integers \(n\), \(m\), and \(r\), adjusts \(r\) based on \(n\) and \(m\), and computes the binomial coefficient if \(r\) is non-negative.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of items to choose from.
+  - `m`: A multiplier affecting the adjustment of `r`.
+  - `r`: The number of additional items.
+- **Data types**: All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - \(n \geq 0\)
+  - \(m \geq 0\)
+  - \(r \geq 0\)
+- **Assumptions about inputs**: Inputs are provided in a valid format and within the range of `int`.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it prints the result directly to standard output.
+- **Side effects**: Outputs the computed binomial coefficient or a message indicating the result.
+- **Output format/schema**: The output is a single integer representing the binomial coefficient, formatted without leading zeros.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive three integers as input.
+  - The values of \(n\), \(m\), and \(r\) must be non-negative integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - If \(r < 0\), the output is "0".
+  - If \(r = 0\), the output is "1".
+  - For \(r > 0\), the output is the computed binomial coefficient \((n+r-1)C(n-1)\).
+- **State changes**: The internal state of the `tabaicho_main` array is modified to store the large number representation of the result.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the `tabaicho_main` array is fixed at `TABAICHO_SIZE`.
+  - The values in `tabaicho_main` represent a valid large integer in base `TABAICHO_BLOCK`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it assumes valid integer input.
+- **Exceptions thrown?**: No exceptions are thrown; the program may produce undefined behavior if inputs are invalid.
+- **Edge-case behavior**: If \(r < 0\), it outputs "0". If \(r = 0\), it outputs "1".
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `tabaicho_main` array can hold values representing large integers.
+- **State changes caused by execution**: The array is initialized and modified during multiplication and division operations, reflecting the current state of the computed binomial coefficient.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately \(O(n + r)\) due to the loops for multiplication and division.
+- **Space complexity**: The space complexity is \(O(TABAICHO_SIZE)\) due to the fixed-size array used for large number representation.
+- **Performance assumptions**: The performance is dependent on the values of \(n\) and \(r\), with larger values leading to increased computation time.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+/* 20000! has 77338 digits */
+/* 9 digits in one int */
+#define TABAICHO_SIZE 8667
+#define TABAICHO_BLOCK 1000000000
+int tabaicho_main[TABAICHO_SIZE];
+
+void tabaicho_set(int num) {
+	int i;
+	tabaicho_main[0]=num;
+	for(i=1;i<TABAICHO_SIZE;i++)tabaicho_main[i]=0;
+}
+
+void tabaicho_mul(int num) {
+	int kuriagari=0;
+	long long calctemp;
+	int i;
+	for(i=0;i<TABAICHO_SIZE;i++) {
+		calctemp=(long long)tabaicho_main[i]*num;
+		calctemp+=kuriagari;
+		tabaicho_main[i]=calctemp%TABAICHO_BLOCK;
+		kuriagari=calctemp/TABAICHO_BLOCK;
+	}
+}
+
+void tabaicho_div(int num) {
+	long long remainder=0;
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		remainder=remainder*TABAICHO_BLOCK+tabaicho_main[i];
+		tabaicho_main[i]=remainder/num;
+		remainder=remainder%num;
+	}
+}
+
+void tabaicho_print(void) {
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		if(tabaicho_main[i]>0)break;
+	}
+	printf("%d",tabaicho_main[i]);
+	for(i--;i>=0;i--)printf("%09d",tabaicho_main[i]);
+	putchar('\n');
+}
+
+int main(void) {
+	int n,m,r;
+	scanf("%d%d%d",&n,&m,&r);
+	r-=n*m; /* n=3 r=8 m=1 xoo|xoo|xo */
+	if(r<0)puts("0");
+	else if(r==0)puts("1");
+	else {
+		int i,j,n2;
+		/* n=3 r=5 oo|oo|o */
+		/* (n+r-1)C(n-1) */
+		tabaicho_set(1);
+		n2=n-1;
+		if((n+r-1)-(n-1)<n-1)n2=(n+r-1)-(n-1);
+		for(i=0,j=n+r-1;i<n2;i++,j--)tabaicho_mul(j);
+		for(i=1;i<=n2;i++)tabaicho_div(i);
+		tabaicho_print();
+	}
+	return 0;
+}
+=== C CODE END ===

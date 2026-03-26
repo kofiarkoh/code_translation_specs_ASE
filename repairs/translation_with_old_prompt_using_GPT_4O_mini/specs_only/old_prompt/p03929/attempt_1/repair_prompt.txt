@@ -1,0 +1,95 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific count based on two input integers, `n` and `k`, and outputs the result.
+- **What problem it solves**: It determines how many integers, derived from a transformation of `n`, satisfy certain modular conditions relative to `k`.
+- **Core behavior**: The program modifies `n`, iterates through a range of values, and counts occurrences that meet specific criteria involving modular arithmetic.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: A long long integer representing a base value.
+  - `k`: A long long integer used for comparison in modular arithmetic.
+- **Data types**: 
+  - Both `n` and `k` are of type `long long int`.
+- **Valid ranges or constraints**: 
+  - No explicit constraints on `n` and `k` are defined, but they should be within the range of `long long int`.
+- **Assumptions about inputs**: 
+  - It is assumed that the inputs are valid integers and can be read successfully.
+
+## 3. Outputs
+- **Return values**: The program outputs a single long long integer, which is the computed count.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input is available.
+  - Valid integers must be provided as input.
+- **Explicit logical constraints**: 
+  - None specified, but inputs should be within the range of `long long int`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the count of integers that meet the specified criteria based on the transformed value of `n` and `k`.
+- **State changes**: 
+  - The program does not maintain state beyond local variables.
+- **Return guarantees**: 
+  - The output will always be a valid long long integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variables `ans`, `count`, and `i` are always initialized before use.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined; the program may produce incorrect results or fail.
+- **Exceptions thrown?**: 
+  - The code does not handle exceptions explicitly.
+- **Edge-case behavior**: 
+  - If `n` is very small or negative, the behavior of the loops may lead to no iterations, resulting in an output of zero.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as there are no objects; the program operates with local variables.
+- **State changes caused by execution**: 
+  - The variable `ans` accumulates counts based on the conditions met during iterations.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is O(n/693) due to the loop iterating up to `n % 693` and a fixed loop of 693 iterations.
+- **Space complexity**: 
+  - The space complexity is O(1) as it uses a constant amount of space for variables.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for typical values of `n` and `k` within the range of `long long int`.
+```

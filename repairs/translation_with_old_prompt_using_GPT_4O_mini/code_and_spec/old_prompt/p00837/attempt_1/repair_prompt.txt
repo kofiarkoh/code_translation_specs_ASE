@@ -1,0 +1,160 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification for Book Replacement
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code simulates a book replacement system for a library where students request books, and the system manages the allocation of books to desks based on availability.
+- **What problem it solves**: It addresses the problem of efficiently managing book requests from multiple students while adhering to desk capacity constraints.
+- **Core behavior**: The program reads the number of desks, their capacity, and the book requests from students, processes these requests, and calculates the total number of desk movements required to fulfill the requests.
+
+## 2. Inputs
+- **Parameters**:
+  - `m`: Number of desks (integer).
+  - `c`: Capacity of each desk (integer).
+  - `n`: Number of students (integer).
+  - `t`: Number of books requested by a student (integer).
+  - `id`: Book ID (integer).
+- **Data types**: All inputs are integers.
+- **Valid ranges or constraints**:
+  - `m > 0`
+  - `c > 0`
+  - `n >= 0`
+  - `t >= 0`
+  - `id` should be a valid book identifier within the range of available books.
+- **Assumptions about inputs**: It is assumed that the input will be provided in the correct format and that the number of books requested does not exceed the total number of available books.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the total number of desk movements required to fulfill all book requests.
+- **Side effects**: The program modifies internal data structures that track the state of desks and book allocations.
+- **Output format/schema**: The output is a single integer printed to the standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the specified format.
+  - The number of desks and their capacity must be positive integers.
+- **Explicit logical constraints**: The total number of books requested must not exceed the total capacity of all desks combined.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The total number of desk movements is calculated and printed.
+- **State changes**: The internal state of the desks and book allocations is updated based on the requests processed.
+- **Return guarantees**: The output will always be a non-negative integer representing the total movements.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The number of books on each desk does not exceed its capacity.
+  - The internal data structures accurately reflect the current state of book allocations and desk usage.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: If no students are present (`n = 0`), the output will be `0` as there are no requests to process.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Each desk can be in a state of having 0 to `c` books.
+  - Books can be in a state of being allocated to a desk or not allocated.
+- **State changes caused by execution**: 
+  - Books are moved between desks based on requests, and the number of books on each desk is updated accordingly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation (`qsort`) suggests a time complexity of O(n log n), where `n` is the total number of book requests.
+- **Space complexity**: The space complexity is O(m + n), where `m` is the number of desks and `n` is the number of book requests, due to the storage of desk states and requests.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical competitive programming environments.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+=== C CODE END ===

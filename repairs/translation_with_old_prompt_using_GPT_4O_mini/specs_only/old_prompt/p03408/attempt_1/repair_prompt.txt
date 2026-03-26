@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads two sets of strings and calculates the maximum frequency of any string from the first set that does not appear in the second set.
+- **What problem it solves**: It identifies the most frequently occurring string in the first set while excluding any strings that are present in the second set.
+- **Core behavior**: The program reads two integers representing the number of strings in each set, followed by the strings themselves, and outputs the maximum adjusted frequency of strings from the first set.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of strings in the first set.
+  - `M`: Number of strings in the second set.
+- **Data types**:
+  - `N` and `M`: `int`
+  - `s` and `t`: Arrays of strings (`char` arrays of length 11).
+- **Valid ranges or constraints**:
+  - `N` and `M` must be non-negative integers.
+  - Each string must be a null-terminated character array with a maximum length of 10 characters (plus the null terminator).
+- **Assumptions about inputs**:
+  - Input strings are well-formed and do not exceed the specified length.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the maximum adjusted frequency.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The program must receive valid integer inputs for `N` and `M`.
+  - The input strings must conform to the specified length constraints.
+- **Explicit logical constraints**: `N` and `M` must be greater than or equal to zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output the maximum frequency of any string from the first set that is not present in the second set.
+- **State changes**: No persistent state changes occur; the program operates in a stateless manner.
+- **Return guarantees**: The output will be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The arrays `s` and `t` will always contain valid strings as per the input constraints.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If `N` or `M` is zero, the program will output `0` since there are no strings to compare.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not maintain stateful objects.
+- **State changes caused by execution**: The program does not maintain any state; it processes input and produces output directly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N^2 + NM), where N is the number of strings in the first set and M is the number of strings in the second set.
+- **Space complexity**: O(N + M), due to the storage of the input strings.
+- **Performance assumptions**: The program assumes that the input sizes are manageable within the constraints of typical stack and heap sizes for C programs.
+```

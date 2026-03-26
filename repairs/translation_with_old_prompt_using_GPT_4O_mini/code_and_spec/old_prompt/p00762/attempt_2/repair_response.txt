@@ -1,0 +1,156 @@
+```rust
+use std::io::{self, BufRead};
+
+const N_MAX: usize = 4;
+
+static mut HEIGHT_MAP: [[u8; N_MAX * 2 + 1]; N_MAX * 2 + 1] = [[0; N_MAX * 2 + 1]; N_MAX * 2 + 1];
+static mut TOP_MAP: [[u8; N_MAX * 2 + 2]; N_MAX * 2 + 1] = [[0; N_MAX * 2 + 2]; N_MAX * 2 + 1];
+
+static RIGHT: [[u8; 7]; 7] = [
+    [0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 3, 5, 2, 4, 0],
+    [0, 4, 0, 1, 6, 0, 3],
+    [0, 2, 6, 0, 0, 1, 5],
+    [0, 5, 1, 0, 0, 6, 2],
+    [0, 3, 0, 6, 1, 0, 4],
+    [0, 0, 4, 2, 5, 3, 0],
+];
+
+fn right(top: u8, front: u8) -> u8 {
+    RIGHT[top as usize][front as usize]
+}
+
+fn bottom(top: u8) -> u8 {
+    7 - top
+}
+
+fn back(front: u8) -> u8 {
+    7 - front
+}
+
+fn left(top: u8, front: u8) -> u8 {
+    7 - right(top, front)
+}
+
+fn init() {
+    unsafe {
+        for y in 0..N_MAX * 2 + 1 {
+            for x in 0..N_MAX * 2 + 1 {
+                HEIGHT_MAP[y][x] = 0;
+                TOP_MAP[y][x] = 0;
+            }
+        }
+    }
+}
+
+fn put(mut top: u8, mut front: u8) {
+    let mut x = N_MAX as isize;
+    let mut y = N_MAX as isize;
+    let mut new_front;
+    let mut new_top;
+    let mut new_x;
+    let mut new_y;
+    let mut max;
+
+    loop {
+        max = 0;
+
+        // Check front
+        if unsafe { HEIGHT_MAP[(y - 1) as usize][x as usize] } < unsafe { HEIGHT_MAP[y as usize][x as usize] } && front > 3 && front > max {
+            new_front = top;
+            new_top = back(front);
+            new_x = x;
+            new_y = y - 1;
+            max = front;
+        } else {
+            new_front = front; // Initialize to avoid uninitialized usage
+            new_top = top;     // Initialize to avoid uninitialized usage
+            new_x = x;         // Initialize to avoid uninitialized usage
+            new_y = y;         // Initialize to avoid uninitialized usage
+        }
+
+        // Check back
+        if unsafe { HEIGHT_MAP[(y + 1) as usize][x as usize] } < unsafe { HEIGHT_MAP[y as usize][x as usize] } && bottom(top) > 3 && bottom(top) > max {
+            new_front = bottom(top);
+            new_top = front;
+            new_x = x;
+            new_y = y + 1;
+            max = bottom(top);
+        }
+
+        // Check left
+        if unsafe { HEIGHT_MAP[y as usize][(x - 1) as usize] } < unsafe { HEIGHT_MAP[y as usize][x as usize] } && left(top, front) > 3 && left(top, front) > max {
+            new_front = front;
+            new_top = right(top, front);
+            new_x = x - 1;
+            new_y = y;
+            max = left(top, front);
+        }
+
+        // Check right
+        if unsafe { HEIGHT_MAP[y as usize][(x + 1) as usize] } < unsafe { HEIGHT_MAP[y as usize][x as usize] } && right(top, front) > 3 && right(top, front) > max {
+            new_front = front;
+            new_top = left(top, front);
+            new_x = x + 1;
+            new_y = y;
+            max = right(top, front);
+        }
+
+        if max == 0 {
+            break;
+        } else {
+            front = new_front;
+            top = new_top;
+            x = new_x;
+            y = new_y;
+        }
+    }
+
+    unsafe {
+        HEIGHT_MAP[y as usize][x as usize] += 1;
+        TOP_MAP[y as usize][x as usize] = top;
+    }
+}
+
+fn count_and_print() {
+    let mut count = [0; 7];
+
+    unsafe {
+        for y in 0..N_MAX * 2 + 1 {
+            for x in 0..N_MAX * 2 + 1 {
+                count[TOP_MAP[y][x] as usize] += 1;
+            }
+        }
+    }
+
+    for x in 1..6 {
+        print!("{} ", count[x]);
+    }
+    println!("{}", count[6]);
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let n: usize = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        init();
+
+        for _ in 0..n {
+            let mut input = String::new();
+            reader.read_line(&mut input).unwrap();
+            let parts: Vec<u8> = input.split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            put(parts[0], parts[1]);
+        }
+
+        count_and_print();
+    }
+}
+```

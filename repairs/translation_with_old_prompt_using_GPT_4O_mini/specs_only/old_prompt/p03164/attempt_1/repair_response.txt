@@ -1,0 +1,45 @@
+```rust
+fn bounded_knapsack(n: usize, w: &[usize], v: &[usize], max_weight: usize) -> Result<usize, &'static str> {
+    const MEW: usize = 112345; // Size of the ayaneru array
+    let mut ayaneru = vec![0; MEW]; // Initialize the ayaneru array
+
+    // Check for valid input
+    if n > 128 || w.len() != n || v.len() != n {
+        return Err("error!");
+    }
+
+    // Process each item
+    for i in 0..n {
+        let weight = w[i];
+        let value = v[i];
+
+        // Update the ayaneru array in reverse to avoid overwriting results from the same iteration
+        for j in (weight..=max_weight).rev() {
+            ayaneru[j] = ayaneru[j].max(ayaneru[j - weight] + value);
+        }
+    }
+
+    // Find the maximum value that can be achieved without exceeding the weight limit
+    let max_value = ayaneru.iter().take(max_weight + 1).max().unwrap_or(&0);
+
+    // Check if we found a valid configuration
+    if *max_value == 0 {
+        return Err("error!");
+    }
+
+    Ok(*max_value)
+}
+
+fn main() {
+    // Example usage
+    let n = 3; // Number of items
+    let max_weight = 50; // Maximum weight capacity
+    let weights = [10, 20, 30]; // Weights of the items
+    let values = [60, 100, 120]; // Values of the items
+
+    match bounded_knapsack(n, &weights, &values, max_weight) {
+        Ok(max_value) => println!("{}", max_value),
+        Err(e) => println!("{}", e),
+    }
+}
+```

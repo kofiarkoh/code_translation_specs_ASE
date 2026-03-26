@@ -1,0 +1,162 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p00649/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:26:36
+     |
+  15 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+...
+  18 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  26 |             let coords: Vec<i32> = reader.lines().next().unwrap().unwrap()
+     |                                    ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error[E0502]: cannot borrow `tmp` as immutable because it is also borrowed as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p00649/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:76:31
+   |
+76 |         calc(&mut tmp, order, tmp.len());
+   |         ---- --------         ^^^ immutable borrow occurs here
+   |         |    |
+   |         |    mutable borrow occurs here
+   |         mutable borrow later used by call
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0382, E0502.
+For more information about an error, try `rustc --explain E0382`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone)] // Derive Clone to allow cloning of Rectangle
+struct Rectangle {
+    id: usize,
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    used: bool,
+}
+
+fn read_input() -> Vec<Rectangle> {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut rectangles = Vec::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: usize = line.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        for i in 0..n {
+            let coords: Vec<i32> = reader.lines().next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            let (x1, y1, x2, y2) = (coords[0], coords[1], coords[2], coords[3]);
+            rectangles.push(Rectangle {
+                id: i,
+                x1: x1.min(x2),
+                y1: y1.min(y2),
+                x2: x1.max(x2),
+                y2: y1.max(y2),
+                used: false,
+            });
+        }
+    }
+    rectangles
+}
+
+fn compare_rectangles(a: &Rectangle, b: &Rectangle) -> std::cmp::Ordering {
+    if a.x1 != b.x1 {
+        a.x1.cmp(&b.x1)
+    } else {
+        a.y1.cmp(&b.y1)
+    }
+}
+
+fn calc(rectangles: &mut Vec<Rectangle>, order: &mut Vec<usize>, n: usize) {
+    rectangles.sort_by(compare_rectangles);
+    order[rectangles[0].id] = order.iter().filter(|&&x| x != 0).count() + 1;
+    rectangles[0].used = true;
+
+    let y = rectangles[0].y2;
+    let mut x = 501;
+
+    for rect in rectangles.iter() {
+        if !rect.used && rect.y1 < y && y < rect.y2 {
+            x = rect.x1;
+            break;
+        }
+    }
+
+    let mut tmp = Vec::new();
+    for rect in rectangles.iter_mut() {
+        if !rect.used && rect.y2 <= y && rect.x2 <= x {
+            tmp.push(rect.clone());
+            rect.used = true;
+        }
+    }
+
+    if !tmp.is_empty() {
+        calc(&mut tmp, order, tmp.len());
+    }
+
+    for i in 0..n {
+        if !rectangles[i].used {
+            calc(&mut rectangles[i..].to_vec(), order, n - i);
+            break;
+        }
+    }
+}
+
+fn main() {
+    let mut order = vec![0; 10];
+    let rectangles = read_input();
+
+    let mut cno = 0;
+    let mut rectangles = rectangles;
+
+    while !rectangles.is_empty() {
+        let n = rectangles.len();
+        if n == 0 {
+            break;
+        }
+
+        calc(&mut rectangles, &mut order, n);
+
+        if cno > 0 {
+            println!();
+        }
+        cno += 1;
+
+        for i in 0..n {
+            println!("{}", order[i]);
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

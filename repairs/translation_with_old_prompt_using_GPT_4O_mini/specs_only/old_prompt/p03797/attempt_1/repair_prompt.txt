@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific sum based on two input integers, `n` and `m`, and outputs the result.
+- **What problem it solves**: It determines a value based on the relationship between `n` and half of `m`, effectively managing different scenarios to compute the sum.
+- **Core behavior**: The program reads two integers, evaluates conditions based on their values, and computes a sum accordingly, which is then printed.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: First integer input.
+  - `m`: Second integer input.
+- **Data types**: 
+  - Both `n` and `m` are of type `long long int`.
+- **Valid ranges or constraints**: 
+  - No explicit constraints on the values of `n` and `m` are defined in the code.
+- **Assumptions about inputs**: 
+  - It is assumed that the inputs are valid integers and that `m` is non-negative.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long int` value representing the computed sum.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer printed in decimal format.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive two valid integer inputs.
+- **Explicit logical constraints**: 
+  - `m` should be a non-negative integer for meaningful computation.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed sum based on the input values.
+- **State changes**: 
+  - The program does not maintain state beyond the execution of the main function.
+- **Return guarantees**: 
+  - The output will always be a valid `long long int`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The sum is always computed based on the defined conditions and will not be negative if `m` is non-negative.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `m` is 1, the output will be 0. If `m` is less than or equal to 0, the behavior is not defined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program transitions from reading input to computing and then outputting the result.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - The computation is performed in constant time regardless of input size.
+- **Space complexity**: O(1) - The program uses a fixed amount of space for variables.
+- **Performance assumptions**: The program is expected to perform efficiently for valid inputs within the range of `long long int`.
+```

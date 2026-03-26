@@ -1,0 +1,73 @@
+```rust
+const MD: i64 = 1_000_000_007; // Modulo value as per specification
+
+fn main() {
+    let n: usize = 5; // Example input for n
+    let m: usize = 3; // Example input for m
+    let aa: Vec<i64> = vec![1, 2, 3]; // Example input for aa
+
+    let result = calculate_combinatorial(n, m, &aa);
+    println!("{}", result);
+}
+
+fn calculate_combinatorial(n: usize, m: usize, aa: &[i64]) -> i64 {
+    // Initialize arrays
+    let mut vv = vec![0; 1 << n];
+    let mut ff = vec![1; n + 1];
+    let mut gg = vec![1; n + 1];
+    let mut dp = vec![0; 1 << n];
+
+    // Precompute factorials and inverse factorials
+    for i in 1..=n {
+        ff[i] = (ff[i - 1] * i as i64) % MD;
+    }
+    gg[n] = mod_inverse(ff[n]);
+    for i in (1..=n).rev() {
+        gg[i - 1] = (gg[i] * i as i64) % MD;
+    }
+
+    // Fill vv based on constraints
+    for &a in aa {
+        vv[a as usize] = 1;
+    }
+
+    // Dynamic programming to calculate the result
+    dp[0] = 1; // Base case
+    for mask in 0..(1 << n) {
+        for i in 0..n {
+            if (mask & (1 << i)) == 0 {
+                let new_mask = mask | (1 << i);
+                dp[new_mask] = (dp[new_mask] + dp[mask] * vv[i] % MD) % MD;
+            }
+        }
+    }
+
+    // Calculate the final answer
+    let mut ans = 0;
+    for mask in 0..(1 << n) {
+        let count = mask.count_ones() as usize; // Specify type for count_ones
+        if count <= m {
+            ans = (ans + dp[mask] * ff[m - count] % MD) % MD;
+        }
+    }
+
+    ans
+}
+
+// Function to compute modular inverse using Fermat's Little Theorem
+fn mod_inverse(x: i64) -> i64 {
+    let mut result = 1;
+    let mut exp = MD - 2; // MD is prime, so we can use Fermat's theorem
+    let mut base = x % MD;
+
+    while exp > 0 {
+        if exp % 2 == 1 {
+            result = (result * base) % MD;
+        }
+        base = (base * base) % MD;
+        exp /= 2;
+    }
+
+    result
+}
+```

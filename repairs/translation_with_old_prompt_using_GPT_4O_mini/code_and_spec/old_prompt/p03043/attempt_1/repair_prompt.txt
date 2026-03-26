@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a specific mathematical expression involving a series of denominators based on user-provided inputs.
+- **What problem it solves**: It computes a ratio of a sum of fractions derived from a user-defined number of terms, influenced by a multiplier that is adjusted based on the input values.
+- **Core behavior**: The program reads two integers, `N` and `K`, initializes an array of denominators, computes their values based on a multiplier, and then calculates a final result which is printed as a long double.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: Number of terms (denominators).
+  - `K`: A threshold value influencing the multiplier.
+- **Data types**: 
+  - `N` and `K`: `int`
+- **Valid ranges or constraints**: 
+  - `N` should be a positive integer (N > 0).
+  - `K` can be any integer (K ∈ ℤ).
+- **Assumptions about inputs**: The user will provide valid integers for `N` and `K`.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs a formatted result to the console.
+- **Side effects**: Outputs a long double value to the standard output.
+- **Output format/schema**: The output is a long double printed to 12 decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+  - Valid integers must be provided for `N` and `K`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output a computed value based on the input parameters.
+- **State changes**: The program does not maintain state across executions.
+- **Return guarantees**: The output will always be a long double formatted to 12 decimal places.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `denomi` will always have `N` elements initialized to zero before being populated.
+  - The variable `multi` will always be a power of 2 multiplied by `N` after the inner loop.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: If `N` is 0 or negative, the behavior is undefined as the array allocation and loop conditions will not be valid.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, transitioning from input to output.
+- **State changes caused by execution**: The values in the `denomi` array are modified based on the calculations performed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N^2) due to the nested loops.
+- **Space complexity**: O(N) for the `denomi` array.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate values of `N`, but may degrade for large values due to the quadratic time complexity.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+  int N,K;
+  scanf("%d%d",&N,&K);
+  int multi=1,i=N;
+  int denomi[N];
+  long double nume=0;
+  while (i>0){
+    denomi[i-1]=0;
+    while (K>multi*i){
+      multi*=2;
+    }
+    denomi[i-1]+=multi*N;
+    i--;
+  }
+
+  for (int j = 0; j < N; j++)
+  {
+    nume+=denomi[0]/denomi[j];
+  }
+  
+
+  printf("%.12Lf",nume/denomi[0]);
+  
+
+  return 0;
+}
+=== C CODE END ===

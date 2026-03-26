@@ -1,0 +1,77 @@
+fn optimize_schedule(D: usize, s: [[usize; 27]; 27], c: [usize; 27], last: &mut [usize; 27]) -> [usize; 27] {
+    // Initialize the schedule array
+    let mut schedule = [0; 27];
+
+    // Ensure D is positive
+    if D == 0 {
+        return schedule; // Early return if D is not valid
+    }
+
+    // Initial scheduling based on some heuristic (e.g., greedy approach)
+    for day in 0..D {
+        let mut best_type = 1;
+        let mut best_score = isize::MIN; // Use isize::MIN to handle negative scores
+
+        // Find the type with the highest satisfaction score for the current day
+        for typ in 1..=26 {
+            let score = s[day][typ] as isize - c[typ] as isize; // Calculate score considering cost
+            if score > best_score && last[typ] < day { // Ensure type hasn't been scheduled recently
+                best_score = score;
+                best_type = typ;
+            }
+        }
+
+        // Schedule the best type for the day
+        schedule[day] = best_type;
+        last[best_type] = day; // Update last scheduled day for this type
+    }
+
+    // Optimization loop to improve the schedule
+    for _ in 0..1000 { // Arbitrary number of iterations for optimization
+        for day in 0..D {
+            let current_type = schedule[day];
+            let mut best_type = current_type;
+            let mut best_score = isize::MIN; // Use isize::MIN to handle negative scores
+
+            // Try swapping with other types
+            for typ in 1..=26 {
+                if typ != current_type && last[typ] < day { // Ensure type hasn't been scheduled recently
+                    let score = s[day][typ] as isize - c[typ] as isize;
+                    if score > best_score {
+                        best_score = score;
+                        best_type = typ;
+                    }
+                }
+            }
+
+            // If a better type is found, swap it
+            if best_type != current_type {
+                schedule[day] = best_type;
+                last[current_type] = 0; // Reset last for the old type
+                last[best_type] = day; // Update last for the new type
+            }
+        }
+    }
+
+    // Print the final schedule
+    for day in 0..D {
+        println!("{}", schedule[day]);
+    }
+
+    schedule // Return the final schedule
+}
+
+fn main() {
+    // Example input values for testing
+    let D = 3; // Number of days
+    let s = [
+        [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27],
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26],
+        [0, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
+    ]; // Satisfaction scores (should be initialized properly)
+    let c = [0; 27]; // Costs (should be initialized properly)
+    let mut last = [0; 27]; // Last scheduled days
+
+    // Call the optimize_schedule function
+    optimize_schedule(D, s, c, &mut last);
+}

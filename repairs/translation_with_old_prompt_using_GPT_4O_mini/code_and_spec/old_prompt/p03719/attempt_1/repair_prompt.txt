@@ -1,0 +1,247 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code provides various utility functions for mathematical operations, string manipulation, and combinatorial calculations, culminating in a main function that checks if a given integer falls within a specified range.
+- **What problem it solves**: It allows users to perform operations such as calculating the greatest common divisor (GCD), least common multiple (LCM), prime checking, substring checking, factorization, permutations, combinations, and basic mathematical comparisons.
+- **Core behavior**: The main function reads three integers and checks if the third integer is within the range defined by the first two integers.
+
+## 2. Inputs
+- **Parameters**:
+  - For `main`: Three integers `a`, `b`, and `c`.
+  - For `ngcd`: An integer `n` and an array `a[]` of size `n`.
+  - For `quicksort`: An array `a[]`, and two integers `first` and `last`.
+  - For `is_substr`: Two strings `s[]` and `t[]`, and an integer `i`.
+  - For `factorize`: An integer `n`, an array `ftr[]`, and a pointer to an integer `num`.
+  - For `nextperm`: An array `p[]` and an integer `N`.
+  - For `comb`: Two integers `size1` and `size2`, and a 2D array `v`.
+- **Data types**: 
+  - Integers (`int`), characters (`char`), arrays of integers, and arrays of characters.
+- **Valid ranges or constraints**:
+  - `a`, `b`, `c`: Any integer value.
+  - `n`: Must be a non-negative integer for `ngcd` and `factorize`.
+  - `first`, `last`: Indices must be within the bounds of the array for `quicksort`.
+  - `size1`, `size2`: Must be positive integers for `comb`.
+- **Assumptions about inputs**: 
+  - Input values are provided in the expected format and within valid ranges.
+
+## 3. Outputs
+- **Return values**:
+  - `main`: Outputs "Yes" or "No" based on the range check.
+  - `ngcd`: Returns the GCD of the array elements.
+  - `quicksort`: Sorts the array in place; no return value.
+  - `is_prime`: Returns 1 if the number is prime, otherwise 0.
+  - `is_substr`: Returns 1 if `t` is a substring of `s` starting at index `i`, otherwise 0.
+  - `factorize`: Populates `ftr[]` with factors of `n` and sets `*num` to the count of factors.
+  - `nextperm`: Returns 1 if there is a next permutation, otherwise 0.
+  - `comb`: Populates the 2D array `v` with binomial coefficients.
+- **Side effects**: 
+  - Modifies the input arrays in functions like `quicksort`, `factorize`, and `comb`.
+- **Output format/schema**: 
+  - Standard output for `main` is text ("Yes" or "No").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - Input values must be provided correctly for `main`.
+  - Arrays must be allocated and initialized properly before being passed to functions.
+- **Explicit logical constraints**: 
+  - For `quicksort`, `first` must be less than or equal to `last`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The output of `main` will reflect whether `c` is within the range `[a, b]`.
+  - The array passed to `quicksort` will be sorted in ascending order.
+  - The array `ftr[]` will contain the prime factors of `n` after calling `factorize`.
+- **State changes**: 
+  - Arrays may be modified in-place by several functions.
+- **Return guarantees**: 
+  - Functions return expected values based on their logic.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The GCD and LCM functions will always return non-negative integers.
+  - The `is_prime` function will always return either 0 or 1.
+  - The `factorize` function will always populate `ftr[]` with valid factors of `n`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - Undefined behavior may occur if invalid indices are used in array-based functions.
+- **Exceptions thrown?**: 
+  - No explicit exception handling is implemented; behavior is undefined for invalid inputs.
+- **Edge-case behavior**: 
+  - Functions like `gcd` and `lcm` may not handle negative inputs correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Arrays must be in a valid state (allocated and initialized) before being passed to functions.
+- **State changes caused by execution**: 
+  - Arrays may be sorted or modified based on the operations performed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - `gcd`: O(log(min(a, b))) for each call.
+  - `lcm`: O(log(min(a, b))) due to `gcd`.
+  - `ngcd`: O(n log(max(a))) where n is the number of elements.
+  - `quicksort`: Average O(n log n), worst O(n^2).
+  - `is_prime`: O(sqrt(x)).
+  - `factorize`: O(n).
+  - `nextperm`: O(N).
+  - `comb`: O(size1 * size2).
+- **Space complexity**: 
+  - Primarily O(n) for arrays used in various functions.
+- **Performance assumptions**: 
+  - Assumes sufficient memory is available for array allocations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef long long ll;
+typedef char keytype;
+
+int gcd(int a, int b){ return (a % b) ? gcd(b, a % b) : b;}
+int lcm(int a, int b){ return (a / gcd(a, b)) * b;}
+
+/* a[0], ..., a[n-1] の数の最大公約数 */
+int ngcd(int n, int a[])
+{
+    int i, d;
+
+    d = a[0];
+    for (i = 1; i < n && d != 1; i++)
+        d = gcd(a[i], d);
+    return d;
+}
+
+void quicksort(keytype a[], int first, int last)
+{
+    int i, j;
+    keytype x, t;
+
+    x = a[(first + last) / 2];
+    i = first;  j = last;
+    for ( ; ; ) {
+        while (a[i] < x) i++;
+        while (x < a[j]) j--;
+        if (i >= j) break;
+        t = a[i];  a[i] = a[j];  a[j] = t;
+        i++;  j--;
+    }
+    if (first  < i - 1) quicksort(a, first , i - 1);
+    if (j + 1 < last) quicksort(a, j + 1, last);
+}
+
+int is_prime(int x){
+    if(x <= 1) return 0;
+    for(int i = 2; i * i <= x; i++){
+        if(x % i == 0) return 0;
+    }
+    return 1;
+}
+
+int is_substr(char s[], char t[], int i){
+    int flag = 1;
+
+    if(s[i] == '\0') flag = 0;
+
+    for(int j = 0; j < strlen(t); ++j, ++i){
+        if(s[i] != t[j]){
+            flag = 0;
+            break;
+        }
+    }
+    return flag;
+}
+
+// factor list, number of factors, natural number
+void factorize(int ftr[], int *num, int n){
+    int a = 2, cnt = 0;
+
+    while(n >= a){
+        if(n % a == 0){
+            n = n / a;
+            ftr[cnt++] = a;
+        }else{
+            a++;
+        }
+    }
+    *num = cnt;
+}
+
+//#define N 5
+//int p[N + 1];
+int nextperm(int p[], int N)  /* 辞書式順序で次の順列 */
+{
+    int i, j, t;
+
+    i = N - 1;
+    p[0] = 0;  /* 番人 */
+    while (p[i] >= p[i + 1]) i--;
+    if (i == 0) return 0;  /* 完了 */
+    j = N;
+    while (p[i] >= p[j]) j--;
+    t = p[i];  p[i] = p[j];  p[j] = t;
+    i++;  j = N;
+    while (i < j) {
+        t = p[i];  p[i] = p[j];  p[j] = t;  i++;  j--;
+    }
+    return 1;  /* 未了 */
+}
+
+void comb(int size1, int size2, int v[size1][size2]){
+  for(int i = 0; i < size1; i++){
+    v[i][0] = 1;
+    v[i][i] = 1;
+  }
+  for(int k = 1; k < size1; k++){
+    for(int j = 1; j < k; j++){
+      v[k][j] = (v[k-1][j-1] + v[k-1][j]);
+    }
+  }
+}
+
+int abs_val(int a, int b){
+    if(a > b) return a - b;
+    else return b - a;
+}
+
+int min(int a, int b){
+    if(a > b) return b;
+    else return a;
+}
+
+const int inf = 1012345678;
+int main(){
+    int a, b, c;
+
+    scanf("%d %d %d", &a, &b, &c);
+
+    if(a <= c && c <= b) puts("Yes");
+    else puts("No");
+
+    return 0;
+}
+=== C CODE END ===

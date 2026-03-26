@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a sequence of integers, modifying them based on specific conditions, and counts how many integers in the sequence are zero after processing.
+- **What problem it solves**: It identifies and replaces certain elements in a list based on their neighbors, ultimately counting how many elements are zero.
+- **Core behavior**: The program reads multiple sequences of integers until a zero is encountered, modifies the sequences according to specific rules, and outputs the count of zeros in each modified sequence.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers in the sequence.
+  - `go[]`: An array of integers representing the sequence.
+- **Data types**: 
+  - `n`: `int`
+  - `go[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (1 ≤ n ≤ 100,000).
+  - The values in `go[]` can be any integer.
+- **Assumptions about inputs**: The input ends when a zero is read for `n`, and the input is well-formed (i.e., integers are provided as expected).
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results to standard output.
+- **Side effects**: Modifies the contents of the `go[]` array.
+- **Output format/schema**: Outputs a single integer per sequence, representing the count of zeros.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer inputs.
+  - The first input must be a positive integer or zero to terminate.
+- **Explicit logical constraints**: The input must not exceed the maximum size of the `go[]` array (100,000).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program outputs the count of zeros in the modified `go[]` array for each sequence.
+- **State changes**: The `go[]` array is modified based on the processing rules.
+- **Return guarantees**: The output is guaranteed to be a non-negative integer for each sequence processed.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the `go[]` array remains constant at 100,000.
+  - The program continues to read input until a zero is encountered for `n`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may enter an undefined state or produce incorrect results.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: If `n` is zero, the program terminates without processing any input.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The `go[]` array can contain any integers, and its state changes based on the processing rules.
+- **State changes caused by execution**: The values in `go[]` are modified based on comparisons with neighboring elements.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n^2) in the worst case due to nested loops.
+- **Space complexity**: The space complexity is O(n) for the `go[]` array.
+- **Performance assumptions**: The program is expected to handle input sizes up to 100,000 efficiently, but performance may degrade for larger inputs due to the quadratic time complexity.
+```

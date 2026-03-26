@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines whether a specific mathematical condition involving two dimensions (height and width) can be satisfied for a given integer `k`.
+- **What problem it solves**: It checks if there exist non-negative integers `i` and `j` such that the expression `(w*i) + (h*j) - 2*(i*j)` equals `k`.
+- **Core behavior**: The program reads three integers (height `h`, width `w`, and target `k`), iterates through all possible combinations of `i` and `j` within the bounds of `h` and `w`, and prints "Yes" if the condition is met, otherwise prints "No".
+
+## 2. Inputs
+- **Parameters**: 
+  - `h`: height (integer)
+  - `w`: width (integer)
+  - `k`: target value (integer)
+- **Data types**: All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - `h >= 0`
+  - `w >= 0`
+  - `k` can be any integer (positive, negative, or zero).
+- **Assumptions about inputs**: Inputs are provided in a valid format and are integers.
+
+## 3. Outputs
+- **Return values**: The function does not return a value; it prints output directly.
+- **Side effects**: The program outputs either "Yes" or "No" to the standard output.
+- **Output format/schema**: The output is a single line containing either "Yes" or "No".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with three integers via standard input.
+  - The integers must be within the valid ranges specified above.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output "Yes" if there exist non-negative integers `i` and `j` such that the expression equals `k`, otherwise it will output "No".
+- **State changes**: The program does not maintain any state beyond local variables.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `h`, `w`, and `k` remain unchanged throughout the execution of the program.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it assumes valid integer input.
+- **Exceptions thrown?**: No exceptions are thrown; behavior on invalid input is undefined.
+- **Edge-case behavior**: If `h` or `w` is zero, the program will still execute but may yield different results based on the mathematical condition.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program does not change any persistent state; it only computes values based on the input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(h * w), as it iterates through all combinations of `i` and `j`.
+- **Space complexity**: O(1), as it uses a fixed amount of space for variables.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate values of `h` and `w`, but may become slow for large values due to the nested loops.
+```

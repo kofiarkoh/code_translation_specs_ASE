@@ -1,0 +1,39 @@
+```rust
+fn count_subsets(n: usize, s: usize, a: &[i32]) -> i64 {
+    const MOD: i64 = 998244353;
+
+    // Initialize a dp array with size (n+1) x (s+1)
+    let mut dp = vec![vec![0; s + 1]; n + 1];
+    
+    // Base case: There's one way to achieve the sum of 0 (by choosing no elements)
+    dp[0][0] = 1;
+
+    // Fill the dp array
+    for i in 1..=n {
+        for j in 0..=s {
+            // Count ways excluding the current element
+            dp[i][j] = dp[i - 1][j];
+
+            // Count ways including the current element if it does not exceed the sum
+            if j as i32 - a[i - 1] >= 0 {
+                let index = (j as i32 - a[i - 1]) as usize; // Calculate the index safely
+                dp[i][j] = (dp[i][j] + dp[i - 1][index]) % MOD;
+            }
+        }
+    }
+
+    // The result is the number of ways to achieve the sum s using the first n elements
+    dp[n][s] as i64
+}
+
+fn main() {
+    // Example input
+    let n = 3; // Number of elements
+    let s = 4; // Target sum
+    let a = vec![1, 2, 3]; // Array of integers
+
+    // Calculate and print the number of ways to achieve the sum s
+    let result = count_subsets(n, s, &a);
+    println!("{}", result);
+}
+```

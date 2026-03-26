@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of integers (N)
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for N and handle potential parsing errors
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 on parse error
+        _ => 0, // Default to 0 if no input is provided
+    };
+
+    // Ensure N is within the valid range
+    if n < 1 || n > 100 {
+        println!("0"); // Output 0 if N is out of bounds
+        return;
+    }
+
+    // Initialize the array to hold the integers
+    let mut a: [i32; 101] = [0; 101];
+
+    // Read the integers into the array and handle potential parsing errors
+    for i in 0..n {
+        a[i] = match lines.next() {
+            Some(Ok(line)) => line.parse().unwrap_or(0), // Default to 0 on parse error
+            _ => 0, // Default to 0 if no input is provided
+        };
+    }
+
+    // Count consecutive duplicates
+    let mut count = 0;
+    for i in 1..n {
+        if a[i] == a[i - 1] {
+            count += 1; // Increment count for each pair of consecutive duplicates
+        }
+    }
+
+    // Print the count of consecutive duplicates
+    println!("{}", count);
+}

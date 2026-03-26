@@ -1,0 +1,48 @@
+use std::io::{self, Write};
+
+fn main() -> i32 {
+    const A: &str = "Alice";
+    const B: &str = "Bob";
+    const D: &str = "Draw";
+
+    let mut input = String::new();
+    // Read input from stdin
+    if io::stdin().read_line(&mut input).is_err() {
+        return 1; // Return 1 if input reading fails
+    }
+
+    // Split the input into parts and parse them
+    let scores: Vec<&str> = input.split_whitespace().collect();
+    if scores.len() < 4 {
+        return 1; // Return 1 if fewer than four integers are provided
+    }
+
+    // Parse the scores
+    let t1: i32 = scores[0].parse().unwrap_or(0);
+    let t2: i32 = scores[1].parse().unwrap_or(0);
+    let r1: i32 = scores[2].parse().unwrap_or(0);
+    let r2: i32 = scores[3].parse().unwrap_or(0);
+
+    // Determine the winner based on the rules
+    if r1 < 0 || r2 < 0 {
+        // If R1 or R2 is negative, compare T1 and T2
+        if t1 < t2 {
+            println!("{}", A);
+        } else if t1 > t2 {
+            println!("{}", B);
+        } else {
+            println!("{}", D);
+        }
+    } else {
+        // Compare R1 and R2
+        if r1 > r2 {
+            println!("{}", A);
+        } else if r1 < r2 {
+            println!("{}", B);
+        } else {
+            println!("{}", D);
+        }
+    }
+
+    0 // Return 0 on successful execution
+}

@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to find the optimal sequence of tasks based on given parameters, minimizing a calculated cost.
+- **What problem it solves**: It addresses the problem of determining the most efficient order to perform a set of tasks, each with associated costs and attributes, to minimize the overall cost.
+- **Core behavior**: The program reads input values for tasks, computes a cost matrix using a helper function, and determines the optimal order of tasks to minimize the total cost.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of tasks.
+  - `a[i]`: Array of task identifiers.
+  - `b[i]`: Array of task attributes (e.g., positions).
+  - `c[i]`: Array of task weights.
+- **Data types**: 
+  - `int` for task identifiers and attributes.
+  - `double` for cost calculations.
+- **Valid ranges or constraints**: 
+  - `n` should be a non-negative integer (0 ≤ n ≤ 110).
+  - `a[i]`, `b[i]`, `c[i]` should be integers within a reasonable range (not explicitly constrained in the code).
+- **Assumptions about inputs**: 
+  - Input values are provided in the correct format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to standard output.
+- **Side effects**: Outputs the optimal order of task identifiers to the console.
+- **Output format/schema**: A space-separated list of task identifiers followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - `n` must be initialized and represent the number of tasks.
+- **Explicit logical constraints**: 
+  - The arrays `a`, `b`, and `c` must be populated with `n` valid entries.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The optimal order of tasks is printed to the console.
+- **State changes**: 
+  - The arrays `d` and `fr` are populated with computed costs and task relationships.
+- **Return guarantees**: 
+  - The program will always output a valid sequence of task identifiers if `n > 0`.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `d` and `fr` maintain valid states throughout the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may exhibit undefined behavior or crash if inputs are not formatted correctly or are out of expected bounds.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on the input being valid.
+- **Edge-case behavior**: If `n = 0`, the program will not output any task identifiers.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains states in the arrays `d` and `fr` throughout its execution.
+- **State changes caused by execution**: The state of `d` and `fr` changes as costs are computed and relationships between tasks are established.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm has a time complexity of O(n * 2^n), where `n` is the number of tasks, due to the nested loops iterating over subsets of tasks.
+- **Space complexity**: The space complexity is O(n * 2^n) for storing the cost and relationship matrices.
+- **Performance assumptions**: The program is expected to perform efficiently for small values of `n` (up to 20), but may become impractical for larger values due to exponential growth in computation.
+```

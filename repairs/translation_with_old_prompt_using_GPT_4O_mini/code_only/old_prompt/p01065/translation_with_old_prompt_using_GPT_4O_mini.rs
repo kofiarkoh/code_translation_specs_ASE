@@ -1,0 +1,63 @@
+use std::io::{self, BufRead};
+
+const BASE: usize = 300;
+const DBASE: usize = 600;
+
+fn in_number() -> i32 {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut n = 0;
+    let mut bytes = handle.bytes();
+
+    while let Some(Ok(c)) = bytes.next() {
+        let c = c as char;
+        if c < '0' {
+            break;
+        }
+        n = (n << 3) + (n << 1) + (c as i32 - '0' as i32);
+    }
+    n
+}
+
+fn main() {
+    let n = in_number();
+    let x = in_number();
+    let y = in_number();
+    
+    let mut dp = vec![vec![vec![-1; DBASE + 2]; BASE + 2]; 101];
+    dp[0][0][BASE] = 0;
+
+    for i in 0..n {
+        let a = in_number();
+        let b = in_number();
+        let c = in_number();
+        let d = in_number();
+
+        for j in 0..=BASE {
+            for k in 0..=DBASE {
+                if dp[i as usize][j][k] < 0 {
+                    continue;
+                }
+                if dp[(i + 1) as usize][j][k] < dp[i as usize][j][k] {
+                    dp[(i + 1) as usize][j][k] = dp[i as usize][j][k];
+                }
+                if x >= j + a && k >= b as usize && dp[(i + 1) as usize][j + a as usize][(k - b as usize)] < dp[i as usize][j][k] {
+                    dp[(i + 1) as usize][j + a as usize][(k - b as usize)] = dp[i as usize][j][k];
+                }
+                if (k + c as usize) <= DBASE && dp[(i + 1) as usize][j][(k + c as usize)] < dp[i as usize][j][k] + d {
+                    dp[(i + 1) as usize][j][(k + c as usize)] = dp[i as usize][j][k] + d;
+                }
+            }
+        }
+    }
+
+    let mut ans = 0;
+    for j in 0..=x {
+        for k in 0..=600 {
+            if ans < dp[n as usize][j as usize][k] && (y + BASE as i32) >= k as i32 {
+                ans = dp[n as usize][j as usize][k];
+            }
+        }
+    }
+    println!("{}", ans);
+}

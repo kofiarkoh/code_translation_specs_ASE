@@ -1,0 +1,71 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00167/p00167_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00167/p00167_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (35844594) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p00167/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:20:25:
+range end index 5 out of range for slice of length 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let mut nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // The first number indicates the count of subsequent integers
+        let n = match nums.get(0) {
+            Some(&count) if count > 0 && count <= 100 => count as usize,
+            _ => continue, // Skip invalid input
+        };
+
+        // Ensure we only process the specified number of integers
+        let mut a = nums[1..=n].to_vec();
+        let mut swap_count = 0;
+
+        // Bubble Sort implementation
+        for i in 0..n {
+            for j in 0..(n - 1 - i) {
+                if a[j] > a[j + 1] {
+                    a.swap(j, j + 1);
+                    swap_count += 1; // Count the swap
+                }
+            }
+        }
+
+        // Output the number of swaps
+        println!("{}", swap_count);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,35 @@
+fn calculate_transferable_resources(n: usize, a: &mut Vec<i64>, b: &Vec<i64>) -> i64 {
+    // Ensure that the length of A is N + 1 and B is N
+    assert_eq!(a.len(), n + 1);
+    assert_eq!(b.len(), n);
+
+    let mut total_transferable = 0;
+
+    // Iterate through the elements of B
+    for i in 0..n {
+        // Calculate the transferable resources for each element
+        let transferable = a[i] - b[i];
+        // If transferable is positive, add it to the total
+        if transferable > 0 {
+            total_transferable += transferable;
+        }
+        // Update A[i] to reflect the resources after transfer
+        a[i] = transferable.max(0); // Ensure A[i] does not go negative
+    }
+
+    // The last element of A (A[n]) is not modified in the loop, so we add it to the total
+    total_transferable += a[n];
+
+    // Return the total transferable resources
+    total_transferable
+}
+
+// Example usage
+fn main() {
+    let n = 3; // Example size
+    let mut a = vec![5, 10, 15, 20]; // Example resources (N + 1 elements)
+    let b = vec![6, 7, 8]; // Example limits (N elements)
+
+    let total = calculate_transferable_resources(n, &mut a, &b);
+    println!("{}", total); // Output the total transferable resources
+}

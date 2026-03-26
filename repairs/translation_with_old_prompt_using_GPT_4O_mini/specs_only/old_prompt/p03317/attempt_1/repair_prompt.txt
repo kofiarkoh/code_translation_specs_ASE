@@ -1,0 +1,83 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum number of groups required to partition a list of integers based on a specified maximum group size.
+- **What problem it solves**: It addresses the problem of determining how many groups can be formed from a given number of integers, ensuring that no group exceeds a specified size.
+- **Core behavior**: The program reads two integers, `n` (the number of elements) and `k` (the maximum size of each group), followed by `n` integers. It computes and outputs the minimum number of groups needed.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Total number of integers.
+  - `k`: Maximum size of each group.
+- **Data types**: 
+  - `n` and `k`: `long long int`
+  - `a[]`: Array of `long long int`
+- **Valid ranges or constraints**: 
+  - `n` > 0
+  - `k` > 1
+- **Assumptions about inputs**: Inputs are provided in the correct format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: Outputs a single `long long int` representing the minimum number of groups.
+- **Side effects**: None.
+- **Output format/schema**: A single line containing the computed number of groups.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid input values for `n` and `k`.
+  - The array `a[]` must be populated with `n` integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will be the minimum number of groups required to partition the integers.
+- **State changes**: No state changes occur as the program does not maintain any persistent state.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the array `a[]` is always equal to `n`.
+  - The value of `k` is always greater than 1.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `k` is less than or equal to 1, the program may enter an infinite loop or produce incorrect results.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain object states.
+- **State changes caused by execution**: Not applicable; the program operates statelessly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), as it processes each input integer once.
+- **Space complexity**: O(n), due to the storage of the input array.
+- **Performance assumptions**: The program assumes that the input size `n` is manageable within the limits of available memory.
+```

@@ -1,0 +1,106 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0596]: cannot borrow `reader` as mutable, as it is not declared as mutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02370/attempt_1/translation_with_old_prompt_using_GPT_4O_mini.rs:6:9
+   |
+ 6 |     let reader = stdin.lock();
+   |         ^^^^^^ not mutable
+...
+10 |     reader.read_line(&mut first_line).unwrap();
+   |     ------ cannot borrow as mutable
+...
+27 |         reader.read_line(&mut edge_line).unwrap();
+   |         ------ cannot borrow as mutable
+   |
+help: consider changing this to be mutable
+   |
+ 6 |     let mut reader = stdin.lock();
+   |         +++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::{HashMap, HashSet};
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of vertices (V) and edges (E)
+    let mut first_line = String::new();
+    reader.read_line(&mut first_line).unwrap();
+    let mut parts = first_line.split_whitespace();
+    let v: usize = parts.next().unwrap().parse().unwrap();
+    let e: usize = parts.next().unwrap().parse().unwrap();
+
+    // If there are no vertices, terminate without output
+    if v == 0 {
+        return;
+    }
+
+    // Initialize adjacency list and in-degree counts
+    let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut in_degree: Vec<usize> = vec![0; v];
+
+    // Read edges and populate the adjacency list and in-degrees
+    for _ in 0..e {
+        let mut edge_line = String::new();
+        reader.read_line(&mut edge_line).unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let s: usize = edge_parts.next().unwrap().parse().unwrap();
+        let t: usize = edge_parts.next().unwrap().parse().unwrap();
+
+        // Add edge to the adjacency list
+        adj_list.entry(s).or_insert_with(Vec::new).push(t);
+        // Increment in-degree of target vertex
+        in_degree[t] += 1;
+    }
+
+    // Initialize a set for vertices with no incoming edges (in-degree 0)
+    let mut zero_in_degree: HashSet<usize> = (0..v).filter(|&i| in_degree[i] == 0).collect();
+
+    // Vector to hold the topological order
+    let mut topological_order = Vec::new();
+
+    // Process vertices with zero in-degree
+    while !zero_in_degree.is_empty() {
+        // Get an arbitrary vertex with zero in-degree
+        let current = *zero_in_degree.iter().next().unwrap();
+        zero_in_degree.remove(&current);
+        topological_order.push(current);
+
+        // Decrease in-degree of neighbors and add to zero_in_degree if it becomes 0
+        if let Some(neighbors) = adj_list.get(&current) {
+            for &neighbor in neighbors {
+                in_degree[neighbor] -= 1;
+                if in_degree[neighbor] == 0 {
+                    zero_in_degree.insert(neighbor);
+                }
+            }
+        }
+    }
+
+    // Output the topological order, each vertex on a new line
+    for vertex in topological_order {
+        println!("{}", vertex);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

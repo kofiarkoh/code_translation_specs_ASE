@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: i32 = line.trim().parse().unwrap();
+
+        // Exit if n is zero or negative
+        if n <= 0 {
+            break;
+        }
+
+        // Read the next line for lim, u, c
+        let mut params = String::new();
+        // Create a new reader for the next line
+        let mut reader = stdin.lock();
+        reader.read_line(&mut params).unwrap();
+        let mut iter = params.trim().split_whitespace();
+        let lim: i32 = iter.next().unwrap().parse().unwrap();
+        let u: i32 = iter.next().unwrap().parse().unwrap();
+        let c: i32 = iter.next().unwrap().parse().unwrap();
+
+        // Ensure u and c are positive
+        if u <= 0 || c <= 0 {
+            continue; // Skip invalid cases
+        }
+
+        let mut total_usages = 0;
+        let mut time = 0;
+
+        // Simulate the battery usage over the time limit
+        while time < lim {
+            // Each battery can be used for u time units
+            total_usages += n; // All batteries are used
+            time += u;
+
+            // After usage, they need to recharge for c time units
+            time += c;
+        }
+
+        // Output the total count of usages without recharging
+        println!("{}", total_usages);
+    }
+}

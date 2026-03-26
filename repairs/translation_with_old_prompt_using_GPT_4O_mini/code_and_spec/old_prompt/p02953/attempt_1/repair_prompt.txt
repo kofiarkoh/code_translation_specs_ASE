@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code checks if a sequence of integers can be transformed into a non-decreasing order by decrementing elements.
+- **What problem it solves**: It determines whether it is possible to adjust the elements of the array such that each element is greater than or equal to the subsequent element.
+- **Core behavior**: The program reads an integer array and iteratively checks from the end to the beginning, decrementing elements as necessary, and outputs "Yes" if the transformation is possible or "No" if it is not.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of elements in the array.
+  - `a[]`: An array of integers.
+- **Data types**: 
+  - `n`: Integer.
+  - `a[]`: Array of integers.
+- **Valid ranges or constraints**: 
+  - `1 ≤ n ≤ 100,000`
+  - Each element of `a[]` can be any integer (no explicit constraints on values).
+- **Assumptions about inputs**: The input is well-formed, with `n` followed by `n` integers.
+
+## 3. Outputs
+- **Return values**: 
+  - Outputs "Yes" if the sequence can be transformed into non-decreasing order; otherwise, outputs "No".
+- **Side effects**: None.
+- **Output format/schema**: Plain text output ("Yes" or "No").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must contain at least one integer (`n ≥ 1`).
+- **Explicit logical constraints**: The array must be populated with `n` integers after reading `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "Yes" or "No" based on the feasibility of transforming the array.
+- **State changes**: No state changes occur outside of local variables.
+- **Return guarantees**: The output will always be a valid string ("Yes" or "No").
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `a[]` remains unchanged except for the local decrements during processing.
+- **Class-level invariants**: Not applicable (not an object-oriented implementation).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program assumes valid input.
+- **Exceptions thrown?**: No exceptions are explicitly handled.
+- **Edge-case behavior**: If `n` is 1, the output will always be "Yes" since a single element is trivially non-decreasing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable (no objects are used).
+- **State changes caused by execution**: The local variable `a[i-1]` may be decremented during execution, but this does not affect the original array.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of elements in the array (single pass through the array).
+- **Space complexity**: O(1) additional space (only a few integer variables used).
+- **Performance assumptions**: The program is expected to handle the maximum input size efficiently within reasonable time limits.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+n,i,a[100009];main(){
+	scanf("%d",&n);for(i=0;i<n;i++)scanf("%d",&a[i]);
+	for(i=n-1;i>=1;i--){
+    	if(a[i]<a[i-1])a[i-1]--;
+    	if(a[i]<a[i-1]){printf("No");return 0;}
+	}
+	printf("Yes");
+}
+=== C CODE END ===

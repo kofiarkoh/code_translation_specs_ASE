@@ -1,0 +1,29 @@
+use std::io;
+
+fn main() {
+    // Read input values for a and b
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut inputs = input.split_whitespace();
+
+    // Parse a and b as u64 (to handle non-negative integers)
+    let a: u64 = inputs.next().unwrap().parse().expect("Invalid input for a");
+    let b: u64 = inputs.next().unwrap().parse().expect("Invalid input for b");
+
+    // If b is 0, we enter an infinite loop as per the specification
+    if b == 0 {
+        loop {} // Infinite loop, as no multiple of a can be divisible by 0
+    }
+
+    // Calculate the smallest multiple of a that is also a multiple of b
+    let mut multiple = a;
+    while multiple % b != 0 {
+        multiple += a; // Increment by a to find the next multiple
+    }
+
+    // Output the result
+    println!("{}", multiple);
+
+    // Return 0 upon successful execution
+    std::process::exit(0);
+}

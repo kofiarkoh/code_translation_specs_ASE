@@ -1,0 +1,116 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03142/p03142_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03142/p03142_sample1_output.txt
+Input:
+3 1
+1 2
+1 3
+2 3
+Expected:
+0
+1
+2
+Actual:
+3
+1
+2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn topological_sort(n: usize, edges: &[(usize, usize)]) -> Vec<usize> {
+    let mut in_degree = vec![0; n + 1]; // in-degree of each node
+    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new(); // adjacency list
+
+    // Build the graph and calculate in-degrees
+    for &(a, b) in edges {
+        graph.entry(a).or_insert_with(Vec::new).push(b);
+        in_degree[b] += 1;
+    }
+
+    let mut zero_in_degree = Vec::new(); // nodes with zero in-degree
+    for i in 1..=n {
+        if in_degree[i] == 0 {
+            zero_in_degree.push(i);
+        }
+    }
+
+    let mut top_order = Vec::new(); // result of topological sort
+
+    while let Some(node) = zero_in_degree.pop() {
+        top_order.push(node);
+        if let Some(neighbors) = graph.get(&node) {
+            for &neighbor in neighbors {
+                in_degree[neighbor] -= 1; // remove edge
+                if in_degree[neighbor] == 0 {
+                    zero_in_degree.push(neighbor); // add to zero in-degree list
+                }
+            }
+        }
+    }
+
+    top_order
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let m: usize = params.next().unwrap().parse().unwrap();
+
+    if n == 0 || m == 0 {
+        println!("1"); // Invalid input
+        return;
+    }
+
+    let mut edges = Vec::new();
+
+    // Read edges
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut edge_params = line.split_whitespace();
+        let a: usize = edge_params.next().unwrap().parse().unwrap();
+        let b: usize = edge_params.next().unwrap().parse().unwrap();
+        edges.push((a, b));
+    }
+
+    // Perform topological sort
+    let top_order = topological_sort(n, &edges);
+
+    // Output the result
+    for node in top_order {
+        println!("{}", node);
+    }
+
+    // Successful execution
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

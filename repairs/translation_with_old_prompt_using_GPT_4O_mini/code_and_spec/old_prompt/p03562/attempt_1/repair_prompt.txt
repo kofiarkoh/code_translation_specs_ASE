@@ -1,0 +1,173 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes binary strings and performs a series of bitwise operations to compute a final result based on specific conditions.
+- **What problem it solves**: It determines the number of valid configurations or transformations of a binary string based on a series of input binary strings.
+- **Core behavior**: The program reads an initial binary string and a series of subsequent binary strings, performing bitwise shifts and XOR operations to derive a final count of valid configurations.
+
+## 2. Inputs
+- **Parameters**:
+  - `m`: An integer representing the number of binary strings to process.
+  - `s`: A binary string of length up to `N` (4000).
+- **Data types**:
+  - `m`: `int`
+  - `s`: `char[]`
+- **Valid ranges or constraints**:
+  - `m` must be a non-negative integer.
+  - Length of `s` must be between 0 and `N` (inclusive).
+- **Assumptions about inputs**:
+  - The binary strings consist only of characters '0' and '1'.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid configurations.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format (an integer followed by a binary string).
+  - The binary strings must be valid (only contain '0' and '1').
+- **Explicit logical constraints**: The initial binary string must be non-empty if `m > 0`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output a valid integer result.
+- **State changes**: The internal state of the arrays used for computation will be modified during execution.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The arrays `aa`, `bb`, `cc`, and `dd` maintain their size and type throughout execution.
+  - The values in these arrays represent valid binary configurations at any point during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; behavior is undefined for invalid inputs.
+- **Edge-case behavior**: If `m` is 0, the program will only process the initial binary string and output a result based on that alone.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the binary representations in the arrays.
+- **State changes caused by execution**: The arrays are modified through bitwise operations, reflecting the transformations of the binary strings.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately O(m * N), where `m` is the number of binary strings and `N` is the length of the initial string.
+- **Space complexity**: The space complexity is O(K), where `K` is derived from the constants defined (specifically, K = (N + L - 1) / L).
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints defined (N = 4000).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/* https://probgate.org/viewanalysis.php?pid=978 */
+#include <stdio.h>
+#include <string.h>
+
+#define N	4000
+#define L	62
+#define K	((N + L - 1) / L)
+#define MD	998244353
+
+void shift(long long *aa, long long *bb, int s) {
+	int h, q, r;
+
+	memset(bb, 0, K * sizeof *bb);
+	q = s / L, r = s % L;
+	for (h = 0; h + q < K; h++) {
+		bb[h + q] |= (aa[h] & (1LL << L - r) - 1) << r;
+		if (h + q + 1 < K && r > 0)
+			bb[h + q + 1] |= aa[h] >> L - r;
+	}
+}
+
+void xor(long long *aa, long long *bb) {
+	int h;
+
+	for (h = 0; h < K; h++)
+		aa[h] ^= bb[h];
+}
+
+int main() {
+	static char s[N + 1];
+	static long long aa[K], bb_[K], cc[K], dd_[K], *bb = bb_, *dd = dd_;
+	static int p2[N];
+	int m, n, l, i, j, p, ans;
+
+	scanf("%d%s", &m, s), n = strlen(s);
+	for (i = 0; i < n; i++)
+		if (s[i] == '1')
+			aa[(n - 1 - i) / L] |= 1LL << (n - 1 - i) % L;
+	while (m--) {
+		scanf("%s", s), l = strlen(s);
+		memset(bb, 0, K * sizeof *bb);
+		for (i = 0; i < l; i++)
+			if (s[i] == '1')
+				bb[(l - 1 - i) / L] |= 1LL << (l - 1 - i) % L;
+		i = j = N - 1;
+		while (1) {
+			long long *tt;
+			int tmp;
+
+			while (i >= 0 && (dd[i / L] & 1LL << i % L) == 0)
+				i--;
+			while (j >= 0 && (bb[j / L] & 1LL << j % L) == 0)
+				j--;
+			if (i < j)
+				tt = dd, dd = bb, bb = tt, tmp = i, i = j, j = tmp;
+			if (j < 0)
+				break;
+			shift(bb, cc, i - j);
+			xor(dd, cc);
+		}
+	}
+	l = N;
+	while (l > 0 && (dd[(l - 1) / L] & 1LL << (l - 1) % L) == 0)
+		l--;
+	p = 1;
+	for (i = 0; i < n; i++) {
+		p2[i] = p;
+		p = p * 2 % MD;
+	}
+	memset(bb, 0, K * sizeof *bb);
+	ans = 0;
+	for (i = n - 1; i >= 0; i--) {
+		int x = aa[i / L] >> i % L & 1, y = bb[i / L] >> i % L & 1;
+
+		if (i >= l - 1 && x == 1)
+			ans = (ans + p2[i - l + 1]) % MD;
+		if (x != y) {
+			if (i >= l - 1) {
+				shift(dd, cc, i - l + 1);
+				xor(bb, cc);
+			} else {
+				if (x > y)
+					ans = (ans + 1) % MD;
+				break;
+			}
+		}
+	}
+	if (i < 0)
+		ans = (ans + 1) % MD;
+	printf("%d\n", ans);
+	return 0;
+}
+=== C CODE END ===

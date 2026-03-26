@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to solve a problem related to maximizing a value based on a circular array of integers.
+- **What problem it solves**: It determines the maximum possible value that can be gathered from a circular arrangement of integers, where the value is derived from the absolute differences between selected elements.
+- **Core behavior**: The program processes multiple test cases, reading an integer array for each case, and computes the maximum value based on specific selection criteria.
+
+## 2. Inputs
+- **Parameters**:
+  - `t`: Number of test cases.
+  - `n`: Number of elements in the array for each test case.
+  - `a[i]`: The integer values in the array.
+- **Data types**:
+  - `t`: Integer
+  - `n`: Integer
+  - `a[]`: Array of integers
+- **Valid ranges or constraints**:
+  - `t` must be a positive integer.
+  - `n` must be a positive integer and less than or equal to 102.
+  - Each element `a[i]` can be any integer.
+- **Assumptions about inputs**: It is assumed that the input format is correct and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs the maximum value for each test case.
+- **Side effects**: The program prints results to the standard output.
+- **Output format/schema**: Each result is printed on a new line as an integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The input must be provided in the expected format, with the first line containing the number of test cases followed by pairs of lines for each test case.
+- **Explicit logical constraints**: The number of elements `n` must be greater than 0 and less than or equal to 102.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed the maximum value for each test case.
+- **State changes**: The internal state of the `dp` array is modified during execution to store intermediate results.
+- **Return guarantees**: The program will output an integer for each test case, representing the maximum value computed.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The `dp` array is always initialized to zero at the start of each test case, and its values are updated based on the logic defined in the loops.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may produce unexpected results or crash.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: If `n` is 1, the program will still execute but may not yield meaningful results since there are no pairs to compare.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the `dp` array, which holds computed values for different selections.
+- **State changes caused by execution**: The `dp` array is updated based on the computed values during the nested loops.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(t * n^3), where `t` is the number of test cases and `n` is the number of elements in the array.
+- **Space complexity**: The space complexity is O(n^2) due to the `dp` array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints specified (up to 102 elements).
+```

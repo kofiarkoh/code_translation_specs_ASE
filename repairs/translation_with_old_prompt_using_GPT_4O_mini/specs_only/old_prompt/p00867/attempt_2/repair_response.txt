@@ -1,0 +1,78 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Segment {
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+}
+
+// Function to check if two segments intersect
+fn segments_intersect(seg1: &Segment, seg2: &Segment) -> bool {
+    // Using orientation to check if two segments intersect
+    let o1 = orientation(seg1.x1, seg1.y1, seg1.x2, seg1.y2, seg2.x1, seg2.y1);
+    let o2 = orientation(seg1.x1, seg1.y1, seg1.x2, seg1.y2, seg2.x2, seg2.y2);
+    let o3 = orientation(seg2.x1, seg2.y1, seg2.x2, seg2.y2, seg1.x1, seg1.y1);
+    let o4 = orientation(seg2.x1, seg2.y1, seg2.x2, seg2.y2, seg1.x2, seg1.y2);
+
+    (o1 != o2 && o3 != o4) || (o1 == 0 && on_segment(seg1, seg2.x1, seg2.y1)) || (o2 == 0 && on_segment(seg1, seg2.x2, seg2.y2)) || (o3 == 0 && on_segment(seg2, seg1.x1, seg1.y1)) || (o4 == 0 && on_segment(seg2, seg1.x2, seg1.y2))
+}
+
+// Function to find the orientation of the ordered triplet (p, q, r)
+// Returns 0 if collinear, 1 if clockwise, 2 if counterclockwise
+fn orientation(x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32) -> i32 {
+    let val = (y2 - y1) * (x3 - x2) - (x2 - x1) * (y3 - y2);
+    if val == 0 { 0 } else if val > 0 { 1 } else { 2 }
+}
+
+// Function to check if point q lies on segment pr
+fn on_segment(seg: &Segment, x: i32, y: i32) -> bool {
+    (x >= seg.x1 && x <= seg.x2 || x >= seg.x2 && x <= seg.x1) && (y >= seg.y1 && y <= seg.y2 || y >= seg.y2 && y <= seg.y1)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of segments
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    assert!(n > 0, "Number of segments must be greater than zero.");
+
+    let mut segments: Vec<Segment> = Vec::with_capacity(n);
+    
+    // Read each segment
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let coords: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        segments.push(Segment {
+            x1: coords[0],
+            y1: coords[1],
+            x2: coords[2],
+            y2: coords[3],
+        });
+    }
+
+    // Initialize counts
+    let mut total_segments = segments.len() as i32;
+    let mut intersecting_count = 0;
+    let mut overlapping_count = 0;
+
+    // Process segments to determine relationships
+    for i in 0..total_segments as usize {
+        for j in (i + 1)..total_segments as usize {
+            if segments_intersect(&segments[i], &segments[j]) {
+                intersecting_count += 1; // Increment if segments intersect
+            }
+            // Overlapping logic can be added here if needed
+        }
+    }
+
+    // Output the results
+    println!("{} {} {} {}", total_segments, intersecting_count, overlapping_count, 0);
+}
+```

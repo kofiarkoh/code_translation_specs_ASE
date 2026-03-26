@@ -1,0 +1,173 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of strings and their associated page numbers, counting occurrences and sorting the strings alphabetically.
+- **What problem it solves**: It allows for the aggregation of page numbers associated with each unique string and outputs the strings in sorted order along with their respective page numbers.
+- **Core behavior**: The program reads strings and page numbers from input, tracks the number of occurrences of each string, and outputs the strings sorted alphabetically with their associated page numbers.
+
+## 2. Inputs
+- **Parameters**: 
+  - Strings (up to `WDMAX` characters)
+  - Page numbers (integers)
+- **Data types**: 
+  - `char` for strings
+  - `int` for page numbers
+- **Valid ranges or constraints**: 
+  - Strings must not exceed `WDMAX` (31 characters).
+  - Page numbers must be non-negative integers and less than `PGMAX` (1001).
+- **Assumptions about inputs**: Input is provided in pairs of strings and integers until EOF.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to standard output.
+- **Side effects**: Outputs sorted strings and their associated page numbers to the console.
+- **Output format/schema**: Each unique string is printed on a new line, followed by its associated page numbers (space-separated), with the last page number printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The input must be formatted correctly as pairs of strings and integers.
+- **Explicit logical constraints**: The program assumes that the input will not exceed the maximum limits defined by `MAX`, `PGMAX`, and `WDMAX`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed all unique strings in alphabetical order, each followed by their associated page numbers.
+- **State changes**: The internal array `idx` will be populated with unique strings and their page numbers.
+- **Return guarantees**: The program will terminate after processing all input without returning a value.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `idx` array will only contain unique strings and their corresponding page numbers.
+  - The count of unique strings (`rgnum`) will not exceed `MAX`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input format.
+- **Edge-case behavior**: If no input is provided, the program will output nothing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The `idx` array can transition from empty to populated with unique strings and their page numbers.
+- **State changes caused by execution**: Each valid input pair modifies the state of the `idx` array, either by adding a new entry or updating an existing one.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The sorting operation has a time complexity of O(n^2) due to the nested loops used for sorting.
+- **Space complexity**: The space complexity is O(n) for storing the unique strings and their page numbers in the `idx` array.
+- **Performance assumptions**: The program is expected to perform efficiently for small to moderate input sizes but may degrade for larger datasets due to the sorting algorithm used.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+#define PGMAX 1001
+#define WDMAX 31
+
+typedef struct _index {
+	int pgnum[PGMAX];
+	int tm;
+	char str[WDMAX];
+} index_t;
+
+void swap( int i, int j, index_t idx[MAX] )
+{
+	char tmp_str[WDMAX];
+	int tmp_pgnum[PGMAX];
+	int tmp_tm;
+
+	strcpy( tmp_str, idx[i].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		tmp_pgnum[k] = idx[i].pgnum[k];
+	}
+	tmp_tm = idx[i].tm;
+
+	strcpy( idx[i].str, idx[j].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[i].pgnum[k] = idx[j].pgnum[k];
+	}
+	idx[i].tm = idx[j].tm;
+
+	strcpy( idx[j].str, tmp_str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[j].pgnum[k] = tmp_pgnum[k];
+	}
+	idx[j].tm = tmp_tm;
+}
+
+int main()
+{
+	index_t idx[MAX];
+	char tmp_str[WDMAX] = {};
+	int tmp_pgnum = 0, rgnum = 0, i = 0, j = 0, flag = 0, k = 0;
+
+	while ( scanf( "%s %d", tmp_str, &tmp_pgnum ) != EOF ) {
+		flag = 1;
+		i = 0;
+		while ( i < rgnum ) {
+			if ( strcmp( tmp_str, idx[i].str ) == 0 ) {
+				// BEPO?$5$l$?J8;zNs$NCf$+$i, B:#2sF~NO$5$l$?J8;zNs$,EPO?$5$l$F$$$k$+3NG'$9$k
+				idx[i].pgnum[tmp_pgnum] = 1;
+				idx[i].tm++;
+				flag = 0; // BF~NOJ8;zNs$,EPO?:Q$_$N>l9g
+				break;
+			}
+			i++;
+		}
+
+		if ( flag ) {
+			// BF~NOJ8;zNs$,EPO?$5$l$F$$$J$$>l9g
+			idx[rgnum].pgnum[tmp_pgnum] = 1;
+			idx[rgnum].tm++;
+			strcpy( idx[rgnum].str, tmp_str );
+			rgnum++;
+		}
+		
+	}
+
+	// BF~NOJ8;zNs$N@0Ns$r9T$&
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		for ( j = i+1 ; j < rgnum ; j++ ) {
+			if ( strcmp( idx[i].str, idx[j].str ) > 0 ) {
+				swap( i, j, idx );
+			}
+		}
+	}
+
+	// B@0Ns:Q$_$NF~NOJ8;zNs$NG[Ns$KBP$7$F, B=P8=$7$?%Z!<%8HV9f$J$I$r=PNO$9$k
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		printf( "%s\n", idx[i].str );
+		k = 0;
+		for ( j = 0 ; j < PGMAX ; j++ ) {
+			if ( idx[i].pgnum[j] == 1 ) { 
+				if ( k == idx[i].tm-1 ) {
+					printf( "%d\n", j );
+					break;
+				} else {
+					printf( "%d ", j );
+					k++;
+				}
+			}
+		}
+	}
+
+	return 0;	
+}
+=== C CODE END ===

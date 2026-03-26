@@ -1,0 +1,105 @@
+use std::io::{self, BufRead};
+
+const QMAX: usize = 102;
+
+struct Battery {
+    use_battery: bool,
+    t: usize,
+    r: usize,
+    i: usize,
+    n: usize,
+    u: Vec<usize>,
+    c: Vec<usize>,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = match iter.next().unwrap().parse() {
+            Ok(num) if num > 0 => num,
+            _ => break, // Exit if n is zero or negative
+        };
+        let lim: usize = iter.next().unwrap().parse().unwrap();
+
+        let mut batteries: Vec<Battery> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let mut u = Vec::new();
+            let mut c = Vec::new();
+            let mut i = 0;
+
+            while let Some(u_value) = iter.next() {
+                let u_value: usize = match u_value.parse() {
+                    Ok(num) if num > 0 => num,
+                    _ => break,
+                };
+                let c_value: usize = iter.next().unwrap().parse().unwrap();
+                u.push(u_value);
+                c.push(c_value);
+                i += 1;
+            }
+
+            if !u.is_empty() && !c.is_empty() {
+                batteries.push(Battery {
+                    use_battery: true,
+                    t: 0,
+                    r: u[0],
+                    i: 0,
+                    n: i,
+                    u,
+                    c,
+                });
+            }
+        }
+
+        let mut ans = 0;
+        let mut top = 0;
+        let mut end = 0;
+        let mut queue = vec![0; QMAX];
+
+        for t in 1..=lim {
+            for (i, battery) in batteries.iter_mut().enumerate() {
+                if battery.use_battery {
+                    battery.t = t;
+                    if battery.r > 0 {
+                        battery.r -= 1;
+                    }
+                    if battery.r == 0 {
+                        battery.use_battery = false;
+                        battery.r = battery.c[battery.i];
+                        queue[end] = i;
+                        end = (end + 1) % QMAX;
+                    }
+                }
+            }
+
+            if end == top {
+                continue; // No batteries to process
+            }
+
+            for (i, battery) in batteries.iter_mut().enumerate() {
+                if battery.t != t && !battery.use_battery {
+                    if i == queue[top] {
+                        battery.r -= 1;
+                    } else {
+                        ans += 1;
+                    }
+                }
+            }
+
+            if top != end {
+                let battery = &mut batteries[queue[top]];
+                if battery.r == 0 {
+                    battery.use_battery = true;
+                    battery.i = (battery.i + 1) % battery.n;
+                    battery.r = battery.u[battery.i];
+                    top = (top + 1) % QMAX;
+                }
+            }
+        }
+        println!("{}", ans);
+    }
+}

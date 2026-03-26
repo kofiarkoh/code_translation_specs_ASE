@@ -1,0 +1,54 @@
+```rust
+use std::io::{self, Write};
+
+fn souti(p: &[char]) -> char {
+    // Compute the logical AND of the boolean values represented by 'T' and 'F'
+    let and_result = p.iter().all(|&c| c == 'T');
+    // Negate the result of the AND operation
+    if and_result {
+        'F'
+    } else {
+        'T'
+    }
+}
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    if io::stdin().read_line(&mut input).is_err() {
+        // Handle error in reading input
+        return;
+    }
+
+    // Split the input into parts
+    let parts: Vec<&str> = input.split_whitespace().collect();
+    // Parse the first part as an integer
+    let n: usize = match parts.get(0).and_then(|&s| s.parse().ok()) {
+        Some(value) if value > 0 && value <= 114514 => value,
+        _ => {
+            // If N is invalid, return without output
+            return;
+        }
+    };
+
+    // Collect the boolean characters into a vector
+    let mut p: Vec<char> = Vec::new();
+    for i in 1..=n {
+        if let Some(&s) = parts.get(i) {
+            p.push(s.chars().next().unwrap());
+        }
+    }
+
+    // Ensure we have exactly N characters and they are valid
+    if p.len() != n || !p.iter().all(|&c| c == 'T' || c == 'F') {
+        // If the input is invalid, return without output
+        return;
+    }
+
+    // Compute the result using the souti function
+    let result = souti(&p);
+    
+    // Print the result followed by a newline
+    println!("{}", result); // Using println! for automatic newline
+}
+```

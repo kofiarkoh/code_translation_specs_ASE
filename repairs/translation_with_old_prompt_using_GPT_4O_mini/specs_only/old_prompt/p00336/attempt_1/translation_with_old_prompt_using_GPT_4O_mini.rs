@@ -1,0 +1,57 @@
+use std::io::{self, Write};
+
+const MOD: i64 = 1_000_000_007;
+
+fn count_distinct_subsequences(t: &str, b: &str) -> i64 {
+    let n = t.len();
+    let m = b.len();
+    
+    // Create a 2D array initialized to 0
+    let mut a = vec![vec![0; m + 1]; n + 1];
+
+    // Base case: an empty string b can be formed by any prefix of t in one way (the empty subsequence)
+    for i in 0..=n {
+        a[i][0] = 1;
+    }
+
+    // Fill the DP table
+    for i in 1..=n {
+        for j in 1..=m {
+            // If characters match, we can either use this character or not
+            if t.chars().nth(i - 1) == b.chars().nth(j - 1) {
+                a[i][j] = (a[i - 1][j - 1] + a[i - 1][j]) % MOD;
+            } else {
+                // If they don't match, we can only skip the character in t
+                a[i][j] = a[i - 1][j] % MOD;
+            }
+        }
+    }
+
+    // The result is in the bottom-right cell of the matrix
+    a[n][m]
+}
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the first string t
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let t = input.trim();
+    
+    input.clear();
+    
+    // Read the second string b
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let b = input.trim();
+
+    // Ensure the lengths are within the specified limits
+    if t.len() > 1000 || b.len() > 1000 {
+        panic!("Input strings must not exceed 1000 characters.");
+    }
+
+    // Calculate the number of distinct subsequences
+    let result = count_distinct_subsequences(t, b);
+    
+    // Print the result
+    println!("{}", result);
+}

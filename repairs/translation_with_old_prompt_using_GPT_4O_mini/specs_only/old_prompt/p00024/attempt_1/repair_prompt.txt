@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates and outputs a derived integer value based on the input of a floating-point number representing a velocity.
+- **What problem it solves**: It determines a specific integer value that relates to the physics of motion, specifically free fall, based on the input velocity.
+- **Core behavior**: The program continuously reads floating-point values until EOF, computes a derived integer for each value, and prints the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - A floating-point number representing velocity (`v`).
+- **Data types**: 
+  - Input: `float`
+- **Valid ranges or constraints**: 
+  - `v` should be a non-negative float (assumed based on physical context).
+- **Assumptions about inputs**: 
+  - The input is expected to be valid floating-point numbers. Invalid inputs may lead to undefined behavior.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs to standard output.
+- **Side effects**: 
+  - Outputs an integer value to the console for each valid input.
+- **Output format/schema**: 
+  - Each output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input can be provided.
+- **Explicit logical constraints**: 
+  - The input must be in a format that can be parsed as a float.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - For each valid input, an integer value is printed.
+- **State changes**: 
+  - The program's state is reset after each input read.
+- **Return guarantees**: 
+  - The program will terminate after EOF is reached.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The program will always read from standard input until EOF.
+- **Class-level invariants**: 
+  - Not applicable (the code is not object-oriented).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior is undefined; invalid inputs may cause the program to behave unexpectedly or terminate.
+- **Exceptions thrown?**: 
+  - Not applicable (C does not have exceptions in the same way as higher-level languages).
+- **Edge-case behavior**: 
+  - If a non-numeric input is provided, the program may enter an infinite loop or terminate unexpectedly.
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The program is in a reading state while waiting for input and transitions to an output state upon processing each input.
+- **State changes caused by execution**: 
+  - The program transitions from reading input to outputting results for each valid input.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - O(n), where n is the number of valid inputs processed.
+- **Space complexity**: 
+  - O(1), as it uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: 
+  - The program assumes that input can be provided in a timely manner and that the system can handle standard input/output operations efficiently.
+```

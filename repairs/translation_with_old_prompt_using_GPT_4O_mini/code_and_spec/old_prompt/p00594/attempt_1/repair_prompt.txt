@@ -1,0 +1,131 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a series of integers, identifies the most frequently occurring integer (color) in the list, and checks if it appears more than half the time.
+- **What problem it solves**: It determines if there is a dominant integer in a list of integers, which can be interpreted as a "color" in a voting or selection context.
+- **Core behavior**: The program sorts the integers, finds the longest sequence of identical integers, and checks if this sequence exceeds half the total number of integers.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of integers to read.
+  - `a[]`: Array of integers.
+- **Data types**: 
+  - `n`: `int`
+  - `a[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` must be greater than 0 and less than or equal to 1,000,000.
+  - Each integer in `a[]` can be any valid `int` value.
+- **Assumptions about inputs**: 
+  - Input is provided in a format that can be read by `scanf`.
+  - The input ends when `n` is 0.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs directly to standard output.
+- **Side effects**: 
+  - Outputs either the dominant integer or "NO COLOR" to standard output.
+- **Output format/schema**: 
+  - If a dominant integer exists, it is printed as an integer.
+  - If no dominant integer exists, the string "NO COLOR" is printed.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer input.
+  - The first integer input (`n`) must be non-negative.
+- **Explicit logical constraints**: 
+  - The input must be terminated with a `0` for the program to stop reading further.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either a dominant integer or "NO COLOR".
+- **State changes**: 
+  - The array `a[]` is populated with the input integers.
+- **Return guarantees**: 
+  - The output will reflect the presence or absence of a dominant integer based on the input.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `a[]` will always contain the integers read from input.
+  - The variable `m` will always represent the length of the longest sequence of identical integers found so far.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program may exhibit undefined behavior if non-integer input is provided.
+- **Exceptions thrown?**: 
+  - The program does not handle exceptions; it relies on valid input.
+- **Edge-case behavior**: 
+  - If `n` is 0, the program terminates without processing any integers.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program can be in a state of waiting for input, processing input, or outputting results.
+- **State changes caused by execution**: 
+  - Transition from waiting for input to processing input upon reading `n`.
+  - Transition from processing to outputting results after determining the dominant integer.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The sorting operation is O(n log n), and the subsequent search for the longest sequence is O(n), leading to an overall complexity of O(n log n).
+- **Space complexity**: 
+  - The space complexity is O(n) due to the storage of input integers in the array `a[]`.
+- **Performance assumptions**: 
+  - The program is expected to handle the upper limit of input size efficiently within reasonable time constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+
+int a[1000001];
+int cmp(const void *s,const void *b){
+return (*(int *)b)-(*(int *)s);
+}
+int main(void){
+int n,m,k;
+int i,j;
+while(scanf("%d",&n),n){
+m=0;
+for(i=0;i<n;i++){
+scanf("%d",&a[i]);
+}
+qsort(a,n,sizeof(int),cmp);
+
+for(i=0;i<n;i++){
+for(j=i+1;j<n+1;j++){
+if(a[i]!=a[j]){
+if(m<j-i){
+m=j-i;
+k=a[i];
+}
+i=j-1;
+break;
+}
+}
+}
+if(n/2<m)printf("%d\n",k);
+else puts("NO COLOR");
+}
+return 0;}
+=== C CODE END ===

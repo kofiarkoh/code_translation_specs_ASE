@@ -1,0 +1,24 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let mut iter = input.split_whitespace();
+    let a: i32 = iter.next().unwrap().parse().expect("Failed to parse a");
+    let b: i32 = iter.next().unwrap().parse().expect("Failed to parse b");
+    let mut c: i32 = iter.next().unwrap().parse().expect("Failed to parse c");
+
+    let mut a = a - b; // Perform the subtraction
+
+    while a > 0 {
+        a -= 1; // Decrement a
+        c -= 1; // Decrement c
+        if c == 0 {
+            break; // Exit if c reaches 0
+        }
+    }
+
+    // Print the result, ensuring to match the output format
+    println!("{}", c);
+}

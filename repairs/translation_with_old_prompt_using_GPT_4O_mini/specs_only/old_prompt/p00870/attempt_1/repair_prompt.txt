@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a set of strings and checks how many times a concatenated string can be formed using those strings.
+- **What problem it solves**: It determines the number of distinct ways to concatenate a given set of strings to match a target concatenated string.
+- **Core behavior**: The program reads multiple sets of strings and a target string, then calculates and outputs the number of valid concatenations that can be formed using the provided strings.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of strings to be concatenated.
+  - `m`: Number of input strings to form the target string.
+  - `e[]`: Array of strings (up to 12 strings, each up to 20 characters).
+  - `t`: Target concatenated string (up to 5000 characters).
+- **Data types**: 
+  - `int` for `n`, `m`, `i`, `j`, `k`, `cnt`, `loop`, `mask`, `pat`.
+  - `char` arrays for `e`, `t`, and `buf`.
+- **Valid ranges or constraints**:
+  - `n` and `m` must be non-negative integers.
+  - Each string in `e` must be less than or equal to 20 characters.
+  - The total length of `t` must not exceed 5000 characters.
+- **Assumptions about inputs**: 
+  - Input strings are properly null-terminated.
+  - The input ends when both `n` and `m` are zero.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of valid concatenations.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the specified format.
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - `n` and `m` must be non-negative integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the count of valid concatenations.
+- **State changes**: 
+  - The internal state of the `flag` array is modified to track valid concatenations.
+- **Return guarantees**: 
+  - The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `flag` array remains initialized to zero at the start of each new input set.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may produce undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on correct input.
+- **Edge-case behavior**: If `n` or `m` is zero, the program will terminate without processing further.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the `flag` array, which tracks valid concatenation patterns.
+- **State changes caused by execution**: The `flag` array is updated based on the matching of substrings from `e` with the target string `t`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is approximately O(n * m * l_s), where `l_s` is the length of the target string.
+- **Space complexity**: The space complexity is O(n * l_s) due to the `flag` array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum constraints specified (n ≤ 12, m ≤ 5000).
+```

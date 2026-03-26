@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads an array of integers and performs a series of circular shifts on specified subarrays based on user input.
+- **What problem it solves**: It allows for efficient manipulation of subarrays within a larger array, enabling operations like rotation without the need for additional complex data structures.
+- **Core behavior**: The program reads an integer array, processes multiple queries to circularly shift specified segments of the array, and outputs the modified array.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of elements in the array.
+  - `a[]`: Array of integers.
+  - `q`: Number of queries.
+  - Each query consists of three integers: `b`, `m`, and `e`.
+- **Data types**: 
+  - `n`, `q`, `b`, `m`, `e`: `int`
+  - `a[]`, `tmp[]`: `int[]`
+- **Valid ranges or constraints**:
+  - `0 <= n <= 1000`
+  - `0 <= q <= 1000`
+  - `0 <= b < e <= n`
+  - `0 <= m < (e - b)`
+- **Assumptions about inputs**: 
+  - Input values are provided in the correct format and within specified ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to standard output.
+- **Side effects**: Modifies the global array `a[]`.
+- **Output format/schema**: Outputs the modified array as space-separated integers, with a newline at the end.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The array `a[]` must be initialized to accommodate `n` elements.
+- **Explicit logical constraints**: 
+  - The values of `b`, `m`, and `e` must adhere to the specified ranges.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The array `a[]` is modified according to the specified circular shifts.
+- **State changes**: The contents of `a[]` are altered based on the queries processed.
+- **Return guarantees**: No return value; output is printed directly.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the array `a[]` remains constant at `n`.
+  - The temporary array `tmp[]` is always used to store a copy of the relevant segment of `a[]` during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `n` is 0, the program will not perform any operations and will output nothing.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The array `a[]` can be in any state defined by its integer elements.
+- **State changes caused by execution**: 
+  - The state of `a[]` changes with each query processed, reflecting the circular shifts.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(q * e), where `e` is the length of the segment being shifted for each query.
+- **Space complexity**: O(n) due to the use of the temporary array `tmp[]`.
+- **Performance assumptions**: The program is expected to handle the maximum constraints efficiently within reasonable time limits.
+```

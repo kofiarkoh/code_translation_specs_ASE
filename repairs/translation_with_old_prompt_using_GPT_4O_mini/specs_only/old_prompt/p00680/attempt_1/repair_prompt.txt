@@ -1,0 +1,106 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution for a minimum cost flow problem in a directed graph, utilizing a combination of the Gauss-Jordan elimination method for solving linear equations and a min-cost flow algorithm based on a modified Dijkstra's approach.
+- **What problem it solves**: It determines the minimum cost to send a specified flow from a source node to a target node in a network, given the capacities and costs associated with the edges.
+- **Core behavior**: The program reads multiple test cases, constructs a graph based on input data, computes the minimum cost flow for each case, and outputs the result.
+
+## 2. Inputs
+- **Parameters**:
+  - `T`: Number of test cases.
+  - `n`: Number of nodes in the graph.
+  - `s`: Source node index.
+  - `t`: Target node index.
+  - `F`: Total flow to be sent from source to target.
+  - `A[i][j]`: Coefficients of the linear equations.
+  - `C[i]`: Constants of the linear equations.
+  - `d[j]`: Array of destination nodes for edges.
+- **Data types**: 
+  - `int` for node indices, flow, and capacities.
+  - `double` for costs and results.
+- **Valid ranges or constraints**:
+  - `0 <= n <= 105`
+  - `0 <= s, t < n`
+  - `0 < F <= ∞`
+- **Assumptions about inputs**: 
+  - The input is well-formed and adheres to the specified constraints.
+
+## 3. Outputs
+- **Return values**: 
+  - The minimum cost of sending the flow if possible; otherwise, outputs "impossible".
+- **Side effects**: 
+  - Memory allocation and deallocation for graph edges.
+- **Output format/schema**: 
+  - A single line with the minimum cost formatted to 10 decimal places or the string "impossible".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The graph must be initialized correctly with valid node indices and capacities.
+  - The source and target nodes must be distinct and within valid ranges.
+- **Explicit logical constraints**: 
+  - The flow `F` must be positive.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The minimum cost flow is computed and stored in the variable `ans`.
+- **State changes**: 
+  - The graph's edge capacities are updated based on the flow sent.
+- **Return guarantees**: 
+  - The function will return a valid minimum cost or indicate impossibility.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The graph structure remains valid throughout execution.
+  - The capacities of edges are non-negative.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program may exhibit undefined behavior or crash if inputs do not conform to expected formats or ranges.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: 
+  - If the flow `F` is greater than the total capacity of the network, the output will be "impossible".
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The graph can transition between states of having different edge capacities as flow is sent.
+- **State changes caused by execution**: 
+  - Edge capacities are decreased as flow is sent, and potential values are updated.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - The min-cost flow algorithm has a complexity of O(V^2 * E) in the worst case, where V is the number of vertices and E is the number of edges.
+- **Space complexity**: 
+  - The space complexity is O(V + E) due to the storage of edges and auxiliary data structures.
+- **Performance assumptions**: 
+  - The algorithm is expected to perform efficiently for the given constraints, but performance may degrade with larger inputs.
+```

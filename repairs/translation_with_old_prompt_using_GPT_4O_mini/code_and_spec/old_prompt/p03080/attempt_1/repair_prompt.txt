@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads an integer and a string, then evaluates the string to determine if a certain condition is met based on the characters it contains.
+- **What problem it solves**: It assesses whether the count of 'R' characters in the string exceeds the count of other characters, effectively determining a balance based on specific criteria.
+- **Core behavior**: The program increments a counter for each 'R' character and decrements it for any other character. It outputs "Yes" if the counter is positive and "No" otherwise.
+
+## 2. Inputs
+- **Parameters**: 
+  - An integer `N` representing the number of characters to evaluate.
+  - A string `s` of characters.
+- **Data types**: 
+  - `N`: `int`
+  - `s`: `char[128]`
+- **Valid ranges or constraints**: 
+  - `N` must be a non-negative integer and less than or equal to 127 (to fit within the string length).
+  - The string `s` must contain at least `N` characters.
+- **Assumptions about inputs**: 
+  - The input for `N` is expected to be a valid integer.
+  - The input string is expected to be properly formatted and null-terminated.
+
+## 3. Outputs
+- **Return values**: The program returns `0` on successful execution and `1` on input error.
+- **Side effects**: Outputs "Yes" or "No" to the standard output based on the evaluation of the string.
+- **Output format/schema**: The output is a simple string ("Yes" or "No").
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid input for both `N` and the string `s`.
+  - The input string must be at least `N` characters long.
+- **Explicit logical constraints**: 
+  - `N` must be a valid integer and within the range of 0 to 127.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output either "Yes" or "No" based on the evaluation of the string.
+- **State changes**: No persistent state changes occur; the program operates statelessly.
+- **Return guarantees**: The program will return `0` if executed successfully and `1` if there is an input error.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The string `s` will always be null-terminated and will not exceed 127 characters.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program will return `1` and terminate without further processing.
+- **Exceptions thrown?**: No exceptions are thrown; the program handles errors through return codes.
+- **Edge-case behavior**: If `N` is `0`, the output will be "No" since no 'R' characters can be counted.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the code does not maintain state across executions.
+- **State changes caused by execution**: The only state change is the evaluation of the counter `kitaeri`, which is reset with each execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N), where N is the number of characters processed in the string.
+- **Space complexity**: O(1) for the counter and O(128) for the string storage.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size defined by the constraints.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main(void) {
+	int N;
+	char s[128] = "";
+	int kitaeri = 0;
+	int i;
+	if (scanf("%d", &N) != 1) return 1;
+	if (scanf("%127s", s) != 1) return 1;
+	for (i = 0; i < N; i++) {
+		if (s[i] == 'R') kitaeri++; else kitaeri--;
+	}
+	puts(kitaeri > 0 ? "Yes" : "No");
+	return 0;
+}
+=== C CODE END ===

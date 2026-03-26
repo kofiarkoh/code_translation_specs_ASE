@@ -1,0 +1,70 @@
+```rust
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    // Read n
+    let n: usize = input.next().unwrap().unwrap().parse().unwrap();
+    // Read data array
+    let mut data: Vec<i32> = input.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+    
+    // Read m
+    let m: usize = input.next().unwrap().unwrap().parse().unwrap();
+    // Read b array
+    let b: Vec<i32> = input.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+    // Read c array
+    let c: Vec<i64> = input.next().unwrap().unwrap()
+        .split_whitespace()
+        .map(|x| x.parse().unwrap())
+        .collect();
+
+    // Sort the data array
+    data.sort();
+
+    // Create a cumulative sum array
+    let mut sum = vec![0; n];
+    if n > 0 {
+        sum[0] = data[0] as i64; // Store as long long (i64)
+        for i in 1..n {
+            sum[i] = sum[i - 1] + data[i] as i64; // Cumulative sum
+        }
+    }
+
+    // Process each element in b
+    for i in 0..m {
+        let key = b[i];
+        // Find the upper bound index
+        let upper_bound_index = upper_bound(&data, key);
+        // Check if the cumulative sum at the upper bound index meets or exceeds c[i]
+        if upper_bound_index > 0 && sum[upper_bound_index - 1] >= c[i] {
+            println!("Yes");
+        } else {
+            println!("No");
+        }
+    }
+}
+
+// Function to find the upper bound index
+fn upper_bound(data: &[i32], key: i32) -> usize {
+    let mut low = 0;
+    let mut high = data.len();
+    while low < high {
+        let mid = (low + high) / 2;
+        if data[mid] <= key {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    low // This is the upper bound index
+}
+```

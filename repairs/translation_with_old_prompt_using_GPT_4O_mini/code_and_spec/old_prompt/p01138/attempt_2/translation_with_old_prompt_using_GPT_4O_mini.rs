@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    
+    loop {
+        let mut n_str = String::new();
+        input.read_line(&mut n_str).unwrap();
+        let n: usize = n_str.trim().parse().expect("Failed to parse number of intervals");
+
+        if n == 0 {
+            break;
+        }
+
+        // Initialize the time array to count overlaps
+        let mut time = vec![0; 24 * 3600];
+
+        for _ in 0..n {
+            let mut dep_str = String::new();
+            input.read_line(&mut dep_str).unwrap();
+            let dep_parts: Vec<&str> = dep_str.trim().split(':').collect();
+            let dep_hour: usize = dep_parts[0].parse().expect("Failed to parse departure hour");
+            let dep_min: usize = dep_parts[1].parse().expect("Failed to parse departure minute");
+            let dep_sec: usize = dep_parts[2].parse().expect("Failed to parse departure second");
+            let departure = dep_hour * 3600 + dep_min * 60 + dep_sec;
+
+            let mut arr_str = String::new();
+            input.read_line(&mut arr_str).unwrap();
+            let arr_parts: Vec<&str> = arr_str.trim().split(':').collect();
+            let arr_hour: usize = arr_parts[0].parse().expect("Failed to parse arrival hour");
+            let arr_min: usize = arr_parts[1].parse().expect("Failed to parse arrival minute");
+            let arr_sec: usize = arr_parts[2].parse().expect("Failed to parse arrival second");
+            let arrival = arr_hour * 3600 + arr_min * 60 + arr_sec;
+
+            // Increment the time array for each second in the interval
+            for j in departure..arrival {
+                time[j] += 1;
+            }
+        }
+
+        // Find the maximum overlap
+        let max_overlap = time.iter().cloned().max().unwrap_or(0);
+        
+        // Output the result
+        println!("{}", max_overlap);
+    }
+}

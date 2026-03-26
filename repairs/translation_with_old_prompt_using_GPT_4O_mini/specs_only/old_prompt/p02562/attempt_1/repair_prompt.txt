@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a flow network algorithm to solve a minimum-cost flow problem using a successive shortest path approach.
+- **What problem it solves**: It determines the maximum flow in a network while minimizing the associated costs, given a set of edges with capacities and costs.
+- **Core behavior**: The program reads a matrix of costs, constructs a flow network, and computes the maximum flow with minimum cost, outputting the flow configuration.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes in the network.
+  - `K`: Maximum capacity for certain edges.
+  - `A[51][51]`: Cost matrix for edges between nodes.
+- **Data types**:
+  - `int` for node and edge identifiers, capacities, and costs.
+  - `long long` for large integer values (costs and flow).
+  - `list*` for adjacency lists.
+  - `edge` for edge properties.
+- **Valid ranges or constraints**:
+  - `N` should be a positive integer.
+  - `K` should be a non-negative integer.
+  - The cost matrix `A` should be properly initialized and within bounds.
+- **Assumptions about inputs**: The input matrix is square and properly formatted, and the number of nodes does not exceed the defined limits.
+
+## 3. Outputs
+- **Return values**: The function `succesive_shortest_path` returns a `long long` representing the total cost of the flow.
+- **Side effects**: Modifies the flow values in the edges and updates the adjacency list.
+- **Output format/schema**: The final output is printed as a matrix of characters representing the flow configuration, where 'X' indicates an active flow between nodes.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The adjacency list must be properly initialized.
+  - The edges must have valid capacities and costs.
+  - The flow network must be constructed correctly based on the input matrix.
+- **Explicit logical constraints**: The number of edges must be sufficient to connect all nodes as required by the flow problem.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The total flow and its associated cost are computed and returned.
+  - The flow values in the edges are updated to reflect the computed flow.
+- **State changes**: The state of the flow network is modified, with edges reflecting the new flow values.
+- **Return guarantees**: The function will return `inf` if no valid flow configuration exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The size of the min-heap structures must accurately reflect the number of elements they contain.
+  - The flow values in edges must not exceed their capacities.
+- **Class-level invariants**: Not applicable as the code does not define classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may crash or produce incorrect results.
+- **Exceptions thrown?**: No explicit exception handling is implemented; memory allocation failures may lead to undefined behavior.
+- **Edge-case behavior**: If `N` or `K` is zero or negative, the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The flow network is valid if all edges have non-negative flow values that do not exceed their capacities.
+- **State changes caused by execution**: The flow values in the edges are updated based on the computed flow, and the adjacency list is modified accordingly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm's complexity is primarily influenced by the number of nodes and edges, typically O(N^2 * M) in the worst case.
+- **Space complexity**: The space complexity is O(N + M) due to the storage of distances, previous edges, and adjacency lists.
+- **Performance assumptions**: The algorithm assumes that the input size is manageable within the limits of available memory and processing time.
+```

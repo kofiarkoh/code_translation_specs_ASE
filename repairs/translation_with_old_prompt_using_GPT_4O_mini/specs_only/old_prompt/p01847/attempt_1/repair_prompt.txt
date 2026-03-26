@@ -1,0 +1,102 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for AOJ 2747 Curtain
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the area of a polygon defined by a series of vertices and adjusts this area based on the intersection with a defined rectangular window.
+- **What problem it solves**: It determines the effective area of a polygon that lies within a specified rectangular boundary, accounting for any parts of the polygon that extend outside this boundary.
+- **Core behavior**: The program reads a series of polygon vertices and a rectangle's coordinates, computes the polygon's area, and subtracts the area that lies outside the rectangle.
+
+## 2. Inputs
+- **Parameters**: 
+  - Number of vertices \( N \) of the polygon.
+  - Coordinates of the polygon vertices (pairs of integers).
+  - Coordinates of the rectangle (four integers).
+- **Data types**: 
+  - Integers for coordinates and counts.
+  - Long long for area calculations.
+- **Valid ranges or constraints**: 
+  - \( N \) must be a positive integer.
+  - Coordinates must be within the range of typical integer values.
+- **Assumptions about inputs**: 
+  - The polygon is defined in a 2D Cartesian coordinate system.
+  - The rectangle is defined by its corner coordinates.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single long long integer representing the adjusted area of the polygon.
+- **Side effects**: 
+  - Outputs to standard output (console).
+- **Output format/schema**: 
+  - A single line containing the computed area as a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The polygon must have at least one vertex.
+- **Explicit logical constraints**: 
+  - The rectangle coordinates must be valid integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output area is computed based on the polygon's vertices and the rectangle's coordinates.
+- **State changes**: 
+  - No persistent state changes; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always be a valid long long integer representing the area.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays for storing vertex coordinates are always initialized before use.
+- **Class-level invariants**: 
+  - Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program may produce undefined behavior or incorrect results if the input format is not adhered to.
+- **Exceptions thrown?**: 
+  - The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: 
+  - If \( N = 0 \), the program will not execute the area calculation loop, potentially leading to no output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains a valid state as long as it is processing valid input.
+- **State changes caused by execution**: 
+  - The values of the area calculations and coordinate arrays are updated during execution.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is \( O(N) \) for processing the polygon vertices and rectangle coordinates.
+- **Space complexity**: 
+  - The space complexity is \( O(N) \) due to the storage of vertex coordinates.
+- **Performance assumptions**: 
+  - The program assumes that input reading and processing are efficient, particularly with the use of `getchar_unlocked()` for fast input.
+```

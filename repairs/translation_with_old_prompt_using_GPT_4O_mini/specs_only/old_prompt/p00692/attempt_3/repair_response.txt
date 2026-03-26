@@ -1,0 +1,46 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        // Read the card set, which should be exactly 20 characters
+        let buf: Vec<char> = lines.next().unwrap().unwrap().chars().collect();
+        assert_eq!(buf.len(), 20); // Ensure we have exactly 20 cards
+
+        // Calculate the number of remaining cards after pair removals
+        let remaining = remove_pairs(&buf);
+        println!("{}", remaining);
+    }
+}
+
+// Function to remove pairs of cards and return the number of remaining cards
+fn remove_pairs(buf: &[char]) -> usize {
+    let mut counts = [0; 10]; // Count occurrences of each digit (0-9)
+
+    // Count the occurrences of each card
+    for &card in buf {
+        let digit = card.to_digit(10).unwrap() as usize; // Convert char to digit
+        counts[digit] += 1;
+    }
+
+    // Calculate the number of pairs that can be removed
+    let mut pairs = 0;
+    for &count in &counts {
+        pairs += count / 2; // Each pair consists of 2 cards
+    }
+
+    // Calculate remaining cards: total cards - 2 * pairs
+    let total_cards = 20; // Total number of cards
+    let remaining_cards = total_cards - 2 * pairs;
+
+    // Ensure we do not return a negative number of remaining cards
+    remaining_cards.max(0)
+}
+```

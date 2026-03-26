@@ -1,0 +1,68 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the length of the string
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Read the string itself
+    let s: String = lines.next().unwrap().unwrap();
+    
+    // Read the number of queries
+    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    
+    // Read the lengths of substrings for each query
+    let mut k: Vec<usize> = Vec::new();
+    for _ in 0..q {
+        let query_length: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        k.push(query_length);
+    }
+
+    // Process each query
+    for &length in &k {
+        // Initialize counts for 'D', 'M', and 'C'
+        let mut count_d = 0;
+        let mut count_m = 0;
+        let mut count_c = 0;
+
+        // Calculate the cumulative sum for the first `length` characters
+        for i in 0..length {
+            match s.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => count_m += 1,
+                'C' => count_c += 1,
+                _ => unreachable!(), // According to the spec, only 'D', 'M', 'C' are valid
+            }
+        }
+
+        // Calculate the result for the first window
+        let mut result = count_m + count_d;
+        println!("{}", result);
+
+        // Slide the window across the string
+        for i in length..n {
+            // Remove the character going out of the window
+            match s.chars().nth(i - length).unwrap() {
+                'D' => count_d -= 1,
+                'M' => count_m -= 1,
+                'C' => count_c -= 1,
+                _ => unreachable!(),
+            }
+
+            // Add the new character coming into the window
+            match s.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => count_m += 1,
+                'C' => count_c += 1,
+                _ => unreachable!(),
+            }
+
+            // Calculate the result for the current window
+            result = count_m + count_d;
+            println!("{}", result);
+        }
+    }
+}

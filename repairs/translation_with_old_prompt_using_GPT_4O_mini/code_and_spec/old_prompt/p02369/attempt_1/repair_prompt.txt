@@ -1,0 +1,280 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a directed graph using an adjacency list representation and provides functionality to detect cycles within the graph.
+- **What problem it solves**: It allows users to create a directed graph, add edges, and determine if the graph contains any cycles, which is crucial for various applications in computer science, such as scheduling and dependency resolution.
+- **Core behavior**: The program initializes a graph, accepts edges as input, and checks for cycles, returning a boolean result.
+
+## 2. Inputs
+- **Parameters**:
+  - `num_vertex`: Number of vertices in the graph (input during graph creation).
+  - `source`: The source vertex for adding an edge.
+  - `edge`: A structure containing the target vertex and cost for the edge.
+- **Data types**:
+  - `int` for vertex indices and edge costs.
+  - `struct edge` for edge representation.
+  - `struct adjcency_list` for the graph structure.
+- **Valid ranges or constraints**:
+  - `num_vertex` must be a positive integer.
+  - `source` must be a valid index within the range of vertices (0 to `num_vertex - 1`).
+- **Assumptions about inputs**: It is assumed that the input for edges is well-formed and that the target vertex exists within the graph.
+
+## 3. Outputs
+- **Return values**:
+  - The function `is_cyclic` returns `1` if a cycle is detected and `0` otherwise.
+- **Side effects**: The program prints the result of the cycle detection to the standard output.
+- **Output format/schema**: The output is a single integer (0 or 1) printed to the console.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The graph must be initialized using `make_adjcency_list` before adding edges or checking for cycles.
+  - The number of edges must not exceed the maximum possible edges for the given number of vertices.
+- **Explicit logical constraints**: The graph must not be modified while checking for cycles.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The graph structure remains intact after adding edges or checking for cycles.
+- **State changes**: The number of edges in the graph is updated when edges are added.
+- **Return guarantees**: The return value of `is_cyclic` accurately reflects the presence of cycles in the graph.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The adjacency list structure must maintain valid pointers for the front and back of each edge list.
+  - The `num_edge` field must accurately reflect the number of edges for each vertex.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or crashes.
+- **Exceptions thrown?**: No explicit exceptions are thrown; memory allocation failures may lead to crashes.
+- **Edge-case behavior**: If `num_vertex` is zero or negative, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The graph can be in an uninitialized state, an initialized state with no edges, or a populated state with edges.
+- **State changes caused by execution**: Adding edges modifies the state of the graph by increasing the `num_edge` count and linking new nodes in the adjacency list.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - `make_adjcency_list`: O(V), where V is the number of vertices.
+  - `push_edge`: O(1) for adding an edge.
+  - `is_cyclic`: O(V + E), where E is the number of edges.
+- **Space complexity**: O(V + E) for storing the adjacency list.
+- **Performance assumptions**: The implementation assumes that memory allocation succeeds and that the graph is not excessively large, which could lead to performance degradation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include "stdlib.h"
+#include "stdio.h"
+#include "string.h"
+
+
+
+/**************************
+*  Structure declaration  *
+**************************/
+
+struct edge {
+    int tgt;
+    int cost;
+};
+
+struct edge_list_node {
+    struct edge e;
+    struct edge_list_node *nxt;
+};
+    
+struct edge_list {
+    struct edge_list_node* front;
+    struct edge_list_node* back;
+    unsigned int num_edge;
+};
+
+struct adjcency_list {
+    struct edge_list* src;
+    unsigned int num_vertex;
+};
+/***********************************
+*  Function prototype declaration  *
+***********************************/
+
+// ??£??\???????????????????????????
+// in1 : ??°?????????????????°
+// in2 : ??°??????????????°
+// out : ??£??\?????????????????????
+struct adjcency_list* make_adjcency_list(int num_vertex);
+
+// ??£??\????????????????????????
+// in1 : ??£??\?????????
+// in2 : ??????source
+// in3 : ??????{tgt,cost}???
+// out : void
+void push_edge(struct adjcency_list* graph,
+	       int src,
+	       struct edge e);
+
+
+/*************************
+*  Function declaration  *
+*************************/
+
+
+struct adjcency_list* make_adjcency_list(int V) {
+
+    int i;
+    
+    // ??£??\???????????¬??? ?????¢????¢????
+    struct adjcency_list* graph;
+    graph = (struct adjcency_list* )malloc(sizeof(struct adjcency_list));
+    
+    // ????????°????????????????????????
+    graph->src = (struct edge_list*) malloc(sizeof(struct edge_list) * V);
+    for( i=0; i<V; i++ ) {
+	graph->src[i].front = NULL;
+	graph->src[i].back  = NULL;
+	graph->src[i].num_edge  = 0;
+    }
+    // ??£??\??????????????§??????
+    graph->num_vertex = V;
+    
+    return graph;
+}
+
+
+// ??£??\????????????????????????
+// in1 : ??£??\?????????
+// in2 : ??????source
+// in3 : ??????{tgt,cost}???
+// out : void
+void push_edge(struct adjcency_list* graph,
+	       int source,
+	       struct edge _edge) {
+
+    struct edge_list_node *n,*p;
+    
+    n = (struct edge_list_node*)malloc(sizeof(struct edge_list_node));
+    n->e = _edge;
+    n->nxt = NULL;
+    
+    if( graph->src[source].front == NULL )  // there is no nodes in the list.
+	graph->src[source].front = n;
+    else 
+	graph->src[source].back->nxt = n;
+    graph->src[source].back = n;
+    graph->src[source].num_edge ++;
+    
+}
+
+void dump_adjcency_list(const struct adjcency_list* g) {
+
+    int V = g->num_vertex;
+    int i;
+
+    struct edge_list_node* n;
+	
+    for( i=0; i<V; i++ ) {
+	n = g->src[i].front;
+	printf("%d --> ",i);
+	while( n != NULL ) {
+	    printf("%3d ",n->e.tgt, n->e.cost);
+	    n = n->nxt;
+	}
+	printf("\n");
+    }
+}
+
+/********************************************************************************************/
+/********************************************************************************************/
+/********************************************************************************************/
+
+int is_cyclic(struct adjcency_list* g) {
+    int* in;
+    int i,j,k,V;
+    int flag;
+    struct edge_list_node* n;
+
+    V = g->num_vertex;
+    in = (int*)malloc(sizeof(int)*V);
+    for( i=0; i<V; i++) in[i] = 0;
+
+    // ??\?¬???°?¨????
+    for( i=0; i<V; i++ ) {
+	n = g->src[i].front;
+	while( n != NULL ) {
+	    in[n->e.tgt]++;
+	    n = n->nxt;
+	}
+    }
+	
+    for( j=0; j<V; j++ ) {
+	flag = 1;
+	// ??\?¬???° == 0 ???????????¢???
+	for( i=0; i<V; i++ ) {
+	    if( in[i] == 0 ) {
+		in[i] = -1;
+		flag = 0; // 0???????????????	      
+		n = g->src[i].front;
+		while( n != NULL ) {
+		    in[n->e.tgt]--;
+		    n = n-> nxt;
+		}
+		break;
+	    }
+	}
+	if( flag ) return 1;
+    }
+    return 0;
+}
+
+int main(void) {
+
+    // ??\?????¨?????°
+    int V,E;
+    struct adjcency_list *graph;
+
+    // ?¨??????¨?????°
+    int i,s,t;
+    struct edge e;
+
+    // ????????????
+    int res;
+
+    // ??\?????????
+    scanf("%d %d",&V,&E);
+    graph = make_adjcency_list(V);
+
+    for( i=0; i<E; i++ ) {
+	scanf("%d %d",&s,&t);
+	e.tgt = t;
+	e.cost = 0;
+	push_edge(graph,s,e);
+    }
+//    dump_adjcency_list(graph);
+    
+    // ?¨????
+    res = is_cyclic(graph);
+
+    printf("%d\n",res);
+
+    return 0;
+}
+=== C CODE END ===

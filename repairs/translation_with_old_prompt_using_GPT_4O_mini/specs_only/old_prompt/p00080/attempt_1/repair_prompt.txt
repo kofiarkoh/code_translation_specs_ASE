@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the cube root of a given integer input using the Newton-Raphson method.
+- **What problem it solves**: It provides a numerical solution for finding the cube root of integers, allowing for precise results up to six decimal places.
+- **Core behavior**: The program continuously reads integer inputs until a sentinel value of `-1` is encountered, computes the cube root for each valid input, and prints the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `q`: An integer representing the number for which the cube root is to be calculated.
+- **Data types**: 
+  - `q`: `int`
+  - `px`, `x`: `double`
+- **Valid ranges or constraints**: 
+  - `q` must be a non-negative integer (0 or greater) for meaningful cube root calculations.
+- **Assumptions about inputs**: 
+  - The input is assumed to be valid integers, and the program will terminate upon receiving `-1`.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to the console.
+- **Side effects**: Outputs the computed cube root to standard output.
+- **Output format/schema**: The output is a floating-point number formatted to six decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input can be provided.
+  - The input must be integers, and the first input should not be `-1`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - For each valid input `q`, the program outputs the cube root of `q` formatted to six decimal places.
+- **State changes**: The program maintains no persistent state beyond the current input and output.
+- **Return guarantees**: The program guarantees that the output will be a valid floating-point representation of the cube root for each valid input.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable `px` is always a positive double value during the computation of the cube root.
+  - The loop continues until the computed cube root is sufficiently close to the actual cube root within a defined tolerance.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it assumes valid integer input.
+- **Exceptions thrown?**: No exceptions are thrown; the program may enter an infinite loop or produce incorrect results if invalid input is provided.
+- **Edge-case behavior**: If `q` is `0`, the output will be `0.000000`, as the cube root of zero is zero.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state, processing inputs and producing outputs.
+- **State changes caused by execution**: The state changes with each iteration of input processing, but there are no persistent states maintained.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is dependent on the convergence of the Newton-Raphson method, which typically converges quickly for well-behaved functions.
+- **Space complexity**: The space complexity is O(1) as it uses a fixed amount of space for variables.
+- **Performance assumptions**: The program is expected to perform efficiently for typical integer inputs, but performance may degrade for very large integers due to the nature of floating-point arithmetic.
+```

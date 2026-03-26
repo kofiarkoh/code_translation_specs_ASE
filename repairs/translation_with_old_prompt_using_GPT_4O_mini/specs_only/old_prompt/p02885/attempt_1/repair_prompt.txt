@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program reads two integers from user input and computes a specific mathematical expression based on these integers.
+- **What problem it solves**: It determines a non-negative result based on the relationship between the two input integers, specifically checking if a derived value is greater than zero.
+- **Core behavior**: The program calculates the value of `a - 2*b` and outputs either this value (if positive) or zero (if non-positive).
+
+## 2. Inputs
+- **Parameters**: Two integers, `a` and `b`.
+- **Data types**: Both inputs are of type `int`.
+- **Valid ranges or constraints**: No explicit constraints on the values of `a` and `b;` they can be any integers within the range of the `int` data type.
+- **Assumptions about inputs**: Inputs are assumed to be valid integers as provided by the user.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer value.
+- **Side effects**: The program reads from standard input and writes to standard output.
+- **Output format/schema**: The output is a single integer, which is either `a - 2*b` (if positive) or `0`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available.
+- **Explicit logical constraints**: None specified; however, valid integer input is assumed.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The output will be a non-negative integer.
+- **State changes**: The program does not maintain any state beyond the execution of the current instance.
+- **Return guarantees**: The output will be either `0` or a positive integer derived from the calculation.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The output will always be non-negative as per the defined behavior of the program.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input; undefined behavior may occur if non-integer values are provided.
+- **Exceptions thrown?**: No exceptions are explicitly handled or thrown.
+- **Edge-case behavior**: If inputs are at the limits of the `int` range, the behavior is not defined for overflow or underflow scenarios.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state across executions.
+- **State changes caused by execution**: The program transitions from reading input to producing output without maintaining any persistent state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the execution time is constant regardless of input values.
+- **Space complexity**: O(1) - the program uses a fixed amount of space for variables.
+- **Performance assumptions**: The program assumes that input and output operations are performed in a reasonable time frame, typical for console applications.
+```

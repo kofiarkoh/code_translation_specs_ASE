@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification for Sashimi Problem (AOJ 2415)
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a dynamic programming solution to calculate the minimum cost of cutting a sashimi fish into pieces based on given weights.
+- **What problem it solves**: It determines the optimal way to cut a fish to minimize the total cost incurred from the cuts, where the cost is influenced by the weights of the pieces.
+- **Core behavior**: The program reads the number of pieces and their respective weights, computes the minimum cutting cost using a dynamic programming approach, and outputs the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - The first input is an integer `n`, representing the number of pieces.
+  - The second input is a sequence of `n` integers representing the weights of the pieces.
+- **Data types**: 
+  - `n`: `int`
+  - Weights: `long long` (stored in an array of type `ll`)
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (1 ≤ n ≤ 4000).
+  - Weights must be non-negative integers.
+- **Assumptions about inputs**: The input format is assumed to be correct and well-formed as per the problem statement.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the minimum cost of cutting the fish.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single line containing the minimum cost as a decimal integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of pieces `n` must be greater than zero.
+- **Explicit logical constraints**: The weights must be valid integers and the total number of weights must match `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the minimum cost of cutting the fish.
+- **State changes**: The internal state of the dynamic programming table (`dp`) and the cut positions (`k`) will be populated based on the calculations.
+- **Return guarantees**: The output will always be a valid long long integer representing the minimum cost.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `dp` array will always contain the minimum costs for all subproblems computed up to the current state.
+  - The `k` array will always store the optimal cut positions for the corresponding segments.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not explicitly defined; the program may produce incorrect results or undefined behavior.
+- **Exceptions thrown?**: Not inferable from code; the program does not handle exceptions explicitly.
+- **Edge-case behavior**: If `n` is 1, the output will be 0 since no cuts are needed.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state represented by the `dp` and `k` arrays, which evolve as the algorithm processes the input.
+- **State changes caused by execution**: The state of the `dp` array is updated as the minimum costs are calculated for different segments of the fish.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The algorithm runs in O(n^3) time due to the three nested loops iterating over the segments and possible cut positions.
+- **Space complexity**: The space complexity is O(n^2) due to the storage of the `dp` and `k` arrays.
+- **Performance assumptions**: The implementation is expected to handle the upper limits of input sizes efficiently within the constraints of typical competitive programming environments.
+```

@@ -1,0 +1,109 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a 2D grid to count distinct connected components of a specific character ('o') and outputs the number of such components divided by three.
+- **What problem it solves**: It identifies and counts groups of connected 'o' characters in a grid, treating them as distinct components, and provides a normalized count.
+- **Core behavior**: The program reads a grid of characters, marks connected 'o' characters as visited, and counts how many distinct groups exist.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The size of the grid (n x n).
+  - `d`: A 2D character array representing the grid.
+- **Data types**: 
+  - `n`: `int`
+  - `d`: `char[300][300]`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer less than or equal to 300.
+  - Each cell in the grid can contain 'o', 'x', or other characters.
+- **Assumptions about inputs**: The input grid is well-formed and contains only valid characters.
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the number of distinct connected components of 'o' characters divided by three.
+- **Side effects**: The grid `d` is modified during execution, marking visited 'o' characters as 'x'.
+- **Output format/schema**: The output is a single integer printed to the standard output.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The grid must be initialized and contain valid characters.
+- **Explicit logical constraints**: `n` must be greater than 0 and less than or equal to 300.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The grid `d` will have all connected 'o' characters marked as 'x'.
+  - The output will be the integer count of distinct components divided by three.
+- **State changes**: The grid `d` will reflect the visited state of 'o' characters.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The grid dimensions remain consistent throughout execution.
+  - The count of distinct components is accurately tracked.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `n` is 0, the program may not function as intended.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The grid can be in a state where all cells are unvisited or some cells are marked as visited ('x').
+- **State changes caused by execution**: Cells containing 'o' are marked as 'x' when they are visited.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n^2) due to the nested loops iterating over the grid.
+- **Space complexity**: O(n^2) for the grid storage.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum grid size of 300x300.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int X[]={1,0,-1,0};
+int Y[]={0,1,0,-1};
+int main(){
+  char d[300][300]={};
+  int n,i,j,k,c=0,t,r,x[100010],y[100010],ny,nx;
+  scanf("%d",&n);
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++)scanf(" %c",&d[i+1][j+1]);
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++){
+      if(d[i+1][j+1]=='x')continue;
+      d[y[t=0]=i+1][x[0]=j+1]='x';
+      c++;
+      for(r=1;r-t;t++){
+	for(k=0;k<4;k++){
+	  ny=y[t]+Y[k];
+	  nx=x[t]+X[k];
+	  if(d[ny][nx]-'o')continue;
+	  d[y[r]=ny][x[r]=nx]='x';
+	  r++;
+	}
+      }
+    }
+  }
+  printf("%d\n",(c-1)/3);
+  return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,30 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    
+    let x: i64 = iter.next().unwrap().parse().unwrap();
+    let k: i64 = iter.next().unwrap().parse().unwrap();
+    let d: i64 = iter.next().unwrap().parse().unwrap();
+
+    // Use absolute value of x
+    let mut now = x.abs();
+    
+    if now / d <= k {
+        now -= d * (now / d);
+        let mut k = k - (now / d);
+        if k % 2 != 0 {
+            now -= d;
+        }
+    } else {
+        now -= d * k;
+    }
+
+    // Print the absolute value of now
+    print!("{}", now.abs());
+    io::stdout().flush().unwrap(); // Ensure output is flushed
+}
+```

@@ -1,0 +1,38 @@
+fn count_distributions(n: usize, m: usize) -> u64 {
+    const MOD: u64 = 1_000_000_007;
+
+    // Create a dynamic programming table with (n+1) x (m+1) dimensions
+    let mut dp = vec![vec![0u64; m + 1]; n + 1];
+
+    // Base case: 1 way to distribute 0 items into any number of boxes
+    for i in 0..=n {
+        dp[i][0] = 1;
+    }
+
+    // Fill the dynamic programming table
+    for j in 1..=m {
+        for i in 1..=n {
+            // dp[i][j] = dp[i-1][j] + dp[i][j-1]
+            dp[i][j] = (dp[i - 1][j] + dp[i][j - 1]) % MOD;
+        }
+    }
+
+    // The result is the number of ways to distribute m items into n boxes
+    dp[n][m]
+}
+
+fn main() {
+    let input = std::io::stdin();
+    let mut input_string = String::new();
+    input.read_line(&mut input_string).unwrap();
+    let parts: Vec<usize> = input_string
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    
+    let n = parts[0]; // Number of boxes
+    let m = parts[1]; // Number of items
+    let result = count_distributions(n, m);
+    println!("{}", result); // Output the result
+}

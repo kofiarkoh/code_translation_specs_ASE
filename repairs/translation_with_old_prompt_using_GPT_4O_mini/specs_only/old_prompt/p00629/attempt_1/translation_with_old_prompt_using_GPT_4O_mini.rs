@@ -1,0 +1,77 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Item {
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut items = Vec::new();
+    
+    // Read input
+    for line in stdin.lock().lines() {
+        let line = line.expect("Failed to read line");
+        let values: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        
+        if values.is_empty() {
+            continue;
+        }
+        
+        let n = values[0];
+        if n == 0 {
+            break; // Exit on 0
+        }
+        
+        // Read the items
+        for chunk in values[1..].chunks(4) {
+            if chunk.len() == 4 {
+                items.push(Item {
+                    i: chunk[0],
+                    u: chunk[1],
+                    a: chunk[2],
+                    p: chunk[3],
+                });
+            }
+        }
+    }
+
+    // Sort items based on the specified criteria (not explicitly defined, assuming by `u` then `i`)
+    items.sort_by(|a, b| {
+        if a.u != b.u {
+            a.u.cmp(&b.u)
+        } else {
+            a.i.cmp(&b.i)
+        }
+    });
+
+    // Filter unique `u` values and limit to 26 unique items
+    let mut uu_count = HashMap::new();
+    let mut selected_items = Vec::new();
+
+    for item in items {
+        if selected_items.len() >= 26 {
+            break; // Limit to 26 unique items
+        }
+        
+        // Count occurrences of `u`
+        let count = uu_count.entry(item.u).or_insert(0);
+        *count += 1;
+
+        // Only add unique `u` values
+        if *count == 1 {
+            selected_items.push(item.i);
+        }
+    }
+
+    // Output selected item identifiers
+    for id in selected_items {
+        println!("{}", id);
+    }
+}

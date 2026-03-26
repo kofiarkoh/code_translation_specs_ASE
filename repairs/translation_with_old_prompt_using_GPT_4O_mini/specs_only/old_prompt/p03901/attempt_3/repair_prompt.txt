@@ -1,0 +1,70 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03901/p03901_sample1_output.txt
+Input:
+5
+50
+Expected:
+6.0000000
+Actual:
+4.0312500
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read piPos (position)
+    let pi_pos: i32 = lines.next().unwrap()?.parse()?;
+    // Read sdRate (probability rate) and convert to fraction
+    let sd_rate: f64 = lines.next().unwrap()?.parse::<f64>()? / 100.0;
+
+    // Compute the expected value
+    let expected_value = compute_expected_value(pi_pos, sd_rate);
+
+    // Output the expected value formatted to seven decimal places
+    println!("{:.7}", expected_value);
+
+    // Return Ok indicating successful execution
+    Ok(())
+}
+
+// Recursive function to compute expected value
+fn compute_expected_value(position: i32, rate: f64) -> f64 {
+    // Base case: if position is 0, return 0.0
+    if position == 0 {
+        return 0.0;
+    }
+
+    // Recursive case: calculate expected value based on the position and rate
+    let expected_value = (1.0 - rate) * compute_expected_value(position - 1, rate) + rate * position as f64;
+
+    expected_value
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,97 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let w: usize = iter.next().unwrap().parse().unwrap();
+        let d: usize = iter.next().unwrap().parse().unwrap();
+
+        if w == 0 {
+            break; // Termination condition
+        }
+
+        let mut a = [0; 21]; // Array for group 1, initialized to zero
+        let mut b = [0; 21]; // Array for group 2, initialized to zero
+
+        // Read items for the first group
+        for _ in 0..w {
+            let t: usize = reader.lines().next().unwrap().unwrap().parse().unwrap();
+            a[t] += 1;
+        }
+
+        // Read items for the second group
+        for _ in 0..d {
+            let t: usize = reader.lines().next().unwrap().unwrap().parse().unwrap();
+            b[t] += 1;
+        }
+
+        // Calculate the weighted sum
+        let mut res = 0;
+        for i in 1..=20 {
+            res += i * std::cmp::max(a[i], b[i]);
+        }
+
+        // Output the result
+        println!("{}", res);
+    }
+}
+``` 
+
+### Changes Made:
+- The previous code attempted to use `reader.lines()` multiple times, which caused a move error. Instead, we will read all input lines at once and process them accordingly. 
+
+Here’s the corrected version that ensures we do not move the `reader` and can read from it multiple times. 
+
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let lines: Vec<String> = reader.lines().map(|line| line.unwrap()).collect();
+
+    let mut index = 0;
+    while index < lines.len() {
+        let mut iter = lines[index].split_whitespace();
+        let w: usize = iter.next().unwrap().parse().unwrap();
+        let d: usize = iter.next().unwrap().parse().unwrap();
+
+        if w == 0 {
+            break; // Termination condition
+        }
+
+        let mut a = [0; 21]; // Array for group 1, initialized to zero
+        let mut b = [0; 21]; // Array for group 2, initialized to zero
+
+        // Read items for the first group
+        index += 1;
+        for _ in 0..w {
+            let t: usize = lines[index].parse().unwrap();
+            a[t] += 1;
+            index += 1;
+        }
+
+        // Read items for the second group
+        for _ in 0..d {
+            let t: usize = lines[index].parse().unwrap();
+            b[t] += 1;
+            index += 1;
+        }
+
+        // Calculate the weighted sum
+        let mut res = 0;
+        for i in 1..=20 {
+            res += i * std::cmp::max(a[i], b[i]);
+        }
+
+        // Output the result
+        println!("{}", res);
+    }
+}
+``` 
+
+This version collects all input lines into a vector and processes them sequentially, avoiding the move error.

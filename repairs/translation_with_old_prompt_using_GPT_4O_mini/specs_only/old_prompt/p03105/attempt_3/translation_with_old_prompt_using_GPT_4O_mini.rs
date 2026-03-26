@@ -1,0 +1,39 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock(); // `handle` does not need to be mutable
+    let mut input = String::new();
+    
+    // Read three integers from input
+    handle.read_line(&mut input).expect("Failed to read line");
+    let nums: Vec<i32> = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect();
+
+    // Ensure we have exactly three integers
+    if nums.len() != 3 {
+        // Undefined behavior as per specification; we could panic or exit
+        panic!("Expected exactly three integers");
+    }
+
+    let a = nums[0];
+    let b = nums[1];
+    let c = nums[2];
+
+    // Check that 'a' is not zero to avoid division by zero
+    if a == 0 {
+        // Undefined behavior as per specification; we could panic or exit
+        panic!("Division by zero is not allowed");
+    }
+
+    // Calculate the quotient of b divided by a
+    let quotient = b / a;
+
+    // Determine the minimum of the quotient and c
+    let result = if quotient < c { quotient } else { c };
+
+    // Print the result
+    println!("{}", result);
+}

@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads five integer inputs and checks each one for a value of zero, printing a corresponding number based on the first zero encountered.
+- **What problem it solves**: It identifies which of the five integers is the first to be zero and communicates this through output.
+- **Core behavior**: The program sequentially checks each of the five integers and outputs a specific number (1 to 5) based on the first integer that is zero.
+
+## 2. Inputs
+- **Parameters**: Five integers (a, b, c, d, e).
+- **Data types**: All inputs are of type `int`.
+- **Valid ranges or constraints**: No explicit constraints on the values of the integers; they can be any valid integer.
+- **Assumptions about inputs**: It is assumed that the user will provide exactly five integers as input.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs to the console.
+- **Side effects**: The program prints a number (1 to 5) to the standard output based on the first zero found.
+- **Output format/schema**: The output is a single integer (1, 2, 3, 4, or 5) printed as a string.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment that allows standard input and output operations.
+- **Explicit logical constraints**: The user must provide exactly five integers; otherwise, behavior is undefined.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed a number corresponding to the first zero found among the inputs or nothing if no zeros are present.
+- **State changes**: The program does not maintain any state beyond the execution of the input/output operations.
+- **Return guarantees**: If at least one input is zero, a number (1-5) is guaranteed to be printed.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The program will always check all five integers in the order they are provided.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if the input does not consist of exactly five integers.
+- **Exceptions thrown?**: The code does not handle exceptions; it may lead to unexpected behavior or crashes if the input is invalid.
+- **Edge-case behavior**: If no integers are zero, the program will not output anything.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program transitions from a state of waiting for input to a state of outputting a result based on the input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) since it always checks a fixed number of inputs (five).
+- **Space complexity**: O(1) as it uses a constant amount of space for the integer variables.
+- **Performance assumptions**: The program is expected to perform efficiently for the input size defined (five integers).
+```

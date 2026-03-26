@@ -1,0 +1,66 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read dimensions
+    let first_line = lines.next().unwrap().unwrap();
+    let dimensions: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let (width, height) = (dimensions[0], dimensions[1]);
+
+    // Initialize the grid
+    let mut grid = vec![vec![0; width]; height];
+
+    // Read grid values
+    for i in 0..height {
+        let line = lines.next().unwrap().unwrap();
+        grid[i] = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+    }
+
+    // Call the function to compute the maximum sum
+    let max_sum = max_collectible_sum(&grid, width, height);
+
+    // Output the result
+    println!("{}", max_sum);
+}
+
+// Function to compute the maximum collectible sum for two entities
+fn max_collectible_sum(grid: &[Vec<i32>], width: usize, height: usize) -> i32 {
+    // Initialize the dp array
+    let mut dp = vec![vec![0; width]; height];
+
+    // Fill the dp array based on the grid values
+    for i in 0..height {
+        for j in 0..width {
+            // Start with the current grid value
+            dp[i][j] = grid[i][j];
+
+            // If moving from the top
+            if i > 0 {
+                dp[i][j] = dp[i][j].max(dp[i][j] + dp[i - 1][j]);
+            }
+
+            // If moving from the left
+            if j > 0 {
+                dp[i][j] = dp[i][j].max(dp[i][j] + dp[i][j - 1]);
+            }
+
+            // Ensure we only add the value from the previous cell once
+            if i > 0 && j > 0 {
+                dp[i][j] -= grid[i - 1][j - 1]; // Avoid double counting
+            }
+        }
+    }
+
+    // The maximum sum is found at the bottom-right corner
+    dp[height - 1][width - 1]
+}
+```

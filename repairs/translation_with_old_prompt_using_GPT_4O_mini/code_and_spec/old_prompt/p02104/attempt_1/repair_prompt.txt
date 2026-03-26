@@ -1,0 +1,133 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification for AOJ 3006: Chairs
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a list of integers representing chair preferences and determines the final seating arrangement based on these preferences.
+- **What problem it solves**: It addresses the problem of assigning seats to individuals based on their preferences while ensuring that each individual gets a unique seat.
+- **Core behavior**: The program reads a list of chair preferences, organizes them, and outputs the final seating arrangement such that each chair is assigned to the last individual who prefers it.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of individuals (or chairs).
+  - `p[i]`: An array where each element represents the chair preference of the i-th individual.
+- **Data types**: 
+  - `n`: Integer.
+  - `p[]`: Array of integers.
+- **Valid ranges or constraints**: 
+  - `1 <= n <= 100000` (based on the defined `MAX`).
+  - Chair preferences `p[i]` must be valid indices within the range of 1 to n.
+- **Assumptions about inputs**: 
+  - Input values are provided in a valid format and within the specified range.
+
+## 3. Outputs
+- **Return values**: The program outputs the final seating arrangement for each individual.
+- **Side effects**: Outputs are printed to the standard output.
+- **Output format/schema**: Each line corresponds to the assigned chair for each individual, indexed from 1 to n.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the expected format.
+  - The number of individuals `n` must be greater than 0.
+- **Explicit logical constraints**: 
+  - All chair preferences must be valid integers within the range of 1 to n.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - Each individual has been assigned a chair based on their preferences.
+- **State changes**: The program modifies internal arrays to store chair preferences and assignments.
+- **Return guarantees**: The output will contain exactly `n` lines, each representing the assigned chair for individuals 1 through n.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `p[]` remains populated with valid chair preferences throughout execution.
+  - The `hi[]` array accurately reflects the count of preferences for each chair at all times.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: No explicit exception handling is implemented; invalid memory access may occur if inputs are out of bounds.
+- **Edge-case behavior**: If all individuals prefer the same chair, the last individual will be assigned that chair, while others will not be assigned.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program maintains states for chair preferences and assignments throughout its execution.
+- **State changes caused by execution**: 
+  - The `hi[]` array is modified to track the number of preferences for each chair.
+  - The `ans[]` array is populated with the final chair assignments.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), as the program processes each individual and their preferences in linear time.
+- **Space complexity**: O(n), due to the storage of preferences and assignments in arrays.
+- **Performance assumptions**: The program assumes that memory allocation for arrays will succeed and that input reading is efficient.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 3006: Chairs
+// 2017.10.4 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX		100003
+int p[MAX];
+int sp[MAX], top;
+int *q[MAX], hi[MAX];
+int ans[MAX];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int n, a, i, j;
+	
+	n = in();
+	for (i = 1; i <= n; i++) {
+		p[i] = a = in();
+		hi[a]++;
+	}
+	for (i = 1; i <= n; i++) q[i] = malloc(hi[i]*sizeof(int));
+	memset(hi, 0, (n+1)<<2);
+	for (i = 1; i <= n; i++) {
+		a = p[i];
+		q[a][hi[a]++] = i;
+	}
+
+	top = 0;
+	for (j = 0; j < 2; j++) for (i = 1; i <= n; i++) {
+		while (hi[i]) sp[top++] = q[i][--hi[i]];
+		if (!ans[i] && top) ans[i] = sp[--top];
+    }
+   
+	for (i = 1; i <= n; i++) printf("%d\n", ans[i]);
+	return 0;
+}
+=== C CODE END ===

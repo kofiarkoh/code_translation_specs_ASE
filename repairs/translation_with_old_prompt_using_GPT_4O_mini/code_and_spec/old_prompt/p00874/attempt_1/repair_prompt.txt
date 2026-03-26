@@ -1,0 +1,95 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates a weighted sum based on two sets of integer inputs, representing quantities of items, and outputs the result for each set of inputs until a termination condition is met.
+- **What problem it solves**: It determines the maximum contribution of items from two different groups, allowing for a comparison of their quantities and calculating a total score based on their values.
+- **Core behavior**: The program reads pairs of integers representing the number of items in two groups, counts the occurrences of each item type, and computes a weighted sum based on the maximum counts of each item type from both groups.
+
+## 2. Inputs
+- **Parameters**: 
+  - `w`: Number of items in the first group.
+  - `d`: Number of items in the second group.
+  - Item types for both groups (integers).
+- **Data types**: 
+  - `int` for `w`, `d`, and item types.
+- **Valid ranges or constraints**: 
+  - `w` and `d` must be non-negative integers.
+  - Item types must be integers in the range [1, 20].
+- **Assumptions about inputs**: 
+  - Input is provided in a valid format as specified, and the first integer `w` is used to determine when to stop processing (when `w` is zero).
+
+## 3. Outputs
+- **Return values**: The program outputs an integer representing the calculated weighted sum.
+- **Side effects**: Outputs the result to the standard output (console).
+- **Output format/schema**: The output is a single integer followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid integer inputs as specified.
+  - The first input must be a non-negative integer indicating the number of items in the first group.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the calculated weighted sum for the given inputs.
+- **State changes**: No persistent state changes occur; the program operates statelessly for each input set.
+- **Return guarantees**: The output will always be an integer representing the computed result.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `a` and `b` will always have a size of 21, initialized to zero.
+  - The maximum item type considered is always between 1 and 20.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; the program relies on the input format being correct.
+- **Edge-case behavior**: If `w` is zero initially, the program will terminate without processing any further input.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and producing output.
+- **State changes caused by execution**: The internal arrays `a` and `b` are populated based on input, but these changes are transient and do not persist beyond the execution of the program.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(w + d + 20), where `w` is the number of items in the first group and `d` is the number of items in the second group.
+- **Space complexity**: O(1) for the fixed-size arrays `a` and `b`.
+- **Performance assumptions**: The program is expected to perform efficiently for reasonable values of `w` and `d`, constrained by the maximum item type of 20.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define max(X, Y) ((X)>(Y)?(X):(Y))
+int main(void)
+{
+    int w, d;
+    while (scanf("%d%d", &w, &d), w) {
+        int i, a[21]={0}, b[21]={0}, res;
+        for(i=0;i<w;++i) { int t; scanf("%d", &t); a[t]++; }
+        for(i=0;i<d;++i) { int t; scanf("%d", &t); b[t]++; }
+        res=0;
+        for(i=1;i<=20;++i) res+=i*max(a[i], b[i]);
+        printf("%d\n", res);
+    }
+    return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,64 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02951/p02951_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02951/p02951_sample1_output.txt
+Input:
+15 5 7
+Expected:
+0
+Actual:
+-3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io;
+
+fn main() {
+    // Read three integers from user input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut nums = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect::<Vec<i32>>();
+
+    // Ensure we have exactly three integers
+    if nums.len() != 3 {
+        eprintln!("Expected three integers.");
+        return;
+    }
+
+    let (a, b, mut c) = (nums[0], nums[1], nums[2]);
+
+    // Calculate the difference
+    let diff = a - b;
+
+    // If the difference is positive, decrement c accordingly
+    if diff > 0 {
+        c = c.saturating_sub(diff);
+    }
+
+    // Output the final value of c
+    println!("{}", c);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

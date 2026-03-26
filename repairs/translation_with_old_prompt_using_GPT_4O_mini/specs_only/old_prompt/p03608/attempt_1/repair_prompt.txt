@@ -1,0 +1,90 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum distance required to visit a specified set of nodes (represented as cities) in a graph, starting from an arbitrary node and returning to it.
+- **What problem it solves**: It addresses the Traveling Salesman Problem (TSP) for a subset of nodes in a weighted undirected graph, where the weights represent distances between nodes.
+- **Core behavior**: The program reads the number of nodes, edges, and a subset of nodes to visit, constructs a distance matrix, computes the shortest paths between all pairs of nodes, and then uses a depth-first search (DFS) to find the minimum distance to visit all specified nodes.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Total number of nodes in the graph.
+  - `M`: Total number of edges in the graph.
+  - `R`: Number of nodes to visit.
+  - `r[]`: Array of nodes to visit.
+- **Data types**:
+  - `int` for all parameters and array indices.
+  - `bool` for tracking visited nodes.
+- **Valid ranges or constraints**:
+  - `1 <= N <= 200`
+  - `1 <= M <= N*(N-1)/2` (maximum edges in a complete graph)
+  - `1 <= R <= 8` (limited to a small subset for TSP)
+- **Assumptions about inputs**: 
+  - Input values are provided in a valid format as specified.
+  - Node indices in `r[]` are within the range of `1` to `N`.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum distance to visit all specified nodes.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: A single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format.
+  - The graph must have at least one edge if `M > 0`.
+- **Explicit logical constraints**: 
+  - The number of nodes `N` must be greater than or equal to the maximum index in `r[]`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The variable `res` contains the minimum distance to visit all specified nodes.
+- **State changes**: The distance matrix `d[][]` is populated with the shortest paths between all nodes.
+- **Return guarantees**: The output will be the minimum distance or a large constant if no valid path exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The distance matrix `d[][]` is symmetric and contains valid distances or a large constant for non-direct paths.
+- **Class-level invariants**: Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `R` is `0`, the output will be `0` since no nodes need to be visited.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state of visited nodes and the current distance during the DFS traversal.
+- **State changes caused by execution**: The `used[]` array tracks which nodes have been visited, and `res` is updated with the minimum distance found.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall complexity is O(N^3) for the Floyd-Warshall algorithm and O(R!) for the DFS traversal, where R is the number of nodes to visit.
+- **Space complexity**: O(N^2) for the distance matrix and O(R) for the visited nodes array.
+- **Performance assumptions**: The algorithm is efficient for the given constraints, particularly with R limited to 8, making the TSP feasible within the provided limits.
+```

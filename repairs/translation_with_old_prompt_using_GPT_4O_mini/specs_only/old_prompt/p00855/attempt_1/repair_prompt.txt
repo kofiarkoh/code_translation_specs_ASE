@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the difference between the largest prime number less than or equal to a given input and the smallest prime number greater than or equal to that input.
+- **What problem it solves**: It identifies the nearest prime numbers surrounding a given integer and computes their difference.
+- **Core behavior**: The program reads integers from input, finds the nearest primes, and outputs the difference between them.
+
+## 2. Inputs
+- **Parameters**: 
+  - `l`: An integer input representing the starting point for finding primes.
+  - `s`: Not used in the code.
+  - `u`: An integer that will be adjusted to find the next prime.
+- **Data types**: 
+  - All inputs are of type `int`.
+- **Valid ranges or constraints**: 
+  - `l` must be a non-negative integer (assumed based on typical prime definitions).
+- **Assumptions about inputs**: 
+  - The input is provided in a format that can be read by `scanf`, and the program expects valid integer inputs.
+
+## 3. Outputs
+- **Return values**: The program does not return a value but prints output to the console.
+- **Side effects**: Outputs the difference between the nearest primes to standard output.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid integer inputs via standard input.
+- **Explicit logical constraints**: 
+  - The input integers must be non-negative.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output the difference between the nearest prime numbers surrounding the input integer.
+- **State changes**: 
+  - The values of `l` and `u` are modified during execution to find the nearest primes.
+- **Return guarantees**: 
+  - The output will always be an integer representing the difference between two primes.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `l` and `u` are always integers.
+  - The function `p(n)` will always return a non-negative integer representing the count of prime factors of `n`.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The behavior on invalid input is not explicitly defined; the program may enter an infinite loop or produce undefined behavior.
+- **Exceptions thrown?**: 
+  - No exceptions are thrown; the program relies on standard input handling.
+- **Edge-case behavior**: 
+  - If `l` is less than 2, the program may not find any primes and could lead to unexpected output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program operates in a state where `l` and `u` are integers, and the function `p(n)` is called to determine prime counts.
+- **State changes caused by execution**: 
+  - The values of `l` and `u` are decremented and incremented, respectively, as the program searches for primes.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity is not explicitly defined but is influenced by the efficiency of the prime-checking function `p(n)`, which runs in O(√n) for each call.
+- **Space complexity**: 
+  - The space complexity is O(1) as the program uses a constant amount of space for variables.
+- **Performance assumptions**: 
+  - The program assumes that the input size is manageable within typical integer limits for performance.
+```

@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads multiple matrices of integers, computes the sum of each column across the matrices, and outputs the indices of the columns sorted by their sums in descending order.
+- **What problem it solves**: It provides a mechanism to analyze and rank columns of integer matrices based on their cumulative values, allowing for easy identification of the most significant columns.
+- **Core behavior**: The program continuously accepts pairs of integers representing the dimensions of matrices, reads the matrix data, computes column sums, and outputs the indices of the columns sorted by these sums until a termination condition (input of `0 0`) is met.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of rows in the matrix.
+  - `m`: Number of columns in the matrix.
+- **Data types**: 
+  - `n` and `m`: Integer values.
+  - `q`: 2D array of integers (matrix).
+- **Valid ranges or constraints**: 
+  - `n` and `m` must be positive integers (greater than 0).
+- **Assumptions about inputs**: The input will always be well-formed integers, and the termination condition will be provided as `0 0`.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the standard output.
+- **Side effects**: Outputs the indices of the columns sorted by their sums to the console.
+- **Output format/schema**: The output consists of space-separated indices (1-based) of the columns, printed on a single line for each matrix input.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The program must be executed in an environment where standard input is available, and the input must start with valid dimensions for at least one matrix.
+- **Explicit logical constraints**: The first input must not be `0 0` to ensure at least one matrix is processed.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will have printed the sorted column indices for each matrix input until the termination condition is met.
+- **State changes**: The program will have consumed input data and produced output data.
+- **Return guarantees**: No return value; output is guaranteed for valid input until termination.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The matrix dimensions (`n` and `m`) must remain positive integers during processing. The column sums are correctly computed and stored throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it assumes valid integers will be provided.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `n` or `m` is zero or negative, the behavior is undefined as the program does not check for these conditions.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a state where it is either waiting for input or processing input data.
+- **State changes caused by execution**: The state transitions from waiting for input to processing input and then to outputting results.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n * m) for reading the matrix and O(m^2) for determining the sorted order of column indices, leading to an overall complexity of O(n * m + m^2).
+- **Space complexity**: The space complexity is O(n * m) for storing the matrix and O(m) for storing column sums and tracking maxed columns.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical stack and heap sizes for C programs.
+```

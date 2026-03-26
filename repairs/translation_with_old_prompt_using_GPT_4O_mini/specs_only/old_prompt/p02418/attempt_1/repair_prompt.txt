@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads two strings from user input, concatenates the first string with itself, and checks if the second string is a substring of the concatenated result.
+- **What problem it solves**: It determines the presence of a specific substring within a repeated version of another string.
+- **Core behavior**: The program reads two strings, concatenates the first string with itself, and checks for the existence of the second string within this concatenated string, outputting "Yes" or "No" based on the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `str1`: First input string.
+  - `str2`: Second input string.
+- **Data types**: 
+  - `str1` and `str2` are character arrays (strings).
+- **Valid ranges or constraints**: 
+  - `str1` can be up to 100 characters long.
+  - `str2` can be up to 100 characters long.
+- **Assumptions about inputs**: 
+  - Input strings are null-terminated and do not exceed their respective size limits.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs directly to the console.
+- **Side effects**: Outputs "Yes" or "No" to the standard output based on the substring check.
+- **Output format/schema**: 
+  - Outputs "Yes" if `str2` is found in the concatenated `str1`, otherwise outputs "No".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+  - The input strings must be provided in the correct format.
+- **Explicit logical constraints**: 
+  - The input strings must not exceed their defined maximum lengths.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have outputted either "Yes" or "No" based on the substring check.
+- **State changes**: 
+  - No persistent state changes occur; the program operates statelessly.
+- **Return guarantees**: 
+  - The output will always be either "Yes" or "No".
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The lengths of `str1` and `str2` must always be within the defined limits during execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may exhibit undefined behavior if inputs exceed expected lengths.
+- **Exceptions thrown?**: No exceptions are explicitly handled; the program may crash or behave unexpectedly with invalid input.
+- **Edge-case behavior**: If either string is empty, the program will output "No" unless `str2` is also empty, in which case it will output "Yes".
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the program does not maintain state.
+- **State changes caused by execution**: The program does not maintain any state across executions.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n) for string concatenation and substring search, where n is the length of `str1`.
+- **Space complexity**: The space complexity is O(n) due to the storage of the concatenated string.
+- **Performance assumptions**: Performance may degrade with maximum input sizes due to increased time for concatenation and substring search.
+```

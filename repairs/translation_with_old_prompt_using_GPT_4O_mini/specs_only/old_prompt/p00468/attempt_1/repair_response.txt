@@ -1,0 +1,60 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    
+    // Adjacency matrix for the graph representation
+    let mut student = [[0; 501]; 501];
+    
+    loop {
+        let mut line = String::new();
+        input.read_line(&mut line).unwrap();
+        let mut iter = line.split_whitespace();
+        
+        // Read n and m
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        let m: usize = iter.next().unwrap().parse().unwrap();
+        
+        // Termination condition
+        if n == 0 && m == 0 {
+            break;
+        }
+        
+        // Read pairs of connections
+        for _ in 0..m {
+            let mut line = String::new();
+            input.read_line(&mut line).unwrap();
+            let mut iter = line.split_whitespace();
+            let p1: usize = iter.next().unwrap().parse().unwrap();
+            let p2: usize = iter.next().unwrap().parse().unwrap();
+            
+            // Update the adjacency matrix
+            student[p1][p2] = 1;
+            student[p2][p1] = 1;
+        }
+        
+        // To count the number of students connected to student 1
+        let mut visited = [false; 501];
+        let count = dfs(1, n, &student, &mut visited);
+        
+        // Output the count of connected students
+        println!("{}", count);
+    }
+}
+
+// Depth-first search to count reachable nodes from student 1
+fn dfs(node: usize, n: usize, student: &[[i32; 501]; 501], visited: &mut [bool; 501]) -> usize {
+    visited[node] = true;
+    let mut count = 1; // Count the current node
+    
+    for neighbor in 1..=n {
+        if student[node][neighbor] == 1 && !visited[neighbor] {
+            count += dfs(neighbor, n, student, visited);
+        }
+    }
+    
+    count
+}
+```

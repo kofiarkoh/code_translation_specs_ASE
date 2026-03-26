@@ -1,0 +1,75 @@
+use std::io::{self, BufRead};
+
+fn find_not_zero(diff: &[u8], start: usize) -> Option<usize> {
+    for i in start..diff.len() {
+        if diff[i] != 0 {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn is_zero(diff: &[u8]) -> bool {
+    for &d in diff {
+        if d != 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn rotate_count(diff: &mut [u8], acc: usize, min_: &mut usize) {
+    if is_zero(diff) {
+        *min_ = (*min_).min(acc);
+        return;
+    }
+
+    if let Some(pos) = find_not_zero(diff, 0) {
+        let offs = diff[pos];
+        let mut diff2 = diff.to_vec();
+
+        for i in pos..diff.len() {
+            diff2[i] = (diff2[i] + 10 - offs) % 10;
+            rotate_count(&mut diff2, acc + 1, min_);
+        }
+    }
+}
+
+fn calc_diff(init: &[u8], unlock: &[u8], diff: &mut [u8]) {
+    for i in 0..init.len() {
+        let d = (unlock[i] as i32 - init[i] as i32 + 10) % 10;
+        diff[i] = d as u8;
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut input = String::new();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: usize = line.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut init = String::new();
+        let mut unlock = String::new();
+        let mut input = String::new();
+        reader.read_line(&mut input).unwrap();
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        init.push_str(parts[0]);
+        unlock.push_str(parts[1]);
+
+        if init == unlock {
+            println!("0");
+        } else {
+            let mut min_ = usize::MAX;
+            let mut diff = vec![0; 10];
+            calc_diff(&init.as_bytes(), &unlock.as_bytes(), &mut diff);
+            rotate_count(&mut diff, 0, &mut min_);
+            println!("{}", min_);
+        }
+    }
+}

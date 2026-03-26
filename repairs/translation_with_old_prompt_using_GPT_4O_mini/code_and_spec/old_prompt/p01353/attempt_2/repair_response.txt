@@ -1,0 +1,75 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct T {
+    a: i64,
+    d: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    if n == 0 {
+        println!("-1");
+        return;
+    }
+
+    let mut h = vec![0; n + 1];
+    let mut a = vec![0; n + 1];
+    let mut d = vec![0; n + 1];
+    let mut s = vec![0; n + 1];
+    let mut tbl = Vec::new();
+
+    for i in 0..=n {
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        h[i] = values[0];
+        a[i] = values[1];
+        d[i] = values[2];
+        s[i] = values[3];
+    }
+
+    let mut sz = 0;
+    let mut turn = 0;
+    let mut ans = 0;
+
+    for i in 1..=n {
+        let k = a[i] - d[0];
+        if k <= 0 {
+            continue;
+        }
+        if a[0] <= d[i] {
+            println!("-1");
+            return;
+        }
+
+        turn += k;
+        if s[i] > s[0] {
+            ans += k;
+        }
+        tbl.push(T {
+            d: k,
+            a: (h[i] - d[i] + a[0] - 1) / (a[0] - d[i]),
+        });
+        sz += 1;
+    }
+
+    tbl.sort_by(|x, y| (x.a * y.d as i64).cmp(&(y.a * x.d as i64)));
+
+    for i in 0..sz {
+        ans += turn * tbl[i].a - tbl[i].d as i64;
+        if h[0] <= ans {
+            println!("-1");
+            return;
+        }
+        turn -= tbl[i].d as i64;
+    }
+
+    println!("{}", ans);
+}
+```

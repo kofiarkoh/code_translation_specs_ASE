@@ -1,0 +1,48 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: i32 = iter.next().unwrap().parse().unwrap();
+        let p: i32 = iter.next().unwrap().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut i = 0;
+        let mut w = p;
+        let mut c = vec![0; 50]; // Initialize the counter array
+
+        loop {
+            if w > 0 {
+                w -= 1;
+                c[i as usize % n as usize] += 1;
+
+                if w == 0 {
+                    let mut found = false;
+                    for j in 0..n {
+                        if j != i % n {
+                            if c[j as usize] > 0 {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if !found {
+                        println!("{}", i % n);
+                        break;
+                    }
+                }
+            } else {
+                w += c[i as usize % n as usize];
+                c[i as usize % n as usize] = 0;
+            }
+            i += 1;
+        }
+    }
+}

@@ -1,0 +1,62 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    let mut buffer = String::new();
+
+    while input.read_line(&mut buffer).unwrap() > 0 {
+        let mut parts = buffer.split_whitespace();
+        let n: usize = parts.next().unwrap().parse().unwrap();
+        let m: usize = parts.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut e = vec![String::new(); n];
+        let mut len = vec![0; n];
+        let mut t = String::new();
+        let mut flag = vec![vec![false; 1 << n]; 5001];
+
+        for i in 0..n {
+            buffer.clear();
+            input.read_line(&mut buffer).unwrap();
+            e[i] = buffer.trim().to_string();
+            len[i] = e[i].len();
+        }
+
+        for _ in 0..m {
+            buffer.clear();
+            input.read_line(&mut buffer).unwrap();
+            let ln = buffer.trim_end().len();
+            t.push_str(&buffer[..ln]);
+        }
+
+        let l_s = t.len();
+        let loop_count = 1 << n;
+
+        for i in 0..=l_s {
+            for j in 0..loop_count {
+                if j != 0 && !flag[i][j] {
+                    continue;
+                }
+                for k in 0..n {
+                    let mask = 1 << k;
+                    if j & mask != 0 {
+                        continue;
+                    }
+                    let l = len[k];
+                    if i + l <= l_s && &t[i..i + l] == e[k] {
+                        let pat = j | mask;
+                        flag[i + l][pat] = true;
+                    }
+                }
+            }
+        }
+
+        let cnt = (0..=l_s).filter(|&i| flag[i][loop_count - 1]).count();
+        println!("{}", cnt);
+        buffer.clear();
+    }
+}

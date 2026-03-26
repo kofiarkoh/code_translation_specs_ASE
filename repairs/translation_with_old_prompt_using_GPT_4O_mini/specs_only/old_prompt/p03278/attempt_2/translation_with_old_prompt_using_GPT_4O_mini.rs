@@ -1,0 +1,57 @@
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let n: usize = read_input(); // Assume this function reads the number of nodes
+    let edges: Vec<(usize, usize)> = read_edges(n); // Assume this function reads edges
+
+    let mut graph = vec![Vec::new(); n];
+    for (u, v) in edges {
+        graph[u].push(v);
+        graph[v].push(u);
+    }
+
+    let mut dp = vec![vec![0; n + 1]; n];
+    let mut sz = vec![0; n];
+
+    // DFS function to compute dp and sz
+    fn dfs(node: usize, parent: usize, graph: &Vec<Vec<usize>>, dp: &mut Vec<Vec<i64>>, sz: &mut Vec<usize>, n: usize) {
+        sz[node] = 1;
+        dp[node][0] = 1; // Base case: one way to pair zero nodes
+
+        for &neighbor in &graph[node] {
+            if neighbor == parent {
+                continue;
+            }
+            dfs(neighbor, node, graph, dp, sz, n);
+
+            // Update dp for current node based on the subtree sizes
+            for i in (0..sz[node] + 1).rev() {
+                for j in 0..=sz[neighbor] {
+                    if i + j + 1 <= n {
+                        dp[node][i + j + 1] = (dp[node][i + j + 1] + dp[node][i] * dp[neighbor][j] % MOD) % MOD;
+                    }
+                }
+            }
+            sz[node] += sz[neighbor];
+        }
+    }
+
+    // Start DFS from node 0 (assuming 0-indexed)
+    dfs(0, usize::MAX, &graph, &mut dp, &mut sz, n);
+
+    // The answer is the number of ways to pair all nodes
+    let ans = dp[0][n] % MOD;
+    println!("{}", ans);
+}
+
+// Placeholder for reading input
+fn read_input() -> usize {
+    // Implement input reading logic here
+    5 // Example return value
+}
+
+// Placeholder for reading edges
+fn read_edges(_n: usize) -> Vec<(usize, usize)> {
+    // Implement edge reading logic here
+    vec![(0, 1), (1, 2), (1, 3), (3, 4)] // Example return value
+}

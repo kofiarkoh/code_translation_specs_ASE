@@ -1,0 +1,100 @@
+struct Node {
+    value: i32,
+    next: Option<Box<Node>>,
+}
+
+struct LinkedList {
+    head: Option<Box<Node>>,
+    cursor: Option<*mut Node>, // Using raw pointer for cursor to allow for direct manipulation
+}
+
+impl LinkedList {
+    fn new() -> Self {
+        LinkedList {
+            head: None,
+            cursor: std::ptr::null_mut(),
+        }
+    }
+
+    fn insert(&mut self, value: i32) {
+        let new_node = Box::new(Node {
+            value,
+            next: self.head.take(),
+        });
+        self.head = Some(new_node);
+        // Update cursor to point to the new head
+        self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() as *mut _).unwrap_or(std::ptr::null_mut());
+    }
+
+    fn move_cursor(&mut self, direction: i32) {
+        if direction == 1 { // Move forward
+            if let Some(current) = unsafe { self.cursor.as_mut() } {
+                if let Some(next) = current.next.as_mut() {
+                    self.cursor = next.as_mut() as *mut _;
+                } else {
+                    eprintln!("Error: Cannot move forward, cursor is at the end.");
+                    std::process::exit(1);
+                }
+            }
+        } else if direction == -1 { // Move backward
+            eprintln!("Error: Cannot move backward, cursor is at the front.");
+            std::process::exit(1);
+        }
+    }
+
+    fn erase(&mut self) {
+        if let Some(current) = unsafe { self.cursor.as_mut() } {
+            if let Some(ref mut head) = self.head {
+                if head.as_ref() as *const _ == current {
+                    self.head = head.next.take();
+                    self.cursor = self.head.as_deref_mut().map(|node| node.as_mut() as *mut _).unwrap_or(std::ptr::null_mut());
+                } else {
+                    let mut prev = head.as_mut();
+                    while let Some(ref mut next) = prev.next {
+                        if next.as_ref() as *const _ == current {
+                            prev.next = next.next.take();
+                            self.cursor = prev.next.as_deref_mut().map(|node| node.as_mut() as *mut _).unwrap_or(std::ptr::null_mut());
+                            return;
+                        }
+                        prev = next.as_mut();
+                    }
+                }
+            }
+        }
+    }
+
+    fn print_list(&self) {
+        let mut current = self.head.as_deref();
+        while let Some(node) = current {
+            println!("{}", node.value);
+            current = node.next.as_deref();
+        }
+    }
+}
+
+fn main() {
+    let mut list = LinkedList::new();
+    let commands = vec!["0 5", "1 1", "2"]; // Example commands
+
+    for command in commands {
+        let parts: Vec<&str> = command.split_whitespace().collect();
+        match parts[0] {
+            "0" => {
+                if let Ok(value) = parts[1].parse::<i32>() {
+                    list.insert(value);
+                }
+            }
+            "1" => {
+                if let Ok(direction) = parts[1].parse::<i32>() {
+                    list.move_cursor(direction);
+                }
+            }
+            "2" => {
+                list.erase();
+            }
+            _ => {}
+        }
+    }
+
+    list.print_list();
+}

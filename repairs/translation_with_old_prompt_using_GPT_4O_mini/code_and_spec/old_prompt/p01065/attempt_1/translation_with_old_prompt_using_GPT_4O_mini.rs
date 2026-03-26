@@ -1,0 +1,55 @@
+use std::io::{self, BufRead};
+
+const BASE: usize = 300;
+const DBASE: usize = 600;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines().filter_map(Result::ok);
+    
+    let n: usize = input.next().unwrap().parse().unwrap();
+    let x: usize = input.next().unwrap().parse().unwrap();
+    let y: usize = input.next().unwrap().parse().unwrap();
+    
+    // Initialize the dp array with -1
+    let mut dp = vec![vec![vec![-1; DBASE + 2]; BASE + 2]; n + 1];
+    dp[0][0][BASE] = 0;
+
+    for i in 0..n {
+        let a: usize = input.next().unwrap().parse().unwrap();
+        let b: usize = input.next().unwrap().parse().unwrap();
+        let c: usize = input.next().unwrap().parse().unwrap();
+        let d: usize = input.next().unwrap().parse().unwrap();
+
+        for j in 0..=BASE {
+            for k in 0..=DBASE {
+                if dp[i][j][k] < 0 {
+                    continue;
+                }
+                // Carry forward the previous value
+                if dp[i + 1][j][k] < dp[i][j][k] {
+                    dp[i + 1][j][k] = dp[i][j][k];
+                }
+                // Check if we can trade the item
+                if x >= j + a && dp[i + 1][j + a][k.saturating_sub(b)] < dp[i][j][k] {
+                    dp[i + 1][j + a][k.saturating_sub(b)] = dp[i][j][k];
+                }
+                // Check if we can gain value from the item
+                if dp[i + 1][j][k + c] < dp[i][j][k] + d {
+                    dp[i + 1][j][k + c] = dp[i][j][k] + d;
+                }
+            }
+        }
+    }
+
+    let mut ans = 0;
+    for j in 0..=x {
+        for k in 0..=DBASE {
+            if ans < dp[n][j][k] && y + BASE >= k {
+                ans = dp[n][j][k];
+            }
+        }
+    }
+    
+    println!("{}", ans);
+}

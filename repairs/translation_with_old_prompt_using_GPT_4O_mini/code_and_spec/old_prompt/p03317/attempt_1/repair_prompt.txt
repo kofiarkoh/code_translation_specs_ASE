@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the minimum number of groups required to partition a list of integers based on a specified maximum group size.
+- **What problem it solves**: It addresses the problem of determining how many groups can be formed from a given number of integers, ensuring that no group exceeds a specified size.
+- **Core behavior**: The program reads two integers, `n` (the number of elements) and `k` (the maximum size of each group), followed by `n` integers. It computes and outputs the minimum number of groups needed.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Total number of integers.
+  - `k`: Maximum size of each group.
+- **Data types**: 
+  - `n` and `k`: `long long int`
+  - `a[]`: Array of `long long int`
+- **Valid ranges or constraints**: 
+  - `n` > 0
+  - `k` > 1
+- **Assumptions about inputs**: Inputs are provided in the correct format and within valid ranges.
+
+## 3. Outputs
+- **Return values**: Outputs a single `long long int` representing the minimum number of groups.
+- **Side effects**: None.
+- **Output format/schema**: A single line containing the computed number of groups.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid input values for `n` and `k`.
+  - The array `a[]` must be populated with `n` integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will be the minimum number of groups required to partition the integers.
+- **State changes**: No state changes occur as the program does not maintain any persistent state.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The size of the array `a[]` is always equal to `n`.
+  - The value of `k` is always greater than 1.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `k` is less than or equal to 1, the program may enter an infinite loop or produce incorrect results.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain object states.
+- **State changes caused by execution**: Not applicable; the program operates statelessly.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), as it processes each input integer once.
+- **Space complexity**: O(n), due to the storage of the input array.
+- **Performance assumptions**: The program assumes that the input size `n` is manageable within the limits of available memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+    long long int n,k,i,x,t;
+    scanf("%lld%lld",&n,&k);
+    long long int a[n];
+    for(i=0;i<n;i++){
+        scanf("%lld",&a[i]);
+    }
+    t=((n-k)/(k-1))+1;
+   if(k+((t-1)*(k-1))<n)t++;
+   printf("%lld\n",t);
+}
+=== C CODE END ===

@@ -1,0 +1,96 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code is designed to read an integer input and print a specific message based on the value of that integer.
+- **What problem it solves**: It provides a way to identify and announce the days leading up to Christmas based on a countdown from 25.
+- **Core behavior**: The program checks the input integer against specific values (25, 24, 23, 22) and prints corresponding messages for each.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: an integer input from the user.
+- **Data types**: 
+  - `n` is of type `int`.
+- **Valid ranges or constraints**: 
+  - No explicit constraints on the range of `n`, but only values 22 to 25 will produce output.
+- **Assumptions about inputs**: 
+  - The input is assumed to be a valid integer.
+
+## 3. Outputs
+- **Return values**: 
+  - The program does not return a value; it outputs strings to the console.
+- **Side effects**: 
+  - The program prints messages to the standard output based on the input value.
+- **Output format/schema**: 
+  - Outputs are plain text strings: "Christmas", "Christmas Eve", "Christmas Eve Eve", "Christmas Eve Eve Eve".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - The input must be an integer.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - If `n` is 22, 23, 24, or 25, the corresponding message is printed.
+- **State changes**: 
+  - The program's output state changes based on the input value.
+- **Return guarantees**: 
+  - The program will terminate after printing the appropriate message or nothing if `n` is outside the specified range.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The program will always read an integer input before proceeding to check conditions.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input is not a valid integer, the behavior is undefined; the program may not print anything or may wait for valid input.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly handled in the code.
+- **Edge-case behavior**: 
+  - Input values less than 22 or greater than 25 will result in no output.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - Not applicable as there are no objects; the program operates in a procedural manner.
+- **State changes caused by execution**: 
+  - The output state changes based on the value of `n`.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O(1) since the number of comparisons is constant.
+- **Space complexity**: 
+  - O(1) as it uses a fixed amount of space regardless of input.
+- **Performance assumptions**: 
+  - The program is expected to perform efficiently for valid integer inputs.
+```

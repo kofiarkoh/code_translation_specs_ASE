@@ -1,0 +1,143 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02542/p02542_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02542/p02542_sample1_output.txt
+Input:
+3 3
+o..
+...
+o.#
+Expected:
+4
+Actual:
+-7
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: i64,
+    flow: i64,
+    cost: i64,
+}
+
+#[derive(Debug)]
+struct Graph {
+    adj: Vec<Vec<usize>>, // adjacency list
+    edges: Vec<Edge>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            adj: vec![Vec::new(); n],
+            edges: Vec::new(),
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: i64, cost: i64) {
+        let edge_index = self.edges.len();
+        self.edges.push(Edge { to, capacity, flow: 0, cost });
+        self.adj[from].push(edge_index);
+        // Add reverse edge for residual graph
+        self.edges.push(Edge { to: from, capacity: 0, flow: 0, cost: -cost });
+        self.adj[to].push(edge_index + 1);
+    }
+}
+
+#[derive(Debug)]
+struct State {
+    cost: i64,
+    node: usize,
+    flow: i64,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost
+    }
+}
+
+impl Eq for State {}
+
+fn successive_shortest_path(graph: &mut Graph, source: usize, sink: usize, flow: i64) -> i64 {
+    let n = graph.adj.len();
+    let mut dist = vec![i64::MAX; n];
+    let mut prev = vec![None; n];
+    let mut heap = BinaryHeap::new();
+    
+    dist[source] = 0;
+    heap.push(State { cost: 0, node: source, flow });
+
+    while let Some(State { cost, node, flow }) = heap.pop() {
+        if node == sink {
+            return -cost; // Return negative of the minimum cost
+        }
+
+        for &edge_index in &graph.adj[node] {
+            let edge = &graph.edges[edge_index];
+            if edge.flow < edge.capacity {
+                let new_cost = cost + edge.cost;
+                if new_cost < dist[edge.to] {
+                    dist[edge.to] = new_cost;
+                    prev[edge.to] = Some(edge_index);
+                    heap.push(State { cost: new_cost, node: edge.to, flow });
+                }
+            }
+        }
+    }
+
+    i64::MAX // Indicate infeasibility if no path found
+}
+
+// Example usage
+fn main() {
+    let n = 5; // Number of nodes
+    let mut graph = Graph::new(n);
+    
+    // Add edges (example)
+    graph.add_edge(0, 1, 10, 5);
+    graph.add_edge(1, 2, 5, 2);
+    graph.add_edge(0, 2, 15, 10);
+    
+    let min_cost = successive_shortest_path(&mut graph, 0, 2, 10);
+    println!("{}", min_cost);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

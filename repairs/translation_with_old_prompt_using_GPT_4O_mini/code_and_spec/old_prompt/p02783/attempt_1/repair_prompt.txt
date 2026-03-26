@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the ceiling of the division of two integers.
+- **What problem it solves**: It provides a way to determine how many whole units can be formed from a given quantity when divided by a specified size, rounding up if there is a remainder.
+- **Core behavior**: The program reads two integers, performs division, and outputs the result rounded up to the nearest whole number.
+
+## 2. Inputs
+- **Parameters**: Two integers, `a` (numerator) and `b` (denominator).
+- **Data types**: Both parameters are of type `int`.
+- **Valid ranges or constraints**: 
+  - `b` must not be zero (to avoid division by zero).
+  - `a` can be any integer (positive, negative, or zero).
+- **Assumptions about inputs**: The user will provide valid integer inputs.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer, which is the ceiling of the division of `a` by `b`.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with two integer inputs.
+  - The second integer (`b`) must not be zero.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output is the ceiling of the division of `a` by `b`.
+- **State changes**: The program does not maintain any state beyond the execution of the current instance.
+- **Return guarantees**: The output will always be a non-negative integer if `a` is non-negative and `b` is positive.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The output will always be an integer.
+  - The program will not crash due to division by zero if preconditions are met.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined if `b` is zero; the program may crash or produce an error.
+- **Exceptions thrown?**: Not applicable; the program does not use exception handling.
+- **Edge-case behavior**: If `a` is zero and `b` is positive, the output will be `0`. If `a` is negative and `b` is positive, the output will be `0` or a negative integer depending on the division.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state across executions.
+- **State changes caused by execution**: The program transitions from an idle state to an active state during execution and then returns to idle after outputting the result.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the operations performed (input, division, output) are constant time.
+- **Space complexity**: O(1) - the program uses a fixed amount of space for variables.
+- **Performance assumptions**: The program assumes that input and output operations are performed in a reasonable time frame, typical for console applications.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main () {
+	int a, b, c;
+	scanf ("%d %d", &a, &b);
+	c = a/b;
+	if (a % b != 0) {
+		c++;
+	}
+	printf ("%d\n", c);
+}
+=== C CODE END ===

@@ -1,0 +1,152 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a union-find (disjoint-set) data structure to manage and query connected components among a set of elements, while also tracking the number of removals for each element.
+- **What problem it solves**: It efficiently handles union and find operations to determine connected components and their sizes, while accounting for the number of times elements are marked for removal.
+- **Core behavior**: The program reads a number of elements and pairs to unite, processes queries to check connectivity, and outputs the adjusted sizes of each component after accounting for removals.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of elements (1 to N_MAX).
+  - `m`: Number of union operations.
+  - `k`: Number of queries.
+  - Pairs of integers for union operations and queries.
+- **Data types**: 
+  - `int` for all parameters and array indices.
+- **Valid ranges or constraints**:
+  - `1 <= n <= N_MAX` (where N_MAX = 100,000).
+  - `1 <= m, k <= N_MAX`.
+  - Element indices for union and query operations must be within the range `[1, n]`.
+- **Assumptions about inputs**: Inputs are assumed to be valid integers as per the specified ranges.
+
+## 3. Outputs
+- **Return values**: The program does not return a value; it outputs results directly to standard output.
+- **Side effects**: Modifies the internal state of the union-find structure and prints the adjusted sizes of each component.
+- **Output format/schema**: Outputs a single line of integers representing the sizes of each component after accounting for removals, separated by spaces.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must be provided in the correct format.
+  - The number of elements `n` must be greater than 0.
+  - The union and query operations must reference valid indices within the range `[1, n]`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The sizes of each component are printed, adjusted for the number of removals.
+- **State changes**: The internal arrays representing the union-find structure and removal counts are modified.
+- **Return guarantees**: The program will always output `n` integers corresponding to the sizes of the components.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The union-find structure maintains valid parent-child relationships.
+  - The size of each component is correctly represented in the array after union operations.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `n` is 0 or negative, the program may not function correctly.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The union-find structure can be in a state where all elements are isolated or fully connected.
+- **State changes caused by execution**: 
+  - The union operations merge components, and the removal counts are incremented based on the operations performed.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - Union and find operations are nearly constant time, O(α(n)), where α is the inverse Ackermann function.
+  - The overall complexity is O(m + k) for processing union and query operations.
+- **Space complexity**: 
+  - O(n) for the arrays used to store the union-find structure and removal counts.
+- **Performance assumptions**: The implementation is expected to handle the upper limits of input sizes efficiently.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define N_MAX 100000
+#define L_MAX 20
+void fill(int *a, int l, int r, int x) {
+	for(int i = l; i <= r; ++i) {
+		a[i] = x;
+	}
+	return;
+}
+int find_root(int *a, int x) {
+	int s[L_MAX + 1];
+	int k = 0;
+	while(a[x] >= 1) {
+		s[++k] = x;
+		x = a[x];
+	}
+	while(k) {
+		a[s[k--]] = x;
+	}
+	return x;
+}
+void unite_set(int *a, int x, int y) {
+	x = find_root(a, x);
+	y = find_root(a, y);
+	if(a[x] < a[y]) {
+		a[x] += a[y];
+		a[y] = x;
+	} else {
+		a[y] += a[x];
+		a[x] = y;
+	}
+	return;
+}
+int set_size(int *a, int x) {
+	return -a[find_root(a, x)];
+}
+int main(int argc, char **argv) {
+	int n, m, k;
+	scanf("%i%i%i", &n, &m, &k);
+	int s[N_MAX + 1];
+	fill(s, 1, n, -1);
+	int rmv[N_MAX + 1];
+	fill(rmv, 1, n, 1);
+	while(m--) {
+		int a, b;
+		scanf("%i%i", &a, &b);
+		if(find_root(s, a) != find_root(s, b)) {
+			unite_set(s, a, b);
+		}
+		++rmv[a];
+		++rmv[b];
+	}
+	while(k--) {
+		int c, d;
+		scanf("%i%i", &c, &d);
+		if(find_root(s, c) == find_root(s, d)) {
+			++rmv[c];
+			++rmv[d];
+		}
+	}
+	for(int i = 1; i <= n; ++i) {
+		printf("%i%c", set_size(s, i) - rmv[i], i == n ? '\n' : ' ');
+	}
+	return 0;
+}
+=== C CODE END ===

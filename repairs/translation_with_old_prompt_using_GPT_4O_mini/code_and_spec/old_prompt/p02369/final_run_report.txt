@@ -1,0 +1,59 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02369/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:32:19
+   |
+32 |             back: std::ptr::null_mut(),
+   |                   ^^^^^^^^^^^^^^^^^^^^ expected `Option<*mut EdgeListNode>`, found `*mut _`
+   |
+   = note:     expected enum `Option<*mut EdgeListNode>`
+           found raw pointer `*mut _`
+help: try wrapping the expression in `Some`
+   |
+32 |             back: Some(std::ptr::null_mut()),
+   |                   +++++                    +
+
+error[E0277]: the trait bound `EdgeList: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02369/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:30:24
+     |
+  30 |            let src = vec![EdgeList {
+     |   ___________________-    ^
+     |  |________________________|
+  31 | ||             front: None,
+  32 | ||             back: std::ptr::null_mut(),
+  33 | ||             num_edge: 0,
+  34 | ||         }; num_vertex];
+     | ||_________^____________- required by a bound introduced by this call
+     | |__________|
+     |            unsatisfied trait bound
+     |
+help: the trait `Clone` is not implemented for `EdgeList`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02369/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:16:1
+     |
+  16 | struct EdgeList {
+     | ^^^^^^^^^^^^^^^
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+
+error[E0609]: no field `nxt` on type `*mut EdgeListNode`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p02369/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:52:29
+   |
+52 |                     (*back).nxt = Some(Box::from_raw(new_node_ptr));
+   |                             ^^^ unknown field
+   |
+help: `(*back)` is a raw pointer; try dereferencing it
+   |
+52 |                     (*(*back)).nxt = Some(Box::from_raw(new_node_ptr));
+   |                     ++       +
+
+error: aborting due to 3 previous errors
+
+Some errors have detailed explanations: E0277, E0308, E0609.
+For more information about an error, try `rustc --explain E0277`.

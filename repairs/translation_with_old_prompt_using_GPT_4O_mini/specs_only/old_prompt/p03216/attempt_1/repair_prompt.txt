@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes a string of characters and computes a specific cumulative value based on the occurrences of the characters 'D', 'M', and 'C' over multiple queries.
+- **What problem it solves**: It efficiently calculates the total contributions of 'M' and 'D' characters to the count of 'C' characters in a sliding window manner for given lengths specified by the queries.
+- **Core behavior**: For each query, it evaluates a substring of the input string and computes a cumulative sum based on the defined rules for the characters.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Length of the string.
+  - `s`: A string consisting of characters 'D', 'M', and 'C'.
+  - `q`: Number of queries.
+  - `k[]`: An array of integers representing the lengths of substrings to evaluate for each query.
+- **Data types**:
+  - `n`: `int`
+  - `s`: `char[]`
+  - `q`: `int`
+  - `k[]`: `int[]`
+- **Valid ranges or constraints**:
+  - `1 <= n <= 1000000`
+  - `1 <= q <= 102`
+  - `1 <= k[j] <= n` for each query `j`
+- **Assumptions about inputs**: The input string `s` is null-terminated and contains only the characters 'D', 'M', and 'C'.
+
+## 3. Outputs
+- **Return values**: The function does not return a value but prints the results directly to standard output.
+- **Side effects**: Outputs the computed cumulative values for each query to the console.
+- **Output format/schema**: Each output is a long long integer printed on a new line corresponding to each query.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The string length `n` must match the actual length of the input string `s`.
+- **Explicit logical constraints**: The values in `k[]` must not exceed `n`.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The program will output the cumulative sums for each query based on the specified logic.
+- **State changes**: The program does not maintain state beyond local variables; it processes input and outputs results.
+- **Return guarantees**: Each query will yield a valid long long integer output.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The counts of 'D', 'M', and 'C' are updated correctly based on the sliding window logic throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: If `k[j]` is greater than `n`, the program may access out-of-bounds memory, leading to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state where it processes input and outputs results.
+- **State changes caused by execution**: Local variables are updated based on the characters processed in the string.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n) for each query, leading to a total of O(n * q) in the worst case.
+- **Space complexity**: O(n) for the input string and O(q) for the query lengths.
+- **Performance assumptions**: The program is expected to handle the upper limits of input sizes efficiently within reasonable time constraints.
+```

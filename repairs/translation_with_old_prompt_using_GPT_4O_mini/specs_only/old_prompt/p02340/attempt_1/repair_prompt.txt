@@ -1,0 +1,97 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the number of ways to partition `n` indistinguishable balls into `k` distinguishable boxes.
+- **What problem it solves**: It addresses the combinatorial problem of distributing indistinguishable objects into distinguishable containers, which is a common problem in combinatorics.
+- **Core behavior**: The program reads two integers, `n` (number of balls) and `k` (number of boxes), initializes a dynamic programming table to compute the number of partitions, and outputs the result.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: Number of indistinguishable balls.
+  - `k`: Number of distinguishable boxes.
+- **Data types**: 
+  - Both `n` and `k` are integers (`int`).
+- **Valid ranges or constraints**: 
+  - `0 <= n <= 1000`
+  - `0 <= k <= 1000`
+- **Assumptions about inputs**: 
+  - Input is provided in a single line as two space-separated integers.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs a single integer representing the number of ways to partition `n` balls into `k` boxes.
+- **Side effects**: 
+  - The program prints the result to standard output.
+- **Output format/schema**: 
+  - The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment where standard input can be read.
+- **Explicit logical constraints**: 
+  - The input must consist of two integers within the specified ranges.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed the number of partitions of `n` balls into `k` boxes.
+- **State changes**: 
+  - The dynamic programming table `pdp` will be populated with computed values.
+- **Return guarantees**: 
+  - The program will return `0` upon successful execution.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The `pdp` array will always have `pdp[0][0]` initialized to `1`.
+  - For any valid `i` and `j`, `pdp[i][j]` will hold the correct number of partitions computed up to that point.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - If the input cannot be read or parsed correctly, the function `get_int2` will return `-1`, but this case is not handled in the main function.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly thrown; however, the program may exhibit undefined behavior if invalid input is provided.
+- **Edge-case behavior**: 
+  - If `n` or `k` is `0`, the output will be `1` (one way to partition zero balls).
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The program starts with an uninitialized `pdp` array and transitions to a fully populated state after the `init` function is called.
+- **State changes caused by execution**: 
+  - The state of the `pdp` array changes as it is populated with computed values during the execution of the `init` function.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - The time complexity of the `init` function is O(K * N), where K is the maximum number of boxes and N is the maximum number of balls.
+- **Space complexity**: 
+  - The space complexity is O(K * N) due to the storage of the `pdp` array.
+- **Performance assumptions**: 
+  - The program is expected to run efficiently within the constraints provided, given the maximum values for `n` and `k`.
+```

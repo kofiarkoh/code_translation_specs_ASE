@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the count of integers divisible by a given integer `d` within a specified range `[L, R]`.
+- **What problem it solves**: It provides a method to determine how many multiples of `d` exist between two bounds, `L` and `R`, inclusive.
+- **Core behavior**: The program reads three integers from input, computes the number of integers divisible by `d` in the range, and outputs this count.
+
+## 2. Inputs
+- **Parameters**: 
+  - `L`: Lower bound of the range.
+  - `R`: Upper bound of the range.
+  - `d`: The divisor.
+- **Data types**: All parameters are of type `int`.
+- **Valid ranges or constraints**: 
+  - `L` and `R` should be integers where `L <= R`.
+  - `d` should be a positive integer (greater than 0).
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the count of integers divisible by `d` in the range `[L, R]`.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline character.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must consist of three integers.
+  - `L` must be less than or equal to `R`.
+  - `d` must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The output will reflect the correct count of integers divisible by `d` in the range `[L, R]`.
+- **State changes**: The program does not maintain any state beyond the execution of the current run.
+- **Return guarantees**: The output will always be a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The values of `L`, `R`, and `d` must remain within their defined constraints throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; the program does not handle exceptions explicitly.
+- **Edge-case behavior**: If `d` is 0, the program will lead to a division by zero error, which is not handled.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable; the program does not maintain state across executions.
+- **State changes caused by execution**: The program does not change any persistent state.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) - the computation is performed in constant time.
+- **Space complexity**: O(1) - the program uses a fixed amount of space regardless of input size.
+- **Performance assumptions**: The program is expected to perform efficiently for typical integer inputs within the range of `int`.
+```

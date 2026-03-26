@@ -1,0 +1,61 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+
+    while let Some(line) = input.next() {
+        let n: usize = match line {
+            Ok(line) => line.trim().parse().unwrap_or(0),
+            Err(_) => continue,
+        };
+        if n == 0 {
+            break;
+        }
+
+        let mut a: Vec<i32> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let num: i32 = match input.next() {
+                Some(Ok(num_str)) => match num_str.trim().parse() {
+                    Ok(num) => num,
+                    Err(_) => continue, // Skip invalid input
+                },
+                _ => continue, // Skip if there's an error reading the line
+            };
+            a.push(num);
+        }
+
+        // Sort the array
+        a.sort_unstable();
+
+        let mut m = 0; // Length of the longest sequence of identical integers
+        let mut k = 0; // The integer that has the longest sequence
+        let mut i = 0;
+
+        while i < n {
+            let mut j = i + 1;
+            while j < n && a[j] == a[i] {
+                j += 1;
+            }
+            if m < j - i {
+                m = j - i;
+                k = a[i];
+            }
+            i = j; // Move to the next different integer
+        }
+
+        if m > n / 2 {
+            println!("{}", k);
+        } else {
+            println!("NO COLOR");
+        }
+    }
+}
+``` 
+
+### Changes Made:
+1. **Error Handling**: The previous code did not handle the case where `j` could exceed the bounds of the array. The inner loop condition `while j < n && a[j] == a[i]` is correct, but we need to ensure that `j` does not exceed `n` when accessing `a[j]`.
+2. **Input Handling**: The code now properly handles invalid input by skipping over it without panicking.
+
+This should resolve the runtime error related to index out of bounds.

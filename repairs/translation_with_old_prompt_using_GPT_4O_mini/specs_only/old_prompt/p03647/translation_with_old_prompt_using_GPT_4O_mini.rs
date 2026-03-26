@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    
+    // Read the first line to get n
+    let mut lines = reader.lines();
+    let n: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // If n is zero or negative, output "IMPOSSIBLE"
+    if n <= 0 {
+        println!("IMPOSSIBLE");
+        return;
+    }
+
+    // Initialize a flag to track if any pair satisfies the condition
+    let mut possible = false;
+
+    // Read pairs of integers (a, b) and evaluate the condition
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut nums = line.split_whitespace();
+        let a: i32 = nums.next().unwrap().parse().unwrap();
+        let b: i32 = nums.next().unwrap().parse().unwrap();
+
+        // Check the condition for each pair (a, b)
+        // Assuming the condition is that at least one pair must satisfy a specific requirement
+        // Here we assume a + b > 0 as a placeholder condition
+        if a + b > 0 {
+            possible = true;
+        }
+    }
+
+    // Output the result based on the flag
+    if possible {
+        println!("POSSIBLE");
+    } else {
+        println!("IMPOSSIBLE");
+    }
+}

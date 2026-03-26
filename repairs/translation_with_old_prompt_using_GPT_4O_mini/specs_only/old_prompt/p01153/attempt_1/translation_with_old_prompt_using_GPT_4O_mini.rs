@@ -1,0 +1,45 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let t: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..t {
+        // Read the number of elements in the array
+        let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+        let a: Vec<i32> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+
+        // Initialize the dp array
+        let mut dp = vec![vec![0; n]; n];
+
+        // Fill the dp array based on the problem's logic
+        for length in 1..=n {
+            for i in 0..n {
+                let j = (i + length - 1) % n; // Circular indexing
+                if length == 1 {
+                    dp[i][j] = 0; // No pairs to compare
+                } else {
+                    dp[i][j] = (a[i] - a[j]).abs() + dp[(i + 1) % n][j] + dp[i][(j + n - 1) % n];
+                }
+            }
+        }
+
+        // Find the maximum value from the dp array
+        let mut max_value = 0;
+        for i in 0..n {
+            for j in 0..n {
+                max_value = max_value.max(dp[i][j]);
+            }
+        }
+
+        // Print the result for the current test case
+        println!("{}", max_value);
+    }
+}

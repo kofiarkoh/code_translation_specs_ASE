@@ -1,0 +1,228 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates and outputs the expected value based on a given position and a probability rate.
+- **What problem it solves**: It provides a mechanism to compute expected values in a probabilistic model, which can be useful in simulations or statistical analyses.
+- **Core behavior**: The program reads an integer position and a probability rate from input, computes the expected value using a recursive function, and outputs the result.
+
+## 2. Inputs
+- **Parameters**:
+  - `piPos`: An integer representing the position for which the expected value is calculated.
+  - `sdRate`: A double representing the probability rate, which is divided by 100.0 to convert it to a fraction.
+- **Data types**:
+  - `piPos`: `int`
+  - `sdRate`: `double`
+- **Valid ranges or constraints**:
+  - `piPos`: Any integer value.
+  - `sdRate`: Must be between 0.0 and 1.0 after division by 100.0.
+- **Assumptions about inputs**: The input format is assumed to be correct, with the first line containing an integer and the second line containing a percentage.
+
+## 3. Outputs
+- **Return values**: The functions return `0` upon successful execution.
+- **Side effects**: Outputs the computed expected value to standard output or a test file.
+- **Output format/schema**: The expected value is formatted as a string with seven decimal places.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: The input file (or standard input) must be available and contain valid data in the expected format.
+- **Explicit logical constraints**: The program assumes that the input for `sdRate` is a valid percentage (0-100).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: The expected value is computed and printed.
+- **State changes**: The internal state of the program includes the updated values of `sdRate` and the computed expected value.
+- **Return guarantees**: The function returns `0` indicating successful execution.
+
+## 6. Invariants
+- **Conditions that must always remain true**: The `sdRate` must always be a valid probability (0.0 ≤ `sdRate` ≤ 1.0) after being set.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input explicitly; it may lead to undefined behavior or incorrect calculations.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on standard C error handling.
+- **Edge-case behavior**: If `piPos` is negative or if `sdRate` is out of bounds, the behavior of the expected value calculation is not defined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains a state where `szpFpI` points to the input source and `sdRate` holds the probability value.
+- **State changes caused by execution**: The state changes when `szpFpI` is set to a file or standard input, and when `sdRate` is updated based on input.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity of the expected value calculation is O(2^n) due to the recursive nature of `fGetVal`.
+- **Space complexity**: The space complexity is O(n) due to the recursion stack.
+- **Performance assumptions**: The program is expected to perform well for small values of `piPos`, but may become inefficient for larger values due to exponential growth in recursive calls.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// 内部変数
+static FILE *szpFpI;											// 入力
+static double sdRate;											// 近づく確率
+
+// 内部変数 - テスト用
+#ifdef D_TEST
+	static int siRes;
+	static FILE *szpFpA;
+	static int siTNo;
+#endif
+
+// １行出力
+int
+fOutLine(
+	char *pcpLine				// <I> １行
+)
+{
+	char lc1Buf[1024];
+
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, pcpLine)) {
+		siRes = -1;
+	}
+#else
+	printf("%s", pcpLine);
+#endif
+
+	return 0;
+}
+
+// 期待値 - 取得
+double
+fGetVal(
+	int piPos					// <I> 位置
+)
+{
+	// 偶数
+	if (piPos % 2 == 0) {
+		return (double)(piPos / 2) / sdRate;
+	}
+
+	// 奇数
+	double ldVal = 1.0;
+	ldVal += fGetVal(piPos - 1) * sdRate;
+	ldVal += fGetVal(piPos + 1) * (1.0 - sdRate);
+
+	return ldVal;
+}
+
+// 実行メイン
+int
+fMain(
+)
+{
+	char lc1Buf[1024];
+
+	// 座標 - 取得
+	int liPos;
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%d", &liPos);
+
+	// 近づく確率 - 取得
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%lf", &sdRate);
+	sdRate /= 100.0;
+
+	// 期待値 - 取得
+	double ldVal = fGetVal(liPos);
+
+	// 出力
+	sprintf(lc1Buf, "%.7lf\n", ldVal);
+	fOutLine(lc1Buf);
+
+	return 0;
+}
+
+// １回実行
+int
+fOne(
+)
+{
+	int liRet;
+	char lc1Buf[1024];
+
+	// 入力 - セット
+#ifdef D_TEST
+	sprintf(lc1Buf, ".\\Test\\T%d.txt", siTNo);
+	szpFpI = fopen(lc1Buf, "r");
+	sprintf(lc1Buf, ".\\Test\\A%d.txt", siTNo);
+	szpFpA = fopen(lc1Buf, "r");
+	siRes = 0;
+#else
+	szpFpI = stdin;
+#endif
+
+	// 実行メイン
+	liRet = fMain();
+
+	// 残データ有無
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, "")) {
+		siRes = -1;
+	}
+#endif
+
+	// テストファイルクローズ
+#ifdef D_TEST
+	fclose(szpFpI);
+	fclose(szpFpA);
+#endif
+
+	// テスト結果
+#ifdef D_TEST
+	if (siRes == 0) {
+		printf("OK %d\n", siTNo);
+	}
+	else {
+		printf("NG %d\n", siTNo);
+	}
+#endif
+
+	return 0;
+}
+
+// プログラム開始
+int
+main()
+{
+
+#ifdef D_TEST
+	int i;
+	for (i = D_TEST_SNO; i <= D_TEST_ENO; i++) {
+		siTNo = i;
+		fOne();
+	}
+#else
+	fOne();
+#endif
+
+	return 0;
+}
+=== C CODE END ===

@@ -1,0 +1,135 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code processes an array of integers to compute a maximum weighted sum based on specific parameters.
+- **What problem it solves**: It solves the problem of finding the maximum possible value from a series of weighted sums derived from the input array, considering constraints on the number of elements and their indices.
+- **Core behavior**: The program reads input values, processes them to compute a dynamic programming table, and outputs the maximum computed value.
+
+## 2. Inputs
+- **Parameters**:
+  - `n`: Number of elements in the input array.
+  - `m`: A constraint on the index separation for the weighted sum.
+  - `k`: The number of iterations for the dynamic programming calculation.
+  - `a`: An array of integers of size `n`.
+- **Data types**:
+  - `n`, `m`, `k`: `i32` (int32_t)
+  - `a`: Array of `i32`
+- **Valid ranges or constraints**:
+  - `n`, `m`, `k` must be non-negative integers.
+  - `m` should be less than `n` to avoid out-of-bounds access.
+- **Assumptions about inputs**: The input values are provided in a valid format and within the specified constraints.
+
+## 3. Outputs
+- **Return values**: The function does not return a value but prints the maximum computed value.
+- **Side effects**: Outputs the result to the standard output.
+- **Output format/schema**: The output is a single integer printed in the format of `int64_t`.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the expected format.
+  - The values of `n`, `m`, and `k` must be valid as per the constraints.
+- **Explicit logical constraints**: `m < n` must hold true.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The maximum weighted sum is computed and printed.
+- **State changes**: Memory allocated for arrays is released upon program termination.
+- **Return guarantees**: The printed output will be the maximum value computed from the dynamic programming table.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The arrays `a`, `dp`, and `d` are properly allocated and initialized before use.
+  - The index variables `f` and `b` maintain valid states throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program may exhibit undefined behavior or crash due to invalid memory access.
+- **Exceptions thrown?**: No explicit exception handling is implemented; the program relies on valid input.
+- **Edge-case behavior**: If `n` is 0, the program will attempt to allocate memory for arrays but will not process any elements.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the arrays and index variables throughout execution.
+- **State changes caused by execution**: The `dp` array is updated with computed values based on the input array and parameters.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(n * k), where `n` is the size of the input array and `k` is the number of iterations.
+- **Space complexity**: The space complexity is O(n) due to the allocation of three arrays of size `n`.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of available memory.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdint.h>
+#include<inttypes.h>
+
+typedef int32_t i32;
+typedef int64_t i64;
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define ALLOC(size,type) ((type*)calloc((size),sizeof(type)))
+
+typedef struct index_val {
+  i32 k;
+  i64 v;
+} node;
+
+void run (void) {
+  i32 n, m, k;
+  scanf ("%" SCNi32 "%" SCNi32 "%" SCNi32, &n, &m, &k);
+  i32 *a = ALLOC (n, i32);
+  for (i32 i = 0; i < n; ++i) {
+    scanf ("%" SCNi32, a + i);
+  }
+  i64 *dp = ALLOC (n, i64);
+  for (i32 i = 0; i < n; ++i) {
+    dp[i] = a[i];
+  }
+  node *d = ALLOC (n, node);
+  for (i32 i = 2; i <= k; ++i) {
+    i32 f = 0;
+    i32 b = 0;
+    d[0] = (node){i - 2, dp[i - 2]};
+    for (i32 j = i - 1; j < n; ++j) {
+      if (d[f].k == j - m - 1) ++f;
+      i64 v = d[f].v + (i64) i * a[j];
+      while (f <= b && d[b].v <= dp[j]) --b;
+      d[++b] = (node) {j, dp[j]};
+      dp[j] = v;
+    }
+  }
+  i64 ans = 0;
+  for (i32 i = k - 1; i < n; ++i) {
+    if (ans < dp[i]) {
+      ans = dp[i];
+    }
+  }
+  printf("%" PRIi64 "\n", ans);
+}
+
+int main (void) {
+  run();
+  return 0;
+}
+=== C CODE END ===

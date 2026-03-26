@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The program calculates the sum of all integers from 1 to N whose digit sum falls within a specified range [A, B].
+- **What problem it solves**: It identifies and aggregates numbers based on their digit sums, allowing users to filter numbers based on specific criteria.
+- **Core behavior**: The program reads an integer N and two bounds A and B, computes the digit sum for each integer from 1 to N, and sums those integers whose digit sums lie within the inclusive range [A, B].
+
+## 2. Inputs
+- **Parameters**:
+  - N: The upper limit of the range (inclusive).
+  - A: The lower bound for the digit sum.
+  - B: The upper bound for the digit sum.
+- **Data types**:
+  - N: `int`
+  - A: `int`
+  - B: `int`
+- **Valid ranges or constraints**:
+  - N must be a positive integer.
+  - A and B can be any integers, but A should be less than or equal to B for meaningful results.
+- **Assumptions about inputs**: It is assumed that the user provides valid integer inputs as expected by the `scanf` function.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer, which is the sum of all integers from 1 to N that meet the digit sum criteria.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer printed on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+  - Valid integer inputs must be provided for N, A, and B.
+- **Explicit logical constraints**: N must be greater than 0.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will have printed the sum of integers from 1 to N whose digit sums are within the range [A, B].
+- **State changes**: No persistent state changes occur; the program operates in a stateless manner.
+- **Return guarantees**: The output will always be an integer, representing the computed sum.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The variable `count` will always hold the cumulative sum of valid integers as the loop iterates.
+- **Class-level invariants**: Not applicable, as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No exceptions are explicitly thrown; behavior is undefined for invalid inputs.
+- **Edge-case behavior**: If N is 0 or negative, the loop will not execute, and the output will be 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable, as the program does not maintain state across executions.
+- **State changes caused by execution**: The variable `count` is updated during the loop based on the digit sum conditions.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N), as the program iterates through all integers from 1 to N.
+- **Space complexity**: O(1), as it uses a fixed amount of space regardless of the input size.
+- **Performance assumptions**: The program is expected to perform efficiently for reasonably sized values of N, but may become slow for very large values due to the digit extraction process.
+```

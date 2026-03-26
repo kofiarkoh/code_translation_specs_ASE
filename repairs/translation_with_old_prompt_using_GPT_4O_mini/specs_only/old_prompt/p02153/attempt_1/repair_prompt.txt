@@ -1,0 +1,101 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a pathfinding algorithm using Dijkstra's method to find the shortest path on a grid while avoiding certain obstacles (bombs).
+- **What problem it solves**: It determines the minimum time required for a character to move from a starting position to a target position on a grid, considering the presence of bombs that affect movement.
+- **Core behavior**: The program reads a grid configuration, identifies the start and target positions, and calculates the shortest path while accounting for movement costs influenced by bombs.
+
+## 2. Inputs
+- **Parameters**:
+  - Grid dimensions (H, W)
+  - Movement costs (A, B)
+- **Data types**:
+  - H, W: integers (positive)
+  - A, B: integers (non-negative)
+  - Grid: 2D character array
+- **Valid ranges or constraints**:
+  - H, W: 1 ≤ H, W ≤ 1000
+  - A, B: 0 ≤ A, B ≤ 10^9
+- **Assumptions about inputs**:
+  - The grid contains valid characters representing the start ('s'), goal ('g'), bombs ('*'), and free spaces.
+
+## 3. Outputs
+- **Return values**: 
+  - A long long integer representing the minimum time to reach the target or -1 if unreachable.
+- **Side effects**: 
+  - Outputs the result to standard output.
+- **Output format/schema**: 
+  - If reachable, prints the minimum time; otherwise, prints "INF".
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The grid must be properly initialized with valid dimensions and characters.
+  - The start ('s') and goal ('g') positions must be present in the grid.
+- **Explicit logical constraints**:
+  - The grid must not exceed the defined maximum dimensions.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The program will output either the minimum time to reach the goal or indicate that it is unreachable.
+- **State changes**: 
+  - The `vis` array is updated to mark visited positions.
+- **Return guarantees**: 
+  - Returns a valid time or -1.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The `vis` array remains consistent with the positions that have been processed.
+  - The priority queue maintains the correct order of elements based on their associated times.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - Not inferable from code; assumes valid input as per specifications.
+- **Exceptions thrown?**: 
+  - Not applicable; the code does not use exception handling.
+- **Edge-case behavior**: 
+  - If the start and goal are the same, the output will be 0.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: 
+  - The grid can be in a state where all positions are unvisited or some are visited.
+- **State changes caused by execution**: 
+  - The state of the `vis` array changes as positions are visited.
+  - The priority queue state changes as elements are enqueued and dequeued.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: 
+  - O((H * W) log(H * W)) due to the priority queue operations.
+- **Space complexity**: 
+  - O(H * W) for the grid and auxiliary data structures.
+- **Performance assumptions**: 
+  - Assumes that the input size is manageable within the provided constraints.
+```

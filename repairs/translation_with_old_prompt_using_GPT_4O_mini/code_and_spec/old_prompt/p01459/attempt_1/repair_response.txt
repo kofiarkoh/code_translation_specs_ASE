@@ -1,0 +1,128 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, BufRead};
+
+const QMAX: usize = 51000;
+const MAX_H: usize = 103;
+const MAX_W: usize = 103;
+
+#[derive(Clone, Copy)]
+struct Q {
+    r: usize,
+    c: usize,
+    d: usize,
+    a: usize,
+    b: usize,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let h: usize = params.next().unwrap().parse().unwrap();
+    let w: usize = params.next().unwrap().parse().unwrap();
+    let a: usize = params.next().unwrap().parse().unwrap();
+    let b = a; // B is initially set to A
+
+    let mut map = vec![vec![' '; MAX_W]; MAX_H];
+    let mut mk = vec![vec![vec![vec![vec![0; 11]; 11]; 4]; MAX_W]; MAX_H];
+
+    let mut sr = 0; // Start row
+    let mut sc = 0; // Start column
+    let mut gr = 0; // Goal row
+    let mut gc = 0; // Goal column
+
+    for r in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        for (c, ch) in line.chars().enumerate() {
+            map[r][c] = ch;
+            if ch == 'S' {
+                sr = r;
+                sc = c;
+            } else if ch == 'G' {
+                gr = r;
+                gc = c;
+            }
+        }
+    }
+
+    if sr == h - 1 || map[sr + 1][sc] == '#' {
+        println!("-1");
+        return;
+    }
+
+    let mv: [(isize, isize); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+    let ma: [[isize; 4]; 4] = [[0, -1, -1, 1], [-1, 0, 1, -1], [-1, 1, 0, -1], [1, -1, -1, 0]];
+    let mb: [[isize; 4]; 4] = [[0, 1, -1, -1], [1, 0, -1, -1], [-1, -1, 0, 1], [-1, -1, 1, 0]];
+
+    let mut que: VecDeque<Q> = VecDeque::new();
+    que.push_back(Q { r: sr + 1, c: sc, d: 2, a: 0, b: 0 });
+
+    for a in 0..=a {
+        for b in 0..=b {
+            mk[sr][sc][0][a][b] = 1;
+        }
+    }
+
+    let mut ans = 100;
+    while let Some(q) = que.pop_front() {
+        let (r, c, d, a, b) = (q.r, q.c, q.d, q.a, q.b);
+
+        if r == gr && c == gc {
+            if a + b < ans {
+                ans = a + b;
+            }
+            continue;
+        }
+
+        if mk[r][c][d][a][b] != 0 {
+            continue;
+        }
+        mk[r][c][d][a][b] = 1;
+
+        for nd in 0..4 {
+            let nr = (r as isize + mv[nd].0) as usize;
+            let nc = (c as isize + mv[nd].1) as usize;
+            let na = ma[d][nd];
+            let nb = mb[d][nd];
+
+            if na < 0 && nb < 0 {
+                continue;
+            }
+            if nr >= h || nc >= w || map[nr][nc] == '#' {
+                continue;
+            }
+
+            let mut next_a = a;
+            let mut next_b = b;
+
+            if na > 0 {
+                if next_a + 1 > a || map[r][c] == 'S' {
+                    continue;
+                }
+                next_a += 1;
+            } else if nb > 0 {
+                if next_b + 1 > b || map[r][c] == 'S' {
+                    continue;
+                }
+                next_b += 1;
+            }
+
+            if mk[nr][nc][nd][next_a][next_b] != 0 {
+                continue;
+            }
+
+            que.push_back(Q { r: nr, c: nc, d: nd, a: next_a, b: next_b });
+        }
+    }
+
+    if ans > 20 {
+        println!("-1");
+    } else {
+        println!("{}", ans);
+    }
+}
+```

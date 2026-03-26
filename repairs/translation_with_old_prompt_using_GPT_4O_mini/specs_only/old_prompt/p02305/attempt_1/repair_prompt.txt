@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code determines the spatial relationship between two circles based on their centers and radii.
+- **What problem it solves**: It identifies how two circles interact in a 2D plane, specifically whether they are separate, touching, or overlapping.
+- **Core behavior**: The program reads the coordinates and radii of two circles, calculates the distance between their centers, and compares this distance to the sum and difference of their radii to classify their relationship.
+
+## 2. Inputs
+- **Parameters**: 
+  - `x[2]`: Array of x-coordinates of the circle centers.
+  - `y[2]`: Array of y-coordinates of the circle centers.
+  - `r[2]`: Array of radii of the circles.
+- **Data types**: 
+  - `int` for all parameters.
+- **Valid ranges or constraints**: 
+  - No explicit constraints on the values of `x`, `y`, or `r` are enforced in the code.
+- **Assumptions about inputs**: 
+  - The user will provide exactly two sets of integers for the coordinates and radii.
+
+## 3. Outputs
+- **Return values**: The program outputs an integer value representing the relationship between the two circles.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer:
+  - `0`: Circles are completely separate.
+  - `1`: Circles are touching internally.
+  - `2`: Circles are overlapping.
+  - `3`: Circles are touching externally.
+  - `4`: Circles are completely separate.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be executed in an environment that supports standard input and output.
+- **Explicit logical constraints**: 
+  - The input must consist of exactly six integers (two for each circle's x-coordinate, y-coordinate, and radius).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output one of five integers based on the relationship between the two circles.
+- **State changes**: 
+  - No state changes occur as the program does not maintain any persistent state.
+- **Return guarantees**: 
+  - The output will always be one of the specified integers.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `x`, `y`, and `r` will always contain two elements after input is read.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input; it may lead to undefined behavior or incorrect output.
+- **Exceptions thrown?**: No exceptions are thrown; the program relies on valid input.
+- **Edge-case behavior**: If non-integer values are provided, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects or states maintained.
+- **State changes caused by execution**: The program does not maintain any state; it simply processes input and produces output.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(1) since the number of operations is constant regardless of input size.
+- **Space complexity**: O(1) as the space used does not grow with input size.
+- **Performance assumptions**: The program assumes that input will be provided in a timely manner and that the environment can handle standard input/output operations efficiently.
+```

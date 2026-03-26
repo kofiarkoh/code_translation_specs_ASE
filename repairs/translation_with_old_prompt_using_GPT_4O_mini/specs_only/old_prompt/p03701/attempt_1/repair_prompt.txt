@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a series of integers, computes their sum, and adjusts the sum based on specific conditions related to the integers.
+- **What problem it solves**: It determines a modified sum of integers based on whether any of the integers are multiples of ten and identifies the smallest non-multiple of ten.
+- **Core behavior**: The program calculates the total sum of the integers, checks if the sum is a multiple of ten, and modifies the sum based on the presence of multiples of ten in the input.
+
+## 2. Inputs
+- **Parameters**: 
+  - `n`: The number of integers to be read.
+  - `s[]`: An array of integers.
+- **Data types**: 
+  - `n`: `int`
+  - `s[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `n` must be a positive integer (greater than 0).
+  - Each integer in `s[]` can range from 0 to 100 (inclusive).
+- **Assumptions about inputs**: 
+  - The input is well-formed and consists of valid integers as specified.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer value.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The input must include a valid integer `n` followed by `n` integers.
+- **Explicit logical constraints**: 
+  - `n > 0` and all integers in `s[]` are within the range of 0 to 100.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The program will output an integer based on the computed sum and conditions applied.
+- **State changes**: No persistent state changes occur; the program operates in a stateless manner.
+- **Return guarantees**: The output will be an integer that reflects the modified sum based on the input conditions.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The sum `k` is always the cumulative total of the integers read from input.
+  - The minimum value `min` is always the smallest value encountered in the array `s[]` that is not a multiple of ten (or 101 if all are multiples of ten).
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior on invalid input is not defined; the program may exhibit undefined behavior or crash.
+- **Exceptions thrown?**: Not inferable from code.
+- **Edge-case behavior**: If all integers are multiples of ten, the output will be `0`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as the program does not maintain state across executions.
+- **State changes caused by execution**: The program does not maintain any state; it processes input and produces output in a single execution cycle.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(n), where n is the number of integers read, as each integer is processed once.
+- **Space complexity**: O(n) for storing the array of integers.
+- **Performance assumptions**: The program assumes that the input size is manageable within the constraints of typical stack and memory limits for the environment in which it runs.
+```

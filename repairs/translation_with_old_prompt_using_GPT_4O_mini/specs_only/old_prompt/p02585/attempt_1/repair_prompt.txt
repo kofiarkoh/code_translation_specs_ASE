@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code calculates the maximum possible value derived from a series of operations on two arrays, `P` and `C`, based on specific traversal rules defined by the input parameters.
+- **What problem it solves**: It addresses the problem of maximizing a cumulative value while traversing a directed graph represented by the array `P`, with constraints on the number of steps allowed (denoted by `K`).
+- **Core behavior**: The program reads two arrays and computes the maximum cumulative value obtainable by following the paths defined in `P`, while adhering to the step limit `K`.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of elements in the arrays.
+  - `K`: Maximum number of steps allowed in the traversal.
+  - `P[]`: Array representing the directed graph.
+  - `C[]`: Array representing the values associated with each node.
+- **Data types**:
+  - `N`, `K`: `int`
+  - `P[]`, `C[]`: `int[]`
+- **Valid ranges or constraints**:
+  - `1 <= N <= 5000`
+  - `1 <= K <= N`
+- **Assumptions about inputs**: 
+  - The values in `P` are valid indices within the range of `1` to `N`.
+  - The values in `C` can be any integer.
+
+## 3. Outputs
+- **Return values**: The program outputs a single `long long` integer representing the maximum cumulative value.
+- **Side effects**: The program prints the result to standard output.
+- **Output format/schema**: The output is a single line containing a long long integer.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must be provided in the correct format (two integers followed by two arrays).
+  - The arrays `P` and `C` must be populated with `N` elements each.
+- **Explicit logical constraints**: 
+  - `N` and `K` must be positive integers.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The maximum cumulative value is computed and printed.
+- **State changes**: The program does not maintain any persistent state beyond local variables.
+- **Return guarantees**: The output will always be a valid long long integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The arrays `P` and `C` remain unchanged throughout the execution.
+- **Class-level invariants**: Not applicable as the code is not object-oriented.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: The code does not explicitly handle exceptions; it relies on valid input.
+- **Edge-case behavior**: If `N` or `K` is at its minimum (1), the program will still execute but may yield trivial results.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: Not applicable as there are no objects; the program operates with local variables.
+- **State changes caused by execution**: Local variables are modified during execution, but no external state is affected.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The time complexity is O(N^2) due to the nested loops iterating over the arrays.
+- **Space complexity**: The space complexity is O(N) for the `dist` and `tmp` arrays.
+- **Performance assumptions**: The program is expected to perform efficiently for the upper limit of `N` (5000) within reasonable time constraints.
+```

@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 998244353;
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first input to initialize arrays d and e
+    let first_input = lines.next().unwrap().unwrap();
+    let initial_value: i64 = first_input.parse().expect("First input must be a valid non-negative integer");
+
+    // Initialize arrays d and e with the first input
+    let mut d = vec![initial_value % MOD];
+    let mut e = vec![0]; // Start e with 0 to accumulate values differently
+
+    // Process subsequent inputs
+    for line in lines {
+        match line {
+            Ok(input) => {
+                if let Ok(value) = input.trim().parse::<i64>() {
+                    // Update arrays d and e based on the input value
+                    let new_d = (d.last().unwrap() + value) % MOD;
+                    d.push(new_d);
+                    let new_e = (e.last().unwrap() + new_d) % MOD; // e accumulates the last value of d
+                    e.push(new_e);
+                } else {
+                    // If a non-integer is encountered, terminate input processing
+                    break;
+                }
+            }
+            Err(_) => break, // Handle any read errors
+        }
+    }
+
+    // Compute the final result based on the last elements of d and e
+    let result = e.last().unwrap(); // The last value of e is the final result
+
+    // Print the result
+    println!("{}", result);
+}

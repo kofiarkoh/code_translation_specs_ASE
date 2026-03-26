@@ -1,0 +1,78 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Item {
+    I: i32,
+    U: i32,
+    A: i32,
+    P: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock(); // Make reader mutable
+
+    loop {
+        let mut input = String::new();
+        reader.read_line(&mut input).unwrap();
+        let n: i32 = input.trim().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut items = Vec::new();
+        let mut uu = vec![0; 1001];
+        let mut ss = Vec::new();
+
+        for _ in 0..n {
+            let mut item_input = String::new();
+            reader.read_line(&mut item_input).unwrap();
+            let parts: Vec<i32> = item_input
+                .trim()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            items.push(Item {
+                I: parts[0],
+                U: parts[1],
+                A: parts[2],
+                P: parts[3],
+            });
+        }
+
+        // Sorting items based on A, P, and I
+        items.sort_by(|a, b| {
+            let cmp_a = b.A.cmp(&a.A);
+            if cmp_a != std::cmp::Ordering::Equal {
+                return cmp_a;
+            }
+            let cmp_p = a.P.cmp(&b.P);
+            if cmp_p != std::cmp::Ordering::Equal {
+                return cmp_p;
+            }
+            a.I.cmp(&b.I)
+        });
+
+        let mut head = 0;
+
+        for item in items {
+            uu[item.U as usize] += 1;
+
+            if head < 10 && uu[item.U as usize] <= 3 {
+                ss.push(item.I);
+                head += 1;
+            } else if head < 20 && uu[item.U as usize] <= 2 {
+                ss.push(item.I);
+                head += 1;
+            } else if head < 26 && uu[item.U as usize] <= 1 {
+                ss.push(item.I);
+                head += 1;
+            }
+        }
+
+        for id in ss {
+            println!("{}", id);
+        }
+    }
+}

@@ -1,0 +1,61 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02953/p02953_sample1_output.txt
+Input:
+6
+2 3 4 5 6 7
+Expected:
+Yes
+Actual:
+No
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn can_transform_to_non_decreasing(n: usize, a: &mut Vec<i32>) -> &'static str {
+    // Start from the second last element and move towards the beginning
+    for i in (1..n).rev() {
+        // If the current element is greater than the next one, we can decrement it
+        if a[i] > a[i - 1] {
+            // Decrement the current element to match the next one
+            a[i - 1] = a[i];
+        }
+    }
+    // After processing, check if the array is non-decreasing
+    for i in 1..n {
+        if a[i] < a[i - 1] {
+            return "No"; // If any element is less than the previous one, return "No"
+        }
+    }
+    "Yes" // If we pass the check, return "Yes"
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let mut a = vec![5, 3, 4, 2, 1]; // Example input
+    let result = can_transform_to_non_decreasing(n, &mut a);
+    println!("{}", result); // Outputs "No" for this example
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,45 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p01339/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:74:17
+   |
+72 |         for &next in &self.to[v] {
+   |                      -----------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+73 |             if !self.used[next] {
+74 |                 self.dfs(next);
+   |                 ^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p01339/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:86:17
+   |
+84 |         for &next in &self.r_to[v] {
+   |                      -------------
+   |                      ||
+   |                      |immutable borrow occurs here
+   |                      immutable borrow later used here
+85 |             if !self.used[next] {
+86 |                 self.rdfs(next, k);
+   |                 ^^^^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error[E0502]: cannot borrow `*self` as mutable because it is also borrowed as immutable
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p01339/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:103:17
+    |
+101 |         for &v in self.vs.iter().rev() {
+    |                   --------------------
+    |                   |
+    |                   immutable borrow occurs here
+    |                   immutable borrow later used here
+102 |             if !self.used[v] {
+103 |                 self.rdfs(v, k);
+    |                 ^^^^^^^^^^^^^^^ mutable borrow occurs here
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0502`.

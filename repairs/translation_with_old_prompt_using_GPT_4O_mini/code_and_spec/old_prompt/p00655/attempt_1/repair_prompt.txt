@@ -1,0 +1,202 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Code Specification for AOJ 1070 FIMO Sequence
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a data structure that manages two queues (first half and second half) to efficiently handle a sequence of operations related to adding elements, deleting elements, and retrieving minimum and maximum values.
+- **What problem it solves**: It provides a way to maintain and query a dynamic collection of integers, allowing for efficient retrieval of minimum and maximum values from two separate halves of the collection.
+- **Core behavior**: The program supports operations to add elements, delete elements, and get the minimum or maximum values from either half of the collection.
+
+## 2. Inputs
+- **Parameters**: 
+  - `q`: Number of operations to perform.
+  - `op`: Operation code (0 to 8).
+  - `a`: Integer value to be added or used in queries.
+- **Data types**: 
+  - `int` for all parameters.
+- **Valid ranges or constraints**: 
+  - `op` must be in the range [0, 8].
+  - `a` must be a valid integer.
+- **Assumptions about inputs**: 
+  - Input is provided in a format that can be read by the `in()` function, which expects integers.
+
+## 3. Outputs
+- **Return values**: 
+  - The program outputs integers based on the operations performed, specifically the results of `gmin` and `gmax` operations.
+- **Side effects**: 
+  - Modifies the internal state of the queues and their associated minimum and maximum tracking arrays.
+- **Output format/schema**: 
+  - Each output integer is printed on a new line, followed by the string "end" after all operations are completed.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must be provided with valid input as specified in the Inputs section.
+- **Explicit logical constraints**: 
+  - The queues must be initialized before any operations are performed.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The internal state of the queues and their associated minimum and maximum arrays reflects the operations performed.
+- **State changes**: 
+  - The queues may have elements added or removed, and the minimum and maximum tracking arrays will be updated accordingly.
+- **Return guarantees**: 
+  - The output will reflect the results of the operations performed, with no undefined behavior.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The sizes of the queues and their associated minimum and maximum arrays must be consistent with the number of elements added or deleted.
+- **Class-level invariants**: 
+  - Not applicable as the code does not define any classes.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: 
+  - The program does not explicitly handle invalid input; undefined behavior may occur if inputs do not conform to expected types or ranges.
+- **Exceptions thrown?**: 
+  - No exceptions are explicitly thrown; the program relies on valid input.
+- **Edge-case behavior**: 
+  - If operations are performed on empty queues (e.g., deleting or querying minimum/maximum), the behavior is not defined and may lead to incorrect results.
+
+## 8. State Transitions
+- **Valid object states**: 
+  - The queues can be in states ranging from empty to full, depending on the number of elements added.
+- **State changes caused by execution**: 
+  - Adding elements increases the size of the queues and updates the minimum and maximum arrays.
+  - Deleting elements decreases the size and may also modify the minimum and maximum arrays.
+
+## 9. Non-functional Constraints
+- **Time complexity**: 
+  - The time complexity for adding and deleting elements is O(1) on average, while retrieving minimum and maximum values is O(1) for the first element and O(n) for arbitrary positions.
+- **Space complexity**: 
+  - The space complexity is O(n) where n is the number of elements in the queues, due to the storage of elements and their associated minimum and maximum values.
+- **Performance assumptions**: 
+  - The program assumes that the input size will not exceed the defined maximum (200,005 elements).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+=== C CODE END ===

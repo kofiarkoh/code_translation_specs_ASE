@@ -1,0 +1,74 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+const GOAL_STATE: u64 = 0b0000000000000000000000000000000000000000000000000000000000000000111111111111111111111111111111111111111111111111111111111111111111; // Example goal state
+const MOVES: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)]; // Down, Up, Right, Left
+
+fn main() {
+    let stdin = io::stdin();
+    let input: Vec<i32> = stdin.lock().lines()
+        .flat_map(|line| line.unwrap().split_whitespace().map(|s| s.parse::<i32>().unwrap()))
+        .collect();
+
+    // Check for valid input
+    if input.len() != 13 || input[0] < 0 {
+        panic!("Invalid input: first integer must be non-negative and there must be exactly 13 integers.");
+    }
+
+    let initial_state = input_to_state(&input);
+    let result = bfs(initial_state);
+    
+    match result {
+        Some(moves) => println!("{}", moves),
+        None => println!("NA"),
+    }
+}
+
+// Convert input integers to a 64-bit state representation
+fn input_to_state(input: &[i32]) -> u64 {
+    let mut state: u64 = 0;
+    for (i, &num) in input.iter().enumerate() {
+        state |= (num as u64) << (i * 5); // Each number occupies 5 bits
+    }
+    state
+}
+
+// Perform breadth-first search to find the minimum moves
+fn bfs(initial_state: u64) -> Option<u32> {
+    let mut queue = vec![(initial_state, 0)];
+    let mut visited = HashMap::new();
+    visited.insert(initial_state, 0);
+
+    while let Some((state, moves)) = queue.remove(0) {
+        if state == GOAL_STATE {
+            return Some(moves);
+        }
+
+        for &(dx, dy) in &MOVES {
+            // Generate new states based on valid moves
+            if let Some(new_state) = generate_new_state(state, dx, dy) {
+                if !visited.contains_key(&new_state) {
+                    visited.insert(new_state, moves + 1);
+                    queue.push((new_state, moves + 1));
+                }
+            }
+        }
+    }
+    None // Return None if no solution is found
+}
+
+// Generate a new state based on the current state and move direction
+fn generate_new_state(state: u64, dx: i32, dy: i32) -> Option<u64> {
+    // Logic to calculate new state based on the empty tile's position and the move
+    // This function needs to be implemented based on the specific rules of the puzzle
+    // Placeholder for actual implementation
+    let empty_tile_index = (state & 0b11111) as usize; // Assuming the empty tile is represented by the first 5 bits
+    let new_index = (empty_tile_index as i32 + dy * 4 + dx) as usize; // Calculate new index based on move
+
+    // Check if the new index is valid (0-12)
+    if new_index < 13 {
+        let new_state = state & !(0b11111 << (empty_tile_index * 5)) | ((state >> (new_index * 5) & 0b11111) << (empty_tile_index * 5));
+        return Some(new_state);
+    }
+    None // Return None if the move is invalid
+}

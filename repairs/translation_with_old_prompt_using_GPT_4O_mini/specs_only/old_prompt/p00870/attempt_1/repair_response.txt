@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    
+    loop {
+        let mut line = String::new();
+        input.read_line(&mut line).unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        
+        if nums.len() < 2 {
+            continue; // Skip if not enough numbers
+        }
+        
+        let n = nums[0];
+        let m = nums[1];
+        
+        if n == 0 && m == 0 {
+            break; // Terminate on zero input
+        }
+        
+        let mut e = Vec::new();
+        for _ in 0..n {
+            let mut str_line = String::new();
+            input.read_line(&mut str_line).unwrap();
+            e.push(str_line.trim().to_string());
+        }
+        
+        let mut target = String::new();
+        input.read_line(&mut target).unwrap();
+        let target = target.trim();
+        
+        let count = count_concatenations(&e, target);
+        println!("{}", count);
+    }
+}
+
+fn count_concatenations(e: &[String], target: &str) -> usize {
+    let target_len = target.len();
+    let n = e.len();
+    
+    // Initialize the flag array to track valid concatenation patterns
+    let mut flag = vec![0; target_len + 1];
+    flag[0] = 1; // Base case: one way to form an empty string
+    
+    for i in 0..target_len {
+        if flag[i] == 0 {
+            continue; // No valid concatenation up to this point
+        }
+        
+        for s in e {
+            let s_len = s.len();
+            if i + s_len <= target_len && &target[i..i + s_len] == s {
+                flag[i + s_len] += flag[i]; // Update the count for the new position
+            }
+        }
+    }
+    
+    flag[target_len] // Return the count of valid concatenations for the full target
+}
+```

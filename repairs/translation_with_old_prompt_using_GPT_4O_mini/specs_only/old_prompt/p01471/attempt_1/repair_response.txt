@@ -1,0 +1,68 @@
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Write};
+
+#[derive(Debug)]
+struct Item {
+    weight: i32,
+    value: i32,
+}
+
+impl Item {
+    // Calculate value-to-weight ratio
+    fn value_per_weight(&self) -> f64 {
+        if self.weight == 0 {
+            return 0.0; // Avoid division by zero; treat as zero value
+        }
+        self.value as f64 / self.weight as f64
+    }
+}
+
+fn fractional_knapsack(n: usize, w: f64, items: &mut Vec<Item>) -> f64 {
+    // Sort items by value-to-weight ratio in descending order
+    items.sort_by(|a, b| {
+        b.value_per_weight()
+            .partial_cmp(&a.value_per_weight())
+            .unwrap_or(Ordering::Equal)
+    });
+
+    let mut total_value = 0.0;
+    let mut remaining_weight = w;
+
+    for item in items {
+        if remaining_weight <= 0.0 {
+            break; // No more weight capacity
+        }
+
+        if item.weight <= remaining_weight as i32 {
+            // Take the whole item
+            total_value += item.value as f64;
+            remaining_weight -= item.weight as f64;
+        } else {
+            // Take the fraction of the item
+            total_value += item.value_per_weight() * remaining_weight;
+            remaining_weight = 0.0; // All weight capacity used
+        }
+    }
+
+    total_value
+}
+
+fn main() {
+    let n: usize = 3; // Example number of items
+    let w: f64 = 50.0; // Example maximum weight capacity
+
+    // Example items (weight, value)
+    let mut items = vec![
+        Item { weight: 10, value: 60 },
+        Item { weight: 20, value: 100 },
+        Item { weight: 30, value: 120 },
+    ];
+
+    // Calculate the maximum value
+    let max_value = fractional_knapsack(n, w, &mut items);
+
+    // Output the result
+    println!("{:.2}", max_value); // Format output to two decimal places
+}
+```

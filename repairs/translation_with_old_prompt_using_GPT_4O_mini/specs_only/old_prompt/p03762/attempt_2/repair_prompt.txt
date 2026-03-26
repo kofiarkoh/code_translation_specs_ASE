@@ -1,0 +1,82 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03762/p03762_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03762/p03762_sample1_output.txt
+Input:
+3 3
+1 2 3
+4 5 6
+Expected:
+16
+Actual:
+90
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the first line for n and m
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let mut params = first_line.split_whitespace();
+    let n: usize = params.next().unwrap().parse().unwrap();
+    let m: usize = params.next().unwrap().parse().unwrap();
+
+    // Read the second line for array x
+    let x: Vec<i64> = if n > 0 {
+        lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    // Read the third line for array y
+    let y: Vec<i64> = if m > 0 {
+        lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    // Compute the weighted sums
+    let sum_x: i64 = x.iter().sum::<i64>() % MOD;
+    let sum_y: i64 = y.iter().sum::<i64>() % MOD;
+
+    // Calculate the product modulo MOD
+    let result = (sum_x * sum_y) % MOD;
+
+    // Output the result
+    println!("{}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

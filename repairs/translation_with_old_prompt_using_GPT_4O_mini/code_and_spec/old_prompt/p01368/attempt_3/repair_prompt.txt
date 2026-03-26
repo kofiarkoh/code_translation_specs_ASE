@@ -1,0 +1,139 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0382]: use of moved value: `reader`
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/code_and_spec/old_prompt/p01368/attempt_2/translation_with_old_prompt_using_GPT_4O_mini.rs:72:24
+     |
+  23 |     let reader = stdin.lock();
+     |         ------ move occurs because `reader` has type `StdinLock<'_>`, which does not implement the `Copy` trait
+...
+  33 |     for line in reader.lines() {
+     |                        ------- `reader` moved due to this method call
+...
+  72 |             let line = reader.lines().next().unwrap().unwrap();
+     |                        ^^^^^^ value used here after move
+     |
+note: `lines` takes ownership of the receiver `self`, which moves `reader`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/mod.rs:2702:14
+     |
+2702 |     fn lines(self) -> Lines<Self>
+     |              ^^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0382`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 2002;
+const INF: i32 = 0x1010;
+
+fn bpm(u: usize, hi: &[usize], to: &[Vec<usize>], match_: &mut [i32], seen: &mut [bool]) -> bool {
+    for &v in &to[u][..hi[u]] {
+        if seen[v] {
+            continue;
+        }
+        seen[v] = true;
+        if match_[v] < 0 || bpm(match_[v] as usize, hi, to, match_, seen) {
+            match_[u] = v as i32;
+            match_[v] = u as i32;
+            return true;
+        }
+    }
+    false
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    let mut dist = [[INF; 102]; 102];
+    let mut p = vec![0; 1002];
+    let mut t = vec![0; 1002];
+    let mut hi = vec![0; MAX];
+    let mut to = vec![vec![]; MAX];
+    let mut match_ = vec![-1; MAX];
+    let mut seen = vec![false; MAX];
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = iter.next().unwrap().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let m: usize = iter.next().unwrap().parse().unwrap();
+        let l: usize = iter.next().unwrap().parse().unwrap();
+
+        for k in 0..n {
+            dist[k][k] = 0;
+        }
+        for _ in 0..m {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut iter = line.split_whitespace();
+            let u: usize = iter.next().unwrap().parse().unwrap();
+            let v: usize = iter.next().unwrap().parse().unwrap();
+            let d: i32 = iter.next().unwrap().parse().unwrap();
+            dist[u][v] = d;
+            dist[v][u] = d;
+        }
+
+        for k in 0..n {
+            for u in 0..n {
+                if dist[u][k] != INF {
+                    for v in 0..n {
+                        if dist[k][v] != INF {
+                            let d = dist[u][k] + dist[k][v];
+                            if dist[u][v] > d {
+                                dist[u][v] = d;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        for k in 0..l {
+            let line = reader.lines().next().unwrap().unwrap();
+            let mut iter = line.split_whitespace();
+            p[k] = iter.next().unwrap().parse().unwrap();
+            t[k] = iter.next().unwrap().parse().unwrap();
+        }
+
+        for u in 0..l {
+            for v in 0..l {
+                if u != v {
+                    if dist[p[u]][p[v]] <= t[v] - t[u] {
+                        to[u].push(v + l);
+                        hi[u] += 1;
+                    }
+                }
+            }
+        }
+
+        let mut k = l;
+        for u in 0..l {
+            seen.fill(false);
+            if bpm(u, &hi, &to, &mut match_, &mut seen) {
+                k -= 1;
+            }
+        }
+        println!("{}", k);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

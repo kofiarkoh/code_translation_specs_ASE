@@ -1,0 +1,37 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from stdin
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let mut inputs = input.split_whitespace();
+
+    // Parse inputs as integers
+    let a: i32 = inputs.next().unwrap().parse().unwrap();
+    let b: i32 = inputs.next().unwrap().parse().unwrap();
+    let x: i32 = inputs.next().unwrap().parse().unwrap();
+
+    // Ensure inputs are non-negative integers as per the specification
+    assert!(a >= 0 && b >= 0 && x >= 0, "Inputs must be non-negative integers");
+
+    let ans: i32;
+
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c > 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+
+    // Print the result
+    println!("{}", ans);
+}
+```

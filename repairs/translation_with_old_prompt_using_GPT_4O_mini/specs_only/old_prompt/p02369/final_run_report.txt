@@ -1,0 +1,29 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `Vec<Edge>: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_old_prompt_using_GPT_4O_mini/specs_only/old_prompt/p02369/attempt_3/translation_with_old_prompt_using_GPT_4O_mini.rs:19:25
+     |
+  19 |             edges: vec![Vec::new(); num_vertex], // Initialize with empty vectors
+     |                    -----^^^^^^^^^^-------------
+     |                    |    |
+     |                    |    the trait `Clone` is not implemented for `Vec<Edge>`
+     |                    required by a bound introduced by this call
+     |
+     = note: required for `Vec<Edge>` to implement `Clone`
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider borrowing here
+     |
+  19 |             edges: vec![&Vec::new(); num_vertex], // Initialize with empty vectors
+     |                         +
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.

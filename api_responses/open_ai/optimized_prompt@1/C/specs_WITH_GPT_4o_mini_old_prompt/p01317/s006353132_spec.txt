@@ -1,0 +1,59 @@
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code implements a solution to find the minimum cost of traveling through a series of nodes in a graph, considering both direct and indirect paths.
+- **What problem it solves**: It addresses the problem of determining the least expensive route between a set of specified nodes in a weighted graph, where edges can represent either direct connections or connections with additional costs.
+- **Core behavior**: The program reads a graph's structure, processes the edges, and computes the minimum travel cost using dynamic programming and the Floyd-Warshall algorithm for shortest paths.
+
+## 2. Inputs
+- **Parameters**:
+  - `N`: Number of nodes in the graph.
+  - `M`: Number of edges in the graph.
+  - `R`: Number of nodes in the route to be evaluated.
+  - `de[]`: Array of nodes representing the route.
+  - Edge data: Each edge consists of two nodes (`x`, `y`), a cost (`s`), and a type (`t`).
+- **Data types**:
+  - `N`, `M`, `R`, `x`, `y`, `s`: Integers.
+  - `t`: Character ('L' for a link, 'S' for a shortcut).
+- **Valid ranges or constraints**:
+  - `N` and `M` must be positive integers.
+  - `0 <= x, y < N` (node indices).
+  - `s` must be a non-negative integer.
+  - `R` must be a positive integer.
+- **Assumptions about inputs**: It is assumed that the input format is strictly followed, and the graph is undirected.
+
+## 3. Outputs
+- **Return values**: The program outputs a single integer representing the minimum travel cost.
+- **Side effects**: The program prints the result to the standard output.
+- **Output format/schema**: The output is a single integer on a new line.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**:
+  - The input must contain valid integers for `N`, `M`, and `R`.
+  - The edges must be defined correctly with valid node indices and costs.
+- **Explicit logical constraints**: The graph must not contain negative cycles, as this would invalidate the shortest path calculations.
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**:
+  - The minimum cost of traveling through the specified nodes is computed and printed.
+- **State changes**: The internal state of the distance matrices (`S` and `L`) and the dynamic programming table (`dp`) is modified during execution.
+- **Return guarantees**: The output will always be a non-negative integer or `INF` if no valid path exists.
+
+## 6. Invariants
+- **Conditions that must always remain true**:
+  - The distance matrices `S` and `L` are initialized correctly and updated according to the Floyd-Warshall algorithm.
+  - The `dp` table maintains valid minimum costs for each node at each stage of the route evaluation.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The program does not handle invalid input gracefully; it may lead to undefined behavior or incorrect results.
+- **Exceptions thrown?**: No explicit exceptions are thrown; the program relies on correct input.
+- **Edge-case behavior**: If no valid path exists, the output will be `INF`.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program maintains valid states for the distance matrices and the dynamic programming table throughout execution.
+- **State changes caused by execution**: The matrices `S`, `L`, and `dp` are updated based on the edges and the route specified.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: The overall time complexity is O(N^3) due to the Floyd-Warshall algorithm and the dynamic programming approach.
+- **Space complexity**: The space complexity is O(N^2) for the distance matrices and O(R * N) for the dynamic programming table.
+- **Performance assumptions**: The program is expected to perform efficiently for graphs with a moderate number of nodes and edges, but may become slow for large graphs due to the cubic time complexity.

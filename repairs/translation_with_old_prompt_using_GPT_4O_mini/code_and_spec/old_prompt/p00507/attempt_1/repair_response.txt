@@ -1,0 +1,57 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of integers
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // Preconditions check
+    if n < 2 {
+        panic!("N must be greater than 1");
+    }
+
+    // Read the integers into a vector
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for line in lines.take(n) {
+        let num: i32 = line.unwrap().parse().unwrap();
+        a.push(num);
+    }
+
+    // Array to hold the three smallest unique combinations
+    let mut r = [i64::MAX; 3];
+
+    // Generate combinations and find the third smallest unique combination
+    for i in 0..n {
+        for j in 0..n {
+            if i != j {
+                // Find the multiplier for concatenation
+                let mut k = 10;
+                while a[j] % k != a[j] {
+                    k *= 10;
+                }
+                let combination = a[i] as i64 * k + a[j] as i64;
+
+                // Update the three smallest unique combinations
+                for k in 0..3 {
+                    if r[k] > combination {
+                        // Swap to insert the new combination
+                        let temp = r[k];
+                        r[k] = combination;
+                        if k < 2 {
+                            r[k + 1] = temp;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Output the third smallest unique combination
+    println!("{}", r[2]);
+}
+```

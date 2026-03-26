@@ -1,0 +1,85 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Code Specification
+
+## 1. Functional Description
+- **High-level description of the purpose**: The code reads a sequence of integers and counts the number of consecutive duplicate integers in that sequence.
+- **What problem it solves**: It identifies and quantifies the occurrences of consecutive duplicates in a list of integers, which can be useful for data analysis or compression algorithms.
+- **Core behavior**: The program takes an integer input for the number of elements, reads the elements into an array, and counts how many times consecutive elements are the same.
+
+## 2. Inputs
+- **Parameters**: 
+  - `N`: The number of integers to be read.
+  - `a[]`: An array to store the integers.
+- **Data types**: 
+  - `N`: `int`
+  - `a[]`: `int[]`
+- **Valid ranges or constraints**: 
+  - `N` must be a positive integer (1 ≤ N ≤ 100).
+  - The array can hold up to 101 integers (0 to 100 index).
+- **Assumptions about inputs**: 
+  - The input for `N` is provided correctly and is within the valid range.
+  - The integers read into the array are within the range of `int`.
+
+## 3. Outputs
+- **Return values**: The program returns an integer value representing the count of consecutive duplicates.
+- **Side effects**: The program prints the count to the standard output.
+- **Output format/schema**: The output is a single integer followed by a newline.
+
+## 4. Preconditions
+- **Conditions that must hold before execution**: 
+  - The program must receive valid input for `N` and the subsequent integers.
+  - The input must be provided in the expected format (first the count, followed by the integers).
+
+## 5. Postconditions
+- **Conditions guaranteed after execution**: 
+  - The variable `count` contains the number of pairs of consecutive duplicate integers.
+- **State changes**: The program does not maintain any persistent state beyond the execution of the main function.
+- **Return guarantees**: The program will always output a non-negative integer.
+
+## 6. Invariants
+- **Conditions that must always remain true**: 
+  - The array `a[]` will always contain valid integers as long as the input is valid.
+  - The count of consecutive duplicates will always be non-negative.
+
+## 7. Error Handling / Exceptional Behavior
+- **What happens on invalid input?**: The behavior is undefined; the program may produce incorrect results or crash.
+- **Exceptions thrown?**: Not applicable; C does not have built-in exception handling.
+- **Edge-case behavior**: If `N` is 0 or negative, the program may not behave as expected since it does not handle such cases.
+
+## 8. State Transitions (if applicable)
+- **Valid object states**: The program operates in a single state during execution, processing input and producing output.
+- **State changes caused by execution**: The variable `count` is modified based on the input data.
+
+## 9. Non-functional Constraints (if inferable)
+- **Time complexity**: O(N), where N is the number of integers read.
+- **Space complexity**: O(N), due to the storage of integers in the array.
+- **Performance assumptions**: The program is expected to perform efficiently for the maximum input size of 100 integers.
+```
