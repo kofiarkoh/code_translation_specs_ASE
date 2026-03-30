@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code performs a series of arithmetic operations based on an input value, modifying two integer variables through a defined iterative process. It calculates and outputs the final values of these variables after a specified number of iterations, where the operations depend on the current values of the variables.
+
+## 2. Inputs
+- A non-negative integer \( N \), which determines the number of iterations after applying modulo 12.
+- Two integers \( A \) and \( B \).
+
+## 3. Outputs
+- Two integers representing the final values of \( A \) and \( B \) after processing.
+
+## 4. Preconditions
+- \( N \) must be a non-negative integer.
+- \( A \) and \( B \) must be valid integers.
+
+## 5. Postconditions
+- The output values of \( A \) and \( B \) reflect the result of a series of arithmetic operations performed \( N \mod 12 \) times, where \( N \) is effectively constrained to the range [0, 11].
+
+## 6. Invariants
+- During each iteration, \( A \) is updated by subtracting the current value of \( B \) from it, and \( B \) is updated by adding the new value of \( A \) (after the subtraction) to the previous value of \( B \).
+- The loop iterates a maximum of \( N \mod 12 \) times, ensuring that the operations are bounded.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-range values explicitly. It assumes that inputs are provided correctly as specified.
+
+## 8. State Transitions
+- The state transitions occur through the iterative updates of \( A \) and \( B \) based on the current values and the iteration count. Specifically, in each iteration:
+  - \( A \) is updated to \( A - B \).
+  - \( B \) is updated to \( B + \text{(new value of } A\text{)} \).
+
+## 9. Non-functional Constraints
+- The execution time is expected to be linear with respect to \( N \mod 12 \), with a maximum of 12 iterations. The space complexity is constant, as only a fixed number of variables are used.
+
+```

@@ -1,0 +1,117 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <float.h>
+
+#define MAX_NODES 100
+#define MAX_CAPACITY 1000
+
+typedef struct {
+    int to;
+    int capacity;
+} Edge;
+
+typedef struct {
+    Edge edges[MAX_NODES][MAX_NODES];
+    int edge_count[MAX_NODES];
+    int n;
+} Graph;
+
+void initialize_graph(Graph *g, int n) {
+    g->n = n;
+    for (int i = 0; i < n; i++) {
+        g->edge_count[i] = 0;
+    }
+}
+
+void add_edge(Graph *g, int from, int to, int capacity) {
+    g->edges[from][g->edge_count[from]].to = to;
+    g->edges[from][g->edge_count[from]].capacity = capacity;
+    g->edge_count[from]++;
+}
+
+int gauss_jordan(double A[MAX_NODES][MAX_NODES], double B[MAX_NODES], int n) {
+    for (int i = 0; i < n; i++) {
+        // Find pivot
+        double max_val = 0;
+        int pivot_row = -1;
+        for (int j = i; j < n; j++) {
+            if (fabs(A[j][i]) > max_val) {
+                max_val = fabs(A[j][i]);
+                pivot_row = j;
+            }
+        }
+        if (pivot_row == -1 || fabs(max_val) < 1e-9) {
+            return 0; // Singular matrix
+        }
+        // Swap rows
+        if (pivot_row != i) {
+            for (int j = 0; j < n; j++) {
+                double temp = A[i][j];
+                A[i][j] = A[pivot_row][j];
+                A[pivot_row][j] = temp;
+            }
+            double temp = B[i];
+            B[i] = B[pivot_row];
+            B[pivot_row] = temp;
+        }
+        // Eliminate
+        for (int j = 0; j < n; j++) {
+            if (j != i) {
+                double factor = A[j][i] / A[i][i];
+                for (int k = 0; k < n; k++) {
+                    A[j][k] -= factor * A[i][k];
+                }
+                B[j] -= factor * B[i];
+            }
+        }
+    }
+    return 1; // Success
+}
+
+double min_cost_flow(Graph *g, int s, int t, int F) {
+    // Placeholder for min-cost flow calculation
+    // This function should implement the min-cost flow algorithm
+    // For now, we return a dummy value
+    return 0.0; // Indicating flow not possible
+}
+
+int main() {
+    int T;
+    scanf("%d", &T);
+    while (T--) {
+        int n, s, t, F;
+        scanf("%d %d %d %d", &n, &s, &t, &F);
+        
+        Graph g;
+        initialize_graph(&g, n);
+        
+        double A[MAX_NODES][MAX_NODES];
+        double C[MAX_NODES];
+        
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                scanf("%lf", &A[i][j]);
+            }
+            scanf("%lf", &C[i]);
+        }
+        
+        for (int i = 0; i < n; i++) {
+            int M;
+            scanf("%d", &M);
+            for (int j = 0; j < M; j++) {
+                int to, capacity;
+                scanf("%d %d", &to, &capacity);
+                add_edge(&g, i, to, capacity);
+            }
+        }
+        
+        double cost = min_cost_flow(&g, s, t, F);
+        if (cost < 0) {
+            printf("impossible\n");
+        } else {
+            printf("%.10f\n", cost);
+        }
+    }
+    return 0;
+}

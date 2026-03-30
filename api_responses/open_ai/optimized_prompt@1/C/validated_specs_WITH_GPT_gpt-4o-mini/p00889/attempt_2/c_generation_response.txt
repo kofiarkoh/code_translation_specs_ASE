@@ -1,0 +1,92 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define HASH_TABLE_SIZE 1000 // Arbitrary size for the hash table
+
+// Hash table entry structure
+typedef struct HashEntry {
+    int key;
+    int value;
+    struct HashEntry* next;
+} HashEntry;
+
+// Hash table structure
+typedef struct HashTable {
+    HashEntry** entries;
+} HashTable;
+
+// Function to create a hash table
+HashTable* create_hash_table() {
+    HashTable* table = malloc(sizeof(HashTable));
+    table->entries = malloc(sizeof(HashEntry*) * HASH_TABLE_SIZE);
+    for (int i = 0; i < HASH_TABLE_SIZE; i++) {
+        table->entries[i] = NULL;
+    }
+    return table;
+}
+
+// Hash function
+unsigned int hash(int key) {
+    return key % HASH_TABLE_SIZE;
+}
+
+// Function to insert or update the hash table
+void insert(HashTable* table, int key, int value) {
+    unsigned int index = hash(key);
+    HashEntry* entry = table->entries[index];
+
+    while (entry != NULL) {
+        if (entry->key == key) {
+            entry->value += value; // Update existing entry
+            return;
+        }
+        entry = entry->next;
+    }
+
+    // Create a new entry if key not found
+    HashEntry* new_entry = malloc(sizeof(HashEntry));
+    new_entry->key = key;
+    new_entry->value = value;
+    new_entry->next = table->entries[index];
+    table->entries[index] = new_entry;
+}
+
+// Function to count specific patterns in the generated sequence
+int count_patterns(int n, int s, int w, int q) {
+    HashTable* table = create_hash_table();
+    int count = 0;
+
+    for (int i = 0; i < n; i++) {
+        int value = (s + i * w) % q; // Generate sequence value
+        if (value != 0) {
+            count++; // Increment count for non-zero values
+            insert(table, value, 1); // Insert into hash table
+        }
+    }
+
+    // Free hash table memory (not shown for brevity)
+    // In a real implementation, we would also free each entry
+
+    return count;
+}
+
+int main() {
+    int n, s, w, q;
+
+    while (1) {
+        // Read input values
+        scanf("%d", &n);
+        if (n <= 0) break; // Terminate on non-positive n
+        scanf("%d %d %d", &s, &w, &q);
+
+        // Preconditions check
+        if (n > 0 && q > 0) {
+            int result = count_patterns(n, s, w, q);
+            printf("%d\n", result); // Output the count
+        }
+    }
+
+    return 0;
+}
+```

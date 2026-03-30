@@ -1,0 +1,145 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdint.h>
+#include<inttypes.h>
+
+typedef int32_t i32;
+typedef int64_t i64;
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define ALLOC(size,type) ((type*)calloc((size),sizeof(type)))
+
+typedef struct index_val {
+  i32 k;
+  i64 v;
+} node;
+
+void run (void) {
+  i32 n, m, k;
+  scanf ("%" SCNi32 "%" SCNi32 "%" SCNi32, &n, &m, &k);
+  i32 *a = ALLOC (n, i32);
+  for (i32 i = 0; i < n; ++i) {
+    scanf ("%" SCNi32, a + i);
+  }
+  i64 *dp = ALLOC (n, i64);
+  for (i32 i = 0; i < n; ++i) {
+    dp[i] = a[i];
+  }
+  node *d = ALLOC (n, node);
+  for (i32 i = 2; i <= k; ++i) {
+    i32 f = 0;
+    i32 b = 0;
+    d[0] = (node){i - 2, dp[i - 2]};
+    for (i32 j = i - 1; j < n; ++j) {
+      if (d[f].k == j - m - 1) ++f;
+      i64 v = d[f].v + (i64) i * a[j];
+      while (f <= b && d[b].v <= dp[j]) --b;
+      d[++b] = (node) {j, dp[j]};
+      dp[j] = v;
+    }
+  }
+  i64 ans = 0;
+  for (i32 i = k - 1; i < n; ++i) {
+    if (ans < dp[i]) {
+      ans = dp[i];
+    }
+  }
+  printf("%" PRIi64 "\n", ans);
+}
+
+int main (void) {
+  run();
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a maximum value based on a series of integer inputs, applying a dynamic programming approach to derive the result. It processes a list of integers and calculates a final maximum value influenced by a specified number of iterations and a range constraint.
+
+# 2. Inputs
+- Three integers: `n`, `m`, and `k`, where:
+  - `n` is the number of elements in the input list.
+  - `m` is a range constraint affecting the calculations.
+  - `k` is the number of iterations for the dynamic programming process.
+- An array of `n` integers.
+
+# 3. Outputs
+- A single integer representing the maximum computed value after processing the input list according to the specified constraints.
+
+# 4. Preconditions
+- The input values for `n`, `m`, and `k` must be non-negative integers.
+- The input list must contain exactly `n` integers.
+
+# 5. Postconditions
+- The output is the maximum value derived from the processed input list, adhering to the constraints defined by `m` and `k`.
+
+# 6. Invariants
+- The array of integers remains unchanged throughout the execution.
+- The dynamic programming array is updated based on the previous values and the current iteration's calculations.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to memory allocation failures or invalid input formats. If memory allocation fails, the behavior is undefined.
+- If the input values do not meet the preconditions, the output may be incorrect or undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the dynamic programming array is updated in each iteration, reflecting the maximum values computed based on the current and previous states.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates with a time complexity that is dependent on the values of `n` and `k`, potentially leading to performance considerations for large inputs. Memory usage is proportional to `n` due to the allocation of arrays.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately capture the dynamic programming logic that involves not just finding maximum values within a range but also incorporating previous computed values in a specific manner influenced by the iteration count (`k`) and the range constraint (`m`).
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the dynamic programming approach combines previous results with the current input values, particularly how the range constraint (`m`) interacts with the iteration count (`k`) to influence the maximum value computation.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a more complex dynamic programming approach that involves maintaining a sliding window of values (`d` array) and updating the `dp` array based on both the current index and previous indices, which is not reflected in the generated C program. The failure to produce the expected output indicates that the abstraction of the problem in the specification oversimplifies the actual logic implemented in the source code.
+
+```

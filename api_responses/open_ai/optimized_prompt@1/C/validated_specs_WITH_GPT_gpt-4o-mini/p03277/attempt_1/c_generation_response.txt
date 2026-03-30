@@ -1,0 +1,80 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *tree;
+    int size;
+} BIT;
+
+// Function to create a Binary Indexed Tree
+BIT* createBIT(int size) {
+    BIT *bit = (BIT *)malloc(sizeof(BIT));
+    bit->size = size;
+    bit->tree = (int *)calloc(size + 1, sizeof(int)); // 1-based indexing
+    return bit;
+}
+
+// Function to update the Binary Indexed Tree
+void updateBIT(BIT *bit, int index, int value) {
+    for (; index <= bit->size; index += index & -index) {
+        bit->tree[index] += value;
+    }
+}
+
+// Function to get the cumulative frequency from the Binary Indexed Tree
+int getSum(BIT *bit, int index) {
+    int sum = 0;
+    for (; index > 0; index -= index & -index) {
+        sum += bit->tree[index];
+    }
+    return sum;
+}
+
+// Function to count elements less than or equal to a given value
+int count(int l, int *a, int n) {
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (a[i] <= l) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Function to perform binary search for the largest l
+int binarySearch(int *a, int n) {
+    int l = 0, r = 1000000; // Assuming a reasonable upper limit for l
+    int result = 0;
+
+    while (l <= r) {
+        int m = l + (r - l) / 2; // Midpoint
+        int cnt = count(m, a, n); // Count elements <= m
+
+        // Check the condition
+        if (4 * cnt >= n * (n + 1)) {
+            result = m; // Update result
+            l = m + 1; // Search in the upper half
+        } else {
+            r = m - 1; // Search in the lower half
+        }
+    }
+    return result;
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of elements
+    int *a = (int *)malloc(n * sizeof(int)); // Allocate array
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &a[i]); // Read elements into the array
+    }
+
+    int l = binarySearch(a, n); // Perform binary search
+    printf("%d\n", l); // Output the result
+
+    free(a); // Free allocated memory
+    return 0;
+}
+```

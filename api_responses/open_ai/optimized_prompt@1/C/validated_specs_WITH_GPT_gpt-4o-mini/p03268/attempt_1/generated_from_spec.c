@@ -1,0 +1,32 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int N, K;
+
+    // Read input values for N and K
+    if (scanf("%d %d", &N, &K) != 2) {
+        // If input is invalid, exit the program
+        return 1; // Indicate error
+    }
+
+    // Check for division by zero (K must not be zero)
+    if (K == 0) {
+        // Undefined behavior as per specification; no handling provided
+        return 1; // Indicate error
+    }
+
+    int quotient = N / K; // Integer division of N by K
+    int result;
+
+    if (K % 2 == 1) { // K is odd
+        result = quotient * quotient * quotient; // Cube of the quotient
+    } else { // K is even
+        int modified_quotient = (N + K / 2) / K; // Integer division of (N + K/2) by K
+        result = (quotient * quotient * quotient) + (modified_quotient * modified_quotient * modified_quotient); // Sum of cubes
+    }
+
+    // Output the computed result
+    printf("%d\n", result);
+    return 0; // Indicate successful execution
+}

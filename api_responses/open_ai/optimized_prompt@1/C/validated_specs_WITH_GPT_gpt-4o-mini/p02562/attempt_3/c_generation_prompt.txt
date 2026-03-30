@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a solution to a flow network problem using a successive shortest path algorithm. It constructs a flow network based on input data, computes the maximum flow while minimizing the associated costs, and outputs the optimal flow configuration. The algorithm iteratively adjusts flow values based on edge capacities and costs, ensuring that the flow remains feasible throughout the process.
+
+## 2. Inputs
+- An integer \( N \) representing the number of nodes in the flow network.
+- An integer \( K \) representing the maximum capacity for certain edges in the network.
+- A matrix of integers representing costs associated with edges between nodes, where the dimensions are \( N \times N \).
+
+## 3. Outputs
+- A long integer representing the maximum flow cost in the network. If the flow cannot be achieved due to infeasibility, the output will indicate an infinite cost.
+- A matrix indicating the flow configuration, where specific edges are marked based on the flow. The configuration reflects the flow paths in the network after the algorithm has completed.
+
+## 4. Preconditions
+- The input matrix must be well-formed, with dimensions \( N \times N \).
+- The number of nodes \( N \) and the capacity \( K \) must be positive integers.
+- The flow network must be properly initialized with edges and capacities, ensuring that all edges have defined flow and capacity values.
+
+## 5. Postconditions
+- The output reflects the maximum flow cost achievable under the given constraints. If the flow is infeasible, the output will indicate an infinite cost.
+- The flow configuration matrix accurately represents the flow paths in the network, with flow values updated according to the algorithm's logic.
+
+## 6. Invariants
+- The flow values for each edge remain within their defined capacities throughout the execution.
+- The total flow into any node equals the total flow out, except for designated source and sink nodes.
+- The algorithm maintains a valid state of the minimum heap, ensuring that the shortest path calculations are based on the current flow configuration.
+
+## 7. Error Handling / Exceptional Behavior
+- If the maximum flow cannot be computed due to infeasibility (e.g., when no valid flow configuration exists), the output will indicate an infinite cost.
+- Memory allocation failures during execution may lead to undefined behavior, as they are not explicitly handled.
+
+## 8. State Transitions
+- The state transitions occur as edges are added to the flow network and as flow values are updated during the execution of the algorithm.
+- The state of the minimum heap changes as elements are pushed and popped during the shortest path calculations, reflecting the current state of the network and the distances to nodes.
+
+## 9. Flow Computation Logic
+- The algorithm computes flow values based on the capacities of edges and the costs associated with them. It iteratively adjusts the flow along paths in the network, ensuring that the flow respects the capacity constraints of each edge.
+- Flow adjustments are made based on the shortest path calculations, where the algorithm identifies paths that can accommodate additional flow while minimizing costs.
+- The algorithm handles flow assignments by considering both the current flow and the capacities of edges, ensuring that flow can only be increased if it does not exceed the defined capacities.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of the input size, though specific performance metrics are not defined.
+- Memory usage is proportional to the number of nodes and edges in the network, with dynamic allocation for data structures. The algorithm's performance may vary based on the complexity of the input graph.
+
+```

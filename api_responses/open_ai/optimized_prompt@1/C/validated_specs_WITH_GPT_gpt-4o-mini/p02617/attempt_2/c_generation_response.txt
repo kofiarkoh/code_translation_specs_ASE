@@ -1,0 +1,46 @@
+```c
+#include <stdio.h>
+
+long long calculate_result(int N, int pairs[][2]) {
+    long long cumulative_value = 0;
+
+    // Calculate the initial cumulative value based on the formula
+    for (int i = 1; i <= N; i++) {
+        cumulative_value += (long long)(N - i + 2) * (N - i + 1) / 2;
+    }
+
+    // Adjust the cumulative value based on the pairs of integers
+    for (int i = 0; i < N - 1; i++) {
+        int u = pairs[i][0];
+        int w = pairs[i][1];
+
+        // Ensure the first integer of the pair is less than or equal to the second
+        if (u <= w) {
+            cumulative_value -= (long long)u * (N - w + 1);
+        }
+    }
+
+    // The cumulative value should always be non-negative as per the invariant
+    return cumulative_value;
+}
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read the input integer N
+
+    // Array to hold pairs of integers
+    int pairs[N - 1][2];
+
+    // Read the pairs of integers
+    for (int i = 0; i < N - 1; i++) {
+        scanf("%d %d", &pairs[i][0], &pairs[i][1]);
+    }
+
+    // Calculate the result
+    long long result = calculate_result(N, pairs);
+
+    // Output the final computed result
+    printf("%lld\n", result);
+    return 0;
+}
+```

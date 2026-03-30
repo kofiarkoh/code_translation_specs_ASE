@@ -1,0 +1,138 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+int main(void){
+
+    int N;
+
+    scanf("%d", &N);
+
+    char S1[N+1], S2[N+1];
+
+    scanf("%s%s", S1, S2);
+
+    long long ans = 1;
+
+    int t;
+
+    if(S1[0] == S2[0]){
+        ans = 3;
+        t = 1;
+    }else{
+        ans = 6;
+        t = 0;
+    }
+
+    long long m = 1000000007;
+
+    for(int i = 1; i < N; i++){
+        if(S1[i] == S2[i]){
+            if(t == 1){
+                ans = (ans * 2) % m;
+            }
+            t = 1;
+        }
+        if(S1[i] == S1[i+1]){
+            if(t == 1){
+                ans = (ans * 2) % m;
+            }else{
+                ans = (ans * 3) % m;
+            }
+            t = 0;
+        }
+    }
+
+    printf("%lld\n", ans);
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program calculates a numerical result based on the comparison of two input strings of equal length. The result is derived from specific rules regarding character matches and is returned modulo a predefined constant.
+
+# 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- Two strings \( S1 \) and \( S2 \), each of length \( N \).
+
+# 3. Outputs
+- A single long integer value representing the computed result based on the input strings.
+
+# 4. Preconditions
+- The input integer \( N \) must be a positive integer.
+- The lengths of both strings \( S1 \) and \( S2 \) must equal \( N \).
+
+# 5. Postconditions
+- The output value is a non-negative integer that is the result of the computation, constrained to be less than \( 1000000007 \).
+
+# 6. Invariants
+- The output value is consistently computed based on the character comparisons between \( S1 \) and \( S2 \).
+- The result is updated based on specific conditions related to character equality and adjacency.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer for \( N \), or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur based on character comparisons between the two strings, affecting the value of the result during each iteration of the processing loop.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must execute within a reasonable time frame for typical input sizes, with memory usage proportional to the input size \( N \).
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately describe how the result is computed based on the character comparisons, particularly regarding the multiplicative factors applied when characters match or are adjacent.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the rules for how the result is updated when characters in the strings match or are adjacent, including the specific multiplicative factors (e.g., 2 or 3) that are applied based on the context of the matches.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses specific rules for updating the result based on character comparisons, including different multiplicative factors depending on whether the characters are equal or adjacent, and whether they follow a certain pattern. The failing test case indicates that the generated program does not account for these rules, leading to a significant discrepancy in the output. The source program's logic suggests that the counting mechanism is more complex than simply incrementing a result based on matches, which is not captured in the current specification.
+
+```

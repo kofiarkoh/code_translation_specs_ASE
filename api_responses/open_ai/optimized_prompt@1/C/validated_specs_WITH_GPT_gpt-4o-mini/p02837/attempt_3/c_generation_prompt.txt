@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum number of set bits in any valid combination of integers derived from input constraints. Validity is determined by specific conditions based on pairs of integers, where the relationship between the bits represented by these pairs dictates whether a combination is considered valid. A combination is valid if, for each constraint, the state of the bits in the combination satisfies the conditions defined by the pairs.
+
+## 2. Inputs
+- An integer `n` representing the number of groups, which must be non-negative and less than or equal to 20.
+- For each group `i`, an integer `a[i]` indicating the number of constraints, which must be non-negative and less than or equal to 20.
+- For each constraint in a group, two integers `x[i][j]` and `y[i][j]` that define the conditions for validity. The values of `x[i][j]` must be within the range of 1 to `n`, and `y[i][j]` can be either `0` or `1`.
+
+## 3. Outputs
+- An integer representing the maximum number of set bits in any valid combination of integers based on the provided constraints.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative and less than or equal to 20.
+- Each `a[i]` must be non-negative and less than or equal to 20.
+- The values of `x[i][j]` must be within the range of 1 to `n`.
+
+## 5. Postconditions
+- The output integer is the maximum count of set bits from valid combinations of integers based on the provided constraints.
+
+## 6. Invariants
+- The array `a` remains unchanged throughout the execution.
+- The arrays `x` and `y` are populated with the constraints before any validity checks are performed.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios explicitly; behavior is undefined for inputs that do not meet the preconditions.
+
+## 8. State Transitions
+- The state transitions occur as the code iterates through all possible combinations of integers, represented by the integer `i`, which ranges from `0` to `2^n - 1`. For each combination, the validity is checked against the constraints defined by `x` and `y`. If a combination is valid, the count of set bits is calculated and compared to the current maximum.
+
+## 9. Validity Conditions
+- A combination represented by the integer `i` is considered valid if, for each group `j`, whenever the bit corresponding to `x[j][k]` is set (i.e., `i` has a 1 at the position `x[j][k] - 1`), the bit corresponding to `y[j][k]` must also be set (i.e., `i` has a 1 at the position `y[j][k] - 1`). If `y[j][k]` is `0`, the corresponding bit in `i` must not be set. If this condition is violated for any constraint, the combination is deemed invalid.
+
+## 10. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is exponential in relation to `n`, specifically O(2^n), due to the combination checks.
+
+```

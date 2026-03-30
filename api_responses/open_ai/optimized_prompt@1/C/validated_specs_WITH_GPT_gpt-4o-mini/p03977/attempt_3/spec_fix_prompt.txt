@@ -1,0 +1,130 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code reads a sequence of non-negative integers from input, processes each pair of integers to compute a result based on their parity, and outputs the results as a sequence of strings, each followed by a newline. The computation involves specific arithmetic operations that depend on whether the first integer in the pair is odd or even.
+
+## 2. Inputs
+- A sequence of characters representing non-negative integers, read from standard input.
+- Each integer must be represented in decimal format and can be separated by any non-digit character.
+
+## 3. Outputs
+- A sequence of strings, each representing the computed result for a pair of integers, followed by a newline character.
+
+## 4. Preconditions
+- The input must contain at least one pair of valid non-negative integers.
+- The input must not exceed the buffer size limits (10,000 characters).
+
+## 5. Postconditions
+- The output will contain one line for each processed pair of integers, formatted as strings.
+- Each line will represent the computed result based on the arithmetic operations defined by the parity of the first integer in the pair.
+
+## 6. Invariants
+- The output buffer will not exceed its maximum size of 20,000 characters.
+- The input buffer will always be read completely before processing begins.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input contains invalid characters (non-digit characters) before a valid integer, the processing will stop at that point.
+- The program does not handle cases where the input is malformed or does not contain valid integers.
+
+## 8. State Transitions
+- The state transitions occur as the program reads input, processes integers, and updates the output buffer. Each successful read and computation results in a transition to the next integer pair.
+
+## 9. Non-functional Constraints
+- The program must complete execution within a reasonable time frame, given the constraints of input size and processing logic.
+
+## 10. Arithmetic Operations
+- For each pair of integers, the first integer \( N \) is evaluated for parity:
+  - If \( N \) is odd, the result is computed as \( 127 \times (N - 1) + D \).
+  - If \( N \) is even, the result is computed as \( 127 \times N - D \).
+- The computed result is then formatted as a string and added to the output.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the input integers are grouped into pairs for processing. It implies that pairs are formed sequentially, but it does not specify how to handle cases where the input may not be perfectly formatted or where there are additional non-digit characters.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how to handle the extraction of integer pairs from the input, especially in cases where there are non-digit characters between the integers. It should specify that the program should continue to extract integers until no more valid pairs can be formed, rather than stopping at the first invalid character.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program processes the input by reading characters until it encounters a non-digit character, but it does not explicitly handle cases where the input may contain multiple non-digit characters between valid integers. The behavior of the source program suggests that it expects to find pairs of integers continuously, and any interruption in this sequence could lead to incorrect results, as seen in the failing test case. The output produced does not match the expected results, indicating that the specification's abstraction of input handling is insufficient.
+
+```

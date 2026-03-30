@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a lazy segment tree that supports range updates and range queries. It allows for efficient updates to a range of elements and calculates the maximum value in a specified range after applying the updates. The lazy propagation mechanism is utilized to defer updates, ensuring that changes are applied only when necessary.
+
+## 2. Inputs
+- An integer `n` representing the number of elements.
+- An integer `q` representing the number of queries.
+- A sequence of `n` integers to initialize the segment tree.
+- For each query, two integers `i` and `t` representing the index to update and the new value.
+
+## 3. Outputs
+- The maximum value in the range from index `0` to `n+1` after initialization and after each query.
+
+## 4. Preconditions
+- The input integers `n` and `q` must be non-negative.
+- The sequence of integers must have a length equal to `n`.
+- The index `i` in each query must be within the bounds of the segment tree.
+
+## 5. Postconditions
+- After initialization, the segment tree reflects the cumulative sums of the input sequence.
+- After each query, the segment tree is updated, and the maximum value in the specified range is recalculated and output.
+
+## 6. Invariants
+- The segment tree maintains the correct values for each node, reflecting the maximum values and the necessary updates.
+- The lazy propagation mechanism ensures that updates are applied correctly without immediate recalculation of all affected nodes. Specifically, updates are accumulated in a lazy manner, and the actual values are computed only when queried.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during the creation of the segment tree, the program may terminate unexpectedly.
+- If the input values for `i` in queries are out of bounds, the behavior is undefined, and the program may produce incorrect results.
+
+## 8. State Transitions
+- The state transitions occur during the initialization of the segment tree and during each update operation. The internal state of the segment tree nodes is modified based on the updates and queries, with lazy values being propagated down the tree as necessary.
+
+## 9. Non-functional Constraints
+- The implementation is expected to handle updates and queries in logarithmic time relative to the number of elements, ensuring efficiency for large inputs. The lazy propagation mechanism contributes to this efficiency by minimizing the number of immediate updates required.
+
+```

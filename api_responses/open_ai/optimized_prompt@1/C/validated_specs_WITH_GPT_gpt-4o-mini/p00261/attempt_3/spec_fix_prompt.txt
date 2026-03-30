@@ -1,0 +1,138 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+#define A 0
+#define X 1
+#define Y 2
+#define Z 3
+#define W 4
+#define B 5
+#define NA 6
+
+int map[6][2] = {
+    {X, Y},
+    {NA, Z},
+    {X, NA},
+    {W, B},
+    {B, Y},
+    {Y, X}
+};
+
+int main(void)
+{
+    char path[110];
+    int i;
+    int city;
+    
+    while (1){
+        scanf("%s", path);
+        if (path[0] == '#'){
+            break;
+        }
+        
+        city = A;
+        i = 0;
+        while (path[i] != '\0'){
+            if (map[city][path[i] - '0'] == NA){
+                break;
+            }
+            city = map[city][path[i] - '0'];
+            i++;
+        }
+        if (city == B){
+            printf("Yes\n");
+        }
+        else {
+            printf("No\n");
+        }
+    }
+    return (0);
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The system processes a sequence of character inputs representing paths through a predefined state map. It determines if the final state after processing the input path corresponds to a specific target state.
+
+## 2. Inputs
+- A sequence of character strings, each representing a path, terminated by a string starting with the character '#', which indicates the end of input.
+
+## 3. Outputs
+- For each input path, the system outputs either "Yes" or "No" based on whether the final state corresponds to the designated target state, which is defined as state B.
+
+## 4. Preconditions
+- Input paths consist of characters representing valid indices within the range of the state map (0 to 5).
+- The input must be terminated by a string starting with the character '#'.
+
+## 5. Postconditions
+- The output reflects whether the final state after processing the input path is the designated target state (state B).
+
+## 6. Invariants
+- The state transitions are governed by a fixed mapping that does not change during execution.
+- The input path is processed sequentially until either the end of the path is reached or an invalid transition occurs.
+
+## 7. Error Handling / Exceptional Behavior
+- If an invalid character is encountered that does not correspond to a valid index (0 to 5), the processing of the current path is halted immediately, and the output will be "No".
+- The system does not enter an infinite loop; it will terminate the processing of the current path upon encountering an invalid transition.
+
+## 8. State Transitions
+- The system transitions between states based on the input characters, following a predefined mapping until an invalid transition is encountered or the end of the input path is reached. If an invalid transition occurs, the current path processing is halted.
+
+## 9. Non-functional Constraints
+- The system is expected to handle input paths of varying lengths efficiently, with a maximum length of 109 characters, as the input buffer is defined to hold up to 110 characters (including the null terminator).
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong transition rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately define the state transitions based on the input characters. It implies a direct mapping from input characters to state transitions without detailing how the transitions should occur based on the current state.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the exact state transitions that occur for each valid input character from each state. It should specify how the state changes based on the current state and the input character, rather than assuming a linear or simplistic mapping.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a 2D array `map` to define specific transitions between states based on the input character. The behavior of the program is determined by this mapping, which is not reflected in the generated C program or the current specification. The failing test case indicates that the expected transitions (e.g., from state 1 to state 2) are not being handled correctly, suggesting that the specification's abstraction of state transitions is too vague or incorrect.
+
+```

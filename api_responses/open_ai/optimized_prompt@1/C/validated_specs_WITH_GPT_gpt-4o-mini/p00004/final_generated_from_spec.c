@@ -1,0 +1,30 @@
+#include <stdio.h>
+
+int main() {
+    float a, b, c, d, e, f;
+    
+    // Read input until the end of the input stream
+    while (scanf("%f %f %f %f %f %f", &a, &b, &c, &d, &e, &f) == 6) {
+        // Check precondition: a must be non-zero to avoid division by zero
+        if (a == 0) {
+            continue; // Skip this set of inputs if a is zero
+        }
+
+        // Compute derived values
+        float bai = d / a; // bai = d / a
+        float aa = a * bai; // aa = a * bai
+        float bb = b * bai; // bb = b * bai
+        float cc = c * bai; // cc = c * bai
+        
+        // Check for potential division by zero in the calculation of y
+        if (e - bb != 0) {
+            float y = (f - cc) / (e - bb); // y = (f - cc) / (e - bb)
+            float x = (c - b * y) / a; // x = (c - b * y) / a
+            
+            // Output the results formatted to three decimal places
+            printf("%.3f %.3f\n", x, y);
+        }
+    }
+    
+    return 0; // Graceful termination upon reaching the end of input
+}

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a sequence of integers representing chair identifiers and outputs a rearranged sequence where each identifier is replaced by the index of its last occurrence in the input sequence. If an identifier does not appear in the input, it outputs zero for that identifier. The output sequence reflects the order of identifiers as they appear in the input, ensuring that the last occurrence of each identifier is correctly represented.
+
+## 2. Inputs
+- A single integer `n` representing the number of chair identifiers.
+- A sequence of `n` integers, each representing a chair identifier.
+
+## 3. Outputs
+- A sequence of `n` integers, where each integer corresponds to the index of the last occurrence of the respective chair identifier in the input sequence. If an identifier does not exist in the input, the output is zero.
+
+## 4. Preconditions
+- The input integer `n` must be a positive integer.
+- Each chair identifier must be a non-negative integer less than or equal to `n`.
+
+## 5. Postconditions
+- The output sequence contains exactly `n` integers.
+- Each integer in the output corresponds to the index of the last occurrence of the respective chair identifier in the input sequence or zero if the identifier does not exist.
+
+## 6. Invariants
+- The input sequence is processed in a manner that maintains the order of identifiers.
+- The output sequence is constructed based on the last occurrence indices of each identifier, reflecting their order of appearance in the input.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid inputs (e.g., negative integers or identifiers greater than `n`).
+- Memory allocation failures are not explicitly handled, which may lead to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve reading input identifiers, storing their last occurrence indices, and then generating the output based on the last recorded positions of each identifier in the order they were input. When an identifier appears multiple times, the output reflects the index of its last occurrence, ensuring that the order of identifiers is preserved.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity of O(n) for processing the input and generating the output.
+- The space complexity is O(n) due to the storage of identifiers and their occurrences.
+
+```

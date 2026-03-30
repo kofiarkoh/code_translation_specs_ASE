@@ -1,0 +1,163 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int get_uint() {
+    int n = 0;
+    int c = getchar_unlocked();
+    if(c < 48 || 57 < c) return c;
+    while(47 < c && c < 58) n = 10 * n + (c & 0xf), c = getchar_unlocked();
+    return n;
+}
+void put_uint(int n) {
+    if(!n) {
+        putchar_unlocked('0');
+        return;
+    }
+    char buf[11];
+    int i = 0;
+    while(n) buf[i++] = (char)(n % 10 + '0'), n /= 10;
+    while(i--)putchar_unlocked(buf[i]);
+}
+
+typedef struct Node {
+    int edge_to[100];
+    int edge_cost[100];
+    int edge_size;
+    int cost;
+    int visited;
+} Node;
+void dijkstra_noheap(Node *node, const int n) {
+    for(int i = 0; i < n; ++i) node[i].cost = -1, node[i].visited = 0;
+    node[0].cost = 0;
+    while(1) {
+        Node *next = NULL;
+        for(Node *it = node; it != node + n; ++it) {
+            if(it->visited || it->cost < 0) continue;
+            if(next == NULL || it->cost < next->cost) next = it;
+        }
+        if(next == NULL) break;
+        next->visited = 1;
+        Node u = *next;
+        for(int i = 0; i < u.edge_size; ++i) {
+            int to = u.edge_to[i];
+            int cost = u.cost + u.edge_cost[i];
+            if(node[to].cost < 0 || cost < node[to].cost) node[to].cost = cost;
+        }
+    }
+}
+int main(int argc, char **argv) {
+    int n = get_uint();
+    Node node[n];
+    for(int i = 0; i < n; ++i) {
+        int u = get_uint();
+        int k = node[u].edge_size = get_uint();
+        for(int j = 0; j < k; ++j) {
+            node[u].edge_to[j] = get_uint();
+            node[u].edge_cost[j] = get_uint();
+        }
+    }
+    dijkstra_noheap(node, n);
+    for(int i = 0; i < n; ++i) put_uint(i), putchar_unlocked(' '), put_uint(node[i].cost), putchar_unlocked('\n');
+    return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements Dijkstra's algorithm to compute the shortest path costs from a source node to all other nodes in a directed graph represented by a set of nodes, each with associated edges and costs. It reads the graph structure from input, processes it, and outputs the shortest path costs.
+
+# 2. Inputs
+- An integer representing the number of nodes in the graph.
+- For each node:
+  - An integer representing the node index.
+  - An integer representing the number of edges connected to the node.
+  - For each edge:
+    - An integer representing the destination node index.
+    - An integer representing the cost of the edge.
+
+# 3. Outputs
+- For each node, the output consists of:
+  - The node index.
+  - The shortest path cost from the source node to that node.
+
+# 4. Preconditions
+- The input must provide a valid integer for the number of nodes.
+- Each node index must be within the range of valid node indices (0 to n-1).
+- The number of edges for each node must be a non-negative integer.
+- The destination node indices must be valid and within the range of valid node indices.
+
+# 5. Postconditions
+- Each node's cost is updated to reflect the shortest path cost from the source node.
+- If a node is unreachable from the source node, its cost remains as initialized (-1).
+
+# 6. Invariants
+- The cost of the source node is always initialized to 0.
+- Nodes that have been visited will not be processed again.
+- The algorithm guarantees that once a node's cost is finalized, it will not change.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input for the number of nodes is invalid (e.g., negative), the behavior is undefined.
+- If the input for edges or costs is invalid, the behavior is also undefined.
+- The algorithm does not handle cycles or negative edge costs explicitly.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as nodes are marked as visited and their costs are updated based on the edges processed.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates in O(n^2) time complexity in the worst case, where n is the number of nodes, due to the lack of a priority queue.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong assumption.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not explicitly state how the algorithm should handle cases where nodes are unreachable due to the absence of edges or disconnected components in the graph. It assumes that all nodes can be reached from the source node without considering the possibility of isolated nodes or disconnected subgraphs.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that if a node is unreachable from the source node, its cost will remain as initialized (which is -1). Additionally, it should specify that the algorithm does not guarantee that all nodes will be reachable from the source node, especially in cases where the graph is not fully connected.
+
+D. **Why this clarification is supported by the source program**  
+The source program initializes the cost of all nodes to -1 and only updates the cost for nodes that are reachable from the source node. If a node has no incoming edges or is part of a disconnected component, its cost will remain -1, which aligns with the observed behavior in the failing test case where several nodes returned -1 as their cost. This indicates that the specification's assumptions about node connectivity and reachability are not adequately addressed.
+
+```

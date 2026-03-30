@@ -1,0 +1,182 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ ALDS1_14_C Pattern Search
+// 2018.5.13 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+
+int in()
+{
+	int n = 0, c = gc();
+	do n = 10*n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+#define MOD 1000000007LL
+#define C1  401
+#define C2  397
+
+#define MAX_L 1005
+char text[MAX_L][MAX_L]; int H, W;
+char pat[MAX_L][MAX_L]; int R, C;
+int  a[MAX_L][MAX_L], b[MAX_L][MAX_L];
+int  t[MAX_L][MAX_L];
+
+void genHash(int res[MAX_L][MAX_L], char s[MAX_L][MAX_L], int h, int w)
+{
+	int r, c;
+	long long x, y, k;
+
+	memset(t, 0, sizeof(t));
+	memset(res, 0, sizeof(res));
+
+	x = 1, y = 1;
+	for (c = 0; c < C; c++) x = (x*C1) % MOD;
+	for (r = 0; r < R; r++) y = (y*C2) % MOD;
+
+	for (r = 0; r < h; r++) {
+		k = 0;
+		for (c = 0; c < C; c++) k = (k*C1 + s[r][c]) % MOD;
+		for (c = 0; c <= w-C; c++) {
+			t[r][c] = (int)k;
+			if (c + C < w) k = (k*C1-s[r][c]*x+s[r][c+C]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+
+	for (c = 0; c < w; c++) {
+		k = 0;
+		for (r = 0; r < R; r++) k = (k*C2+t[r][c]) % MOD;
+		for (r = 0; r <= h-R; r++) {
+			res[r][c] = (int)k;
+			if (r+R < h) k = (k*C2-t[r][c]*y+t[r+R][c]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+}
+
+int main()
+{
+	int r, c;
+	char ch, *p;
+
+	H = in(), W = in();
+	for (r = 0; r < H; r++) {
+		p = text[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	R = in(), C = in();
+	for (r = 0; r < R; r++) {
+		p = pat[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	genHash(a, text, H, W);
+	genHash(b, pat, R, C);
+
+	for (r = 0; r <= H-R; r++) for (c = 0; c <= W-C; c++) {
+		if (a[r][c] == b[0][0]) printf("%d %d\n", r, c);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code performs a pattern search within a two-dimensional text grid, identifying all starting positions where a specified pattern grid matches the text grid. It computes hash values for both the text and the pattern to facilitate efficient comparison.
+
+# 2. Inputs
+- Two integers representing the height and width of the text grid.
+- A two-dimensional character array representing the text grid.
+- Two integers representing the height and width of the pattern grid.
+- A two-dimensional character array representing the pattern grid.
+
+# 3. Outputs
+- A list of pairs of integers, each representing the row and column indices in the text grid where the pattern grid matches.
+
+# 4. Preconditions
+- The height and width of the text grid must be positive integers.
+- The height and width of the pattern grid must be positive integers.
+- The dimensions of the pattern grid must not exceed those of the text grid.
+
+# 5. Postconditions
+- The output will contain all valid starting positions of the pattern within the text, if any exist.
+- If no matches are found, no output will be produced.
+
+# 6. Invariants
+- The hash values for the text and pattern grids are consistently computed based on their respective contents.
+- The text and pattern grids remain unchanged throughout the execution of the program.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle input errors or invalid dimensions; it assumes valid input is provided.
+- If the input does not conform to expected formats, behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input to computing hash values, and finally to outputting results based on comparisons of hash values.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is designed to operate efficiently with respect to time complexity, leveraging hashing to reduce the number of direct comparisons needed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong counting rule.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define how the pattern matching should handle cases where the pattern does not exist in the text grid, particularly in terms of the expected output format and the conditions under which matches are reported.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the conditions under which a match is considered valid, particularly regarding the exact character matches in the text grid and how the search should handle overlapping or adjacent characters.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses a hashing mechanism to compare sub-grids of the text with the pattern, but it does not account for the specific character matches beyond the hash values. The failing test case indicates that the generated program is incorrectly identifying a match at (1, 1) when the expected output is (1, 2), suggesting that the matching logic may not be correctly implemented or that the specification does not adequately capture the necessary conditions for a valid match. This discrepancy highlights the need for a more precise definition of what constitutes a match in the context of the pattern search.
+
+```

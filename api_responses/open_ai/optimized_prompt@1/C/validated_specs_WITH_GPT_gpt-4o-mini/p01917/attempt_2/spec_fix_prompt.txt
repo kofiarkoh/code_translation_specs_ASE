@@ -1,0 +1,135 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#define min(p,q)((p)<(q)?(p):(q))
+
+//自分より真に大きいのが7人以下
+//取る点としては、nかn+1だけを考慮すればよい
+
+int n;
+int s[110],t[110];
+int a[3][110],x[110];
+
+void f(int*p){
+	for(int i=0;i<n;i++){
+		int cnt=0;
+		for(int j=0;j<n;j++)if(p[j]>p[i])cnt++;
+		t[i]=x[cnt];
+	}
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%d",x+i);
+	for(int i=0;i<n;i++)scanf("%d%d%d",a[0]+i,a[1]+i,a[2]+i);
+	int ans=1000;
+	for(int k=0;k<3;k++){
+		for(int i=0;i<n;i++)s[i]=0;
+		for(int kk=0;kk<3;kk++)if(kk!=k){
+			f(a[kk]);
+			for(int i=0;i<n;i++)s[i]+=t[i];
+		}
+
+		int ori=a[k][0];
+		for(int i=1;i<n;i++){
+			for(int d=0;d<2;d++)if(a[k][i]+d>ori){
+				a[k][0]=a[k][i]+d;
+				f(a[k]);
+				int cnt=0;
+				for(int j=0;j<n;j++)if(s[j]+t[j]>s[0]+t[0])cnt++;
+				if(cnt<=7)ans=min(ans,a[k][0]-ori);
+			}
+		}
+		a[k][0]=ori;
+	}
+	if(ans==1000)puts("Saiko");
+	else printf("%d\n",ans);
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the minimum difference between a modified value and its original value for a specified set of inputs, ensuring that the number of elements exceeding a certain threshold does not exceed a predefined limit.
+
+# 2. Inputs
+- An integer `n` representing the number of elements.
+- An array `x` of size `n` containing integer values.
+- A 2D array `a` of size 3x`n`, where each row contains `n` integer values.
+
+# 3. Outputs
+- An integer representing the minimum difference found, or a specific message if no valid difference exists.
+
+# 4. Preconditions
+- The input integer `n` must be greater than 0 and less than or equal to 110.
+- The arrays `x` and `a` must be properly populated with integer values before processing.
+
+# 5. Postconditions
+- If a valid minimum difference is found, it is output as an integer.
+- If no valid difference is found, a specific message is printed.
+
+# 6. Invariants
+- The array `s` is reset to zero for each iteration of the outer loop.
+- The function `f` consistently computes a transformation based on the current state of the input array.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not meet the preconditions, the behavior is undefined; no explicit error handling is implemented.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the modification of the array `a` and the computation of the array `s` based on the results of the function `f`.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is manageable for the input size, ensuring efficient execution for the maximum constraints.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately capture the logic of how the minimum difference is computed based on the transformations applied to the elements of the array `a`. Specifically, it lacks details on how the function `f` should transform the input values and how the counting of elements exceeding a threshold is integrated into the computation of the minimum difference.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the transformation logic applied to the elements of the array `a` and how the results of this transformation influence the computation of the minimum difference. It should also specify the conditions under which the count of elements exceeding a certain threshold is checked and how this affects the final output.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes a specific mechanism for counting how many elements exceed a certain threshold (specifically, the count of elements greater than the modified value) and uses this count to determine if the current modification is valid (i.e., does not exceed 7). This logic is crucial for correctly computing the minimum difference, but it is not reflected in the current specification, leading to the observed mismatch in behavior.
+
+```

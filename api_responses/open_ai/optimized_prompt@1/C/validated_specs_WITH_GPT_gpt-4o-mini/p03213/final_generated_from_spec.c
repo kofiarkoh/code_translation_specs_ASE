@@ -1,0 +1,50 @@
+#include <stdio.h>
+
+#define MAX_N 1000 // Assuming a reasonable upper limit for n
+
+// Function to count the occurrences of prime factors
+void count_prime_factors(int n, int counts[]) {
+    for (int i = 2; i <= n; i++) {
+        int num = i;
+        for (int j = 2; j <= num; j++) {
+            while (num % j == 0) {
+                counts[j]++;
+                num /= j;
+            }
+            if (num == 1) break; // No more factors
+        }
+    }
+}
+
+// Function to compute num(a)
+int num(int a, int counts[]) {
+    int count = 0;
+    for (int i = 2; i < MAX_N; i++) {
+        if (counts[i] >= a - 1) {
+            count++;
+        }
+    }
+    return count;
+}
+
+int main() {
+    int n;
+    int counts[MAX_N] = {0}; // Initialize counts to zero
+
+    // Read input
+    scanf("%d", &n);
+
+    // Count prime factors for numbers from 2 to n
+    count_prime_factors(n, counts);
+
+    // Calculate the final result based on the specified formula
+    int ans = num(75, counts) +
+              num(25, counts) * (num(3, counts) - 1) +
+              num(15, counts) * (num(5, counts) - 1) +
+              num(5, counts) * (num(5, counts) - 1) * (num(3, counts) - 2) / 2;
+
+    // Output the result
+    printf("%d\n", ans);
+
+    return 0;
+}

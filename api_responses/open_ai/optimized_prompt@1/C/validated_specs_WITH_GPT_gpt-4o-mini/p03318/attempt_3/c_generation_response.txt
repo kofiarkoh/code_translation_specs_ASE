@@ -1,0 +1,45 @@
+```c
+#include <stdio.h>
+
+// Function to calculate the digit sum of a positive integer
+long digit_sum(long x) {
+    long sum = 0;
+    while (x > 0) {
+        sum += x % 10; // Add the last digit to the sum
+        x /= 10;       // Remove the last digit
+    }
+    return sum;
+}
+
+int main() {
+    long n; // Number of values to compute
+    // Read input
+    if (scanf("%ld", &n) != 1 || n < 0) {
+        return 1; // Undefined behavior for invalid input or negative n
+    }
+
+    long current_value = 1; // Initialize the first value to 1
+
+    for (long i = 0; i < n; i++) {
+        printf("%ld\n", current_value); // Output the current value
+
+        // Calculate the next value based on the current value
+        long candidates[3]; // Array to hold candidate values
+
+        // Generate candidates based on the current value and its digit sum
+        candidates[0] = current_value + digit_sum(current_value);
+        candidates[1] = current_value + 2 * digit_sum(current_value);
+        candidates[2] = current_value + 3 * digit_sum(current_value);
+
+        // Find the minimum candidate that is greater than the current value
+        current_value = candidates[0]; // Start with the first candidate
+        for (int j = 1; j < 3; j++) {
+            if (candidates[j] > current_value) {
+                current_value = candidates[j]; // Update to the next valid candidate
+            }
+        }
+    }
+
+    return 0; // Successful execution
+}
+```

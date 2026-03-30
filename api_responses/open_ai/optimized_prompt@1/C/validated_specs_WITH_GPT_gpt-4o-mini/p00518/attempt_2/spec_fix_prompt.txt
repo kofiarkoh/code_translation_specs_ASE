@@ -1,0 +1,178 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD (10007)
+
+int main(void)
+{
+    int N;
+    char in[1001];
+    int key, key_prev, key_prev_prev;
+    int schedule[8], schedule_next[8];
+    int conv;
+    int i, j, k;
+    
+    
+    scanf("%d", &N);
+    scanf("%s", in);
+
+    key_prev = 1;   // 最初に鍵を持っているのはJ
+    key_prev_prev = 0;
+ 
+ 
+    memset(schedule, 0, sizeof(schedule));
+    schedule[1] = 1;
+    
+    for (i = 0; i < N; i++){
+        switch (in[i]){
+          case 'J':
+            key = 1;
+            break;
+          
+          case 'O':
+            key = 2;
+            break;
+            
+          case 'I':
+            key = 4;
+            break;
+        }
+        memset(schedule_next, 0, sizeof(schedule_next));
+ 
+        if (i == 0){
+            for (j = 0; j <= 7; j++){
+                if ((j & (key | key_prev)) == (key | key_prev)){
+                    schedule_next[j] = 1;
+                }
+            }
+            key_prev_prev = key_prev;
+            key_prev = key;
+            memcpy(schedule, schedule_next, sizeof(schedule));
+
+//for (j = 0; j <= 7; j++){
+//    printf("(%d:%d)", j, schedule[j]);
+//}
+//printf("\n");
+            continue;
+        }
+        for (j = 0; j <= 7; j++){
+//            if ((j & (key | key_prev)) == (key | key_prev)){
+            if ((j & (key | key_prev)) != 0){
+                for (k = 0; k <= 7; k++){
+
+                    if (((k & j) != 0) && ((k & key) != 0)){
+//printf("(%d,%d,%d)", k, j, key);
+                        schedule_next[k] += schedule[j];
+						schedule_next[k] %= MOD;
+                    }
+                }
+            }
+        }
+        
+        key_prev_prev = key_prev;
+        key_prev = key;
+        memcpy(schedule, schedule_next, sizeof(schedule));
+        
+//for (j = 0; j <= 7; j++){
+//    printf("[%d:%d]", j, schedule[j]);
+//}
+//printf("\n");
+
+    }
+    conv = 0;
+    for (i = 0; i <= 7; i++){
+        conv += schedule[i];
+		conv %= MOD;
+    }
+    
+    printf("%d\n", conv);
+    
+    return (0);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program processes a sequence of characters representing keys and computes a cumulative value based on the combinations of keys held over the sequence. The final result is printed as an integer modulo a predefined constant.
+
+# 2. Inputs
+- An integer \( N \) representing the number of characters in the input sequence.
+- A string of length \( N \) consisting of characters from the set { 'J', 'O', 'I' }.
+
+# 3. Outputs
+- An integer representing the cumulative value derived from the input sequence, printed modulo 10007.
+
+# 4. Preconditions
+- The input integer \( N \) must be non-negative and less than or equal to 1000.
+- The input string must contain exactly \( N \) characters, each being one of 'J', 'O', or 'I'.
+
+# 5. Postconditions
+- The output integer is the sum of valid combinations of keys represented by the input string, computed modulo 10007.
+
+# 6. Invariants
+- The program maintains a schedule array that tracks the number of ways to hold combinations of keys throughout the processing of the input string.
+- The keys represented by 'J', 'O', and 'I' correspond to specific binary values that influence the combinations tracked in the schedule.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or characters outside the specified set. It assumes valid input as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur with each character processed from the input string, updating the schedule based on the current and previous keys held.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a time complexity that is linear with respect to the input size, specifically \( O(N) \), where \( N \) is the length of the input string. The space complexity is constant, as the size of the schedule is fixed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how combinations of keys are tracked and how they influence the cumulative value. It simplifies the behavior to just counting occurrences of each key rather than considering the interactions between them.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the combinations of keys ('J', 'O', 'I') interact and contribute to the cumulative value. It should detail the logic behind the transitions in the schedule array and how the cumulative value is derived from these combinations.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a bitwise approach to track combinations of keys, where the state of the `schedule` array is influenced by the previous keys held and the current key being processed. This complexity is not captured in the current specification, which leads to a significant difference in behavior when the generated code is executed with certain inputs, as evidenced by the failing test case. The source program's logic indicates that the cumulative value is not merely a count of keys but rather a result of valid combinations of keys, which is not reflected in the generated code.
+
+```

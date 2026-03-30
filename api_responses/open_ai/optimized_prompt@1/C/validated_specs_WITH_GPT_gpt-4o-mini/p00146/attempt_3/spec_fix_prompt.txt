@@ -1,0 +1,153 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+int a[110],b[110],c[110],n;
+double f(int i,int j,int k){
+  int w=0,l;
+  if(j==0)return 0;
+  for(l=0;l<n;l++){
+    if(j&(1<<l))w+=c[l]*20;
+  }
+  return abs(b[k]-b[i])/2000.0*(w+70);
+}
+double d[20][1<<16]={};
+int fr[20][1<<16]={};
+int main(){
+  int i,j,k,r[110];
+  scanf("%d",&n);
+  for(i=0;i<n;i++)scanf("%d %d %d",&a[i],&b[i],&c[i]);
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)d[i][j]=1e18;
+  }//printf("a\n");
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)fr[i][j]=-1;
+  }
+  for(i=0;i<n;i++)d[i][1<<i]=0;
+  for(j=0;j<(1<<n);j++){
+    for(i=0;i<n;i++){
+      if((1<<i)&j==0)continue;
+      for(k=0;k<n;k++){
+	if(j&(1<<k))continue;
+	if(d[k][j+(1<<k)]>d[i][j]+f(i,j,k)){
+	  d[k][j+(1<<k)]=d[i][j]+f(i,j,k);
+	  fr[k][j+(1<<k)]=i;
+	}
+      }
+    }
+  }//printf("b\n");
+  /*for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)printf("%f ",d[i][j]);printf("\n");
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<(1<<n);j++)printf("%d ",fr[i][j]);printf("\n");
+    }//*/
+  k=j-1;
+  for(i=j=0;i<n;i++){
+    if(d[i][k]<d[j][k])j=i;
+  }//printf("%d %d\n",j,fr[j][k]);
+  r[n-1]=j;
+  for(i=1;i<n;i++){//printf("%d:",j);
+    r[n-i-1]=fr[r[n-i]][k];
+    k-=(1<<r[n-i]);
+    //j=fr[r[n-i-1]][k];
+  }//printf("d\n");
+  //for(i=0;i<n;i++)printf("%d ",r[i]);printf("\n");
+  for(i=0;i<n-1;i++)printf("%d ",a[r[i]]);
+  printf("%d\n",a[r[i]]);
+  return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a sequence of indices based on a set of input values, optimizing a cost function that is influenced by the differences between specific elements in the array `b[]` and weighted by contributions from the array `c[]`. The output sequence minimizes the computed cost while adhering to the constraints of the input data.
+
+## 2. Inputs
+- An integer `n` representing the number of elements, which must be a non-negative integer.
+- Three arrays of integers, each of size `n`:
+  - `a[]`: An array containing the first set of values.
+  - `b[]`: An array containing the second set of values, which is used to compute differences.
+  - `c[]`: An array containing weights that influence the cost function.
+
+## 3. Outputs
+- A sequence of integers representing indices from the array `a[]`, printed in an order that corresponds to the minimized cost derived from the optimization process.
+
+## 4. Preconditions
+- The input integer `n` must be a non-negative integer.
+- The arrays `a[]`, `b[]`, and `c[]` must be populated with exactly `n` elements each before processing.
+
+## 5. Postconditions
+- The output sequence of indices corresponds to a minimized cost based on the defined function, ensuring that all indices are valid and within the bounds of the input arrays.
+
+## 6. Invariants
+- The cost matrix `d[][]` is initialized to a large value (1e18), ensuring that any valid computed cost will be less than this initial value.
+- The predecessor matrix `fr[][]` is initialized to -1, indicating no predecessors until established through computation.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to input size or invalid data. It assumes valid input is provided.
+- If `n` is zero, the output will be empty, as there are no elements to process.
+
+## 8. State Transitions
+- The state transitions occur through the iterative updates of the cost matrix `d[][]` and the predecessor matrix `fr[][]` as the algorithm processes combinations of indices using a bitmasking technique. The cost function is computed based on the indices represented by the current bitmask, and the matrices are updated accordingly.
+
+## 9. Cost Function
+- The cost function is defined as follows: for a given pair of indices `i` and `k`, and a bitmask `j` representing a set of indices, the cost is computed based on the absolute difference between `b[k]` and `b[i]`, scaled by a factor that includes the weighted contributions from `c[]`. Specifically, the contributions are determined by the bits set in the bitmask `j`, where each set bit corresponds to a weight from `c[]` multiplied by 20.
+
+## 10. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial in relation to `n`, specifically involving operations on `2^n` combinations, which may limit practical input sizes for larger `n`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing edge case or wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not address the potential for runtime errors that may arise from invalid input conditions, such as the handling of edge cases where `n` is zero or where the arrays `a[]`, `b[]`, or `c[]` contain invalid or unexpected values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the program behaves when `n` is zero or when the input arrays are not properly populated. It should also specify the expected behavior for edge cases, such as when the arrays contain negative values or when the input size exceeds the expected limits.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program initializes arrays based on the value of `n` and assumes that valid input is provided. If `n` is zero, the program may attempt to access uninitialized memory or perform operations on empty arrays, leading to a runtime error. The lack of explicit error handling or checks for valid input conditions suggests that the specification should include these considerations to prevent such runtime issues.
+
+```

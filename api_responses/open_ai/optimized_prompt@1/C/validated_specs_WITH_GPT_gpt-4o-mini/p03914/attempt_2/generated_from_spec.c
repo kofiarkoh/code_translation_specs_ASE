@@ -1,0 +1,44 @@
+#include <stdio.h>
+
+#define MAX_DIM 302
+#define MODULO_CONSTANT 1000000007 // Assuming a predefined constant for modulo operation
+
+long compute_combinatorial_value(int N, int M) {
+    long dp[MAX_DIM][MAX_DIM] = {0}; // Dynamic programming table initialized to zero
+
+    // Base case: dp[0][0] = 1 (assuming combinatorial logic starts from this point)
+    dp[0][0] = 1;
+
+    // Fill the dynamic programming table based on the specified combinatorial logic
+    for (int k = 1; k <= M; k++) { // Iterate over the number of steps
+        for (int i = 0; i <= N; i++) { // Iterate over the first dimension
+            for (int j = 0; j <= N; j++) { // Iterate over the second dimension
+                // Update dp[i][j] based on the combinatorial rules
+                if (i > 0) {
+                    dp[i][j] = (dp[i][j] + dp[i - 1][j] * (N - i)) % MODULO_CONSTANT; // Contribution from (i-1, j)
+                }
+                if (i > 0 && j > 0) {
+                    dp[i][j] = (dp[i][j] + dp[i - 1][i - 1] * j) % MODULO_CONSTANT; // Contribution from (i-1, i-1)
+                }
+                if (i > 0 && j > 0 && i > j) {
+                    dp[i][j] = (dp[i][j] + dp[i][j - 1] * (i - j)) % MODULO_CONSTANT; // Contribution from (i, j-1)
+                }
+            }
+        }
+    }
+
+    // Return the computed value at dp[N][N] modulo the predefined constant
+    return dp[N][N];
+}
+
+int main() {
+    int N, M;
+    // Input reading (assumed valid as per specification)
+    scanf("%d %d", &N, &M);
+    
+    // Call the computation function and print the result
+    long result = compute_combinatorial_value(N, M);
+    printf("%ld\n", result);
+    
+    return 0;
+}

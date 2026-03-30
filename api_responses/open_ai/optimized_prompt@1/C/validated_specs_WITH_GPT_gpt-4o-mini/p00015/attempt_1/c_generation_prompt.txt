@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code reads a specified number of datasets, each containing two strings representing non-negative integers. It converts these strings into integer arrays, computes their sum, and outputs the result. If the input strings exceed a certain length or if the computed sum exceeds a defined limit, it outputs an overflow message.
+
+# 2. Inputs
+- An integer indicating the number of datasets.
+- Two strings representing non-negative integers for each dataset.
+
+# 3. Outputs
+- The sum of the two integers as a string of digits.
+- An overflow message if the input strings exceed a length of 80 characters or if the computed sum exceeds a defined limit.
+
+# 4. Preconditions
+- The first input must be a valid integer representing the number of datasets.
+- Each subsequent input must be a valid string representation of a non-negative integer.
+
+# 5. Postconditions
+- The output will either be the sum of the two integers or an overflow message.
+- The sum will be correctly computed and formatted as a string of digits if no overflow occurs.
+
+# 6. Invariants
+- The lengths of the input strings must not exceed 80 characters.
+- The integer arrays used for computation are initialized to zero before use.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input strings exceed 80 characters, an overflow message is printed, and the current dataset is skipped.
+- If the computed sum exceeds the defined limit, an overflow message is printed.
+
+# 8. State Transitions (if applicable)
+- Transition from reading input to processing input upon receiving valid strings.
+- Transition from processing to outputting results based on the computed sum or overflow conditions.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle multiple datasets in a single execution.
+- The program should efficiently manage memory and processing time within the constraints of the input size.
+
+```

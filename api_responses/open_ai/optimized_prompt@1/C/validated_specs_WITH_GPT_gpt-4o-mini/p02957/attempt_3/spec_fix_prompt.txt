@@ -1,0 +1,108 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+
+ int main()
+{
+long int a,b,k;
+
+scanf("%ld %ld",&a,&b);
+
+
+if ((a+b) % 2 !=0)
+{
+printf("IMPOSSIBLE");
+  return 0;
+}
+
+printf("%d",(a+b)/2);   
+   
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the average of two long integers if their sum is even. If the sum is odd, it indicates that the average cannot be computed.
+
+## 2. Inputs
+Two long integers provided by the user.
+
+## 3. Outputs
+- The average of the two long integers as a long integer if their sum is even.
+- A message indicating "IMPOSSIBLE" if the sum is odd.
+
+## 4. Preconditions
+- The inputs must be valid long integers.
+
+## 5. Postconditions
+- If the sum of the inputs is even, the output is the long integer result of the average.
+- If the sum of the inputs is odd, the output is the string "IMPOSSIBLE".
+
+## 6. Invariants
+The program maintains that the sum of the two long integers is either even or odd throughout its execution.
+
+## 7. Error Handling / Exceptional Behavior
+The program does not handle invalid input types or out-of-range values; it assumes valid long integer input.
+
+## 8. State Transitions
+- Initial state: Awaiting user input.
+- Transition to output state based on the parity of the sum of inputs.
+
+## 9. Non-functional Constraints
+- The program must complete execution in a timely manner, ideally within a single user interaction cycle.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define how the average is computed when the sum is even. It implies that the average is simply the sum divided by two, but it does not specify that the output should be the result of this division as a long integer.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the average is computed as the integer division of the sum by two, and it should explicitly state that the output is the result of this division, not just a generic "average."
+
+D. **Why this clarification is supported by the source program**  
+The source program uses integer division when calculating the average, which can lead to different results if the average is not explicitly defined as an integer division. The failing test case indicates that the expected output is not aligned with the behavior of the source program, suggesting that the specification's abstraction of the average is too vague and does not account for the specifics of integer division.
+
+```

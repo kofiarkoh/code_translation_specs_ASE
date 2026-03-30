@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific value based on two input parameters, `n` and `k`, using a recursive function. The computation is defined by the relationship between `n` and `k`, where the function determines a count based on the recursive evaluation of these parameters, particularly considering how `k` compares to `2^n - 1`.
+
+## 2. Inputs
+- Two integers, `n` and `k`, where:
+  - `n` is a non-negative integer that influences the depth of recursion and represents the exponent in the computation of `2^n - 1`.
+  - `k` is a non-negative integer that serves as a threshold for the computation, determining the path taken in the recursive evaluation.
+
+## 3. Outputs
+- A single integer that represents the result of the recursive computation based on the inputs `n` and `k`.
+
+## 4. Preconditions
+- `n` must be a non-negative integer (i.e., `n >= 0`).
+- `k` must be a non-negative integer (i.e., `k >= 0`).
+
+## 5. Postconditions
+- The output is guaranteed to be a non-negative integer.
+- The output reflects the computed value based on the recursive logic defined by the function, specifically considering the relationship between `k` and `2^n - 1`.
+
+## 6. Invariants
+- The function maintains the property that for any non-negative `n`, the computation is valid and terminates.
+- The output value is consistent with the recursive definition for all valid inputs, particularly in how it handles the conditions based on `k` relative to `2^n - 1`.
+
+## 7. Error Handling / Exceptional Behavior
+- The function does not handle negative inputs; behavior is undefined for `n < 0` or `k < 0`.
+- The function assumes that inputs are within a range that prevents overflow during computation.
+
+## 8. State Transitions
+- The function transitions between states based on the recursive calls, reducing `n` until it reaches zero, at which point it evaluates the base case. The behavior of the function also depends on the comparison of `k` with `2^n - 1`. If `k` is less than or equal to `2^n - 1`, the function follows one recursive path. If `k` exceeds `2^n - 1`, the function takes a different path, subtracting `2 * (2^n - 1)` from `k` and continuing the recursion.
+
+## 9. Non-functional Constraints
+- The computation may have performance implications based on the size of `n`, as it involves recursive calls that can lead to exponential growth in the number of evaluations. The function's behavior is sensitive to the values of `k` in relation to `2^n`, which affects the depth and complexity of the recursion.
+
+```

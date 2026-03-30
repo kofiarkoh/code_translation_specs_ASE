@@ -1,0 +1,73 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+long compare(const void *a, const void *b) {
+    return (*(long *)a - *(long *)b; // Comparison function for qsort
+}
+
+int main() {
+    long n;
+    scanf("%ld", &n); // Read the number of elements
+
+    // Preconditions check: n must be positive
+    if (n <= 0) {
+        return 1; // Undefined behavior for non-positive n
+    }
+
+    long *sequence = malloc(n * sizeof(long)); // Allocate memory for the sequence
+    if (sequence == NULL) {
+        return 1; // Memory allocation failure
+    }
+
+    // Read the sequence of long integers
+    for (long i = 0; i < n; i++) {
+        scanf("%ld", &sequence[i]);
+    }
+
+    // Modify the sequence by subtracting index + 1
+    for (long i = 0; i < n; i++) {
+        sequence[i] -= (i + 1);
+    }
+
+    // Sort the modified sequence
+    qsort(sequence, n, sizeof(long), compare);
+
+    long sadness = 0;
+    for (long i = 1; i < n; i++) {
+        sadness += (sequence[i] - sequence[0]); // Total difference from the first element
+    }
+
+    long level = sequence[0]; // Initialize level to the first element
+    long min = sadness; // Initialize min to sadness
+
+    for (long i = 1; i < n; i++) {
+        if (sequence[i] == level) {
+            continue; // Skip if the current level is the same
+        }
+
+        long remaining = n - i; // Remaining elements
+        if (remaining <= 0) {
+            break; // No remaining elements
+        }
+
+        long height_diff = sequence[i] - level; // Height difference
+        if (height_diff * remaining <= sadness) {
+            level = sequence[i]; // Update level
+            sadness -= height_diff * remaining; // Adjust sadness
+        } else {
+            long new_level = level + sadness / remaining; // Calculate new level
+            sadness -= (new_level - level) * remaining; // Adjust sadness
+            if (sadness <= min) {
+                min = sadness; // Update min if new sadness is less
+            }
+            break; // Exit the loop after adjustment
+        }
+    }
+
+    printf("%ld\n", min); // Output the computed minimum value
+
+    free(sequence); // Free allocated memory
+    return 0;
+}
+```

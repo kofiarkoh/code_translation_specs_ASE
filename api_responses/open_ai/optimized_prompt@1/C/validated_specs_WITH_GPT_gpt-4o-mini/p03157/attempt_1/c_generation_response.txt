@@ -1,0 +1,70 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MAX_HEIGHT 512
+#define MAX_WIDTH 512
+
+// Directions for adjacent cells (up, down, left, right)
+int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+// Function to perform depth-first search to find groups
+void dfs(char grid[MAX_HEIGHT][MAX_WIDTH], int visited[MAX_HEIGHT][MAX_WIDTH], 
+         int h, int w, int x, int y, char target, int *dot_count, int *other_count) {
+    visited[x][y] = 1; // Mark the cell as visited
+    if (grid[x][y] == '.') {
+        (*dot_count)++;
+    } else {
+        (*other_count)++;
+    }
+
+    // Explore adjacent cells
+    for (int i = 0; i < 4; i++) {
+        int new_x = x + directions[i][0];
+        int new_y = y + directions[i][1];
+        if (new_x >= 0 && new_x < h && new_y >= 0 && new_y < w && 
+            !visited[new_x][new_y] && grid[new_x][new_y] != target) {
+            dfs(grid, visited, h, w, new_x, new_y, grid[new_x][new_y], dot_count, other_count);
+        }
+    }
+}
+
+int main() {
+    int H, W;
+    char grid[MAX_HEIGHT][MAX_WIDTH];
+    
+    // Read dimensions
+    if (scanf("%d %d", &H, &W) != 2 || H <= 0 || W <= 0 || H > MAX_HEIGHT || W > MAX_WIDTH) {
+        return 1; // Error handling for invalid dimensions
+    }
+
+    // Read the grid
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (scanf(" %c", &grid[i][j]) != 1) {
+                return 1; // Error handling for invalid input
+            }
+        }
+    }
+
+    uint64_t total_sum = 0;
+    int visited[MAX_HEIGHT][MAX_WIDTH] = {0}; // Initialize visited array
+
+    // Process the grid to find groups
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (!visited[i][j]) { // If the cell is not visited
+                int dot_count = 0, other_count = 0;
+                dfs(grid, visited, H, W, i, j, grid[i][j], &dot_count, &other_count);
+                // Calculate the product and add to total sum
+                total_sum += (uint64_t)dot_count * (uint64_t)other_count;
+            }
+        }
+    }
+
+    // Output the cumulative sum of products
+    printf("%llu\n", total_sum);
+    return 0;
+}
+```

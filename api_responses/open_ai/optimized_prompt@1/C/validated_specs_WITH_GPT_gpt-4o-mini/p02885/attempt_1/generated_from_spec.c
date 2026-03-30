@@ -1,0 +1,20 @@
+#include <stdio.h>
+
+int main() {
+    int a, b; // Declare two integer variables for input
+    // Read two integers from standard input
+    scanf("%d %d", &a, &b);
+
+    // Compute the result of the operation a - 2b
+    int result = a - 2 * b;
+
+    // Ensure the output is non-negative
+    // If result is positive, output it; otherwise, output zero
+    if (result > 0) {
+        printf("%d\n", result);
+    } else {
+        printf("0\n");
+    }
+
+    return 0; // Indicate successful completion
+}

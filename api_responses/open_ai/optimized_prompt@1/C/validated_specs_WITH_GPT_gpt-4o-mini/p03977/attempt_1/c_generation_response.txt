@@ -1,0 +1,74 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_INPUT_SIZE 10000
+#define MAX_OUTPUT_SIZE 20000
+
+int main() {
+    char input[MAX_INPUT_SIZE + 1]; // Buffer for input
+    char output[MAX_OUTPUT_SIZE + 1]; // Buffer for output
+    int num1, num2;
+    char *ptr = input;
+    size_t output_length = 0;
+
+    // Read input from standard input
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        return 1; // Error reading input
+    }
+
+    // Process the input
+    while (1) {
+        // Skip non-digit characters
+        while (*ptr && !isdigit(*ptr)) {
+            ptr++;
+        }
+
+        // Read first integer
+        if (sscanf(ptr, "%d", &num1) != 1) {
+            break; // Stop if no valid integer found
+        }
+        // Move pointer past the first integer
+        while (*ptr && (isdigit(*ptr) || *ptr == ' ')) {
+            ptr++;
+        }
+
+        // Skip non-digit characters
+        while (*ptr && !isdigit(*ptr)) {
+            ptr++;
+        }
+
+        // Read second integer
+        if (sscanf(ptr, "%d", &num2) != 1) {
+            break; // Stop if no valid integer found
+        }
+        // Move pointer past the second integer
+        while (*ptr && (isdigit(*ptr) || *ptr == ' ')) {
+            ptr++;
+        }
+
+        // Compute result based on parity
+        if (num1 % 2 == 0 && num2 % 2 == 0) {
+            // Both even
+            output_length += snprintf(output + output_length, sizeof(output) - output_length, "Both even\n");
+        } else if (num1 % 2 != 0 && num2 % 2 != 0) {
+            // Both odd
+            output_length += snprintf(output + output_length, sizeof(output) - output_length, "Both odd\n");
+        } else {
+            // One even, one odd
+            output_length += snprintf(output + output_length, sizeof(output) - output_length, "One even, one odd\n");
+        }
+
+        // Check if output buffer exceeds maximum size
+        if (output_length >= sizeof(output) - 1) {
+            break; // Stop if output buffer is full
+        }
+    }
+
+    // Output the results
+    printf("%s", output);
+    return 0;
+}
+```

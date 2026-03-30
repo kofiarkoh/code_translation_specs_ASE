@@ -1,0 +1,127 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int from;
+    int to;
+} Edge;
+
+typedef struct {
+    int *adjacencyList;
+    int *visited;
+    int *lowLink;
+    int *index;
+    int *onStack;
+    int *stack;
+    int stackTop;
+    int indexCounter;
+    int componentCount;
+} Graph;
+
+void initGraph(Graph *g, int N) {
+    g->adjacencyList = (int *)malloc(N * N * sizeof(int)); // Adjacency matrix
+    g->visited = (int *)calloc(N, sizeof(int));
+    g->lowLink = (int *)malloc(N * sizeof(int));
+    g->index = (int *)malloc(N * sizeof(int));
+    g->onStack = (int *)calloc(N, sizeof(int));
+    g->stack = (int *)malloc(N * sizeof(int));
+    g->stackTop = -1;
+    g->indexCounter = 0;
+    g->componentCount = 0;
+}
+
+void freeGraph(Graph *g) {
+    free(g->adjacencyList);
+    free(g->visited);
+    free(g->lowLink);
+    free(g->index);
+    free(g->onStack);
+    free(g->stack);
+}
+
+void strongConnect(Graph *g, int v, Edge *edges, char **results, int edgeIndex) {
+    g->visited[v] = 1;
+    g->index[v] = g->indexCounter;
+    g->lowLink[v] = g->indexCounter;
+    g->indexCounter++;
+    g->stack[++g->stackTop] = v;
+    g->onStack[v] = 1;
+
+    for (int u = 0; u < g->adjacencyList[v]; u++) {
+        if (!g->visited[u]) {
+            strongConnect(g, u, edges, results, edgeIndex);
+            g->lowLink[v] = g->lowLink[v] < g->lowLink[u] ? g->lowLink[v] : g->lowLink[u];
+        } else if (g->onStack[u]) {
+            g->lowLink[v] = g->lowLink[v] < g->index[u] ? g->lowLink[v] : g->index[u];
+        }
+    }
+
+    if (g->lowLink[v] == g->index[v]) {
+        while (g->stackTop >= 0) {
+            int w = g->stack[g->stackTop--];
+            g->onStack[w] = 0;
+            if (w == v) break;
+        }
+        g->componentCount++;
+    }
+    
+    // Classify the edge based on connectivity
+    if (g->lowLink[edges[edgeIndex].from] == g->lowLink[edges[edgeIndex].to]) {
+        results[edgeIndex] = "same";
+    } else {
+        results[edgeIndex] = "diff";
+    }
+}
+
+void classifyEdges(int N, int M, Edge *edges) {
+    if (M == 0) {
+        for (int i = 0; i < M; i++) {
+            printf("same\n");
+        }
+        return;
+    }
+
+    Graph g;
+    initGraph(&g, N);
+
+    // Build adjacency list
+    for (int i = 0; i < M; i++) {
+        g.adjacencyList[edges[i].from] = edges[i].to;
+    }
+
+    char **results = (char **)malloc(M * sizeof(char *));
+    
+    for (int i = 0; i < N; i++) {
+        if (!g.visited[i]) {
+            strongConnect(&g, i, edges, i);
+        }
+    }
+
+    for (int i = 0; i < M; i++) {
+        printf("%s\n", results[i]);
+    }
+
+    free(results);
+    freeGraph(&g);
+}
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M);
+    
+    if (N < 0 || M < 0) {
+        // Undefined behavior for negative inputs
+        return 1;
+    }
+
+    Edge *edges = (Edge *)malloc(M * sizeof(Edge));
+    for (int i = 0; i < M; i++) {
+        scanf("%d %d", &edges[i].from, &edges[i].to);
+    }
+
+    classifyEdges(N, M, edges);
+    free(edges);
+    return 0;
+}
+```

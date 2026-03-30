@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DESKS 100
+#define MAX_CAPACITY 100
+#define MAX_BOOKS 100
+
+typedef struct {
+    int book_id;
+    int last_used; // To track the last used time for LRU
+} Book;
+
+typedef struct {
+    Book books[MAX_CAPACITY];
+    int count; // Current number of books on the desk
+} Desk;
+
+Desk desks[MAX_DESKS];
+int desk_count, desk_capacity;
+
+int total_assignments = 0;
+int current_time = 0; // To simulate time for LRU
+
+void process_requests(int student_requests[], int student_count) {
+    for (int i = 0; i < student_count; i++) {
+        int book_id = student_requests[i];
+        int assigned = 0;
+
+        // Try to assign the book to an existing desk
+        for (int j = 0; j < desk_count; j++) {
+            if (desks[j].count < desk_capacity) {
+                // Assign book to desk
+                desks[j].books[desks[j].count].book_id = book_id;
+                desks[j].books[desks[j].count].last_used = current_time++;
+                desks[j].count++;
+                total_assignments++;
+                assigned = 1;
+                break;
+            }
+        }
+
+        // If not assigned, apply LRU policy
+        if (!assigned) {
+            // Find the least recently used desk
+            int lru_desk_index = -1;
+            int lru_book_index = -1;
+            int lru_time = current_time;
+
+            for (int j = 0; j < desk_count; j++) {
+                if (desks[j].count == desk_capacity) {
+                    // Check the least recently used book in this desk
+                    for (int k = 0; k < desk_capacity; k++) {
+                        if (desks[j].books[k].last_used < lru_time) {
+                            lru_time = desks[j].books[k].last_used;
+                            lru_desk_index = j;
+                            lru_book_index = k;
+                        }
+                    }
+                }
+            }
+
+            // Replace the LRU book if found
+            if (lru_desk_index != -1) {
+                desks[lru_desk_index].books[lru_book_index].book_id = book_id;
+                desks[lru_desk_index].books[lru_book_index].last_used = current_time++;
+                total_assignments++;
+            }
+        }
+    }
+}
+
+int main() {
+    // Read input for number of desks, capacity, and number of students
+    scanf("%d %d %d", &desk_count, &desk_capacity, &student_count);
+    
+    // Check for valid input
+    if (desk_count <= 0 || desk_capacity <= 0 || student_count <= 0) {
+        return 0; // Terminate gracefully on invalid input
+    }
+
+    // Initialize desks
+    for (int i = 0; i < desk_count; i++) {
+        desks[i].count = 0;
+    }
+
+    // Process each student's requests
+    for (int i = 0; i < student_count; i++) {
+        int student_requests[MAX_BOOKS];
+        int request_count;
+
+        // Read the number of requests for the student
+        scanf("%d", &request_count);
+        for (int j = 0; j < request_count; j++) {
+            scanf("%d", &student_requests[j]);
+        }
+
+        process_requests(student_requests, request_count);
+    }
+
+    // Output the total number of desk assignments
+    printf("%d\n", total_assignments);
+    return 0;
+}

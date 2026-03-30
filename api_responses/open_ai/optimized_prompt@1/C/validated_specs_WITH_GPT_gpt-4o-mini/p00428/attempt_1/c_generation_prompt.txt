@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code processes multiple matrices of integers, computes the sum of each column across the matrices, and identifies the indices of the columns in descending order of their sums. It continues to process matrices until a termination condition is met.
+
+# 2. Inputs
+- A series of pairs of integers, where each pair represents the dimensions of a matrix (n, m).
+- For each matrix, n rows of m integers are provided.
+
+# 3. Outputs
+- For each matrix, a single line of output containing the 1-based indices of the columns sorted in descending order based on their summed values.
+
+# 4. Preconditions
+- The input must consist of valid integers for dimensions and matrix elements.
+- The dimensions n and m must be positive integers.
+- The input terminates with the pair (0, 0).
+
+# 5. Postconditions
+- The output will reflect the indices of the columns sorted by their summed values for each matrix processed.
+- The program will terminate gracefully upon receiving the termination input.
+
+# 6. Invariants
+- The sum of each column is maintained accurately throughout the processing of the matrix.
+- The output indices are always within the range of 1 to m for each matrix.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds values for n and m.
+- It assumes that the input will always be well-formed until the termination condition is met.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input dimensions to reading matrix data, then to processing sums, and finally to outputting results for each matrix until the termination condition is encountered.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates in a loop, processing matrices sequentially until termination, which may affect performance based on the number of matrices and their sizes.
+
+```

@@ -1,0 +1,120 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	long long T[3], A[3], B[3];
+	scanf("%lld %lld", &(T[1]), &(T[2]));
+	scanf("%lld %lld", &(A[1]), &(A[2]));
+	scanf("%lld %lld", &(B[1]), &(B[2]));
+	if (A[1] * T[1] + A[2] * T[2] == B[1] * T[1] + B[2] * T[2]) {
+		printf("infinity\n");
+		fflush(stdout);
+		return 0;
+	}
+	
+	if (A[1] > B[1]) {
+		A[1] += B[1];
+		B[1] = A[1] - B[1];
+		A[1] -= B[1];
+		A[2] += B[2];
+		B[2] = A[2] - B[2];
+		A[2] -= B[2];
+	}
+	if ((B[1] - A[1]) * T[1] > (A[2] - B[2]) * T[2]) printf("0\n");
+	else if ((B[1] - A[1]) * T[1] % ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) == 0) printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2);
+	else printf("%lld\n", (B[1] - A[1]) * T[1] / ((A[2] - B[2]) * T[2] - (B[1] - A[1]) * T[1]) * 2 + 1);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program computes a value based on the relationships between two sets of parameters, A and B, influenced by time factors T. It determines if the two sets are equivalent under a specific linear combination and calculates a derived result based on their differences.
+
+# 2. Inputs
+- Two time factors, T[1] and T[2].
+- Two sets of parameters, A[1], A[2] and B[1], B[2].
+
+# 3. Outputs
+- A string "infinity" if the linear combination of A and B is equal.
+- A numerical value based on the differences between A and B if they are not equal.
+
+# 4. Preconditions
+- The input values for T, A, and B must be valid long long integers.
+- T[1] and T[2] must not be zero when used in calculations that involve division.
+
+# 5. Postconditions
+- If the linear combination of A and B is equal, the output is "infinity".
+- If not equal, the output is a calculated long long integer based on the differences between A and B.
+
+# 6. Invariants
+- The values of A and B are modified only if A[1] is greater than B[1].
+- The calculations involving T, A, and B maintain their integrity throughout the execution.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly.
+- Division by zero is avoided by ensuring T[1] and T[2] are not zero in the context of calculations.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur based on the comparison of A[1] and B[1], leading to potential modifications of A and B.
+- The output state changes based on the evaluation of the linear combination and subsequent calculations.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must execute within a reasonable time frame for valid inputs.
+- Memory usage is constrained to the storage of a fixed number of long long integers.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong counting rule.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately address the conditions under which the calculations for the output are performed, particularly in relation to the modifications of A and B and the subsequent calculations that lead to the final output.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify how the modifications to A and B affect the final output, especially in cases where A[1] is not greater than B[1]. It should also specify the expected behavior when the differences between A and B lead to negative or zero values, as well as how these values are handled in the output calculation.
+
+D. **Why this clarification is supported by the source program**  
+The source program includes specific logic for modifying A and B based on their values, and the calculations for the output depend on these modifications. The failing test case suggests that the current specification does not account for scenarios where the modifications do not lead to a straightforward calculation of the result, particularly when the differences between A and B do not yield a positive outcome. The program's behavior indicates that there are additional conditions and edge cases that need to be explicitly defined in the specification to ensure accurate representation of the source behavior.
+
+```

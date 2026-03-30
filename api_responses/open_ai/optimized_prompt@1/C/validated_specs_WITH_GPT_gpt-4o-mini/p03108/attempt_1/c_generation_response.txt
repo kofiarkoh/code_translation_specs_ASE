@@ -1,0 +1,103 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *parent; // Array to hold the parent of each node
+    int *size;   // Array to hold the size of each component
+    long long *results; // Array to hold the results for each operation
+    int n;       // Number of nodes
+    int m;       // Number of union operations
+} UnionFind;
+
+// Function to initialize the union-find structure
+UnionFind* init_union_find(int n) {
+    UnionFind *uf = malloc(sizeof(UnionFind));
+    uf->parent = malloc(n * sizeof(int));
+    uf->size = malloc(n * sizeof(int));
+    uf->results = malloc(n * sizeof(long long)); // Max size for results
+    uf->n = n;
+    uf->m = 0;
+
+    for (int i = 0; i < n; i++) {
+        uf->parent[i] = i; // Each node is its own parent initially
+        uf->size[i] = 1;   // Each component size is 1 initially
+    }
+    return uf;
+}
+
+// Find function with path compression
+int find(UnionFind *uf, int x) {
+    if (uf->parent[x] != x) {
+        uf->parent[x] = find(uf, uf->parent[x]); // Path compression
+    }
+    return uf->parent[x];
+}
+
+// Union function by size
+void union_nodes(UnionFind *uf, int x, int y) {
+    int rootX = find(uf, x);
+    int rootY = find(uf, y);
+
+    if (rootX != rootY) {
+        // Union by size
+        if (uf->size[rootX] < uf->size[rootY]) {
+            uf->parent[rootX] = rootY;
+            uf->size[rootY] += uf->size[rootX];
+        } else {
+            uf->parent[rootY] = rootX;
+            uf->size[rootX] += uf->size[rootY];
+        }
+    }
+}
+
+// Function to calculate the number of disconnected pairs
+long long count_disconnected_pairs(UnionFind *uf) {
+    long long total_pairs = (long long)uf->n * (uf->n - 1) / 2; // Total pairs
+    long long connected_pairs = 0;
+
+    for (int i = 0; i < uf->n; i++) {
+        if (uf->parent[i] == i) { // Only count the root components
+            connected_pairs += (long long)uf->size[i] * (uf->size[i] - 1) / 2;
+        }
+    }
+    return total_pairs - connected_pairs; // Disconnected pairs
+}
+
+// Main function to process union operations and output results
+void process_unions(int n, int m, int pairs[][2]) {
+    UnionFind *uf = init_union_find(n);
+    long long *results = malloc(m * sizeof(long long));
+
+    // Process each union operation
+    for (int i = 0; i < m; i++) {
+        union_nodes(uf, pairs[i][0], pairs[i][1]);
+        results[i] = count_disconnected_pairs(uf); // Store result after each union
+    }
+
+    // Output results in reverse order
+    for (int i = m - 1; i >= 0; i--) {
+        printf("%lld\n", results[i]);
+    }
+
+    // Free allocated memory
+    free(uf->parent);
+    free(uf->size);
+    free(uf->results);
+    free(uf);
+    free(results);
+}
+
+int main() {
+    int n, m;
+    scanf("%d %d", &n, &m); // Read number of nodes and operations
+
+    int pairs[m][2]; // Array to hold union operations
+    for (int i = 0; i < m; i++) {
+        scanf("%d %d", &pairs[i][0], &pairs[i][1]); // Read each pair
+    }
+
+    process_unions(n, m, pairs); // Process the unions and output results
+    return 0;
+}
+```

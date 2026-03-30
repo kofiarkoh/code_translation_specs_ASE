@@ -1,0 +1,87 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+m[1<<18];*p;main(n,a,b){for(scanf("%d%*d",&n);~scanf("%d%d",&a,&b);p-m&&*p?n=0:++*p)p=m+(a-1?b-n?0:a:b);puts(n?"IMPOSSIBLE":"POSSIBLE");}
+```
+
+Current specification:
+```text
+1. **Functional Description**  
+   The code determines whether a specific condition involving two integers can be satisfied based on a series of inputs. It outputs a result indicating the possibility of achieving the condition.
+
+2. **Inputs**  
+   - An integer representing the number of iterations or conditions to evaluate.
+   - A series of pairs of integers that represent parameters for each condition.
+
+3. **Outputs**  
+   - A string indicating either "POSSIBLE" or "IMPOSSIBLE" based on the evaluation of the conditions.
+
+4. **Preconditions**  
+   - The first input must be a valid integer.
+   - Subsequent inputs must be pairs of valid integers.
+
+5. **Postconditions**  
+   - The output will be "POSSIBLE" if the conditions can be satisfied; otherwise, it will be "IMPOSSIBLE".
+
+6. **Invariants**  
+   - The evaluation of conditions is consistent across iterations, maintaining the integrity of the input parameters throughout the process.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input format is incorrect or if invalid integers are provided, the behavior is undefined, and the output may not be reliable.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur based on the evaluation of each input pair, affecting the internal condition tracking until all inputs are processed.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The solution must operate within a reasonable time frame for the expected range of input sizes, though specific performance metrics are not defined.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   The current specification does not clearly define the specific conditions or logic that determine when the output should be "POSSIBLE" or "IMPOSSIBLE." It lacks a detailed description of how the pairs of integers (a, b) interact to produce the result.
+
+C. **What general behavior should be clarified in the specification**  
+   The specification should clarify the exact conditions under which the output changes from "POSSIBLE" to "IMPOSSIBLE." It should specify the logic that evaluates the pairs of integers and how they contribute to the overall result.
+
+D. **Why this clarification is supported by the source program**  
+   The source program contains a complex evaluation logic that is not captured in the current specification. The failing test case indicates that the logic for determining the output is not simply based on a straightforward condition (like the sum of a and b being even). Instead, it suggests that there are specific rules governing the relationship between the inputs that need to be articulated in the specification to align with the source behavior. The source program's behavior implies that the evaluation of conditions is more nuanced than what is currently described.
+
+```

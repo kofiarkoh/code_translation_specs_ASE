@@ -1,0 +1,49 @@
+```c
+#include <stdio.h>
+
+#define MODULO_CONSTANT 1000000007 // Predefined constant for modulo operation
+
+// Function to calculate the number of valid combinations that sum to s
+int count_combinations(int s) {
+    // Check precondition: s must be non-negative
+    if (s < 0) {
+        // Undefined behavior as per specification; no handling for invalid input
+        return -1; // Placeholder for undefined behavior
+    }
+
+    // Array to store the number of combinations for each sum up to s
+    int dp[s + 1];
+    for (int i = 0; i <= s; i++) {
+        dp[i] = 0; // Initialize all combinations to 0
+    }
+    
+    // Base case: there's one way to make the sum of 0 (using no integers)
+    dp[0] = 1;
+
+    // Iterate through possible lengths of integers (1 to s)
+    for (int length = 1; length <= s; length++) {
+        // Update the combinations for each possible sum
+        for (int sum = length; sum <= s; sum++) {
+            dp[sum] = (dp[sum] + dp[sum - length]) % MODULO_CONSTANT;
+        }
+    }
+
+    // The result is the number of combinations that sum to s
+    return dp[s]; // Output is guaranteed to be non-negative and < MODULO_CONSTANT
+}
+
+int main() {
+    int s;
+    printf("Enter a non-negative integer for the target sum: ");
+    scanf("%d", &s);
+    
+    int result = count_combinations(s);
+    if (result != -1) {
+        printf("Number of valid combinations: %d\n", result);
+    } else {
+        printf("Undefined behavior due to invalid input.\n");
+    }
+    
+    return 0;
+}
+```

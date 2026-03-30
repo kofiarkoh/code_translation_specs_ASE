@@ -1,0 +1,274 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ ALDS1_14_C Pattern Search
+// 2018.5.13 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+
+int in()
+{
+	int n = 0, c = gc();
+	do n = 10*n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+#define MOD 1000000007LL
+#define C1  401
+#define C2  397
+
+#define MAX_L 1005
+char text[MAX_L][MAX_L]; int H, W;
+char pat[MAX_L][MAX_L]; int R, C;
+int  a[MAX_L][MAX_L], b[MAX_L][MAX_L];
+int  t[MAX_L][MAX_L];
+
+void genHash(int res[MAX_L][MAX_L], char s[MAX_L][MAX_L], int h, int w)
+{
+	int r, c;
+	long long x, y, k;
+
+	memset(t, 0, sizeof(t));
+	memset(res, 0, sizeof(res));
+
+	x = 1, y = 1;
+	for (c = 0; c < C; c++) x = (x*C1) % MOD;
+	for (r = 0; r < R; r++) y = (y*C2) % MOD;
+
+	for (r = 0; r < h; r++) {
+		k = 0;
+		for (c = 0; c < C; c++) k = (k*C1 + s[r][c]) % MOD;
+		for (c = 0; c <= w-C; c++) {
+			t[r][c] = (int)k;
+			if (c + C < w) k = (k*C1-s[r][c]*x+s[r][c+C]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+
+	for (c = 0; c < w; c++) {
+		k = 0;
+		for (r = 0; r < R; r++) k = (k*C2+t[r][c]) % MOD;
+		for (r = 0; r <= h-R; r++) {
+			res[r][c] = (int)k;
+			if (r+R < h) k = (k*C2-t[r][c]*y+t[r+R][c]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+}
+
+int main()
+{
+	int r, c;
+	char ch, *p;
+
+	H = in(), W = in();
+	for (r = 0; r < H; r++) {
+		p = text[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	R = in(), C = in();
+	for (r = 0; r < R; r++) {
+		p = pat[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	genHash(a, text, H, W);
+	genHash(b, pat, R, C);
+
+	for (r = 0; r <= H-R; r++) for (c = 0; c <= W-C; c++) {
+		if (a[r][c] == b[0][0]) printf("%d %d\n", r, c);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code performs a pattern search within a two-dimensional text grid, identifying all starting positions where a specified pattern grid matches the text grid. It computes hash values for both the text and the pattern to facilitate efficient comparison, ensuring that only exact character matches are considered valid.
+
+## 2. Inputs
+- Two integers representing the height (H) and width (W) of the text grid, where both H and W are positive integers.
+- A two-dimensional character array representing the text grid, which consists of H rows and W columns.
+- Two integers representing the height (R) and width (C) of the pattern grid, where both R and C are positive integers.
+- A two-dimensional character array representing the pattern grid, which consists of R rows and C columns.
+
+## 3. Outputs
+- A list of pairs of integers, each representing the row and column indices in the text grid where the pattern grid matches. If no matches are found, no output will be produced.
+
+## 4. Preconditions
+- The height and width of the text grid (H, W) must be positive integers.
+- The height and width of the pattern grid (R, C) must be positive integers.
+- The dimensions of the pattern grid must not exceed those of the text grid (i.e., R ≤ H and C ≤ W).
+
+## 5. Postconditions
+- The output will contain all valid starting positions of the pattern within the text, if any exist.
+- If no matches are found, no output will be produced.
+
+## 6. Invariants
+- The hash values for the text and pattern grids are consistently computed based on their respective contents.
+- The text and pattern grids remain unchanged throughout the execution of the program.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle input errors or invalid dimensions; it assumes valid input is provided.
+- If the input does not conform to expected formats, behavior is undefined.
+
+## 8. State Transitions
+- The program transitions from reading input to computing hash values for the text and pattern grids, and finally to outputting results based on comparisons of hash values. A match is considered valid only if the hash values of the corresponding sub-grids are equal and the actual character contents match.
+
+## 9. Non-functional Constraints
+- The algorithm is designed to operate efficiently with respect to time complexity, leveraging hashing to reduce the number of direct comparisons needed. The matching process ensures that only exact character matches are reported, which may affect performance in cases of overlapping patterns.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_H 100 // Assuming a maximum size for the text grid
+#define MAX_W 100 // Assuming a maximum size for the text grid
+#define MAX_R 10  // Assuming a maximum size for the pattern grid
+#define MAX_C 10  // Assuming a maximum size for the pattern grid
+
+// Function to compute a simple hash for a grid
+unsigned long compute_hash(char grid[MAX_H][MAX_W], int height, int width) {
+    unsigned long hash = 0;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            hash = hash * 31 + grid[i][j]; // Using a prime number for hashing
+        }
+    }
+    return hash;
+}
+
+// Function to search for the pattern in the text grid
+void search_pattern(int H, int W, char text[MAX_H][MAX_W], int R, int C, char pattern[MAX_R][MAX_C]) {
+    unsigned long pattern_hash = compute_hash(pattern, R, C);
+    
+    for (int i = 0; i <= H - R; i++) {
+        for (int j = 0; j <= W - C; j++) {
+            // Compute hash for the current sub-grid in the text
+            unsigned long text_hash = compute_hash(&text[i][j], R, C);
+            
+            // Only compare if hashes match
+            if (text_hash == pattern_hash) {
+                // Check for exact character match
+                int match = 1;
+                for (int r = 0; r < R; r++) {
+                    for (int c = 0; c < C; c++) {
+                        if (text[i + r][j + c] != pattern[r][c]) {
+                            match = 0; // Found a mismatch
+                            break;
+                        }
+                    }
+                    if (!match) break; // Exit outer loop if mismatch found
+                }
+                
+                // If a match is found, output the starting position
+                if (match) {
+                    printf("Match found at: (%d, %d)\n", i, j);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // Example usage
+    int H = 5, W = 5; // Dimensions of the text grid
+    char text[MAX_H][MAX_W] = {
+        {'a', 'b', 'c', 'd', 'e'},
+        {'f', 'g', 'h', 'i', 'j'},
+        {'k', 'l', 'm', 'n', 'o'},
+        {'p', 'q', 'r', 's', 't'},
+        {'u', 'v', 'w', 'x', 'y'}
+    };
+    
+    int R = 2, C = 2; // Dimensions of the pattern grid
+    char pattern[MAX_R][MAX_C] = {
+        {'g', 'h'},
+        {'l', 'm'}
+    };
+    
+    search_pattern(H, W, text, R, C, pattern);
+    
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02249/p02249_sample1_output.txt
+Input:
+5 6
+abcdef
+ghijkl
+mnopqr
+stuvwx
+yzabcd
+2 2
+ij
+op
+Expected:
+1 2
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

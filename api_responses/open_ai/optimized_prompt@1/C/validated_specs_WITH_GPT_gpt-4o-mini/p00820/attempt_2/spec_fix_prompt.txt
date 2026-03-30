@@ -1,0 +1,115 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1241
+  Title:Lagrange's Four-Square Theorem
+  @kankichi573
+*/
+#include <stdio.h>
+
+
+int solve(int n,int c,int low)
+{
+  int i,ret;
+  ret=0;
+  for(i=low;i*i<=n;i++)
+    {
+      if(n==i*i)
+	ret++;
+      else if(c<4)
+	ret+=solve(n-i*i,c+1,i);
+    }
+  return(ret);
+}
+main()
+{
+  int n,ret;
+  while(scanf("%d",&n) && n)
+    {
+      ret=solve(n,1,1);
+      printf("%d\n",ret);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the number of distinct representations of a given positive integer as the sum of four square integers, in accordance with Lagrange's Four-Square Theorem.
+
+# 2. Inputs
+- A positive integer `n` provided by the user through standard input. The input terminates when a zero is entered.
+
+# 3. Outputs
+- The output is the count of distinct representations of `n` as the sum of four square integers, printed to standard output.
+
+# 4. Preconditions
+- The input must be a positive integer. The process continues until a zero is entered.
+
+# 5. Postconditions
+- For each positive integer input, the output will be a non-negative integer representing the number of distinct representations of that integer as the sum of four squares.
+
+# 6. Invariants
+- The function maintains that the count of representations is incremented correctly based on the conditions defined by the theorem, ensuring that all combinations are considered without exceeding four squares.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid inputs (e.g., negative integers or non-integer values) and assumes that the input will always be a valid positive integer or zero to terminate.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input to processing the input through recursive calls, ultimately returning to the main loop for further input until termination.
+
+# 9. Non-functional Constraints (if inferable)
+- The performance of the solution may be affected by the size of the input integer, as the recursive approach may lead to increased computation time for larger values of `n`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not clarify the behavior of the program when the input is zero or when the input is not a valid positive integer. It assumes that the input will always be valid, which is not reflected in the source program's behavior.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should explicitly state how the program handles edge cases, particularly the input of zero and the termination of the program. It should also clarify that the program does not handle invalid inputs, which could lead to runtime errors.
+
+D. **Why this clarification is supported by the source program**  
+- The source program has a loop that continues to read input until a zero is entered, but it does not handle cases where the input might be invalid (e.g., negative integers or non-integer values). The runtime error suggests that the program may be encountering unexpected input, which is not accounted for in the current specification. This indicates a need for clearer assumptions about input validity and handling.
+
+```

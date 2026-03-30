@@ -1,0 +1,112 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+//#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+
+int main()
+{
+	int A, B, X;
+	int c, ans;
+
+	scanf("%d%d%d", &A, &B, &X);
+	if (A >= 2 * B) ans = ((X - 1) / 500 + 1) * B;
+	else {
+		ans = X / 1000 * A;
+		c = X % 1000;
+		if (c) {
+			if (c <= 500 && B < A) ans += B;
+			else ans += A;
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates a value based on three input integers, representing two thresholds and a quantity. The output is derived from these inputs according to specific conditions related to their relationships.
+
+# 2. Inputs
+- Three integers: A, B, and X.
+
+# 3. Outputs
+- A single integer representing the calculated result based on the inputs.
+
+# 4. Preconditions
+- A, B, and X must be non-negative integers.
+- A and B must be defined such that A and B are not both zero.
+
+# 5. Postconditions
+- The output integer is guaranteed to be non-negative.
+- The output reflects the calculation based on the relationships between A, B, and X as specified in the functional description.
+
+# 6. Invariants
+- The relationship between A and B determines the calculation path.
+- The value of X influences the magnitude of the output based on its range.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-range values explicitly. It assumes valid input is provided.
+
+# 8. State Transitions (if applicable)
+- The state transitions are based on the evaluation of conditions involving A, B, and X, leading to different calculation paths.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in constant time, regardless of the input values.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not accurately capture the specific calculations and conditions that govern the output based on the relationships between A, B, and X. It oversimplifies the logic by not detailing how the values of A and B interact with the value of X in the computation.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the specific calculation paths based on the conditions involving A, B, and X, particularly how the thresholds (e.g., `A >= 2 * B`, `c <= 500`, etc.) influence the output. It should also specify how the output is derived from the integer division and modulus operations used in the source program.
+
+D. **Why this clarification is supported by the source program**  
+The source program contains specific conditional logic that determines the output based on the values of A, B, and X, including multiple branches and calculations that are not represented in the generated C program. For instance, the handling of cases where `A >= 2 * B` and the subsequent calculations involving integer division and modulus are critical to producing the correct output. The current specification's lack of detail on these conditions leads to an incorrect abstraction in the generated code, resulting in the observed failure.
+
+```

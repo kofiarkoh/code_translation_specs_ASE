@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code counts the number of "peaks" and "valleys" in a sequence of integers. A peak is defined as a number that is greater than its immediate neighbors, while a valley is defined as a number that is less than its immediate neighbors. The result is the total count of these features in the sequence, including distinct occurrences of peaks and valleys.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the sequence.
+- A sequence of `n` integers.
+
+## 3. Outputs
+- An integer representing the count of peaks and valleys in the sequence.
+
+## 4. Preconditions
+- The input integer `n` must be greater than or equal to 3 to allow for the identification of peaks and valleys.
+- The sequence must contain exactly `n` integers.
+
+## 5. Postconditions
+- The output integer reflects the total count of peaks and valleys identified in the sequence, including cases where peaks and valleys are adjacent or consecutive.
+
+## 6. Invariants
+- The sequence is processed in a manner that ensures each element (except the first and last) is compared with its immediate neighbors.
+- The count of peaks and valleys is incremented correctly based on the defined conditions, including distinct occurrences.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` is less than 3, the behavior is undefined as the code does not handle this case, potentially leading to out-of-bounds access.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve reading input values into an array and updating a count based on comparisons between elements. The count is updated for each transition from a peak to a valley or vice versa.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates in linear time relative to the number of elements, making it efficient for processing sequences of reasonable length.
+
+```

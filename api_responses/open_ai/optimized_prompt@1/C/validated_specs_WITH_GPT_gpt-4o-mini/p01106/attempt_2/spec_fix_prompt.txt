@@ -1,0 +1,117 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1621: Folding a Ribbon
+// 2017.12.30 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+char ans[62];
+char low[62];
+
+int main()
+{
+	int n, k;
+	long long i, j;
+
+	while (scanf("%d%lld%lld", &n, &i, &j) && n > 0) {
+		i--, j--;
+		for (k = 1; k <= n; k++) {
+			low[n-k] = (i >> (n-k)) & 1;
+			if (!low[n-k]) i = ~i;
+		}
+		for (k = 1; k <= n; k++) {
+			ans[k] = (((j >> (n-k)) & 1) == low[k-1])? 'L': 'R';
+			if (!low[k-1]) j = ~j;
+		}
+		ans[n+1] = 0;
+		puts(ans+1);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a series of inputs to determine a sequence of directional commands ('L' for left and 'R' for right) based on the binary representation of two integers. It generates a string that reflects the relationship between the two integers as influenced by a specified number of bits.
+
+# 2. Inputs
+- An integer `n` representing the number of bits.
+- Two long long integers `i` and `j` which are to be analyzed based on their binary representations.
+
+# 3. Outputs
+- A string of length `n` consisting of characters 'L' and 'R', representing the directional commands derived from the binary comparisons of `i` and `j`.
+
+# 4. Preconditions
+- The integer `n` must be greater than 0.
+- The inputs must be valid integers that can be read and processed.
+
+# 5. Postconditions
+- The output string will accurately reflect the directional commands based on the binary comparison of the integers `i` and `j` for the specified number of bits `n`.
+
+# 6. Invariants
+- The length of the output string is always equal to `n`.
+- The output string is constructed based on the binary values of `i` and `j` as influenced by the bitwise operations performed.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive value for `n` is encountered.
+- No specific error handling for invalid input formats is implemented; behavior is undefined for such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the iterative processing of bits from the integers `i` and `j`, leading to the construction of the output string based on the evaluated conditions.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates in a time complexity that is linear with respect to `n`, as it processes each bit of the input integers sequentially.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not accurately describe how the directional commands ('L' and 'R') are determined based on the binary representations of `i` and `j`. Specifically, it fails to account for the bitwise negation that occurs when a bit in `i` is 0, which affects the comparison with `j`.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the output commands depend not only on the direct comparison of bits from `i` and `j` but also on the transformation of these bits based on the values of `i` and `j` as influenced by the bits of `i`. Specifically, it should state that if a bit in `i` is 0, the corresponding bit in `j` is also negated before comparison.
+
+D. **Why this clarification is supported by the source program**  
+The source program implements a bitwise operation where if a bit in `i` is 0, it negates `i` (using `~i`), which alters the subsequent bits processed. This behavior is crucial for determining the correct output string but is not reflected in the current specification. The failing test case indicates that the generated commands do not match the expected output, suggesting that the logic for determining 'L' and 'R' is not correctly abstracted in the specification.
+
+```

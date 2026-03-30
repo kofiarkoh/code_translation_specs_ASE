@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Pool {
+    int area;
+    int x_coordinate;
+    struct Pool* next;
+} Pool;
+
+typedef struct Stack {
+    int position;
+    struct Stack* next;
+} Stack;
+
+void push(Stack** stack, int position) {
+    Stack* new_node = (Stack*)malloc(sizeof(Stack));
+    if (!new_node) {
+        // Memory allocation failure
+        exit(1); // Undefined behavior as per specification
+    }
+    new_node->position = position;
+    new_node->next = *stack;
+    *stack = new_node;
+}
+
+int pop(Stack** stack) {
+    if (*stack == NULL) {
+        return -1; // Stack underflow, should not happen as per specification
+    }
+    Stack* temp = *stack;
+    int position = temp->position;
+    *stack = (*stack)->next;
+    free(temp);
+    return position;
+}
+
+void free_stack(Stack* stack) {
+    while (stack) {
+        Stack* temp = stack;
+        stack = stack->next;
+        free(temp);
+    }
+}
+
+void free_pools(Pool* pool) {
+    while (pool) {
+        Pool* temp = pool;
+        pool = pool->next;
+        free(temp);
+    }
+}
+
+int main() {
+    char input[1000]; // Assuming a maximum input size
+    fgets(input, sizeof(input), stdin); // Read input from stdin
+
+    Stack* stack = NULL;
+    Pool* pool_list = NULL;
+    int total_area = 0;
+    int pool_count = 0;
+
+    for (int i = 0; input[i] != '\0'; i++) {
+        if (input[i] == '\\') {
+            push(&stack, i); // Push current position onto the stack
+        } else if (input[i] == '/') {
+            int start_position = pop(&stack); // Pop the last position
+            if (start_position != -1) {
+                int area = i - start_position; // Calculate area of the pool
+                Pool* new_pool = (Pool*)malloc(sizeof(Pool));
+                if (!new_pool) {
+                    // Memory allocation failure
+                    free_stack(stack);
+                    free_pools(pool_list);
+                    exit(1); // Undefined behavior as per specification
+                }
+                new_pool->area = area;
+                new_pool->x_coordinate = start_position;
+                new_pool->next = pool_list;
+                pool_list = new_pool; // Add to the pool list
+                total_area += area; // Update total area
+                pool_count++; // Increment pool count
+            }
+        }
+        // Ignore underscores ('_') as per specification
+    }
+
+    // Output total area and count of pools
+    printf("Total Area: %d\n", total_area);
+    printf("Pool Count: %d\n", pool_count);
+
+    // Output individual pool areas in reverse order
+    Pool* current = pool_list;
+    while (current) {
+        printf("Pool Area: %d at x-coordinate: %d\n", current->area, current->x_coordinate);
+        current = current->next;
+    }
+
+    // Free allocated memory
+    free_stack(stack);
+    free_pools(pool_list);
+
+    return 0;
+}

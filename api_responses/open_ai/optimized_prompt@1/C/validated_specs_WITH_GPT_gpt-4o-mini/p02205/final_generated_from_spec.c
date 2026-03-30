@@ -1,0 +1,29 @@
+#include <stdio.h>
+
+void perform_operations(int N, int A, int B) {
+    // Calculate the effective number of iterations
+    int iterations = N % 12;
+
+    // Perform the operations for the specified number of iterations
+    for (int i = 0; i < iterations; i++) {
+        int new_A = A - B; // Update A by subtracting B
+        B += new_A;        // Update B by adding the new value of A
+        A = new_A;        // Assign the new value of A
+    }
+
+    // Output the final values of A and B
+    printf("%d %d\n", A, B);
+}
+
+int main() {
+    int N, A, B;
+
+    // Example input; in a real scenario, these would be read from user input or another source
+    N = 10; // Example non-negative integer
+    A = 5;  // Example integer
+    B = 3;  // Example integer
+
+    perform_operations(N, A, B);
+
+    return 0;
+}

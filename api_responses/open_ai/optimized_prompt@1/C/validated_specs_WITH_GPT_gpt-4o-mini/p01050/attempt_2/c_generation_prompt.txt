@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a string input to count the number of unique characters, adjusting the count based on the frequency of consecutive occurrences of characters. The output is a non-negative integer representing the adjusted count of unique characters, which is modified according to specific rules regarding consecutive characters.
+
+## 2. Inputs
+- A string of characters, with a maximum length of 99 characters (excluding the null terminator).
+
+## 3. Outputs
+- A single non-negative integer representing the adjusted count of unique characters in the input string.
+
+## 4. Preconditions
+- The input string must be null-terminated and contain at most 99 characters.
+- The input string may contain any characters, including non-alphabetic ones.
+
+## 5. Postconditions
+- The output integer reflects the count of unique characters, adjusted according to the frequency of consecutive characters in the input string. Specifically, if a character appears consecutively more than three times, the count of unique characters is decremented by the number of excess occurrences beyond three.
+
+## 6. Invariants
+- The count of unique characters is non-negative throughout the execution.
+- The frequency of each character is tracked accurately during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to input size or format. It assumes valid input as per the preconditions.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as characters are processed, updating the counts of unique characters and their frequencies based on the input string. The count of unique characters is adjusted based on the number of consecutive occurrences of each character.
+
+## 9. Non-functional Constraints (if inferable)
+- The processing time is linear with respect to the length of the input string, as each character is processed a limited number of times.
+
+```

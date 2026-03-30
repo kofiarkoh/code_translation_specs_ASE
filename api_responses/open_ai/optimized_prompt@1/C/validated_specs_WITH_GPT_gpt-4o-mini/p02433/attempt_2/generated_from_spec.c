@@ -1,0 +1,119 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int data;
+    struct Node* prev;
+    struct Node* next;
+} Node;
+
+typedef struct LinkedList {
+    Node* head;
+    Node* tail;
+    Node* cursor; // Pointer to the current position in the list
+} LinkedList;
+
+LinkedList* create_list() {
+    LinkedList* list = (LinkedList*)malloc(sizeof(LinkedList));
+    list->head = NULL;
+    list->tail = NULL;
+    list->cursor = NULL;
+    return list;
+}
+
+void insert(LinkedList* list, int value) {
+    Node* new_node = (Node*)malloc(sizeof(Node));
+    new_node->data = value;
+    new_node->next = NULL;
+
+    if (list->head == NULL) { // List is empty
+        new_node->prev = NULL;
+        list->head = new_node;
+        list->tail = new_node;
+    } else { // Insert at the end
+        new_node->prev = list->tail;
+        list->tail->next = new_node;
+        list->tail = new_node;
+    }
+}
+
+void move_cursor(LinkedList* list, int direction) {
+    if (direction == -1) { // Move cursor to the previous node
+        if (list->cursor == NULL || list->cursor->prev == NULL) {
+            fprintf(stderr, "Error: Cannot move cursor beyond the front of the list.\n");
+            exit(EXIT_FAILURE);
+        }
+        list->cursor = list->cursor->prev;
+    } else if (direction == 1) { // Move cursor to the next node
+        if (list->cursor == NULL || list->cursor->next == NULL) {
+            fprintf(stderr, "Error: Cannot move cursor beyond the end of the list.\n");
+            exit(EXIT_FAILURE);
+        }
+        list->cursor = list->cursor->next;
+    }
+}
+
+void erase(LinkedList* list) {
+    if (list->cursor == NULL) return; // Nothing to erase
+
+    Node* to_delete = list->cursor;
+    if (to_delete->prev) {
+        to_delete->prev->next = to_delete->next;
+    } else { // Erasing the head
+        list->head = to_delete->next;
+    }
+    if (to_delete->next) {
+        to_delete->next->prev = to_delete->prev;
+    } else { // Erasing the tail
+        list->tail = to_delete->prev;
+    }
+    list->cursor = to_delete->next; // Move cursor to the next node after deletion
+    free(to_delete);
+}
+
+void print_list(LinkedList* list) {
+    Node* current = list->head;
+    while (current != NULL) {
+        printf("%d ", current->data);
+        current = current->next;
+    }
+    printf("\n");
+}
+
+void free_list(LinkedList* list) {
+    Node* current = list->head;
+    while (current != NULL) {
+        Node* next = current->next;
+        free(current);
+        current = next;
+    }
+    free(list);
+}
+
+int main() {
+    int num_operations;
+    scanf("%d", &num_operations);
+    
+    LinkedList* list = create_list();
+    list->cursor = list->head; // Initialize cursor to the head (which is NULL initially)
+
+    for (int i = 0; i < num_operations; i++) {
+        char command[10];
+        int value;
+        scanf("%s", command);
+        
+        if (strcmp(command, "insert") == 0) {
+            scanf("%d", &value);
+            insert(list, value);
+        } else if (strcmp(command, "move") == 0) {
+            scanf("%d", &value);
+            move_cursor(list, value);
+        } else if (strcmp(command, "erase") == 0) {
+            erase(list);
+        }
+    }
+
+    print_list(list);
+    free_list(list);
+    return 0;
+}

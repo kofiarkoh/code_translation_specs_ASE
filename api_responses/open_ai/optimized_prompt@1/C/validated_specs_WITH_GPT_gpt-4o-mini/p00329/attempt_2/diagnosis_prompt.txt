@@ -1,0 +1,279 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a bipartite matching algorithm to determine if a perfect matching exists between two sets of nodes. It reads a grid of connections and outputs whether a perfect matching is possible, followed by the matched pairs if applicable.
+
+# 2. Inputs
+- A non-negative integer \( N \) representing the number of nodes in each set.
+- A grid of size \( N \times N \) where each cell indicates a potential connection between nodes in the two sets.
+
+# 3. Outputs
+- A string "yes" if a perfect matching exists; otherwise, "no".
+- If a perfect matching exists, the output includes \( N \) integers representing the matched nodes from the second set, each adjusted by a specific offset.
+
+# 4. Preconditions
+- The input grid must be well-formed, containing \( N \) rows and \( N \) columns.
+- The input must be non-negative integers, and the grid must consist of binary values indicating connections.
+
+# 5. Postconditions
+- The output guarantees that if "yes" is printed, a perfect matching exists, and the subsequent integers represent valid matches.
+- If "no" is printed, no perfect matching exists.
+
+# 6. Invariants
+- The matching state is maintained throughout the execution, ensuring that each node in the first set can be matched to at most one node in the second set.
+- The algorithm consistently updates the state of seen nodes to avoid revisiting during the matching process.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle malformed input or out-of-bounds errors. It assumes valid input as per the preconditions.
+- If memory allocation fails (not explicitly shown), the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the matching process, where nodes are marked as seen or matched based on the bipartite matching algorithm's progress.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity suitable for \( N \) up to 1005, ensuring efficient execution for the input size.
+- The output is generated with minimal delay, leveraging fast input/output methods.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_N 1005
+
+int grid[MAX_N][MAX_N]; // Adjacency matrix for connections
+int match[MAX_N];       // Array to store matches for nodes in the second set
+int seen[MAX_N];        // Array to track seen nodes during DFS
+
+// Function to perform DFS for finding an augmenting path
+int bpm(int u, int N) {
+    for (int v = 0; v < N; v++) {
+        // If there is a connection and v is not seen
+        if (grid[u][v] && !seen[v]) {
+            seen[v] = 1; // Mark v as seen
+            // If v is not matched or previously matched node can find an alternate match
+            if (match[v] == -1 || bpm(match[v], N)) {
+                match[v] = u; // Match v with u
+                return 1; // Found a match
+            }
+        }
+    }
+    return 0; // No match found
+}
+
+// Function to find if a perfect matching exists
+int isPerfectMatching(int N) {
+    // Initialize matches to -1 (no matches)
+    for (int i = 0; i < N; i++) {
+        match[i] = -1;
+    }
+
+    int result = 0; // Count of matches
+    for (int u = 0; u < N; u++) {
+        // Reset seen array for each node in the first set
+        for (int i = 0; i < N; i++) {
+            seen[i] = 0;
+        }
+        // Try to find a match for u
+        if (bpm(u, N)) {
+            result++; // Increment match count
+        }
+    }
+    return result; // Return the total number of matches found
+}
+
+int main() {
+    int N;
+    // Read the number of nodes
+    scanf("%d", &N);
+
+    // Read the grid of connections
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            scanf("%d", &grid[i][j]);
+        }
+    }
+
+    // Check for perfect matching
+    int matches = isPerfectMatching(N);
+    if (matches == N) {
+        printf("yes\n");
+        // Output the matched pairs with an offset of +1
+        for (int i = 0; i < N; i++) {
+            printf("%d ", match[i] + 1); // Adjusting index for output
+        }
+        printf("\n");
+    } else {
+        printf("no\n");
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_output.txt
+Input:
+4
+1 0 1
+0 1 0
+1 0 1
+Expected:
+yes
+1
+2
+3
+Actual:
+no
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

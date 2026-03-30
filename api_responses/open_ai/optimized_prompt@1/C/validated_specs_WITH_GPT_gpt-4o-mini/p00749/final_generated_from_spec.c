@@ -1,0 +1,100 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WIDTH 100
+#define MAX_HEIGHT 100
+
+typedef struct {
+    int min_x;
+    int max_x;
+    int size;
+    int total_x;
+} Component;
+
+char* evaluate_stability(char grid[MAX_HEIGHT][MAX_WIDTH], int width, int height);
+void dfs(char grid[MAX_HEIGHT][MAX_WIDTH], int x, int y, Component* comp, int visited[MAX_HEIGHT][MAX_WIDTH]);
+
+int main() {
+    int width, height;
+    // Read width and height
+    scanf("%d %d", &width, &height);
+    
+    // Check for positive dimensions
+    if (width <= 0 || height <= 0) {
+        return 0; // Terminate without processing
+    }
+
+    char grid[MAX_HEIGHT][MAX_WIDTH];
+    
+    // Read the grid
+    for (int i = 0; i < height; i++) {
+        scanf("%s", grid[i]);
+    }
+
+    // Evaluate stability
+    char* result = evaluate_stability(grid, width, height);
+    printf("%s\n", result);
+    free(result); // Free the allocated result string
+    return 0;
+}
+
+char* evaluate_stability(char grid[MAX_HEIGHT][MAX_WIDTH], int width, int height) {
+    int visited[MAX_HEIGHT][MAX_WIDTH] = {0};
+    Component comp;
+    int is_stable = 1; // Assume stable until proven otherwise
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            if (grid[i][j] != ' ' && !visited[i][j]) { // Found a new component
+                comp.min_x = j;
+                comp.max_x = j;
+                comp.size = 0;
+                comp.total_x = 0;
+                dfs(grid, j, i, &comp, visited);
+                
+                // Calculate center of mass
+                double center_of_mass = 0.5 + (double)comp.total_x / comp.size;
+                
+                // Check stability condition
+                if (center_of_mass < comp.min_x || center_of_mass > comp.max_x) {
+                    is_stable = 0; // Mark as unstable
+                }
+            }
+        }
+    }
+
+    // Return stability result
+    char* result = (char*)malloc(9 * sizeof(char)); // "STABLE" or "UNSTABLE"
+    if (is_stable) {
+        strcpy(result, "STABLE");
+    } else {
+        strcpy(result, "UNSTABLE");
+    }
+    return result;
+}
+
+void dfs(char grid[MAX_HEIGHT][MAX_WIDTH], int x, int y, Component* comp, int visited[MAX_HEIGHT][MAX_WIDTH]) {
+    // Mark the cell as visited
+    visited[y][x] = 1;
+    comp->size++;
+    comp->total_x += x;
+
+    // Update min and max x coordinates
+    if (x < comp->min_x) comp->min_x = x;
+    if (x > comp->max_x) comp->max_x = x;
+
+    // Directions for 4-connected neighbors
+    int directions[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+    
+    for (int i = 0; i < 4; i++) {
+        int new_x = x + directions[i][0];
+        int new_y = y + directions[i][1];
+        
+        // Check bounds and if the neighbor is part of the structure and not visited
+        if (new_x >= 0 && new_x < MAX_WIDTH && new_y >= 0 && new_y < MAX_HEIGHT &&
+            grid[new_y][new_x] != ' ' && !visited[new_y][new_x]) {
+            dfs(grid, new_x, new_y, comp, visited);
+        }
+    }
+}

@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a maximum value based on a series of integer inputs, utilizing a dynamic programming approach that incorporates previously computed values while adhering to specified constraints. It processes a list of integers and calculates a final maximum value influenced by a specified number of iterations and a range constraint.
+
+## 2. Inputs
+- Three integers: `n`, `m`, and `k`, where:
+  - `n` is the number of elements in the input list.
+  - `m` is a range constraint that determines the minimum index gap between selected elements during the computation.
+  - `k` is the number of iterations that dictate how many times the dynamic programming process is applied.
+- An array of `n` integers representing the input values.
+
+## 3. Outputs
+- A single integer representing the maximum computed value after processing the input list according to the specified constraints.
+
+## 4. Preconditions
+- The input values for `n`, `m`, and `k` must be non-negative integers.
+- The input list must contain exactly `n` integers.
+
+## 5. Postconditions
+- The output is the maximum value derived from the processed input list, calculated by considering the constraints defined by `m` and `k`.
+
+## 6. Invariants
+- The array of integers remains unchanged throughout the execution.
+- The dynamic programming array is updated based on the previous values and the current iteration's calculations, specifically incorporating values from previous iterations while respecting the range constraint.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to memory allocation failures or invalid input formats. If memory allocation fails, the behavior is undefined.
+- If the input values do not meet the preconditions, the output may be incorrect or undefined.
+
+## 8. State Transitions
+- The state transitions occur as the dynamic programming array is updated in each iteration. The updates reflect the maximum values computed based on the current index, previous indices, and the range constraint, ensuring that the selected indices maintain a gap of at least `m`. Specifically, for each iteration from 2 to `k`, the algorithm maintains a sliding window of valid indices and updates the dynamic programming array based on the values from these indices.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity that is dependent on the values of `n` and `k`, potentially leading to performance considerations for large inputs. Memory usage is proportional to `n` due to the allocation of arrays. 
+
+## 10. Counting Logic
+- The algorithm counts the number of iterations (`k`) and ensures that for each iteration, the maximum value is computed by considering the contributions from the current index and valid previous indices, while adhering to the gap defined by `m`.
+
+## 11. Termination Behavior
+- The program terminates after processing all iterations and outputs the maximum computed value. The termination is guaranteed as long as the input adheres to the specified preconditions.
+
+```

@@ -1,0 +1,76 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int minCostToConnectPoints(int n, int* x, int* y) {
+    // Initialize a dynamic programming table to store minimum costs
+    int** dp = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        dp[i] = (int*)malloc(n * sizeof(int));
+    }
+
+    // Fill the dp table with high values
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            dp[i][j] = INT_MAX; // High value initialization
+        }
+    }
+
+    // Cost to connect a point to itself is zero
+    for (int i = 0; i < n; i++) {
+        dp[i][i] = 0;
+    }
+
+    // Compute costs based on absolute differences in coordinates
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (i != j) {
+                dp[i][j] = abs(x[i] - x[j]) + abs(y[i] - y[j]);
+            }
+        }
+    }
+
+    // Dynamic programming to find the minimum cost to connect all points
+    int* minCost = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        minCost[i] = INT_MAX; // Initialize minimum costs
+    }
+    minCost[0] = 0; // Starting point
+
+    for (int k = 0; k < n - 1; k++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (minCost[i] + dp[i][j] < minCost[j]) {
+                    minCost[j] = minCost[i] + dp[i][j];
+                }
+            }
+        }
+    }
+
+    // Calculate the total minimum cost
+    int totalCost = 0;
+    for (int i = 0; i < n; i++) {
+        totalCost += minCost[i];
+    }
+
+    // Free allocated memory
+    for (int i = 0; i < n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+    free(minCost);
+
+    return totalCost; // Return the minimum cost
+}
+
+int main() {
+    // Example usage
+    int n = 3;
+    int x[] = {0, 1, 2};
+    int y[] = {0, 1, 2};
+    int result = minCostToConnectPoints(n, x, y);
+    printf("Minimum cost to connect points: %d\n", result);
+    return 0;
+}
+```

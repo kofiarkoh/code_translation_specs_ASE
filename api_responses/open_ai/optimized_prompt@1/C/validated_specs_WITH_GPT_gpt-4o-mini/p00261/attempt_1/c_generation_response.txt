@@ -1,0 +1,52 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_PATH_LENGTH 100
+#define TARGET_STATE 'Z' // Assuming 'Z' is the designated target state
+#define END_INPUT_CHAR '!' // Assuming '!' indicates the end of input
+
+// Predefined state transition mapping
+// For simplicity, let's assume a direct mapping for demonstration
+char state_map[256] = {0}; // Initialize all to 0
+void initialize_state_map() {
+    // Example transitions: 'A' -> 'B', 'B' -> 'C', ..., 'Y' -> 'Z'
+    for (char c = 'A'; c < 'Z'; c++) {
+        state_map[(int)c] = c + 1; // Transition to the next character
+    }
+    state_map[(int)'Z'] = 'Z'; // Stay in 'Z' if already there
+}
+
+int process_path(const char *path) {
+    char current_state = 'A'; // Starting state
+    for (size_t i = 0; i < strlen(path); i++) {
+        char input_char = path[i];
+        if (input_char < 0 || input_char > 255 || state_map[(int)input_char] == 0) {
+            // Invalid character encountered
+            return 0; // Output "No"
+        }
+        current_state = state_map[(int)input_char]; // Transition to the next state
+    }
+    return current_state == TARGET_STATE; // Check if final state is the target
+}
+
+int main() {
+    initialize_state_map(); // Set up the state transitions
+
+    char input[MAX_PATH_LENGTH];
+    while (1) {
+        // Read input path
+        scanf("%s", input);
+        if (input[0] == END_INPUT_CHAR) {
+            break; // End of input
+        }
+        // Process the path and output result
+        if (process_path(input)) {
+            printf("Yes\n"); // Final state matches target
+        } else {
+            printf("No\n"); // Final state does not match target or invalid input
+        }
+    }
+    return 0;
+}
+```

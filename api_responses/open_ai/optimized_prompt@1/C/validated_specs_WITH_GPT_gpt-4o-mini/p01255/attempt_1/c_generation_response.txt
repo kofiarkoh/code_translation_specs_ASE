@@ -1,0 +1,77 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int x1, y1; // Starting point
+    int x2, y2; // Ending point
+} Segment;
+
+// Function to check if two segments intersect
+int doIntersect(Segment s1, Segment s2) {
+    // Implementing a simple intersection check for line segments
+    // This is a placeholder; actual implementation would be needed
+    // to check for intersection based on geometry.
+    return 0; // Assume no intersection for now
+}
+
+// Function to find the minimum number of colors needed
+int minColors(Segment* segments, int n) {
+    int* colors = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        colors[i] = -1; // Initialize all segments with no color
+    }
+
+    // Assign colors
+    for (int i = 0; i < n; i++) {
+        // Check colors of segments that intersect with segment i
+        int usedColors[n]; // Track used colors for segment i
+        for (int j = 0; j < n; j++) {
+            usedColors[j] = 0; // Initialize used colors
+        }
+
+        for (int j = 0; j < n; j++) {
+            if (i != j && doIntersect(segments[i], segments[j]) && colors[j] != -1) {
+                usedColors[colors[j]] = 1; // Mark color as used
+            }
+        }
+
+        // Find the first unused color
+        int color;
+        for (color = 0; color < n; color++) {
+            if (!usedColors[color]) {
+                break; // Found an unused color
+            }
+        }
+        colors[i] = color; // Assign the color to segment i
+    }
+
+    // Determine the maximum color used
+    int maxColor = 0;
+    for (int i = 0; i < n; i++) {
+        if (colors[i] > maxColor) {
+            maxColor = colors[i];
+        }
+    }
+
+    free(colors); // Free allocated memory
+    return maxColor + 1; // Return the number of colors used (1-indexed)
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of segments
+    if (n < 1) return 1; // Invalid input check
+
+    Segment* segments = (Segment*)malloc(n * sizeof(Segment));
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d %d %d", &segments[i].x1, &segments[i].y1, &segments[i].x2, &segments[i].y2);
+    }
+
+    int result = minColors(segments, n);
+    printf("%d\n", result); // Output the minimum number of colors
+
+    free(segments); // Free allocated memory for segments
+    return 0;
+}
+```

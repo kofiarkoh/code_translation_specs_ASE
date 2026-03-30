@@ -1,0 +1,137 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
+
+int mizuhasu(const void* x, const void* y) {
+	int a = *(const int*)x, b = *(const int*)y;
+	return a > b ? -1 : a < b;
+}
+
+int X, Y, A, B, C;
+int p[114514], q[114514], r[114514];
+
+int main(void) {
+	int i;
+	int asumi, iguti;
+	int64_t kitaeri;
+	if (scanf("%d%d%d%d%d", &X, &Y, &A, &B, &C) != 5) return 1;
+	for (i = 0; i < A; i++) {
+		if (scanf("%d", &p[i]) != 1) return 1;
+	}
+	for (i = 0; i < B; i++) {
+		if (scanf("%d", &q[i]) != 1) return 1;
+	}
+	for (i = 0; i < C; i++) {
+		if (scanf("%d", &r[i]) != 1) return 1;
+	}
+	qsort(p, A, sizeof(*p), mizuhasu);
+	qsort(q, B, sizeof(*q), mizuhasu);
+	qsort(r, C, sizeof(*r), mizuhasu);
+	asumi = X - 1;
+	iguti = Y - 1;
+	for (i = 0; i < C; i++) {
+		if (asumi < 0 && iguti < 0) {
+			break;
+		} else if (asumi < 0 || (iguti >= 0 && p[asumi] > q[iguti])) {
+			if (r[i] > q[iguti]) q[iguti--] = r[i]; else break;
+		} else { /* asumi >= 0 && (iguti < 0 || p[asumi] <= q[iguti]) */
+			if (r[i] > p[asumi]) p[asumi--] = r[i]; else break;
+		}
+	}
+	kitaeri = 0;
+	for (i = 0; i < X; i++) kitaeri += p[i];
+	for (i = 0; i < Y; i++) kitaeri += q[i];
+	printf("%" PRId64 "\n", kitaeri);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a set of integers from input, processes them through sorting and conditional logic, and computes the sum of selected integers from two arrays, outputting the result.
+
+# 2. Inputs
+- Five integers: X, Y, A, B, C.
+- A sequence of A integers for the first array.
+- A sequence of B integers for the second array.
+- A sequence of C integers for the third array.
+
+# 3. Outputs
+- A single integer representing the sum of selected integers from the first and second arrays.
+
+# 4. Preconditions
+- The input must consist of exactly five integers followed by A, B, and C integers respectively.
+- A, B, and C must be non-negative integers.
+
+# 5. Postconditions
+- The output is the sum of the first X integers from the first array and the first Y integers from the second array after processing.
+
+# 6. Invariants
+- The first array is sorted in descending order.
+- The second array is sorted in descending order.
+- The third array is not modified but is used to conditionally replace elements in the first and second arrays.
+
+# 7. Error Handling / Exceptional Behavior
+- The program returns an error code if the input does not match the expected format or if any input reading fails.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as elements from the third array are conditionally placed into the first and second arrays based on comparisons with existing elements.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle input sizes up to the defined limits of A, B, and C efficiently, ensuring that sorting and processing are performed within acceptable time limits.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong transition rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how elements from the third array are conditionally placed into the first and second arrays based on comparisons with existing elements. Specifically, it lacks detail on the conditions under which elements from the third array replace elements in the first and second arrays.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the logic used to determine when to replace elements in the first and second arrays with elements from the third array. It should specify that the replacement occurs based on comparisons with the current elements of the first and second arrays, and that the process continues until either the third array is exhausted or no further replacements can be made.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a specific logic where it checks if the current elements of the first and second arrays are less than the corresponding elements of the third array before replacing them. This behavior is crucial for understanding how the final sums are computed, as it directly affects which elements are included in the sums. The current specification's vagueness regarding this logic leads to discrepancies in the expected output, as seen in the failing test case.
+
+```

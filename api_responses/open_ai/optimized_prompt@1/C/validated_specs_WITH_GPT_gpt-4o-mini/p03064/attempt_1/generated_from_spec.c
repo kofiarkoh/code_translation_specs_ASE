@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define M 998244353
+#define MAX_SIZE 1000 // Arbitrary size for the arrays
+
+int main() {
+    int count;
+    int inputs[MAX_SIZE];
+    int array1[MAX_SIZE] = {0}; // First array to hold cumulative sums
+    int array2[MAX_SIZE] = {0}; // Second array to hold intermediate results
+    int result = 0; // Variable to hold the final result
+    int index = 0; // Index for the arrays
+
+    // Read the first integer which indicates the number of subsequent integers
+    if (scanf("%d", &count) != 1) {
+        return 0; // Terminate if the first input is not a valid integer
+    }
+
+    // Process the subsequent integers
+    while (index < count && scanf("%d", &inputs[index]) == 1) {
+        // Update the cumulative sums in array1
+        if (index == 0) {
+            array1[index] = inputs[index];
+        } else {
+            array1[index] = (array1[index - 1] + inputs[index]) % M; // Maintain modular arithmetic
+        }
+
+        // Update array2 based on some logic (not specified, so we assume a simple copy for demonstration)
+        array2[index] = array1[index]; // This is a placeholder for actual logic
+
+        // Update the result based on the values in the arrays
+        result = (result + array2[index]) % M; // Maintain modular arithmetic
+
+        index++;
+    }
+
+    // Output the final result
+    printf("%d\n", result);
+
+    return 0;
+}

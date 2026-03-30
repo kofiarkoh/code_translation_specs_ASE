@@ -1,0 +1,84 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *data;      // Array to hold the segment tree
+    int size;       // Size of the segment tree
+} SegmentTree;
+
+// Function to create a segment tree
+SegmentTree* create_segment_tree(int n) {
+    SegmentTree *tree = (SegmentTree *)malloc(sizeof(SegmentTree));
+    tree->size = 1;
+    while (tree->size < n) tree->size *= 2; // Ensure size is a power of two
+    tree->data = (int *)malloc(2 * tree->size * sizeof(int));
+    for (int i = 0; i < 2 * tree->size; i++) tree->data[i] = 0; // Initialize with zeros
+    return tree;
+}
+
+// Function to update the segment tree
+void update_segment_tree(SegmentTree *tree, int index, int value) {
+    index += tree->size; // Move to the leaf node
+    tree->data[index] = value; // Set the value at the leaf
+    while (index > 1) {
+        index /= 2; // Move up the tree
+        tree->data[index] = (tree->data[2 * index] > tree->data[2 * index + 1]) ? 
+                            tree->data[2 * index] : tree->data[2 * index + 1]; // Update the parent
+    }
+}
+
+// Function to query the maximum value in a range
+int query_segment_tree(SegmentTree *tree, int left, int right) {
+    left += tree->size; // Move to the leaf node
+    right += tree->size; // Move to the leaf node
+    int max_value = 0; // Initialize max value
+    while (left < right) {
+        if (left % 2 == 1) max_value = (max_value > tree->data[left]) ? max_value : tree->data[left++]; // Check left node
+        if (right % 2 == 1) max_value = (max_value > tree->data[--right]) ? max_value : tree->data[right]; // Check right node
+        left /= 2; // Move up the tree
+        right /= 2; // Move up the tree
+    }
+    return max_value; // Return the maximum value found
+}
+
+// Function to calculate the total cost of moving houses
+long calculate_total_cost(int n, int *positions) {
+    SegmentTree *tree = create_segment_tree(n);
+    long expected_total_cost = (long)n * (n + 1) / 2; // Sum of first n natural numbers
+    long cumulative_max = 0;
+
+    // Update the segment tree with positions
+    for (int i = 0; i < n; i++) {
+        update_segment_tree(tree, i, positions[i]);
+    }
+
+    // Query the maximum value for the entire range
+    cumulative_max = query_segment_tree(tree, 0, n);
+    
+    // Calculate the total cost
+    long total_cost = expected_total_cost - cumulative_max;
+
+    // Free allocated memory
+    free(tree->data);
+    free(tree);
+    
+    return total_cost; // Return the total cost
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of houses
+    int *positions = (int *)malloc(n * sizeof(int)); // Allocate memory for positions
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &positions[i]); // Read positions
+    }
+
+    long total_cost = calculate_total_cost(n, positions); // Calculate total cost
+    printf("%ld\n", total_cost); // Output the total cost
+
+    free(positions); // Free allocated memory for positions
+    return 0;
+}
+```

@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code implements a breadth-first search (BFS) algorithm on an undirected graph to determine the shortest path from a starting node to all other nodes. It guarantees that if a path exists, it will output the predecessor of each node in the path.
+
+# 2. Inputs
+- Two integers, N and M, representing the number of nodes and edges in the graph, respectively.
+- M pairs of integers, each representing an undirected edge between two nodes.
+
+# 3. Outputs
+- A string "Yes" indicating that the graph is connected from the starting node.
+- For each node from 2 to N, the output is the predecessor node in the shortest path from the starting node (node 1).
+
+# 4. Preconditions
+- N is a positive integer representing the number of nodes.
+- M is a non-negative integer representing the number of edges.
+- The edges provided must connect valid node indices within the range [1, N].
+
+# 5. Postconditions
+- The predecessor array is populated such that for each node j (2 ≤ j ≤ N), d[j] contains the predecessor of j in the BFS traversal from node 1.
+- If the graph is connected, the output will include the predecessor for each node; otherwise, the behavior is undefined.
+
+# 6. Invariants
+- The predecessor array is initialized to -1 for all nodes, indicating that they are unvisited.
+- The graph structure is maintained throughout the execution, with edges correctly linked in both directions.
+
+# 7. Error Handling / Exceptional Behavior
+- If memory allocation for edges fails, the behavior is undefined.
+- If the input does not conform to the expected format or contains invalid node indices, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as nodes are visited and their predecessors are recorded in the predecessor array during the BFS traversal.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within O(N + M) time complexity, where N is the number of nodes and M is the number of edges, assuming a well-formed input.
+
+```

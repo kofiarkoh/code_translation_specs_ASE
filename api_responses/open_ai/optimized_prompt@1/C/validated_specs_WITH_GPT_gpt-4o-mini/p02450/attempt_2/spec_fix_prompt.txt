@@ -1,0 +1,128 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+void enumeration(int result[],int used[],int n,int d){
+    int i;
+    if(d>=n){
+        for(i=0;i<n;i++){
+            if(i==0)printf("%d",result[i]);
+            else printf(" %d",result[i]);
+        }
+        printf("\n");
+        return;
+    }
+    
+    int used2[n-d-1];
+    int j,k;
+    for(i=0;i<n-d;i++){
+        result[d]=used[i];
+        for(j=0,k=0;j<n-d;j++)if(j!=i)used2[k++]=used[j];
+        enumeration(result,used2,n,d+1);
+    }
+    
+    return;
+}
+int main(void){
+    int i;
+    
+    int n;
+    scanf("%d\n",&n);
+    
+    int used[n];
+    for(i=0;i<n;i++)used[i]=i+1;
+    
+    int result[n];
+    
+    enumeration(result,used,n,0);
+    
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code generates and prints all possible permutations of a sequence of integers from 1 to n, where n is provided as input. Each permutation is printed on a new line.
+
+# 2. Inputs
+- An integer n, representing the number of elements in the sequence.
+- An implicit sequence of integers from 1 to n, generated based on the input n.
+
+# 3. Outputs
+- A series of lines, each containing a unique permutation of the integers from 1 to n.
+
+# 4. Preconditions
+- The input integer n must be a non-negative integer.
+- The input must be provided in a format that allows for successful reading as an integer.
+
+# 5. Postconditions
+- All permutations of the integers from 1 to n are printed, with each permutation appearing on a separate line.
+- Each integer in the permutations is separated by a space.
+
+# 6. Invariants
+- The integers in each permutation are distinct and range from 1 to n.
+- The total number of printed permutations is equal to n factorial (n!).
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined, and no output is guaranteed.
+- If n is negative, the function does not handle this case explicitly, leading to undefined behavior.
+
+# 8. State Transitions (if applicable)
+- The state transitions involve moving from one depth of recursion to another, where each state represents a partial permutation being constructed.
+
+# 9. Non-functional Constraints (if inferable)
+- The time complexity is O(n!) due to the generation of all permutations.
+- The space complexity is O(n) for storing the current permutation and the used integers.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong ordering rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define the order in which permutations should be generated and printed. It implies that all permutations should be printed, but does not specify that they must be in a particular order (e.g., lexicographical order).
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the permutations must be generated and printed in a specific order, such as lexicographical order, to ensure consistency with the expected output.
+
+D. **Why this clarification is supported by the source program**  
+The source program generates permutations in a specific order based on the recursive structure and the way elements are swapped. The failing test case indicates that the generated output does not match the expected order, suggesting that the specification's lack of clarity on ordering leads to discrepancies between the expected and actual outputs.
+
+```

@@ -1,0 +1,49 @@
+# Revised Specification
+
+## 1. Functional Description
+The code computes the probability of successfully completing a game of Backgammon based on the number of remaining moves and turns. It evaluates the game state by considering the positions of obstacles and barriers, returning the probability as a floating-point value.
+
+## 2. Inputs
+- Four integers: 
+  - **N**: Total number of positions on the board.
+  - **T**: Total number of turns available.
+  - **L**: Number of positions designated as "L" (obstacles).
+  - **B**: Number of positions designated as "B" (barriers).
+- A list of **L** integers representing the positions of "L" obstacles.
+- A list of **B** integers representing the positions of "B" barriers.
+
+## 3. Outputs
+- A floating-point number representing the probability of successfully completing the game given the inputs.
+
+## 4. Preconditions
+- **N**, **T**, **L**, and **B** must be non-negative integers.
+- The sum of **L** and **B** must not exceed **N**.
+- The positions of "L" and "B" must be valid indices within the range of 0 to **N**.
+
+## 5. Postconditions
+- The output probability is a value between 0.0 and 1.0, inclusive.
+- The output reflects the computed probability based on the game state defined by the inputs.
+
+## 6. Invariants
+- The memoization array is initialized to a maximum double value before computation begins.
+- The game state is consistently updated based on the defined rules for "L" and "B" positions.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when all input values are zero.
+- Invalid input scenarios (e.g., out-of-bounds positions) are not explicitly handled, and behavior is undefined in such cases.
+
+## 8. State Transitions
+- The state transitions occur based on the number of remaining moves and turns. The recursive function evaluates possible moves by:
+  - Reducing the number of remaining turns.
+  - Adjusting the current position based on the outcome of the move.
+  - Considering the effects of obstacles ('L') and barriers ('B') on the probability calculation.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate within reasonable time limits for typical input sizes, given the constraints on **N**, **T**, **L**, and **B**. 
+
+## 10. Recursive Probability Calculation
+- The probability is computed recursively, where:
+  - If there are no remaining moves, the probability of success is 1.0.
+  - If there are no turns left, the probability of success is 0.0.
+  - If there is one turn left and the remaining moves are less than or equal to 6, the probability is uniformly distributed across the possible moves.
+  - For each possible move (1 to 6), the function evaluates the next position and updates the probability based on whether the position is an obstacle, a barrier, or free. The results are aggregated to compute the overall probability.

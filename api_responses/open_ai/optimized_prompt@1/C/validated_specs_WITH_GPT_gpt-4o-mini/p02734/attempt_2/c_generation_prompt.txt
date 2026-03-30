@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of ways to select elements from a given list such that their sum equals a specified target value. It utilizes dynamic programming to track the number of valid selections, allowing for the possibility of selecting the same element multiple times.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the list.
+- An integer `s` representing the target sum.
+- An array of integers of size `n`, containing the elements from which selections are made.
+
+## 3. Outputs
+- A single integer representing the number of ways to select elements from the list such that their sum equals `s`, computed modulo a specified constant.
+
+## 4. Preconditions
+- `n` is a non-negative integer.
+- `s` is a non-negative integer.
+- The array contains `n` integers.
+
+## 5. Postconditions
+- The output is a non-negative integer that represents the count of valid selections whose sum equals `s`. The count includes combinations where the same element may be selected multiple times.
+
+## 6. Invariants
+- The dynamic programming table maintains accurate counts of selections for all subproblems defined by the number of elements considered and the current sum, reflecting the inclusion of elements multiple times.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid inputs (e.g., negative integers for `n` or `s`, or insufficient input data). It assumes valid input is provided.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur through updates to the dynamic programming table based on previous states, reflecting the inclusion or exclusion of each element in the selections. The transitions account for the possibility of selecting the same element multiple times.
+
+## 9. Non-functional Constraints (if inferable)
+- The computation is performed in a time complexity proportional to `O(n * s)`, where `n` is the number of elements and `s` is the target sum. The space complexity is also proportional to `O(n * s)`. The results are computed modulo a constant to prevent overflow.
+
+```

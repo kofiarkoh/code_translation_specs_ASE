@@ -1,0 +1,59 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+long long max(long long a, long long b) {
+    return (a > b) ? a : b;
+}
+
+long long evaluate(const char *expression, int start, int end) {
+    long long max_result = LLONG_MIN;
+
+    for (int i = start; i <= end; i++) {
+        if (expression[i] == '+' || expression[i] == '-' || expression[i] == '*') {
+            long long left = evaluate(expression, start, i - 1);
+            long long right = evaluate(expression, i + 1, end);
+            long long result;
+
+            switch (expression[i]) {
+                case '+':
+                    result = left + right;
+                    break;
+                case '-':
+                    result = left - right;
+                    break;
+                case '*':
+                    result = left * right;
+                    break;
+                default:
+                    result = 0; // Should never reach here
+            }
+            max_result = max(max_result, result);
+        }
+    }
+
+    // If no operator was found, it must be a number
+    if (max_result == LLONG_MIN) {
+        char *num_str = (char *)malloc(end - start + 2);
+        strncpy(num_str, expression + start, end - start + 1);
+        num_str[end - start + 1] = '\0';
+        max_result = atoll(num_str);
+        free(num_str);
+    }
+
+    return max_result;
+}
+
+long long maxExpressionValue(const char *expression) {
+    return evaluate(expression, 0, strlen(expression) - 1);
+}
+
+int main() {
+    const char *expression = "1+2*3-4"; // Example expression
+    long long result = maxExpressionValue(expression);
+    printf("Maximum result: %lld\n", result);
+    return 0;
+}
+```

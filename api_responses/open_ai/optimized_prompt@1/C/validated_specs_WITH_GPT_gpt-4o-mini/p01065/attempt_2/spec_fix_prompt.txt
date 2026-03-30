@@ -1,0 +1,139 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOL 1580 Barter
+// 2018.2.18 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#define BASE 300
+#define DBASE 600
+int dp[101][BASE+2][DBASE+2];
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int main()
+{
+	int n, x, y, a, b, c, d, i, j, k, ans;
+
+	n = in();
+	x = in(), y = in();
+	memset(dp, -1, sizeof(dp));
+    dp[0][0][BASE] = 0;
+
+	for (i = 0; i < n; i++) {
+		a = in(), b = in(), c = in(), d = in();
+		for (j = 0; j <= BASE; j++) for (k = 0; k <= DBASE; k++) {
+			if (dp[i][j][k] < 0) continue;
+			if (dp[i+1][j][k] < dp[i][j][k]) dp[i+1][j][k] = dp[i][j][k];
+			if (x >= j + a && dp[i+1][j+a][k-b] < dp[i][j][k]) dp[i+1][j+a][k-b] = dp[i][j][k]; 
+            if (dp[i+1][j][k+c] < dp[i][j][k]+d) dp[i+1][j][k+c] = dp[i][j][k]+d;
+        }
+    }
+
+    ans = 0;
+	for (j = 0; j <= x; j++) for (k = 0; k <= 600; k++) {
+		if (ans < dp[n][j][k] && y+BASE >= k) ans = dp[n][j][k];
+	}
+    printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a dynamic programming solution to optimize a barter system, determining the maximum value obtainable given a set of constraints related to resources and trade-offs.
+
+# 2. Inputs
+- An integer representing the number of items available for barter.
+- Two integers representing the maximum resources available for two distinct categories.
+- For each item, four integers representing:
+  - The resource cost in the first category.
+  - The resource cost in the second category.
+  - The value gained from the item.
+  - The additional resource gained in the second category.
+
+# 3. Outputs
+- An integer representing the maximum value obtainable through optimal trading, given the constraints of the resources.
+
+# 4. Preconditions
+- The number of items must be a non-negative integer.
+- The resource limits must be non-negative integers.
+- Each item's resource costs and values must be non-negative integers.
+
+# 5. Postconditions
+- The output integer is the maximum value that can be achieved without exceeding the specified resource limits.
+
+# 6. Invariants
+- The dynamic programming table maintains valid states throughout the computation, ensuring that each entry reflects the best possible value obtainable for the given resource constraints at each step.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid states. It assumes that inputs are well-formed and within the specified ranges.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the algorithm iterates through each item, updating the dynamic programming table based on the current item's resource costs and values, while maintaining the constraints of the available resources.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is polynomial with respect to the number of items and the resource limits, ensuring reasonable performance for typical input sizes.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately capture the nuances of how resource gains and costs interact, particularly in the context of the dynamic programming approach used in the source program.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the additional resource gained from an item (the fourth integer) affects the overall resource constraints and how it can be utilized in subsequent item selections.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program allows for the possibility of increasing the second resource category (k) when an item is selected, which can lead to different states in the dynamic programming table. This behavior is not explicitly addressed in the current specification, leading to potential misunderstandings about how to compute the maximum value obtainable when considering both resource costs and gains. The failing test case suggests that the generated program does not account for this interaction correctly, resulting in a mismatch between expected and actual outputs.
+
+```

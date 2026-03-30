@@ -1,0 +1,79 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a list of words and their corresponding reversed forms, allowing for queries that may include wildcard characters. It counts the number of matches based on specific criteria defined by the input queries, with particular attention to the placement and implications of wildcards.
+
+## 2. Inputs
+- An integer \( N \) representing the number of word pairs.
+- An integer \( M \) representing the number of queries.
+- \( N \) pairs of strings, where each pair consists of a word and its reversed form.
+- \( M \) queries, which may include wildcard characters ('*' and '?').
+
+## 3. Outputs
+- For each query, an integer representing the count of matching words based on the specified criteria.
+
+## 4. Preconditions
+- \( N \) and \( M \) are non-negative integers.
+- Each word and its reversed form are non-empty strings with a maximum length of 204 characters.
+- The total number of words does not exceed 50,000.
+
+## 5. Postconditions
+- The output for each query is a non-negative integer indicating the number of matches found.
+
+## 6. Invariants
+- The list of words and their reversed forms remains sorted after processing.
+- The input strings are stored in a manner that allows for efficient searching.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer values for \( N \) or \( M \)), the behavior is undefined.
+- The program does not handle memory allocation failures or other runtime errors explicitly.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur during the processing of input strings and queries, where the internal state is updated based on the results of searches and counts.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to perform efficiently with a time complexity that allows handling the upper limits of \( N \) and \( M \) within reasonable time constraints.
+
+## 10. Wildcard Matching Rules
+- The query may contain wildcard characters:
+  - The character '?' matches exactly one character.
+  - The character '*' matches zero or more characters.
+- The placement of wildcards affects the matching process:
+  - If a wildcard appears at the beginning of the query, it allows for any prefix match.
+  - If a wildcard appears at the end of the query, it allows for any suffix match.
+  - If a wildcard appears in the middle of the query, it allows for any substring match around that position.
+- Queries without wildcards are matched exactly against the words and their reversed forms. 
+
+## 11. Edge Cases
+- Queries that consist solely of wildcards should return counts based on the total number of words.
+- Queries with wildcards that do not match any characters should return zero matches.
+- The program should handle cases where the input strings or queries are at their maximum lengths without exceeding memory limits.
+
+```

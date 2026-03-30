@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program calculates a numerical result based on the comparison of two input strings of equal length. The result is derived from specific rules regarding character matches and adjacency, and is returned modulo a predefined constant.
+
+## 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- Two strings \( S1 \) and \( S2 \), each of length \( N \).
+
+## 3. Outputs
+- A single long integer value representing the computed result based on the input strings.
+
+## 4. Preconditions
+- The input integer \( N \) must be a positive integer.
+- The lengths of both strings \( S1 \) and \( S2 \) must equal \( N \).
+
+## 5. Postconditions
+- The output value is a non-negative integer that is the result of the computation, constrained to be less than \( 1000000007 \).
+
+## 6. Invariants
+- The output value is consistently computed based on the character comparisons between \( S1 \) and \( S2 \).
+- The result is updated based on specific conditions related to character equality and adjacency:
+  - If the first characters of \( S1 \) and \( S2 \) are equal, the initial result is set to 3; otherwise, it is set to 6.
+  - For subsequent characters, if characters at the same position in both strings are equal, the result is multiplied by 2.
+  - If characters in \( S1 \) are equal to their adjacent characters in \( S1 \), the result is multiplied by either 2 or 3 depending on the previous character comparison state.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer for \( N \), or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+## 8. State Transitions
+- The state transitions occur based on character comparisons between the two strings, affecting the value of the result during each iteration of the processing loop:
+  - The state is influenced by whether the current characters of \( S1 \) and \( S2 \) match, and whether the current character in \( S1 \) matches the next character in \( S1 \).
+
+## 9. Non-functional Constraints
+- The program must execute within a reasonable time frame for typical input sizes, with memory usage proportional to the input size \( N \).
+
+```

@@ -1,0 +1,138 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include<stdio.h>
+
+
+ int main()
+{
+long int a,b,k;
+
+scanf("%ld %ld",&a,&b);
+
+
+if ((a+b) % 2 !=0)
+{
+printf("IMPOSSIBLE");
+  return 0;
+}
+
+printf("%d",(a+b)/2);   
+   
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program computes the average of two integers if their sum is even. If the sum is odd, it indicates that the average cannot be computed.
+
+# 2. Inputs
+Two integers provided by the user.
+
+# 3. Outputs
+- The average of the two integers if their sum is even.
+- A message indicating "IMPOSSIBLE" if the sum is odd.
+
+# 4. Preconditions
+- The inputs must be valid integers.
+
+# 5. Postconditions
+- If the sum of the inputs is even, the output is the integer result of the average.
+- If the sum of the inputs is odd, the output is the string "IMPOSSIBLE".
+
+# 6. Invariants
+The program maintains that the sum of the two integers is either even or odd throughout its execution.
+
+# 7. Error Handling / Exceptional Behavior
+The program does not handle invalid input types or out-of-range values; it assumes valid integer input.
+
+# 8. State Transitions (if applicable)
+- Initial state: Awaiting user input.
+- Transition to output state based on the parity of the sum of inputs.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a timely manner, ideally within a single user interaction cycle.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+int main() {
+    int a, b; // Declare two integers for user input
+    // Prompt user for input
+    printf("Enter two integers: ");
+    scanf("%d %d", &a, &b); // Read two integers from user input
+
+    int sum = a + b; // Calculate the sum of the two integers
+
+    // Check if the sum is even
+    if (sum % 2 == 0) {
+        // If even, compute and print the average
+        int average = sum / 2; // Integer division for average
+        printf("%d\n", average); // Output the average
+    } else {
+        // If odd, print "IMPOSSIBLE"
+        printf("IMPOSSIBLE\n");
+    }
+
+    return 0; // Indicate successful completion
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02957/p02957_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02957/p02957_sample1_output.txt
+Input:
+5 9
+Expected:
+7
+Actual:
+Enter two integers: 7
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

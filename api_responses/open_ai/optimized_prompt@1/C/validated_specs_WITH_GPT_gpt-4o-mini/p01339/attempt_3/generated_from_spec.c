@@ -1,0 +1,126 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007
+
+typedef struct {
+    int *edges;
+    int count;
+} Graph;
+
+Graph *create_graph(int N) {
+    Graph *g = malloc(sizeof(Graph));
+    g->edges = malloc(N * sizeof(int) * N); // Adjacency matrix
+    g->count = N;
+    for (int i = 0; i < N * N; i++) {
+        g->edges[i] = 0; // Initialize edges to 0
+    }
+    return g;
+}
+
+void add_edge(Graph *g, int u, int v) {
+    g->edges[u * g->count + v] = 1; // Directed edge from u to v
+}
+
+void dfs(int v, Graph *g, int *visited, int *order, int *index) {
+    visited[v] = 1;
+    for (int i = 0; i < g->count; i++) {
+        if (g->edges[v * g->count + i] && !visited[i]) {
+            dfs(i, g, visited, order, index);
+        }
+    }
+    order[(*index)++] = v; // Store the vertex in order of completion
+}
+
+void rdfs(int v, Graph *g, int *visited, int *component, int comp_id) {
+    visited[v] = 1;
+    component[v] = comp_id; // Assign component ID
+    for (int i = 0; i < g->count; i++) {
+        if (g->edges[i * g->count + v] && !visited[i]) {
+            rdfs(i, g, visited, component, comp_id);
+        }
+    }
+}
+
+int count_paths(Graph *g, int *component, int comp_count) {
+    long long *dp = malloc(comp_count * sizeof(long long));
+    for (int i = 0; i < comp_count; i++) {
+        dp[i] = 1; // Each component can be visited in one way
+    }
+
+    for (int u = 0; u < g->count; u++) {
+        for (int v = 0; v < g->count; v++) {
+            if (g->edges[u * g->count + v] && component[u] != component[v]) {
+                dp[component[v]] = (dp[component[v]] + dp[component[u]]) % MOD;
+            }
+        }
+    }
+
+    long long total_paths = 0;
+    for (int i = 0; i < comp_count; i++) {
+        total_paths = (total_paths + dp[i]) % MOD;
+    }
+
+    free(dp);
+    return (int)total_paths;
+}
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M);
+    
+    Graph *g = create_graph(N);
+    
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        add_edge(g, u, v);
+    }
+
+    int *visited = calloc(N, sizeof(int));
+    int *order = malloc(N * sizeof(int));
+    int index = 0;
+
+    // First DFS to get the order of vertices
+    for (int i = 0; i < N; i++) {
+        if (!visited[i]) {
+            dfs(i, g, visited, order, &index);
+        }
+    }
+
+    // Second DFS on the transposed graph to find components
+    Graph *rg = create_graph(N);
+    for (int u = 0; u < N; u++) {
+        for (int v = 0; v < N; v++) {
+            if (g->edges[u * g->count + v]) {
+                add_edge(rg, v, u); // Reverse edge
+            }
+        }
+    }
+
+    free(visited);
+    visited = calloc(N, sizeof(int));
+    int *component = malloc(N * sizeof(int));
+    int comp_id = 0;
+
+    for (int i = N - 1; i >= 0; i--) {
+        if (!visited[order[i]]) {
+            rdfs(order[i], rg, visited, component, comp_id++);
+        }
+    }
+
+    int result = count_paths(g, component, comp_id);
+    
+    printf("%d\n", result);
+
+    // Free allocated memory
+    free(g->edges);
+    free(g);
+    free(rg->edges);
+    free(rg);
+    free(visited);
+    free(order);
+    free(component);
+
+    return 0;
+}

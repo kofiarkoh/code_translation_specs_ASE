@@ -1,0 +1,57 @@
+```c
+#include <stdio.h>
+
+void rotate_segment(int *array, int b, int m, int e) {
+    int length = e - b; // Length of the segment to rotate
+    if (length <= 0) return; // No rotation needed for empty segment
+
+    // Effective rotation count
+    m = m % length; // Handle cases where m exceeds the segment length
+
+    // If m is 0, no need to rotate
+    if (m == 0) return;
+
+    // Create a temporary array to hold the rotated values
+    int temp[length];
+
+    // Copy the segment to the temporary array
+    for (int i = 0; i < length; i++) {
+        temp[i] = array[b + i];
+    }
+
+    // Perform the rotation
+    for (int i = 0; i < length; i++) {
+        array[b + i] = temp[(i + length - m) % length]; // Wrap around using modulo
+    }
+}
+
+int main() {
+    int n; // Number of elements in the array
+    scanf("%d", &n); // Read the size of the array
+
+    int array[1000]; // Declare the array with a maximum size of 1000
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &array[i]); // Read the array elements
+    }
+
+    int q; // Number of rotation queries
+    scanf("%d", &q); // Read the number of queries
+
+    for (int i = 0; i < q; i++) {
+        int b, m, e; // Starting index, number of positions to rotate, ending index
+        scanf("%d %d %d", &b, &m, &e); // Read the query parameters
+        rotate_segment(array, b, m, e); // Perform the rotation on the specified segment
+    }
+
+    // Output the modified array
+    for (int i = 0; i < n; i++) {
+        printf("%d", array[i]); // Print each element
+        if (i < n - 1) {
+            printf(" "); // Print space between elements
+        }
+    }
+    printf("\n"); // New line at the end of output
+
+    return 0; // Indicate successful completion
+}
+```

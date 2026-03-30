@@ -1,0 +1,55 @@
+#include <stdio.h>
+
+#define MAX_VALUE 20
+
+int main() {
+    int count1[MAX_VALUE + 1] = {0}; // Counts for the first set (1 to 20)
+    int count2[MAX_VALUE + 1] = {0}; // Counts for the second set (1 to 20)
+    
+    while (1) {
+        int n1, n2;
+        // Read the number of elements in the first and second sets
+        scanf("%d %d", &n1, &n2);
+        
+        // Termination condition
+        if (n1 == 0) {
+            break;
+        }
+        
+        // Reset counts for the new pair of inputs
+        for (int i = 1; i <= MAX_VALUE; i++) {
+            count1[i] = 0;
+            count2[i] = 0;
+        }
+        
+        // Read the first set of integers
+        for (int i = 0; i < n1; i++) {
+            int value;
+            scanf("%d", &value);
+            if (value >= 1 && value <= MAX_VALUE) {
+                count1[value]++;
+            }
+        }
+        
+        // Read the second set of integers
+        for (int i = 0; i < n2; i++) {
+            int value;
+            scanf("%d", &value);
+            if (value >= 1 && value <= MAX_VALUE) {
+                count2[value]++;
+            }
+        }
+        
+        // Compute the weighted sum
+        int weighted_sum = 0;
+        for (int i = 1; i <= MAX_VALUE; i++) {
+            int max_count = count1[i] > count2[i] ? count1[i] : count2[i];
+            weighted_sum += max_count * i; // Multiply by the integer value
+        }
+        
+        // Output the result for the current pair
+        printf("%d\n", weighted_sum);
+    }
+    
+    return 0;
+}

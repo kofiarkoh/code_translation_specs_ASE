@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 127
+
+int main() {
+    int N;
+    char input[MAX_LENGTH + 1]; // +1 for null terminator
+    int countR = 0;
+    int countOther = 0;
+
+    // Read the integer N
+    if (scanf("%d", &N) != 1 || N < 0) {
+        // If N is not a valid integer or is negative, terminate with non-zero exit status
+        return 1;
+    }
+
+    // Read the string input
+    if (scanf("%s", input) != 1 || strlen(input) < N) {
+        // If string input is not successfully read or is shorter than N, terminate with non-zero exit status
+        return 1;
+    }
+
+    // Evaluate the first N characters
+    for (int i = 0; i < N; i++) {
+        if (input[i] == 'R') {
+            countR++;
+        } else {
+            countOther++;
+        }
+    }
+
+    // Output "Yes" if count of 'R' exceeds count of other characters, otherwise "No"
+    if (countR > countOther) {
+        printf("Yes\n");
+    } else {
+        printf("No\n");
+    }
+
+    return 0; // Successful termination
+}

@@ -1,0 +1,49 @@
+```c
+#include <stdio.h>
+
+#define MODULO_CONSTANT 1000000007 // Predefined constant for modulo operation
+
+// Function to compute the combinatorial value based on dynamic programming
+long compute_combinatorial(int N, int M) {
+    // Create a dynamic programming table
+    long dp[N + 1][M + 1];
+
+    // Initialize the table
+    for (int i = 0; i <= N; i++) {
+        for (int j = 0; j <= M; j++) {
+            dp[i][j] = 0; // Set all values to 0 initially
+        }
+    }
+
+    // Base case: There is one way to choose 0 items
+    for (int j = 0; j <= M; j++) {
+        dp[0][j] = 1; // One way to choose 0 items regardless of M
+    }
+
+    // Fill the dynamic programming table based on combinatorial principles
+    for (int i = 1; i <= N; i++) {
+        for (int j = 1; j <= M; j++) {
+            // Update the table based on previously computed states
+            dp[i][j] = (dp[i - 1][j - 1] + dp[i - 1][j]) % MODULO_CONSTANT;
+        }
+    }
+
+    // The result is found in dp[N][M]
+    return dp[N][M];
+}
+
+int main() {
+    int N, M;
+
+    // Read input values for N and M
+    scanf("%d %d", &N, &M);
+
+    // Compute the combinatorial value
+    long result = compute_combinatorial(N, M);
+
+    // Output the result
+    printf("%ld\n", result);
+
+    return 0;
+}
+```

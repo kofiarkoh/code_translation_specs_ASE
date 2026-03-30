@@ -1,0 +1,75 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_INPUT_SIZE 10000
+#define MAX_OUTPUT_SIZE 20000
+
+int main() {
+    char input[MAX_INPUT_SIZE];
+    char output[MAX_OUTPUT_SIZE];
+    int index = 0, output_index = 0;
+    int N, D;
+    char *ptr;
+
+    // Read input from standard input
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        return 1; // Error reading input
+    }
+
+    // Process the input to extract non-negative integers
+    while (index < MAX_INPUT_SIZE && input[index] != '\0') {
+        // Skip non-digit characters
+        while (index < MAX_INPUT_SIZE && !isdigit(input[index])) {
+            index++;
+        }
+
+        // If we reach the end of the input, break
+        if (index >= MAX_INPUT_SIZE || input[index] == '\0') {
+            break;
+        }
+
+        // Convert the first integer (N)
+        N = strtol(&input[index], &ptr, 10);
+        index += (ptr - &input[index]); // Move index past the number
+
+        // Skip non-digit characters for the second integer
+        while (index < MAX_INPUT_SIZE && !isdigit(input[index])) {
+            index++;
+        }
+
+        // If we reach the end of the input, break
+        if (index >= MAX_INPUT_SIZE || input[index] == '\0') {
+            break;
+        }
+
+        // Convert the second integer (D)
+        D = strtol(&input[index], &ptr, 10);
+        index += (ptr - &input[index]); // Move index past the number
+
+        // Compute the result based on the parity of N
+        int result;
+        if (N % 2 == 1) { // N is odd
+            result = 127 * (N - 1) + D;
+        } else { // N is even
+            result = 127 * N - D;
+        }
+
+        // Format the result as a string and add to output
+        int len = snprintf(&output[output_index], MAX_OUTPUT_SIZE - output_index, "%d\n", result);
+        if (len < 0 || len >= MAX_OUTPUT_SIZE - output_index) {
+            break; // Output buffer overflow
+        }
+        output_index += len;
+    }
+
+    // Output the results
+    if (output_index > 0) {
+        printf("%s", output); // Print the output buffer
+    }
+
+    return 0;
+}
+```

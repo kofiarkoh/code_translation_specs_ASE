@@ -1,0 +1,116 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *data;      // Pointer to the dynamic array
+    int count;      // Current number of elements
+    int capacity;   // Maximum capacity of the array
+} DynamicArray;
+
+// Function prototypes
+DynamicArray* create_array(int capacity);
+void free_array(DynamicArray *array);
+int insert(DynamicArray *array, int x);
+int find(DynamicArray *array, int x);
+int delete(DynamicArray *array, int x);
+void dump(DynamicArray *array, int x, int y);
+
+int main() {
+    int q;
+    scanf("%d", &q); // Read number of operations
+    DynamicArray *array = create_array(q);
+    
+    for (int i = 0; i < q; i++) {
+        int com, x, y;
+        scanf("%d", &com);
+        if (com == 0) { // Insert
+            scanf("%d", &x);
+            printf("%d\n", insert(array, x));
+        } else if (com == 1) { // Find
+            scanf("%d", &x);
+            printf("%d\n", find(array, x));
+        } else if (com == 2) { // Delete
+            scanf("%d", &x);
+            printf("%d\n", delete(array, x));
+        } else if (com == 3) { // Dump
+            scanf("%d %d", &x, &y);
+            dump(array, x, y);
+        }
+    }
+    
+    free_array(array);
+    return 0;
+}
+
+DynamicArray* create_array(int capacity) {
+    DynamicArray *array = (DynamicArray *)malloc(sizeof(DynamicArray));
+    array->data = (int *)malloc(capacity * sizeof(int));
+    array->count = 0;
+    array->capacity = capacity;
+    return array;
+}
+
+void free_array(DynamicArray *array) {
+    free(array->data);
+    free(array);
+}
+
+int insert(DynamicArray *array, int x) {
+    if (array->count >= array->capacity) {
+        return array->count; // Ignore if full
+    }
+    
+    // Check for duplicates
+    for (int i = 0; i < array->count; i++) {
+        if (array->data[i] == x) {
+            return array->count; // Ignore if duplicate
+        }
+    }
+    
+    // Find the position to insert
+    int pos = 0;
+    while (pos < array->count && array->data[pos] < x) {
+        pos++;
+    }
+    
+    // Shift elements to make space
+    for (int i = array->count; i > pos; i--) {
+        array->data[i] = array->data[i - 1];
+    }
+    
+    array->data[pos] = x; // Insert the new element
+    array->count++; // Increment count
+    return array->count; // Return updated count
+}
+
+int find(DynamicArray *array, int x) {
+    for (int i = 0; i < array->count; i++) {
+        if (array->data[i] == x) {
+            return 1; // Element found
+        }
+    }
+    return 0; // Element not found
+}
+
+int delete(DynamicArray *array, int x) {
+    for (int i = 0; i < array->count; i++) {
+        if (array->data[i] == x) {
+            // Shift elements to remove the element
+            for (int j = i; j < array->count - 1; j++) {
+                array->data[j] = array->data[j + 1];
+            }
+            array->count--; // Decrement count
+            return 1; // Deletion successful
+        }
+    }
+    return -1; // Element not found
+}
+
+void dump(DynamicArray *array, int x, int y) {
+    for (int i = 0; i < array->count; i++) {
+        if (array->data[i] >= x && array->data[i] <= y) {
+            printf("%d ", array->data[i]);
+        }
+    }
+    printf("\n"); // New line after dump
+}

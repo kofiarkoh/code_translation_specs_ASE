@@ -1,0 +1,67 @@
+```c
+#include <stdio.h>
+
+#define MAX_NODES 1000
+#define MOD 1000000007
+
+// Global variables to store the tree structure and DP values
+int edges[MAX_NODES][2]; // Store edges as pairs
+int subtree_size[MAX_NODES]; // Size of each subtree
+long long dp[MAX_NODES]; // Dynamic programming table for configurations
+int n; // Number of nodes
+
+// Function to perform depth-first search and compute subtree sizes and DP values
+void dfs(int node, int parent) {
+    subtree_size[node] = 1; // Initialize subtree size
+    dp[node] = 1; // Initialize DP value for the node
+
+    for (int i = 0; i < n - 1; i++) {
+        // Check if the edge connects to the current node
+        if (edges[i][0] == node && edges[i][1] != parent) {
+            int child = edges[i][1];
+            dfs(child, node); // Recursive DFS call
+
+            // Update subtree size
+            subtree_size[node] += subtree_size[child];
+
+            // Update DP value based on child's DP value
+            dp[node] = (dp[node] * dp[child]) % MOD;
+        } else if (edges[i][1] == node && edges[i][0] != parent) {
+            int child = edges[i][0];
+            dfs(child, node); // Recursive DFS call
+
+            // Update subtree size
+            subtree_size[node] += subtree_size[child];
+
+            // Update DP value based on child's DP value
+            dp[node] = (dp[node] * dp[child]) % MOD;
+        }
+    }
+}
+
+// Main function to read input and compute the result
+int main() {
+    // Read the number of nodes
+    scanf("%d", &n);
+
+    // Read edges
+    for (int i = 0; i < n - 1; i++) {
+        scanf("%d %d", &edges[i][0], &edges[i][1]);
+    }
+
+    // Start DFS from the root node (assumed to be node 1)
+    dfs(1, -1);
+
+    // The result is the DP value of the root node
+    long long result = dp[1] % MOD;
+
+    // Ensure the result is non-negative
+    if (result < 0) {
+        result += MOD;
+    }
+
+    // Print the result
+    printf("%lld\n", result);
+    return 0;
+}
+```

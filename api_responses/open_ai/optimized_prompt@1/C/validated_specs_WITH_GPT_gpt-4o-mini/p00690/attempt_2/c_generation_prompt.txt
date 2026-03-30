@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the longest cyclic path in a railway network represented by a set of connections between stations. It identifies the sequence of stations that forms this longest cyclic path and outputs its length along with the stations in the order they are visited.
+
+## 2. Inputs
+- Two integers representing the number of stations and the number of connections.
+- A list of connections, each defined by two station identifiers and a distance.
+
+## 3. Outputs
+- The length of the longest cyclic path found in the railway network.
+- The sequence of station identifiers that constitute this longest cyclic path.
+
+## 4. Preconditions
+- The number of stations and connections must be positive integers.
+- Each connection must consist of valid station identifiers within the range of the total number of stations.
+
+## 5. Postconditions
+- The output length is the maximum distance of any cyclic path found between stations.
+- The output sequence contains the identifiers of the stations in the order they are visited along the longest cyclic path.
+
+## 6. Invariants
+- The connections are undirected, meaning a connection between two stations can be traversed in both directions.
+- Each connection can only be used once in a single path computation.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format or contains invalid values, the behavior is undefined, and no output is guaranteed.
+- The program terminates gracefully when the number of stations is zero.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each connection and explores potential paths, updating the current path length and the sequence of stations as it finds longer cyclic paths.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm must efficiently explore all possible paths without exceeding memory limits, given the constraints on the number of stations and connections.
+
+```

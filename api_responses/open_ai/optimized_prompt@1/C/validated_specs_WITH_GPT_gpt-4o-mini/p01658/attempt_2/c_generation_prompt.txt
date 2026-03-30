@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a matrix of binary values, counting the number of times the value '1' is encountered and modified during a specific traversal of each row. The final count of modified '1's is output. After processing the first row, each subsequent row's values are flipped (0s become 1s and 1s become 0s) before counting.
+
+## 2. Inputs
+- Two integers, M and N, representing the number of rows and columns of a matrix, respectively.
+- M rows of N binary integers (0s and 1s).
+
+## 3. Outputs
+- A single integer representing the total count of modified '1's across all rows of the matrix.
+
+## 4. Preconditions
+- M and N are positive integers.
+- Each element of the matrix is a binary integer (0 or 1).
+
+## 5. Postconditions
+- The output integer is the total count of '1's encountered and modified during the processing of the matrix, considering the transformation applied to rows after the first.
+
+## 6. Invariants
+- The count of modified '1's is non-decreasing throughout the execution of the program.
+- The matrix is processed row by row, with each row being independent of the others, except for the transformation applied to rows after the first.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds values for M and N.
+- The program assumes that the input will always conform to the specified format.
+
+## 8. State Transitions
+- The state transitions occur as the program processes each row of the matrix. For the first row, values are counted as they are. For subsequent rows, each value is flipped using a bitwise XOR operation before counting, and the count of modified '1's is updated based on the traversal logic.
+
+## 9. Non-functional Constraints
+- The program operates in linear time relative to the number of elements in the matrix, specifically O(M * N).
+
+```

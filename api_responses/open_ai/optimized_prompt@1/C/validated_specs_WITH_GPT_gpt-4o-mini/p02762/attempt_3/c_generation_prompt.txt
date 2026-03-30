@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a union-find data structure to manage disjoint sets, allowing for the union of sets and the determination of set sizes after a series of union and query operations. It tracks the number of removals for each element, which are incremented based on specific conditions during the operations, and adjusts the reported size of each set accordingly.
+
+## 2. Inputs
+- Three integers: `n` (number of elements), `m` (number of union operations), and `k` (number of query operations).
+- `m` pairs of integers representing union operations between elements.
+- `k` pairs of integers representing query operations to check connectivity between elements.
+
+## 3. Outputs
+- A sequence of integers representing the adjusted sizes of each set after processing all union and query operations. Each size reflects the total number of elements in its set, reduced by the number of removals recorded during the operations.
+
+## 4. Preconditions
+- `n` is a positive integer and does not exceed `N_MAX`.
+- `m` and `k` are non-negative integers.
+- The input pairs for union and query operations are within the range [1, n].
+
+## 5. Postconditions
+- Each element's reported size reflects the total number of elements in its set, adjusted by the number of removals recorded during the union and query operations. Removals are counted when:
+  - A union operation is performed on two distinct sets, incrementing the removal count for both elements involved in the union.
+  - A query operation checks connectivity between two elements that belong to the same set, incrementing the removal count for both elements.
+
+## 6. Invariants
+- The union-find structure maintains the correct parent-child relationships for all elements.
+- The size of each set is accurately represented by the negative value stored at the root of each set.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or out-of-bounds access. It assumes that all input values are valid as per the preconditions.
+
+## 8. State Transitions (if applicable)
+- State transitions occur during union operations, where two sets are merged, and during query operations, where the connectivity between two elements is checked. The removal counts are updated during these transitions based on the conditions specified.
+
+## 9. Non-functional Constraints (if inferable)
+- The operations are expected to be efficient, with union and find operations optimized through path compression and union by size, though specific performance metrics are not detailed.
+
+```

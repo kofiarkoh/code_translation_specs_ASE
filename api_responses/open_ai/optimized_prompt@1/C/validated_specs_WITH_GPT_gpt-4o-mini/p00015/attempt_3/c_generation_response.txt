@@ -1,0 +1,64 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 80
+#define MAX_DIGITS 80
+
+// Function to add two large numbers represented as strings
+void add_large_numbers(const char *num1, const char *num2, char *result) {
+    int len1 = strlen(num1);
+    int len2 = strlen(num2);
+    int carry = 0, sum, i, j, k = 0;
+
+    // Start from the end of both strings
+    for (i = len1 - 1, j = len2 - 1; i >= 0 || j >= 0 || carry; i--, j--) {
+        int digit1 = (i >= 0) ? num1[i] - '0' : 0; // Get digit or 0 if out of bounds
+        int digit2 = (j >= 0) ? num2[j] - '0' : 0; // Get digit or 0 if out of bounds
+        sum = digit1 + digit2 + carry;
+        carry = sum / 10; // Calculate carry for next iteration
+        result[k++] = (sum % 10) + '0'; // Store the result digit
+    }
+    result[k] = '\0'; // Null-terminate the result string
+
+    // Reverse the result string
+    for (int start = 0, end = k - 1; start < end; start++, end--) {
+        char temp = result[start];
+        result[start] = result[end];
+        result[end] = temp;
+    }
+}
+
+// Main function to read datasets and compute sums
+int main() {
+    int datasets;
+    scanf("%d", &datasets); // Read the number of datasets
+
+    for (int i = 0; i < datasets; i++) {
+        char num1[MAX_LENGTH + 1], num2[MAX_LENGTH + 1];
+        char result[MAX_DIGITS + 1];
+
+        // Read two strings representing non-negative integers
+        scanf("%s %s", num1, num2);
+
+        // Check for overflow in string length
+        if (strlen(num1) > MAX_LENGTH || strlen(num2) > MAX_LENGTH) {
+            printf("Overflow\n");
+            continue; // Skip to the next dataset
+        }
+
+        // Add the two large numbers
+        add_large_numbers(num1, num2, result);
+
+        // Check for overflow in the result length
+        if (strlen(result) > MAX_DIGITS) {
+            printf("Overflow\n");
+        } else {
+            printf("%s\n", result); // Output the result
+        }
+    }
+
+    return 0;
+}
+```

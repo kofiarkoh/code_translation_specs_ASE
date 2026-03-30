@@ -1,0 +1,31 @@
+#include <stdio.h>
+
+unsigned int gcd(unsigned int a, unsigned int b) {
+    // Calculate GCD using the Euclidean algorithm
+    while (b != 0) {
+        unsigned int temp = b;
+        b = a % b; // Remainder
+        a = temp;  // Update a to the previous b
+    }
+    return a; // GCD is found when b becomes 0
+}
+
+int main() {
+    unsigned int num1, num2;
+
+    // Read two natural numbers from input
+    if (scanf("%u %u", &num1, &num2) != 2) {
+        return 1; // Failure due to invalid input format
+    }
+
+    // Check if inputs are within the valid range
+    if (num1 < 1 || num1 > 1000000000 || num2 < 1 || num2 > 1000000000) {
+        return 1; // Failure due to invalid input range
+    }
+
+    // Calculate and print the GCD
+    unsigned int result = gcd(num1, num2);
+    printf("%u\n", result); // Output the GCD
+
+    return 0; // Success
+}

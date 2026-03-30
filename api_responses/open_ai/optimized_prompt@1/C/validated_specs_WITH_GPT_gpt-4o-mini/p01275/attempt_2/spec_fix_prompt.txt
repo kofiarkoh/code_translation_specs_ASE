@@ -1,0 +1,186 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 2157
+  Title:
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+int n;
+int min_;
+
+find_not_zero(char *diff,int start)
+{
+  int i;
+  for(i=start;i<n;i++)
+    if(diff[i])
+      return(i);
+  return(-1);
+}
+
+is_zero(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    if(diff[i])
+      return(0);
+  return(-1);
+}
+
+
+void dump(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    printf("%d|",diff[i]);
+  printf("\n");
+}
+
+void rotate_count(char *diff,int acc)
+{
+  int i,cnt=0,pos,offs;
+  char diff2[10];
+
+  //dump(diff);
+  pos=0;
+  pos=find_not_zero(diff,pos);
+
+  if(pos==-1)
+    {
+      if(min_>acc)
+	min_=acc;
+      return;
+    }
+  offs=diff[pos];
+  memcpy(diff2,diff,10);
+  for(i=pos;i<n;i++)
+    {
+      diff2[i]=diff2[i]+10-offs;
+      diff2[i] %= 10;
+      rotate_count(diff2,acc+1);
+    }
+}
+
+void calc_diff(char *init,char *unlock,char *diff,int n)
+{
+  int i;
+  char d;
+
+  for(i=0;i<n;i++)
+    {
+      d = unlock[i]-init[i];
+      if(d<0)
+	d+=10;
+      diff[i]=d;
+    }
+}
+main()
+{
+  int i;
+
+  char d,count,st,nn;
+  char init[10],unlock[10],diff[10];
+
+  while(scanf("%d",&n) && n)
+    {    
+      scanf("%s %s",init,unlock);
+      if(0==memcmp(init,unlock,n))
+            printf("0\n");
+      else
+	{
+	  min_=99;
+	  calc_diff(init,unlock,diff,n);
+	  rotate_count(diff,0);
+	  printf("%d\n",min_);
+	}
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates the minimum number of rotations required to transform an initial sequence into a target sequence, where each element is a digit between 0 and 9. It reads multiple pairs of sequences until a termination condition is met.
+
+# 2. Inputs
+- An integer `n` representing the length of the sequences.
+- Two strings `init` and `unlock`, each of length `n`, representing the initial and target sequences of digits.
+
+# 3. Outputs
+- For each pair of sequences, the minimum number of rotations required to transform `init` into `unlock`, or `0` if the sequences are identical.
+
+# 4. Preconditions
+- The input integer `n` must be greater than 0 and less than or equal to 10.
+- The strings `init` and `unlock` must contain only numeric characters (digits).
+
+# 5. Postconditions
+- The output is a non-negative integer representing the minimum rotations needed, or `0` if the sequences are identical.
+
+# 6. Invariants
+- The variable `min_` holds the minimum number of rotations found during the computation and is initialized to a value greater than any possible rotation count.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input sequences are identical, the output is `0`.
+- The program terminates gracefully when a non-positive integer is provided for `n`.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the recursive function calls in `rotate_count`, which modifies the `diff` array and accumulates the rotation count.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a time complexity that is manageable for the input size, given the constraints on `n`. The maximum number of recursive calls is limited by the length of the sequences.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the rotations are counted when transforming the `init` sequence into the `unlock` sequence. Specifically, it lacks clarity on how the differences between the digits should be accumulated and how the rotations are applied.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the method of counting rotations, particularly how the differences between corresponding digits in the `init` and `unlock` sequences are to be interpreted and accumulated. It should specify that the rotations are based on the minimum number of operations needed to align the digits, considering the circular nature of the digit values (0-9).
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a recursive approach to explore all possible rotations and accumulates the count of rotations based on the differences between the digits. The failure in the generated program indicates that it does not correctly account for the circular nature of the digits when summing the rotations, leading to an incorrect total. The original implementation's logic for calculating the minimum rotations is more nuanced than what is captured in the generated program, suggesting that the specification needs to explicitly address how to handle these differences and the counting of rotations.
+
+```

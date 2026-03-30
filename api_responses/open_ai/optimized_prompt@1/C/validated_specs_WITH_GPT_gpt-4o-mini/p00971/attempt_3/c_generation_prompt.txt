@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes two binary strings, determining an optimal sequence of binary digits ('0's and '1's) that can be derived from both strings based on a depth-first search (DFS) algorithm. The output sequence represents the best combination of characters from the two input strings, selected through a recursive exploration of possible character combinations.
+
+## 2. Inputs
+- Two binary strings, each containing characters '0' and '1', provided via standard input. The strings are indexed starting from 1, with an additional character at index 0 used as a placeholder.
+
+## 3. Outputs
+- A sequence of binary digits ('0' and '1') printed to standard output, followed by a newline character.
+
+## 4. Preconditions
+- The input strings must be valid binary strings containing only the characters '0' and '1'.
+- The total length of both strings must not exceed a predefined maximum limit (SMAX).
+
+## 5. Postconditions
+- The output sequence is derived from the input strings according to the defined rules, ensuring that the sequence is the optimal combination based on the algorithm's exploration of possible character combinations. The selection of '0' or '1' is determined by comparing the results of recursive calls to the DFS function, which explores the next occurrences of characters in both strings.
+
+## 6. Invariants
+- The dynamic programming table is initialized to a specific state, ensuring that previously computed results are reused to optimize performance.
+- The next occurrence arrays are maintained to facilitate efficient traversal of the input strings, allowing the algorithm to determine the next positions of '0's and '1's in both strings.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid characters. It assumes that the input adheres to the expected format.
+- If the input exceeds the maximum length, behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm recursively explores the next possible characters in both strings. The current position is updated based on the next occurrence arrays, and the algorithm decides whether to output '0' or '1' based on the results of recursive calls to the DFS function. The decision-making process involves comparing the outcomes of exploring both the next occurrences of '0's and '1's, allowing for a nuanced selection based on the optimal path.
+
+## 9. Non-functional Constraints
+- The algorithm is designed to operate within a time complexity that is efficient for the maximum input size, leveraging memoization to avoid redundant calculations. The decision-making process for outputting '0' or '1' is based on the results of recursive calls, ensuring that the optimal sequence is produced through a comprehensive exploration of the input strings.
+
+```

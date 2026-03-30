@@ -1,0 +1,68 @@
+```c
+#include <stdio.h>
+
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// Function to calculate the area of a triangle given by three points
+int triangle_area(Point a, Point b, Point c) {
+    // Area calculation using the determinant method
+    return (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+}
+
+// Function to check if two line segments intersect
+int do_intersect(Point p1, Point q1, Point p2, Point q2) {
+    // Function to find orientation of ordered triplet (p, q, r)
+    int orientation(Point p, Point q, Point r) {
+        int val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+        if (val == 0) return 0;  // collinear
+        return (val > 0) ? 1 : 2; // clock or counterclock wise
+    }
+
+    // Check the four orientations needed for general and special cases
+    int o1 = orientation(p1, q1, p2);
+    int o2 = orientation(p1, q1, q2);
+    int o3 = orientation(p2, q2, p1);
+    int o4 = orientation(p2, q2, q1);
+
+    // General case
+    if (o1 != o2 && o3 != o4) return 1;
+
+    // Special cases (collinear points)
+    return 0;
+}
+
+// Function to classify the area based on its size
+const char* classify_area(int area) {
+    if (area == 0) return "kyo"; // Collinear or overlapping
+    if (area < 10) return "syo-kichi";
+    if (area < 50) return "kichi";
+    if (area < 100) return "chu-kichi";
+    return "dai-kichi";
+}
+
+int main() {
+    Point a, b, c, d;
+    
+    // Read input coordinates
+    if (scanf("%d %d %d %d %d %d %d %d", &a.x, &a.y, &b.x, &b.y, &c.x, &c.y, &d.x, &d.y) != 8) {
+        return 1; // Invalid input handling
+    }
+
+    // Check for intersection between line segments (a, b) and (c, d)
+    if (do_intersect(a, b, c, d)) {
+        // Calculate the area of the triangle formed by points a, b, c
+        int area = triangle_area(a, b, c);
+        // Classify the area
+        const char* classification = classify_area(area);
+        printf("%s\n", classification);
+    } else {
+        // If segments do not intersect or are collinear/overlapping
+        printf("kyo\n");
+    }
+
+    return 0;
+}
+```

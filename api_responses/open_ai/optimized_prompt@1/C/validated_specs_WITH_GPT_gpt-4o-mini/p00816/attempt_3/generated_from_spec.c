@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_NUMBERS 10
+
+// Function to extract numbers from the input string
+int extract_numbers(const char *input, int *numbers) {
+    int count = 0;
+    char *endptr;
+    long num;
+
+    while (*input) {
+        // Skip non-numeric characters
+        while (*input && !isdigit(*input)) {
+            input++;
+        }
+        // Convert numeric characters to a number
+        if (*input) {
+            num = strtol(input, &endptr, 10);
+            if (endptr != input) { // Valid number found
+                numbers[count++] = (int)num;
+                input = endptr; // Move past the number
+            }
+        }
+    }
+    return count; // Return the count of extracted numbers
+}
+
+// Function to find the maximum sum of selected numbers using bitmask
+void find_max_sum(int target, int *numbers, int count) {
+    int max_sum = 0;
+    int best_mask = 0;
+    int found = 0;
+    int rejected = 0;
+
+    // Iterate through all possible combinations using bitmask
+    for (int mask = 1; mask < (1 << count); mask++) {
+        int current_sum = 0;
+        int current_mask = mask;
+
+        // Calculate the sum for the current combination
+        for (int i = 0; i < count; i++) {
+            if (mask & (1 << i)) {
+                current_sum += numbers[i];
+            }
+        }
+
+        // Check if the current sum is valid and better than the previous best
+        if (current_sum <= target) {
+            if (current_sum > max_sum) {
+                max_sum = current_sum;
+                best_mask = mask;
+                found = 1;
+                rejected = 0; // Reset rejected flag
+            } else if (current_sum == max_sum) {
+                rejected = 1; // Mark as rejected if same max sum found
+            }
+        }
+    }
+
+    // Output results based on findings
+    if (!found) {
+        printf("error\n"); // No valid selection
+    } else if (rejected) {
+        printf("rejected\n"); // Multiple selections yield same max sum
+    } else {
+        printf("%d\n", max_sum); // Output the maximum sum
+        for (int i = 0; i < count; i++) {
+            if (best_mask & (1 << i)) {
+                printf("%d ", numbers[i]); // Output selected numbers
+            }
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    int target;
+    char input[11]; // Maximum length of 10 characters + null terminator
+    int numbers[MAX_NUMBERS];
+
+    // Read target sum
+    scanf("%d", &target);
+    // Read input string
+    scanf("%s", input);
+
+    // Extract numbers from the input string
+    int count = extract_numbers(input, numbers);
+
+    // Check precondition: at least one valid number must exist
+    if (count == 0) {
+        printf("error\n");
+        return 0;
+    }
+
+    // Find and output the maximum sum and selected numbers
+    find_max_sum(target, numbers, count);
+
+    return 0;
+}

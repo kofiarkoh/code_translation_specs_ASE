@@ -1,0 +1,243 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define INSERT '0'
+#define MOVE '1'
+#define ERASE '2'
+#define END 1000000001
+
+typedef struct Cell {
+	int data;
+	struct Cell* prev;
+	struct Cell* next;
+} Cell;
+
+Cell* newCell(int data) {
+    Cell* cell = malloc(sizeof(Cell));
+    cell->data = data;
+    cell->prev = NULL;
+    cell->next = NULL;
+    return cell;
+}
+
+void print(Cell *cell) {
+    // 先頭まで移動する
+	while (cell->prev != NULL) {
+		cell = cell->prev;
+	}
+
+	do {
+	    if (cell->data != END) {
+			printf("%d\n", cell->data);
+			cell = cell->next;
+		}
+	} while (cell->next != NULL);
+}
+
+int isEnd(Cell *cursor) {
+	return (cursor != NULL && cursor->data == END);
+}
+
+int isFront(Cell *cursor) {
+	return (cursor != NULL && cursor->prev == NULL);
+}
+
+Cell* insert(Cell *cursor, int data) {
+	if (isFront(cursor)) {
+		Cell *new = newCell(data);
+		new->next = cursor;
+		cursor->prev = new;
+		return new;
+	}
+
+	Cell *new = newCell(data);
+	Cell *prev = cursor->prev;
+	new->prev = prev;
+	new->next = cursor;
+	prev->next = new;
+	cursor->prev = new;
+	return new;
+}
+
+Cell* move(Cell *cursor, int d) {
+	if (d == 0) {
+		return cursor;
+	}
+
+	if (d < 0) {
+		for (;d < 0; d++) {
+			if (isFront(cursor)) {
+				printf("Cursor is already front.\n");
+				exit(1);
+			}
+
+			cursor = cursor->prev;
+		}
+		return cursor;
+	}
+
+	for (;d > 0; d--) {
+		if (cursor->next == NULL) {
+			printf("Cursor has no next.\n");
+			exit(2);
+		}
+
+		cursor = cursor->next;
+	}
+	
+	return cursor;
+}
+
+Cell* erase(Cell *cursor) {
+	if (isEnd(cursor)) {
+		return cursor;
+	}
+	
+	if (isFront(cursor)) {
+	    Cell *next = cursor->next;
+	    next->prev = NULL;
+	    free(cursor);
+	    return next;
+	}
+
+	Cell *prev = cursor->prev;
+	Cell *next = cursor->next;
+	prev->next = next;
+	next->prev = prev;
+	free(cursor);
+	return next;
+}
+
+
+void answer() {
+	Cell *cursor;
+	int q = 0;
+	char a[15];
+
+	fgets(a, 15, stdin);
+	q = atoi(a);
+	cursor = newCell(END);
+
+	while (q--) {
+	    fgets(a, 15, stdin);
+		if (a[0] == INSERT) {
+            cursor = insert(cursor, atoi(a+2));
+		} else if (a[0] == MOVE) {
+		    cursor = move(cursor, atoi(a+2));
+		} else if (a[0] == ERASE) {
+		    cursor = erase(cursor);
+		}
+
+	}
+
+	print(cursor);
+}
+
+int test() {
+	Cell *cur = newCell(END);
+	cur = insert(cur, 1);
+	cur = insert(cur, 2);
+	cur = insert(cur, 3);
+	cur = move(cur, 1);
+	cur = erase(cur);
+	print(cur);
+	return 0;
+}
+
+int main(void){
+	answer();
+}
+
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a doubly linked list with operations to insert, move, and erase nodes. It allows for dynamic manipulation of the list and outputs the contents in order.
+
+# 2. Inputs
+- An integer indicating the number of operations to perform.
+- A series of commands, each specifying an operation (insert, move, erase) followed by an integer value (if applicable).
+
+# 3. Outputs
+- The contents of the linked list printed in order, from the front to the end, excluding a sentinel value.
+
+# 4. Preconditions
+- The input must consist of valid commands and integers.
+- The initial state of the list contains a sentinel node with a specific value.
+
+# 5. Postconditions
+- The linked list reflects the result of all operations performed.
+- The output is a sequence of integers representing the data in the list, excluding the sentinel value.
+
+# 6. Invariants
+- Each node in the list maintains pointers to its previous and next nodes.
+- The list can be traversed from the front to the end without encountering null pointers, except at the end of the list.
+
+# 7. Error Handling / Exceptional Behavior
+- If an attempt is made to move the cursor beyond the front of the list, an error message is printed, and the program exits.
+- If an attempt is made to move the cursor beyond the end of the list, an error message is printed, and the program exits.
+
+# 8. State Transitions (if applicable)
+- The state of the list changes with each operation: insertion adds a node, movement changes the cursor position, and erasure removes a node.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle a limited number of operations as specified by the input.
+- Memory management is required to prevent leaks, as nodes are dynamically allocated and freed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing constraint or wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not explicitly state that the implementation must include necessary header files for standard library functions used in the generated code, such as `strcmp`.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that all necessary standard library headers must be included in the generated code to ensure proper compilation and functionality.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes the necessary headers (`<stdio.h>` and `<stdlib.h>`) for its functionality, and it relies on standard library functions. The absence of a header file in the generated code leads to compilation errors, indicating that the specification should ensure that all required headers are included to avoid such issues.
+
+```

@@ -1,0 +1,76 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int count_distinct_integers(int n, int *list) {
+    // If the input integer is zero, return 0 as specified.
+    if (n == 0) {
+        return 0;
+    }
+
+    // Allocate memory for sorting and counting distinct integers.
+    int *sorted_list = malloc(n * sizeof(int));
+    if (sorted_list == NULL) {
+        // Handle memory allocation failure (undefined behavior if not handled).
+        return -1; // Indicate an error (not specified in the original spec).
+    }
+
+    // Copy the input list to the sorted_list for sorting.
+    for (int i = 0; i < n; i++) {
+        sorted_list[i] = list[i];
+    }
+
+    // Sort the list using a simple sorting algorithm (e.g., qsort).
+    qsort(sorted_list, n, sizeof(int), (int (*)(const void *, const void *))compare);
+
+    // Count distinct integers.
+    int distinct_count = 1; // Start with 1 since the first element is always distinct.
+    for (int i = 1; i < n; i++) {
+        // Increment count if the current element is different from the previous one.
+        if (sorted_list[i] != sorted_list[i - 1]) {
+            distinct_count++;
+        }
+    }
+
+    // Free the allocated memory.
+    free(sorted_list);
+
+    // Return the count of distinct integers.
+    return distinct_count;
+}
+
+// Comparison function for qsort.
+int compare(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+int main() {
+    // Example usage of the count_distinct_integers function.
+    int n;
+    printf("Enter the number of elements: ");
+    scanf("%d", &n);
+
+    // Undefined behavior if n is negative, so we do not handle that case.
+    if (n < 0) {
+        return -1; // Indicate an error (not specified in the original spec).
+    }
+
+    int *list = malloc(n * sizeof(int));
+    if (list == NULL) {
+        return -1; // Handle memory allocation failure.
+    }
+
+    printf("Enter the elements:\n");
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &list[i]);
+    }
+
+    int distinct_count = count_distinct_integers(n, list);
+    printf("Count of distinct integers: %d\n", distinct_count);
+
+    // Free the allocated memory for the list.
+    free(list);
+
+    return 0;
+}
+```

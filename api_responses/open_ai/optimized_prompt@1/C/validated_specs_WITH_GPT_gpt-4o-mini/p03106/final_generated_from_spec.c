@@ -1,0 +1,28 @@
+#include <stdio.h>
+
+int main() {
+    int a, b, c;
+    int sum = 0; // Counts the number of common divisors found
+    int l = 0;   // Holds the value of the last found common divisor
+
+    // Read three integers from user input
+    scanf("%d %d %d", &a, &b, &c);
+
+    // Preconditions: a and b must be positive integers
+    // Iterate from the smaller of a and b down to 1
+    for (int i = (a < b ? a : b); i > 0; i--) {
+        if (a % i == 0 && b % i == 0) { // Check if i is a common divisor
+            sum++; // Increment the count of common divisors
+            l = i;  // Update the last found common divisor
+            if (sum == c) { // Check if we have found the c-th common divisor
+                printf("%d\n", l); // Output the c-th common divisor
+                return 0; // Exit after printing
+            }
+        }
+    }
+
+    // If we reach here, the c-th common divisor does not exist
+    // The output is undefined as per the specification
+    // We do not handle this case explicitly, leaving it to be an uninitialized value
+    return 0;
+}

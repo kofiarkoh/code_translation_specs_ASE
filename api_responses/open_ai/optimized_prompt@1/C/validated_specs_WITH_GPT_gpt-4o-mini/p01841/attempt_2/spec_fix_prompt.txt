@@ -1,0 +1,230 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+A2740
+title:Rooted Tree for Misawa-san
+@kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+char input_tree[2][100000];
+char ans[100000];
+char *ap;
+char zeros[1]="\0";
+
+typedef struct  {
+  char *sptr;
+  int  len;
+} mystr_;
+
+void display(mystr_ *str)
+{
+  int i;
+  for(i=0;i<str->len;i++)
+    printf("%c",str->sptr[i]);
+#ifdef DEBUG
+  printf("{%d}",str->len);
+#endif
+  printf("\n");
+}
+
+void analyze_tree(mystr_ *in,mystr_ *left,mystr_ *right,int *val)
+{
+  char *p;
+  int lv,i;
+
+  left->sptr = p = in->sptr;
+
+  for(i=0,lv=0;i<in->len;i++)
+    {
+      if(p[i]=='[')
+	{
+	if(lv==0)
+	  {
+	    left->len=i;
+	    *val = atoi(p+i+1);
+	  }
+	
+	
+	  lv++;
+	}
+      else if(p[i]==']')
+	{
+	  if(lv==1)
+	    {
+	      right->sptr=&p[i+1];
+	      right->len =in->len-i-1;
+	    }
+	  lv--;
+	}
+      else if(p[i]=='(')
+	lv++;
+      else if(p[i]==')')
+	lv--;
+    }
+}
+
+int is_empty_tree(mystr_ *in)
+{
+  if(in->len==2)
+    return(1);
+  else
+    return(0);
+}
+
+void remove_paren(mystr_ *in)
+{
+  in->len  -= 2;
+  in->sptr ++;
+}
+
+
+void add_tree(mystr_ *in1,mystr_ *in2,mystr_ *out)
+{
+  mystr_ stree[2][2],sstree[2];
+  int v[2],val,le,i;
+
+  analyze_tree(in1,&stree[0][0],&stree[0][1],&v[0]);
+  analyze_tree(in2,&stree[1][0],&stree[1][1],&v[1]);
+  val = v[0]+v[1];
+
+  if(is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]))
+    {
+      sstree[0].sptr=zeros;
+      sstree[0].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][0]);
+      remove_paren(&stree[1][0]);
+      add_tree(&stree[0][0],&stree[1][0],&sstree[0]);
+    }
+  if(is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]))
+    {
+      sstree[1].sptr=zeros;
+      sstree[1].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][1]);
+      remove_paren(&stree[1][1]);
+      add_tree(&stree[0][1],&stree[1][1],&sstree[1]);
+    }
+
+  out->sptr=ap;
+
+  sprintf(ap,"(%.*s)[%d](%.*s)",sstree[0].len,sstree[0].sptr,val,
+	  sstree[1].len,sstree[1].sptr);
+
+  while(*ap)
+    ap++;
+  out->len=ap - out->sptr;
+
+}
+
+int main()
+{
+  char *l,*r;
+  int llen,rlen,val;
+  mystr_ tree[3],ltree,rtree;
+  
+  scanf("%s",&(input_tree[0][0]));
+  tree[0].sptr=&(input_tree[0][0]);
+  tree[0].len =strlen(&(input_tree[0][0]));
+  scanf("%s",&(input_tree[1][0]));
+  tree[1].sptr=&(input_tree[1][0]);
+  tree[1].len =strlen(&(input_tree[1][0]));
+  ap=&ans[0];
+
+  add_tree(&tree[0],&tree[1],&tree[2]);
+  display(&tree[2]);
+
+  return(0);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes two rooted trees represented as strings, combines them by summing their values, and outputs the resulting tree structure as a formatted string.
+
+# 2. Inputs
+- Two strings representing rooted trees, each containing a structure of nodes and values, read from standard input.
+
+# 3. Outputs
+- A single string representing the combined tree structure, printed to standard output.
+
+# 4. Preconditions
+- Each input string must conform to a specific format representing a rooted tree, including valid node and value representations.
+- The input strings must not exceed a predefined maximum length.
+
+# 5. Postconditions
+- The output string represents a valid rooted tree structure that combines the values of the two input trees.
+- The output format includes the structure of the combined tree and the summed value of the root nodes.
+
+# 6. Invariants
+- The input strings remain unchanged throughout the execution.
+- The output string is always allocated and populated before being displayed.
+
+# 7. Error Handling / Exceptional Behavior
+- If either input tree is empty (defined as having a length of 2), the corresponding subtree in the output will be represented as an empty tree.
+- The program does not handle malformed input strings; behavior is undefined for invalid formats.
+
+# 8. State Transitions (if applicable)
+- The state transitions involve reading input strings, processing them to extract tree structures, and generating a new tree structure based on the input trees.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must operate within memory constraints defined by the maximum length of input strings and the output buffer.
+- The execution time should be efficient enough to handle the maximum input size within reasonable limits.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the tree structures are represented and combined, particularly regarding the handling of nested trees and their values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the values of nodes are extracted and summed, especially in the context of nested tree structures. It should specify that the output tree structure must maintain the original format and hierarchy of the input trees, rather than simply summing root values.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program processes trees in a structured manner, taking into account the hierarchy and relationships between nodes. It uses specific rules to analyze and combine trees, which are not reflected in the generated C program. The failure indicates that the generated program oversimplifies the tree combination process by only summing root values without preserving the nested structure, leading to an incorrect output.
+
+```

@@ -1,0 +1,82 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 2999
+
+// Function to compute the longest common subsequence
+void computeLCS(const char *str1, const char *str2, char *lcs) {
+    int n = strlen(str1);
+    int m = strlen(str2);
+    
+    // Create a 2D array for dynamic programming
+    int **dp = (int **)malloc((n + 1) * sizeof(int *));
+    for (int i = 0; i <= n; i++) {
+        dp[i] = (int *)malloc((m + 1) * sizeof(int));
+    }
+
+    // Fill the dp array
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (i == 0 || j == 0) {
+                dp[i][j] = 0; // Base case
+            } else if (str1[i - 1] == str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1; // Characters match
+            } else {
+                dp[i][j] = (dp[i - 1][j] > dp[i][j - 1]) ? dp[i - 1][j] : dp[i][j - 1]; // Take max
+            }
+        }
+    }
+
+    // Backtrack to find the LCS
+    int index = dp[n][m];
+    lcs[index] = '\0'; // Null-terminate the LCS string
+    int i = n, j = m;
+    while (i > 0 && j > 0) {
+        if (str1[i - 1] == str2[j - 1]) {
+            lcs[index - 1] = str1[i - 1]; // Store the character
+            i--;
+            j--;
+            index--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--; // Move up
+        } else {
+            j--; // Move left
+        }
+    }
+
+    // Free the dp array
+    for (int i = 0; i <= n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+}
+
+int main() {
+    char str1[MAX_LENGTH + 1];
+    char str2[MAX_LENGTH + 1];
+    char lcs[MAX_LENGTH + 1]; // To store the longest common subsequence
+
+    // Read input strings
+    if (fgets(str1, sizeof(str1), stdin) == NULL) return 1; // Read first string
+    if (fgets(str2, sizeof(str2), stdin) == NULL) return 1; // Read second string
+
+    // Remove newline characters if present
+    str1[strcspn(str1, "\n")] = 0;
+    str2[strcspn(str2, "\n")] = 0;
+
+    // Check for length constraints
+    if (strlen(str1) > MAX_LENGTH || strlen(str2) > MAX_LENGTH) {
+        return 1; // Behavior unspecified if input exceeds max length
+    }
+
+    // Compute the longest common subsequence
+    computeLCS(str1, str2, lcs);
+
+    // Output the result
+    printf("%s\n", lcs); // Print the LCS or an empty line if none exists
+
+    return 0;
+}
+```

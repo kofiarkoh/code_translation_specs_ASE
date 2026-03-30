@@ -1,0 +1,107 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_GRID_SIZE 100 // Assuming a maximum grid size for simplicity
+
+// Directions for movement (up, down, left, right)
+int directions[4][2] = {
+    {-1, 0}, // Up
+    {1, 0},  // Down
+    {0, -1}, // Left
+    {0, 1}   // Right
+};
+
+// Function to check if a position is within the grid bounds
+int is_within_bounds(int x, int y, int height, int width) {
+    return (x >= 0 && x < height && y >= 0 && y < width);
+}
+
+// Function to perform the pathfinding algorithm
+int min_moves(int height, int width, int max_distance, int start_x, int start_y, int target_x, int target_y, char grid[MAX_GRID_SIZE][MAX_GRID_SIZE]) {
+    // Check preconditions
+    if (height <= 0 || width <= 0 || !is_within_bounds(start_x, start_y, height, width) || !is_within_bounds(target_x, target_y, height, width)) {
+        return -1; // Undefined behavior for invalid inputs
+    }
+
+    // Initialize distance array
+    int distance[MAX_GRID_SIZE][MAX_GRID_SIZE];
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            distance[i][j] = INT_MAX; // Set to "infinity"
+        }
+    }
+    distance[start_x][start_y] = 0; // Starting position distance is zero
+
+    // Queue for BFS
+    int queue[MAX_GRID_SIZE * MAX_GRID_SIZE][2]; // Store x, y coordinates
+    int front = 0, rear = 0;
+
+    // Enqueue starting position
+    queue[rear][0] = start_x;
+    queue[rear][1] = start_y;
+    rear++;
+
+    // BFS to find minimum moves
+    while (front < rear) {
+        int current_x = queue[front][0];
+        int current_y = queue[front][1];
+        front++;
+
+        // Explore all directions
+        for (int d = 0; d < 4; d++) {
+            int dx = directions[d][0];
+            int dy = directions[d][1];
+
+            // Explore all distances from 1 to max_distance
+            for (int step = 1; step <= max_distance; step++) {
+                int new_x = current_x + dx * step;
+                int new_y = current_y + dy * step;
+
+                // Check if the new position is within bounds and traversable
+                if (is_within_bounds(new_x, new_y, height, width) && grid[new_x][new_y] == '.') {
+                    // If we found a shorter path to this cell
+                    if (distance[current_x][current_y] + 1 < distance[new_x][new_y]) {
+                        distance[new_x][new_y] = distance[current_x][current_y] + 1;
+
+                        // Enqueue the new position
+                        queue[rear][0] = new_x;
+                        queue[rear][1] = new_y;
+                        rear++;
+                    }
+                } else {
+                    // If out of bounds or not traversable, stop exploring further in this direction
+                    break;
+                }
+            }
+        }
+    }
+
+    // Return the result
+    return (distance[target_x][target_y] == INT_MAX) ? -1 : distance[target_x][target_y];
+}
+
+int main() {
+    int height, width, max_distance;
+    int start_x, start_y, target_x, target_y;
+    char grid[MAX_GRID_SIZE][MAX_GRID_SIZE];
+
+    // Example input (to be replaced with actual input handling)
+    height = 5; width = 5; max_distance = 2;
+    start_x = 0; start_y = 0; target_x = 4; target_y = 4;
+
+    // Initialize grid with traversable cells
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            grid[i][j] = '.'; // All cells are traversable for this example
+        }
+    }
+
+    // Call the pathfinding function
+    int result = min_moves(height, width, max_distance, start_x, start_y, target_x, target_y, grid);
+    printf("Minimum moves required: %d\n", result);
+
+    return 0;
+}
+```

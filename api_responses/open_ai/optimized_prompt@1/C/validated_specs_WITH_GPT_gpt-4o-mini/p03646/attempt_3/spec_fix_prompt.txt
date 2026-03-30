@@ -1,0 +1,135 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MOD 1000000007
+#define ll long long
+
+int main(){
+    ll k;
+    ll n;
+    scanf("%lld",&k);
+    if(k>=50){
+        n=50;
+        ll a[n];
+        ll rem=k/50;
+        ll x=49+rem;
+        ll t=k%50;
+        ll i,j;
+        for(i=0;i<50;i++) a[i]=x;
+        for(i=0;i<t;i++){
+            a[i]+=50;
+            for(j=0;j<50;j++) if(j!=i) a[j]--;
+        }
+        printf("50\n");
+        for(i=0;i<50;i++) printf("%lld ",a[i]);
+    } else if(k>=2){
+        n=k;
+        printf("%lld\n",n);
+        for(int i=0;i<n;i++) printf("%lld ",n);
+    } else if(k==0) printf("4\n3 3 3 3\n");
+    else printf("3\n1 0 3\n");
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code generates and outputs a sequence of integers based on the input value \( k \). It handles different ranges of input values to produce specific sequences, ensuring that the output adheres to defined constraints and reflects the distribution logic based on the input.
+
+## 2. Inputs
+- A single integer input representing a value \( k \).
+
+## 3. Outputs
+- A sequence of integers based on the value of \( k \):
+  - If \( k \geq 50 \): Outputs 50 integers, where:
+    - Each integer is derived from a base value calculated as \( 49 + \left\lfloor \frac{k}{50} \right\rfloor \).
+    - The first \( t \) integers (where \( t = k \mod 50 \)) are incremented by 50, while the remaining integers are decremented accordingly to maintain the total count of 50.
+  - If \( 2 \leq k < 50 \): Outputs \( k \) integers, all equal to \( k \).
+  - If \( k = 0 \): Outputs four integers, each equal to 3.
+  - If \( k < 0 \): Outputs three integers with values 1, 0, and 3.
+
+## 4. Preconditions
+- The input must be a valid integer.
+- The input can be any integer value.
+
+## 5. Postconditions
+- The output sequence is guaranteed to have a length based on the value of \( k \).
+- The integers in the output sequence are generated according to specific rules based on the value of \( k \).
+
+## 6. Invariants
+- The output sequence will always contain non-negative integers.
+- The total number of integers output will always match the expected count based on the input value.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative inputs explicitly beyond producing a fixed output.
+
+## 8. State Transitions (if applicable)
+- The program transitions between different output states based on the value of \( k \):
+  - From input to output of 50 integers if \( k \geq 50 \), with specific distribution logic applied.
+  - From input to output of \( k \) integers if \( 2 \leq k < 50 \).
+  - From input to output of four integers if \( k = 0 \).
+  - From input to output of three integers if \( k < 0 \).
+
+## 9. Non-functional Constraints (if inferable)
+- The output must be produced in a timely manner, with no explicit performance constraints defined.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately describe how the output integers are adjusted when \( k \) is greater than or equal to 50, particularly in terms of the distribution of the decremented values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the integers are decremented for the remaining \( 50 - t \) integers after the first \( t \) integers are incremented by 50. Specifically, it should detail that the remaining integers should be equal to the base value, and that the total count of integers must always sum to 50.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program explicitly initializes an array of size 50 and fills it with a base value, adjusting the first \( t \) elements by adding 50 and decrementing the others accordingly. The failing test case indicates that the generated program does not replicate this behavior, leading to an incorrect output where all integers are the same instead of reflecting the intended distribution. The source program's logic shows that the output must maintain a specific count and distribution based on the input \( k \), which is not fully captured in the current specification.
+
+```

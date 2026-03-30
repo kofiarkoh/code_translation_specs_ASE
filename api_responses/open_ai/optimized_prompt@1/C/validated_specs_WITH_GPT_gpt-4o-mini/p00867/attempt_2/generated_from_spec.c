@@ -1,0 +1,74 @@
+#include <stdio.h>
+
+#define MAX_SEGMENTS 100
+#define MAX_COORDINATE 1000
+
+typedef struct {
+    int x1, y1, x2, y2;
+} Segment;
+
+int countConfigurations(Segment segments[], int numSegments, int counts[10]) {
+    // Initialize counts for different configurations
+    for (int i = 0; i < 10; i++) {
+        counts[i] = 0;
+    }
+
+    // Check for each pair of segments
+    for (int i = 0; i < numSegments; i++) {
+        for (int j = i + 1; j < numSegments; j++) {
+            // Check for collinearity
+            int dx1 = segments[i].x2 - segments[i].x1;
+            int dy1 = segments[i].y2 - segments[i].y1;
+            int dx2 = segments[j].x2 - segments[j].x1;
+            int dy2 = segments[j].y2 - segments[j].y1;
+
+            // Collinearity check using cross product
+            if (dx1 * dy2 == dy1 * dx2) {
+                // Check for overlaps at endpoints
+                if ((segments[i].x1 == segments[j].x1 && segments[i].y1 == segments[j].y1) ||
+                    (segments[i].x1 == segments[j].x2 && segments[i].y1 == segments[j].y2) ||
+                    (segments[i].x2 == segments[j].x1 && segments[i].y2 == segments[j].y1) ||
+                    (segments[i].x2 == segments[j].x2 && segments[i].y2 == segments[j].y2)) {
+                    counts[0]++; // Count collinear segments that overlap at endpoints
+                } else {
+                    counts[1]++; // Count collinear segments that do not overlap at endpoints
+                }
+            } else {
+                // Check for intersection at points other than endpoints
+                // Using bounding box check for intersection
+                if ((segments[i].x1 < segments[j].x2 && segments[i].x2 > segments[j].x1) &&
+                    (segments[i].y1 < segments[j].y2 && segments[i].y2 > segments[j].y1)) {
+                    counts[2]++; // Count segments that intersect at points other than endpoints
+                }
+            }
+        }
+    }
+
+    // Additional counts can be added based on further criteria as needed
+    // For now, we will just return the counts array filled with the results
+    return 0; // Indicate successful processing
+}
+
+int main() {
+    int numSegments;
+    Segment segments[MAX_SEGMENTS];
+    int counts[10];
+
+    // Read number of segments
+    scanf("%d", &numSegments);
+    for (int i = 0; i < numSegments; i++) {
+        // Read segment endpoints
+        scanf("%d %d %d %d", &segments[i].x1, &segments[i].y1, &segments[i].x2, &segments[i].y2);
+    }
+
+    // Process segments to count configurations
+    countConfigurations(segments, numSegments, counts);
+
+    // Output the counts of configurations
+    for (int i = 0; i < 10; i++) {
+        printf("%d ", counts[i]);
+    }
+    printf("\n");
+
+    return 0;
+}

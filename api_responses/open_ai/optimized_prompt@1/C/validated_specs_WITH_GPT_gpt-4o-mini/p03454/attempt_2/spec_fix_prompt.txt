@@ -1,0 +1,153 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+#define N	8
+#define MD	1000000007
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+long long max(long long a, long long b) { return a > b ? a : b; }
+
+int cnt[N + 1];
+
+void init() {
+	int i;
+
+	cnt[1] = 9;
+	for (i = 2; i <= N; i++)
+		cnt[i] = cnt[i - 1] * 10;
+}
+
+long long power(int a, int k) {
+	long long p = 1, b = a;
+
+	while (k) {
+		if (k & 1)
+			p = p * b % MD;
+		b = b * b % MD;
+		k >>= 1;
+	}
+	return p;
+}
+
+int main() {
+	int s, l1, l2, r1, a, ans;
+
+	init();
+	scanf("%d", &s);
+	ans = (s - 1) / N;
+	for (l1 = 1; l1 <= N; l1++) {
+		int s_;
+
+		if (s % l1 == 0 && cnt[l1] >= s / l1)
+			ans = (ans + cnt[l1] - s / l1 + 1) % MD;
+		s_ = s;
+		for (l2 = l1 + 1; l2 <= N; l2++) {
+			long long lower, upper;
+
+			lower = (max(s_ - (long long) cnt[l2] * l2, 1) + l1 - 1) / l1;
+			upper = min((s_ - l2) / l1, cnt[l1]);
+			if (lower <= upper)
+				for (r1 = 1; r1 <= l2; r1++)
+					if ((s_ - r1 * l1) % l2 == 0)
+						ans = (ans + (upper + l2 - r1) / l2 - (lower - 1 + l2 - r1) / l2) % MD;
+			if (s_ / l2 < cnt[l2])
+				break;
+			s_ -= cnt[l2] * l2;
+		}
+	}
+	for (a = 1; a <= s / a; a++)
+		if (s % a == 0) {
+			if (a > N)
+				ans = (ans + power(10, a - 1) * 9 - s / a) % MD;
+			if (a != s / a && s / a > N)
+				ans = (ans + power(10, s / a - 1) * 9 - a) % MD;
+		}
+	if (ans < 0)
+		ans += MD;
+	printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates the number of valid combinations of integers that sum to a given input value, adhering to specific constraints on the lengths of the integers involved. The result is computed modulo a predefined constant.
+
+# 2. Inputs
+- An integer `s`, representing the target sum.
+
+# 3. Outputs
+- An integer representing the count of valid combinations that sum to `s`, modulo a predefined constant.
+
+# 4. Preconditions
+- The input integer `s` must be a non-negative integer.
+
+# 5. Postconditions
+- The output integer is non-negative and less than the predefined constant.
+
+# 6. Invariants
+- The count of valid combinations is updated consistently throughout the execution based on the constraints defined by the lengths of the integers.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not meet the preconditions, the behavior is undefined. The code does not handle invalid inputs explicitly.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the algorithm iterates through possible lengths and combinations, updating the count of valid combinations based on the current state of the input and constraints.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed efficiently, with a focus on minimizing the number of operations through mathematical properties, ensuring that the result is computed in a reasonable time frame for the input size.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong counting rule.
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not adequately describe the constraints on the lengths of the integers involved in forming the combinations. Specifically, it lacks details on how the lengths of the integers (up to `N`) influence the valid combinations and how they should be counted.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify how the lengths of the integers (from 1 to `N`) affect the counting of valid combinations. It should specify the conditions under which combinations are considered valid, particularly regarding the relationship between the target sum `s` and the lengths of the integers.
+
+D. **Why this clarification is supported by the source program**  
+The source program includes specific logic that checks the divisibility of `s` by the lengths of integers and uses the `cnt` array to enforce constraints on the maximum number of integers of each length that can be used. The failure in the generated program suggests that it does not account for these constraints, leading to an incorrect count of valid combinations. The source program's behavior indicates that the counting of combinations is not merely based on the sum but also heavily influenced by the lengths of the integers involved, which is not reflected in the current specification.
+
+```

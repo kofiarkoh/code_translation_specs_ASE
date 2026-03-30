@@ -1,0 +1,52 @@
+```c
+#include <stdio.h>
+
+int generate_combinations(int n, int k) {
+    // Check preconditions
+    if (k > n || n < 0 || k < 0) {
+        return -1; // Undefined behavior as per specification
+    }
+
+    // Total combinations are given by C(n, k) = n! / (k! * (n - k)!)
+    // We will use a binary pattern approach to generate combinations
+    int total_combinations = 1 << n; // 2^n possible patterns
+
+    for (int pattern = 0; pattern < total_combinations; pattern++) {
+        // Count the number of set bits (1s) in the current pattern
+        int count = 0;
+        for (int i = 0; i < n; i++) {
+            if (pattern & (1 << i)) {
+                count++;
+            }
+        }
+
+        // If the number of set bits equals k, we have a valid combination
+        if (count == k) {
+            // Print the binary pattern
+            printf("%0*d: ", n, pattern); // Print pattern as binary with leading zeros
+
+            // Print the indices of the set bits
+            for (int i = 0; i < n; i++) {
+                if (pattern & (1 << i)) {
+                    printf("%d ", i);
+                }
+            }
+            printf("\n"); // New line after each combination
+        }
+    }
+
+    return 0; // Successful execution
+}
+
+int main() {
+    int n, k;
+
+    // Read input values
+    if (scanf("%d %d", &n, &k) != 2) {
+        return -1; // Input reading failed
+    }
+
+    // Generate combinations based on the input values
+    return generate_combinations(n, k);
+}
+```

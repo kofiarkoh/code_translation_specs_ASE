@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to compare two integers for qsort
+int compare(const void *a, const void *b) {
+    return (*(int *)a - *(int *)b);
+}
+
+// Function to compute the difference between sums of even and odd indexed elements
+int compute_difference(int N, int *array) {
+    // Sort the array in non-decreasing order
+    qsort(array, N, sizeof(int), compare);
+    
+    int sum_even = 0; // Sum of elements at even indices
+    int sum_odd = 0;  // Sum of elements at odd indices
+
+    // Calculate sums based on sorted array's indices
+    for (int i = 0; i < N; i++) {
+        if (i % 2 == 0) {
+            sum_even += array[i]; // Even index
+        } else {
+            sum_odd += array[i];  // Odd index
+        }
+    }
+
+    // Return the difference between the sums
+    return sum_even - sum_odd;
+}
+
+int main() {
+    int N; // Number of elements in the array
+    // Read the number of elements
+    scanf("%d", &N);
+    
+    // Allocate memory for the array
+    int *array = (int *)malloc(N * sizeof(int));
+    
+    // Read the elements into the array
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &array[i]);
+    }
+
+    // Compute the difference and print the result
+    int result = compute_difference(N, array);
+    printf("%d\n", result);
+
+    // Free the allocated memory
+    free(array);
+    return 0;
+}

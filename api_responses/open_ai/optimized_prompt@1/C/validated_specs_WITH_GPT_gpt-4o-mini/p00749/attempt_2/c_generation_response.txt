@@ -1,0 +1,89 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WIDTH 100
+#define MAX_HEIGHT 100
+
+typedef struct {
+    int min_x;
+    int max_x;
+    int total_x;
+    int size;
+} Component;
+
+char* evaluate_stability(char grid[MAX_HEIGHT][MAX_WIDTH], int width, int height) {
+    if (width <= 0 || height <= 0) {
+        // Terminate without processing if dimensions are non-positive
+        return NULL;
+    }
+
+    int visited[MAX_HEIGHT][MAX_WIDTH] = {0};
+    Component components[MAX_HEIGHT * MAX_WIDTH];
+    int component_count = 0;
+
+    // Directions for 4-connected neighbors (up, down, left, right)
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    // Function to perform DFS and find connected components
+    void dfs(int x, int y, Component* comp) {
+        visited[y][x] = 1;
+        comp->size++;
+        comp->total_x += x;
+
+        if (x < comp->min_x) comp->min_x = x;
+        if (x > comp->max_x) comp->max_x = x;
+
+        for (int i = 0; i < 4; i++) {
+            int new_x = x + directions[i][0];
+            int new_y = y + directions[i][1];
+            if (new_x >= 0 && new_x < width && new_y >= 0 && new_y < height &&
+                !visited[new_y][new_x] && grid[new_y][new_x] != ' ') {
+                dfs(new_x, new_y, comp);
+            }
+        }
+    }
+
+    // Process the grid to find all components
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (grid[y][x] != ' ' && !visited[y][x]) {
+                Component comp = {x, x, 0, 0}; // Initialize component
+                dfs(x, y, &comp);
+                components[component_count++] = comp; // Store the component
+            }
+        }
+    }
+
+    // Evaluate stability based on components
+    for (int i = 0; i < component_count; i++) {
+        Component comp = components[i];
+        double center_of_mass = 0.5 + (double)comp.total_x / comp.size;
+        if (center_of_mass < comp.min_x || center_of_mass > comp.max_x) {
+            return "UNSTABLE"; // Condition violated
+        }
+    }
+
+    return "STABLE"; // All components are stable
+}
+
+int main() {
+    // Example usage
+    char grid[MAX_HEIGHT][MAX_WIDTH] = {
+        {'#', '#', ' ', ' ', '#'},
+        {'#', '#', '#', ' ', '#'},
+        {' ', ' ', '#', '#', '#'},
+        {'#', ' ', ' ', ' ', '#'},
+        {'#', '#', '#', '#', '#'}
+    };
+    int width = 5;
+    int height = 5;
+
+    char* stability = evaluate_stability(grid, width, height);
+    if (stability) {
+        printf("The structure is: %s\n", stability);
+    }
+    return 0;
+}
+```

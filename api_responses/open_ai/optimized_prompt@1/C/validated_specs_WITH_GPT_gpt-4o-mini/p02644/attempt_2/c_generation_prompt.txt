@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a pathfinding algorithm that determines the minimum number of moves required to reach a target position from a starting position on a grid. Movement can occur in four cardinal directions (up, down, left, right) and can cover a distance of up to `k` cells in a single move, subject to the presence of obstacles.
+
+## 2. Inputs
+- Two integers representing the height (`h`) and width (`w`) of the grid.
+- An integer (`k`) representing the maximum distance that can be moved in one step.
+- Four integers representing the starting coordinates (`s[0]`, `s[1]`) and the target coordinates (`g[0]`, `g[1]`) on the grid.
+
+## 3. Outputs
+- An integer representing the minimum number of moves required to reach the target position. If the target is unreachable, the output will be -1.
+
+## 4. Preconditions
+- The grid dimensions (`h` and `w`) must be positive integers.
+- The starting and target coordinates must be within the bounds of the grid (0 ≤ `s[0]`, `s[1]` < `h`, `w` and 0 ≤ `g[0]`, `g[1]` < `h`, `w`).
+- The grid must be initialized with valid characters, where '.' indicates a traversable cell and '#' indicates an obstacle.
+
+## 5. Postconditions
+- The output integer reflects the minimum number of moves from the starting position to the target position, or -1 if the target is unreachable.
+
+## 6. Invariants
+- The distance array is initialized to a constant value representing infinity for all cells.
+- The starting position's distance is set to zero.
+- The algorithm maintains the shortest distance to each cell as it explores the grid.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values for grid dimensions or coordinates are invalid (e.g., negative or out of bounds), the behavior is undefined.
+- If the grid contains invalid characters, the behavior is also undefined.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm explores the grid, updating the distance to each cell based on valid moves from the current position. Movement in any direction is halted if an obstacle is encountered within the maximum distance `k`, preventing further exploration in that direction.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is dependent on the number of cells in the grid and the maximum distance allowed for movement. The presence of obstacles may affect the number of valid moves and thus the overall performance of the algorithm.
+
+```

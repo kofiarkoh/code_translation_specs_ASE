@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The program reads pairs of integers, computes a specific value based on their absolute values and parity, and outputs the result for each pair until the end of input is reached.
+
+# 2. Inputs
+- A sequence of pairs of integers.
+
+# 3. Outputs
+- For each pair of integers, an integer result is printed.
+
+# 4. Preconditions
+- The input must consist of valid integers.
+- Input ends with an end-of-file signal.
+
+# 5. Postconditions
+- For each pair of integers read, an integer result is produced based on the following rules:
+  - If the sum of the absolute values equals 1, the output is 1.
+  - If both integers are odd, the output is the sum of their absolute values minus 1.
+  - If both integers are even, the output is the sum of their absolute values.
+  - If one integer is odd and the other is even (and both are non-zero), the output is the sum of their absolute values.
+  - If one integer is zero and the other is non-zero, the output is the sum of their absolute values plus 1.
+
+# 6. Invariants
+- The absolute values of the integers are always non-negative.
+- The output is always an integer.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or non-integer values; it assumes all input is valid until EOF.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input to processing and outputting results for each pair of integers until EOF is reached.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates in a continuous loop until EOF, processing input in real-time without storing it.
+
+```

@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a string of characters that may contain numbers separated by non-numeric characters. It computes the maximum sum of selected numbers that does not exceed a specified target. The selection of numbers is determined using a bitmask representation, which allows for the exploration of all possible combinations of numbers derived from the input string. The program outputs the best sum along with the corresponding selected numbers.
+
+## 2. Inputs
+- An integer representing the target sum, which must be a non-negative integer.
+- A string containing characters, which may include numeric characters and non-numeric separators.
+
+## 3. Outputs
+- The maximum sum of selected numbers that does not exceed the target.
+- The selected numbers in the order they appear in the input string.
+- An error message if no valid selection exists.
+- A "rejected" message if multiple selections yield the same maximum sum.
+
+## 4. Preconditions
+- The input string must contain valid characters, including numeric characters and non-numeric separators.
+- The target must be a non-negative integer.
+- The input string must contain at least one valid number for the program to function correctly.
+
+## 5. Postconditions
+- If a valid selection exists, the output will include the maximum sum and the corresponding selected numbers.
+- If no valid selection exists, an "error" message will be output.
+- If multiple combinations yield the same maximum sum, a "rejected" message will be output.
+
+## 6. Invariants
+- The sum of selected numbers is always calculated based on the current bitmask.
+- The maximum sum tracked is always less than or equal to the target.
+- The program considers all possible combinations of numbers that can be formed from the input string, regardless of their positions.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input string does not contain any valid numbers, an "error" message is displayed.
+- If multiple combinations yield the same maximum sum, a "rejected" message is displayed.
+
+## 8. State Transitions
+- The state transitions occur as the program iterates through different combinations of the input string based on the bitmask, updating the current best sum and selection as necessary. The program evaluates each combination to determine if it meets the criteria of being less than or equal to the target.
+
+## 9. Non-functional Constraints
+- The algorithm must efficiently handle input strings of varying lengths, with a maximum length of 10 characters as indicated by the defined array size. The program should also be capable of processing strings with multiple valid numbers separated by non-numeric characters.
+
+```

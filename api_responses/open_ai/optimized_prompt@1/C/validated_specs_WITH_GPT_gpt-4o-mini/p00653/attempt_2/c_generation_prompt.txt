@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a 2D segment tree to efficiently handle updates and range minimum queries on a grid of integers. It allows for dynamic updates to individual elements and retrieves the minimum value within specified rectangular subregions of the grid.
+
+## 2. Inputs
+- Dimensions of the grid: two positive integers representing the number of rows and columns.
+- A series of integers to populate the grid.
+- A number of queries, each consisting of four integers defining the corners of a rectangular subregion.
+
+## 3. Outputs
+- For each query, the minimum value found within the specified rectangular subregion of the grid.
+
+## 4. Preconditions
+- The number of rows and columns must be positive integers.
+- The grid must be populated with integers before any queries are made.
+- Query coordinates must be within the bounds of the grid, adjusted for 1-based indexing.
+
+## 5. Postconditions
+- The grid is updated with new values as specified by the update operations.
+- Each query returns the correct minimum value from the specified subregion of the grid, or a predefined constant if the query range is invalid.
+
+## 6. Invariants
+- The segment tree structure remains consistent and correctly reflects the current state of the grid after each update.
+- The minimum values stored in the segment tree are accurate representations of the corresponding subregions of the grid.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input dimensions are non-positive, the program terminates without processing further.
+- If queries are made with out-of-bounds coordinates, the program returns a predefined constant (INF) indicating an invalid query.
+
+## 8. State Transitions
+- The state transitions occur during updates to the grid, where the segment tree is modified to reflect the new values.
+- The state is also queried during the range minimum queries, which do not alter the grid but read from the segment tree.
+
+## 9. Non-functional Constraints
+- The implementation is expected to handle large grids efficiently, with logarithmic time complexity for updates and queries relative to the number of rows and columns.
+
+## 10. Edge Cases
+- The segment tree correctly handles queries that involve the edges of the grid. If a query range partially overlaps with the grid boundaries, the program will return INF for the out-of-bounds portion.
+- Queries that specify ranges exactly at the grid's boundaries are processed correctly, returning the minimum value from the valid portion of the specified subregion.
+
+```

@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code implements a segment tree to efficiently handle range updates and queries for the sum of values over specified ranges. It supports two commands: updating a range with a specified value and retrieving the sum of values over a specified range.
+
+# 2. Inputs
+- Two integers representing the number of elements and the number of queries.
+- For each query, an integer indicating the command type (update or get sum) followed by two integers representing the start and end of the range.
+- An additional integer for the update command specifying the value to be applied to the range.
+
+# 3. Outputs
+- For each "get sum" command, the code outputs the computed sum for the specified range.
+
+# 4. Preconditions
+- The number of elements must be a positive integer.
+- The number of queries must be a non-negative integer.
+- The ranges specified in the queries must be valid and within the bounds of the number of elements.
+
+# 5. Postconditions
+- After processing all queries, the segment tree reflects all updates made through the "update" commands.
+- The output for each "get sum" command is the correct sum of values in the specified range, considering all previous updates.
+
+# 6. Invariants
+- The segment tree maintains the correct lazy propagation state, ensuring that updates are applied only when necessary.
+- The values stored in the segment tree nodes accurately represent the sums of the corresponding ranges.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or out-of-bounds range queries. It assumes that inputs are well-formed and within the specified limits.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the execution of update and get sum commands, modifying the segment tree's internal state based on the operations performed.
+
+# 9. Non-functional Constraints (if inferable)
+- The implementation is expected to handle a maximum of 100,000 queries efficiently.
+- The segment tree is designed to operate within the constraints of memory and performance suitable for the specified maximum number of elements.
+
+```

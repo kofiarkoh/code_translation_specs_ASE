@@ -1,0 +1,212 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a grid representation of a structure to determine its stability based on specific criteria. It identifies connected components in the grid and evaluates whether the structure meets stability conditions.
+
+# 2. Inputs
+- A series of grids defined by their width and height.
+- Each grid cell contains either a character representing a part of the structure or a placeholder indicating empty space.
+
+# 3. Outputs
+- A string indicating the stability of the structure: either "STABLE" or "UNSTABLE".
+
+# 4. Preconditions
+- The input grid dimensions (width and height) must be positive integers.
+- The grid must be filled with valid characters representing the structure or empty spaces.
+
+# 5. Postconditions
+- The output will reflect the stability of the structure based on the evaluation of connected components and their properties.
+
+# 6. Invariants
+- The relationships between connected components are maintained throughout the processing.
+- The properties of each component (such as size and maximum x-coordinate) are consistently updated during the evaluation.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input dimensions are non-positive, the program terminates without processing.
+- The program assumes valid input; no explicit error handling for malformed input is implemented.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each grid cell, updating the relationships and properties of connected components based on their neighbors.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed memory limit defined by the maximum grid size.
+- Performance is influenced by the grid size, with potential implications for time complexity based on the number of connected components.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define the criteria for stability in terms of the relationship between the size of connected components and their maximum x-coordinates. The generated code uses a simplistic condition that may not accurately reflect the intended stability criteria.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the stability of a structure is determined based on the properties of connected components, particularly the relationship between the size of the component and the maximum x-coordinate. It should specify the exact conditions under which a structure is considered "STABLE" or "UNSTABLE."
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a more complex stability check that involves not just the size of the connected component but also the maximum x-coordinate relative to other properties of the component. The failure of the generated code to match the expected output suggests that the counting and comparison logic used in the generated code is oversimplified and does not capture the nuances present in the source program's stability evaluation.
+
+```

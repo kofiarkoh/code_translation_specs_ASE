@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007
+#define MAX_PARTITIONS 1000
+
+// Function to compute the number of ways to partition n balls into k partitions
+int partition_balls(int n, int k) {
+    // Check for invalid input
+    if (n < 0 || k < 0 || k > MAX_PARTITIONS) {
+        return -1; // Error code for invalid input
+    }
+
+    // Create a 2D array to store the number of ways to partition
+    long long dp[MAX_PARTITIONS + 1][n + 1];
+
+    // Initialize the dp array
+    for (int i = 0; i <= k; i++) {
+        for (int j = 0; j <= n; j++) {
+            if (i == 0) {
+                dp[i][j] = (j == 0) ? 1 : 0; // Only one way to partition 0 balls
+            } else {
+                dp[i][j] = 0; // Initialize to 0
+            }
+        }
+    }
+
+    // Fill the dp array using dynamic programming
+    for (int i = 1; i <= k; i++) {
+        for (int j = 0; j <= n; j++) {
+            // The number of ways to partition j balls into i partitions
+            dp[i][j] = dp[i - 1][j]; // Case where the i-th partition is empty
+            if (j > 0) {
+                dp[i][j] = (dp[i][j] + dp[i][j - 1]) % MOD; // Case where the i-th partition has at least one ball
+            }
+        }
+    }
+
+    // The result is the number of ways to partition n balls into k partitions
+    return (int)(dp[k][n] % MOD);
+}
+
+int main() {
+    int n, k;
+
+    // Read input values for n and k
+    if (scanf("%d %d", &n, &k) != 2) {
+        return -1; // Error code for input reading failure
+    }
+
+    // Compute the number of partitions
+    int result = partition_balls(n, k);
+    if (result == -1) {
+        return -1; // Propagate error code
+    }
+
+    // Output the result
+    printf("%d\n", result);
+    return 0;
+}

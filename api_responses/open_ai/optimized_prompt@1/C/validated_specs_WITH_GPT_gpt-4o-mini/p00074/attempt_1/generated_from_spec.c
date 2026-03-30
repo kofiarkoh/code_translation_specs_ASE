@@ -1,0 +1,64 @@
+#include <stdio.h>
+
+void format_time(int total_seconds, char *buffer) {
+    // Calculate hours, minutes, and seconds from total seconds
+    int hours = total_seconds / 3600;
+    int minutes = (total_seconds % 3600) / 60;
+    int seconds = total_seconds % 60;
+    // Format the time into the buffer as HH:MM:SS
+    sprintf(buffer, "%02d:%02d:%02d", hours, minutes, seconds);
+}
+
+int main() {
+    int hours, minutes, seconds;
+
+    while (1) {
+        // Read input for hours, minutes, and seconds
+        if (scanf("%d %d %d", &hours, &minutes, &seconds) != 3) {
+            // If input does not consist of three integers, skip to next iteration
+            continue;
+        }
+
+        // Check for termination condition
+        if (hours == -1 && minutes == -1 && seconds == -1) {
+            break; // Exit the loop if all inputs are -1
+        }
+
+        // Validate input values
+        if (hours < 0 || minutes < 0 || seconds < 0 || 
+            minutes >= 60 || seconds >= 60) {
+            // If any input is invalid, skip to next iteration
+            continue;
+        }
+
+        // Calculate total input time in seconds
+        int total_input_seconds = hours * 3600 + minutes * 60 + seconds;
+
+        // Calculate remaining time until two hours (7200 seconds)
+        int remaining_time = 7200 - total_input_seconds;
+
+        // Ensure remaining time is non-negative
+        if (remaining_time < 0) {
+            remaining_time = 0;
+        }
+
+        // Prepare output buffers
+        char output1[9]; // Buffer for first output (HH:MM:SS)
+        char output2[9]; // Buffer for second output (HH:MM:SS)
+
+        // Format the remaining time for the first output
+        format_time(remaining_time, output1);
+
+        // Calculate three times the remaining time
+        int three_times_remaining = remaining_time * 3;
+
+        // Format the three times remaining time for the second output
+        format_time(three_times_remaining, output2);
+
+        // Print the outputs
+        printf("%s\n", output1);
+        printf("%s\n", output2);
+    }
+
+    return 0;
+}

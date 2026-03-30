@@ -1,0 +1,26 @@
+#include <stdio.h>
+
+int main() {
+    int a, b, c; // Declare three integer variables for input
+    int division_result; // Variable to store the result of the division
+
+    // Read three integer values from input
+    scanf("%d %d %d", &a, &b, &c);
+
+    // Preconditions check: a must be non-zero to avoid division by zero
+    // This check is not explicitly handled in the specification, but we assume
+    // that the input will always satisfy the precondition.
+    
+    // Perform integer division of a by b
+    division_result = a / b; // Integer division
+
+    // Output the smaller of the division result and the third input
+    // The output will always be an integer and less than or equal to c
+    if (division_result < c) {
+        printf("%d\n", division_result);
+    } else {
+        printf("%d\n", c);
+    }
+
+    return 0; // Indicate successful completion
+}

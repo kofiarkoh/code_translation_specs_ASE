@@ -1,0 +1,190 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define N_MAX 4
+
+/*                 front  1  2  3  4  5  6 */
+char right[7][7] = { { 0, 0, 0, 0, 0, 0, 0 },   /* top */
+                     { 0, 0, 3, 5, 2, 4, 0 },   /* 1   */
+                     { 0, 4, 0, 1, 6, 0, 3 },   /* 2   */
+                     { 0, 2, 6, 0, 0, 1, 5 },   /* 3   */
+                     { 0, 5, 1, 0, 0, 6, 2 },   /* 4   */
+                     { 0, 3, 0, 6, 1, 0, 4 },   /* 5   */
+                     { 0, 0, 4, 2, 5, 3, 0 } }; /* 6   */
+
+#define RIGHT(top, front)  (right[(int)(top)][(int)(front)])
+#define BOTTOM(top, front) (7 - top)
+#define BACK(top, front)   (7 - front)
+#define LEFT(top, front)   (7 - RIGHT(top, front))
+
+/* ------ */
+
+char height_map[N_MAX * 2 + 1][N_MAX * 2 + 1],
+    top_map[N_MAX * 2 + 1][N_MAX * 2 + 2];
+
+void init()
+{
+    int x, y;
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            height_map[y][x] = top_map[y][x] = 0;
+}
+
+void put(char top, char front)
+{
+    int x = N_MAX, y = N_MAX, newfront, newtop, newx, newy, max;
+
+    while(1)
+    {
+        max = 0;
+
+        /* front */
+        if(height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max)
+            newfront = top, newtop = BACK(top, front),
+                newx = x, newy = y - 1, max = front;
+
+        if(height_map[y + 1][x] < height_map[y][x]
+           && BACK(top, front) > 3 && BACK(top, front) > max)
+            newfront = BOTTOM(top, front), newtop = front,
+                newx = x, newy = y + 1, max = BACK(top, front);
+
+        if(height_map[y][x - 1] < height_map[y][x]
+           && LEFT(top, front) > 3 && LEFT(top, front) > max)
+            newfront = front, newtop = RIGHT(top, front),
+                newx = x - 1, newy = y, max = LEFT(top, front);
+
+        if(height_map[y][x + 1] < height_map[y][x]
+           && RIGHT(top, front) > 3 && RIGHT(top, front) > max)
+            newfront = front, newtop = LEFT(top, front),
+                newx = x + 1, newy = y, max = RIGHT(top, front);
+
+        if(!max)
+            break;
+        else
+            front = newfront, top = newtop, x = newx, y = newy;
+    }
+
+    height_map[y][x]++, top_map[y][x] = top;
+}
+
+void count_and_print()
+{
+    int x, y, count[7];
+
+    for(x = 1; x <= 6; x++)
+        count[x] = 0;
+
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            count[(int)top_map[y][x]]++;
+
+    for(x = 1; x < 6; x++)
+        printf("%d ", count[x]);
+    printf("%d\n", count[x]);
+}
+
+int main(void)
+{
+    int n;
+
+    while(scanf("%d", &n), n)
+    {
+        int t, f;
+
+        init();
+
+        while(n--)
+        {
+            scanf("%d %d", &t, &f);
+            put(t, f);
+        }
+
+        count_and_print();
+    }
+
+    return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code simulates the placement of blocks on a grid based on specified orientations. It maintains a height map to track the number of blocks at each grid position and a top map to record the orientation of the top block at each position. The program processes multiple sets of block placements and outputs the count of blocks for each orientation.
+
+# 2. Inputs
+- A series of integers where the first integer indicates the number of block placements, followed by pairs of integers representing the top and front orientations of each block.
+
+# 3. Outputs
+- For each set of block placements, the program outputs the count of blocks for orientations 1 through 6, formatted as space-separated integers.
+
+# 4. Preconditions
+- The input must start with a positive integer indicating the number of block placements, followed by pairs of integers within the valid range for orientations (1 to 6).
+
+# 5. Postconditions
+- After processing the input, the height map and top map are updated to reflect the placements of the blocks. The output reflects the count of blocks for each orientation from 1 to 6.
+
+# 6. Invariants
+- The height map and top map are always maintained within the bounds defined by the maximum grid size.
+- The height at any grid position is non-negative and reflects the number of blocks placed there.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid input; it assumes that the input adheres to the specified format and constraints.
+- If the input is malformed or out of expected bounds, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the placement of blocks, where the current position and orientation are updated based on the height map and the defined rules for movement.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed grid size, which limits the number of blocks that can be placed. The performance is expected to be efficient for the defined grid size, but scalability beyond this size is not guaranteed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the height and top maps are updated based on the placement rules, particularly regarding the conditions under which blocks can be placed and how they affect the counts of orientations.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the rules governing the placement of blocks, including how the height map influences the ability to place blocks in different orientations and how the counts for each orientation are determined based on the actual placements.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes specific conditions that dictate when a block can be placed based on the height of adjacent blocks and the orientations of the blocks being placed. The failure in the generated program's output suggests that it does not account for these conditions, leading to incorrect counting of orientations. The source program's logic for determining valid placements and updating the counts is more complex than what is captured in the current specification.
+
+```

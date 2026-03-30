@@ -1,0 +1,45 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int min_flips(const char *bit_string, int N, const int *run_lengths, int M) {
+    int flips = 0; // Count of bit flips required
+    int current_index = 0; // Current index in the bit string
+    char expected_bit; // Expected bit based on run lengths
+
+    // Iterate through each run length
+    for (int i = 0; i < M; i++) {
+        // Determine the expected bit for this run
+        expected_bit = (i % 2 == 0) ? '0' : '1'; // Alternating between '0' and '1'
+
+        // Process the current run length
+        for (int j = 0; j < run_lengths[i]; j++) {
+            // Check if we are within the bounds of the bit string
+            if (current_index < N) {
+                // If the current bit does not match the expected bit, increment flips
+                if (bit_string[current_index] != expected_bit) {
+                    flips++;
+                }
+                current_index++; // Move to the next bit in the string
+            } else {
+                // If we exceed the length of the bit string, we stop processing
+                break;
+            }
+        }
+    }
+
+    return flips; // Return the total number of flips required
+}
+
+int main() {
+    // Example usage
+    int N = 8; // Length of the bit string
+    int M = 3; // Number of run lengths
+    const char *bit_string = "11001100"; // Input bit string
+    int run_lengths[] = {4, 4, 0}; // Run lengths (last element is ignored)
+
+    // Calculate the minimum number of flips
+    int result = min_flips(bit_string, N, run_lengths, M);
+    printf("Minimum number of flips required: %d\n", result);
+
+    return 0;
+}

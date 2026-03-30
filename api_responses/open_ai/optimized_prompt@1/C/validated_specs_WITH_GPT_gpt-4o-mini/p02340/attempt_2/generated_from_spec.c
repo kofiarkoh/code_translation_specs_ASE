@@ -1,0 +1,61 @@
+#include <stdio.h>
+
+#define MAX_PARTITIONS 100 // Predefined maximum limit for partitions
+#define MODULO_CONSTANT 1000000007 // Predefined constant for modulo operation
+
+// Function to compute the number of ways to partition n balls into k partitions
+int partition_balls(int n, int k) {
+    // Check for non-negative inputs
+    if (n < 0 || k < 0 || k > MAX_PARTITIONS) {
+        return -1; // Error code for invalid input
+    }
+
+    // Create a table to store results of subproblems
+    // dp[i][j] will be storing the number of ways to partition i balls into j partitions
+    int dp[n + 1][k + 1];
+
+    // Initialize the dp array
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= k; j++) {
+            if (j == 0) {
+                dp[i][j] = (i == 0) ? 1 : 0; // 1 way to partition 0 balls into 0 partitions
+            } else {
+                dp[i][j] = 0; // Initialize to 0 for other cases
+            }
+        }
+    }
+
+    // Fill the dp table
+    for (int j = 1; j <= k; j++) {
+        for (int i = 0; i <= n; i++) {
+            // The number of ways to partition i balls into j partitions
+            // is the same as the number of ways to partition i balls into j-1 partitions
+            // plus the number of ways to partition i-1 balls into j partitions
+            dp[i][j] = dp[i][j - 1]; // Partitions can be empty
+            if (i > 0) {
+                dp[i][j] = (dp[i][j] + dp[i - 1][j]) % MODULO_CONSTANT; // Add ways with at least one ball in the j-th partition
+            }
+        }
+    }
+
+    // The result is the number of ways to partition n balls into k partitions
+    return dp[n][k];
+}
+
+int main() {
+    int n, k;
+    // Read inputs
+    if (scanf("%d %d", &n, &k) != 2) {
+        return -1; // Error code for input reading failure
+    }
+
+    // Compute the number of partitions
+    int result = partition_balls(n, k);
+    if (result < 0) {
+        return result; // Return error code if input was invalid
+    }
+
+    // Output the result
+    printf("%d\n", result);
+    return 0;
+}

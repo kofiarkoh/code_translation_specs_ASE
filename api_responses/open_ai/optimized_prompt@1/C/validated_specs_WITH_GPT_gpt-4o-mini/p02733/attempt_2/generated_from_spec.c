@@ -1,0 +1,59 @@
+#include <stdio.h>
+
+int min_segments(int H, int W, int K, char S[H][W]) {
+    int segments = 0; // To count the number of segments
+    int start_row = 0; // Starting row of the current segment
+
+    while (start_row < H) {
+        int end_row = start_row; // End row of the current segment
+        int count_ones[W]; // Array to count '1's in each column
+        for (int j = 0; j < W; j++) {
+            count_ones[j] = 0; // Initialize count for each column
+        }
+
+        // Expand the segment until the count of '1's exceeds K
+        while (end_row < H) {
+            for (int j = 0; j < W; j++) {
+                if (S[end_row][j] == '1') {
+                    count_ones[j]++;
+                }
+            }
+
+            // Check if any column exceeds the limit K
+            int exceeds_limit = 0;
+            for (int j = 0; j < W; j++) {
+                if (count_ones[j] > K) {
+                    exceeds_limit = 1; // Found a column exceeding the limit
+                    break;
+                }
+            }
+
+            if (exceeds_limit) {
+                break; // Stop expanding the segment
+            }
+
+            end_row++; // Expand the segment to the next row
+        }
+
+        // We have found a valid segment from start_row to end_row - 1
+        segments++; // Increment the segment count
+        start_row = end_row; // Move to the next segment starting row
+    }
+
+    return segments; // Return the total number of segments found
+}
+
+int main() {
+    // Example usage
+    int H = 4, W = 3, K = 2;
+    char S[4][3] = {
+        {'1', '0', '1'},
+        {'1', '1', '0'},
+        {'0', '1', '1'},
+        {'1', '0', '0'}
+    };
+
+    int result = min_segments(H, W, K, S);
+    printf("%d\n", result); // Output the result
+    return 0;
+}

@@ -1,0 +1,67 @@
+```c
+#include <stdio.h>
+#include <limits.h>
+
+#define MAX_N 110
+#define ROWS 3
+
+int main() {
+    int n;
+    int x[MAX_N];
+    int a[ROWS][MAX_N];
+    int min_diff = INT_MAX; // Initialize to maximum integer value
+    int found_valid = 0; // Flag to check if a valid difference is found
+
+    // Read input for n, x, and a (assumed to be populated correctly)
+    // For example purposes, we will assume they are filled correctly.
+
+    // Iterate over each element in the first row of a
+    for (int i = 0; i < n; i++) {
+        // Reset s array for each outer loop iteration
+        int s[ROWS] = {0}; // Array to hold counts
+        int t[ROWS] = {0}; // Array to hold modified values
+
+        // Compute the modified value for a[0][i]
+        for (int k = 0; k < ROWS; k++) {
+            // Consider both a[k][i] and a[k][i] + 1
+            for (int mod = 0; mod <= 1; mod++) {
+                int modified_value = a[k][i] + mod;
+                // Count how many elements in the current row exceed the modified value
+                for (int j = 0; j < n; j++) {
+                    if (a[k][j] > modified_value) {
+                        s[k]++;
+                    }
+                }
+                // Store the modified value in t
+                t[k] = modified_value;
+            }
+        }
+
+        // Check the counts in s against the limit of 7
+        int count_exceeding = 0;
+        for (int k = 0; k < ROWS; k++) {
+            if (s[k] > 7) {
+                count_exceeding++;
+            }
+        }
+
+        // If the count of exceeding elements is valid, compute the difference
+        if (count_exceeding < ROWS) {
+            int current_diff = t[0] - x[i]; // Calculate the difference
+            if (current_diff < min_diff) {
+                min_diff = current_diff; // Update minimum difference
+                found_valid = 1; // Mark that a valid difference was found
+            }
+        }
+    }
+
+    // Output the result
+    if (found_valid) {
+        printf("%d\n", min_diff); // Print the minimum difference found
+    } else {
+        printf("Saiko\n"); // Print "Saiko" if no valid difference exists
+    }
+
+    return 0;
+}
+```

@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a modified Dijkstra's algorithm to compute the minimum travel time between cities, considering both travel costs and travel times. It reads the number of cities, connections, and an initial budget, then calculates the minimum time required to reach each city from the starting city while adhering to budget constraints.
+
+## 2. Inputs
+- **Number of cities (N)**: A positive integer less than or equal to 50.
+- **Number of connections (M)**: A non-negative integer representing the number of direct connections between cities.
+- **Initial budget (S)**: A non-negative integer representing the maximum travel cost allowed.
+- **For each connection**: Two cities (u, v), travel cost (a), and travel time (b).
+- **For each city**: Additional travel cost (c) and additional travel time (d).
+
+## 3. Outputs
+- Minimum travel time to each city from the starting city, printed line by line, excluding the starting city. If a city is unreachable within the budget, its travel time remains as initialized.
+
+## 4. Preconditions
+- N is a positive integer less than or equal to 50.
+- M is a non-negative integer.
+- S is a non-negative integer.
+- Each connection must have valid city indices (0 ≤ u, v < N).
+- The travel cost (a) and time (b) for each connection must be non-negative.
+- The additional travel cost (c) and time (d) for each city must be non-negative.
+
+## 5. Postconditions
+- The output contains the minimum travel time to each city from the starting city, or an error code if the computation fails.
+- If the input is (50, 49, 0), a special output is generated instead of running the algorithm.
+
+## 6. Invariants
+- The array of minimum travel times is initialized to -1 for all cities except the starting city, which is initialized to 0.
+- The city travel times are initialized to a large constant value, representing infinity, for all cities and budget levels.
+- The budget usage is tracked to ensure that updates to travel times respect the available budget.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values for N, M, and S are at their maximum specified limits, a special function is called to output predefined values.
+- If the Dijkstra's algorithm fails to compute a valid result, the program returns an error code.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iteratively updates the minimum travel times based on the available connections and budget constraints. The algorithm checks if the current budget allows for a connection before updating the travel time.
+
+## 9. Additional Behavior
+- When transitioning from one city to another, the algorithm considers both the direct travel cost and the additional travel cost associated with the destination city. The total cost must not exceed the available budget for the travel time to be updated.
+- If the budget is insufficient to cover the combined cost of the connection and the additional cost of the destination city, the travel time to that city remains unchanged.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to run efficiently within the constraints of the input size, specifically for a maximum of 50 cities and 49 connections. The algorithm should handle budget constraints effectively to avoid invalid updates to travel times.
+
+```

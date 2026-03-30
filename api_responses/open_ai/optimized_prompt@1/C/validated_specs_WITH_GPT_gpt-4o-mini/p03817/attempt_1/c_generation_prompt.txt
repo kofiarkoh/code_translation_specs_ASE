@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code computes a specific integer value based on the input integer, which is derived from the division of the input by a constant and adjusted by a remainder condition.
+
+# 2. Inputs
+- A single integer input, `n`, which is a long long integer.
+
+# 3. Outputs
+- A single integer output, which is the computed result based on the input.
+
+# 4. Preconditions
+- The input integer `n` must be a valid long long integer.
+
+# 5. Postconditions
+- The output is calculated as follows:
+  - If `n` is divisible by 11, the output is `2 * (n / 11)`.
+  - If the remainder of `n` when divided by 11 is between 1 and 6 (inclusive), the output is `2 * (n / 11) + 1`.
+  - If the remainder of `n` when divided by 11 is between 7 and 10 (inclusive), the output is `2 * (n / 11) + 2`.
+
+# 6. Invariants
+- The output is always a non-negative integer.
+- The relationship between the input and output is deterministic based on the defined conditions.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios (e.g., non-integer input). It assumes that the input will always be a valid long long integer.
+
+# 8. State Transitions (if applicable)
+- The state transitions are based solely on the value of the input `n` and its modulus with respect to 11, leading to a single output state.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in constant time, O(1), regardless of the input size.
+
+```

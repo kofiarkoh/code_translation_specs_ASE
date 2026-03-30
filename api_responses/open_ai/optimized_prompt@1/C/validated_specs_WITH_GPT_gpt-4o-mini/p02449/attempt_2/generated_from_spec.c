@@ -1,0 +1,99 @@
+#include <stdio.h>
+
+void print_array(int arr[], int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d", arr[i]);
+        if (i < n - 1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+}
+
+int previous_permutation(int arr[], int n) {
+    int i = n - 2;
+    while (i >= 0 && arr[i] >= arr[i + 1]) {
+        i--;
+    }
+    if (i < 0) {
+        return 0; // No previous permutation
+    }
+    
+    int j = n - 1;
+    while (arr[j] >= arr[i]) {
+        j--;
+    }
+    
+    // Swap
+    int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+    
+    // Reverse the sequence from i + 1 to end
+    for (int k = i + 1, l = n - 1; k < l; k++, l--) {
+        temp = arr[k];
+        arr[k] = arr[l];
+        arr[l] = temp;
+    }
+    return 1; // Previous permutation exists
+}
+
+int next_permutation(int arr[], int n) {
+    int i = n - 2;
+    while (i >= 0 && arr[i] >= arr[i + 1]) {
+        i--;
+    }
+    if (i < 0) {
+        return 0; // No next permutation
+    }
+    
+    int j = n - 1;
+    while (arr[j] <= arr[i]) {
+        j--;
+    }
+    
+    // Swap
+    int temp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = temp;
+    
+    // Reverse the sequence from i + 1 to end
+    for (int k = i + 1, l = n - 1; k < l; k++, l--) {
+        temp = arr[k];
+        arr[k] = arr[l];
+        arr[l] = temp;
+    }
+    return 1; // Next permutation exists
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of elements
+
+    // Precondition check is not implemented as per specification
+    int arr[9]; // Maximum size based on the specification
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]); // Read the sequence
+    }
+
+    int prev_perm[9], next_perm[9];
+    for (int i = 0; i < n; i++) {
+        prev_perm[i] = arr[i]; // Copy original for previous permutation
+        next_perm[i] = arr[i]; // Copy original for next permutation
+    }
+
+    // Compute previous permutation
+    if (previous_permutation(prev_perm, n)) {
+        print_array(prev_perm, n); // Print previous permutation
+    }
+
+    // Print original sequence
+    print_array(arr, n);
+
+    // Compute next permutation
+    if (next_permutation(next_perm, n)) {
+        print_array(next_perm, n); // Print next permutation
+    }
+
+    return 0;
+}

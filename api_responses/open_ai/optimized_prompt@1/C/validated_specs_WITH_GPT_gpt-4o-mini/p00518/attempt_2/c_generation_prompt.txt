@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes a sequence of characters representing keys and computes a cumulative value based on the valid combinations of keys held over the sequence. The final result is printed as an integer modulo a predefined constant.
+
+## 2. Inputs
+- An integer \( N \) representing the number of characters in the input sequence.
+- A string of length \( N \) consisting of characters from the set { 'J', 'O', 'I' }.
+
+## 3. Outputs
+- An integer representing the cumulative value derived from the input sequence, printed modulo 10007.
+
+## 4. Preconditions
+- The input integer \( N \) must be non-negative and less than or equal to 1000.
+- The input string must contain exactly \( N \) characters, each being one of 'J', 'O', or 'I'.
+
+## 5. Postconditions
+- The output integer is the sum of valid combinations of keys represented by the input string, computed modulo 10007. The cumulative value is derived from the interactions between the keys, not merely their counts.
+
+## 6. Invariants
+- The program maintains a `schedule` array that tracks the number of ways to hold combinations of keys throughout the processing of the input string. Each index of the array corresponds to a specific combination of keys represented in binary form.
+- The keys represented by 'J', 'O', and 'I' correspond to specific binary values (1, 2, and 4, respectively) that influence the combinations tracked in the `schedule`.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or characters outside the specified set. It assumes valid input as per the preconditions.
+
+## 8. State Transitions
+- The state transitions occur with each character processed from the input string. For each character, the program updates the `schedule` based on the current key and the previous keys held. The transitions depend on the bitwise interactions of the keys, determining which combinations are valid and how they contribute to the cumulative value.
+
+## 9. Non-functional Constraints
+- The program operates within a time complexity that is linear with respect to the input size, specifically \( O(N) \), where \( N \) is the length of the input string. The space complexity is constant, as the size of the `schedule` is fixed.
+
+```

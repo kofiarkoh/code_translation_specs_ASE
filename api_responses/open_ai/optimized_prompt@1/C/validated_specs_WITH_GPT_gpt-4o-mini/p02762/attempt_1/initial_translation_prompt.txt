@@ -1,0 +1,92 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+#define N_MAX 100000
+#define L_MAX 20
+void fill(int *a, int l, int r, int x) {
+	for(int i = l; i <= r; ++i) {
+		a[i] = x;
+	}
+	return;
+}
+int find_root(int *a, int x) {
+	int s[L_MAX + 1];
+	int k = 0;
+	while(a[x] >= 1) {
+		s[++k] = x;
+		x = a[x];
+	}
+	while(k) {
+		a[s[k--]] = x;
+	}
+	return x;
+}
+void unite_set(int *a, int x, int y) {
+	x = find_root(a, x);
+	y = find_root(a, y);
+	if(a[x] < a[y]) {
+		a[x] += a[y];
+		a[y] = x;
+	} else {
+		a[y] += a[x];
+		a[x] = y;
+	}
+	return;
+}
+int set_size(int *a, int x) {
+	return -a[find_root(a, x)];
+}
+int main(int argc, char **argv) {
+	int n, m, k;
+	scanf("%i%i%i", &n, &m, &k);
+	int s[N_MAX + 1];
+	fill(s, 1, n, -1);
+	int rmv[N_MAX + 1];
+	fill(rmv, 1, n, 1);
+	while(m--) {
+		int a, b;
+		scanf("%i%i", &a, &b);
+		if(find_root(s, a) != find_root(s, b)) {
+			unite_set(s, a, b);
+		}
+		++rmv[a];
+		++rmv[b];
+	}
+	while(k--) {
+		int c, d;
+		scanf("%i%i", &c, &d);
+		if(find_root(s, c) == find_root(s, d)) {
+			++rmv[c];
+			++rmv[d];
+		}
+	}
+	for(int i = 1; i <= n; ++i) {
+		printf("%i%c", set_size(s, i) - rmv[i], i == n ? '\n' : ' ');
+	}
+	return 0;
+}
+```

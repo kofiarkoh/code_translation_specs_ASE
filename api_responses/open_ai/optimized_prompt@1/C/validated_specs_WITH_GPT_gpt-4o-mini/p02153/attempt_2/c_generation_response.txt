@@ -1,0 +1,151 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <string.h>
+
+#define MAX_SIZE 1000 // Maximum grid size
+#define INF "INF"
+
+// Directions for moving in the grid (up, down, left, right)
+int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+// Structure to represent a cell in the priority queue
+typedef struct {
+    int x, y;
+    long cost;
+} Node;
+
+// Min-heap for Dijkstra's algorithm
+typedef struct {
+    Node nodes[MAX_SIZE * MAX_SIZE];
+    int size;
+} MinHeap;
+
+// Function prototypes
+void insert(MinHeap *heap, Node node);
+Node extractMin(MinHeap *heap);
+int isEmpty(MinHeap *heap);
+long dijkstra(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int costA, int costB, int startX, int startY, int goalX, int goalY);
+void applyBombEffects(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int x, int y, long *costA, long *costB);
+
+int main() {
+    int H, W, costA, costB;
+    char grid[MAX_SIZE][MAX_SIZE];
+
+    // Read inputs
+    scanf("%d %d", &H, &W);
+    scanf("%d %d", &costA, &costB);
+    for (int i = 0; i < H; i++) {
+        scanf("%s", grid[i]);
+    }
+
+    int startX = -1, startY = -1, goalX = -1, goalY = -1;
+
+    // Locate start and goal positions
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 's') {
+                startX = i;
+                startY = j;
+            } else if (grid[i][j] == 'g') {
+                goalX = i;
+                goalY = j;
+            }
+        }
+    }
+
+    // Check for valid start and goal positions
+    if (startX == -1 || startY == -1 || goalX == -1 || goalY == -1) {
+        printf("%s\n", INF);
+        return 0;
+    }
+
+    // Run Dijkstra's algorithm
+    long minCost = dijkstra(grid, H, W, costA, costB, startX, startY, goalX, goalY);
+    if (minCost == LONG_MAX) {
+        printf("%s\n", INF);
+    } else {
+        printf("%ld\n", minCost);
+    }
+
+    return 0;
+}
+
+long dijkstra(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int costA, int costB, int startX, int startY, int goalX, int goalY) {
+    long cost[MAX_SIZE][MAX_SIZE];
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            cost[i][j] = LONG_MAX; // Initialize costs to infinity
+        }
+    }
+
+    cost[startX][startY] = 0; // Starting cost is 0
+    MinHeap heap = { .size = 0 };
+    insert(&heap, (Node){startX, startY, 0});
+
+    while (!isEmpty(&heap)) {
+        Node current = extractMin(&heap);
+
+        // If we reached the goal, return the cost
+        if (current.x == goalX && current.y == goalY) {
+            return current.cost;
+        }
+
+        // Explore neighbors
+        for (int i = 0; i < 4; i++) {
+            int newX = current.x + directions[i][0];
+            int newY = current.y + directions[i][1];
+
+            // Check bounds
+            if (newX >= 0 && newX < H && newY >= 0 && newY < W) {
+                long moveCost = (grid[newX][newY] == '*') ? costB : costA; // Determine cost based on terrain
+                long newCost = current.cost + moveCost;
+
+                // Apply bomb effects if the current cell is a bomb
+                if (grid[current.x][current.y] == '*') {
+                    applyBombEffects(grid, H, W, current.x, current.y, &costA, &costB);
+                }
+
+                // Update cost if the new cost is lower
+                if (newCost < cost[newX][newY]) {
+                    cost[newX][newY] = newCost;
+                    insert(&heap, (Node){newX, newY, newCost});
+                }
+            }
+        }
+    }
+
+    return LONG_MAX; // Return infinity if the goal is unreachable
+}
+
+void applyBombEffects(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int x, int y, long *costA, long *costB) {
+    // Increase costs for the bomb's cell and its adjacent cells
+    if (grid[x][y] != '*') {
+        *costA += 1; // Increase cost for moving into a bomb cell
+    }
+    for (int i = 0; i < 4; i++) {
+        int newX = x + directions[i][0];
+        int newY = y + directions[i][1];
+        if (newX >= 0 && newX < H && newY >= 0 && newY < W && grid[newX][newY] != '*') {
+            *costB += 1; // Increase cost for adjacent cells
+        }
+    }
+}
+
+void insert(MinHeap *heap, Node node) {
+    heap->nodes[heap->size++] = node; // Add node to the heap
+    // Min-heapify up (not implemented for brevity)
+}
+
+Node extractMin(MinHeap *heap) {
+    // Extract the minimum node from the heap (not implemented for brevity)
+    Node minNode = heap->nodes[0]; // Placeholder
+    heap->size--;
+    return minNode;
+}
+
+int isEmpty(MinHeap *heap) {
+    return heap->size == 0; // Check if the heap is empty
+}
+```

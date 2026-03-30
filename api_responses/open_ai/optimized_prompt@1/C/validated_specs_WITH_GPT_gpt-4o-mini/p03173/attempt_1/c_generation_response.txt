@@ -1,0 +1,84 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_N 400
+
+long long min_cost_partition(int *arr, int l, int r, long long **memo, long long *cumulative_sum) {
+    // Base case: if the segment is empty
+    if (l > r) return 0;
+
+    // Check if the result is already computed
+    if (memo[l][r] != -1) return memo[l][r];
+
+    long long min_cost = LLONG_MAX;
+
+    // Calculate the cost of partitioning the segment [l, r]
+    for (int k = l; k <= r; k++) {
+        long long cost = cumulative_sum[r] - (l > 0 ? cumulative_sum[l - 1] : 0);
+        long long left_cost = min_cost_partition(arr, l, k - 1, memo, cumulative_sum);
+        long long right_cost = min_cost_partition(arr, k + 1, r, memo, cumulative_sum);
+        long long total_cost = cost + left_cost + right_cost;
+
+        if (total_cost < min_cost) {
+            min_cost = total_cost;
+        }
+    }
+
+    // Store the computed minimum cost in the memoization table
+    memo[l][r] = min_cost;
+    return min_cost;
+}
+
+long long compute_min_cost(int N, int *arr) {
+    // Memoization table
+    long long **memo = (long long **)malloc(N * sizeof(long long *));
+    for (int i = 0; i < N; i++) {
+        memo[i] = (long long *)malloc(N * sizeof(long long));
+        for (int j = 0; j < N; j++) {
+            memo[i][j] = -1; // Initialize with -1 to indicate uncomputed values
+        }
+    }
+
+    // Cumulative sum array
+    long long *cumulative_sum = (long long *)malloc(N * sizeof(long long));
+    cumulative_sum[0] = arr[0];
+    for (int i = 1; i < N; i++) {
+        cumulative_sum[i] = cumulative_sum[i - 1] + arr[i];
+    }
+
+    // Compute the minimum cost for the entire sequence
+    long long result = min_cost_partition(arr, 0, N - 1, memo, cumulative_sum);
+
+    // Free allocated memory
+    for (int i = 0; i < N; i++) {
+        free(memo[i]);
+    }
+    free(memo);
+    free(cumulative_sum);
+
+    return result;
+}
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read the number of elements
+
+    if (N <= 0 || N > MAX_N) {
+        // Behavior is undefined if N is not within the specified limits
+        return 1; // Exit with an error code
+    }
+
+    int *arr = (int *)malloc(N * sizeof(int));
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &arr[i]); // Read the sequence of integers
+    }
+
+    long long min_cost = compute_min_cost(N, arr);
+    printf("%lld\n", min_cost); // Output the minimum cost
+
+    free(arr); // Free the allocated array
+    return 0;
+}
+```

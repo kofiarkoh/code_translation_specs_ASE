@@ -1,0 +1,137 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+const int Mod = 1000000007;
+
+void add_BIT(int N, int BIT[], int i, int k)
+{
+	while (i <= N) {
+		BIT[i] = (BIT[i] + k) % Mod;
+		i += (i & -i);
+	}
+}
+
+int sum_BIT(int BIT[], int r)
+{
+	int sum = 0;
+	while (r > 0) {
+		sum = (sum + BIT[r]) % Mod;
+		r -= (r & -r);
+	}
+	return sum;
+}
+
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	if (n == 1) {
+		printf("1\n");
+		fflush(stdout);
+		return 0;
+	}
+
+	int i, BIT[1000001] = {}, tmp = (int)((long long)n * n % Mod);
+	add_BIT(n, BIT, 1, n);
+	add_BIT(n, BIT, 2, tmp);
+	for (i = 3; i <= n; i++) {
+		tmp = (int)((tmp + sum_BIT(BIT, i - 3) + (long long)(i - 3) * (n - 1) + (long long)(n - i + 2) * n) % Mod);
+		add_BIT(n, BIT, i, tmp);
+	}
+	printf("%d\n", tmp);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific value based on the input integer `n`, utilizing a binary indexed tree (BIT) for efficient cumulative frequency calculations. The output is derived from a series of arithmetic operations involving cumulative sums and specific index manipulations, ensuring results are within a defined modulus.
+
+## 2. Inputs
+- An integer `n`, representing the size of the problem, which must be a positive integer.
+
+## 3. Outputs
+- An integer result, which is the computed value based on the input `n`, specifically derived from a sequence of arithmetic operations and cumulative sums.
+
+## 4. Preconditions
+- The input integer `n` must be a positive integer (i.e., `n >= 1`).
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative and less than the modulus value (1000000007).
+
+## 6. Invariants
+- The BIT array maintains cumulative sums that are updated correctly with each addition operation.
+- The computed values are consistent with the defined arithmetic operations throughout the execution, particularly reflecting the contributions from previous indices in the BIT.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid positive integer, the behavior is undefined. The code does not handle invalid inputs explicitly.
+
+## 8. State Transitions
+- The state transitions occur through updates to the BIT array and the cumulative sum calculations. Specifically:
+  - The BIT is updated at each index `i` with the computed value `tmp`.
+  - The value of `tmp` is recalculated in each iteration based on the cumulative sums retrieved from the BIT and additional arithmetic involving the current index and the input `n`.
+
+## 9. Non-functional Constraints
+- The operations are performed in a time-efficient manner, leveraging logarithmic complexity for updates and queries on the BIT structure. The results are computed under a modulus to prevent overflow and ensure manageable output sizes. 
+
+## 10. Detailed Behavior
+- The program initializes the BIT array and sets the first two values based on specific calculations involving `n`.
+- For each index `i` from 3 to `n`, the program computes a new value for `tmp` by adding the cumulative sum from the BIT for the index `i - 3`, along with additional terms that depend on `n` and the current index `i`.
+- The final output is the value of `tmp` after all iterations, reflecting the cumulative contributions from the BIT and the arithmetic operations performed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not adequately describe how the cumulative sums and additional arithmetic operations are combined to compute the value of `tmp` for indices greater than 2. Specifically, it lacks clarity on how the contributions from previous indices are aggregated.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify the exact arithmetic operations and the logic behind the computation of `tmp` in the loop for indices from 3 to `n`. It should detail how the contributions from the BIT and the additional terms are combined, particularly the role of the indices and their relationships.
+
+D. **Why this clarification is supported by the source program**  
+- The source program shows that the calculation of `tmp` involves not only the cumulative sum from the BIT but also specific arithmetic involving the current index and the input `n`. The failure to produce the expected output suggests that the current specification does not capture the complexity of these calculations, leading to an incorrect abstraction of the counting process. The actual computation in the source program is more nuanced than what is currently described, indicating a need for a more detailed explanation of how `tmp` is derived.
+
+```

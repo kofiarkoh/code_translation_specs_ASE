@@ -1,0 +1,265 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1318 Long Distance Taxi
+// 2018.3.2 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// Hash table for string
+#define HASHSIZ   29989
+typedef struct { char *s; short id; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash+HASHSIZ;
+
+int insert(char *s, int id)
+{
+	unsigned long long i;
+	char *p;
+	HASH *tp;
+
+	i = 0, p = s; while (*p) i = (i<<6) + *p++;
+	tp = hash + (int)(i % HASHSIZ);
+	while (tp->s != NULL) {
+		if (!strcmp(tp->s, s)) return tp->id;
+		if (++tp == hashend) tp = hash;
+	}
+	tp->s = s, tp->id = id;
+	return -1;
+}
+
+#define QMAX 1200000
+typedef struct { int t; short s, c; } QUE;
+QUE que[QMAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+	int l, r, min;
+	QUE qt;
+
+	l = LEFT(i), r = RIGHT(i);
+	if (l < qsize && que[l].t < que[i].t) min = l; else min = i;
+	if (r < qsize && que[r].t < que[min].t) min = r;
+	if (min != i) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		min_heapify(min);
+	}
+}
+
+void deq()
+{
+	que[0] = que[--qsize];
+	min_heapify(0);
+}
+
+void enq(short s, int t, short c)
+{
+	int i, min;
+	QUE qt;
+
+	i = qsize++;
+	que[i].s = s, que[i].t = t, que[i].c = c;
+	while (i > 0 && que[min = PARENT(i)].t > que[i].t) {
+		qt = que[i], que[i] = que[min], que[min] = qt;
+		i = min;
+	}
+}
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+void ins(char *buf)
+{
+	while ((*buf = getchar_unlocked()) > ' ') buf++;
+	*buf = 0;
+}
+
+#define MAX 6002
+short memo[3002*3];
+short hi[MAX], *to[MAX], *dd[MAX];
+char city[MAX][17]; int sz;
+char LPG[MAX];
+int dist[MAX][2002];
+
+int dijkstra(int n, int cap, int start, int goal)
+{
+	int i, s, e, c, nc, d, nd;
+
+	memset(dist, 0x10, sizeof(dist));
+	qsize = 0;
+	enq(start, 0, cap); dist[start][cap] = 0;
+	while (qsize) {
+		s = que[0].s, d = que[0].t, c = que[0].c, deq();
+		if (s == goal) return d;
+
+		if (dist[s][c] < d) continue;
+
+		if (LPG[s]) c = cap;
+		for (i = 0; i < hi[s]; i++) {
+			e = to[s][i], nd = d + dd[s][i], nc = c - dd[s][i];
+			if (nc < 0) continue;
+			if (dist[e][nc] > nd) dist[e][nc] = nd, enq(e, nd, nc);
+		}
+	}
+	return -1;
+}
+
+int main()
+{
+	int N, M, cap, i, j, a, b, c;
+	char buf[20];
+
+	while (N = in()) {
+		M = in(), cap = 10*in();
+		memset(hash, 0, sizeof(hash));
+
+		ins(city[0]), ins(city[1]);
+		insert(city[0], 0), insert(city[1], 1);
+
+		memset(hi, 0, sizeof(hi));
+		sz = 2;
+		j = 0, i = N; while (i--) {
+			ins(city[sz]), a = insert(city[sz], sz);
+			if (a < 0) a = sz++;
+			memo[j++] = a, hi[a]++;
+			ins(city[sz]), b = insert(city[sz], sz);
+			if (b < 0) b = sz++;
+			memo[j++] = b, hi[b]++;
+			memo[j++] = in();
+		}
+		for (a = 0; a < sz; a++) if (hi[a]) {
+			to[a] = malloc(hi[a] << 1);
+			dd[a] = malloc(hi[a] << 1);
+		}
+		memset(hi, 0, sizeof(hi));
+		j = 0; while (N--) {
+			a = memo[j++], b = memo[j++], c = memo[j++];
+			i = hi[a]++, to[a][i] = b, dd[a][i] = c;
+			i = hi[b]++, to[b][i] = a, dd[b][i] = c;
+		}
+		memset(LPG, 0, sz);
+		for (i = 0; i < M; i++) {
+			ins(buf), a = insert(buf, -1);
+			if (a >= 0) LPG[a] = 1;
+		}
+
+		printf("%d\n", dijkstra(sz, cap, 0, 1));
+
+		for (a = 0; a < sz; a++) {
+			if (hi[a]) free(to[a]), free(dd[a]);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a system to find the shortest path in a graph representing cities and roads, while considering fuel capacity constraints. It allows for the addition of cities and roads, and determines if a route exists from a starting city to a goal city, returning the minimum distance required to travel, factoring in fuel limitations.
+
+## 2. Inputs
+- A series of integers representing:
+  - The number of cities.
+  - The number of roads.
+  - The fuel capacity, which must be a positive integer.
+- Strings representing unique city names.
+- Triplet inputs for each road, consisting of:
+  - Two city identifiers (indices of the cities).
+  - The distance between the two cities.
+- A list of city names that have LPG stations, which allow for refueling.
+
+## 3. Outputs
+- An integer representing the minimum distance from the starting city to the goal city, or -1 if no valid route exists given the fuel constraints.
+
+## 4. Preconditions
+- The input must include at least two cities and one road.
+- City names must be unique.
+- The fuel capacity must be a positive integer.
+
+## 5. Postconditions
+- If a valid path exists, the output will be the minimum distance required to travel from the starting city to the goal city, considering fuel consumption.
+- If no valid path exists due to insufficient fuel capacity or other constraints, the output will be -1.
+
+## 6. Invariants
+- The graph structure remains consistent throughout execution, with cities and roads correctly represented.
+- The priority queue used for pathfinding maintains the correct order based on distance, ensuring that the shortest paths are evaluated first.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during the creation of adjacency lists, the program may exhibit undefined behavior.
+- If invalid input is provided (e.g., non-integer values for city or road counts), the behavior is unspecified.
+
+## 8. State Transitions
+- State transitions occur as cities and roads are added, and as the shortest path algorithm processes nodes in the graph. The algorithm updates distances and fuel capacities based on the roads traversed and the fuel consumed.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of the input sizes, with a focus on minimizing time complexity for pathfinding. Memory usage is also a consideration due to dynamic allocations for adjacency lists.
+
+## 10. Fuel Capacity Interaction
+- The algorithm checks the fuel capacity before traversing a road. If the remaining fuel capacity is insufficient to cover the distance of a road (i.e., if the fuel capacity after accounting for the distance becomes negative), that road is skipped in the pathfinding process. This ensures that only valid paths that can be traversed with the available fuel are considered.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how fuel consumption is calculated when traversing roads, particularly in scenarios where multiple roads are available between cities.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the algorithm handles fuel consumption when multiple paths exist between two cities, especially when the distances of these paths vary. It should specify whether the algorithm should prioritize paths based on fuel efficiency or distance.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a priority queue for pathfinding that considers distance but does not explicitly account for the cumulative fuel consumption across different paths. The failing test case indicates that the algorithm may not be correctly evaluating the total fuel usage when multiple routes are available, leading to an incorrect minimum distance calculation. The expected output suggests that the algorithm should have chosen a path that optimally balances distance and fuel consumption, which is not clearly articulated in the current specification.
+
+```

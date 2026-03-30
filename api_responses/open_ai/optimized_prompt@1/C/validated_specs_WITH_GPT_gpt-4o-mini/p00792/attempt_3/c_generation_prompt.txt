@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code simulates the movement of a point in a 2D space based on user-defined mirror placements. It calculates the final position of the point after a series of movements, reflecting off mirrors as specified, and adhering to specific boundary conditions.
+
+## 2. Inputs
+- An integer `n` representing the number of mirrors, followed by `n` entries.
+- Each entry consists of a string indicating the mirror orientation ('x' for vertical, 'y' for horizontal) and two integers `x` and `y` representing the mirror's position.
+
+## 3. Outputs
+- The final coordinates of the point after processing all movements and mirror interactions, formatted as two integers.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative.
+- The mirror positions must be within the defined grid limits (0 to 800 for both coordinates).
+
+## 5. Postconditions
+- The output coordinates reflect the final position of the point after all movements and interactions with mirrors have been processed.
+
+## 6. Invariants
+- The point starts at the initial position (50, 0) and moves according to predefined directional vectors.
+- The state of the mirror grid is maintained throughout the execution, ensuring accurate reflection behavior.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully if a negative integer is provided for `n`.
+- Movement stops if the point reaches the boundaries of the defined grid or if a specific exit condition is met.
+
+## 8. State Transitions
+- The state transitions occur based on the current position and direction of the point. The point's movement is influenced by the presence of mirrors, which may change the direction of movement under specific conditions:
+  - If the point's position aligns with a mirror, the direction of movement is altered according to the mirror's orientation.
+  - The point's position is updated based on its current direction and the defined movement vectors.
+  - If multiple mirrors are encountered during a single movement step, the direction change is applied based on the order of mirror interactions, with the first mirror encountered taking precedence.
+
+## 9. Non-functional Constraints
+- The program must efficiently handle multiple mirror placements and movements without exceeding memory limits or processing time constraints.
+
+## 10. Additional Clarifications
+- The point's movement continues until it either reaches the boundary of the defined grid or meets a specific exit condition, which occurs when the point reaches the coordinates (100, 50) facing the initial direction (0).
+- The direction change upon hitting a mirror is determined by the current state of the point (whether it is in a vertical or horizontal movement phase) and the orientation of the mirror encountered. The program processes mirror interactions sequentially, ensuring that the first mirror encountered in the point's trajectory dictates the direction change.
+
+```

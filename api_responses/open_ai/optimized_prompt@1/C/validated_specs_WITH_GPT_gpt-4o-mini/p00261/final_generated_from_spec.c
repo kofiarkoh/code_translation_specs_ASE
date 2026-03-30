@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_PATH_LENGTH 110
+
+// Define states
+typedef enum {
+    STATE_A,
+    STATE_X,
+    STATE_Y,
+    STATE_Z,
+    STATE_W,
+    STATE_B,
+    STATE_NA // Invalid state
+} State;
+
+// State transition mapping
+State transition(State current, char input) {
+    switch (current) {
+        case STATE_A:
+            return (input == '0') ? STATE_X : (input == '1') ? STATE_Y : STATE_NA;
+        case STATE_X:
+            return (input == '0') ? STATE_NA : (input == '1') ? STATE_Z : STATE_NA;
+        case STATE_Y:
+            return (input == '0') ? STATE_X : (input == '1') ? STATE_NA : STATE_NA;
+        case STATE_Z:
+            return (input == '0') ? STATE_W : (input == '1') ? STATE_B : STATE_NA;
+        case STATE_W:
+            return (input == '0') ? STATE_B : (input == '1') ? STATE_Y : STATE_NA;
+        case STATE_B:
+            return (input == '0') ? STATE_Y : (input == '1') ? STATE_X : STATE_NA;
+        default:
+            return STATE_NA; // Any other state is invalid
+    }
+}
+
+int main() {
+    char path[MAX_PATH_LENGTH];
+    
+    // Read input paths until a string starting with '#' is encountered
+    while (fgets(path, sizeof(path), stdin)) {
+        if (path[0] == '#') {
+            break; // End of input
+        }
+
+        State currentState = STATE_A; // Start from state A
+        int validPath = 1; // Flag to check if the path is valid
+
+        // Process each character in the path
+        for (int i = 0; validPath && path[i] != '\0' && path[i] != '\n'; i++) {
+            if (path[i] < '0' || path[i] > '5') {
+                validPath = 0; // Invalid character
+                break;
+            }
+            currentState = transition(currentState, path[i]);
+            if (currentState == STATE_NA) {
+                validPath = 0; // Invalid transition
+                break;
+            }
+        }
+
+        // Output result based on final state
+        if (validPath && currentState == STATE_B) {
+            printf("Yes\n");
+        } else {
+            printf("No\n");
+        }
+    }
+
+    return 0;
+}

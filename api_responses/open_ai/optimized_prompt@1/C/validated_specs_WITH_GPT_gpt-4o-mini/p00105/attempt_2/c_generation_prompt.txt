@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a series of string and integer pairs, maintaining a collection of unique strings along with their associated page numbers and a count of occurrences. It sorts the unique strings in lexicographical order and outputs each string followed by its associated page numbers. The program allows for duplicate page numbers for the same string, recording each occurrence.
+
+## 2. Inputs
+- A sequence of string and integer pairs, where each string is a word and the integer represents a page number. Input continues until the end of the input stream.
+
+## 3. Outputs
+- A sorted list of unique strings, each followed by the page numbers associated with that string. Page numbers are printed in the order they were encountered, including duplicates.
+
+## 4. Preconditions
+- The input must consist of valid strings and integers.
+- The number of unique strings must not exceed the defined maximum limit.
+
+## 5. Postconditions
+- Each unique string is stored with its associated page numbers and occurrence count.
+- The output is a sorted list of unique strings, each followed by its corresponding page numbers, including any duplicates.
+
+## 6. Invariants
+- The collection of strings remains unique throughout the processing.
+- The page numbers for each string are correctly recorded and associated with the respective string, including duplicates.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle malformed input or memory allocation errors explicitly. It assumes valid input and sufficient memory availability.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as follows:
+  1. Read input and update the collection of strings and page numbers, allowing for duplicate page numbers for the same string.
+  2. Sort the collection of strings.
+  3. Output the sorted strings and their associated page numbers.
+
+## 9. Non-functional Constraints (if inferable)
+- The program operates within fixed memory limits defined by constants for maximum entries and page numbers.
+- The sorting operation has a time complexity that is dependent on the number of unique strings processed.
+
+```

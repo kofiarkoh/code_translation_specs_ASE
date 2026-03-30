@@ -1,0 +1,280 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+void listen(char str[],int size);
+void listenSize(int *X,int *Y);
+void listenCourse(int **course,int X,int Y);
+void analyzeCourse(int **course,int X,int Y);
+
+int SkiResort();
+
+int main()
+{
+	while(SkiResort());
+	return 0;
+}
+
+int SkiResort()
+{
+	int X,Y;
+	listenSize(&X,&Y);
+	if(X==0 && Y==0)
+	{
+		return 0;
+	}
+	int course[X][Y];
+	int *pCourse[X];
+	int i;
+	for(i=0;i<X;i++)
+	{
+		pCourse[i]=course[i];
+	}
+	listenCourse(pCourse,X,Y);
+	analyzeCourse(pCourse,X,Y);
+	
+	return 1;
+}
+
+void listen(char str[],int size)
+{
+	for(;1;)
+	{
+		fgets(str,size,stdin);
+		if(strcmp(str,"\n")!=0)
+		{
+			break;
+		}
+	}
+}
+
+void listenSize(int *X,int *Y)
+{
+	char str[64];
+	listen(str,sizeof(str));
+	
+	*X=atoi(strtok(str," "));
+	*Y=atoi(strtok(NULL," "));
+}
+	
+
+void listenCourse(int **course,int X,int Y)
+{
+	char str[1024];
+	int i,j;
+	for(j=0;j<Y;j++)
+	{
+		listen(str,sizeof(str));
+		course[0][j]=atoi(strtok(str," "));
+		for(i=1;i<X;i++)
+		{
+			course[i][j]=atoi(strtok(NULL," "));
+		}
+	}
+}
+
+void analyzeCourse(int **course,int X,int Y)
+{
+	int i,j,k,m;
+	int pattern[X][Y+2];
+	for(i=0;i<X;i++)
+	{
+		for(j=0;j<Y+2;j++)
+		{
+			pattern[i][j]=0;
+		}
+	}
+	
+	for(i=0;i<X;i++)
+	{
+		if(course[i][0]==0)
+		{
+			pattern[i][0]=1;
+		}
+	}
+	for(j=0;j<Y-1;j++)
+	{
+		for(i=0;i<X;i++)
+		{
+			for(k=i-1;k<=i+1;k++)
+			{
+				if(k<0 || X<=k)
+				{
+					continue;
+				}
+				switch(course[k][j+1])
+				{
+				  case 0:
+					pattern[k][j+1]+=pattern[i][j];
+					break;
+				  case 1:
+					pattern[k][j+1]=0;
+					break;
+				  default:
+					if(k==i)
+					{
+						m=0;
+						while(j+3+m<Y)
+						{
+							if(course[k][j+3+m]==2)
+							{
+								m+=2;
+							}
+							else
+							{
+								break;
+							}
+						}
+						pattern[k][j+3+m]+=pattern[i][j];
+					}
+				}
+			}
+		}
+	}
+	int sum=0;
+	for(i=0;i<X;i++)
+	{
+		for(k=Y-1;k<=Y+1;k++)
+		{
+			sum+=pattern[i][k];
+		}
+	}
+	printf("%d\n",sum);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The system processes input dimensions for a ski resort course and analyzes the course data to compute a specific sum based on predefined rules. It continues to operate until a termination condition is met.
+
+# 2. Inputs
+- Two integers representing the dimensions of the course (X and Y).
+- A series of integers representing the course data, structured in a grid of size X by Y.
+
+# 3. Outputs
+- An integer sum printed to the standard output, representing the result of the analysis based on the course data.
+
+# 4. Preconditions
+- The input for dimensions (X and Y) must be non-negative integers.
+- The course data must be provided in a valid format corresponding to the specified dimensions.
+
+# 5. Postconditions
+- The output sum reflects the analysis of the course data based on the defined rules.
+- The program terminates when both X and Y are zero.
+
+# 6. Invariants
+- The dimensions X and Y remain consistent throughout the execution of the analysis for a single run.
+- The course data is always processed in a grid format of size X by Y.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input dimensions are zero, the program terminates without performing further analysis.
+- The program does not handle invalid input formats or out-of-bounds errors explicitly.
+
+# 8. State Transitions (if applicable)
+- The system transitions from an input state (receiving dimensions and course data) to an output state (printing the analysis result) based on the successful completion of data processing.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle input and output operations efficiently to ensure responsiveness during data entry and result display.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+int main() {
+    int X, Y;
+
+    // Read dimensions X and Y
+    scanf("%d %d", &X, &Y);
+
+    // Termination condition: if both X and Y are zero, exit the program
+    if (X == 0 && Y == 0) {
+        return 0;
+    }
+
+    // Initialize the sum variable
+    int sum = 0;
+
+    // Process the course data in a grid of size X by Y
+    for (int i = 0; i < X; i++) {
+        for (int j = 0; j < Y; j++) {
+            int value;
+            // Read each integer in the grid
+            scanf("%d", &value);
+            // Accumulate the sum based on the course data
+            sum += value;
+        }
+    }
+
+    // Output the computed sum
+    printf("%d\n", sum);
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00203/p00203_sample1_output.txt
+Input:
+5 5
+0 1 0 2 0
+0 0 0 1 0
+1 0 2 0 0
+0 2 0 0 1
+0 0 0 2 0
+0 0
+Expected:
+34
+Actual:
+12
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

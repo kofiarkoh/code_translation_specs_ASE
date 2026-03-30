@@ -1,0 +1,154 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+//#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+
+int main()
+{
+	int A, B, X;
+	int c, ans;
+
+	scanf("%d%d%d", &A, &B, &X);
+	if (A >= 2 * B) ans = ((X - 1) / 500 + 1) * B;
+	else {
+		ans = X / 1000 * A;
+		c = X % 1000;
+		if (c) {
+			if (c <= 500 && B < A) ans += B;
+			else ans += A;
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates a value based on three input integers, representing two thresholds and a quantity. The output is derived from these inputs according to specific conditions related to their relationships.
+
+# 2. Inputs
+- Three integers: A, B, and X.
+
+# 3. Outputs
+- A single integer representing the calculated result based on the inputs.
+
+# 4. Preconditions
+- A, B, and X must be non-negative integers.
+- A and B must be defined such that A and B are not both zero.
+
+# 5. Postconditions
+- The output integer is guaranteed to be non-negative.
+- The output reflects the calculation based on the relationships between A, B, and X as specified in the functional description.
+
+# 6. Invariants
+- The relationship between A and B determines the calculation path.
+- The value of X influences the magnitude of the output based on its range.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-range values explicitly. It assumes valid input is provided.
+
+# 8. State Transitions (if applicable)
+- The state transitions are based on the evaluation of conditions involving A, B, and X, leading to different calculation paths.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in constant time, regardless of the input values.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+int calculate_value(int A, int B, int X) {
+    // Preconditions: A, B, and X must be non-negative integers.
+    // A and B must not both be zero.
+    
+    // The output integer is guaranteed to be non-negative.
+    // The output reflects the calculation based on the relationships between A, B, and X.
+
+    // Check the relationship between A and B to determine the calculation path
+    if (A > B) {
+        // If A is greater than B, we calculate based on X
+        return X * 2; // Example calculation, can be adjusted based on further specification
+    } else if (A < B) {
+        // If A is less than B, we calculate based on X
+        return X + 10; // Example calculation, can be adjusted based on further specification
+    } else {
+        // If A equals B, we return X as is
+        return X; // Example calculation, can be adjusted based on further specification
+    }
+}
+
+int main() {
+    int A = 1; // Example input
+    int B = 2; // Example input
+    int X = 3; // Example input
+
+    int result = calculate_value(A, B, X);
+    printf("Result: %d\n", result); // Output the result
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00378/p00378_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00378/p00378_sample1_output.txt
+Input:
+300 200 2500
+Expected:
+800
+Actual:
+Result: 13
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

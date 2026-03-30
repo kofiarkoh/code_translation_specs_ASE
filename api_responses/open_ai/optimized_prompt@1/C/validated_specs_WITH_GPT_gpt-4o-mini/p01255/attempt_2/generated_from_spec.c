@@ -1,0 +1,73 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_SEGMENTS 100 // Define a maximum number of segments
+
+typedef struct {
+    int x1, y1; // Starting point
+    int x2, y2; // Ending point
+} Segment;
+
+// Function to check if two segments intersect
+int doIntersect(Segment s1, Segment s2) {
+    // Calculate the orientation of the points
+    int o1 = (s1.y2 - s1.y1) * (s2.x1 - s1.x1) - (s1.x2 - s1.x1) * (s2.y1 - s1.y1);
+    int o2 = (s1.y2 - s1.y1) * (s2.x2 - s1.x1) - (s1.x2 - s1.x1) * (s2.y2 - s1.y1);
+    int o3 = (s2.y2 - s2.y1) * (s1.x1 - s2.x1) - (s2.x2 - s2.x1) * (s1.y1 - s2.y1);
+    int o4 = (s2.y2 - s2.y1) * (s1.x2 - s2.x1) - (s2.x2 - s2.x1) * (s1.y2 - s2.y1);
+
+    // General case
+    if (o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0)
+        return (o1 > 0) != (o2 > 0) && (o3 > 0) != (o4 > 0);
+
+    // Special cases (collinear points)
+    // Check if the points are on the segment (not implemented for brevity)
+    return 0; // For simplicity, we assume no collinear intersections
+}
+
+// Function to find the minimum number of colors needed
+int minColors(Segment segments[], int n) {
+    int colors[MAX_SEGMENTS] = {0}; // Array to store colors assigned to segments
+    int colorCount = 0;
+
+    for (int i = 0; i < n; i++) {
+        // Check for intersections with already colored segments
+        int usedColors[MAX_SEGMENTS] = {0}; // Track used colors for this segment
+        for (int j = 0; j < i; j++) {
+            if (doIntersect(segments[i], segments[j])) {
+                if (colors[j] > 0) {
+                    usedColors[colors[j] - 1] = 1; // Mark color as used
+                }
+            }
+        }
+
+        // Assign the lowest available color
+        int color = 1;
+        while (usedColors[color - 1]) {
+            color++;
+        }
+        colors[i] = color; // Assign color to the segment
+        if (color > colorCount) {
+            colorCount = color; // Update the maximum color count
+        }
+    }
+
+    return colorCount; // Return the total number of colors used
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of segments
+    if (n < 1 || n > MAX_SEGMENTS) {
+        return 1; // Undefined behavior for invalid input
+    }
+
+    Segment segments[MAX_SEGMENTS];
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d %d %d", &segments[i].x1, &segments[i].y1, &segments[i].x2, &segments[i].y2);
+    }
+
+    int result = minColors(segments, n);
+    printf("%d\n", result); // Output the minimum number of colors needed
+    return 0;
+}

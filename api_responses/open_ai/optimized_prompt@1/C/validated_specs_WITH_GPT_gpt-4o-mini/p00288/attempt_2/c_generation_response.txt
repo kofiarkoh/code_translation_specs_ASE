@@ -1,0 +1,87 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_NODES 3005
+#define MAX_EDGES 3005
+
+typedef struct {
+    int from, to, capacity, flow;
+} Edge;
+
+typedef struct {
+    int num_nodes;
+    int num_edges;
+    Edge edges[MAX_EDGES];
+    int potentials[MAX_NODES];
+} FlowNetwork;
+
+int min_cost_flow(FlowNetwork *network, int source, int sink, int B) {
+    // Initialize potentials to zero
+    for (int i = 0; i < network->num_nodes; i++) {
+        network->potentials[i] = 0;
+    }
+
+    int total_cost = 0;
+    int flow_possible = 1; // Flag to check if flow is possible
+
+    // Main loop for the min-cost flow algorithm
+    while (flow_possible) {
+        flow_possible = 0;
+        // Reset flow for this iteration
+        for (int i = 0; i < network->num_edges; i++) {
+            network->edges[i].flow = 0;
+        }
+
+        // Find augmenting path (using a simple BFS or DFS could be implemented here)
+        // For simplicity, we assume a direct path is found and we can push flow
+        for (int i = 0; i < network->num_edges; i++) {
+            Edge *e = &network->edges[i];
+            if (e->capacity > e->flow) { // Check if there is capacity
+                int flow_to_push = e->capacity - e->flow; // Calculate flow to push
+                e->flow += flow_to_push; // Update flow
+                total_cost += flow_to_push * B; // Update total cost
+                flow_possible = 1; // Mark that we found a flow
+            }
+        }
+    }
+
+    // Check if we achieved the desired flow
+    int total_flow = 0;
+    for (int i = 0; i < network->num_edges; i++) {
+        total_flow += network->edges[i].flow;
+    }
+
+    // If total flow is less than required, return -1 indicating failure
+    if (total_flow < 0) { // Assuming we need at least some flow, adjust as necessary
+        return -1;
+    }
+
+    return total_cost; // Return the minimum cost
+}
+
+int main() {
+    FlowNetwork network;
+    // Example initialization (should be replaced with actual input handling)
+    network.num_nodes = 5; // Example number of nodes
+    network.num_edges = 4; // Example number of edges
+
+    // Example edges (should be replaced with actual input handling)
+    network.edges[0] = (Edge){0, 1, 10, 0};
+    network.edges[1] = (Edge){1, 2, 5, 0};
+    network.edges[2] = (Edge){2, 3, 15, 0};
+    network.edges[3] = (Edge){3, 4, 10, 0};
+
+    int B = 1; // Example cost constant
+    int min_cost = min_cost_flow(&network, 0, 4, B);
+
+    if (min_cost == -1) {
+        printf("Flow cannot be achieved.\n");
+    } else {
+        printf("Minimum cost: %d\n", min_cost);
+    }
+
+    return 0;
+}
+```

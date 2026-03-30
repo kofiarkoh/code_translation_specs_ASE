@@ -1,0 +1,120 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+//#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+
+int main()
+{
+	int A, B, X;
+	int c, ans;
+
+	scanf("%d%d%d", &A, &B, &X);
+	if (A >= 2 * B) ans = ((X - 1) / 500 + 1) * B;
+	else {
+		ans = X / 1000 * A;
+		c = X % 1000;
+		if (c) {
+			if (c <= 500 && B < A) ans += B;
+			else ans += A;
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program calculates a value based on three input integers, A, B, and X. The output is derived from these inputs according to specific conditions that depend on the relationships between A, B, and X.
+
+## 2. Inputs
+- Three integers: A, B, and X, where:
+  - A and B represent thresholds for the calculation.
+  - X represents a quantity that influences the output.
+
+## 3. Outputs
+- A single integer representing the calculated result based on the inputs.
+
+## 4. Preconditions
+- A, B, and X must be non-negative integers.
+- At least one of A or B must be greater than zero.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative.
+- The output reflects the calculation based on the following conditions:
+  - If A is at least twice B, the output is calculated using a formula that incorporates B and the value of X.
+  - If A is less than twice B, the output is calculated based on the integer division of X by 1000, with additional adjustments based on the remainder of this division.
+
+## 6. Invariants
+- The relationship between A and B determines the primary calculation path.
+- The value of X influences the output based on its range, specifically through integer division and modulus operations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly. It assumes that valid input is provided.
+
+## 8. State Transitions
+- The program evaluates conditions involving A, B, and X to determine the calculation path:
+  - If A >= 2 * B, the output is computed using a specific formula involving B.
+  - If A < 2 * B, the output is computed based on the integer division of X by 1000, with further adjustments based on the remainder when X is divided by 1000.
+
+## 9. Non-functional Constraints
+- The computation is performed in constant time, regardless of the input values.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately capture the specific calculations performed in the source program, particularly the handling of the remainder when `X` is divided by 1000 and the conditions under which `B` and `A` are used in the calculations.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the output is computed when `X` is not a multiple of 1000, especially the conditions under which `B` is added to the result when `A < 2 * B` and `c` (the remainder) is less than or equal to 500.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes a specific condition that adds `B` to the result if `c` (the remainder of `X` when divided by 1000) is less than or equal to 500 and `B` is less than `A`. This nuanced behavior is not captured in the current specification, leading to a significant difference in the output for certain inputs, as evidenced by the failing test case.
+
+```

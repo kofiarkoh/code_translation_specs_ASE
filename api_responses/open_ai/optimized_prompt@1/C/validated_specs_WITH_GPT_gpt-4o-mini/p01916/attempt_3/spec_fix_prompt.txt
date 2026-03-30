@@ -1,0 +1,105 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<string.h>
+
+int main(void)
+{
+  char str[1010];
+  int a[30]={};
+  int i;
+  int sum=0;
+  
+  scanf("%s",str);
+  for(i=0;str[i];i++)
+    a[str[i]-'a']=!a[str[i]-'a'];
+  for(i=0;i<30;i++)
+    sum+=a[i];
+  
+  printf("%d\n",sum/2);
+  return 0;
+}
+```
+
+Current specification:
+```text
+```text
+1. **Functional Description**  
+   The code computes the number of distinct lowercase alphabetic characters in a given string that appear an odd number of times.
+
+2. **Inputs**  
+   A single string of lowercase alphabetic characters, with a maximum length of 1009 characters (plus a null terminator).
+
+3. **Outputs**  
+   An integer representing the count of distinct lowercase alphabetic characters in the input string that appear an odd number of times.
+
+4. **Preconditions**  
+   The input string must consist solely of lowercase alphabetic characters and must not exceed the specified length.
+
+5. **Postconditions**  
+   The output integer represents the count of distinct characters that appear an odd number of times in the input string.
+
+6. **Invariants**  
+   The count of distinct characters that appear an odd number of times is maintained accurately throughout the processing of the input string.
+
+7. **Error Handling / Exceptional Behavior**  
+   The code does not handle invalid input or errors related to input size or format. It assumes valid input as per the preconditions.
+
+8. **State Transitions (if applicable)**  
+   The state transitions involve toggling the presence of each character in the input string, which allows for the identification of characters that appear an odd number of times.
+
+9. **Non-functional Constraints (if inferable)**  
+   The processing of the input string and the calculation of distinct characters occurs in linear time relative to the length of the string.
+```
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   The specification implies that the output should be the count of distinct characters that appear an odd number of times, but it does not clarify how the counting should be performed when characters appear multiple times.
+
+C. **What general behavior should be clarified in the specification**  
+   The specification should clarify that the output should represent the number of distinct characters that appear an odd number of times, but it should also specify that the counting mechanism should consider the toggling behavior of the original source program, which effectively counts characters based on their parity of occurrences rather than their absolute counts.
+
+D. **Why this clarification is supported by the source program**  
+   The source program uses a toggling mechanism to determine the presence of characters, which means that each character's presence is counted based on whether it appears an odd or even number of times. This results in a different counting logic than simply counting occurrences, leading to discrepancies in the output when the generated program uses a straightforward counting method. The source program's behavior indicates that the specification should account for this toggling mechanism to accurately reflect the intended functionality.
+
+```

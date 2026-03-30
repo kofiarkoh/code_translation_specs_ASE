@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes an array of integers to compute a transformed version of the array through a series of iterations. Each iteration modifies the array based on specific conditions derived from the values of the array elements and their indices, aiming to minimize the values in the array.
+
+## 2. Inputs
+- Two integers, N and K, where:
+  - N is a positive integer representing the number of elements in the array.
+  - K is a non-negative integer representing the number of iterations for processing the array.
+- An array of N integers, where each integer is a non-negative value.
+
+## 3. Outputs
+- A transformed array of N integers, printed in a single line. Each integer represents the result of the processing after K iterations.
+
+## 4. Preconditions
+- N must be a positive integer (N > 0).
+- K must be a non-negative integer (K ≥ 0).
+- The array must contain exactly N integers, each of which is a non-negative integer.
+
+## 5. Postconditions
+- The output array is derived from the input array after K iterations of transformation.
+- Each element in the output array is non-negative and reflects the minimum values computed during the iterations based on the transformation logic.
+
+## 6. Invariants
+- During each iteration, the transformation maintains the non-negativity of the array elements.
+- The transformation process is influenced by the values of the array elements and their indices, specifically through conditions that determine how values are incremented or decremented.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle input errors or invalid values. It assumes that inputs are provided correctly as per the preconditions.
+
+## 8. State Transitions
+- The state of the array transitions through K iterations. In each iteration, the program evaluates each element of the array and modifies it based on comparisons with its index and the values of other elements, leading to a new state of the array.
+
+## 9. Transformation Logic
+- For each element in the array, the program checks its value against its index and the total number of elements. Depending on these comparisons, it increments or decrements values in a temporary array that tracks the changes to be applied to the original array.
+- The transformation logic includes:
+  - Incrementing a counter for the first position if the value of the element is greater than or equal to its index.
+  - Adjusting counters based on the difference between the index and the value of the element, as well as the sum of the index and the value of the element, to determine how the values should be modified in subsequent iterations.
+
+## 10. Termination Behavior
+- The program terminates after completing K iterations or when the minimum value in the array is less than N, whichever occurs first. The final state of the array is printed as the output.
+
+```

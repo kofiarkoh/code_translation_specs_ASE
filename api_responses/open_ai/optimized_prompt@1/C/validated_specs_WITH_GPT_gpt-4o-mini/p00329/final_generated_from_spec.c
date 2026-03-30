@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_N 1005
+
+int N; // Number of nodes in each set
+int grid[MAX_N][MAX_N]; // Connection grid
+int match[MAX_N]; // Matched nodes from the second set
+int seen[MAX_N]; // Seen nodes during DFS
+
+// Depth-first search to find an augmenting path
+int dfs(int u) {
+    for (int v = 0; v < N; v++) {
+        if (grid[u][v] && !seen[v]) { // If there's a connection and v is not seen
+            seen[v] = 1; // Mark v as seen
+            if (match[v] == -1 || dfs(match[v])) { // If v is unmatched or can find an alternative match
+                match[v] = u; // Match v with u
+                return 1; // Found a match
+            }
+        }
+    }
+    return 0; // No match found
+}
+
+// Main function to determine if a perfect matching exists
+int main() {
+    // Read input
+    scanf("%d", &N);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            scanf("%d", &grid[i][j]); // Read the connection grid
+        }
+    }
+
+    // Initialize match array
+    for (int i = 0; i < N; i++) {
+        match[i] = -1; // No matches initially
+    }
+
+    // Perform the matching
+    int matches = 0;
+    for (int u = 0; u < N; u++) {
+        // Reset seen array for each node in the first set
+        for (int i = 0; i < N; i++) {
+            seen[i] = 0; // Mark all nodes as unseen
+        }
+        if (dfs(u)) {
+            matches++; // Increment match count if a match is found
+        }
+    }
+
+    // Output results
+    if (matches == N) { // If perfect matching exists
+        printf("yes\n");
+        for (int i = 0; i < N; i++) {
+            printf("%d ", match[i] + 1); // Output matched nodes adjusted by +1
+        }
+        printf("\n");
+    } else {
+        printf("no\n"); // No perfect matching
+    }
+
+    return 0; // Successful execution
+}

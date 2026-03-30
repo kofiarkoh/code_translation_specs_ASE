@@ -1,0 +1,56 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+// AOJ 341 Repeated Spell
+// 2017.10.26
+
+#include <stdio.h>
+#include <string.h>
+
+#define M 1000000007
+long long a[1001][1001];
+char t[1001], b[1001];
+
+int main()
+{
+	int i, j, st, sb;
+
+	scanf("%s%s", t, b);
+	st = strlen(t);
+	sb = strlen(b);
+	for (i = 0; i <= st; i++) a[i][0] = 1;
+	for (i = 1; i <= st; i++) {
+		for (j = 0; j < sb; j++) {
+			a[i][j+1] = a[i-1][j+1] % M;
+			if (t[i-1] == b[j]) {
+				a[i][j+1] = (a[i-1][j+1] + a[i-1][j]) % M;
+			}
+		}
+	}
+	printf("%lld\n", a[st][sb]);
+	return 0;
+}
+```

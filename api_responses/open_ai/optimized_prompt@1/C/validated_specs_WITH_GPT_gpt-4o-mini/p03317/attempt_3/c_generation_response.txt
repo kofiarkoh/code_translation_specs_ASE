@@ -1,0 +1,52 @@
+```c
+#include <stdio.h>
+
+int calculate_min_groups(int n, int k) {
+    // Preconditions check
+    if (k <= 1) {
+        // Undefined behavior if k is less than or equal to 1
+        return -1; // Indicating an error state
+    }
+
+    // The first group can contain up to k elements
+    int groups = 1; // Start with one group for the first k elements
+    int remaining_elements = n - k; // Remaining elements after the first group
+
+    if (remaining_elements > 0) {
+        // Calculate the number of full groups of size k-1
+        groups += (remaining_elements / (k - 1)); // Full groups of size k-1
+        if (remaining_elements % (k - 1) != 0) {
+            // If there are leftover elements, we need an additional group
+            groups += 1;
+        }
+    }
+
+    // Postcondition: output is guaranteed to be >= 1
+    return groups;
+}
+
+int main() {
+    int n, k;
+
+    // Read inputs
+    scanf("%d %d", &n, &k);
+    
+    // Assuming the sequence of integers is read but not used in the calculation
+    // as the specification does not require processing them.
+    int sequence[n];
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &sequence[i]);
+    }
+
+    // Calculate and output the minimum number of groups
+    int result = calculate_min_groups(n, k);
+    if (result != -1) {
+        printf("%d\n", result);
+    } else {
+        // Handle the error case if k <= 1
+        printf("Error: k must be greater than 1.\n");
+    }
+
+    return 0;
+}
+```

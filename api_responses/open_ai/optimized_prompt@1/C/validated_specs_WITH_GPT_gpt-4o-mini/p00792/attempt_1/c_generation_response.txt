@@ -1,0 +1,68 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_MIRRORS 100
+#define GRID_LIMIT 800
+
+typedef struct {
+    char orientation; // 'x' for vertical, 'y' for horizontal
+    int x;
+    int y;
+} Mirror;
+
+int main() {
+    int n;
+    Mirror mirrors[MAX_MIRRORS];
+    int posX = 50, posY = 0; // Initial position of the point
+    int directionX = 1, directionY = 1; // Initial movement direction (moving right and up)
+
+    // Read the number of mirrors
+    if (scanf("%d", &n) != 1 || n < 0) {
+        // Terminate gracefully if n is negative or invalid
+        return 0;
+    }
+
+    // Read mirror data
+    for (int i = 0; i < n; i++) {
+        char orientation;
+        int x, y;
+        if (scanf(" %c %d %d", &orientation, &x, &y) != 3 || x < 0 || x > GRID_LIMIT || y < 0 || y > GRID_LIMIT) {
+            // Invalid input handling (out of bounds or incorrect format)
+            return 0;
+        }
+        mirrors[i] = (Mirror){orientation, x, y};
+    }
+
+    // Simulate movement
+    while (1) {
+        // Check for boundary conditions
+        if (posX < 0 || posX > GRID_LIMIT || posY < 0 || posY > GRID_LIMIT) {
+            break; // Stop if out of bounds
+        }
+
+        // Check for mirror interactions
+        for (int i = 0; i < n; i++) {
+            if ((mirrors[i].orientation == 'x' && posX == mirrors[i].x && posY == mirrors[i].y) || 
+                (mirrors[i].orientation == 'y' && posY == mirrors[i].y && posX == mirrors[i].x)) {
+                // Reflect the direction based on mirror orientation
+                if (mirrors[i].orientation == 'x') {
+                    directionY = -directionY; // Reflect vertically
+                } else if (mirrors[i].orientation == 'y') {
+                    directionX = -directionX; // Reflect horizontally
+                }
+                break; // Exit the loop after reflecting
+            }
+        }
+
+        // Move the point
+        posX += directionX;
+        posY += directionY;
+    }
+
+    // Output the final coordinates
+    printf("%d %d\n", posX, posY);
+    return 0;
+}
+```

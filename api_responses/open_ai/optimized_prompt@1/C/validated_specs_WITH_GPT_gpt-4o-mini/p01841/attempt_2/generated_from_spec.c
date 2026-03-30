@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 100001 // Maximum length for input strings
+
+// Function to parse the root value from the tree string
+int parse_root_value(const char *tree) {
+    // Assuming the root value is the first integer in the string
+    int value = 0;
+    sscanf(tree, "%d", &value);
+    return value;
+}
+
+// Function to combine two tree strings
+char* combine_trees(const char *tree1, const char *tree2) {
+    // Check for empty trees
+    if (strlen(tree1) <= 2) return strdup("()"); // Empty tree representation
+    if (strlen(tree2) <= 2) return strdup("()"); // Empty tree representation
+
+    // Parse root values
+    int root1 = parse_root_value(tree1);
+    int root2 = parse_root_value(tree2);
+    int combined_root = root1 + root2;
+
+    // Create output string
+    // Assuming the format is "value(left_subtree)(right_subtree)"
+    // For simplicity, we will assume both trees have the same structure
+    // This is a simplification; a full implementation would need to handle
+    // the actual tree structure recursively.
+    
+    // Allocate enough space for the output string
+    char *output = (char *)malloc(MAX_LENGTH);
+    if (!output) {
+        perror("Failed to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+
+    // Format the output string
+    snprintf(output, MAX_LENGTH, "%d(%s)(%s)", combined_root, tree1 + 2, tree2 + 2); // Skip the root value
+
+    return output;
+}
+
+int main() {
+    char tree1[MAX_LENGTH], tree2[MAX_LENGTH];
+
+    // Read input trees
+    fgets(tree1, MAX_LENGTH, stdin);
+    fgets(tree2, MAX_LENGTH, stdin);
+
+    // Remove newline characters if present
+    tree1[strcspn(tree1, "\n")] = 0;
+    tree2[strcspn(tree2, "\n")] = 0;
+
+    // Combine the trees
+    char *result = combine_trees(tree1, tree2);
+
+    // Output the combined tree
+    printf("%s\n", result);
+
+    // Free allocated memory
+    free(result);
+    return 0;
+}

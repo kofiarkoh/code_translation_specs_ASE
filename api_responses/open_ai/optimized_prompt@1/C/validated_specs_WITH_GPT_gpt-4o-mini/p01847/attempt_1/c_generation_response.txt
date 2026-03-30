@@ -1,0 +1,56 @@
+```c
+#include <stdio.h>
+
+#define MAX_VERTICES 100 // Assuming a maximum number of vertices for the polygon
+
+// Function to compute the area of a polygon using the shoelace formula
+long compute_polygon_area(int vertices[][2], int num_vertices) {
+    long area = 0;
+    for (int i = 0; i < num_vertices; i++) {
+        int j = (i + 1) % num_vertices; // Wrap around to the first vertex
+        area += vertices[i][0] * vertices[j][1];
+        area -= vertices[j][0] * vertices[i][1];
+    }
+    return area < 0 ? -area : area; // Return absolute area
+}
+
+// Function to compute the area of a rectangle defined by its corners
+long compute_rectangle_area(int box[4][2]) {
+    int width = box[1][0] - box[0][0]; // Assuming box[0] is bottom-left and box[1] is top-right
+    int height = box[2][1] - box[0][1]; // Assuming box[2] is top-left
+    return (long)width * height; // Cast to long to prevent overflow
+}
+
+int main() {
+    int vertices[MAX_VERTICES][2]; // Array to store polygon vertices
+    int box[4][2]; // Array to store bounding box coordinates
+    int num_vertices;
+
+    while (1) {
+        // Read the number of vertices
+        if (scanf("%d", &num_vertices) != 1 || num_vertices <= 0) {
+            break; // Termination condition
+        }
+
+        // Read the vertices of the polygon
+        for (int i = 0; i < num_vertices; i++) {
+            scanf("%d %d", &vertices[i][0], &vertices[i][1]);
+        }
+
+        // Read the bounding box coordinates
+        for (int i = 0; i < 4; i++) {
+            scanf("%d %d", &box[i][0], &box[i][1]);
+        }
+
+        // Compute areas
+        long polygon_area = compute_polygon_area(vertices, num_vertices);
+        long rectangle_area = compute_rectangle_area(box);
+
+        // Compute and print the area difference
+        long area_difference = polygon_area - rectangle_area;
+        printf("%ld\n", area_difference);
+    }
+
+    return 0;
+}
+```

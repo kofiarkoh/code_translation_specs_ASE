@@ -1,0 +1,69 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_ELEMENTS 100000
+
+// Function to process queries and compute the cumulative result
+long process_queries(int N, int Q, int *mapping, char *queries, int *values) {
+    // Array to keep track of modification counts for each element
+    int modification_count[MAX_ELEMENTS] = {0};
+    long cumulative_result = 0;
+
+    for (int i = 0; i < Q; i++) {
+        char query_type = queries[i];
+        int value = values[i];
+
+        if (query_type == 'M') {
+            // Increment the modification count for the specified element
+            if (value >= 1 && value <= N) {
+                modification_count[value - 1]++;
+            }
+        } else {
+            // For retrieval queries, traverse the mapping
+            int index = value - 1; // Convert to 0-based index
+            while (index >= 0 && index < N) {
+                if (modification_count[index] > 0) {
+                    cumulative_result += modification_count[index];
+                    break; // Stop at the first reachable element with non-zero count
+                }
+                index = mapping[index] - 1; // Move to the next mapped element
+            }
+        }
+    }
+
+    return cumulative_result;
+}
+
+int main() {
+    int N, Q;
+    // Read N and Q
+    scanf("%d %d", &N, &Q);
+    
+    // Read the mapping
+    int *mapping = (int *)malloc(N * sizeof(int));
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &mapping[i]);
+    }
+
+    // Read the queries and associated values
+    char *queries = (char *)malloc(Q * sizeof(char));
+    int *values = (int *)malloc(Q * sizeof(int));
+    for (int i = 0; i < Q; i++) {
+        scanf(" %c %d", &queries[i], &values[i]); // Space before %c to consume newline
+    }
+
+    // Process the queries and get the cumulative result
+    long result = process_queries(N, Q, mapping, queries, values);
+    
+    // Output the result
+    printf("%ld\n", result);
+
+    // Free allocated memory
+    free(mapping);
+    free(queries);
+    free(values);
+
+    return 0;
+}
+```

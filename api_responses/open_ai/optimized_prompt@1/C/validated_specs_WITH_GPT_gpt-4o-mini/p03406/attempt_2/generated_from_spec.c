@@ -1,0 +1,76 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MD 1000000007 // Define modulus as per specification
+
+// Function to compute factorials and inverse factorials
+void precompute_factorials(int n, long long *ff, long long *gg) {
+    ff[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        ff[i] = ff[i - 1] * i % MD;
+    }
+    // Compute inverse factorials using Fermat's Little Theorem
+    gg[n] = 1; // gg[n] = (ff[n]^(MD-2)) % MD
+    for (int i = n - 1; i >= 0; i--) {
+        gg[i] = gg[i + 1] * (i + 1) % MD;
+    }
+}
+
+// Function to compute n choose k
+long long choose(int n, int k, long long *ff, long long *gg) {
+    if (k > n) return 0;
+    return ff[n] * gg[k] % MD * gg[n - k] % MD;
+}
+
+int main() {
+    int n, m;
+    scanf("%d %d", &n, &m);
+    
+    // Preconditions check
+    if (n < 0 || n > 16 || m < 0) {
+        return 1; // Exit on invalid input
+    }
+
+    long long *ff = (long long *)malloc((n + 1) * sizeof(long long));
+    long long *gg = (long long *)malloc((n + 1) * sizeof(long long));
+    precompute_factorials(n, ff, gg);
+
+    int *aa = (int *)malloc(m * sizeof(int));
+    for (int i = 0; i < m; i++) {
+        scanf("%d", &aa[i]);
+        // Transform the input as per specification
+        aa[i] = (1 << n) - aa[i];
+    }
+
+    // Dynamic programming array
+    long long *dp = (long long *)calloc((1 << n), sizeof(long long));
+    dp[0] = 1; // Base case
+
+    // Update dp array based on transformed input
+    for (int i = 0; i < m; i++) {
+        for (int j = (1 << n) - 1; j >= aa[i]; j--) {
+            dp[j] = (dp[j] + dp[j - aa[i]]) % MD;
+        }
+    }
+
+    // Compute the final result
+    long long result = 0;
+    for (int j = 0; j < (1 << n); j++) {
+        result = (result + dp[j]) % MD;
+    }
+
+    // Ensure result is non-negative
+    if (result < 0) {
+        result += MD;
+    }
+
+    printf("%lld\n", result);
+
+    // Free allocated memory
+    free(ff);
+    free(gg);
+    free(aa);
+    free(dp);
+
+    return 0;
+}

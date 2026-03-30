@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the maximum distance from any cell containing a placeholder character to the nearest cell containing a specific character in a grid. The grid is defined by its height and width, and the characters can be either the specific character or a placeholder.
+
+## 2. Inputs
+- Two positive integers representing the height and width of the grid.
+- A grid of characters where each cell can contain either the specific character or a placeholder.
+
+## 3. Outputs
+- A single integer representing the maximum distance from any cell containing the placeholder to the nearest cell containing the specific character.
+
+## 4. Preconditions
+- The height and width of the grid are positive integers.
+- The grid must contain at least one instance of the specific character.
+
+## 5. Postconditions
+- The output integer is non-negative and represents the maximum distance calculated based on the defined criteria.
+
+## 6. Invariants
+- The distance from any cell containing the specific character to itself is zero.
+- The distance for cells containing the specific character is initialized to zero, while all other cells are initialized to a predefined maximum value.
+
+## 7. Error Handling / Exceptional Behavior
+- The program assumes valid input as per the preconditions and does not handle invalid input formats or out-of-bounds access explicitly.
+
+## 8. State Transitions
+- The algorithm employs a breadth-first search (BFS) approach to propagate distances from cells containing the specific character to all reachable cells containing the placeholder. The state transitions occur as the algorithm processes each cell in the grid, updating distances based on neighboring cells until all reachable cells have been evaluated. The BFS ensures that each cell is processed in a manner that prevents infinite loops or excessive iterations.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is linear with respect to the number of cells in the grid, ensuring efficient processing for reasonably sized grids. The termination condition for the BFS is based on the queue being empty, indicating that all reachable cells have been processed.
+
+```

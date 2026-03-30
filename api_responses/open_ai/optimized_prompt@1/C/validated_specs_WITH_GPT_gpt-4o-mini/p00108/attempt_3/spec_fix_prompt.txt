@@ -1,0 +1,161 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+#define MAX 13
+
+int main()
+{
+	int n = 0, i = 0, flag = 0, cnt = 0;
+	int numline[MAX] = {};
+	int tmpline[MAX] = {};
+	int num[101] = {};
+
+	while ( scanf( "%d", &n ) == 1 ) {
+		if ( n == 0 ) { break; }
+		for ( i = 0 ; i < n ; i++ ) {
+			scanf( "%d", &numline[i] );
+		}
+		flag = 1;
+		cnt = 0;
+		while ( flag ) {
+			// B=P8=J8;zNs$N=i4|2=$r9T$&
+			for ( i = 0 ; i < 101 ; i++ ) {
+				num[i] = 0;
+			}
+
+			// B=P8=J8;zNs$N%+%&%s%H
+			for ( i = 0 ; i < n ; i++ ) {
+				num[numline[i]]++;
+			}
+
+			// B=P8=IQEYJ8;zNs$N:n@.
+			for ( i = 0 ; i < n ; i++ ) {
+				tmpline[i] = num[numline[i]];
+			}
+
+			cnt++; flag = 0;
+			// numlineB$HtmplineB$NF1$8?tCM?t$r%+%&%s%H
+			// BJ8;zNsD9$H0lCW$9$k>l9g$O, BFs$D$,F1$8G[Ns$G$"$k$3$H$r<($9
+			for ( i = 0 ; i < n ; i++ ) {
+				if ( tmpline[i] == numline[i] ) {
+					flag++;
+				}
+			}
+
+			if ( flag == n ) {
+				/*for ( i = 0 ; i < n ; i++ ) {
+					printf( "%3d %3d\n", numline[i], tmpline[i] );
+				}*/
+				flag = 0;
+			} else { 
+				// B0c$&J8;zNs$N>l9g$O!"<!$NA`:n$KHw$($F?tNs$N%3%T!<$r9T$&
+				for ( i = 0 ; i < n ; i++ ) {
+					numline[i] = tmpline[i];
+				} 
+				flag = 1;
+			}
+		}
+
+		printf( "%d\n", cnt-1 );
+		for ( i = 0 ; i < n ; i++ ) {
+			if ( i == n-1 ) { 
+				printf( "%d\n", tmpline[i] );
+			} else { 
+				printf( "%d ", tmpline[i] );
+			}
+		}
+	}
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a series of integer sequences, transforming each sequence by replacing each integer with the count of its occurrences in the sequence. This transformation is repeated iteratively until the sequence reaches a stable state, where further transformations do not change the sequence. The program counts the number of transformations required to reach this stable state and outputs the final transformed sequence.
+
+## 2. Inputs
+- A series of integer sequences, where each sequence begins with an integer `n` (the number of elements in the sequence), followed by `n` integers. The input terminates when `n` is zero.
+- Each integer in the sequence must be non-negative and less than or equal to 100.
+
+## 3. Outputs
+- The number of transformations performed to reach a stable state for each sequence.
+- The final transformed sequence of integers, where each integer represents the count of occurrences of the corresponding integer from the original sequence.
+
+## 4. Preconditions
+- The input must consist of valid integers.
+- The first integer of each sequence must be non-negative and less than or equal to 100.
+
+## 5. Postconditions
+- The output includes the number of transformations and the final transformed sequence for each input sequence.
+- The final transformed sequence is stable, meaning further transformations will not change it.
+
+## 6. Invariants
+- The transformation process maintains the integrity of the input sequence, ensuring that the output sequence is derived solely from the input values.
+- The count of transformations is incremented only when a transformation occurs.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly; it assumes all input adheres to the specified constraints.
+
+## 8. State Transitions
+- The state transitions occur between the input sequence and its transformed state, with each transformation being a step towards stabilization. The process continues until the transformed sequence no longer changes.
+
+## 9. Non-functional Constraints
+- The program operates within a fixed memory limit, defined by the maximum size of the input sequences and the range of integers processed. The performance is dependent on the number of transformations and the size of the input sequences.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how to handle cases where multiple transformations yield the same counts for different elements in the sequence. Specifically, it lacks clarity on how to count transformations when the sequence stabilizes but does not necessarily match the expected output.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the conditions under which a transformation is considered complete and how to handle cases where multiple elements may stabilize at the same count. It should specify that the transformation process should continue until the sequence does not change at all, rather than just matching the previous state.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program continues to transform the sequence until the counts stabilize, which may lead to multiple transformations being counted if the sequence does not reach a state where all elements are equal to their counts. The actual behavior of the source program indicates that it counts transformations even when the output does not change in a way that matches the expected output, suggesting that the specification's definition of "stability" is insufficiently precise.
+
+```

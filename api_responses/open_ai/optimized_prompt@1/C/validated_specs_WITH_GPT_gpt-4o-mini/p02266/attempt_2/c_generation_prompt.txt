@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a sequence of characters to compute and output the total area and count of pools formed between certain characters. It maintains a stack to track positions indicated by backslashes ('\') and a linked list to store pool areas and their corresponding x-coordinates. The program handles overlapping and nested pools based on the last position pushed onto the stack.
+
+## 2. Inputs
+The input consists of a sequence of characters, which may include:
+- Backslashes ('\') indicating the start of a new position. Each backslash pushes the current position onto the stack.
+- Underscores ('_') which are ignored and do not affect the stack or pool formation.
+- Forward slashes ('/') indicating the end of a position and the potential formation of a pool. A forward slash will attempt to form a pool using the most recent position from the stack.
+
+## 3. Outputs
+The output includes:
+- The total area of all pools formed.
+- The count of pools formed.
+- A list of individual pool areas, printed in reverse order of their formation.
+
+## 4. Preconditions
+- The input must be a valid sequence of characters as specified.
+- Memory allocation for stack and pool structures must succeed.
+
+## 5. Postconditions
+- The total area and count of pools are computed and printed.
+- The areas of individual pools are printed in reverse order.
+- All dynamically allocated memory for stack and pool structures is freed.
+
+## 6. Invariants
+- The stack maintains the last position encountered by backslashes, allowing for the correct calculation of pool areas.
+- The pool linked list maintains valid entries for each pool formed, with correct area calculations based on the stack's data.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails, the program may exhibit undefined behavior.
+- If the input does not contain any valid characters, the output will reflect zero pools and areas.
+
+## 8. State Transitions
+- The state transitions occur based on the input characters:
+  - On encountering a backslash, a new position is pushed onto the stack, and the current position is recorded.
+  - On encountering a forward slash, a pool may be formed based on the current stack state. If the stack is empty, no pool is formed.
+  - If multiple backslashes are encountered in succession, each will push a new position onto the stack.
+  - If a forward slash follows immediately after a backslash without an intervening character, a pool is formed using the last position from the stack.
+  - The state of the stack and pool linked list is updated accordingly, with overlapping pools being aggregated based on their respective areas.
+
+## 9. Non-functional Constraints
+- The program operates in linear time relative to the number of input characters.
+- Memory usage is proportional to the number of pools and stack entries created during execution.
+
+```

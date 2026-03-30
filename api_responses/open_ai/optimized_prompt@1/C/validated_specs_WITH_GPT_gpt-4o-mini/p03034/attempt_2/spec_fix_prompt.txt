@@ -1,0 +1,112 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#define ll long long
+#define max(p,q)((p)>(q)?(p):(q))
+
+ll a[100010];
+int main(){
+	int n;
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%lld",a+i);
+	ll ans=0;
+	for(int d=1;d*2<n-1;d++){
+		int s=0,g=n-1;
+		ll crr=0;
+		while(1){
+			int ns=s+d;
+			int ng=g-d;
+			if(ng<=d||ns==ng||ns==g)break;
+			s=ns;
+			g=ng;
+			crr+=a[s]+a[g];
+			ans=max(ans,crr);
+		}
+	}
+	printf("%lld",ans);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the maximum sum of selected elements from an array, where the selection is constrained by specific distance criteria. It iteratively evaluates pairs of elements from the start and end of the array, ensuring that the selected indices do not overlap and maintain a defined separation.
+
+# 2. Inputs
+- An integer `n` representing the number of elements in the array.
+- An array of `n` long long integers.
+
+# 3. Outputs
+- A single long long integer representing the maximum sum of selected elements based on the defined selection criteria.
+
+# 4. Preconditions
+- The input integer `n` must be greater than 2.
+- The array must contain exactly `n` long long integers.
+
+# 5. Postconditions
+- The output is the maximum sum of selected elements from the array, adhering to the selection constraints.
+
+# 6. Invariants
+- The indices used for selection are always within the bounds of the array.
+- The selected indices maintain a minimum separation defined by the distance parameter.
+
+# 7. Error Handling / Exceptional Behavior
+- If `n` is less than or equal to 2, the behavior is undefined as the selection criteria cannot be satisfied.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the selection indices are updated based on the distance parameter, leading to potential changes in the current sum being evaluated.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates with a time complexity that is dependent on the value of `n`, specifically iterating through potential distances and selections, which may affect performance for large input sizes.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not adequately describe the specific selection criteria and the iterative process used to compute the maximum sum. It lacks detail on how the distance affects the selection of indices and the conditions under which the selection continues.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify that the selection of indices is not merely based on a fixed distance but involves a dynamic adjustment of indices based on the distance parameter, which leads to multiple iterations and potential overlaps. It should also specify that the selection process continues until certain conditions are met, which are not just based on the distance but also on the relationship between the indices.
+
+D. **Why this clarification is supported by the source program**  
+- The source program uses a loop that continues to adjust the start (`s`) and end (`g`) indices based on the distance `d`, and it breaks out of the loop under specific conditions that are not captured in the current specification. The logic in the source program allows for multiple pairs to be evaluated based on the distance, which is not reflected in the generated C program or the specification. This indicates that the abstraction of the selection process is oversimplified in the current specification.
+
+```

@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <stdlib.h> // For abs()
+
+int main() {
+    int a, b;
+
+    // Continuously read pairs of integers until EOF
+    while (scanf("%d %d", &a, &b) == 2) {
+        int abs_a = abs(a); // Compute absolute value of a
+        int abs_b = abs(b); // Compute absolute value of b
+        int result;
+
+        // Check the conditions based on the specification
+        if (abs_a + abs_b == 1) {
+            result = 1; // Case 1: sum of absolute values equals 1
+        } else if (a % 2 != 0 && b % 2 != 0) {
+            result = abs_a + abs_b - 1; // Case 2: both integers are odd
+        } else if (a % 2 == 0 && b % 2 == 0) {
+            result = abs_a + abs_b; // Case 3: both integers are even
+        } else if ((a % 2 != 0 && b % 2 == 0) || (a % 2 == 0 && b % 2 != 0)) {
+            // Case 4: one integer is odd and the other is even (both non-zero)
+            if (a != 0 && b != 0) {
+                result = abs_a + abs_b; 
+            } else {
+                // This case is handled in the next condition
+                result = abs_a + abs_b + 1; 
+            }
+        } else if (a == 0 || b == 0) {
+            // Case 5: one integer is zero and the other is non-zero
+            result = abs_a + abs_b + 1; 
+        }
+
+        // Output the result for the current pair
+        printf("%d\n", result);
+    }
+
+    return 0; // Successful termination
+}

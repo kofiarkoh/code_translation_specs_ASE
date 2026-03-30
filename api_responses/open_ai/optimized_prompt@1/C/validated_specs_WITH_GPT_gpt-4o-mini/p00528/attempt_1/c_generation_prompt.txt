@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code implements a pathfinding algorithm using Dijkstra's method to find the shortest path in a grid-like structure defined by coordinates. It processes input to construct a graph of nodes and edges, representing connections between points, and computes the minimum distance from a starting point to a goal point.
+
+# 2. Inputs
+- Three integers representing the dimensions of the grid (m, n) and the number of special points (k).
+- k pairs of integers representing the coordinates of special points in the grid.
+
+# 3. Outputs
+- A single integer representing the minimum distance from the starting point to the goal point. If no path exists, it returns -1.
+
+# 4. Preconditions
+- The input integers m, n, and k must be non-negative.
+- The coordinates of special points must be within the bounds defined by m and n.
+
+# 5. Postconditions
+- The output is the shortest distance from the starting point to the goal point, or -1 if no valid path exists.
+
+# 6. Invariants
+- The graph structure remains consistent throughout the execution, with nodes and edges correctly representing the connections between special points.
+- The priority queue used for Dijkstra's algorithm maintains the properties of a min-heap.
+
+# 7. Error Handling / Exceptional Behavior
+- If the starting point or goal point is not defined in the input, the algorithm will treat them as invalid and may return -1.
+- The algorithm does not handle invalid input formats or out-of-bounds coordinates explicitly.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as nodes are processed in the priority queue, updating the distances to neighboring nodes and marking nodes as visited.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently within the constraints of the input size, specifically handling up to 80,000 nodes and edges.
+
+```

@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code implements a tree dynamic programming algorithm that computes a specific value for each node in a tree structure based on its relationships with its children. It processes the tree to derive results that are influenced by the values of its child nodes, ensuring that the results are computed modulo a predefined constant.
+
+# 2. Inputs
+- An integer `n` representing the number of nodes in the tree.
+- Two arrays `a` and `b` of size `n-1`, where each pair `(a[i], b[i])` represents an edge between nodes in the tree.
+
+# 3. Outputs
+- An array of `n` long long integers, where each element corresponds to a computed value for each node in the tree, adjusted by a product of integers modulo a predefined constant.
+
+# 4. Preconditions
+- The input integer `n` must be greater than or equal to 1.
+- The arrays `a` and `b` must contain valid indices representing edges in a tree structure, ensuring that there are no cycles and that all nodes are connected.
+
+# 5. Postconditions
+- Each element in the output array contains a computed value for the corresponding node, derived from the tree structure and relationships, and is guaranteed to be within the range defined by the modulo operation.
+
+# 6. Invariants
+- The values in the `tans` array remain consistent throughout the execution, reflecting the cumulative results of the computations for each node.
+- The `tS` array maintains the count of child nodes for each node during the processing.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle erroneous inputs or exceptional cases. It assumes that the input adheres to the specified format and constraints.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the algorithm traverses the tree, updating the values in the `tans` and `tS` arrays based on the relationships between parent and child nodes.
+
+# 9. Non-functional Constraints (if inferable)
+- The computations are performed under a modulo operation to prevent overflow and ensure results fit within a specified range.
+- The algorithm is expected to operate efficiently within the constraints of tree structures, with a time complexity that is linear with respect to the number of nodes.
+
+```

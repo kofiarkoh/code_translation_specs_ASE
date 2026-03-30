@@ -1,0 +1,140 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1212: Mirror Illusion
+// 2018.1.23 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+char mir[9][9][9][9];
+int mv[4][2] = {{50,50},{-50,50},{-50,-50},{50,-50}};
+int tr[2][4] = {{3,2,1,0},{1,0,3,2}};
+
+int main()
+{
+	int n, i, v, x, y, d, wall;
+	char s[5];
+
+	while (scanf("%d", &n) && n >= 0) {
+		memset(mir, 0, sizeof(mir));
+
+		for (i = 0 ; i < n ; i++) {
+			scanf("%s%d%d", s, &x, &y);
+			if (*s == 'x') mir[x][y][x+1][y] = 1;
+			else           mir[x][y][x][y+1] = 1;
+		}
+
+		x = 50, y = 0, d = 0, wall = 1;
+		for (v = 1, i = 0; ; i++, v = !v) {
+			if (i >= 2) {
+				if (x == 100 && y == 50 && d == 0) { x = 75, y = 25; break; }
+				if (wall && (!x || !y || x == 800 || y == 800)) break;
+			}
+
+	        x += mv[d][0], y += mv[d][1], wall = 1;
+
+			if (v) {
+				if (mir[x/100][(y-50)/100][x/100][(y+50)/100]) d = tr[v][d], wall = 0;
+			} else {
+				if (mir[(x-50)/100][y/100][(x+50)/100][y/100]) d = tr[v][d], wall = 0;
+			}
+		}
+		printf("%d %d\n", x, y);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code simulates the movement of a point in a 2D space based on user-defined mirror placements. It calculates the final position of the point after a series of movements, reflecting off mirrors as specified, and adhering to specific boundary conditions.
+
+## 2. Inputs
+- An integer `n` representing the number of mirrors, followed by `n` entries.
+- Each entry consists of a string indicating the mirror orientation ('x' for vertical, 'y' for horizontal) and two integers `x` and `y` representing the mirror's position.
+
+## 3. Outputs
+- The final coordinates of the point after processing all movements and mirror interactions, formatted as two integers.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative.
+- The mirror positions must be within the defined grid limits (0 to 800 for both coordinates).
+
+## 5. Postconditions
+- The output coordinates reflect the final position of the point after all movements and interactions with mirrors have been processed.
+
+## 6. Invariants
+- The point starts at the initial position (50, 0) and moves according to predefined directional vectors.
+- The state of the mirror grid is maintained throughout the execution, ensuring accurate reflection behavior.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully if a negative integer is provided for `n`.
+- Movement stops if the point reaches the boundaries of the defined grid or if a specific exit condition is met.
+
+## 8. State Transitions
+- The state transitions occur based on the current position and direction of the point. The point's movement is influenced by the presence of mirrors, which may change the direction of movement under specific conditions:
+  - If the point's position aligns with a mirror, the direction of movement is altered according to the mirror's orientation.
+  - The point's position is updated based on its current direction and the defined movement vectors.
+
+## 9. Non-functional Constraints
+- The program must efficiently handle multiple mirror placements and movements without exceeding memory limits or processing time constraints. 
+
+## 10. Additional Clarifications
+- The point's movement continues until it either reaches the boundary of the defined grid or meets a specific exit condition, which occurs when the point reaches the coordinates (100, 50) facing the initial direction (0).
+- The direction change upon hitting a mirror is determined by the current state of the point (whether it is in a vertical or horizontal movement phase) and the orientation of the mirror encountered.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address the behavior of the point when it interacts with mirrors, particularly regarding the conditions under which the point's direction changes and how it handles multiple mirrors in close proximity.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the point's movement is affected by multiple mirrors, especially when the point's trajectory intersects with multiple mirrors in a single movement step. It should specify the order of mirror interactions and how the direction changes are applied.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes logic that checks for mirror interactions based on the current position and direction of the point, and it alters the direction based on the mirror encountered. However, it also has specific conditions that can lead to unexpected behavior, such as the exit condition being met or the point moving out of bounds. The failing test case suggests that the generated program does not account for the possibility of the point reflecting off multiple mirrors in a single movement, leading to an incorrect final position. This indicates a misunderstanding of how mirror interactions should be processed sequentially or simultaneously.
+
+```

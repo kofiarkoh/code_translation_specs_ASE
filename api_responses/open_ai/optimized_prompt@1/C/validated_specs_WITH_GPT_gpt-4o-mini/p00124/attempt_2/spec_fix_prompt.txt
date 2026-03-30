@@ -1,0 +1,142 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+	char name[30];
+	int score;
+} TEAM;
+	
+	
+int main(void)
+{
+	int n, i, j, f = 0;
+	int win, lose, draw;
+	TEAM team[10], temp;
+	
+
+	while (1){
+		scanf("%d", &n);
+		
+		if (n == 0){
+			break;
+		}
+		
+		for (i = 0; i < n; i++){
+			scanf("%s %d %d %d", team[i].name, &win, &lose, &draw);
+			team[i].score = win * 3 + draw;
+		}
+		
+		for (i = 0; i < n; i++){
+			for (j = n - 1; j > i; j--){
+				if (team[j].score > team[j-1].score){
+					strcpy(temp.name, team[j-1].name);
+					temp.score = team[j-1].score;
+					
+					strcpy(team[j-1].name, team[j].name);
+					team[j-1].score = team[j].score;
+					
+					strcpy(team[j].name, temp.name);
+					team[j].score = temp.score;
+				}
+			}
+		}
+		if (f == 1){
+			puts("");
+		}
+		for (i = 0; i < n; i++){
+			printf("%s,%d\n", team[i].name, team[i].score);	
+			f = 1;
+		}
+	}
+	
+	return (0);
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program processes multiple sets of team data, calculating scores based on wins, losses, and draws, and outputs the teams sorted by their scores in descending order.
+
+# 2. Inputs
+- An integer `n` representing the number of teams (0 to terminate input).
+- For each team, a string representing the team name, and three integers representing the number of wins, losses, and draws.
+
+# 3. Outputs
+- For each set of teams, the program outputs the team names and their corresponding scores, formatted as "name,score", sorted in descending order of scores.
+
+# 4. Preconditions
+- The input must consist of valid integers and strings as specified.
+- The number of teams `n` must be between 1 and 10 for valid processing.
+
+# 5. Postconditions
+- The output will display the teams sorted by their calculated scores after processing each set of input until a terminating condition is met.
+
+# 6. Invariants
+- The score for each team is consistently calculated as `wins * 3 + draws`.
+- The sorting of teams is maintained throughout the processing of each input set.
+
+# 7. Error Handling / Exceptional Behavior
+- If `n` is less than 0 or greater than 10, the behavior is undefined as the program does not handle such cases.
+- The program does not handle malformed input gracefully; it assumes all input is correctly formatted.
+
+# 8. State Transitions (if applicable)
+- The program transitions between states of input collection, score calculation, sorting, and output generation for each set of teams until termination.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle up to 10 teams efficiently within a single execution cycle.
+- The output must be generated in a timely manner after processing each input set.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong ordering rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clarify the expected output format regarding the separation of outputs for different sets of teams. Specifically, it does not state that there should be a blank line between outputs of different input sets.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should explicitly state that there should be a blank line between the outputs of different sets of teams, except after the last set of teams.
+
+D. **Why this clarification is supported by the source program**  
+The source program includes a conditional check (`if (f == 1)`) that adds a newline before printing the results of subsequent sets of teams, indicating that the program is designed to separate outputs with a blank line. This behavior is not captured in the current specification, leading to the mismatch observed in the failing test case.
+
+```

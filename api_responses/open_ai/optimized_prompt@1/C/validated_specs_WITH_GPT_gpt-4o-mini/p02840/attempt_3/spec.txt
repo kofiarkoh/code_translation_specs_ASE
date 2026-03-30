@@ -1,0 +1,46 @@
+# Revised Specification
+
+## 1. Functional Description
+The program computes a count based on the input parameters, which influence the calculation of ranges derived from arithmetic operations. It aggregates results by evaluating conditions defined by the inputs and outputs a final count based on the relationships between computed values.
+
+## 2. Inputs
+- Three integers: N, X, and D, where:
+  - N (non-negative) represents the number of iterations or elements.
+  - X is an integer that serves as an initial value influencing the calculations.
+  - D is an integer that acts as a divisor affecting the range calculations.
+
+## 3. Outputs
+- A single integer representing the computed count based on the input parameters.
+
+## 4. Preconditions
+- The inputs must be valid integers.
+- N must be non-negative.
+- X and D can be any integer, including zero.
+
+## 5. Postconditions
+- If both X and D are zero, the output is 1.
+- If D is zero, the output is N + 1.
+- If X is zero and D is non-zero, the output is calculated using the formula \( N \times (N - 1) / 2 + 1 \).
+- For other values of X and D, the output is the aggregated count derived from the ranges calculated during the iterations, based on the relationships between computed values L, R, and V.
+
+## 6. Invariants
+- The values of L, R, and V are updated consistently based on the current iteration index.
+- The hash structure maintains unique entries based on the computed value V, ensuring that overlapping ranges are merged correctly.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid input formats or types; it assumes valid integer input.
+- Division by zero is avoided by checking if D is zero before performing any division operations.
+
+## 8. State Transitions
+- The program iterates from 1 to N, updating the hash structure and the count based on the computed values of L, R, and V. 
+- For each iteration, L and R are calculated using the formulas:
+  - \( L = \frac{(X \times 2 + D \times (i - 1)) \times i}{2} \)
+  - \( R = \frac{(Y \times 2 - D \times (i - 1)) \times i}{2} + D \)
+- V is derived from L modulo D. The program checks for existing entries in the hash structure to either merge overlapping ranges or create new entries based on the values of V, L, and R.
+
+## 9. Counting Logic
+- The final count is derived from the merged ranges in the hash structure. For each unique entry in the hash, the count is incremented by the number of complete intervals represented by the range \((R - L) / D\).
+
+## 10. Non-functional Constraints
+- The algorithm operates within a fixed memory limit defined by the hash size.
+- The performance is influenced by the number of iterations (N) and the efficiency of the hash table operations.

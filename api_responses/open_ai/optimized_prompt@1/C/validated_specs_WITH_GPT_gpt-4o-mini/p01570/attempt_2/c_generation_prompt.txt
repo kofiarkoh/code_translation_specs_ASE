@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a directed acyclic graph (DAG) where each node has an associated integer value and potentially multiple child nodes. It computes a total aggregate value for the graph, which is derived from the weighted contributions of each node based on its child nodes. The contributions from child nodes are weighted according to their position in the order of processing.
+
+## 2. Inputs
+- An integer \( N \) representing the number of nodes in the graph.
+- An array of integers \( m \) of size \( N \), where each element represents the value associated with a node.
+- An array of integers \( memo \) of size \( N \), where each element indicates the parent node of the corresponding node or -1 if the node is a root.
+
+## 3. Outputs
+- A single long long integer representing the total computed value for the graph, which includes contributions from all nodes processed.
+
+## 4. Preconditions
+- \( N \) must be a positive integer.
+- Each value in \( m \) can be any integer.
+- Each value in \( memo \) must be either -1 or a valid index of a node in the range [0, N-1].
+
+## 5. Postconditions
+- The output is the sum of the computed values for all root nodes in the graph, reflecting the contributions from all descendant nodes, weighted according to their processing order.
+
+## 6. Invariants
+- The graph structure remains consistent throughout processing, ensuring that all parent-child relationships defined in the input are maintained.
+- The computed values for each node are updated correctly based on its children before final aggregation, with contributions weighted by their position in the processing order.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to memory allocation failures or invalid input values. If memory allocation fails, the behavior is undefined.
+- If the input does not conform to the expected format, the output may be incorrect or lead to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as nodes are processed, moving from unvisited to visited states as their contributions are calculated and aggregated. The processing order of child nodes affects the final contribution of each parent node.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is efficient for processing graphs with up to 1,000,000 nodes, as indicated by the use of sorting and traversal techniques. Memory usage is proportional to the number of nodes and their relationships.
+
+```

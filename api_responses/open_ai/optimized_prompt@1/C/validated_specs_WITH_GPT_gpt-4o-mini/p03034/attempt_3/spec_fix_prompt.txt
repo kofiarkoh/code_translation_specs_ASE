@@ -1,0 +1,114 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#define ll long long
+#define max(p,q)((p)>(q)?(p):(q))
+
+ll a[100010];
+int main(){
+	int n;
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%lld",a+i);
+	ll ans=0;
+	for(int d=1;d*2<n-1;d++){
+		int s=0,g=n-1;
+		ll crr=0;
+		while(1){
+			int ns=s+d;
+			int ng=g-d;
+			if(ng<=d||ns==ng||ns==g)break;
+			s=ns;
+			g=ng;
+			crr+=a[s]+a[g];
+			ans=max(ans,crr);
+		}
+	}
+	printf("%lld",ans);
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum sum of selected elements from an array, where the selection is constrained by a dynamic distance parameter. It iteratively evaluates pairs of elements from the start and end of the array, ensuring that the selected indices do not overlap and maintain a defined separation based on the distance. The selection process continues until specific conditions regarding the indices are met.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the array, where `n` must be greater than 2.
+- An array of `n` long long integers.
+
+## 3. Outputs
+- A single long long integer representing the maximum sum of selected elements based on the defined selection criteria.
+
+## 4. Preconditions
+- The input integer `n` must be greater than 2.
+- The array must contain exactly `n` long long integers.
+
+## 5. Postconditions
+- The output is the maximum sum of selected elements from the array, adhering to the selection constraints defined by the distance parameter.
+
+## 6. Invariants
+- The indices used for selection are always within the bounds of the array.
+- The selected indices maintain a minimum separation defined by the distance parameter, which is dynamically adjusted during the selection process.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` is less than or equal to 2, the behavior is undefined as the selection criteria cannot be satisfied.
+
+## 8. State Transitions
+- The state transitions occur as the selection indices are updated based on the distance parameter. The start index (`s`) is incremented by the distance, and the end index (`g`) is decremented by the distance in each iteration. The process continues until the indices meet specific conditions that prevent further selection, including overlap or invalid index relationships.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity that is dependent on the value of `n`, specifically iterating through potential distances and selections, which may affect performance for large input sizes. The number of iterations is influenced by the distance parameter and the arrangement of elements in the array.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong transition rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the distance parameter is adjusted during the selection process. It implies a dynamic adjustment but does not specify the conditions or rules for this adjustment.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the distance parameter is determined and updated during the iterations. Specifically, it should detail the conditions under which the distance changes and how it affects the selection of indices.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a loop that iterates with a distance parameter, but it does not simply increment the distance; it relies on the condition `d*2 < n-1` to control the loop and the selection of indices. The failure to account for this dynamic behavior in the specification leads to incorrect assumptions about how the maximum sum is computed, as seen in the failing test case where the expected output is significantly higher than the actual output. This indicates that the transition rules regarding the distance and index selection are not accurately captured in the current specification.
+
+```

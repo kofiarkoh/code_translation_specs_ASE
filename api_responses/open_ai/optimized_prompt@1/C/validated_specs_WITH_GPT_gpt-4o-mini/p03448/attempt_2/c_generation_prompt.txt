@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code counts the number of combinations of three non-negative integers that, when multiplied by specified weights, sum exactly to a given target value.
+
+## 2. Inputs
+- Four integers: A, B, C, and X.
+  - A: Maximum multiplier for the first weight (500).
+  - B: Maximum multiplier for the second weight (100).
+  - C: Maximum multiplier for the third weight (50).
+  - X: Target sum to be achieved.
+
+## 3. Outputs
+- A single integer representing the count of valid combinations of the three integers that satisfy the equation \(500 \times i + 100 \times j + 50 \times k = X\).
+
+## 4. Preconditions
+- A, B, C, and X must be non-negative integers.
+- The input values must be provided in the correct order.
+
+## 5. Postconditions
+- The output integer is the total number of combinations of non-negative integers \(i\), \(j\), and \(k\) such that \(0 \leq i \leq A\), \(0 \leq j \leq B\), \(0 \leq k \leq C\), and the weighted sum equals \(X\).
+- Combinations that result in a weighted sum greater than \(X\) are not counted.
+
+## 6. Invariants
+- The count variable is initialized to zero and is incremented only when a valid combination is found that satisfies the equation.
+- The loops iterate through all possible values of \(i\), \(j\), and \(k\) within their respective bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input types or out-of-range values. It assumes that inputs are valid as per the preconditions.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur through the nested loops, where the indices \(i\), \(j\), and \(k\) iterate through their respective ranges, affecting the count based on the evaluation of the weighted sum.
+
+## 9. Non-functional Constraints (if inferable)
+- The performance of the code is dependent on the values of A, B, and C, leading to a time complexity of \(O(A \times B \times C)\).
+
+```

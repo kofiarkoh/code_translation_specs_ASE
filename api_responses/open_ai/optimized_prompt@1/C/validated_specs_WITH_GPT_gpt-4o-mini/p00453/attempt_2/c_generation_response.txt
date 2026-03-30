@@ -1,0 +1,79 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_POINTS 100 // Assuming a reasonable upper limit for points
+
+// Function to calculate the cost between two points
+int calculate_cost(int weight1, int weight2, int coord1, int coord2) {
+    return (weight1 + weight2) * abs(coord1 - coord2);
+}
+
+int main() {
+    int n, m;
+
+    // Process input until termination condition (n == 0 && m == 0)
+    while (1) {
+        scanf("%d %d", &n, &m);
+        if (n == 0 && m == 0) {
+            break; // Termination condition
+        }
+
+        // Arrays to hold coordinates and weights
+        int coordinates[MAX_POINTS];
+        int weights[MAX_POINTS];
+
+        // Read points
+        for (int i = 0; i < n; i++) {
+            int num_coords;
+            scanf("%d", &num_coords);
+            for (int j = 0; j < num_coords; j++) {
+                scanf("%d %d", &coordinates[i], &weights[i]);
+            }
+        }
+
+        // Initialize cost matrix with a high value
+        int cost[MAX_POINTS][MAX_POINTS];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                cost[i][j] = INT_MAX; // High initial value
+            }
+        }
+
+        // Calculate costs based on the given formula
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                cost[i][j] = calculate_cost(weights[i], weights[j], coordinates[i], coordinates[j]);
+                cost[j][i] = cost[i][j]; // Cost is symmetric
+            }
+        }
+
+        // Minimum cost initialization
+        int min_cost = INT_MAX;
+
+        // Dynamic programming to find minimum cost with at most m segments
+        for (int segments = 1; segments <= m; segments++) {
+            for (int start = 0; start < n; start++) {
+                for (int end = start + 1; end < n; end++) {
+                    if (segments == 1) {
+                        // Direct cost for one segment
+                        min_cost = (cost[start][end] < min_cost) ? cost[start][end] : min_cost;
+                    } else {
+                        // Consider skipping one point
+                        for (int mid = start + 1; mid < end; mid++) {
+                            int total_cost = cost[start][mid] + cost[mid][end];
+                            min_cost = (total_cost < min_cost) ? total_cost : min_cost;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Output the minimum cost
+        printf("%d\n", min_cost);
+    }
+
+    return 0;
+}
+```

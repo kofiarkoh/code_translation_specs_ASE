@@ -1,0 +1,54 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_NAMES 50
+#define MAX_NAME_LENGTH 100
+
+int main() {
+    int N; // Number of names
+    int Q; // Year threshold
+    char names[MAX_NAMES][MAX_NAME_LENGTH]; // Array to store names
+    int years[MAX_NAMES]; // Array to store years
+    char *most_recent_name = NULL; // Pointer to track the most recent name
+    int first_name_index = 0; // Index of the first name for fallback
+
+    // Read the number of names and the year threshold
+    scanf("%d", &N); // Input for N
+    scanf("%d", &Q); // Input for Q
+
+    // Preconditions check
+    if (N < 0 || N > MAX_NAMES || Q < 0) {
+        // Undefined behavior as per specification
+        return 1; // Exit with error
+    }
+
+    // Read N pairs of years and names
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &years[i]); // Input for year
+        scanf("%s", names[i]); // Input for name
+        if (i == 0) {
+            first_name_index = i; // Store the index of the first name
+        }
+    }
+
+    // Process to find the most recent name
+    for (int i = 0; i < N; i++) {
+        if (years[i] <= Q) { // Check if year is less than or equal to Q
+            if (most_recent_name == NULL || years[i] > years[first_name_index]) {
+                most_recent_name = names[i]; // Update most recent name
+            }
+        }
+    }
+
+    // If no valid year was found, fallback to the first name
+    if (most_recent_name == NULL) {
+        most_recent_name = names[first_name_index];
+    }
+
+    // Output the most recent name
+    printf("%s\n", most_recent_name);
+
+    return 0; // Successful execution
+}
+```

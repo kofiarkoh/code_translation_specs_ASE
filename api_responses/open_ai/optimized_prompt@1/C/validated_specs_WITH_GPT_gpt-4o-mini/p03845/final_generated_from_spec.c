@@ -1,0 +1,49 @@
+#include <stdio.h>
+
+#define MAX_SIZE 100
+
+int main() {
+    int n; // Number of elements in the first list
+    int list[MAX_SIZE]; // The list of integers
+    int m; // Number of modifications
+    int index, new_value; // Variables for modification pairs
+
+    // Read the number of elements in the list
+    scanf("%d", &n);
+    
+    // Read the elements of the list
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &list[i]);
+    }
+
+    // Read the number of modifications
+    scanf("%d", &m);
+    
+    // Process each modification
+    for (int j = 0; j < m; j++) {
+        // Read the 1-based index and the new value
+        scanf("%d %d", &index, &new_value);
+        
+        // Adjust index to 0-based
+        int adjusted_index = index - 1;
+
+        // Calculate the modified sum
+        // Replace the value at the adjusted index with the new value
+        int original_value = list[adjusted_index]; // Store original value for sum calculation
+        list[adjusted_index] = new_value; // Apply modification
+
+        // Calculate the modified sum
+        int modified_sum = 0;
+        for (int k = 0; k < n; k++) {
+            modified_sum += list[k]; // Sum the modified list
+        }
+
+        // Output the modified sum
+        printf("%d\n", modified_sum);
+
+        // Restore the original value for the next modification
+        list[adjusted_index] = original_value; // Revert back to original for next iteration
+    }
+
+    return 0;
+}

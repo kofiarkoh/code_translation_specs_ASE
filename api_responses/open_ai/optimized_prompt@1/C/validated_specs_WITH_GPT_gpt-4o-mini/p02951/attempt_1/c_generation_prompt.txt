@@ -1,0 +1,58 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The program reads three integer values, modifies one based on the difference of the first two, and decrements a third value based on the result. It outputs the final value of the third integer after processing.
+
+# 2. Inputs
+Three integers are provided as input.
+
+# 3. Outputs
+One integer is output, representing the final value of the third integer after processing.
+
+# 4. Preconditions
+- The input must consist of exactly three integers.
+- The integers must be within the range of values that can be represented by the integer type.
+
+# 5. Postconditions
+- The output integer is equal to the initial value of the third integer minus the lesser of the modified first integer and the initial value of the third integer.
+
+# 6. Invariants
+- The modified first integer is always non-negative during the decrementing process.
+- The third integer is decremented only while the modified first integer is positive and the third integer is greater than zero.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not consist of three integers, the behavior is undefined.
+- If the input integers are out of range for the integer type, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the first integer is decremented and the third integer is decremented in tandem until either the first integer reaches zero or the third integer reaches zero.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a finite amount of time, dependent on the values of the input integers.
+
+```

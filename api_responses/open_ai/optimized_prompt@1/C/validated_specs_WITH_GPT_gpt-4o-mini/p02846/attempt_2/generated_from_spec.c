@@ -1,0 +1,47 @@
+#include <stdio.h>
+#include <string.h>
+
+int main() {
+    long long T[2]; // Time factors
+    long long A[2]; // Parameters A
+    long long B[2]; // Parameters B
+    char output[20]; // Output string buffer
+
+    // Input reading (assumed to be done correctly as per specification)
+    // scanf("%lld %lld %lld %lld %lld %lld", &T[0], &T[1], &A[0], &A[1], &B[0], &B[1]);
+
+    // Preconditions check: T[1] and T[2] must not be zero
+    if (T[0] == 0 || T[1] == 0) {
+        return 1; // Exit if precondition is violated
+    }
+
+    // Check if A[1] is greater than B[1] for potential modification
+    if (A[0] > B[0]) {
+        // Modify A and B based on the specification
+        A[0] += B[0]; // Example modification
+        B[0] += A[0]; // Example modification
+    }
+
+    // Calculate the linear combination
+    long long linear_combination_A = A[0] * T[0];
+    long long linear_combination_B = B[0] * T[1];
+
+    // Check for equality of linear combinations
+    if (linear_combination_A == linear_combination_B) {
+        strcpy(output, "infinity");
+    } else {
+        // Calculate the output based on differences
+        long long difference = A[0] - B[0];
+        if (difference <= 0) {
+            // Handle non-positive difference
+            sprintf(output, "%lld", difference);
+        } else {
+            // Handle positive difference
+            sprintf(output, "%lld", difference);
+        }
+    }
+
+    // Output the result
+    printf("%s\n", output);
+    return 0;
+}

@@ -1,0 +1,177 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+i, t;
+p( n )
+{
+	for ( i = t = 2; i * i <= n; ++i )
+	{
+		n%i?:t++;
+	}
+	return t - 2;
+}
+main( l, s, u )
+{
+	for ( ; scanf("%d", &l ), u = l; )
+	{
+		for( ; p(l); l-- );
+		for( ; p(u); u++ );
+		printf( "%d\n",  u - l );
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the count of prime numbers within a specified range defined by two integers. The lower bound is decremented until a prime number is found, and the upper bound is incremented until a prime number is found. The program then outputs the difference between the adjusted upper and lower bounds of the found primes.
+
+## 2. Inputs
+- Two integers representing the lower and upper bounds of a range.
+
+## 3. Outputs
+- An integer representing the count of prime numbers between the adjusted lower and upper bounds, inclusive of the bounds.
+
+## 4. Preconditions
+- The input integers must be non-negative.
+
+## 5. Postconditions
+- The output integer is the count of prime numbers found between the adjusted lower and upper bounds, including the primes at the adjusted bounds.
+
+## 6. Invariants
+- The lower bound is always decremented until a prime is found.
+- The upper bound is always incremented until a prime is found.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative integers or non-integer inputs gracefully.
+
+## 8. State Transitions
+- The state transitions occur as the lower and upper bounds are adjusted based on the primality checks until valid primes are found. The final count includes the primes at the adjusted bounds.
+
+## 9. Non-functional Constraints
+- The performance of the prime-checking operation may affect the overall execution time, particularly for larger input values.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdbool.h>
+
+// Function to check if a number is prime
+bool is_prime(int n) {
+    if (n <= 1) return false; // 0 and 1 are not prime
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) return false; // Found a divisor, not prime
+    }
+    return true; // No divisors found, it's prime
+}
+
+// Function to count primes in the adjusted range
+int count_primes(int lower, int upper) {
+    // Adjust lower bound
+    while (lower >= 0 && !is_prime(lower)) {
+        lower--; // Decrement until a prime is found
+    }
+
+    // Adjust upper bound
+    while (!is_prime(upper)) {
+        upper++; // Increment until a prime is found
+    }
+
+    // Count primes in the adjusted range
+    int count = 0;
+    for (int i = lower; i <= upper; i++) {
+        if (is_prime(i)) {
+            count++; // Increment count for each prime found
+        }
+    }
+
+    return count; // Return the count of primes found
+}
+
+int main() {
+    int lower, upper;
+
+    // Read input values
+    if (scanf("%d %d", &lower, &upper) != 2) {
+        // Undefined behavior if input is not valid integers
+        return 1; // Exit with error code
+    }
+
+    // Preconditions check: non-negative integers
+    if (lower < 0 || upper < 0) {
+        return 1; // Exit with error code
+    }
+
+    // Count primes in the specified range
+    int prime_count = count_primes(lower, upper);
+
+    // Output the count of prime numbers
+    printf("%d\n", prime_count);
+
+    return 0; // Successful execution
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00855/p00855_sample1_output.txt
+Input:
+20
+25
+0
+Expected:
+4
+6
+Actual:
+3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

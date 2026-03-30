@@ -1,0 +1,97 @@
+#include <stdio.h>
+
+void print_permutation(int *seq, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d", seq[i]);
+        if (i < n - 1) {
+            printf(" ");
+        }
+    }
+    printf("\n");
+}
+
+int previous_permutation(int *seq, int n) {
+    int i = n - 2;
+    while (i >= 0 && seq[i] >= seq[i + 1]) {
+        i--;
+    }
+    if (i < 0) return 0; // No previous permutation
+
+    int j = n - 1;
+    while (seq[j] <= seq[i]) {
+        j--;
+    }
+    // Swap
+    int temp = seq[i];
+    seq[i] = seq[j];
+    seq[j] = temp;
+
+    // Reverse the sequence from i + 1 to end
+    for (int k = i + 1, l = n - 1; k < l; k++, l--) {
+        temp = seq[k];
+        seq[k] = seq[l];
+        seq[l] = temp;
+    }
+    return 1; // Previous permutation exists
+}
+
+int next_permutation(int *seq, int n) {
+    int i = n - 2;
+    while (i >= 0 && seq[i] >= seq[i + 1]) {
+        i--;
+    }
+    if (i < 0) return 0; // No next permutation
+
+    int j = n - 1;
+    while (seq[j] <= seq[i]) {
+        j--;
+    }
+    // Swap
+    int temp = seq[i];
+    seq[i] = seq[j];
+    seq[j] = temp;
+
+    // Reverse the sequence from i + 1 to end
+    for (int k = i + 1, l = n - 1; k < l; k++, l--) {
+        temp = seq[k];
+        seq[k] = seq[l];
+        seq[l] = temp;
+    }
+    return 1; // Next permutation exists
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of elements
+
+    // Precondition check: n must be between 1 and 9
+    if (n < 1 || n > 9) {
+        return 1; // Undefined behavior as per specification
+    }
+
+    int seq[9]; // Maximum size based on the specification
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &seq[i]); // Read the sequence
+    }
+
+    // Store original sequence for output
+    int original[9];
+    for (int i = 0; i < n; i++) {
+        original[i] = seq[i];
+    }
+
+    // Compute previous permutation
+    if (previous_permutation(seq, n)) {
+        print_permutation(seq, n); // Print previous permutation
+    }
+
+    // Print original sequence
+    print_permutation(original, n);
+
+    // Compute next permutation
+    if (next_permutation(original, n)) {
+        print_permutation(original, n); // Print next permutation
+    }
+
+    return 0;
+}

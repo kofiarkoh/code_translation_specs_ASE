@@ -1,0 +1,107 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(void){
+	int n,k,i;
+	int p[100][2];
+	double menseki=0.0;
+	scanf("%d",&n);
+	
+	for(i=0;i<n;i++){
+		scanf("%d %d",&p[i][0],&p[i][1]);
+	}
+	
+	for(i=0;i<n;i++){
+		menseki+=(double)((p[i][0]-p[(i+1)%n][0])*(p[i][1]+p[(i+1)%n][1]));
+	}
+	printf("%.1lf\n",menseki/2.0);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates the area of a polygon defined by a set of vertices provided as input. It reads the number of vertices and their coordinates, computes the area using the shoelace formula, and outputs the result formatted to one decimal place.
+
+# 2. Inputs
+- An integer representing the number of vertices of the polygon.
+- A sequence of pairs of integers representing the x and y coordinates of each vertex.
+
+# 3. Outputs
+- A single floating-point number representing the area of the polygon, formatted to one decimal place.
+
+# 4. Preconditions
+- The number of vertices is a positive integer.
+- Each vertex coordinate is an integer.
+
+# 5. Postconditions
+- The output area is a non-negative floating-point number.
+- The area is calculated based on the provided vertices and adheres to the shoelace formula.
+
+# 6. Invariants
+- The number of vertices remains constant throughout the execution.
+- The coordinates of the vertices are stored in a fixed-size structure.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values, negative numbers for the number of vertices).
+- The behavior is undefined for inputs that do not conform to the preconditions.
+
+# 8. State Transitions (if applicable)
+- The state transitions from reading input to calculating the area and finally to outputting the result.
+
+# 9. Non-functional Constraints (if inferable)
+- The area calculation is performed in linear time relative to the number of vertices.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define how the area is calculated using the shoelace formula, particularly in terms of the order of operations and the specific formula used. The generated code appears to implement a different version of the shoelace formula than what is expected.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the exact formula used for calculating the area of the polygon, including the correct handling of the vertex coordinates in the shoelace formula. It should specify that the area is calculated as the sum of the products of the coordinates in a specific order, ensuring that the correct vertices are used in the calculation.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses the shoelace formula correctly by summing the products of the coordinates in a specific manner, which is not accurately reflected in the generated code. The discrepancy in the area calculation (expected 12.0 vs. actual 24.0) suggests that the formula's implementation in the generated code is incorrect, indicating a misunderstanding or misrepresentation of the shoelace formula in the specification.
+
+```

@@ -1,0 +1,110 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(void)
+{
+    int n=0,count=0;
+    char string[51]={};
+    scanf("%d",&n);
+    scanf("%s",string);
+
+    for(int i=0;i<n-2;i++){
+        if(string[i]=='A' && string[i+1]=='B' && string[i+2]=='C'){
+            count+=1;
+            i+=2;
+        }
+    }
+
+    printf("%d",count);
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+```text
+1. **Functional Description**  
+   The code counts the occurrences of the substring "ABC" in a given string, allowing for overlapping occurrences.
+
+2. **Inputs**  
+   - An integer `n` representing the length of the string (must be at least 3).
+   - A string of characters with a maximum length of 50, which must be null-terminated.
+
+3. **Outputs**  
+   - An integer representing the count of occurrences of the substring "ABC" in the input string.
+
+4. **Preconditions**  
+   - The input integer `n` must be greater than or equal to 3.
+   - The input string must contain at least `n` characters.
+
+5. **Postconditions**  
+   - The output integer is non-negative and reflects the total number of times the substring "ABC" appears in the input string, including overlapping occurrences.
+
+6. **Invariants**  
+   - The count of occurrences is incremented only when the substring "ABC" is found.
+   - The loop iterates through the string while ensuring that the index does not exceed the bounds defined by `n`.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `n` is less than 3, the behavior is undefined as the loop will not execute.
+   - If the input string exceeds 50 characters, the behavior is undefined due to potential buffer overflow.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the loop iterates through the string, updating the count based on the detection of the substring "ABC" and adjusting the index to allow for overlapping matches.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The execution time is linear with respect to the length of the string, specifically O(n), where n is the input length.
+```
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   Wrong transition rule
+
+B. **What the current specification may be missing or misstating**  
+   The specification does not clearly define how the index should be adjusted after finding an occurrence of the substring "ABC". It implies that overlapping occurrences should be counted, but the transition rule in the generated code does not allow for this.
+
+C. **What general behavior should be clarified in the specification**  
+   The specification should explicitly state that when an occurrence of "ABC" is found, the index should be incremented by 1 (not 3) to allow for overlapping matches. This means that after finding "ABC" at index `i`, the next check should start at index `i + 1`.
+
+D. **Why this clarification is supported by the source program**  
+   The source program correctly increments the index by 2 after finding "ABC", which allows for overlapping occurrences. However, the generated code increments the index by 3, which prevents counting overlapping instances. This discrepancy indicates that the specification's description of how to handle overlapping occurrences is vague or incorrect, leading to a mismatch in behavior.
+
+```

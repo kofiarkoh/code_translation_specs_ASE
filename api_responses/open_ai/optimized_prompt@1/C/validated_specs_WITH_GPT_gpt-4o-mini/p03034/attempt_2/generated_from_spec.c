@@ -1,0 +1,48 @@
+#include <stdio.h>
+
+long long max_sum_with_distance(int n, long long arr[]) {
+    // Preconditions check
+    if (n <= 2) {
+        // Undefined behavior as per specification
+        return 0; // Placeholder for undefined behavior
+    }
+
+    long long max_sum = 0;
+    int distance = 1; // Starting distance
+    int s = 0; // Start index
+    int g = n - 1; // End index
+
+    // Iterate while the start index is less than the end index
+    while (s < g) {
+        // Calculate the current sum of selected elements
+        long long current_sum = arr[s] + arr[g];
+
+        // Update max_sum if the current sum is greater
+        if (current_sum > max_sum) {
+            max_sum = current_sum;
+        }
+
+        // Update indices based on the distance
+        s += distance; // Move start index forward
+        g -= distance; // Move end index backward
+
+        // Check if indices are still valid
+        if (s >= g) {
+            break; // Exit if indices overlap or are invalid
+        }
+
+        // Dynamically adjust distance (if needed, based on unspecified criteria)
+        // For now, we keep it constant as per the specification
+    }
+
+    return max_sum; // Return the maximum sum found
+}
+
+int main() {
+    // Example usage
+    long long arr[] = {1, 2, 3, 4, 5};
+    int n = 5;
+    long long result = max_sum_with_distance(n, arr);
+    printf("Maximum sum: %lld\n", result);
+    return 0;
+}

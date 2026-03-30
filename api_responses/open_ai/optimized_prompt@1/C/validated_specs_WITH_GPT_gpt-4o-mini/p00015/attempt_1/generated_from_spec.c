@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 80
+#define MAX_SUM 1000000 // Define a limit for the sum
+
+// Function to convert string to integer safely
+int safe_string_to_int(const char *str) {
+    int value = 0;
+    while (*str) {
+        value = value * 10 + (*str - '0');
+        str++;
+    }
+    return value;
+}
+
+int main() {
+    int num_datasets;
+    
+    // Read the number of datasets
+    if (scanf("%d", &num_datasets) != 1 || num_datasets < 0) {
+        return 1; // Invalid input for number of datasets
+    }
+
+    for (int i = 0; i < num_datasets; i++) {
+        char str1[MAX_LENGTH + 1]; // +1 for null terminator
+        char str2[MAX_LENGTH + 1];
+
+        // Read two strings representing non-negative integers
+        if (scanf("%s %s", str1, str2) != 2) {
+            continue; // Skip if input is invalid
+        }
+
+        // Check for overflow in string length
+        if (strlen(str1) > MAX_LENGTH || strlen(str2) > MAX_LENGTH) {
+            printf("Overflow\n");
+            continue; // Skip this dataset
+        }
+
+        // Convert strings to integers
+        int num1 = safe_string_to_int(str1);
+        int num2 = safe_string_to_int(str2);
+        long long sum = (long long)num1 + (long long)num2; // Use long long to check for overflow
+
+        // Check for overflow in computed sum
+        if (sum > MAX_SUM) {
+            printf("Overflow\n");
+        } else {
+            // Print the sum as a string of digits
+            printf("%lld\n", sum);
+        }
+    }
+
+    return 0;
+}

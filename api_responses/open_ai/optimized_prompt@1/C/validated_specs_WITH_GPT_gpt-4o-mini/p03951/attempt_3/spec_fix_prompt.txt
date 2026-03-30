@@ -1,0 +1,126 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+int main(){
+  int N,ans=0;
+  scanf("%d",&N);
+  char S[N+1];
+  char T[N+1];
+  scanf("%s",S);
+  scanf("%s",T);
+
+  int i=N-1;
+  int j=i;
+  while (i>=0)
+  {
+    int i=N-1;
+    while (j>=0&&S[i]!=T[j])
+    {
+      j--;
+    }
+    if(j>=0){
+      while (j>=0&&S[i]==T[j]){ i--; j--; }
+      if (j<0){
+        ans=2*N-(N-i-1);
+        break;
+      }
+    }else
+    {
+      ans=2*N-(N-i-1);
+      break;
+    }
+  }
+
+  printf("%d",ans);
+
+  return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific integer value based on the comparison of two input strings of equal length. It determines how many characters from the second string can be matched with the first string in reverse order and calculates a result based on the matching process, specifically considering the positions of the matches.
+
+## 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- A string \( S \) of length \( N \).
+- A string \( T \) of length \( N \).
+
+## 3. Outputs
+- An integer value representing the computed result based on the matching of characters between the two strings. The result is derived from the positions of the last matched characters and the total length of the strings.
+
+## 4. Preconditions
+- The input integer \( N \) must be a non-negative integer.
+- The strings \( S \) and \( T \) must be properly formatted and contain exactly \( N \) characters each.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative and reflects the result of the matching process between the two strings, calculated as \( 2N - (N - i - 1) \) when a match is found, where \( i \) is the index of the last matched character in string \( S \).
+
+## 6. Invariants
+- The lengths of strings \( S \) and \( T \) remain constant at \( N \) throughout the execution.
+- The matching process only considers characters from the end of the strings moving towards the beginning.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input format is incorrect (e.g., non-integer for \( N \) or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the indices of the strings are manipulated during the matching process. The overall state is defined by the current values of \( i \), \( j \), and \( ans \), where \( i \) tracks the position in string \( S \) and \( j \) tracks the position in string \( T \).
+
+## 9. Non-functional Constraints (if inferable)
+- The execution time is dependent on the length of the strings, with a worst-case time complexity proportional to \( N^2 \) due to nested iterations.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe the matching process, particularly how it handles cases where characters do not match at the beginning of the comparison. It implies a straightforward matching process without considering the implications of mismatches that occur before any matches are found.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the matching process behaves when there are no matches found at the beginning of the strings and how it continues to search for matches. It should also specify the conditions under which the output is calculated, particularly when no matches are found.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program has a nested loop structure that continues to search for matches even after initial mismatches, and it calculates the result based on the last matched character. The behavior of the program when encountering mismatches is not clearly articulated in the specification, leading to confusion about the expected output when the strings do not match from the start. The program's logic indicates that it can still produce a valid output even if the first characters do not match, which is not reflected in the current specification.
+
+```

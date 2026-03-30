@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+int calculate_value(int A, int B, int X) {
+    // Preconditions: A, B, and X must be non-negative integers.
+    // A and B must not both be zero.
+    
+    // The output integer is guaranteed to be non-negative.
+    // The output reflects the calculation based on the relationships between A, B, and X.
+
+    // Check the relationship between A and B to determine the calculation path
+    if (A > B) {
+        // If A is greater than B, we calculate based on X
+        return X * 2; // Example calculation, can be adjusted based on further specification
+    } else if (A < B) {
+        // If A is less than B, we calculate based on X
+        return X + 10; // Example calculation, can be adjusted based on further specification
+    } else {
+        // If A equals B, we return X as is
+        return X; // Example calculation, can be adjusted based on further specification
+    }
+}
+
+int main() {
+    int A = 1; // Example input
+    int B = 2; // Example input
+    int X = 3; // Example input
+
+    int result = calculate_value(A, B, X);
+    printf("Result: %d\n", result); // Output the result
+
+    return 0;
+}

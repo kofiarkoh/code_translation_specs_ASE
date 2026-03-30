@@ -1,0 +1,122 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a sequence of integers from input, processes each pair of integers to compute a result based on their parity, and outputs the results as a sequence of strings, each followed by a newline.
+
+# 2. Inputs
+- A sequence of characters representing integers, read from standard input.
+- Each integer is expected to be non-negative and represented in decimal format.
+
+# 3. Outputs
+- A sequence of strings, each representing the computed result for a pair of integers, followed by a newline character.
+
+# 4. Preconditions
+- The input must contain at least one pair of integers.
+- The input must not exceed the buffer size limits (10,000 characters).
+
+# 5. Postconditions
+- The output will contain one line for each processed pair of integers, formatted as strings.
+- Each line will represent the computed result based on the specified arithmetic operations.
+
+# 6. Invariants
+- The output buffer will not exceed its maximum size of 20,000 characters.
+- The input buffer will always be read completely before processing begins.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input contains invalid characters (non-digit characters) before a valid integer, the processing will stop at that point.
+- The program does not handle cases where the input is malformed or does not contain valid integers.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program reads input, processes integers, and updates the output buffer. Each successful read and computation results in a transition to the next integer pair.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution within a reasonable time frame, given the constraints of input size and processing logic.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong abstraction.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately describe the specific arithmetic operations performed on the input integers, particularly the handling of their parity and the resulting calculations. It implies a simple parity check rather than the more complex operations seen in the source program.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the exact arithmetic operations performed based on the parity of the integers, including how the results are computed and formatted. Specifically, it should detail the operations `ans=N&1?127*--N+D:127*N-D` and how they relate to the input integers.
+
+D. **Why this clarification is supported by the source program**  
+The source program performs specific calculations based on the parity of the integers, which are not captured in the current specification. The operations involve decrementing `N` and applying different arithmetic based on whether `N` is odd or even, which leads to a result that is not simply a string representation of the integers' parity. This discrepancy indicates that the specification lacks the necessary detail to accurately reflect the source program's behavior.
+
+```

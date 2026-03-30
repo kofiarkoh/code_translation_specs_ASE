@@ -1,0 +1,113 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+
+#define INF FLT_MAX
+
+typedef struct {
+    int from;
+    int to;
+} Edge;
+
+float compute_min_average_distance(int n, int m, Edge* edges, int start_node) {
+    // Initialize distances to infinity
+    float* distances = (float*)malloc((n + 1) * sizeof(float));
+    for (int i = 1; i <= n; i++) {
+        distances[i] = INF; // Set all distances to infinity
+    }
+    distances[start_node] = 0; // Distance to starting node is zero
+
+    // Bellman-Ford-like relaxation to find shortest paths
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < m; j++) {
+            if (distances[edges[j].from] < INF) {
+                float new_distance = distances[edges[j].from] + 1; // Assuming unit weight for edges
+                if (new_distance < distances[edges[j].to]) {
+                    distances[edges[j].to] = new_distance;
+                }
+            }
+        }
+    }
+
+    // Calculate the average distance considering reachable nodes
+    float total_distance = 0;
+    int reachable_count = 0;
+    for (int i = 1; i <= n; i++) {
+        if (distances[i] < INF) {
+            total_distance += distances[i];
+            reachable_count++;
+        }
+    }
+
+    // If no nodes are reachable, return infinity
+    if (reachable_count == 0) {
+        free(distances);
+        return INF;
+    }
+
+    // Calculate the average distance
+    float average_distance = total_distance / reachable_count;
+
+    // Check the effect of removing each edge
+    for (int j = 0; j < m; j++) {
+        // Temporarily remove the edge
+        float original_distance_to = distances[edges[j].to];
+        distances[edges[j].to] = INF; // Set the distance to the target node to infinity
+
+        // Recalculate distances without this edge
+        for (int i = 0; i < n - 1; i++) {
+            for (int k = 0; k < m; k++) {
+                if (distances[edges[k].from] < INF) {
+                    float new_distance = distances[edges[k].from] + 1; // Assuming unit weight for edges
+                    if (new_distance < distances[edges[k].to]) {
+                        distances[edges[k].to] = new_distance;
+                    }
+                }
+            }
+        }
+
+        // Calculate the new average distance
+        total_distance = 0;
+        reachable_count = 0;
+        for (int i = 1; i <= n; i++) {
+            if (distances[i] < INF) {
+                total_distance += distances[i];
+                reachable_count++;
+            }
+        }
+
+        // If no nodes are reachable, consider average distance as infinity
+        if (reachable_count > 0) {
+            average_distance = fmin(average_distance, total_distance / reachable_count);
+        } else {
+            average_distance = INF;
+        }
+
+        // Restore the original distance
+        distances[edges[j].to] = original_distance_to;
+    }
+
+    free(distances);
+    return average_distance;
+}
+
+int main() {
+    int n, m;
+    scanf("%d %d", &n, &m);
+    Edge* edges = (Edge*)malloc(m * sizeof(Edge));
+    for (int i = 0; i < m; i++) {
+        scanf("%d %d", &edges[i].from, &edges[i].to);
+    }
+    int start_node;
+    scanf("%d", &start_node);
+
+    float result = compute_min_average_distance(n, m, edges, start_node);
+    if (result == INF) {
+        printf("Infinity\n");
+    } else {
+        printf("%.10f\n", result);
+    }
+
+    free(edges);
+    return 0;
+}

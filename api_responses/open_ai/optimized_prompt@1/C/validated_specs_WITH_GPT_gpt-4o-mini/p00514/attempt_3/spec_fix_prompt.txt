@@ -1,0 +1,159 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+/* 20000! has 77338 digits */
+/* 9 digits in one int */
+#define TABAICHO_SIZE 8667
+#define TABAICHO_BLOCK 1000000000
+int tabaicho_main[TABAICHO_SIZE];
+
+void tabaicho_set(int num) {
+	int i;
+	tabaicho_main[0]=num;
+	for(i=1;i<TABAICHO_SIZE;i++)tabaicho_main[i]=0;
+}
+
+void tabaicho_mul(int num) {
+	int kuriagari=0;
+	long long calctemp;
+	int i;
+	for(i=0;i<TABAICHO_SIZE;i++) {
+		calctemp=(long long)tabaicho_main[i]*num;
+		calctemp+=kuriagari;
+		tabaicho_main[i]=calctemp%TABAICHO_BLOCK;
+		kuriagari=calctemp/TABAICHO_BLOCK;
+	}
+}
+
+void tabaicho_div(int num) {
+	long long remainder=0;
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		remainder=remainder*TABAICHO_BLOCK+tabaicho_main[i];
+		tabaicho_main[i]=remainder/num;
+		remainder=remainder%num;
+	}
+}
+
+void tabaicho_print(void) {
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		if(tabaicho_main[i]>0)break;
+	}
+	printf("%d",tabaicho_main[i]);
+	for(i--;i>=0;i--)printf("%09d",tabaicho_main[i]);
+	putchar('\n');
+}
+
+int main(void) {
+	int n,m,r;
+	scanf("%d%d%d",&n,&m,&r);
+	r-=n*m; /* n=3 r=8 m=1 xoo|xoo|xo */
+	if(r<0)puts("0");
+	else if(r==0)puts("1");
+	else {
+		int i,j,n2;
+		/* n=3 r=5 oo|oo|o */
+		/* (n+r-1)C(n-1) */
+		tabaicho_set(1);
+		n2=n-1;
+		if((n+r-1)-(n-1)<n-1)n2=(n+r-1)-(n-1);
+		for(i=0,j=n+r-1;i<n2;i++,j--)tabaicho_mul(j);
+		for(i=1;i<=n2;i++)tabaicho_div(i);
+		tabaicho_print();
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes and prints the binomial coefficient \((n+r-1)C(n-1)\) based on the input values \(n\), \(m\), and \(r\). It utilizes an array representation to handle large integers that exceed standard data type limits, ensuring accurate arithmetic operations for very large values.
+
+## 2. Inputs
+- Three non-negative integers: \(n\), \(m\), and \(r\).
+
+## 3. Outputs
+- A single integer representing the binomial coefficient, printed in a standard numerical format. If the computed result is zero, it prints "0"; if the result is one, it prints "1".
+
+## 4. Preconditions
+- The input integers \(n\), \(m\), and \(r\) must be non-negative.
+- The computation assumes that \(r - n \times m\) is non-negative to proceed with the calculation of the binomial coefficient.
+
+## 5. Postconditions
+- If \(r < 0\), the output is "0".
+- If \(r = 0\), the output is "1".
+- For \(r > 0\), the output is the computed binomial coefficient \((n+r-1)C(n-1)\).
+
+## 6. Invariants
+- The internal representation of the large integer result is maintained in an array, ensuring that each element correctly represents a segment of the overall value.
+- The array is initialized to zero except for the first element, which is set to one before any multiplication operations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- It does not account for overflow in the input values, assuming they are within reasonable bounds for computation.
+
+## 8. State Transitions
+- The state transitions occur through the manipulation of the internal array during multiplication and division operations. 
+  - Initially, the array is set to represent the value 1.
+  - The multiplication process iteratively updates the array to reflect the product of the current value and the next integer in the sequence, managing carry-over values appropriately.
+  - The division process subsequently reduces the intermediate results by dividing by integers from 1 to \(n2\), ensuring the final result is correctly computed.
+
+## 9. Non-functional Constraints
+- The implementation is designed to handle very large integers, specifically up to the factorial of 20000, which requires efficient memory management and arithmetic operations. The performance is influenced by the size of \(n\) and \(r\), particularly in the number of multiplication and division operations performed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the binomial coefficient is computed, particularly the handling of the factorial terms involved in the calculation. It lacks clarity on the specific counting of terms in the numerator and denominator.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the exact formula used for computing the binomial coefficient \((n+r-1)C(n-1)\), including how the terms are counted and the order of operations in the multiplication and division processes. It should specify that the numerator is computed as the product of a sequence of integers starting from \(n+r-1\) down to \(r\), and the denominator is the factorial of \(n-1\).
+
+D. **Why this clarification is supported by the source program**  
+   - The source program explicitly calculates the binomial coefficient by multiplying a sequence of integers and then dividing by the factorial of \(n-1\). The failure in the generated program suggests that the counting of terms in the numerator and denominator is not aligned with the expected behavior, leading to an incorrect result. The source program's logic indicates that the multiplication and division must be carefully managed to ensure the correct computation of the binomial coefficient, which is not fully captured in the current specification.
+
+```

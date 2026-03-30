@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007
+
+int power(int base, int exp) {
+    int result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % MOD; // Modular exponentiation
+        }
+        base = (base * base) % MOD; // Square the base
+        exp /= 2; // Divide exponent by 2
+    }
+    return result;
+}
+
+int compute_result(int N, int* sequence) {
+    if (N == 0) {
+        return 1; // Default result when N is zero
+    }
+
+    int cumulative_xor = 0;
+    int* Onum = (int*)malloc((N + 1) * sizeof(int)); // Array to count zero occurrences
+    if (Onum == NULL) {
+        // Undefined behavior if memory allocation fails
+        return -1; // Indicate failure (not specified in the task)
+    }
+
+    Onum[0] = 0; // Initialize count of zero occurrences
+    for (int i = 0; i < N; i++) {
+        cumulative_xor ^= sequence[i]; // Update cumulative XOR
+        Onum[i + 1] = Onum[i] + (cumulative_xor == 0 ? 1 : 0); // Count zeros
+    }
+
+    if (cumulative_xor == 0) {
+        // If cumulative XOR is zero, compute result based on zero occurrences
+        return power(2, Onum[N] - 1); // Adjust count of zeros
+    } else {
+        // If cumulative XOR is non-zero, return last computed state
+        return cumulative_xor; // This is a placeholder; adjust as needed based on the specification
+    }
+}
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read number of elements
+    int* sequence = (int*)malloc(N * sizeof(int)); // Allocate memory for the sequence
+    if (sequence == NULL) {
+        // Undefined behavior if memory allocation fails
+        return -1; // Indicate failure (not specified in the task)
+    }
+
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &sequence[i]); // Read each element of the sequence
+    }
+
+    int result = compute_result(N, sequence); // Compute the result
+    printf("%d\n", result); // Output the result
+
+    free(sequence); // Free allocated memory
+    return 0;
+}

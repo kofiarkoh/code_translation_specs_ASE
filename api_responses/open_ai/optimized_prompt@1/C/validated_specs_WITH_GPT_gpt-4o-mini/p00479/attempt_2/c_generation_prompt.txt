@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes a series of pairs of integers, adjusting their values based on a specified range and computing a result based on their adjusted values. For each pair, it guarantees to output a computed integer derived from the adjusted values.
+
+## 2. Inputs
+- An integer \( n \) representing the total range, which must be a positive integer.
+- An integer \( k \) indicating the number of pairs to process, which must be a non-negative integer.
+- A series of \( k \) integer pairs, each consisting of two values \( ai \) and \( bi \).
+
+## 3. Outputs
+- A series of \( k \) integers, each computed from the corresponding input pair based on specific adjustments to \( ai \) and \( bi \).
+
+## 4. Preconditions
+- The first input \( n \) must be a positive integer.
+- The second input \( k \) must be a non-negative integer.
+- Each subsequent pair of integers \( ai \) and \( bi \) must be within the range defined by \( 1 \) to \( n \).
+
+## 5. Postconditions
+- For each pair of integers \( ai \) and \( bi \), an output integer is produced, which is derived from the adjusted values of the input integers. The output integer is computed based on the minimum of the adjusted values.
+
+## 6. Invariants
+- The adjusted values of the input integers \( ai \) and \( bi \) are always within the range defined by \( 1 \) to \( n \).
+- The output integer is always a value between \( 1 \) and \( 3 \), inclusive.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid inputs or out-of-range values; behavior is undefined for inputs that do not meet the preconditions.
+
+## 8. State Transitions
+- State transitions occur with each iteration of processing an input pair, where the adjusted values are computed based on the following rules:
+  - If \( n + 1 - ai < ai \), then \( ai \) is adjusted to \( n + 1 - ai \).
+  - If \( n + 1 - bi < bi \), then \( bi \) is adjusted to \( n + 1 - bi \).
+- The output is generated based on the adjusted values, specifically taking the minimum of the adjusted values to determine the output integer.
+
+## 9. Non-functional Constraints
+- The processing time is linear with respect to the number of pairs, as each pair is processed independently.
+
+```

@@ -1,0 +1,85 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_NODES 100
+#define MAX_LOCATIONS 10
+
+// Function prototypes
+void floydWarshall(int graph[MAX_NODES][MAX_NODES], int numNodes);
+int tsp(int graph[MAX_NODES][MAX_NODES], int locations[], int numLocations, int pos, int visited[], int currentDistance, int startLocation);
+
+// Main function to compute the minimum distance
+int computeMinimumDistance(int numNodes, int numEdges, int numLocations, int locations[], int edges[][3]) {
+    int graph[MAX_NODES][MAX_NODES];
+
+    // Initialize the graph with maximum distances
+    for (int i = 0; i < numNodes; i++) {
+        for (int j = 0; j < numNodes; j++) {
+            if (i == j) {
+                graph[i][j] = 0; // Distance to self is zero
+            } else {
+                graph[i][j] = INT_MAX; // Initialize to "infinity"
+            }
+        }
+    }
+
+    // Populate the graph with edges
+    for (int i = 0; i < numEdges; i++) {
+        int u = edges[i][0];
+        int v = edges[i][1];
+        int weight = edges[i][2];
+        if (u < numNodes && v < numNodes && weight >= 0) {
+            graph[u][v] = weight; // Set the distance for the edge
+            graph[v][u] = weight; // Assuming undirected graph
+        }
+    }
+
+    // Compute shortest paths using Floyd-Warshall algorithm
+    floydWarshall(graph, numNodes);
+
+    // Prepare for TSP calculation
+    int visited[MAX_LOCATIONS] = {0}; // Track visited locations
+    int startLocation = locations[0]; // Starting point
+    int minDistance = tsp(graph, locations, numLocations, 0, visited, 0, startLocation);
+
+    return minDistance;
+}
+
+// Floyd-Warshall algorithm to compute shortest paths
+void floydWarshall(int graph[MAX_NODES][MAX_NODES], int numNodes) {
+    for (int k = 0; k < numNodes; k++) {
+        for (int i = 0; i < numNodes; i++) {
+            for (int j = 0; j < numNodes; j++) {
+                if (graph[i][k] != INT_MAX && graph[k][j] != INT_MAX) {
+                    if (graph[i][j] > graph[i][k] + graph[k][j]) {
+                        graph[i][j] = graph[i][k] + graph[k][j]; // Update shortest path
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Depth-first search for TSP
+int tsp(int graph[MAX_NODES][MAX_NODES], int locations[], int numLocations, int pos, int visited[], int currentDistance, int startLocation) {
+    if (pos == numLocations) {
+        // Return to starting location
+        return currentDistance + graph[locations[pos - 1]][startLocation];
+    }
+
+    int minDistance = INT_MAX; // Initialize to maximum value
+
+    for (int i = 0; i < numLocations; i++) {
+        if (!visited[i]) {
+            visited[i] = 1; // Mark as visited
+            int newDistance = tsp(graph, locations, numLocations, pos + 1, visited, currentDistance + graph[locations[pos]][locations[i]], startLocation);
+            if (newDistance < minDistance) {
+                minDistance = newDistance; // Update minimum distance
+            }
+            visited[i] = 0; // Backtrack
+        }
+    }
+
+    return minDistance;
+}

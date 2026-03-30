@@ -1,0 +1,29 @@
+#include <stdio.h>
+
+long long compute_transformation(long long input) {
+    long long quotient = input / 11; // Calculate the quotient
+    long long remainder = input % 11; // Calculate the remainder
+
+    if (remainder == 0) {
+        // If divisible by 11
+        return 2 * quotient; // Output is twice the quotient
+    } else if (remainder > 6) {
+        // If not divisible by 11 and remainder is greater than 6
+        return 2 * quotient + 2; // Output is twice the quotient plus 2
+    } else {
+        // If not divisible by 11 and remainder is 6 or less
+        return 2 * quotient + 1; // Output is twice the quotient plus 1
+    }
+}
+
+int main() {
+    long long input;
+
+    // Read input; behavior is undefined if input is invalid
+    if (scanf("%lld", &input) == 1) {
+        long long result = compute_transformation(input);
+        printf("%lld\n", result); // Output the result
+    }
+
+    return 0; // End of program
+}

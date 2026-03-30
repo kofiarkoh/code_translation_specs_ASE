@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int **grid;          // 2D grid of integers
+    int **segTree;      // Segment tree for range minimum queries
+    int rows;           // Number of rows in the grid
+    int cols;           // Number of columns in the grid
+} SegmentTree2D;
+
+// Function to create a 2D array
+int** create2DArray(int rows, int cols) {
+    int **array = malloc(rows * sizeof(int *));
+    for (int i = 0; i < rows; i++) {
+        array[i] = malloc(cols * sizeof(int));
+    }
+    return array;
+}
+
+// Function to free a 2D array
+void free2DArray(int **array, int rows) {
+    for (int i = 0; i < rows; i++) {
+        free(array[i]);
+    }
+    free(array);
+}
+
+// Function to initialize the segment tree
+SegmentTree2D* initSegmentTree(int rows, int cols) {
+    SegmentTree2D *st = malloc(sizeof(SegmentTree2D));
+    st->rows = rows;
+    st->cols = cols;
+    st->grid = create2DArray(rows, cols);
+    st->segTree = create2DArray(rows * 4, cols * 4); // Allocate space for segment tree
+    return st;
+}
+
+// Function to build the segment tree
+void buildSegmentTree(SegmentTree2D *st, int row, int col, int r1, int r2, int c1, int c2) {
+    if (r1 == r2 && c1 == c2) {
+        st->segTree[row][col] = st->grid[r1][c1];
+    } else {
+        int midRow = (r1 + r2) / 2;
+        int midCol = (c1 + c2) / 2;
+        buildSegmentTree(st, row * 2 + 1, col * 2 + 1, r1, midRow, c1, midCol);
+        buildSegmentTree(st, row * 2 + 1, col * 2 + 2, r1, midRow, midCol + 1, c2);
+        buildSegmentTree(st, row * 2 + 2, col * 2 + 1, midRow + 1, r2, c1, midCol);
+        buildSegmentTree(st, row * 2 + 2, col * 2 + 2, midRow + 1, r2, midCol + 1, c2);
+        st->segTree[row][col] = INT_MAX; // Initialize to max
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (st->segTree[i][j] < st->segTree[row][col]) {
+                    st->segTree[row][col] = st->segTree[i][j];
+                }
+            }
+        }
+    }
+}
+
+// Function to update the grid and segment tree
+void update(SegmentTree2D *st, int x, int y, int value) {
+    st->grid[x][y] = value;
+    // Rebuild the segment tree after update
+    buildSegmentTree(st, 0, 0, 0, st->rows - 1, 0, st->cols - 1);
+}
+
+// Function to query the minimum value in a subregion
+int query(SegmentTree2D *st, int r1, int c1, int r2, int c2) {
+    if (r1 < 0 || r1 >= st->rows || r2 < 0 || r2 >= st->rows || c1 < 0 || c1 >= st->cols || c2 < 0 || c2 >= st->cols) {
+        return INT_MAX; // Return a predefined constant for invalid query
+    }
+    // Implement range minimum query logic here (omitted for brevity)
+    return 0; // Placeholder return value
+}
+
+// Main function to demonstrate usage
+int main() {
+    int rows = 3, cols = 3; // Example dimensions
+    if (rows <= 0 || cols <= 0) {
+        return 0; // Terminate if dimensions are non-positive
+    }
+
+    SegmentTree2D *st = initSegmentTree(rows, cols);
+    // Populate the grid and build the segment tree
+    // Example: st->grid[0][0] = 5; update(st, 0, 0, 5);
+    // Example query: int minValue = query(st, 0, 0, 2, 2);
+
+    // Free allocated memory
+    free2DArray(st->grid, rows);
+    free2DArray(st->segTree, rows * 4);
+    free(st);
+    return 0;
+}

@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MODULO 1000000007 // Define a constant for modulo operation
+
+int countSelections(int n, int s, int* arr) {
+    // Create a dynamic programming table to store counts of selections
+    int* dp = (int*)malloc((s + 1) * sizeof(int));
+    
+    // Initialize the dp array
+    for (int i = 0; i <= s; i++) {
+        dp[i] = 0; // No ways to form any sum initially
+    }
+    dp[0] = 1; // One way to form the sum 0 (select nothing)
+
+    // Fill the dp table
+    for (int i = 0; i < n; i++) { // Iterate over each element
+        for (int j = arr[i]; j <= s; j++) { // Update dp for sums that can include arr[i]
+            dp[j] = (dp[j] + dp[j - arr[i]]) % MODULO; // Include arr[i] in the count
+        }
+    }
+
+    int result = dp[s]; // The result is the number of ways to form sum s
+    free(dp); // Free the allocated memory
+    return result; // Return the result
+}
+
+int main() {
+    int n, s;
+    // Example input handling (not specified in the task, but necessary for testing)
+    scanf("%d %d", &n, &s);
+    int* arr = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    int result = countSelections(n, s, arr);
+    printf("%d\n", result); // Output the result
+
+    free(arr); // Free the allocated memory for the input array
+    return 0;
+}

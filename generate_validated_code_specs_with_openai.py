@@ -43,7 +43,7 @@ from validated_spec_prompts import (
 PROBLEMS_ROOT = Path("./collected_dataset/C/final_problems")
 SAMPLE_IO_ROOT = Path("./collected_dataset/problem_test_inputs_and_outputs")
 MODEL = "gpt-4o-mini"
-DATASET_NAME = "old_prompt"
+DATASET_NAME = "optimized_prompt@1"
 OUTPUT_ROOT = Path(f"./api_responses/open_ai/{DATASET_NAME}/C/validated_specs_WITH_GPT_{MODEL}")
 
 FILE_GLOB = "*.c"

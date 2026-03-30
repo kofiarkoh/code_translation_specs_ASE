@@ -1,0 +1,66 @@
+```c
+#include <stdio.h>
+
+int circle_relationship(int n, float circles[][6]) {
+    int results[n]; // Array to store results for each pair of circles
+
+    for (int i = 0; i < n; i++) {
+        float a_x = circles[i][0];
+        float a_y = circles[i][1];
+        float a_r = circles[i][2];
+        float b_x = circles[i][3];
+        float b_y = circles[i][4];
+        float b_r = circles[i][5];
+
+        // Calculate squared distance between the centers
+        float dx = a_x - b_x;
+        float dy = a_y - b_y;
+        float dist_sq = dx * dx + dy * dy;
+
+        // Calculate squared radii
+        float r_sum_sq = (a_r + b_r) * (a_r + b_r);
+        float r_diff_sq = (a_r - b_r) * (a_r - b_r);
+
+        // Determine the relationship based on the distances and radii
+        if (dist_sq > r_sum_sq) {
+            results[i] = 0; // Circles do not intersect
+        } else if (dist_sq < r_diff_sq) {
+            // One circle is completely within the other
+            if (a_r < b_r) {
+                results[i] = 2; // Circle a is within circle b
+            } else {
+                results[i] = -2; // Circle b is within circle a
+            }
+        } else {
+            results[i] = 1; // Circles intersect at one or more points
+        }
+    }
+
+    // Output results
+    for (int i = 0; i < n; i++) {
+        printf("%d\n", results[i]);
+    }
+
+    return 0; // Return 0 to indicate successful execution
+}
+
+int main() {
+    int n; // Number of circle pairs
+    scanf("%d", &n); // Read number of pairs
+
+    // Array to hold circle parameters for n pairs
+    float circles[n][6];
+
+    // Read circle parameters for each pair
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < 6; j++) {
+            scanf("%f", &circles[i][j]); // Read each parameter
+        }
+    }
+
+    // Determine relationships and output results
+    circle_relationship(n, circles);
+
+    return 0; // Return 0 to indicate successful execution
+}
+```

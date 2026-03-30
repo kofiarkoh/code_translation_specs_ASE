@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int minCostToConnectPoints(int n, int* x, int* y) {
+    // Dynamic programming table to store minimum costs
+    int** dp = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        dp[i] = (int*)malloc(n * sizeof(int));
+        for (int j = 0; j < n; j++) {
+            dp[i][j] = INT_MAX; // Initialize to a high value
+        }
+    }
+
+    // Cost to connect a point to itself is zero
+    for (int i = 0; i < n; i++) {
+        dp[i][i] = 0;
+    }
+
+    // Compute costs for segments of points
+    for (int length = 2; length <= n; length++) { // length of the segment
+        for (int i = 0; i <= n - length; i++) { // starting index of the segment
+            int j = i + length - 1; // ending index of the segment
+            for (int k = i; k < j; k++) { // possible intermediate points
+                int cost = abs(x[j] - x[k]) + abs(y[j] - y[k]); // cost to connect endpoints
+                dp[i][j] = (dp[i][j] < dp[i][k] + cost + dp[k + 1][j]) ? dp[i][j] : (dp[i][k] + cost + dp[k + 1][j]);
+            }
+        }
+    }
+
+    int result = dp[0][n - 1]; // Minimum cost to connect all points
+
+    // Free allocated memory
+    for (int i = 0; i < n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+
+    return result; // Return the minimum cost
+}
+
+int main() {
+    // Example usage
+    int n = 4;
+    int x[] = {0, 0, 1, 1};
+    int y[] = {0, 1, 0, 1};
+    int minCost = minCostToConnectPoints(n, x, y);
+    printf("Minimum cost to connect points: %d\n", minCost);
+    return 0;
+}

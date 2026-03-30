@@ -1,0 +1,102 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <math.h>
+
+#define EPS 1e-5
+
+int main (void) {
+    int q;
+    double px, x;
+    while (scanf("%d", &q) != EOF && q != -1) {
+        px = (double)q / 2;
+        do {
+            x = px - (px*px*px - q) / (3*px*px);
+            px = x;
+        } while (fabs(x*x*x - q) >= EPS * q);
+        printf("%.6lf\n", x);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes and outputs the cube root of a series of integer inputs until a termination condition is met. It guarantees that the output is a double-precision floating-point representation of the cube root, accurate to a specified precision.
+
+# 2. Inputs
+The program accepts a sequence of integers from standard input. The input terminates when the value -1 is encountered or when the end of input is reached.
+
+# 3. Outputs
+The program outputs the cube root of each input integer as a double-precision floating-point number, formatted to six decimal places.
+
+# 4. Preconditions
+The input integers must be valid and represent non-negative values for which a cube root can be computed. The input must not include the termination value -1 until the desired computations are complete.
+
+# 5. Postconditions
+For each valid input integer, the output will be the cube root of that integer, accurate to within a defined precision. The output will not occur for the termination value -1.
+
+# 6. Invariants
+The computed cube root remains within a defined precision throughout the iterative calculation process. The program maintains the integrity of input and output until termination.
+
+# 7. Error Handling / Exceptional Behavior
+The program does not explicitly handle erroneous input. If non-integer values are provided, the behavior is undefined. The program assumes valid integer input as per the preconditions.
+
+# 8. State Transitions (if applicable)
+The program transitions between states of reading input, computing the cube root, and outputting results. It enters a termination state upon encountering the value -1 or reaching the end of input.
+
+# 9. Non-functional Constraints (if inferable)
+The output precision is constrained to six decimal places, and the computation must converge within a defined tolerance level. The program operates in a loop until termination conditions are met, implying a potentially indefinite runtime based on input size.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately address the iterative method used for computing the cube root, which is based on Newton's method. It implies a straightforward computation using the `pow` function, which does not capture the iterative refinement process that the source program employs.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the cube root computation is performed using an iterative method that converges to a solution based on a defined precision, rather than a direct calculation. It should also specify the convergence criteria and the iterative nature of the calculation.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses a loop with a convergence check (`fabs(x*x*x - q) >= EPS * q`) to refine the estimate of the cube root, which is a key aspect of the algorithm. The generated program, however, uses a direct calculation with `pow`, which does not reflect the iterative approach and may lead to inaccuracies, especially for certain inputs. The failure to match expected outputs suggests that the specification's abstraction of the cube root calculation is too simplistic and does not align with the source's actual behavior.
+
+```

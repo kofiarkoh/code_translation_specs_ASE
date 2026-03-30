@@ -1,0 +1,224 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+//AWTF2019-D
+#include<stdio.h>
+#include<stdbool.h>
+#define prime 10000000019
+
+void llswap(long long *a,long long *b){long long c;c=(*a);(*a)=(*b);(*b)=c;}
+long long llsankaku(long long x){return ((1+x)*x)/2;}
+
+long long calcul(long long p,long long q,long long z,long long *r,long long *b){
+  long long f=0,cnt=0,w,i;
+  (*r)=0;(*b)=0;
+  if(p<q){f=1;llswap(&p,&q);}
+  i=0;
+  while(z>=0){
+    w=z/q;
+    cnt+=(w+1);
+    (*r)+=i*(w+1);
+    (*b)+=llsankaku(w);
+    z-=p;
+    i++;
+  }
+  if(f){llswap(r,b);}
+  return cnt;
+}
+
+void calc(long long p,long long q,long long k,long long *r,long long *b){
+  long long st,fi,te,c;
+  st=0;fi=prime*2000;
+  while(st<=fi){
+    te=(st+fi)/2;
+    c=calcul(p,q,te,r,b);
+    if(c==k){break;}
+    if(c<k){st=te+1;}
+    if(c>k){fi=te-1;}
+  }
+}
+
+typedef struct{
+  long long xz;
+  long long yz;
+}point;
+
+point vector_minus(point a,point b){
+  point r;
+  r.xz=a.xz-b.xz;
+  r.yz=a.yz-b.yz;
+  return r;
+}
+
+//gaiseki
+long long crossproduct(point a,point b){
+  return a.xz*b.yz-a.yz*b.xz;
+}
+
+bool ispossible(long long r,long long b,long long k){
+  long long st,fi,te,zr,zb;
+  long long fr,fb,sr,sb;
+  st=1;fi=prime-1;
+  while(st<=fi){
+    te=(st+fi)/2;
+    calc(te,prime-te,k,&zr,&zb);
+    if(zr<=r && zb<=b){return true;}
+    if(zr>r && zb>b){return false;}
+    if(zr>r){st=te+1;sr=zr;sb=zb;}
+    else{fi=te-1;fr=zr;fb=zb;}
+  }
+  //Is (r,b) on above the line{(fr,fb),(sr,sb)}(fr<sr)?
+  point tg,l1,l2;
+  tg.xz=r;tg.yz=b;
+  l1.xz=fr;l1.yz=fb;
+  l2.xz=sr;l2.yz=sb;
+  if(crossproduct(vector_minus(l2,l1),vector_minus(tg,l1))>=0){return true;}
+  return false;
+}
+
+long long solve(long long r,long long b){
+  long long st=0,fi=2222222,te;
+  while(st<=fi){
+    te=(st+fi)/2;
+    if(ispossible(r,b,te)){st=te+1;}
+    else{fi=te-1;}
+  }
+  return fi;
+}
+
+int main(){
+  long long r,b;
+  scanf("%lld%lld",&r,&b);
+  printf("%lld\n",solve(r,b)-1);//-1 : empty box
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the maximum integer value \( k \) such that a certain condition involving two resources \( r \) and \( b \) is satisfied. It determines if it is possible to allocate resources based on given parameters and returns the highest feasible allocation.
+
+# 2. Inputs
+- Two long long integers \( r \) and \( b \) representing available resources.
+
+# 3. Outputs
+- A long long integer representing the maximum feasible allocation \( k \) minus one.
+
+# 4. Preconditions
+- The input values \( r \) and \( b \) must be non-negative integers.
+
+# 5. Postconditions
+- The output is the largest integer \( k \) such that the allocation condition is satisfied, decremented by one.
+
+# 6. Invariants
+- The values of \( r \) and \( b \) remain unchanged throughout the execution of the program.
+- The output is always less than or equal to the maximum possible allocation based on the input resources.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly. It assumes valid input is provided.
+
+# 8. State Transitions (if applicable)
+- The program transitions through various states based on the binary search for the maximum \( k \) and the calculations of resource allocations.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is logarithmic relative to the range of possible values for \( k \), ensuring efficient execution for large inputs.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+long long max_allocation(long long r, long long b) {
+    // Initialize the search range for k
+    long long left = 0;
+    long long right = r + b; // The maximum possible allocation is the sum of resources
+    long long max_k = -1; // To store the maximum feasible allocation k
+
+    // Perform binary search to find the maximum k
+    while (left <= right) {
+        long long mid = left + (right - left) / 2; // Avoid potential overflow
+
+        // Check if the allocation condition is satisfied
+        // The condition is assumed to be: r >= mid and b >= mid
+        // This is a placeholder condition; the actual condition may vary based on the specification
+        if (r >= mid && b >= mid) {
+            max_k = mid; // Update max_k if the condition is satisfied
+            left = mid + 1; // Search in the upper half
+        } else {
+            right = mid - 1; // Search in the lower half
+        }
+    }
+
+    // Return the maximum feasible allocation k minus one
+    return max_k - 1; // As per the specification
+}
+
+int main() {
+    long long r, b;
+    // Read input values for r and b
+    scanf("%lld %lld", &r, &b);
+    
+    // Call the function and print the result
+    printf("%lld\n", max_allocation(r, b));
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p03123/p03123_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p03123/p03123_sample1_output.txt
+Input:
+100000
+200000
+Expected:
+4530
+Actual:
+99999
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

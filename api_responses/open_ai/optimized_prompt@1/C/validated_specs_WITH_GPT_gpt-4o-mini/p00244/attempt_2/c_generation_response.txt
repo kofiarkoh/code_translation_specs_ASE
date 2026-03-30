@@ -1,0 +1,147 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int node;
+    int cost;
+} Edge;
+
+typedef struct {
+    int node;
+    int cost;
+} NodeCost;
+
+typedef struct {
+    NodeCost *array;
+    int size;
+    int capacity;
+} MinHeap;
+
+MinHeap* createMinHeap(int capacity) {
+    MinHeap *minHeap = (MinHeap *)malloc(sizeof(MinHeap));
+    minHeap->capacity = capacity;
+    minHeap->size = 0;
+    minHeap->array = (NodeCost *)malloc(capacity * sizeof(NodeCost));
+    return minHeap;
+}
+
+void swap(NodeCost *a, NodeCost *b) {
+    NodeCost temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void minHeapify(MinHeap *minHeap, int idx) {
+    int smallest = idx;
+    int left = 2 * idx + 1;
+    int right = 2 * idx + 2;
+
+    if (left < minHeap->size && minHeap->array[left].cost < minHeap->array[smallest].cost)
+        smallest = left;
+
+    if (right < minHeap->size && minHeap->array[right].cost < minHeap->array[smallest].cost)
+        smallest = right;
+
+    if (smallest != idx) {
+        swap(&minHeap->array[smallest], &minHeap->array[idx]);
+        minHeapify(minHeap, smallest);
+    }
+}
+
+NodeCost extractMin(MinHeap *minHeap) {
+    if (minHeap->size == 0) {
+        NodeCost invalid = { -1, INT_MAX }; // Return an invalid node if heap is empty
+        return invalid;
+    }
+    NodeCost root = minHeap->array[0];
+    if (minHeap->size > 1) {
+        minHeap->array[0] = minHeap->array[minHeap->size - 1];
+        minHeap->size--;
+        minHeapify(minHeap, 0);
+    } else {
+        minHeap->size--;
+    }
+    return root;
+}
+
+void decreaseKey(MinHeap *minHeap, int node, int cost) {
+    for (int i = 0; i < minHeap->size; i++) {
+        if (minHeap->array[i].node == node) {
+            minHeap->array[i].cost = cost;
+            while (i && minHeap->array[i].cost < minHeap->array[(i - 1) / 2].cost) {
+                swap(&minHeap->array[i], &minHeap->array[(i - 1) / 2]);
+                i = (i - 1) / 2;
+            }
+            break;
+        }
+    }
+}
+
+int isEmpty(MinHeap *minHeap) {
+    return minHeap->size == 0;
+}
+
+int dijkstra(int numNodes, int numEdges, Edge *edges, int startNode, int goalNode) {
+    int *costs = (int *)malloc(numNodes * sizeof(int));
+    for (int i = 0; i < numNodes; i++) {
+        costs[i] = INT_MAX; // Initialize costs to infinity
+    }
+    costs[startNode] = 0;
+
+    MinHeap *minHeap = createMinHeap(numNodes);
+    minHeap->array[minHeap->size++] = (NodeCost){ startNode, 0 };
+
+    while (!isEmpty(minHeap)) {
+        NodeCost current = extractMin(minHeap);
+        int currentNode = current.node;
+
+        if (currentNode == goalNode) {
+            free(costs);
+            free(minHeap->array);
+            free(minHeap);
+            return costs[goalNode]; // Return the cost to reach the goal node
+        }
+
+        for (int i = 0; i < numEdges; i++) {
+            if (edges[i].node == currentNode) {
+                int neighbor = edges[i].cost; // Assuming edges[i].cost is the neighbor node
+                int newCost = costs[currentNode] + edges[i].cost; // Base cost
+
+                if (newCost < costs[neighbor]) {
+                    costs[neighbor] = newCost;
+                    decreaseKey(minHeap, neighbor, newCost);
+                }
+            }
+        }
+    }
+
+    free(costs);
+    free(minHeap->array);
+    free(minHeap);
+    return -1; // Return -1 if the goal node is unreachable
+}
+
+int main() {
+    int numNodes, numEdges;
+    while (scanf("%d %d", &numNodes, &numEdges) == 2) {
+        if (numNodes <= 0) {
+            break; // Terminate if zero nodes
+        }
+
+        Edge *edges = (Edge *)malloc(numEdges * sizeof(Edge));
+        for (int i = 0; i < numEdges; i++) {
+            int node1, node2, cost;
+            scanf("%d %d %d", &node1, &node2, &cost);
+            edges[i] = (Edge){ node1, node2, cost }; // Store edges
+        }
+
+        int minCost = dijkstra(numNodes, numEdges, edges, 0, numNodes - 1);
+        printf("%d\n", minCost);
+
+        free(edges);
+    }
+    return 0;
+}
+```

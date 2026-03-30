@@ -1,0 +1,147 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdint.h>
+#include<inttypes.h>
+
+typedef int32_t i32;
+typedef int64_t i64;
+
+#define MAX(a,b) ((a)>(b)?(a):(b))
+#define ALLOC(size,type) ((type*)calloc((size),sizeof(type)))
+
+typedef struct index_val {
+  i32 k;
+  i64 v;
+} node;
+
+void run (void) {
+  i32 n, m, k;
+  scanf ("%" SCNi32 "%" SCNi32 "%" SCNi32, &n, &m, &k);
+  i32 *a = ALLOC (n, i32);
+  for (i32 i = 0; i < n; ++i) {
+    scanf ("%" SCNi32, a + i);
+  }
+  i64 *dp = ALLOC (n, i64);
+  for (i32 i = 0; i < n; ++i) {
+    dp[i] = a[i];
+  }
+  node *d = ALLOC (n, node);
+  for (i32 i = 2; i <= k; ++i) {
+    i32 f = 0;
+    i32 b = 0;
+    d[0] = (node){i - 2, dp[i - 2]};
+    for (i32 j = i - 1; j < n; ++j) {
+      if (d[f].k == j - m - 1) ++f;
+      i64 v = d[f].v + (i64) i * a[j];
+      while (f <= b && d[b].v <= dp[j]) --b;
+      d[++b] = (node) {j, dp[j]};
+      dp[j] = v;
+    }
+  }
+  i64 ans = 0;
+  for (i32 i = k - 1; i < n; ++i) {
+    if (ans < dp[i]) {
+      ans = dp[i];
+    }
+  }
+  printf("%" PRIi64 "\n", ans);
+}
+
+int main (void) {
+  run();
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a maximum value based on a series of integer inputs, utilizing a dynamic programming approach that incorporates previous computed values while adhering to specified constraints. It processes a list of integers and calculates a final maximum value influenced by a specified number of iterations and a range constraint.
+
+## 2. Inputs
+- Three integers: `n`, `m`, and `k`, where:
+  - `n` is the number of elements in the input list.
+  - `m` is a range constraint that determines the minimum index gap between selected elements during the computation.
+  - `k` is the number of iterations that dictate how many times the dynamic programming process is applied.
+- An array of `n` integers representing the input values.
+
+## 3. Outputs
+- A single integer representing the maximum computed value after processing the input list according to the specified constraints.
+
+## 4. Preconditions
+- The input values for `n`, `m`, and `k` must be non-negative integers.
+- The input list must contain exactly `n` integers.
+
+## 5. Postconditions
+- The output is the maximum value derived from the processed input list, calculated by considering the constraints defined by `m` and `k`.
+
+## 6. Invariants
+- The array of integers remains unchanged throughout the execution.
+- The dynamic programming array is updated based on the previous values and the current iteration's calculations, specifically incorporating values from previous iterations while respecting the range constraint.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to memory allocation failures or invalid input formats. If memory allocation fails, the behavior is undefined.
+- If the input values do not meet the preconditions, the output may be incorrect or undefined.
+
+## 8. State Transitions
+- The state transitions occur as the dynamic programming array is updated in each iteration. The updates reflect the maximum values computed based on the current index, previous indices, and the range constraint, ensuring that the selected indices maintain a gap of at least `m`.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity that is dependent on the values of `n` and `k`, potentially leading to performance considerations for large inputs. Memory usage is proportional to `n` due to the allocation of arrays.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately capture the dynamic programming logic that involves selecting values based on previous iterations and the specific constraints of the problem. It simplifies the process without detailing how the maximum values are computed across iterations and how the range constraint affects the selection of indices.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the dynamic programming approach accumulates values over multiple iterations, particularly how the values from previous iterations are combined with the current values while respecting the index gap defined by `m`. It should also specify how the maximum value is derived from the accumulated results after all iterations.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a complex dynamic programming algorithm that updates values based on previous computations and specific constraints. The logic involves maintaining a sliding window of valid indices and updating the maximum values based on both the current index and the previous indices, which is not fully captured in the current specification. The failing test case indicates that the expected output relies on a more nuanced understanding of how these values are combined over multiple iterations, which is not reflected in the simplified description provided.
+
+```

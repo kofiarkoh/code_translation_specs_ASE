@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+// Function to calculate the digit sum of a given integer
+int digit_sum(int num) {
+    int sum = 0;
+    while (num > 0) {
+        sum += num % 10; // Add the last digit to sum
+        num /= 10;       // Remove the last digit
+    }
+    return sum; // Return the total digit sum
+}
+
+int main() {
+    int N, A, B;
+    int count = 0; // Initialize cumulative sum
+
+    // Read inputs: N, A, B
+    scanf("%d %d %d", &N, &A, &B);
+
+    // Iterate through each integer from 1 to N
+    for (int i = 1; i <= N; i++) {
+        int d_sum = digit_sum(i); // Calculate digit sum of i
+        // Check if digit sum falls within the range [A, B]
+        if (d_sum >= A && d_sum <= B) {
+            count += i; // Accumulate the valid integer
+        }
+    }
+
+    // Output the cumulative sum
+    printf("%d\n", count);
+    return 0; // Indicate successful completion
+}

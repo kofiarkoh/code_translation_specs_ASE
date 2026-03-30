@@ -1,0 +1,51 @@
+#include <stdio.h>
+
+#define MAX_LENGTH 1000 // Define a maximum length for the sequences
+
+// Function to compute the length of the longest subsequence
+int longest_subsequence(int len1, int seq1[], int len2, int seq2[]) {
+    // Check preconditions for lengths
+    if (len1 < 0 || len1 > MAX_LENGTH || len2 < 0 || len2 > MAX_LENGTH) {
+        // Undefined behavior if lengths are invalid
+        return -1; // Indicate an error (though behavior is undefined)
+    }
+
+    int max_length = 0; // Variable to store the maximum length found
+
+    // Iterate through each starting position in the second sequence
+    for (int start = 0; start < len2; start++) {
+        int current_length = 0; // Length of the current subsequence
+
+        // Check for subsequence starting from 'start' in seq2
+        for (int i = start; i < len2; i++) {
+            // Check if the current element in seq2 exists in seq1
+            for (int j = 0; j < len1; j++) {
+                if (seq2[i] == seq1[j]) {
+                    current_length++; // Increment the length if a match is found
+                    break; // Move to the next element in seq2
+                }
+            }
+        }
+
+        // Update max_length if the current subsequence is longer
+        if (current_length > max_length) {
+            max_length = current_length;
+        }
+    }
+
+    // Postcondition: max_length should be non-negative and <= len2
+    return max_length; // Return the maximum length found
+}
+
+int main() {
+    // Example usage
+    int seq1[] = {1, 2, 3};
+    int seq2[] = {2, 1, 3, 4, 2};
+    int len1 = 3; // Length of first sequence
+    int len2 = 5; // Length of second sequence
+
+    int result = longest_subsequence(len1, seq1, len2, seq2);
+    printf("Length of longest subsequence: %d\n", result);
+
+    return 0;
+}

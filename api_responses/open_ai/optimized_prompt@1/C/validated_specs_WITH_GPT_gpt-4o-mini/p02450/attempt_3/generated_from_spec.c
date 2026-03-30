@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+void print_permutation(int *arr, int n) {
+    for (int i = 0; i < n; i++) {
+        printf("%d", arr[i]);
+        if (i < n - 1) {
+            printf(" "); // Print space between integers
+        }
+    }
+    printf("\n"); // New line after each permutation
+}
+
+void generate_permutations(int *arr, int n, int depth) {
+    if (depth == n) {
+        print_permutation(arr, n); // Print the current permutation
+        return;
+    }
+    
+    for (int i = depth; i < n; i++) {
+        // Swap the current index with the depth index
+        int temp = arr[depth];
+        arr[depth] = arr[i];
+        arr[i] = temp;
+
+        // Recurse with the next depth
+        generate_permutations(arr, n, depth + 1);
+
+        // Swap back to backtrack
+        temp = arr[depth];
+        arr[depth] = arr[i];
+        arr[i] = temp;
+    }
+}
+
+int main() {
+    int n;
+    if (scanf("%d", &n) != 1) {
+        // Undefined behavior if input is not a valid integer
+        return 1; // Exit with error code
+    }
+
+    if (n < 0) {
+        // Undefined behavior for negative n, no output guaranteed
+        return 1; // Exit with error code
+    }
+
+    // Create an array to hold the sequence from 1 to n
+    int *arr = (int *)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        arr[i] = i + 1; // Fill the array with integers from 1 to n
+    }
+
+    generate_permutations(arr, n, 0); // Start generating permutations
+
+    free(arr); // Free allocated memory
+    return 0; // Successful execution
+}

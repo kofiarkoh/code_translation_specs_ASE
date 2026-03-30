@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes an array of integers to count the occurrences of each integer, sorts these counts, and computes the sum of the counts of the first \( N - K \) unique integers, or all available unique counts if there are fewer than \( N - K \) unique integers.
+
+## 2. Inputs
+- Two integers \( N \) and \( K \) representing the number of elements in the array and a threshold for unique counts, respectively.
+- An array of \( N \) integers.
+
+## 3. Outputs
+- A single long long integer representing the sum of the counts of the first \( N - K \) unique integers from the input array, or the sum of all available unique counts if there are fewer than \( N - K \) unique integers.
+
+## 4. Preconditions
+- \( N \) is a positive integer.
+- \( K \) is a non-negative integer such that \( K \leq N \).
+- The input integers are within a valid range that can be indexed by the count array.
+
+## 5. Postconditions
+- The output is the sum of the counts of the first \( N - K \) unique integers from the input array, or the sum of all available unique counts if there are fewer than \( N - K \) unique integers.
+
+## 6. Invariants
+- The count array is initialized to zero for all indices.
+- The count of each integer in the input array is accurately reflected in the count array.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-bounds values for the integers in the input array.
+- Memory allocation failures for the count array are not handled.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve reading input values, updating the count array, sorting the counts, and calculating the final sum based on the sorted counts.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm's time complexity is dominated by the sorting step, which is \( O(N \log N) \).
+
+```

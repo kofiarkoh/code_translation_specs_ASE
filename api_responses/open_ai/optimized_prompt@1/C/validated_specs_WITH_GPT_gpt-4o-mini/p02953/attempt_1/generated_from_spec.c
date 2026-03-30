@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+#define MAX_SIZE 1000 // Assuming a maximum size for the sequence
+
+int main() {
+    int n; // Number of elements in the sequence
+    int sequence[MAX_SIZE]; // Array to hold the sequence
+
+    // Read the number of elements
+    scanf("%d", &n);
+
+    // Read the sequence of integers
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &sequence[i]);
+    }
+
+    // Check if the sequence can be transformed into non-decreasing order
+    int possible = 1; // Flag to indicate if transformation is possible
+
+    for (int i = 1; i < n; i++) {
+        // If the current element is greater than the previous one,
+        // we need to decrement it to maintain non-decreasing order
+        if (sequence[i] > sequence[i - 1]) {
+            // If we cannot decrement the current element to match the previous one
+            // (i.e., it would go below zero), then it's not possible
+            if (sequence[i] - sequence[i - 1] > sequence[i]) {
+                possible = 0; // Set flag to false
+                break; // Exit the loop early
+            }
+        }
+    }
+
+    // Output the result based on the flag
+    if (possible) {
+        printf("Yes\n");
+    } else {
+        printf("No\n");
+    }
+
+    return 0;
+}

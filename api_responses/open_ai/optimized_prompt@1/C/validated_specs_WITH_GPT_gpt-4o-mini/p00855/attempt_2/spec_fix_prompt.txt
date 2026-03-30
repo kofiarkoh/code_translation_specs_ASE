@@ -1,0 +1,105 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+i, t;
+p( n )
+{
+	for ( i = t = 2; i * i <= n; ++i )
+	{
+		n%i?:t++;
+	}
+	return t - 2;
+}
+main( l, s, u )
+{
+	for ( ; scanf("%d", &l ), u = l; )
+	{
+		for( ; p(l); l-- );
+		for( ; p(u); u++ );
+		printf( "%d\n",  u - l );
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code calculates the count of prime numbers within a specified range defined by two integers, where the lower bound is decremented until a prime is found and the upper bound is incremented until a prime is found. It then outputs the difference between the upper and lower bounds of the found primes.
+
+# 2. Inputs
+- Two integers representing the lower and upper bounds of a range.
+
+# 3. Outputs
+- An integer representing the count of prime numbers between the adjusted lower and upper bounds.
+
+# 4. Preconditions
+- The input integers must be non-negative.
+
+# 5. Postconditions
+- The output integer is the count of prime numbers found between the adjusted lower and upper bounds, inclusive of the bounds.
+
+# 6. Invariants
+- The lower bound is always decremented until a prime is found.
+- The upper bound is always incremented until a prime is found.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative integers or non-integer inputs gracefully.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the lower and upper bounds are adjusted based on the primality checks until valid primes are found.
+
+# 9. Non-functional Constraints (if inferable)
+- The performance of the prime-checking operation may affect the overall execution time, particularly for larger input values.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not clearly define how the count of prime numbers is determined when adjusting the lower and upper bounds. Specifically, it lacks clarity on whether the adjusted bounds themselves should be included in the count of primes.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify whether the primes found at the adjusted lower and upper bounds are included in the final count. It should explicitly state that the count should include the primes at the adjusted bounds, as well as the primes in between.
+
+D. **Why this clarification is supported by the source program**  
+- The source program adjusts the lower and upper bounds until a prime is found, but it only counts the primes in the range defined by the final values of these bounds. The behavior observed in the failing test case indicates that the count does not include the adjusted bounds themselves, leading to a discrepancy between the expected and actual output. The source program's logic suggests that the primes at the adjusted bounds should be included in the count, which is not clearly articulated in the current specification.
+
+```

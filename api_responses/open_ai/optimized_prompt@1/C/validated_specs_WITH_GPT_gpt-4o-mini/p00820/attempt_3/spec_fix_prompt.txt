@@ -1,0 +1,117 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1241
+  Title:Lagrange's Four-Square Theorem
+  @kankichi573
+*/
+#include <stdio.h>
+
+
+int solve(int n,int c,int low)
+{
+  int i,ret;
+  ret=0;
+  for(i=low;i*i<=n;i++)
+    {
+      if(n==i*i)
+	ret++;
+      else if(c<4)
+	ret+=solve(n-i*i,c+1,i);
+    }
+  return(ret);
+}
+main()
+{
+  int n,ret;
+  while(scanf("%d",&n) && n)
+    {
+      ret=solve(n,1,1);
+      printf("%d\n",ret);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of distinct representations of a given positive integer as the sum of four square integers, in accordance with Lagrange's Four-Square Theorem.
+
+## 2. Inputs
+- A positive integer `n` is provided by the user through standard input. The input process continues until a zero is entered, which serves as a termination signal for the program.
+
+## 3. Outputs
+- The output is the count of distinct representations of `n` as the sum of four square integers, printed to standard output for each positive integer input.
+
+## 4. Preconditions
+- The input must be a positive integer. The program does not handle invalid inputs (e.g., negative integers or non-integer values) and assumes that the input will be a valid positive integer or zero to terminate.
+
+## 5. Postconditions
+- For each positive integer input, the output will be a non-negative integer representing the number of distinct representations of that integer as the sum of four squares. If the input is zero, the program terminates without producing output.
+
+## 6. Invariants
+- The function maintains that the count of representations is incremented correctly based on the conditions defined by the theorem, ensuring that all combinations are considered without exceeding four squares.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid inputs and may encounter runtime errors if non-integer or negative values are provided. It is expected that the user will provide valid input.
+
+## 8. State Transitions
+- The program transitions from reading input to processing the input through recursive calls. It continues to return to the main loop for further input until a zero is entered, at which point the program terminates.
+
+## 9. Non-functional Constraints
+- The performance of the solution may be affected by the size of the input integer, as the recursive approach may lead to increased computation time for larger values of `n`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing constraint
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not mention the need for including necessary headers for mathematical functions, such as `sqrt`, which is required for the computation of the maximum square.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the implementation requires certain standard library headers to be included for mathematical operations, specifically mentioning `<math.h>` for functions like `sqrt`.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses the `sqrt` function to calculate the maximum square that can be used in the representation of `n`. Without including `<math.h>`, the generated code fails to compile, indicating that the specification lacks details on necessary dependencies for proper functionality.
+
+```

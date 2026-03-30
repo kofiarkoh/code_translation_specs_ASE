@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a pathfinding algorithm to determine the minimum number of moves required to navigate from a starting position to a goal position on a grid, while adhering to specific movement constraints. The algorithm accounts for the use of two types of moves, each with a limited capacity.
+
+## 2. Inputs
+- A grid defined by its height (H) and width (W).
+- A maximum number of moves allowed for two types of actions (A and B).
+- A grid representation where:
+  - 'S' indicates the starting position.
+  - 'G' indicates the goal position.
+  - '#' indicates obstacles that cannot be traversed.
+
+## 3. Outputs
+- The minimum number of moves required to reach the goal position from the starting position, or -1 if the goal is unreachable.
+
+## 4. Preconditions
+- The grid dimensions (H and W) must be positive integers.
+- The grid must contain exactly one starting position ('S') and one goal position ('G').
+- The grid must be properly formatted, with no out-of-bounds access.
+
+## 5. Postconditions
+- If a path exists from 'S' to 'G', the output will be the minimum number of moves required.
+- If no valid path exists, the output will be -1.
+
+## 6. Invariants
+- The algorithm maintains a record of visited states to prevent re-exploration.
+- The number of moves used for each type of action does not exceed the specified limits (A and B).
+
+## 7. Error Handling / Exceptional Behavior
+- If the starting position is at the bottom edge of the grid (row H-1) or directly adjacent to an obstacle (specifically, if the cell below the starting position is an obstacle or out of bounds), the algorithm will immediately output -1.
+- If the computed minimum moves exceed a threshold of 20, the algorithm will output -1.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm explores neighboring grid cells based on the current position and direction, updating the number of moves for each action type as necessary. The algorithm considers valid moves based on the current position, direction, and the constraints on the number of moves for each action type.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate within a time complexity that allows it to handle the maximum grid size efficiently, given the constraints on the number of moves.
+
+## 10. Data Structure Constraints
+- The dimensions of any data structures used for tracking states, such as the visited states array, must be defined with fixed sizes at compile time. Dynamic memory allocation for such structures is not supported in the context of this implementation.
+
+```

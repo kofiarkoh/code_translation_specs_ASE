@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 1000 // Assuming a maximum number of nodes for simplicity
+
+typedef struct {
+    int *edges[MAX_NODES]; // Adjacency list for edges
+    int degree[MAX_NODES]; // Degree of each node
+} Graph;
+
+void bfs(Graph *graph, int N, int *predecessor) {
+    int queue[MAX_NODES];
+    int front = 0, rear = 0;
+    int visited[MAX_NODES] = {0}; // Visited array
+    queue[rear++] = 1; // Start BFS from node 1
+    visited[1] = 1; // Mark node 1 as visited
+
+    while (front < rear) {
+        int current = queue[front++]; // Dequeue
+        for (int i = 0; i < graph->degree[current]; i++) {
+            int neighbor = graph->edges[current][i];
+            if (!visited[neighbor]) {
+                visited[neighbor] = 1; // Mark neighbor as visited
+                predecessor[neighbor] = current; // Set predecessor
+                queue[rear++] = neighbor; // Enqueue neighbor
+            }
+        }
+    }
+}
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M); // Read number of nodes and edges
+
+    Graph graph = {0}; // Initialize graph
+    for (int i = 1; i <= N; i++) {
+        graph.degree[i] = 0; // Initialize degree
+    }
+
+    // Allocate memory for edges
+    for (int i = 1; i <= N; i++) {
+        graph.edges[i] = (int *)malloc(MAX_NODES * sizeof(int)); // Allocate adjacency list
+        if (graph.edges[i] == NULL) {
+            return 1; // Undefined behavior on memory allocation failure
+        }
+    }
+
+    // Read edges
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        scanf("%d %d", &u, &v); // Read edge
+        if (u < 1 || u > N || v < 1 || v > N) {
+            return 1; // Undefined behavior on invalid node indices
+        }
+        // Add edge in both directions
+        graph.edges[u][graph.degree[u]++] = v;
+        graph.edges[v][graph.degree[v]++] = u;
+    }
+
+    int predecessor[MAX_NODES] = {-1}; // Initialize predecessor array
+    bfs(&graph, N, predecessor); // Perform BFS
+
+    // Check if the graph is connected
+    int connected = 1;
+    for (int i = 2; i <= N; i++) {
+        if (predecessor[i] == -1) {
+            connected = 0; // Node i is not reachable
+            break;
+        }
+    }
+
+    // Output results
+    if (connected) {
+        printf("Yes\n");
+        for (int i = 2; i <= N; i++) {
+            printf("%d\n", predecessor[i]); // Output predecessors
+        }
+    }
+
+    // Free allocated memory
+    for (int i = 1; i <= N; i++) {
+        free(graph.edges[i]); // Free adjacency list
+    }
+
+    return 0;
+}

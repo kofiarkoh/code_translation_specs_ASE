@@ -1,0 +1,82 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Connection {
+    int station1;
+    int station2;
+    int distance;
+} Connection;
+
+typedef struct Graph {
+    int numStations;
+    int numConnections;
+    Connection* connections;
+} Graph;
+
+typedef struct Path {
+    int* stations;
+    int length;
+} Path;
+
+void findLongestCyclicPath(Graph* graph, Path* longestPath, int* visited, int currentStation, int currentLength, int startStation) {
+    visited[currentStation] = 1; // Mark the current station as visited
+    for (int i = 0; i < graph->numConnections; i++) {
+        if (graph->connections[i].station1 == currentStation || graph->connections[i].station2 == currentStation) {
+            int nextStation = (graph->connections[i].station1 == currentStation) ? graph->connections[i].station2 : graph->connections[i].station1;
+            if (nextStation == startStation && currentLength > 0) { // Found a cycle
+                if (currentLength > longestPath->length) {
+                    longestPath->length = currentLength;
+                    longestPath->stations[0] = startStation; // Start of the cycle
+                    longestPath->stations[1] = nextStation; // End of the cycle
+                }
+            } else if (!visited[nextStation]) { // Not visited yet
+                longestPath->stations[longestPath->length + 1] = nextStation; // Add to path
+                findLongestCyclicPath(graph, longestPath, visited, nextStation, currentLength + graph->connections[i].distance, startStation);
+                longestPath->stations[longestPath->length + 1] = 0; // Backtrack
+            }
+        }
+    }
+    visited[currentStation] = 0; // Unmark the current station
+}
+
+int main() {
+    int numStations, numConnections;
+    scanf("%d %d", &numStations, &numConnections);
+    
+    if (numStations <= 0 || numConnections <= 0) {
+        return 0; // Graceful termination if invalid input
+    }
+
+    Graph graph;
+    graph.numStations = numStations;
+    graph.numConnections = numConnections;
+    graph.connections = malloc(numConnections * sizeof(Connection));
+    
+    for (int i = 0; i < numConnections; i++) {
+        scanf("%d %d %d", &graph.connections[i].station1, &graph.connections[i].station2, &graph.connections[i].distance);
+    }
+
+    Path longestPath;
+    longestPath.length = 0;
+    longestPath.stations = malloc((numStations + 1) * sizeof(int)); // +1 for the start station
+
+    for (int i = 0; i < numStations; i++) {
+        int* visited = calloc(numStations, sizeof(int)); // Track visited stations
+        longestPath.stations[0] = i; // Start from each station
+        findLongestCyclicPath(&graph, &longestPath, visited, i, 0, i);
+        free(visited);
+    }
+
+    printf("Length of longest cyclic path: %d\n", longestPath.length);
+    printf("Stations in the longest cyclic path: ");
+    for (int i = 0; i <= longestPath.length; i++) {
+        printf("%d ", longestPath.stations[i]);
+    }
+    printf("\n");
+
+    free(graph.connections);
+    free(longestPath.stations);
+    return 0;
+}
+```

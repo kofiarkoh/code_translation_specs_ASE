@@ -6,8 +6,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-PIPELINE_NAME = "translation_with_validated_specs_GPT_5_2"
-INPUT_CSV = Path(f"./repairs/{PIPELINE_NAME}_analysis/optimized_prompt@1/attempt_status_summary.csv")
+PIPELINE_NAME = "translation_with_old_prompt_using_GPT_4O_mini"
+INPUT_CSV = Path(f"./repairs/{PIPELINE_NAME}_analysis/old_prompt/attempt_status_summary.csv")
 OUTPUT_PNG = INPUT_CSV.with_name("attempt_status_dashboard.png")
 OUTPUT_PDF = INPUT_CSV.with_name("attempt_status_dashboard.pdf")
 OUTPUT_TXT = INPUT_CSV.with_name("attempt_status_table.txt")

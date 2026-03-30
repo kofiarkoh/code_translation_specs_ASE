@@ -1,0 +1,100 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+int main(void){
+
+float v;
+int n;
+
+while(scanf("%f",&v) != EOF){
+
+n=(int)((4.9*v*v/9.8/9.8)+5)/5;
+n=n+1;
+printf("%d\n",n);
+}
+return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a series of floating-point values representing velocities, computes a derived integer value based on a specific formula, and outputs this integer value for each input.
+
+# 2. Inputs
+The input consists of a sequence of floating-point numbers, each representing a velocity.
+
+# 3. Outputs
+The output is a sequence of integers, each corresponding to the computed value derived from the input velocities.
+
+# 4. Preconditions
+The input must consist of valid floating-point numbers. The input stream must be terminated by an end-of-file signal.
+
+# 5. Postconditions
+For each input velocity, an integer is output that represents the computed value based on the formula provided. The output integer is guaranteed to be greater than or equal to 1.
+
+# 6. Invariants
+The computation of the output integer is consistent for the same input velocity across multiple executions of the program.
+
+# 7. Error Handling / Exceptional Behavior
+The program does not handle invalid input formats or non-numeric values. If an invalid input is encountered, the behavior is undefined, and the program may terminate unexpectedly.
+
+# 8. State Transitions (if applicable)
+The program maintains a state of reading input until the end-of-file is reached. Each valid input results in a transition to the output state where the corresponding integer is printed.
+
+# 9. Non-functional Constraints (if inferable)
+The program operates in a continuous loop until the end-of-file is reached, and it outputs results in real-time as inputs are processed. Performance is dependent on the speed of input reading and output writing.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not clearly define the formula used to compute the derived integer value from the input velocity. It lacks specificity regarding how the computation is performed, leading to a significant deviation in the generated code.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should explicitly state the formula used for computing the integer value from the velocity, including any necessary mathematical operations and rounding behavior. It should clarify how the derived integer is calculated and any constraints on the output value.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses a specific formula involving physical constants to compute the integer value based on the input velocity. The formula is critical to the program's behavior, as it directly influences the output. The absence of this detail in the specification leads to incorrect assumptions in the generated code, resulting in outputs that do not match the expected results. The source program's behavior demonstrates that the computation is not a simple transformation of the input but rather a calculation based on a defined physical relationship.
+
+```

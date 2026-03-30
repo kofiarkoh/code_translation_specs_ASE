@@ -1,0 +1,73 @@
+#include <stdio.h>
+
+#define MAX_N 1000
+
+// Function to toggle a cell in the grid
+void toggle_cell(char grid[MAX_N][MAX_N], int x, int y) {
+    // Toggle the cell between '0' and '1'
+    grid[x][y] = (grid[x][y] == '0') ? '1' : '0';
+}
+
+// Function to check if the grid is symmetrical
+int is_symmetric(char grid[MAX_N][MAX_N], int N) {
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            // Check symmetry with respect to the center
+            if (grid[i][j] != grid[N - 1 - i][N - 1 - j]) {
+                return 0; // Not symmetric
+            }
+        }
+    }
+    return 1; // Symmetric
+}
+
+// Main function to process the grid and count configurations
+int process_grid(int C, int N, char grid[MAX_N][MAX_N], int updates[][2]) {
+    int symmetric_count = 0;
+
+    // Apply each update
+    for (int i = 0; i < C; i++) {
+        int x = updates[i][0];
+        int y = updates[i][1];
+        
+        // Toggle the specified cell
+        toggle_cell(grid, x, y);
+        
+        // Check for symmetry after each toggle
+        if (is_symmetric(grid, N)) {
+            symmetric_count++;
+        }
+    }
+
+    return symmetric_count; // Return the count of symmetric configurations
+}
+
+int main() {
+    int C, N;
+    // Example input reading (not specified in the task, but necessary for a complete program)
+    scanf("%d %d", &C, &N);
+    
+    char grid[MAX_N][MAX_N];
+    
+    // Read the grid
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            scanf(" %c", &grid[i][j]); // Read characters '0' or '1'
+        }
+    }
+    
+    int updates[C][2];
+    
+    // Read the updates
+    for (int i = 0; i < C; i++) {
+        scanf("%d %d", &updates[i][0], &updates[i][1]);
+    }
+    
+    // Process the grid and get the count of symmetric configurations
+    int result = process_grid(C, N, grid, updates);
+    
+    // Output the result
+    printf("%d\n", result);
+    
+    return 0;
+}

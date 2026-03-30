@@ -1,0 +1,116 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(){
+	int count=0,counter;
+	int a,b,c;
+	int i,j,k;
+	int x,y[8];
+	int cter;
+	
+	scanf("%d",&counter);
+	while(counter>count){
+		scanf("%d",&x);
+		cter=10;
+		c=0;
+		printf("Case %d:\n",count+1);
+		while(c<cter){
+			
+			x*=x;
+			x/=100;
+			x%=10000;
+			c++;
+			printf("%d\n",x);
+		}
+		count++;
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program processes a specified number of cases, each involving a series of calculations based on an input integer. For each case, it computes and outputs a sequence of derived values based on the input integer.
+
+# 2. Inputs
+- An integer representing the number of cases to process.
+- For each case, an integer that serves as the basis for calculations.
+
+# 3. Outputs
+- For each case, a header indicating the case number.
+- A sequence of ten integers derived from the input integer, each printed on a new line.
+
+# 4. Preconditions
+- The first input must be a positive integer indicating the number of cases.
+- Each subsequent input must be a valid integer.
+
+# 5. Postconditions
+- The program outputs a header for each case followed by ten computed integers.
+- The computed integers are derived from the input integer through a specific mathematical transformation.
+
+# 6. Invariants
+- The number of cases processed is equal to the first input integer.
+- Each case consistently outputs ten integers.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid inputs or errors; it assumes all inputs are valid as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an initial state (waiting for input) to a processing state (reading inputs and performing calculations) and finally to a terminal state (outputting results).
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution within a reasonable time frame for typical input sizes.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not accurately describe the mathematical transformation applied to the input integer for generating the derived values. It implies a simple addition operation, which does not reflect the actual behavior of the source program.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the specific mathematical transformation that is applied to the input integer in each case. This includes detailing the operations of squaring, dividing, and applying modulo, as seen in the source program.
+
+D. **Why this clarification is supported by the source program**  
+The source program performs a series of calculations on the input integer, specifically squaring it, dividing by 100, and then taking the result modulo 10000. This sequence of operations leads to a set of derived values that are not simply incremental additions. The current specification's lack of detail on this transformation leads to a significant mismatch between the expected and actual outputs.
+
+```

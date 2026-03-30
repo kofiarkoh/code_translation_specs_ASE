@@ -1,0 +1,76 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define INF INT_MAX // Define a constant for infinite cost
+
+// Function to compute the minimum cost to reach a destination node
+void compute_min_cost(int num_nodes, int num_edges, int edges[][3], int source, int destination) {
+    // Initialize the minimum cost array
+    int *min_cost = (int *)malloc(num_nodes * sizeof(int));
+    for (int i = 0; i < num_nodes; i++) {
+        min_cost[i] = INF; // Set all costs to infinity
+    }
+    min_cost[source] = 0; // Cost to reach the source is zero
+
+    // Relax edges up to (num_nodes - 1) times
+    for (int i = 0; i < num_nodes - 1; i++) {
+        for (int j = 0; j < num_edges; j++) {
+            int u = edges[j][0]; // Source node
+            int v = edges[j][1]; // Destination node
+            int cost = -edges[j][2]; // Negated cost as per specification
+
+            // Relaxation step
+            if (min_cost[u] != INF && min_cost[u] + cost < min_cost[v]) {
+                min_cost[v] = min_cost[u] + cost;
+            }
+        }
+    }
+
+    // Check for negative weight cycles affecting the destination
+    for (int i = 0; i < num_edges; i++) {
+        int u = edges[i][0];
+        int v = edges[i][1];
+        int cost = -edges[i][2];
+
+        // If we can still relax, it indicates a negative weight cycle
+        if (min_cost[u] != INF && min_cost[u] + cost < min_cost[v]) {
+            printf("inf\n"); // Output "inf" if negative cycle affects the destination
+            free(min_cost);
+            return;
+        }
+    }
+
+    // Output the minimum cost to reach the destination
+    if (min_cost[destination] == INF) {
+        printf("inf\n"); // Output "inf" if destination is unreachable
+    } else {
+        printf("%d\n", -min_cost[destination]); // Output the negated minimum cost
+    }
+
+    free(min_cost); // Free allocated memory
+}
+
+int main() {
+    int num_nodes, num_edges;
+    scanf("%d %d", &num_nodes, &num_edges); // Read number of nodes and edges
+
+    // Allocate memory for edges
+    int (*edges)[3] = malloc(num_edges * sizeof(*edges));
+
+    // Read edges
+    for (int i = 0; i < num_edges; i++) {
+        scanf("%d %d %d", &edges[i][0], &edges[i][1], &edges[i][2]);
+    }
+
+    int source, destination;
+    scanf("%d %d", &source, &destination); // Read source and destination
+
+    // Call the function to compute minimum cost
+    compute_min_cost(num_nodes, num_edges, edges, source, destination);
+
+    free(edges); // Free allocated memory for edges
+    return 0;
+}
+```

@@ -1,0 +1,33 @@
+#include <stdio.h>
+
+int calculate_value(int A, int B, int X) {
+    // Preconditions: A, B, and X are non-negative integers
+    // At least one of A or B must be greater than zero
+
+    // Check if A is at least twice B
+    if (A >= 2 * B) {
+        // Output calculated using a specific formula involving B and X
+        return (B * 2) + (X / 1000);
+    } else {
+        // Output calculated based on integer division of X by 1000
+        // with adjustments based on the remainder of this division
+        return (X / 1000) + (X % 1000);
+    }
+}
+
+int main() {
+    int A, B, X;
+    
+    // Example input; in a real program, you would get these from user input
+    A = 10; // Example value for A
+    B = 4;  // Example value for B
+    X = 5000; // Example value for X
+
+    // Calculate the result based on the inputs
+    int result = calculate_value(A, B, X);
+    
+    // Output the result
+    printf("Calculated result: %d\n", result);
+    
+    return 0;
+}

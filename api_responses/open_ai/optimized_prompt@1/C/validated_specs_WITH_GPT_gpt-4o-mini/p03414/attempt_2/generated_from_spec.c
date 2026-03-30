@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 1000 // Assuming a maximum number of nodes for simplicity
+
+typedef struct {
+    int from;
+    int to;
+} Edge;
+
+typedef struct {
+    int *adjacencyList[MAX_NODES];
+    int visited[MAX_NODES];
+    int low[MAX_NODES];
+    int disc[MAX_NODES];
+    int stack[MAX_NODES];
+    int stackTop;
+    int time;
+    int sccCount;
+} Graph;
+
+void initGraph(Graph *g, int N) {
+    for (int i = 0; i < N; i++) {
+        g->adjacencyList[i] = (int *)malloc(MAX_NODES * sizeof(int));
+        g->visited[i] = 0;
+        g->low[i] = -1;
+        g->disc[i] = -1;
+    }
+    g->stackTop = -1;
+    g->time = 0;
+    g->sccCount = 0;
+}
+
+void addEdge(Graph *g, int from, int to) {
+    g->adjacencyList[from][g->stackTop + 1] = to; // Add edge to adjacency list
+    g->stackTop++;
+}
+
+void DFS(Graph *g, int u, int *scc) {
+    g->visited[u] = 1;
+    g->disc[u] = g->low[u] = g->time++;
+    g->stack[++g->stackTop] = u;
+
+    for (int i = 0; i <= g->stackTop; i++) {
+        int v = g->adjacencyList[u][i];
+        if (!g->visited[v]) {
+            DFS(g, v, scc);
+            g->low[u] = (g->low[u] < g->low[v]) ? g->low[u] : g->low[v];
+        } else if (g->visited[v] == 1) {
+            g->low[u] = (g->low[u] < g->disc[v]) ? g->low[u] : g->disc[v];
+        }
+    }
+
+    if (g->low[u] == g->disc[u]) {
+        while (g->stack[g->stackTop] != u) {
+            scc[g->stack[g->stackTop--]] = g->sccCount;
+            g->visited[g->stack[g->stackTop + 1]] = 2; // Mark as processed
+        }
+        scc[g->stack[g->stackTop--]] = g->sccCount++;
+    }
+}
+
+void classifyEdges(Graph *g, Edge *edges, int M, char **results) {
+    int scc[MAX_NODES] = {0}; // To store the SCC index of each node
+    for (int i = 0; i < MAX_NODES; i++) {
+        g->visited[i] = 0; // Reset visited for SCC finding
+    }
+
+    for (int i = 0; i < MAX_NODES; i++) {
+        if (!g->visited[i]) {
+            DFS(g, i, scc);
+        }
+    }
+
+    for (int i = 0; i < M; i++) {
+        if (scc[edges[i].from] == scc[edges[i].to]) {
+            results[i] = "same"; // Same SCC
+        } else {
+            results[i] = "diff"; // Different SCC
+        }
+    }
+}
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M); // Read number of nodes and edges
+
+    if (N < 0 || M < 0) {
+        return 1; // Undefined behavior for negative inputs
+    }
+
+    Graph g;
+    initGraph(&g, N);
+
+    Edge edges[M];
+    char *results[M];
+
+    for (int i = 0; i < M; i++) {
+        scanf("%d %d", &edges[i].from, &edges[i].to); // Read edges
+        addEdge(&g, edges[i].from, edges[i].to);
+    }
+
+    classifyEdges(&g, edges, M, results);
+
+    for (int i = 0; i < M; i++) {
+        printf("%s\n", results[i]); // Output classification
+    }
+
+    // Free allocated memory
+    for (int i = 0; i < N; i++) {
+        free(g.adjacencyList[i]);
+    }
+
+    return 0;
+}

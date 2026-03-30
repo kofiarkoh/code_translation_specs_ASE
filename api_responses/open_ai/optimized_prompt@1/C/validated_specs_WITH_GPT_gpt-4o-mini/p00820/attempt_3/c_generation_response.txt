@@ -1,0 +1,41 @@
+```c
+#include <stdio.h>
+#include <math.h>
+
+// Function to count distinct representations of n as the sum of four squares
+int countFourSquares(int n, int a, int b, int c, int d) {
+    // Base case: if n is reduced to zero, we found a valid representation
+    if (n == 0) {
+        return 1;
+    }
+    // If n is negative or if we have used more than four squares, return 0
+    if (n < 0 || a < 0) {
+        return 0;
+    }
+    
+    int count = 0;
+    // Iterate through possible values for the fourth square
+    for (int i = 0; i <= sqrt(n); i++) {
+        count += countFourSquares(n - i * i, a - 1, b, c, d);
+    }
+    return count;
+}
+
+// Main function to handle input and output
+int main() {
+    int n;
+    // Read input until zero is entered
+    while (1) {
+        scanf("%d", &n);
+        // Termination condition
+        if (n == 0) {
+            break;
+        }
+        // Count distinct representations of n as the sum of four squares
+        int result = countFourSquares(n, 4, 0, 0, 0);
+        // Output the result
+        printf("%d\n", result);
+    }
+    return 0;
+}
+```

@@ -1,0 +1,58 @@
+#include <stdio.h>
+
+#define MODULO 10007
+#define MAX_KEYS 3 // Corresponds to 'J', 'O', 'I'
+
+// Function to compute the cumulative value based on the input sequence
+int compute_cumulative_value(int N, const char *input) {
+    // Schedule array to track combinations of keys
+    int schedule[MAX_KEYS] = {0}; // Initialize to zero
+    int cumulative_value = 0;
+
+    // Process each character in the input string
+    for (int i = 0; i < N; i++) {
+        char key = input[i];
+        int index = -1;
+
+        // Determine the index based on the key
+        if (key == 'J') {
+            index = 0;
+        } else if (key == 'O') {
+            index = 1;
+        } else if (key == 'I') {
+            index = 2;
+        }
+
+        // Update the schedule based on the current key
+        if (index != -1) {
+            // Update cumulative value with the current schedule
+            cumulative_value = (cumulative_value + schedule[index]) % MODULO;
+
+            // Update the schedule for the current key
+            schedule[index] = (schedule[index] + 1) % MODULO; // Increment the count for this key
+        }
+    }
+
+    // Return the final cumulative value modulo 10007
+    return cumulative_value % MODULO;
+}
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read the number of characters
+
+    // Ensure N is within the specified bounds
+    if (N < 0 || N > 1000) {
+        return 1; // Exit with error if N is out of bounds
+    }
+
+    char input[1001]; // Allocate space for the input string (max length 1000 + null terminator)
+    scanf("%s", input); // Read the input string
+
+    // Compute the cumulative value based on the input
+    int result = compute_cumulative_value(N, input);
+
+    // Print the result
+    printf("%d\n", result);
+    return 0;
+}

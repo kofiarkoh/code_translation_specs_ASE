@@ -1,0 +1,45 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_IDENTIFIERS 1000 // Assuming a reasonable upper limit for m
+
+int main() {
+    int n, m, q;
+    
+    // Read inputs
+    if (scanf("%d %d %d", &n, &m, &q) != 3 || n < 0 || m < 0 || q < 0) {
+        return 1; // Undefined behavior for invalid input
+    }
+
+    // Array to count occurrences of each identifier
+    int *counts = (int *)calloc(m + 1, sizeof(int)); // +1 to include identifier m
+    if (counts == NULL) {
+        return 1; // Memory allocation failure
+    }
+
+    // Read the sequence of identifiers
+    for (int i = 0; i < q; i++) {
+        int identifier;
+        if (scanf("%d", &identifier) != 1 || identifier < 0 || identifier > m) {
+            free(counts);
+            return 1; // Undefined behavior for invalid identifier
+        }
+        counts[identifier]++;
+    }
+
+    // Check if any identifier exceeds the threshold n
+    for (int i = 0; i <= m; i++) {
+        if (counts[i] > n) {
+            printf("No\n");
+            free(counts);
+            return 0; // Output "No" if any identifier exceeds n
+        }
+    }
+
+    // If all identifiers are within the limit, output "Yes"
+    printf("Yes\n");
+    free(counts); // Free allocated memory
+    return 0;
+}
+```

@@ -1,0 +1,120 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main (void){
+  
+  int A, B, C, X;
+  
+  scanf("%d", &A);
+  scanf("%d", &B);
+  scanf("%d", &C);
+  scanf("%d", &X);
+  
+  int i, j, k;
+  
+  int count=0;
+  
+  for (i=0; i<=A; i++){
+   for (j=0; j<=B; j++){
+     for (k=0; k<=C; k++){
+       
+      if ( 500*i + 100*j + 50*k == X)
+      { count = count + 1;}
+       
+     }
+   }
+  }
+  
+  printf("%d", count);
+  
+  return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code counts the number of combinations of three non-negative integers that, when multiplied by specified weights, sum to a given target value.
+
+# 2. Inputs
+- Four integers: A, B, C, and X.
+  - A: Maximum multiplier for the first weight.
+  - B: Maximum multiplier for the second weight.
+  - C: Maximum multiplier for the third weight.
+  - X: Target sum to be achieved.
+
+# 3. Outputs
+- A single integer representing the count of valid combinations of the three integers that satisfy the equation \(500 \times i + 100 \times j + 50 \times k = X\).
+
+# 4. Preconditions
+- A, B, C, and X must be non-negative integers.
+- The input values must be provided in the correct order.
+
+# 5. Postconditions
+- The output integer is the total number of combinations of non-negative integers \(i\), \(j\), and \(k\) such that \(0 \leq i \leq A\), \(0 \leq j \leq B\), \(0 \leq k \leq C\), and the weighted sum equals X.
+
+# 6. Invariants
+- The count variable is initialized to zero and is incremented only when a valid combination is found.
+- The loops iterate through all possible values of \(i\), \(j\), and \(k\) within their respective bounds.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input types or out-of-range values. It assumes that inputs are valid as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the nested loops, where the indices \(i\), \(j\), and \(k\) iterate through their respective ranges, affecting the count based on the evaluation of the weighted sum.
+
+# 9. Non-functional Constraints (if inferable)
+- The performance of the code is dependent on the values of A, B, and C, leading to a time complexity of \(O(A \times B \times C)\).
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clarify how the combinations of \(i\), \(j\), and \(k\) should be counted when they exceed the target value \(X\). It implies that all combinations within the bounds should be counted, but it does not specify how to handle cases where the sum exceeds \(X\).
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the count of combinations should only include those where the weighted sum is equal to \(X\) and should explicitly state that combinations leading to sums greater than \(X\) should not be counted.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program only increments the count when the condition \(500 \times i + 100 \times j + 50 \times k == X\) is met. If the specification does not explicitly state that only exact matches to \(X\) should be counted, it could lead to misunderstandings about how combinations are evaluated, especially in edge cases where the sum exceeds \(X\). The failing test case indicates that the generated program is counting combinations incorrectly, likely due to a misunderstanding of the counting rule as defined in the specification.
+
+```

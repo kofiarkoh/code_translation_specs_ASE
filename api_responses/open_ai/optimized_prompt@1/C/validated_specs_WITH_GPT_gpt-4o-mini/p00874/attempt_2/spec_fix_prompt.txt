@@ -1,0 +1,107 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define max(X, Y) ((X)>(Y)?(X):(Y))
+int main(void)
+{
+    int w, d;
+    while (scanf("%d%d", &w, &d), w) {
+        int i, a[21]={0}, b[21]={0}, res;
+        for(i=0;i<w;++i) { int t; scanf("%d", &t); a[t]++; }
+        for(i=0;i<d;++i) { int t; scanf("%d", &t); b[t]++; }
+        res=0;
+        for(i=1;i<=20;++i) res+=i*max(a[i], b[i]);
+        printf("%d\n", res);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program computes a weighted sum based on two sets of integer inputs, where each set represents counts of integers in a specified range. The output is the total sum of the maximum counts for each integer from both sets, multiplied by the integer value.
+
+# 2. Inputs
+- A series of pairs of integers, where each pair consists of:
+  - An integer representing the number of elements in the first set.
+  - An integer representing the number of elements in the second set.
+- Followed by two sequences of integers:
+  - The first sequence contains integers corresponding to the first set.
+  - The second sequence contains integers corresponding to the second set.
+
+# 3. Outputs
+- A single integer output for each pair of input integers, representing the computed weighted sum.
+
+# 4. Preconditions
+- The first integer of each pair must be non-negative.
+- The second integer of each pair must be non-negative.
+- Each integer in the sequences must be within the range of 1 to 20.
+
+# 5. Postconditions
+- The output integer is the sum of the maximum counts of each integer from 1 to 20, where each count is multiplied by its respective integer value.
+
+# 6. Invariants
+- The counts for each integer from 1 to 20 are maintained in two separate arrays throughout the computation.
+- The total sum is updated incrementally as each integer from 1 to 20 is processed.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range integers explicitly; it assumes valid input as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The program transitions between states based on the input pairs, resetting the count arrays for each new pair of inputs and accumulating the result for each processed pair.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates in a linear time complexity relative to the number of integers processed, with a fixed space complexity for the count arrays.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately address the behavior of the program when the first integer of the input pair is zero, which indicates the end of input. The specification implies that the program should continue processing until EOF, but the source program terminates the loop when a zero is encountered.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the program stops processing input when the first integer of the input pair is zero, and that this condition serves as a termination signal for the input loop.
+
+D. **Why this clarification is supported by the source program**  
+In the source program, the loop condition `while (scanf("%d%d", &w, &d), w)` indicates that the loop will terminate when `w` is zero. This behavior is not explicitly stated in the current specification, leading to confusion about how the program handles input termination. The failing test case demonstrates that the program outputs a result of `0` when it encounters a zero for `w`, which is consistent with the source code but not reflected in the specification.
+
+```

@@ -1,0 +1,91 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_ITEMS 100 // Define a maximum number of items
+
+// Structure to hold item properties
+typedef struct {
+    int value;
+    int energy_cost;
+    int required_energy;
+} Item;
+
+// Memoization array to store minimum items needed for each target value
+int memo[MAX_ITEMS + 1];
+
+// Function to initialize memoization array
+void initialize_memo() {
+    for (int i = 0; i <= MAX_ITEMS; i++) {
+        memo[i] = -1; // -1 indicates that the value has not been computed yet
+    }
+}
+
+// Recursive function to find the minimum number of items needed
+int min_items(int target, Item items[], int num_items) {
+    if (target == 0) {
+        return 0; // No items needed to reach target 0
+    }
+    if (target < 0) {
+        return -1; // Target cannot be reached
+    }
+    if (memo[target] != -1) {
+        return memo[target]; // Return already computed result
+    }
+
+    int min_count = -1; // Initialize minimum count as not found
+
+    for (int i = 0; i < num_items; i++) {
+        int result = min_items(target - items[i].value, items, num_items);
+        if (result != -1) {
+            int count = result + 1; // Include this item
+            if (min_count == -1 || count < min_count) {
+                min_count = count; // Update minimum count
+            }
+        }
+    }
+
+    memo[target] = min_count; // Store the computed result
+    return min_count;
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        return 1; // Terminate if not enough arguments
+    }
+
+    int target = atoi(argv[1]);
+    int num_items = atoi(argv[2]);
+
+    if (target < 0 || num_items < 0 || num_items > MAX_ITEMS) {
+        return 1; // Terminate if inputs are out of bounds
+    }
+
+    Item items[MAX_ITEMS];
+
+    // Read item values from command line
+    for (int i = 0; i < num_items; i++) {
+        if (argc < 5 + i * 3) {
+            return 1; // Terminate if not enough item attributes
+        }
+        items[i].value = atoi(argv[3 + i * 3]);
+        items[i].energy_cost = atoi(argv[4 + i * 3]);
+        items[i].required_energy = atoi(argv[5 + i * 3]);
+
+        // Check for non-negative attributes
+        if (items[i].value < 0 || items[i].energy_cost < 0 || items[i].required_energy < 0) {
+            return 1; // Terminate if item attributes are negative
+        }
+    }
+
+    initialize_memo(); // Initialize memoization structure
+
+    int result = min_items(target, items, num_items); // Compute minimum items
+
+    if (result == -1) {
+        printf("NA\n"); // Output "NA" if target cannot be reached
+    } else {
+        printf("%d\n", result); // Output the minimum number of items needed
+    }
+
+    return 0; // Successful termination
+}

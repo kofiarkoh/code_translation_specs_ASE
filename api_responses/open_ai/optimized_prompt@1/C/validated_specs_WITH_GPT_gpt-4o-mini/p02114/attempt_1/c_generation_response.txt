@@ -1,0 +1,58 @@
+```c
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_SIZE 100 // Assuming a maximum grid size for simplicity
+
+// Function prototypes
+void dfs(char grid[MAX_SIZE][MAX_SIZE], int n, int x, int y, char target);
+int countConnectedComponents(char grid[MAX_SIZE][MAX_SIZE], int n, char target);
+
+int main() {
+    int n;
+    char grid[MAX_SIZE][MAX_SIZE];
+    char target = 'X'; // Assuming 'X' is the target character
+    // Input reading (not specified in the task, but necessary for a complete program)
+    scanf("%d", &n);
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            scanf(" %c", &grid[i][j]); // Read characters into the grid
+        }
+    }
+
+    int componentCount = countConnectedComponents(grid, n, target);
+    printf("%d\n", componentCount / 3); // Output the count divided by three
+
+    return 0;
+}
+
+// Depth-first search to mark connected components
+void dfs(char grid[MAX_SIZE][MAX_SIZE], int n, int x, int y, char target) {
+    // Check bounds and if the current cell is the target character
+    if (x < 0 || x >= n || y < 0 || y >= n || grid[x][y] != target) {
+        return;
+    }
+    // Mark the cell as visited by changing it to a blocking character (e.g., '#')
+    grid[x][y] = '#';
+    // Explore all 4 adjacent directions
+    dfs(grid, n, x + 1, y, target);
+    dfs(grid, n, x - 1, y, target);
+    dfs(grid, n, x, y + 1, target);
+    dfs(grid, n, x, y - 1, target);
+}
+
+// Count distinct connected components of the target character
+int countConnectedComponents(char grid[MAX_SIZE][MAX_SIZE], int n, char target) {
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            // If we find a target character, we have a new component
+            if (grid[i][j] == target) {
+                count++;
+                dfs(grid, n, i, j, target); // Mark the entire component
+            }
+        }
+    }
+    return count; // Return the total count of components found
+}
+```

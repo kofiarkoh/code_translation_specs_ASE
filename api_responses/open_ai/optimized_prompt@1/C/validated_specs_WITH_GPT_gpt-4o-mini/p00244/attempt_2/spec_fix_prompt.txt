@@ -1,0 +1,195 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// Aizu 0244: Hot Spring Trip
+// 2017.9.10 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define INF 0x7fffffff
+#define MAX 5000
+#define min(a,b) ((a)<=(b)?(a):(b))
+typedef struct { int t, k, c; } QUE;
+QUE que[MAX]; int qsize;
+
+#define PARENT(i) ((i)>>1)
+#define LEFT(i)   ((i)<<1)
+#define RIGHT(i)  (((i)<<1)+1)
+
+void min_heapify(int i)
+{
+  int l, r;
+  int smallest;
+
+  l = LEFT(i), r = RIGHT(i);
+  if (l < qsize && que[l].t < que[i].t) smallest = l; else smallest = i;
+  if (r < qsize && que[r].t < que[smallest].t) smallest = r;
+  if (smallest != i) {
+    QUE t = que[i]; que[i] = que[smallest]; que[smallest] = t;
+    min_heapify(smallest);
+  }
+}
+
+int deq(int *k, int *c)
+{
+  if (qsize == 0) return 0;
+  *k = que[0].k, *c = que[0].c;
+  que[0] = que[--qsize];
+  min_heapify(0);
+  return 1;
+}
+
+void enq(int k, int t, int c)
+{
+  int i, ii;
+
+  i = qsize++;
+  que[i].t = t, que[i].k = k, que[i].c = c;
+  while (i > 0 && que[ii = PARENT(i)].t > que[i].t) {
+    QUE tt = que[i]; que[i] = que[ii]; que[ii] = tt;
+    i = ii;
+  }
+}
+
+typedef struct { int len, to[102], c[102]; } TBL;
+TBL tbl[102];
+int node[102][3]; int size;
+int start, goal;
+
+int search()
+{
+	int s, i, c, s2, f2, c2, k;
+	TBL *p;
+
+	qsize = 0;
+	memset(node, -1, sizeof(node));
+	node[start][2] = 0;
+	enq(start, 0, 2);
+	while(deq(&s, &c)) {
+		if (s == goal) {
+			if (c != 1) break;
+		}
+		for (p = tbl+s, i = 0; i < p->len; i++) {
+			s2 = p->to[i], f2 = p->c[i];
+			k = node[s][c] + f2;
+			if (c != 1) {
+				if (node[s2][c] < 0 || k < node[s2][c]) node[s2][c] = k, enq(s2, k, c);
+			}
+			if (c > 0) {
+				c2 = c-1;
+				k = node[s][c];
+				if (node[s2][c2] < 0 || k < node[s2][c2]) node[s2][c2] = k, enq(s2, k, c2);
+			}
+		}
+	}
+	if (node[goal][0] >= 0 && node[goal][2] >= 0) return min(node[goal][0], node[goal][2]);
+	if (node[goal][0] >= 0) return node[goal][0];
+	return node[goal][2];
+}
+
+int main()
+{
+	int m, a, b, c;
+	TBL *p;
+
+	while (scanf("%d%d", &size, &m) && size) {
+		memset(tbl, 0, sizeof(TBL)*size);
+		start = 0, goal = size-1;
+		while (m-- > 0) {
+			scanf("%d%d%d", &a, &b, &c), a--, b--;
+			p = tbl + a, p->to[p->len] = b, p->c[p->len] = c, p->len++;
+			p = tbl + b, p->to[p->len] = a, p->c[p->len] = c, p->len++;
+		}
+		printf("%d\n", search());
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a search algorithm to find the minimum cost to travel from a starting node to a goal node in a graph, where nodes represent locations and edges represent paths with associated costs. The algorithm allows for a limited number of special conditions (represented by a counter) that can alter the cost of travel.
+
+# 2. Inputs
+- A series of test cases, each consisting of:
+  - An integer representing the number of nodes in the graph.
+  - An integer representing the number of edges.
+  - For each edge, three integers representing two nodes and the cost of the edge.
+
+# 3. Outputs
+- For each test case, an integer representing the minimum cost to travel from the starting node to the goal node, considering the defined constraints.
+
+# 4. Preconditions
+- The number of nodes is greater than zero.
+- The number of edges is non-negative.
+- Each edge connects valid nodes within the range of the defined graph.
+
+# 5. Postconditions
+- The output is the minimum cost to reach the goal node from the start node, or a specific value indicating that the goal is unreachable.
+
+# 6. Invariants
+- The graph structure remains consistent throughout the execution, with nodes and edges defined as per the input.
+- The priority queue maintains the order of nodes based on their current cost during the search process.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input specifies zero nodes, the program terminates without processing further.
+- If the goal node is unreachable, the output will reflect that by returning a specific value.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as nodes are dequeued from the priority queue, and new nodes are enqueued based on the calculated costs and remaining special conditions.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently within the constraints of the input size, with a focus on minimizing the computational complexity associated with the search process.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing edge case or wrong assumption.
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address the behavior of the algorithm when there are multiple paths to the goal node, especially when some paths are significantly more costly than others. It also fails to clarify how the algorithm should handle cases where the goal node is reachable through multiple routes, including those that may involve the use of special conditions.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the algorithm determines the minimum cost when multiple paths exist, particularly in scenarios where the cost of travel can be altered by special conditions. It should also specify the expected behavior when the goal node can be reached through different paths with varying costs.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a search algorithm that considers both the cost of travel and the remaining special conditions. The logic in the `search` function indicates that the algorithm can reach the goal node through different paths, and it uses a counter to manage the special conditions. The failing test case suggests that the generated program does not account for the possibility of reaching the goal node with a cost of zero when certain conditions are met, which is a critical aspect of the source program's behavior. This indicates a need for a more precise specification regarding how costs are calculated and how special conditions influence the pathfinding process.
+
+```

@@ -1,0 +1,48 @@
+#include <stdio.h>
+
+#define MAX_N 20
+
+int max_set_bits(int n, int a[MAX_N], int x[MAX_N][MAX_N], int y[MAX_N][MAX_N]) {
+    int max_bits = 0;
+
+    // Iterate through all combinations of integers from 0 to (2^n - 1)
+    for (int i = 0; i < (1 << n); i++) {
+        int valid = 1; // Assume the combination is valid
+        // Check each group for validity
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < a[j]; k++) {
+                // Check the validity condition
+                if ((i & (1 << (x[j][k] - 1))) && !(i & (1 << (y[j][k] - 1)))) {
+                    valid = 0; // Invalid combination
+                    break; // No need to check further
+                }
+            }
+            if (!valid) break; // Exit if already invalid
+        }
+
+        // If valid, count the number of set bits
+        if (valid) {
+            int count = __builtin_popcount(i); // Count set bits in i
+            if (count > max_bits) {
+                max_bits = count; // Update max if current count is greater
+            }
+        }
+    }
+
+    return max_bits; // Return the maximum number of set bits found
+}
+
+int main() {
+    int n; // Number of groups
+    int a[MAX_N]; // Array to hold the number of constraints for each group
+    int x[MAX_N][MAX_N]; // Constraints array x
+    int y[MAX_N][MAX_N]; // Constraints array y
+
+    // Input reading logic would go here (not specified in the task)
+
+    // Call the function to compute the maximum set bits
+    int result = max_set_bits(n, a, x, y);
+    printf("%d\n", result); // Output the result
+
+    return 0;
+}

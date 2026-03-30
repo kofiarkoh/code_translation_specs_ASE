@@ -1,0 +1,78 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_SIZE 128
+
+// Function prototypes
+void dfs(char grid[MAX_SIZE][MAX_SIZE], int area_id[MAX_SIZE][MAX_SIZE], int x, int y, char target_char, int id, int H, int W);
+int count_connected_components(char grid[MAX_SIZE][MAX_SIZE], int H, int W);
+
+int main() {
+    int H, W;
+    char grid[MAX_SIZE][MAX_SIZE];
+
+    // Read dimensions
+    while (1) {
+        scanf("%d %d", &H, &W);
+        if (H == 0 && W == 0) {
+            break; // Terminate on input of (0, 0)
+        }
+
+        // Read the grid
+        for (int i = 0; i < H; i++) {
+            for (int j = 0; j < W; j++) {
+                scanf(" %c", &grid[i][j]); // Read character with space to skip whitespace
+            }
+        }
+
+        // Count distinct connected components
+        int component_count = count_connected_components(grid, H, W);
+        printf("%d\n", component_count);
+    }
+
+    return 0;
+}
+
+// Depth-first search to mark connected components
+void dfs(char grid[MAX_SIZE][MAX_SIZE], int area_id[MAX_SIZE][MAX_SIZE], int x, int y, char target_char, int id, int H, int W) {
+    // Check bounds and character match
+    if (x < 0 || x >= H || y < 0 || y >= W || area_id[x][y] != -1 || grid[x][y] != target_char) {
+        return;
+    }
+
+    // Mark the cell with the current component id
+    area_id[x][y] = id;
+
+    // Explore neighbors (up, down, left, right)
+    dfs(grid, area_id, x - 1, y, target_char, id, H, W);
+    dfs(grid, area_id, x + 1, y, target_char, id, H, W);
+    dfs(grid, area_id, x, y - 1, target_char, id, H, W);
+    dfs(grid, area_id, x, y + 1, target_char, id, H, W);
+}
+
+// Count distinct connected components in the grid
+int count_connected_components(char grid[MAX_SIZE][MAX_SIZE], int H, int W) {
+    int area_id[MAX_SIZE][MAX_SIZE];
+    int component_count = 0;
+
+    // Initialize area_id array
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            area_id[i][j] = -1; // -1 indicates unvisited
+        }
+    }
+
+    // Traverse the grid
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (area_id[i][j] == -1) { // If unvisited
+                component_count++; // Found a new component
+                dfs(grid, area_id, i, j, grid[i][j], component_count, H, W); // Perform DFS
+            }
+        }
+    }
+
+    return component_count; // Return the total count of components
+}
+```

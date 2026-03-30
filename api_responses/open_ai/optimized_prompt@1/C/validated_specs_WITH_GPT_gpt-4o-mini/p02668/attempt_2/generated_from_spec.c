@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N_MAX 1000 // Define a maximum limit for n + m
+
+// Function to compute the combinatorial result
+int compute_combinatorial(int n, int m) {
+    // Check preconditions
+    if (n < 0 || m < 0 || n + m > N_MAX) {
+        return -1; // Return -1 for invalid inputs
+    }
+
+    // Initialize dynamic programming arrays
+    int dp[N_MAX + 1][N_MAX + 1];
+    int dq[N_MAX + 1][N_MAX + 1];
+
+    // Base case initialization
+    for (int i = 0; i <= n; i++) {
+        dp[i][0] = 1; // C(i, 0) = 1
+    }
+    for (int j = 0; j <= m; j++) {
+        dq[0][j] = 1; // C(0, j) = 1
+    }
+
+    // Fill the dp and dq arrays based on the combinatorial relationships
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            dp[i][j] = (dp[i - 1][j] + dq[i - 1][j - 1]) % 1000000007; // Modular arithmetic
+            dq[i][j] = (dq[i][j - 1] + dp[i][j]) % 1000000007; // Modular arithmetic
+        }
+    }
+
+    // Return the result from the dp array
+    return dp[n][m];
+}
+
+int main() {
+    int n, m;
+
+    // Read input values
+    if (scanf("%d %d", &n, &m) != 2) {
+        return -1; // Return -1 if input reading fails
+    }
+
+    // Compute the combinatorial result
+    int result = compute_combinatorial(n, m);
+
+    // Output the result
+    printf("%d\n", result);
+    return 0;
+}

@@ -1,0 +1,39 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_CONDITIONS 100 // Assuming a reasonable limit for the number of conditions
+
+int main() {
+    int n; // Number of iterations or conditions to evaluate
+    int a, b; // Pair of integers for each condition
+    char *result = "POSSIBLE"; // Default output
+
+    // Read the number of conditions
+    if (scanf("%d", &n) != 1 || n < 0 || n > MAX_CONDITIONS) {
+        // If input is invalid, behavior is undefined as per specification
+        return 1; // Exit with an error code
+    }
+
+    // Iterate over the number of conditions
+    for (int i = 0; i < n; i++) {
+        // Read pairs of integers
+        if (scanf("%d %d", &a, &b) != 2) {
+            // If input format is incorrect, behavior is undefined
+            return 1; // Exit with an error code
+        }
+
+        // Evaluate the condition based on the pairs
+        // The specific condition logic is not defined in the specification,
+        // so we assume a placeholder condition for demonstration.
+        // Here we assume a simple condition: if a + b is even, it's "POSSIBLE"
+        // Otherwise, it's "IMPOSSIBLE". This is a placeholder and should be
+        // replaced with the actual logic as per the specification.
+        if ((a + b) % 2 != 0) {
+            result = "IMPOSSIBLE"; // Update result if condition fails
+        }
+    }
+
+    // Output the result
+    printf("%s\n", result);
+    return 0; // Successful execution
+}

@@ -1,0 +1,81 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int weight;
+    int value;
+    double ratio; // value-to-weight ratio
+} Item;
+
+// Comparator function for sorting items based on value-to-weight ratio
+int compare(const void *a, const void *b) {
+    Item *itemA = (Item *)a;
+    Item *itemB = (Item *)b;
+    // Sort in descending order
+    return (itemB->ratio > itemA->ratio) - (itemB->ratio < itemA->ratio);
+}
+
+double fractional_knapsack(int num_items, double max_weight, int weights[], int values[]) {
+    if (num_items <= 0 || max_weight <= 0.0) {
+        return 0.0; // If no items or capacity is zero, return 0
+    }
+
+    Item *items = malloc(num_items * sizeof(Item));
+    if (!items) {
+        return 0.0; // Memory allocation failed
+    }
+
+    int valid_items = 0;
+
+    // Populate the items array and calculate value-to-weight ratios
+    for (int i = 0; i < num_items; i++) {
+        if (values[i] > 0 || weights[i] < 0) { // Only consider valid items
+            items[valid_items].weight = weights[i];
+            items[valid_items].value = values[i];
+            items[valid_items].ratio = (weights[i] != 0) ? (double)values[i] / weights[i] : 0.0; // Avoid division by zero
+            valid_items++;
+        }
+    }
+
+    // Sort items based on value-to-weight ratio
+    qsort(items, valid_items, sizeof(Item), compare);
+
+    double total_value = 0.0;
+    double remaining_capacity = max_weight;
+
+    // Process the sorted items
+    for (int i = 0; i < valid_items && remaining_capacity > 0; i++) {
+        if (items[i].weight < 0) {
+            // Negative weight increases capacity
+            remaining_capacity += -items[i].weight; // Increase capacity
+        } else if (items[i].weight > 0) {
+            // Positive weight item
+            if (remaining_capacity >= items[i].weight) {
+                // Can take the whole item
+                total_value += items[i].value;
+                remaining_capacity -= items[i].weight;
+            } else {
+                // Take a fraction of the item
+                total_value += items[i].value * (remaining_capacity / items[i].weight);
+                remaining_capacity = 0; // Knapsack is full
+            }
+        }
+        // Items with zero weight are ignored as they do not affect capacity
+    }
+
+    free(items); // Free allocated memory
+    return total_value; // Return the maximum value obtained
+}
+
+int main() {
+    int num_items = 5;
+    double max_weight = 10.0;
+    int weights[] = {2, 3, -1, 5, 0}; // Example weights
+    int values[] = {10, 15, -5, 20, 0}; // Example values
+
+    double max_value = fractional_knapsack(num_items, max_weight, weights, values);
+    printf("Maximum value in the knapsack: %.2f\n", max_value);
+    return 0;
+}
+```

@@ -1,0 +1,28 @@
+#include <stdio.h>
+
+long long compute_value(long long n) {
+    long long quotient = n / 11; // Compute the quotient of n divided by 11
+    long long remainder = n % 11; // Compute the remainder of n divided by 11
+
+    // Determine the output based on the value of the remainder
+    if (remainder == 0) {
+        return 2 * quotient; // Case when n is divisible by 11
+    } else if (remainder >= 1 && remainder <= 6) {
+        return 2 * quotient + 1; // Case when remainder is between 1 and 6
+    } else {
+        return 2 * quotient + 2; // Case when remainder is between 7 and 10
+    }
+}
+
+int main() {
+    long long n;
+    // Read input from the user
+    printf("Enter a long long integer: ");
+    scanf("%lld", &n);
+    
+    // Compute and print the result
+    long long result = compute_value(n);
+    printf("Computed result: %lld\n", result);
+    
+    return 0;
+}

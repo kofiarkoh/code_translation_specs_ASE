@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code computes the minimum cost to reach a specified destination node in a directed graph with weighted edges. It detects negative weight cycles and determines if the destination is reachable with a finite cost.
+
+# 2. Inputs
+- Two integers representing the number of nodes and the number of edges in the graph.
+- A series of triplets for each edge, where each triplet consists of:
+  - An integer representing the source node.
+  - An integer representing the destination node.
+  - An integer representing the cost of the edge (which is negated in the computation).
+
+# 3. Outputs
+- The minimum cost to reach the destination node from the source node, negated.
+- If the destination node is unreachable or if there is a negative weight cycle affecting the path to the destination, the output is "inf".
+
+# 4. Preconditions
+- The number of nodes and edges must be non-negative integers.
+- The edges must connect valid node indices within the range defined by the number of nodes.
+
+# 5. Postconditions
+- The output reflects the minimum cost to reach the destination node if reachable; otherwise, it indicates infinite cost due to either inaccessibility or negative weight cycles.
+
+# 6. Invariants
+- The minimum cost array is updated iteratively to reflect the least cost to reach each node based on the edges processed.
+- The initial cost to reach the source node is set to zero, while all other nodes are initialized to a predefined upper limit.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds node indices explicitly; behavior is undefined in such cases.
+- If the input does not conform to expected types or ranges, the output may be unpredictable.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the minimum cost array is updated based on the edges processed, reflecting the evolving costs to reach each node.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is polynomial with respect to the number of nodes and edges, specifically O(N * M) for the main computation.
+
+```

@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_PARTITIONS 100 // Predefined maximum limit for partitions
+#define MODULO_CONSTANT 1000000007 // Predefined constant for modulo operation
+
+// Function to compute the number of ways to partition n balls into k partitions
+int partition_balls(int n, int k) {
+    // Check for preconditions
+    if (n < 0 || k < 0 || k > MAX_PARTITIONS) {
+        return -1; // Error code for invalid input
+    }
+
+    // Create a 2D array to store the number of ways to partition
+    long long **dp = (long long **)malloc((n + 1) * sizeof(long long *));
+    for (int i = 0; i <= n; i++) {
+        dp[i] = (long long *)malloc((k + 1) * sizeof(long long));
+    }
+
+    // Initialize the dp array
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= k; j++) {
+            if (j == 0) {
+                dp[i][j] = (i == 0) ? 1 : 0; // Only one way to partition 0 balls
+            } else {
+                dp[i][j] = 0; // Initialize to 0
+            }
+        }
+    }
+
+    // Fill the dp array based on the partitioning logic
+    for (int j = 1; j <= k; j++) {
+        for (int i = 0; i <= n; i++) {
+            // The number of ways to partition i balls into j partitions
+            dp[i][j] = dp[i][j - 1]; // Case where the j-th partition is empty
+            if (i > 0) {
+                dp[i][j] = (dp[i][j] + dp[i - 1][j]) % MODULO_CONSTANT; // Case where the j-th partition has at least one ball
+            }
+        }
+    }
+
+    int result = dp[n][k]; // Result is the number of ways to partition n balls into k partitions
+
+    // Free allocated memory
+    for (int i = 0; i <= n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+
+    return result; // Return the result modulo the constant
+}
+
+int main() {
+    int n, k;
+    // Read input values
+    if (scanf("%d %d", &n, &k) != 2) {
+        return -1; // Error code for input reading failure
+    }
+
+    int result = partition_balls(n, k);
+    if (result == -1) {
+        printf("Error: Invalid input\n");
+    } else {
+        printf("%d\n", result); // Output the result
+    }
+
+    return 0;
+}

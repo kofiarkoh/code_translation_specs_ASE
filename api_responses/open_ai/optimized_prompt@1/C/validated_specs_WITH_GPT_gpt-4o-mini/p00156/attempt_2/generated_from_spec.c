@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_SIZE 100 // Assuming a maximum grid size for simplicity
+
+// Function to compute the minimum transitions to the edge of the grid
+int min_transitions(int w, int h, char grid[MAX_SIZE][MAX_SIZE], char start_char) {
+    if (w == 0 || h == 0) {
+        // If dimensions are zero, terminate without output
+        return 0;
+    }
+
+    int min_trans = INT_MAX; // Initialize minimum transitions to a large value
+    int visited[MAX_SIZE][MAX_SIZE] = {0}; // To track visited cells
+
+    // Directions for moving up, down, left, right
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+    // Function to perform DFS and count transitions
+    void dfs(int x, int y, int transitions) {
+        if (x < 0 || x >= h || y < 0 || y >= w) {
+            // If out of bounds, check if we are at the edge
+            if (transitions < min_trans) {
+                min_trans = transitions; // Update minimum transitions
+            }
+            return;
+        }
+
+        if (visited[x][y]) {
+            return; // If already visited, return
+        }
+
+        visited[x][y] = 1; // Mark the cell as visited
+
+        // Explore all four directions
+        for (int i = 0; i < 4; i++) {
+            int new_x = x + directions[i][0];
+            int new_y = y + directions[i][1];
+            int new_transitions = transitions;
+
+            // Count transition if the character differs
+            if (new_x >= 0 && new_x < h && new_y >= 0 && new_y < w) {
+                if (grid[new_x][new_y] != grid[x][y]) {
+                    new_transitions++;
+                }
+            }
+
+            // Recursive DFS call
+            dfs(new_x, new_y, new_transitions);
+        }
+
+        visited[x][y] = 0; // Unmark the cell for other paths
+    }
+
+    // Find all starting positions and initiate DFS from each
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            if (grid[i][j] == start_char) {
+                dfs(i, j, 0); // Start DFS from the starting character
+            }
+        }
+    }
+
+    return min_trans / 2; // Return the minimum transitions divided by two
+}
+
+int main() {
+    int w, h;
+    char grid[MAX_SIZE][MAX_SIZE];
+    char start_char;
+
+    // Input dimensions
+    scanf("%d %d", &w, &h);
+    // Input grid
+    for (int i = 0; i < h; i++) {
+        scanf("%s", grid[i]);
+    }
+    // Input starting character
+    scanf(" %c", &start_char);
+
+    // Compute and print the minimum transitions
+    int result = min_transitions(w, h, grid, start_char);
+    printf("%d\n", result);
+
+    return 0;
+}

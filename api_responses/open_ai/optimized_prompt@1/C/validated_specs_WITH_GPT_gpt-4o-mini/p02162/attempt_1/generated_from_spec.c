@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    // Check if exactly four integers are provided
+    if (argc != 5) {
+        return 0; // Terminate without output if input is not exactly four integers
+    }
+
+    // Parse the input integers
+    int time1 = atoi(argv[1]); // First time value
+    int time2 = atoi(argv[2]); // Second time value
+    int result1 = atoi(argv[3]); // First result value
+    int result2 = atoi(argv[4]); // Second result value
+
+    // Ensure result values are non-negative (as per precondition)
+    if (result1 < 0 || result2 < 0) {
+        return 0; // Terminate without output if result values are negative
+    }
+
+    // Determine the winner or if it's a draw
+    if (result1 > result2) {
+        printf("Alice\n"); // Alice wins
+    } else if (result2 > result1) {
+        printf("Bob\n"); // Bob wins
+    } else {
+        printf("Draw\n"); // It's a draw
+    }
+
+    return 0; // Successful termination
+}

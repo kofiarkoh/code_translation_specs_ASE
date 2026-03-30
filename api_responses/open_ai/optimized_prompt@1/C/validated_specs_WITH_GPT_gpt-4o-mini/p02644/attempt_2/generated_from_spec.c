@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_SIZE 100 // Assuming a maximum grid size for simplicity
+
+// Function to find the minimum number of moves
+int min_moves(int h, int w, int k, int s[2], int g[2], char grid[MAX_SIZE][MAX_SIZE]) {
+    // Directions for movement: up, down, left, right
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    
+    // Distance array initialized to infinity
+    int distance[MAX_SIZE][MAX_SIZE];
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < w; j++) {
+            distance[i][j] = INT_MAX; // Represents infinity
+        }
+    }
+    
+    // Starting position distance is 0
+    distance[s[0]][s[1]] = 0;
+
+    // Queue for BFS
+    int queue[MAX_SIZE * MAX_SIZE][2];
+    int front = 0, rear = 0;
+
+    // Enqueue the starting position
+    queue[rear][0] = s[0];
+    queue[rear][1] = s[1];
+    rear++;
+
+    // BFS to explore the grid
+    while (front < rear) {
+        int x = queue[front][0];
+        int y = queue[front][1];
+        front++;
+
+        // Check if we reached the goal
+        if (x == g[0] && y == g[1]) {
+            return distance[x][y];
+        }
+
+        // Explore all four directions
+        for (int d = 0; d < 4; d++) {
+            int dx = directions[d][0];
+            int dy = directions[d][1];
+
+            // Move in the current direction up to k cells
+            for (int step = 1; step <= k; step++) {
+                int new_x = x + step * dx;
+                int new_y = y + step * dy;
+
+                // Check bounds
+                if (new_x < 0 || new_x >= h || new_y < 0 || new_y >= w) {
+                    break; // Out of bounds
+                }
+                // Check for obstacles
+                if (grid[new_x][new_y] == '#') {
+                    break; // Encountered an obstacle
+                }
+                // If we found a shorter path to this cell
+                if (distance[new_x][new_y] > distance[x][y] + 1) {
+                    distance[new_x][new_y] = distance[x][y] + 1;
+                    // Enqueue the new position
+                    queue[rear][0] = new_x;
+                    queue[rear][1] = new_y;
+                    rear++;
+                }
+            }
+        }
+    }
+
+    // If we exit the loop without finding the goal, return -1
+    return -1;
+}
+
+int main() {
+    int h, w, k;
+    int s[2], g[2];
+    char grid[MAX_SIZE][MAX_SIZE];
+
+    // Input reading (assumed to be valid as per specification)
+    scanf("%d %d %d", &h, &w, &k);
+    scanf("%d %d %d %d", &s[0], &s[1], &g[0], &g[1]);
+    
+    // Read the grid
+    for (int i = 0; i < h; i++) {
+        scanf("%s", grid[i]);
+    }
+
+    // Call the function and print the result
+    int result = min_moves(h, w, k, s, g, grid);
+    printf("%d\n", result);
+
+    return 0;
+}

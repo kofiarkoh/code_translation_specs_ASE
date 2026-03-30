@@ -1,0 +1,54 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_STRINGS 100 // Maximum number of strings
+#define MAX_STRING_LENGTH 21 // Maximum length of each string (20 + 1 for null terminator)
+#define MAX_CONCATENATED_LENGTH 5001 // Maximum length of concatenated string (5000 + 1 for null terminator)
+
+int main() {
+    int n, m;
+    char strings[MAX_STRINGS][MAX_STRING_LENGTH];
+    char concatenated[MAX_CONCATENATED_LENGTH];
+
+    // Read input for n and m
+    while (1) {
+        scanf("%d %d", &n, &m);
+        if (n == 0 && m == 0) break; // Termination condition
+
+        // Read n strings
+        for (int i = 0; i < n; i++) {
+            scanf("%s", strings[i]);
+        }
+
+        // Read the concatenated string
+        scanf("%s", concatenated);
+
+        int count = 0; // Count of complete matches
+        int concatenated_length = strlen(concatenated);
+        int flag[MAX_CONCATENATED_LENGTH] = {0}; // Flag array to track matches
+
+        // Process the concatenated string
+        for (int i = 0; i <= concatenated_length - n; i++) {
+            int matched = 1; // Flag to check if all strings match
+            for (int j = 0; j < n; j++) {
+                // Check if the substring matches the j-th string
+                if (strncmp(&concatenated[i + j], strings[j], strlen(strings[j])) != 0) {
+                    matched = 0; // If any string does not match, set matched to 0
+                    break;
+                }
+            }
+            if (matched) {
+                count++; // Increment count if all strings matched
+                // Mark the position in the flag array
+                for (int j = 0; j < n; j++) {
+                    flag[i + j] = 1; // Mark each position that was part of a match
+                }
+            }
+        }
+
+        // Output the count of complete matches
+        printf("%d\n", count);
+    }
+
+    return 0;
+}

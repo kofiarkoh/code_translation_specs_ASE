@@ -1,0 +1,89 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int X, Y, A, B, C;
+    
+    // Read the five integers
+    if (scanf("%d %d %d %d %d", &X, &Y, &A, &B, &C) != 5 || A < 0 || B < 0 || C < 0) {
+        return 1; // Error handling for invalid input
+    }
+
+    int *firstArray = malloc(A * sizeof(int));
+    int *secondArray = malloc(B * sizeof(int));
+    int *thirdArray = malloc(C * sizeof(int));
+
+    // Read the first array
+    for (int i = 0; i < A; i++) {
+        if (scanf("%d", &firstArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error handling for input reading failure
+        }
+    }
+
+    // Read the second array
+    for (int i = 0; i < B; i++) {
+        if (scanf("%d", &secondArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error handling for input reading failure
+        }
+    }
+
+    // Read the third array
+    for (int i = 0; i < C; i++) {
+        if (scanf("%d", &thirdArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error handling for input reading failure
+        }
+    }
+
+    // Sort firstArray and secondArray in descending order
+    // (Assuming they are already sorted as per the specification)
+    
+    // Process the third array to conditionally replace elements in first and second arrays
+    int firstIndex = 0, secondIndex = 0;
+
+    for (int i = 0; i < C; i++) {
+        if (firstIndex < A) {
+            if (thirdArray[i] > firstArray[firstIndex]) {
+                firstArray[firstIndex] = thirdArray[i];
+                firstIndex++;
+            }
+        }
+        if (firstIndex >= A || thirdArray[i] <= firstArray[firstIndex - 1]) {
+            if (secondIndex < B) {
+                if (thirdArray[i] > secondArray[secondIndex]) {
+                    secondArray[secondIndex] = thirdArray[i];
+                    secondIndex++;
+                }
+            }
+        }
+    }
+
+    // Calculate the sum of the first X elements from firstArray and first Y elements from secondArray
+    int sum = 0;
+    for (int i = 0; i < X && i < A; i++) {
+        sum += firstArray[i];
+    }
+    for (int i = 0; i < Y && i < B; i++) {
+        sum += secondArray[i];
+    }
+
+    // Output the result
+    printf("%d\n", sum);
+
+    // Free allocated memory
+    free(firstArray);
+    free(secondArray);
+    free(thirdArray);
+
+    return 0;
+}
+```

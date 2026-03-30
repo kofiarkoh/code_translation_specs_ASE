@@ -1,0 +1,85 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N_MAX 1000 // Assuming a maximum size for n
+
+typedef struct {
+    int parent; // Parent index
+    int size;   // Size of the set (negative for root)
+    int removals; // Count of removals for this element
+} Element;
+
+Element elements[N_MAX + 1]; // Array to hold elements, 1-indexed
+
+// Find function with path compression
+int find(int x) {
+    if (elements[x].parent != x) {
+        elements[x].parent = find(elements[x].parent);
+    }
+    return elements[x].parent;
+}
+
+// Union function with union by size
+void union_sets(int x, int y) {
+    int rootX = find(x);
+    int rootY = find(y);
+    
+    if (rootX != rootY) {
+        // Increment removals for both elements
+        elements[rootX].removals++;
+        elements[rootY].removals++;
+        
+        // Union by size
+        if (elements[rootX].size < elements[rootY].size) {
+            elements[rootX].parent = rootY;
+            elements[rootY].size += elements[rootX].size; // Update size
+        } else {
+            elements[rootY].parent = rootX;
+            elements[rootX].size += elements[rootY].size; // Update size
+        }
+    }
+}
+
+// Initialize the union-find structure
+void initialize(int n) {
+    for (int i = 1; i <= n; i++) {
+        elements[i].parent = i; // Each element is its own parent
+        elements[i].size = -1;   // Size initialized to -1 (indicating size of 1)
+        elements[i].removals = 0; // No removals initially
+    }
+}
+
+// Main function to process union and query operations
+int main() {
+    int n, m, k;
+    scanf("%d %d %d", &n, &m, &k);
+    
+    initialize(n); // Initialize the union-find structure
+
+    // Process union operations
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        scanf("%d %d", &x, &y);
+        union_sets(x, y);
+    }
+
+    // Process query operations and output adjusted sizes
+    for (int i = 0; i < k; i++) {
+        int x, y;
+        scanf("%d %d", &x, &y);
+        if (find(x) == find(y)) {
+            // Increment removals for both elements in the same set
+            elements[find(x)].removals++;
+            elements[find(y)].removals++;
+        }
+    }
+
+    // Output the adjusted sizes
+    for (int i = 1; i <= n; i++) {
+        int root = find(i);
+        // Adjust size by subtracting removals
+        printf("%d\n", -elements[root].size - elements[root].removals);
+    }
+
+    return 0;
+}

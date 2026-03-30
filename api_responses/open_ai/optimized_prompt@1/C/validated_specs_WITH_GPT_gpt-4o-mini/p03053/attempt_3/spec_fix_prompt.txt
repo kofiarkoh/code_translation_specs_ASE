@@ -1,0 +1,137 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdint.h>
+#include<tgmath.h>
+#include<stdbool.h>
+#include<sys/queue.h>
+#include<time.h>
+#define ll long long
+#define min(a, b) ((a) > (b) ? (b) : (a))
+#define max(a, b) ((a) > (b) ? (a) : (b))
+
+const int INF = 1001001001;
+int h, w, b[1001][1001], que[1001001], l=0, r=0, dx[]={0,1,0,-1}, dy[]={1,0,-1,0}, ans=0;
+char a[1001][1001];
+
+int main(){
+	scanf("%d%d", &h, &w);
+	for(int i=0; i<h; i++){
+		scanf("%s", a[i]);
+		for(int j=0; j<w; j++){
+			b[i][j] = INF;
+			if(a[i][j] == '#'){
+				b[i][j] = 0;
+				que[r] = i * 10000 + j;
+				r++;
+				r %= 1001001;
+			}
+		}
+	}
+	while(r != l){
+		int x=que[l]/10000, y=que[l]%10000;
+		l++;
+		l %= 1001001;
+		for(int i=0; i<4; i++){
+			int nx=x+dx[i], ny=y+dy[i];
+			if(0<=nx&&nx<h && 0<=ny&&ny<w && a[nx][ny]=='.' && b[nx][ny] > b[x][y] + 1){
+				b[nx][ny] = b[x][y] + 1;
+				que[r] = nx*10000 + ny;
+				r++;
+				r %= 1001001;
+			}
+		}
+	}
+	for(int i=0; i<h; i++)for(int j=0; j<w; j++)ans = max(ans, b[i][j]);
+	printf("%d\n", ans);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the maximum distance from any cell containing a placeholder character to the nearest cell containing a specific character in a grid. The grid is defined by its height and width, and the characters can be either the specific character or a placeholder.
+
+## 2. Inputs
+- Two positive integers representing the height and width of the grid.
+- A grid of characters where each cell can contain either the specific character or a placeholder.
+
+## 3. Outputs
+- A single integer representing the maximum distance from any cell containing the placeholder to the nearest cell containing the specific character.
+
+## 4. Preconditions
+- The height and width of the grid are positive integers.
+- The grid must contain at least one instance of the specific character.
+
+## 5. Postconditions
+- The output integer is non-negative and represents the maximum distance calculated based on the defined criteria.
+
+## 6. Invariants
+- The distance from any cell containing the specific character to itself is zero.
+- The distance for cells containing the specific character is initialized to zero, while all other cells are initialized to a predefined maximum value.
+
+## 7. Error Handling / Exceptional Behavior
+- The program assumes valid input as per the preconditions and does not handle invalid input formats or out-of-bounds access explicitly.
+
+## 8. State Transitions
+- The algorithm employs a breadth-first search (BFS) approach to propagate distances from cells containing the specific character to all reachable cells containing the placeholder. The state transitions occur as the algorithm processes each cell in the grid, updating distances based on neighboring cells until all reachable cells have been evaluated. The BFS ensures that each cell is processed in a manner that prevents infinite loops or excessive iterations.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is linear with respect to the number of cells in the grid, ensuring efficient processing for reasonably sized grids. The termination condition for the BFS is based on the queue being empty, indicating that all reachable cells have been processed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how distances are calculated for cells that are not directly adjacent to the specific character. It implies a straightforward BFS propagation but does not account for the fact that the maximum distance should be calculated from all reachable placeholder cells, not just the immediate neighbors.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the maximum distance is determined by the longest path from any placeholder cell to the nearest specific character cell, considering all valid paths through the grid. It should explicitly state that the BFS should explore all reachable cells and that the maximum distance is derived from the farthest reachable placeholder cell.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a BFS approach to propagate distances from cells containing the specific character to all reachable cells. The failure in the test case indicates that the counting of distances is not correctly capturing the maximum distance from all placeholder cells, as the BFS should allow for longer paths to be considered. The program initializes distances to a maximum value and updates them based on the BFS traversal, which suggests that the specification should emphasize the need to evaluate all reachable cells to find the maximum distance, rather than just the immediate neighbors.
+
+```

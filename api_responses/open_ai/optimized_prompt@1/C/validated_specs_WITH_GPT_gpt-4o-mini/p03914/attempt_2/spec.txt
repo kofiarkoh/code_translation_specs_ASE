@@ -1,0 +1,40 @@
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific combinatorial value based on two input integers, N and M, and outputs the result modulo a predefined constant. The computation employs dynamic programming to construct a table that captures the relationships between indices based on combinatorial principles, specifically focusing on how values are derived from previous states.
+
+## 2. Inputs
+- Two integers, N and M, where:
+  - N represents the maximum dimension or size of the dynamic programming table.
+  - M represents the number of iterations or steps in the computation.
+
+## 3. Outputs
+- A single long integer representing the computed value based on the dynamic programming table, output modulo a predefined constant.
+
+## 4. Preconditions
+- N and M must be non-negative integers.
+- N must not exceed 302, which is the maximum dimension of the internal data structure used in the computation.
+
+## 5. Postconditions
+- The output is the computed value based on the dynamic programming table, guaranteed to be within the range defined by the modulo operation. If the conditions for valid combinations are not met, the output may be zero.
+
+## 6. Invariants
+- The dynamic programming table is maintained such that for each iteration, the values are updated based on previously computed states. Specifically, the updates reflect the combinatorial relationships defined by the indices, ensuring consistency in the computed values.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid values for N and M. It assumes valid input is provided. If N or M are outside the specified bounds, the behavior is undefined.
+- The output is guaranteed to be within the bounds of the modulo operation, preventing overflow in the output.
+
+## 8. State Transitions
+- The state transitions occur within the dynamic programming table as values are updated based on the current indices and the number of iterations. Specifically, for each iteration k, the values at indices (i, j) are computed based on the values from the previous iteration, reflecting changes in the relationships defined by the combinatorial logic.
+
+## 9. Non-functional Constraints
+- The computation is expected to complete in a reasonable time frame for inputs within typical constraints, given the nested loop structure. The space complexity is constrained by the size of the dynamic programming table, which is fixed at 302x302. 
+
+## 10. Combinatorial Logic
+- The updates to the dynamic programming table are governed by specific combinatorial rules:
+  - For each index (i, j), the value is updated based on:
+    - The contribution from the previous state at (i, j) multiplied by the difference between N and i.
+    - The contribution from the previous state at (i, i) multiplied by j.
+    - The contribution from the previous state at (i, j) multiplied by the difference between i and j.
+  - If certain conditions are not met during the updates, the resulting value at dp[N][N] may be zero, indicating that no valid combinations exist for the given inputs.

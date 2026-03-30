@@ -1,0 +1,159 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#define mod 1000000007
+#define calc(x) (1LL*((x&1)?0:pw[x>>1]))
+#define add_edge(u,v) to[tot]=v;pre[tot]=lst[u];lst[u]=tot++
+int lst[5005],to[10005],pre[10005],tot,sz[5005],dp_sz[5005],n;
+long long dp[5005][5005][2],pw[5005]={1},tmp[5005][2],ans=0;
+void init_dfs(int u,int fa)
+{
+	sz[u]=1;
+	for (int i=lst[u];~i;i=pre[i])
+	{
+		if (to[i]==fa) continue;
+		init_dfs(to[i],u);
+		sz[u]+=sz[to[i]];
+	}
+}
+void dfs(int u,int fa)
+{
+	dp[u][0][0]=1;
+	for (int i=lst[u];~i;i=pre[i])
+	{
+		int v=to[i];
+		if (v==fa) continue;
+		dfs(v,u);
+		memset(tmp,0,sizeof(tmp));
+		for (int x=dp_sz[u];x>=0;x--)
+		{
+			for (int y=dp_sz[v];y>=0;y--)
+			{
+				tmp[x+y][0]=(tmp[x+y][0]+dp[u][x][0]*dp[v][y][0])%mod;
+				tmp[x+y][0]=(tmp[x+y][0]+dp[u][x][1]*dp[v][y][1])%mod;
+				tmp[x+y][1]=(tmp[x+y][1]+dp[u][x][0]*dp[v][y][1])%mod;
+				tmp[x+y][1]=(tmp[x+y][1]+dp[u][x][1]*dp[v][y][0])%mod;
+			}
+		}
+		memcpy(dp[u],tmp,sizeof(tmp));
+		dp_sz[u]+=dp_sz[v];
+	}
+	if (u)
+	{
+		for (int x=dp_sz[u];x>=0;x--)
+		{
+			dp[u][sz[u]][0]=(dp[u][sz[u]][0]+dp[u][x][1]*calc(sz[u]-x))%mod;
+			dp[u][sz[u]][1]=(dp[u][sz[u]][1]+dp[u][x][0]*calc(sz[u]-x))%mod;
+		}
+	}
+	dp_sz[u]++;
+}
+int main()
+{
+	memset(lst,-1,sizeof(lst));
+	scanf("%d",&n);
+	for (int i=1;i<=n;i++) pw[i]=pw[i-1]*(i*2-1)%mod;
+	for (int i=1;i<n;i++)
+	{
+		int u,v;
+		scanf("%d%d",&u,&v);
+		--u,--v;
+		add_edge(u,v);
+		add_edge(v,u);
+	}
+	init_dfs(0,-1);dfs(0,-1);
+	for (int i=0;i<=n;i++)
+	{
+		ans=(ans+dp[0][i][0]*calc(n-i))%mod;
+		ans=(ans-dp[0][i][1]*calc(n-i))%mod;
+	}
+	printf("%lld\n",(ans+mod)%mod);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a specific combinatorial value based on a tree structure defined by user input. It processes the tree to calculate values related to the sizes of subtrees and their configurations, ultimately returning a result that is a modular arithmetic expression involving these values.
+
+# 2. Inputs
+- An integer `n` representing the number of nodes in the tree.
+- `n-1` pairs of integers representing edges between nodes, defining the tree structure.
+
+# 3. Outputs
+- A single long integer representing the computed result, which is the final value after processing the tree.
+
+# 4. Preconditions
+- The input integer `n` must be greater than or equal to 1.
+- The edges must form a valid tree structure (i.e., connected and acyclic).
+
+# 5. Postconditions
+- The output is a non-negative integer that is the result of a specific combinatorial calculation based on the tree structure.
+
+# 6. Invariants
+- The size of each subtree is correctly maintained throughout the depth-first search operations.
+- The dynamic programming table is consistently updated to reflect the current state of subtree configurations.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle erroneous inputs (e.g., invalid edges or non-tree structures). It assumes valid input as per the preconditions.
+- The output is adjusted to be non-negative by applying a modular operation.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the depth-first search, where the state of each node's subtree size and dynamic programming values are updated based on its children.
+
+# 9. Non-functional Constraints (if inferable)
+- The computations are performed under a modular arithmetic constraint to prevent overflow and ensure results fit within standard integer limits. The modulus used is `1000000007`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing edge case or wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address the handling of edge cases related to tree structures, particularly regarding the allocation and management of dynamic memory for child nodes.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the expected behavior when the tree structure is not fully populated or when nodes have no children. It should also specify how to handle cases where memory allocation fails, which could lead to runtime errors.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a fixed-size array for managing edges and nodes, which inherently avoids issues related to dynamic memory allocation. In contrast, the generated program uses dynamic memory allocation for child nodes, which can lead to runtime errors if not handled correctly (e.g., if `realloc` fails). The source program's approach ensures that all nodes are accounted for without the risk of memory-related issues, highlighting a potential oversight in the generated program's handling of tree structures.
+
+```

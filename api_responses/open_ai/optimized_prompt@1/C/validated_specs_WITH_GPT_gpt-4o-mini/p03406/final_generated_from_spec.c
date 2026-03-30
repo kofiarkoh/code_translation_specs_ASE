@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MD 1000000007 // Modulus value as per specification
+
+// Function to compute factorials and inverse factorials
+void precompute_factorials(int n, long long *ff, long long *gg) {
+    ff[0] = 1;
+    for (int i = 1; i <= n; i++) {
+        ff[i] = ff[i - 1] * i % MD;
+    }
+    // Compute inverse factorials using Fermat's Little Theorem
+    gg[n] = 1; // gg[n] = (ff[n]^(MD-2)) % MD
+    for (int i = n - 1; i >= 0; i--) {
+        gg[i] = gg[i + 1] * (i + 1) % MD;
+    }
+}
+
+// Function to compute n choose k
+long long choose(int n, int k, long long *ff, long long *gg) {
+    if (k > n) return 0;
+    return ff[n] * gg[k] % MD * gg[n - k] % MD;
+}
+
+int main() {
+    int n, m;
+    scanf("%d %d", &n, &m);
+    
+    // Preconditions check
+    if (n < 0 || n > 16 || m < 0) {
+        return 1; // Invalid input
+    }
+
+    int size = 1 << n; // 2^n
+    int *aa = (int *)malloc(m * sizeof(int));
+    long long *ff = (long long *)malloc((size + 1) * sizeof(long long));
+    long long *gg = (long long *)malloc((size + 1) * sizeof(long long));
+    long long *dp = (long long *)calloc(size, sizeof(long long));
+
+    // Read input values and transform them
+    for (int h = 0; h < m; h++) {
+        scanf("%d", &aa[h]);
+        // Transform aa[h] as per specification
+        aa[h] = (size - 1) - aa[h];
+    }
+
+    // Precompute factorials and inverse factorials
+    precompute_factorials(size, ff, gg);
+
+    // Initialize dp array
+    dp[0] = 1; // Base case
+
+    // Dynamic programming to compute results
+    for (int h = 0; h < m; h++) {
+        for (int b = size - 1; b >= 0; b--) {
+            if (dp[b] > 0) {
+                for (int i = 0; i < n; i++) {
+                    if (!(b & (1 << i))) { // If bit i is not set in b
+                        int new_mask = b | (1 << i);
+                        dp[new_mask] = (dp[new_mask] + dp[b] * choose(aa[h] - b, (1 << i) - 1, ff, gg)) % MD;
+                    }
+                }
+            }
+        }
+    }
+
+    // Final result calculation
+    long long result = 0;
+    for (int b = 0; b < size; b++) {
+        if (dp[b] > 0) {
+            int unset_bits = n - __builtin_popcount(b); // Count unset bits
+            result = (result + dp[b] * (unset_bits % 2 == 0 ? 1 : -1)) % MD; // Adjust based on parity
+        }
+    }
+
+    // Ensure result is non-negative
+    result = (result + MD) % MD;
+
+    // Output the result
+    printf("%lld\n", result);
+
+    // Free allocated memory
+    free(aa);
+    free(ff);
+    free(gg);
+    free(dp);
+
+    return 0;
+}

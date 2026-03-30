@@ -1,0 +1,80 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+#define MAX_POINTS 128 // N + 1 must not exceed 128
+
+// Function to calculate the cost based on boundary constraints
+int nigeru(int x, int y, int A, int B, int C, int D, int isSrc) {
+    int cost = 0;
+
+    // Adjust cost based on x-coordinate boundaries
+    if (x < A) {
+        cost += A - x; // Cost increases if x is less than A
+    } else if (x > C) {
+        cost += x - C; // Cost increases if x exceeds C
+    }
+
+    // Adjust cost based on y-coordinate boundaries
+    if (y < B) {
+        cost += B - y; // Cost increases if y is less than B
+    } else if (y > D) {
+        cost += y - D; // Cost increases if y exceeds D
+    }
+
+    // If this is the source point and cost is positive, decrement by 1
+    if (isSrc && cost > 0) {
+        cost -= 1;
+    }
+
+    return cost;
+}
+
+// Function to calculate the minimum movement cost
+int calculate_min_cost(int N, int A, int B, int C, int D, int X[], int Y[]) {
+    int total_cost = 0;
+
+    for (int i = 1; i <= N; i++) {
+        // Calculate direct distance between points
+        int direct_distance = abs(X[i] - X[i - 1]) + abs(Y[i] - Y[i - 1]);
+
+        // Calculate adjusted cost using nigeru function
+        int cost_from_prev = nigeru(X[i - 1], Y[i - 1], A, B, C, D, i == 1);
+        int cost_to_curr = nigeru(X[i], Y[i], A, B, C, D, 0);
+
+        // Determine the minimum cost for this segment
+        int segment_cost = (direct_distance < (cost_from_prev + cost_to_curr)) ? direct_distance : (cost_from_prev + cost_to_curr);
+        total_cost += segment_cost;
+    }
+
+    return total_cost;
+}
+
+int main() {
+    int N;
+    int A, B, C, D;
+    int X[MAX_POINTS], Y[MAX_POINTS];
+
+    // Read input values
+    if (scanf("%d", &N) != 1 || N <= 0 || N >= MAX_POINTS) {
+        return -1; // Error: invalid number of points
+    }
+
+    if (scanf("%d %d %d %d", &A, &B, &C, &D) != 4) {
+        return -1; // Error: invalid boundary inputs
+    }
+
+    for (int i = 0; i <= N; i++) {
+        if (scanf("%d %d", &X[i], &Y[i]) != 2) {
+            return -1; // Error: invalid coordinate input
+        }
+    }
+
+    // Calculate and output the minimum cost
+    int min_cost = calculate_min_cost(N, A, B, C, D, X, Y);
+    printf("%d\n", min_cost);
+
+    return 0;
+}
+```

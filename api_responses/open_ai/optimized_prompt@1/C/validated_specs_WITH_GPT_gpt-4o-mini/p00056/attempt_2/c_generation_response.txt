@@ -1,0 +1,54 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_VALUE 100 // Define the maximum value for prime generation
+
+// Function to generate a table of prime numbers up to max_value
+void generate_primes(int max_value, int *is_prime) {
+    for (int i = 0; i <= max_value; i++) {
+        is_prime[i] = 1; // Assume all numbers are prime initially
+    }
+    is_prime[0] = is_prime[1] = 0; // 0 and 1 are not prime numbers
+
+    for (int i = 2; i * i <= max_value; i++) {
+        if (is_prime[i]) {
+            for (int j = i * i; j <= max_value; j += i) {
+                is_prime[j] = 0; // Mark multiples of i as non-prime
+            }
+        }
+    }
+}
+
+// Function to count distinct pairs of primes that sum to n
+int count_prime_pairs(int n, int *is_prime) {
+    int count = 0;
+    for (int p1 = 2; p1 <= n / 2; p1++) {
+        int p2 = n - p1;
+        if (is_prime[p1] && is_prime[p2] && p1 <= p2) {
+            count++; // Count the pair (p1, p2)
+        }
+    }
+    return count;
+}
+
+int main() {
+    int n;
+    if (scanf("%d", &n) != 1 || n < 0 || n > MAX_VALUE) {
+        // If input is not a valid integer or out of bounds, do nothing
+        return 0;
+    }
+    if (n == 0) {
+        // If n is 0, terminate without output
+        return 0;
+    }
+
+    int is_prime[MAX_VALUE + 1];
+    generate_primes(MAX_VALUE, is_prime); // Populate the prime table
+
+    int result = count_prime_pairs(n, is_prime); // Count pairs that sum to n
+    printf("%d\n", result); // Output the result
+
+    return 0;
+}
+```

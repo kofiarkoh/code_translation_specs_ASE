@@ -1,0 +1,103 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_N 1000000
+
+typedef struct {
+    int x, y;
+    int id; // Unique ID for each point
+} Point;
+
+typedef struct Node {
+    Point point;
+    struct Node *left, *right;
+} Node;
+
+Node* build_kd_tree(Point* points, int start, int end, int depth) {
+    if (start > end) return NULL;
+
+    // Sort points based on depth (0 for x-axis, 1 for y-axis)
+    int axis = depth % 2;
+    qsort(points + start, end - start + 1, sizeof(Point), 
+          axis == 0 ? cmpx_func : cmpy_func);
+
+    int mid = (start + end) / 2;
+    Node* node = (Node*)malloc(sizeof(Node));
+    node->point = points[mid];
+    node->left = build_kd_tree(points, start, mid - 1, depth + 1);
+    node->right = build_kd_tree(points, mid + 1, end, depth + 1);
+    return node;
+}
+
+int cmpx_func(const void* a, const void* b) {
+    return ((Point*)a)->x - ((Point*)b)->x;
+}
+
+int cmpy_func(const void* a, const void* b) {
+    return ((Point*)a)->y - ((Point*)b)->y;
+}
+
+void range_query(Node* node, int sx, int tx, int sy, int ty, int* result, int* count) {
+    if (node == NULL) return;
+
+    // Check if the point is within the range
+    if (node->point.x >= sx && node->point.x <= tx &&
+        node->point.y >= sy && node->point.y <= ty) {
+        result[(*count)++] = node->point.id; // Store the point ID
+    }
+
+    // Determine which side to search based on the current axis
+    if (node->point.x > sx) {
+        range_query(node->left, sx, tx, sy, ty, result, count);
+    }
+    if (node->point.x < tx) {
+        range_query(node->right, sx, tx, sy, ty, result, count);
+    }
+}
+
+void free_kd_tree(Node* node) {
+    if (node == NULL) return;
+    free_kd_tree(node->left);
+    free_kd_tree(node->right);
+    free(node);
+}
+
+int main() {
+    int n;
+    scanf("%d", &n);
+    if (n <= 0 || n > MAX_N) return 0; // Handle invalid n
+
+    Point points[MAX_N];
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d", &points[i].x, &points[i].y);
+        points[i].id = i; // Assign unique ID
+    }
+
+    Node* root = build_kd_tree(points, 0, n - 1, 0);
+
+    int q;
+    scanf("%d", &q);
+    for (int i = 0; i < q; i++) {
+        int sx, tx, sy, ty;
+        scanf("%d %d %d %d", &sx, &tx, &sy, &ty);
+        int result[MAX_N];
+        int count = 0;
+
+        range_query(root, sx, tx, sy, ty, result, &count);
+
+        // Sort the result array before printing
+        qsort(result, count, sizeof(int), cmpi_func);
+        for (int j = 0; j < count; j++) {
+            printf("%d", result[j]);
+            if (j < count - 1) printf(" ");
+        }
+        printf("\n");
+    }
+
+    free_kd_tree(root);
+    return 0;
+}
+
+int cmpi_func(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}

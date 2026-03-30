@@ -1,0 +1,175 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2613: Unordered Operators
+// 2017.10.10 bal4u@uu
+
+#include <stdio.h>
+#include <ctype.h>
+
+#define MAX 210
+
+#define VAL   10
+#define LEFT  -1
+#define RIGHT -2
+#define PLUS   0 
+#define MINUS  1
+#define MUL    2
+
+typedef struct { long long v; char id; } T;
+T stack[MAX+3], buf[MAX+3]; int top, end;
+
+char str[MAX], *p;
+
+int tbl[13][3] = {
+	{1,2,3},{1,3,2},{2,1,3},{2,3,1},{3,1,2},{3,2,1},
+	{1,1,1},{1,1,2},{2,2,1},{1,2,1},{2,1,2},{1,2,2},{2,1,1}}; int rid;
+
+long long getInt(void)
+{
+	long long n = 0;
+	while (isdigit(*p)) n = 10 * n + (*p++ - '0');
+	return n;
+}
+
+int token(char c)
+{
+	if (c == '+') return PLUS;
+	if (c == '-') return MINUS;
+	return MUL;
+}
+
+int rank(int op)
+{
+	if (op == LEFT) return LEFT;
+	return tbl[rid][op];
+}
+
+int main()
+{
+	int i, id, f;
+	long long v1, v2, ans;
+
+	scanf("%s", str); f = 1;
+	for (rid = 0; rid < 13; rid++) {
+		p = str, top = 0, end = 0;
+		while (*p) {
+			if (isdigit(*p)) buf[end].id = VAL, buf[end++].v = getInt();
+			else if (*p == ')') {
+				while (top > 0 && stack[top-1].id != LEFT) buf[end++] = stack[--top];
+				p++, top--;
+			} else if (*p == '(') stack[top++].id = LEFT, p++;
+			else {
+				id = token(*p++);
+				while (top > 0) {
+					if (rank(id) <= rank(stack[top-1].id))
+						buf[end++] = stack[--top];
+					else break;
+				}
+				stack[top++].id = id;
+			}
+		}
+		while (top > 0) buf[end++] = stack[--top];
+
+		for (top = i = 0; i < end; i++) {
+			if ((id = buf[i].id) == VAL) stack[top++].v = buf[i].v;
+			else {
+				v1 = stack[--top].v, v2 = stack[--top].v;
+				if      (id == PLUS)  v2 += v1;
+				else if (id == MINUS) v2 -= v1;
+				else if (id == MUL)   v2 *= v1;
+				stack[top++].v = v2;
+			}
+		}
+		if (f) ans = stack[--top].v, f = 0;
+		else if (ans < stack[--top].v) ans = stack[top].v;
+	}
+	printf("%lld\n", ans);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code evaluates mathematical expressions containing non-negative integers and the operators addition, subtraction, and multiplication. It processes the expressions in an unordered manner, determining the result based on operator precedence and the grouping defined by parentheses. The final output is the maximum result obtained from evaluating the expression across all valid operator arrangements while respecting the order of operations dictated by parentheses.
+
+## 2. Inputs
+- A string representing a mathematical expression composed of non-negative integers and the operators '+', '-', and '*'.
+- The expression may include parentheses to denote precedence and grouping of operations.
+
+## 3. Outputs
+- A single long long integer representing the maximum value obtained from evaluating the expression.
+
+## 4. Preconditions
+- The input string must be a valid mathematical expression containing only digits, the specified operators, and parentheses.
+- The expression must not exceed the defined maximum length.
+
+## 5. Postconditions
+- The output is the maximum result of evaluating the expression across all valid operator arrangements, taking into account the operator precedence and the grouping defined by parentheses.
+
+## 6. Invariants
+- The stack maintains a valid state throughout the evaluation process, ensuring that operands and operators are correctly processed.
+- The buffer holds intermediate results and operators in a valid order for evaluation.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle malformed input or errors during evaluation. It assumes that the input is well-formed as per the preconditions.
+
+## 8. State Transitions
+- The state transitions occur as the input string is processed, moving from reading characters to populating the stack and buffer, and finally to evaluating the expression. The evaluation respects the order of operations defined by parentheses, ensuring that expressions are evaluated correctly based on their grouping.
+
+## 9. Non-functional Constraints
+- The implementation is expected to operate within a reasonable time frame for expressions of the maximum defined length, though no specific performance metrics are provided.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how to handle the accumulation of results when multiple operations are involved, particularly with respect to operator precedence and the order of operations.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how intermediate results are combined when multiple operators are present, especially in cases where both addition and multiplication are involved. It should specify that the maximum result should be calculated by considering all possible arrangements of operations, rather than simply accumulating results in a linear fashion.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program evaluates expressions by considering operator precedence and grouping defined by parentheses, which allows for different arrangements of operations to yield different results. The failing test case indicates that the generated program does not account for the correct application of operator precedence, leading to an incorrect maximum result. The source program's logic suggests that the evaluation should consider the maximum possible outcome from all valid operator arrangements, rather than just a straightforward evaluation of the expression.
+
+```

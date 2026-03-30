@@ -1,0 +1,115 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+
+#define MOD 1000000007
+ll fact[1000010];
+ll invfact[1000010];
+ll temp[1000010];
+
+ll choose(ll n,ll r){
+	if(n<0||r<0||r>n)return 0;
+	return fact[n]*invfact[r]%MOD*invfact[n-r]%MOD;
+}
+
+int main(){
+	fact[0]=1;
+	rep(i,1,1000005)fact[i]=fact[i-1]*i%MOD;
+	invfact[1000000]=pom(fact[1000000],MOD-2,MOD);
+	for(ll i=999999;i>=0;i--)invfact[i]=invfact[i+1]*(i+1)%MOD;
+	
+	ll n;
+	scanf("%lld",&n);
+	rep(k,0,n)temp[k]=choose(k-1,n-1-k)*fact[k]%MOD*fact[n-1-k]%MOD;
+	ll ans=0;
+	rep(k,1,n)ans=(ans+k*(temp[k]-temp[k-1]+MOD))%MOD;
+	printf("%lld\n",ans);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a specific combinatorial value based on the input integer, utilizing factorials and modular arithmetic to ensure results remain within a defined range.
+
+# 2. Inputs
+- A single integer \( n \) representing the upper limit for combinatorial calculations, where \( n \geq 0 \).
+
+# 3. Outputs
+- A single integer representing the computed result, which is the final value derived from the combinatorial calculations, modulo a predefined constant.
+
+# 4. Preconditions
+- The input integer \( n \) must be non-negative.
+- The input integer \( n \) must not exceed 1,000,000.
+
+# 5. Postconditions
+- The output is a non-negative integer that is the result of the combinatorial calculations, guaranteed to be less than the predefined constant.
+
+# 6. Invariants
+- Factorials and their modular inverses are precomputed and stored in arrays, ensuring efficient access during calculations.
+- The computed values remain consistent with modular arithmetic properties throughout the execution.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input \( n \) is negative or if \( r \) (in the choose function) is out of bounds, the function returns zero without further processing.
+
+# 8. State Transitions (if applicable)
+- The state transitions involve the initialization of factorial and inverse factorial arrays, followed by updates based on the input \( n \) and subsequent calculations of combinatorial values.
+
+# 9. Non-functional Constraints (if inferable)
+- The computations are performed efficiently, with a time complexity that allows handling of the maximum input size within reasonable limits, ensuring performance is adequate for real-time applications.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong abstraction.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately describe the specific combinatorial calculations being performed, particularly the logic behind the computation of the result based on the input \( n \). It lacks clarity on how the values are derived from the combinatorial calculations, especially in the context of the `temp` array and the final summation.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the exact combinatorial formula being used to compute the result, including how the `temp` array is populated and how the final result is derived from it. It should also specify the relationship between the input \( n \) and the indices used in the combinatorial calculations, particularly the significance of \( k-1 \) and \( n-1-k \) in the `choose` function.
+
+D. **Why this clarification is supported by the source program**  
+The source program computes values based on a specific combinatorial logic that involves iterating through values of \( k \) and using the `choose` function in a way that is not explicitly detailed in the current specification. The failing test case indicates that the expected output is derived from a more complex interaction of these calculations than what is currently described, suggesting that the specification does not fully capture the necessary details of the algorithm's behavior.
+
+```

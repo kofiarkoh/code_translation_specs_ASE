@@ -1,0 +1,55 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_TEAMS 10
+#define NAME_LENGTH 50
+
+typedef struct {
+    char name[NAME_LENGTH];
+    int wins;
+    int losses;
+    int draws;
+    int score; // Calculated score
+} Team;
+
+// Function to calculate the score based on wins and draws
+int calculate_score(int wins, int draws) {
+    return wins * 3 + draws;
+}
+
+// Function to compare teams for sorting
+int compare_teams(const void *a, const void *b) {
+    Team *teamA = (Team *)a;
+    Team *teamB = (Team *)b;
+    return teamB->score - teamA->score; // Descending order
+}
+
+int main() {
+    int n;
+    Team teams[MAX_TEAMS];
+
+    while (1) {
+        // Read the number of teams
+        scanf("%d", &n);
+        if (n == 0) {
+            break; // Termination condition
+        }
+
+        // Read team data
+        for (int i = 0; i < n; i++) {
+            scanf("%s %d %d %d", teams[i].name, &teams[i].wins, &teams[i].losses, &teams[i].draws);
+            teams[i].score = calculate_score(teams[i].wins, teams[i].draws); // Calculate score
+        }
+
+        // Sort teams by score
+        qsort(teams, n, sizeof(Team), compare_teams);
+
+        // Output results
+        for (int i = 0; i < n; i++) {
+            printf("%s,%d\n", teams[i].name, teams[i].score);
+        }
+        printf("\n"); // Blank line between outputs of different sets
+    }
+
+    return 0;
+}

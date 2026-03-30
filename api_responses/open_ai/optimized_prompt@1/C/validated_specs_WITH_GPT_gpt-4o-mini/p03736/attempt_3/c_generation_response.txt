@@ -1,0 +1,66 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_VALUE 1000000000LL // A predefined maximum value for initialization
+
+long long compute_min_cost(int n, int q, int i, int j, int* queries) {
+    // Initialize the minimum costs array with a predefined maximum value
+    long long* min_costs = (long long*)malloc(n * sizeof(long long));
+    for (int k = 0; k < n; k++) {
+        min_costs[k] = MAX_VALUE; // Initialize to maximum value
+    }
+
+    // Set the initial indices' costs to zero
+    min_costs[i] = 0;
+    min_costs[j] = 0;
+
+    long long total_cost = 0;
+
+    // Process each query
+    for (int k = 0; k < q; k++) {
+        int query_index = queries[k];
+
+        // Ensure the query index is within bounds
+        if (query_index < 0 || query_index >= n) {
+            // Undefined behavior as per specification; we do not handle this case
+            return -1; // Placeholder for undefined behavior
+        }
+
+        // Calculate the cost based on the distance from the previous indices
+        long long cost_i = abs(query_index - i);
+        long long cost_j = abs(query_index - j);
+        long long current_cost = (cost_i < cost_j) ? cost_i : cost_j;
+
+        // Update the total cost
+        total_cost += current_cost;
+
+        // Update the minimum costs for the current index
+        if (current_cost < min_costs[query_index]) {
+            min_costs[query_index] = current_cost;
+        }
+
+        // Update the previous indices for the next iteration
+        i = query_index; // Move to the current index
+    }
+
+    free(min_costs); // Free allocated memory
+    return total_cost; // Return the total minimum cost
+}
+
+int main() {
+    int n, q, i, j;
+    // Example input; in practice, these would be read from input
+    n = 5; // Number of indices
+    q = 3; // Number of queries
+    i = 0; // Initial index i
+    j = 1; // Initial index j
+    int queries[] = {2, 3, 4}; // Example queries
+
+    long long result = compute_min_cost(n, q, i, j, queries);
+    printf("%lld\n", result); // Output the result
+
+    return 0;
+}
+```

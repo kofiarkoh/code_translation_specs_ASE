@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+#define MAX_N 302
+#define MODULO_CONSTANT 1000000007 // Predefined constant for modulo operation
+
+// Function to compute the combinatorial value based on dynamic programming
+long compute_combinatorial(int N, int M) {
+    long dp[MAX_N][MAX_N] = {0}; // Dynamic programming table initialized to zero
+
+    // Base case initialization
+    for (int i = 0; i <= N; i++) {
+        dp[i][0] = 1; // C(i, 0) = 1 for all i
+    }
+
+    // Fill the dynamic programming table based on the combinatorial logic
+    for (int k = 1; k <= M; k++) { // Iterate over the number of steps
+        for (int i = 0; i <= N; i++) {
+            for (int j = 0; j <= N; j++) {
+                // Update dp[i][j] based on the specified combinatorial rules
+                dp[i][j] = (dp[i][j] + dp[i][j] * (N - i)) % MODULO_CONSTANT; // Contribution from (i, j)
+                dp[i][j] = (dp[i][j] + dp[i][i] * j) % MODULO_CONSTANT; // Contribution from (i, i)
+                dp[i][j] = (dp[i][j] + dp[i][j] * (i - j)) % MODULO_CONSTANT; // Contribution from (i, j)
+            }
+        }
+    }
+
+    // Return the computed value at dp[N][N] modulo the predefined constant
+    return dp[N][N];
+}
+
+int main() {
+    int N, M;
+    // Assume valid input is provided for N and M
+    scanf("%d %d", &N, &M);
+    
+    // Call the computation function and print the result
+    long result = compute_combinatorial(N, M);
+    printf("%ld\n", result);
+    
+    return 0;
+}

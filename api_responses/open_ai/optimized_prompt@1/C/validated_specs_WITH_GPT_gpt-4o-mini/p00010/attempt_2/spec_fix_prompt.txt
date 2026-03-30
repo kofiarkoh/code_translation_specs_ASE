@@ -1,0 +1,125 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(){
+	int i, n;
+	
+		scanf("%d", &n);
+		
+		for(i = 0; i < n; i++){
+			double x1, y1, x2, y2, x3, y3, px, py, x, s, r, a1 ,a2, b1, b2, c1, c2;
+			
+			scanf("%lf %lf %lf %lf %lf %lf", &x1, &y1, &x2, &y2, &x3, &y3);
+			a1 = 2 * (x2 - x1);
+			b1 = 2 * (y2 - y1);
+			c1 = x1 * x1 - x2 * x2 + y1 * y1 - y2 * y2;
+		
+			a2 = 2 * (x3 - x1);
+			b2 = 2 * (y3 - y1);
+			c2 = x1 * x1 - x3 * x3 + y1 * y1 - y3 * y3;
+		
+			px = (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1);
+			py = (c1 * a2 - c2 * a1) / (a1 * b2 - a2 * b1);
+			
+			x = 0.0;
+			s = (x1 - px) * (x1 - px) + (y1 - py) * (y1 - py);
+			r = s / 2.0;
+			
+			while(r != x){
+				x = r;
+				r = (r + s / r) / 2.0;
+			}
+			
+			if(r < 0) r *= -1;
+		
+			printf("%.3lf %.3lf %.3lf\n", px, py, r);
+		}
+	
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program computes the circumcenter and circumradius of a triangle defined by three points in a 2D space. It processes multiple sets of triangle vertices and outputs the circumcenter coordinates and circumradius for each set.
+
+# 2. Inputs
+- An integer `n` representing the number of triangle vertex sets.
+- For each triangle, six floating-point numbers representing the coordinates of three vertices: `(x1, y1)`, `(x2, y2)`, and `(x3, y3)`.
+
+# 3. Outputs
+- For each triangle, three floating-point numbers: the x-coordinate of the circumcenter, the y-coordinate of the circumcenter, and the circumradius, formatted to three decimal places.
+
+# 4. Preconditions
+- The input integer `n` must be a non-negative integer.
+- Each set of six floating-point numbers must represent valid coordinates in a 2D space.
+
+# 5. Postconditions
+- The output will consist of `n` lines, each containing three floating-point numbers representing the circumcenter and circumradius of the corresponding triangle.
+
+# 6. Invariants
+- The circumcenter coordinates and circumradius are computed based on the geometric properties of the triangle formed by the input vertices.
+- The output values are guaranteed to be formatted to three decimal places.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or values that could lead to division by zero or undefined behavior. It assumes valid input is provided.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input to processing each triangle's vertices, followed by computing and outputting the circumcenter and circumradius.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a reasonable time frame for typical input sizes, though specific performance metrics are not defined.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Missing constraint / wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not mention the need for including necessary headers for mathematical functions, such as `sqrt`, which is required for the computation of the circumradius.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify that the program requires the inclusion of specific headers for mathematical operations, particularly when using functions like `sqrt`.
+
+D. **Why this clarification is supported by the source program**  
+- The source program uses the `sqrt` function to compute the circumradius, which necessitates including the `<math.h>` header. The absence of this detail in the specification leads to compilation errors, indicating a lack of clarity regarding the necessary dependencies for the program to function correctly.
+
+```

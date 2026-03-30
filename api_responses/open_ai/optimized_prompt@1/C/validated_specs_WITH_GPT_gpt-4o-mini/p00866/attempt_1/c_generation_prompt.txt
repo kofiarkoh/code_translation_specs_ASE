@@ -1,0 +1,58 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code processes multiple sets of time inputs representing the positions of clock hands and determines the minimum time interval during which all clock hands align at least once. It outputs the start and end times of this interval in a specific format.
+
+# 2. Inputs
+- A positive integer `n` indicating the number of sets of clock hand positions.
+- For each set, three integers representing the positions of the hour, minute, and second hands.
+
+# 3. Outputs
+- For each input set, the output consists of two timestamps: the earliest and latest times (in hours, minutes, and seconds) during which all clock hands align.
+
+# 4. Preconditions
+- The input integer `n` must be greater than zero.
+- Each set of clock hand positions must consist of three valid integers.
+
+# 5. Postconditions
+- The output timestamps represent the earliest and latest times when all clock hands align, formatted as `HH:MM:SS`.
+
+# 6. Invariants
+- The internal data structure maintains a list of unique timestamps corresponding to the alignment of clock hands.
+- The alignment check is performed for all possible minute offsets.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or negative values for `n`. It assumes that input is well-formed as per the specified requirements.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each set of clock hand positions, updating the list of timestamps and the minimum and maximum alignment times.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed memory limit for storing timestamps and assumes that the number of input sets does not exceed the predefined capacity. The performance is influenced by the sorting operation on the timestamps.
+
+```

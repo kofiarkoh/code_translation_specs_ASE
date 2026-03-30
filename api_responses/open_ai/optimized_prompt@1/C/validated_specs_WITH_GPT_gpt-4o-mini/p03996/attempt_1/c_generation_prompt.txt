@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a sequence of integers to determine if they can be arranged in a specific order based on their counts. It guarantees that if the sequence can be arranged according to the specified rules, it outputs a confirmation; otherwise, it indicates failure.
+
+# 2. Inputs
+- Three integers: `n`, `m`, and `q`, where:
+  - `n` represents a threshold count.
+  - `m` represents the number of distinct identifiers.
+  - `q` represents the number of input integers.
+- An array of integers of size `q`, where each integer corresponds to an identifier.
+
+# 3. Outputs
+- A string "Yes" if the identifiers can be arranged according to the specified rules.
+- A string "No" if the identifiers cannot be arranged as required.
+
+# 4. Preconditions
+- The input integers `n`, `m`, and `q` must be non-negative.
+- The array of integers must contain valid identifiers within the range [0, m].
+
+# 5. Postconditions
+- The output will be "Yes" if all identifiers can be arranged in a sequence where each identifier's count does not exceed `n` and follows the order of their appearance.
+- The output will be "No" if any identifier's count exceeds `n` or if the identifiers cannot be arranged in the required order.
+
+# 6. Invariants
+- The count of each identifier is maintained and updated throughout the processing.
+- The identifiers are processed in the order they are read, ensuring that the sequence respects the input order.
+
+# 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during the creation of arrays or structures, the program may terminate without output.
+- If the input does not conform to the expected format or range, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as identifiers are processed, updating their counts and linking them in a sequence based on their appearance and count.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm must operate within reasonable time and space limits, given the constraints of `m` and `q`. The efficiency is implied but not explicitly defined in the code.
+
+```

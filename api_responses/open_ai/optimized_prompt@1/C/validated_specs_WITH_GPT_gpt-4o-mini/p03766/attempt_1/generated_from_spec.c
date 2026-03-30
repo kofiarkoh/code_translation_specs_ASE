@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MODULUS 1000000007 // Define a modulus value as per the specification
+
+// Structure for Binary Indexed Tree (BIT)
+typedef struct {
+    int *tree;
+    int size;
+} BIT;
+
+// Function to create a BIT of given size
+BIT* createBIT(int size) {
+    BIT *bit = (BIT *)malloc(sizeof(BIT));
+    bit->size = size;
+    bit->tree = (int *)calloc(size + 1, sizeof(int)); // 1-based indexing
+    return bit;
+}
+
+// Function to update the BIT with a value at a specific index
+void updateBIT(BIT *bit, int index, int value) {
+    while (index <= bit->size) {
+        bit->tree[index] = (bit->tree[index] + value) % MODULUS; // Ensure values are within modulus
+        index += index & -index; // Move to the next index
+    }
+}
+
+// Function to get the cumulative sum from BIT up to a specific index
+int getSum(BIT *bit, int index) {
+    int sum = 0;
+    while (index > 0) {
+        sum = (sum + bit->tree[index]) % MODULUS; // Ensure values are within modulus
+        index -= index & -index; // Move to the parent index
+    }
+    return sum;
+}
+
+// Main function to compute the specific value based on input n
+int computeValue(int n) {
+    if (n <= 0) {
+        // Undefined behavior for non-positive integers as per specification
+        return -1; // Placeholder for undefined behavior
+    }
+
+    BIT *bit = createBIT(n); // Create a BIT of size n
+    int result = 0;
+
+    // Perform operations to compute the result
+    for (int i = 1; i <= n; i++) {
+        updateBIT(bit, i, i); // Update BIT with the current index value
+        result = (result + getSum(bit, i)) % MODULUS; // Cumulative sum for result
+    }
+
+    free(bit->tree); // Free allocated memory for BIT
+    free(bit); // Free BIT structure
+    return result; // Return the computed result
+}
+
+// Example usage
+int main() {
+    int n;
+    printf("Enter a positive integer n: ");
+    scanf("%d", &n);
+    int result = computeValue(n);
+    if (result != -1) {
+        printf("Computed value: %d\n", result);
+    } else {
+        printf("Undefined behavior for non-positive integer input.\n");
+    }
+    return 0;
+}

@@ -1,0 +1,85 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_STRING_LENGTH 79
+#define MAX_UNIQUE_VARIATIONS 1000 // Arbitrary limit for unique variations
+
+// Function to check if a string is unique in the array
+int is_unique(char variations[][MAX_STRING_LENGTH + 1], int count, const char *str) {
+    for (int i = 0; i < count; i++) {
+        if (strcmp(variations[i], str) == 0) {
+            return 0; // Not unique
+        }
+    }
+    return 1; // Unique
+}
+
+// Function to generate unique variations of a string
+int generate_variations(const char *input) {
+    char variations[MAX_UNIQUE_VARIATIONS][MAX_STRING_LENGTH + 1];
+    int count = 0;
+    int len = strlen(input);
+
+    // Check for uniqueness of the original string
+    if (is_unique(variations, count, input)) {
+        strcpy(variations[count++], input);
+    }
+
+    // Generate variations through transformations
+    for (int i = 1; i < len; i++) {
+        // Reverse the first i characters
+        char temp[MAX_STRING_LENGTH + 1];
+        strncpy(temp, input, i);
+        temp[i] = '\0';
+        strrev(temp); // Reverse the substring
+
+        // Reverse the last len-i characters
+        char temp2[MAX_STRING_LENGTH + 1];
+        strncpy(temp2, input + i, len - i);
+        temp2[len - i] = '\0';
+        strrev(temp2); // Reverse the substring
+
+        // Combine the reversed parts
+        char combined[MAX_STRING_LENGTH + 1];
+        snprintf(combined, sizeof(combined), "%s%s", temp, temp2);
+
+        // Check for uniqueness and store if unique
+        if (is_unique(variations, count, combined)) {
+            strcpy(variations[count++], combined);
+        }
+
+        // Swap the substring starting from index i
+        char swapped[MAX_STRING_LENGTH + 1];
+        snprintf(swapped, sizeof(swapped), "%s%s", input, input + i);
+        if (is_unique(variations, count, swapped)) {
+            strcpy(variations[count++], swapped);
+        }
+    }
+
+    return count; // Return the count of unique variations
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of strings
+
+    if (n < 0) {
+        return 1; // Invalid input, exit
+    }
+
+    for (int i = 0; i < n; i++) {
+        char input[MAX_STRING_LENGTH + 1];
+        scanf("%s", input); // Read each string
+
+        // Check for string length constraint
+        if (strlen(input) > MAX_STRING_LENGTH) {
+            return 1; // Undefined behavior for exceeding length
+        }
+
+        int unique_count = generate_variations(input);
+        printf("%d\n", unique_count); // Output the count of unique variations
+    }
+
+    return 0;
+}

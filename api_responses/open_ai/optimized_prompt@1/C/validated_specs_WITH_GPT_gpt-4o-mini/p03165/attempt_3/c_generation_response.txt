@@ -1,0 +1,83 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 3000
+
+// Function to compute the longest common subsequence
+void computeLCS(const char *str1, const char *str2, char *lcs) {
+    int n = strlen(str1);
+    int m = strlen(str2);
+    
+    // Create a 2D array for dynamic programming
+    int **dp = (int **)malloc((n + 1) * sizeof(int *));
+    for (int i = 0; i <= n; i++) {
+        dp[i] = (int *)malloc((m + 1) * sizeof(int));
+    }
+
+    // Initialize the DP table
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (i == 0 || j == 0) {
+                dp[i][j] = 0; // Base case
+            } else if (str1[i - 1] == str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1; // Characters match
+            } else {
+                dp[i][j] = (dp[i - 1][j] > dp[i][j - 1]) ? dp[i - 1][j] : dp[i][j - 1]; // Take max
+            }
+        }
+    }
+
+    // Backtrack to find the LCS
+    int index = dp[n][m];
+    lcs[index] = '\0'; // Null-terminate the LCS string
+    int i = n, j = m;
+    while (i > 0 && j > 0) {
+        if (str1[i - 1] == str2[j - 1]) {
+            lcs[index - 1] = str1[i - 1]; // Store the character
+            i--;
+            j--;
+            index--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--; // Move up
+        } else {
+            j--; // Move left
+        }
+    }
+
+    // Free the allocated memory for the DP table
+    for (int i = 0; i <= n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+}
+
+int main() {
+    char str1[MAX_LENGTH];
+    char str2[MAX_LENGTH];
+    char lcs[MAX_LENGTH];
+
+    // Read input strings
+    if (fgets(str1, MAX_LENGTH, stdin) == NULL || fgets(str2, MAX_LENGTH, stdin) == NULL) {
+        return 1; // Exit if input fails
+    }
+
+    // Remove newline characters if present
+    str1[strcspn(str1, "\n")] = 0;
+    str2[strcspn(str2, "\n")] = 0;
+
+    // Check for input length constraints
+    if (strlen(str1) > 2999 || strlen(str2) > 2999) {
+        return 1; // Exit if input exceeds maximum length
+    }
+
+    // Compute the longest common subsequence
+    computeLCS(str1, str2, lcs);
+
+    // Output the result
+    printf("%s\n", lcs); // Print the LCS or an empty line if none exists
+
+    return 0;
+}
+```

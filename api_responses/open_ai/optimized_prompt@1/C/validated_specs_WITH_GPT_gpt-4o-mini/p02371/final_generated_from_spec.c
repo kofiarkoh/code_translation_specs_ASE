@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_VERTICES 1000000
+#define INF 2147483647 // Large value for initialization
+
+// Function prototypes
+void dfs(int vertex, int n, int *visited, int *max_cost, int *costs, int graph[MAX_VERTICES][MAX_VERTICES]);
+void bfs(int n, int *costs, int graph[MAX_VERTICES][MAX_VERTICES]);
+
+int max_cumulative_cost(int n, int a[], int b[], int c[]) {
+    // Preconditions check
+    if (n <= 0 || n - 1 <= 0) return 0; // Invalid input handling
+
+    // Graph representation
+    int graph[MAX_VERTICES][MAX_VERTICES] = {0}; // Adjacency matrix
+    int costs[MAX_VERTICES]; // Cumulative costs
+    int visited[MAX_VERTICES] = {0}; // Visited vertices
+
+    // Initialize costs to a large value
+    for (int i = 0; i < n; i++) {
+        costs[i] = INF;
+    }
+    costs[0] = 0; // Starting vertex cost
+
+    // Build the graph
+    for (int i = 0; i < n - 1; i++) {
+        graph[a[i]][b[i]] = c[i];
+        graph[b[i]][a[i]] = c[i]; // Undirected graph
+    }
+
+    // Perform DFS from vertex 0
+    dfs(0, n, visited, costs, graph);
+
+    // Perform BFS to ensure all paths are explored
+    bfs(n, costs, graph);
+
+    // Find the maximum cumulative cost
+    int max_cost = 0;
+    for (int i = 0; i < n; i++) {
+        if (costs[i] != INF && costs[i] > max_cost) {
+            max_cost = costs[i];
+        }
+    }
+
+    return max_cost; // Return the maximum cumulative cost
+}
+
+void dfs(int vertex, int n, int *visited, int *max_cost, int *costs, int graph[MAX_VERTICES][MAX_VERTICES]) {
+    visited[vertex] = 1; // Mark the vertex as visited
+
+    for (int i = 0; i < n; i++) {
+        if (graph[vertex][i] > 0 && !visited[i]) { // If there's an edge and not visited
+            int new_cost = costs[vertex] + graph[vertex][i];
+            if (new_cost < costs[i]) { // Update cost if new path is cheaper
+                costs[i] = new_cost;
+            }
+            dfs(i, n, visited, max_cost, costs, graph); // Recursive DFS call
+        }
+    }
+}
+
+void bfs(int n, int *costs, int graph[MAX_VERTICES][MAX_VERTICES]) {
+    int queue[MAX_VERTICES];
+    int front = 0, rear = 0;
+
+    queue[rear++] = 0; // Start BFS from vertex 0
+
+    while (front < rear) {
+        int vertex = queue[front++];
+
+        for (int i = 0; i < n; i++) {
+            if (graph[vertex][i] > 0) { // If there's an edge
+                int new_cost = costs[vertex] + graph[vertex][i];
+                if (new_cost < costs[i]) { // Update cost if new path is cheaper
+                    costs[i] = new_cost;
+                    queue[rear++] = i; // Add to queue for further exploration
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // Example usage
+    int n = 5; // Number of vertices
+    int a[] = {0, 0, 1, 2}; // Edge endpoints
+    int b[] = {1, 2, 3, 4}; // Edge endpoints
+    int c[] = {10, 20, 30, 40}; // Edge costs
+
+    int result = max_cumulative_cost(n, a, b, c);
+    printf("Maximum cumulative cost: %d\n", result);
+
+    return 0;
+}

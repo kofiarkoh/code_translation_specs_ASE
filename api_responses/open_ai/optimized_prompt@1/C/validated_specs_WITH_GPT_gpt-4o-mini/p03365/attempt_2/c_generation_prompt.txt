@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific combinatorial value based on the input integer \( n \), utilizing factorials and modular arithmetic to ensure results remain within a defined range. The computation involves calculating combinations and their contributions to a final result through a series of multiplicative operations.
+
+## 2. Inputs
+- A single integer \( n \) representing the upper limit for combinatorial calculations, where \( n \geq 0 \) and \( n \leq 1,000,000 \).
+
+## 3. Outputs
+- A single integer representing the computed result, which is derived from combinatorial calculations involving the input \( n \) and is returned modulo a predefined constant.
+
+## 4. Preconditions
+- The input integer \( n \) must be non-negative.
+- The input integer \( n \) must not exceed 1,000,000.
+
+## 5. Postconditions
+- The output is a non-negative integer that results from the combinatorial calculations, guaranteed to be less than the predefined constant.
+
+## 6. Invariants
+- Factorials and their modular inverses are precomputed and stored in arrays, ensuring efficient access during calculations.
+- The computed values remain consistent with modular arithmetic properties throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input \( n \) is negative or if \( r \) (in the `choose` function) is out of bounds, the function returns zero without further processing.
+
+## 8. State Transitions
+- The state transitions involve the initialization of factorial and inverse factorial arrays, followed by updates based on the input \( n \) and subsequent calculations of combinatorial values. Specifically, the `temp` array is populated with values derived from the `choose` function, which calculates combinations based on \( k-1 \) and \( n-1-k \).
+
+## 9. Non-functional Constraints
+- The computations are performed efficiently, with a time complexity that allows handling of the maximum input size within reasonable limits, ensuring performance is adequate for real-time applications.
+
+## 10. Detailed Behavior
+- The `choose` function computes the binomial coefficient \( C(n, r) \) using precomputed factorials and their modular inverses. The function returns zero if \( r \) is negative or greater than \( n \).
+- The `temp` array is populated by iterating through values of \( k \) from 0 to \( n-1 \), where each entry is calculated as \( C(k-1, n-1-k) \times \text{fact}[k] \times \text{fact}[n-1-k] \mod \text{MOD} \).
+- The final result is computed by iterating through \( k \) from 1 to \( n-1 \), summing contributions based on the differences between consecutive entries in the `temp` array, adjusted by the index \( k \) and taken modulo the predefined constant.
+
+```

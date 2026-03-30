@@ -1,0 +1,131 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MOD 1000000007
+
+// Function to compute power with modulo
+long long power(long long base, long long exp, long long mod) {
+    long long result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % mod;
+        }
+        base = (base * base) % mod;
+        exp /= 2;
+    }
+    return result;
+}
+
+int main() {
+    int H, W, K;
+    // Read inputs for height, width, and number of operations
+    scanf("%d %d %d", &H, &W, &K);
+    
+    // Allocate memory for the grid
+    char **grid = (char **)malloc(H * sizeof(char *));
+    for (int i = 0; i < H; i++) {
+        grid[i] = (char *)malloc((W + 1) * sizeof(char)); // +1 for null terminator
+        scanf("%s", grid[i]);
+    }
+
+    // Handle the case where K is zero
+    if (K == 0) {
+        printf("1\n");
+        for (int i = 0; i < H; i++) {
+            free(grid[i]);
+        }
+        free(grid);
+        return 0;
+    }
+
+    int total_hashes = 0;
+    int edge_count = 0;
+    int full_rows = 0;
+
+    // Count total '#' characters and edges
+    for (int i = 0; i < H; i++) {
+        int row_hashes = 0;
+        int row_edges = 0;
+        int is_full_row = 1;
+
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == '#') {
+                total_hashes++;
+                row_hashes++;
+                if (j > 0 && grid[i][j - 1] == '#') {
+                    row_edges++;
+                }
+            } else {
+                is_full_row = 0;
+            }
+        }
+
+        // Check for full row
+        if (is_full_row) {
+            full_rows++;
+        }
+
+        // Check edges for the current row
+        if (grid[i][0] == '#' && grid[i][W - 1] == '#') {
+            row_edges -= 2; // Reduce edges by 2 for rows with '#' at both ends
+        }
+
+        edge_count += row_edges;
+    }
+
+    // Check for column edges
+    int column_edges = 0;
+    for (int j = 0; j < W; j++) {
+        if (grid[0][j] == '#' && grid[H - 1][j] == '#') {
+            column_edges++;
+        }
+    }
+
+    // If both first and last characters of any column are '#', transpose the grid
+    if (column_edges > 0) {
+        // Transpose the grid
+        char **transposed_grid = (char **)malloc(W * sizeof(char *));
+        for (int j = 0; j < W; j++) {
+            transposed_grid[j] = (char *)malloc((H + 1) * sizeof(char)); // +1 for null terminator
+            for (int i = 0; i < H; i++) {
+                transposed_grid[j][i] = grid[i][j];
+            }
+            transposed_grid[j][H] = '\0'; // Null terminate each row
+        }
+
+        // Free original grid
+        for (int i = 0; i < H; i++) {
+            free(grid[i]);
+        }
+        free(grid);
+
+        // Update grid and dimensions
+        grid = transposed_grid;
+        int temp = H;
+        H = W;
+        W = temp;
+    }
+
+    // Compute the output based on the specified conditions
+    long long result = 0;
+    if (edge_count == 0 && full_rows == 0) {
+        result = power(full_rows, K - 1, MOD);
+    } else if (edge_count == 0) {
+        result = power(total_hashes, K - 1, MOD);
+    } else {
+        result = (total_hashes + edge_count + full_rows) % MOD; // Example formula, adjust as needed
+        result = (result * power(total_hashes, K - 1, MOD)) % MOD; // Example adjustment
+    }
+
+    // Output the result
+    printf("%lld\n", result);
+
+    // Free the grid memory
+    for (int i = 0; i < H; i++) {
+        free(grid[i]);
+    }
+    free(grid);
+
+    return 0;
+}

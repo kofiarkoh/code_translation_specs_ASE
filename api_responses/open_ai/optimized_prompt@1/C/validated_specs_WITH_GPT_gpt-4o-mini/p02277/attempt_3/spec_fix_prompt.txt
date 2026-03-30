@@ -1,0 +1,162 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+typedef struct card{
+  char c;
+  int val;
+  int num;
+}card;
+void quicksort(card*,int,int);
+int partition(card*,int,int);
+int main(){
+
+  int i,j,n,flag=0;
+
+  scanf("%d",&n);
+  card A[n];
+  for(i=0;i<n;i++){
+    scanf(" %c%d",&A[i].c,&A[i].val);
+    A[i].num=i;
+  }
+  quicksort(A,0,n-1);
+  for(i=0;i<n-1;i++){
+    for(j=i+1;j<n;j++){
+      if(A[i].val==A[j].val && A[i].num>A[j].num){
+	flag=1;
+	break;
+      }
+    }
+    if(flag==1) break;
+  }
+  
+  if(flag==1) printf("Not stable\n");
+  else printf("Stable\n");
+  for(i=0;i<n;i++){
+    printf("%c %d\n",A[i].c,A[i].val);
+  }
+  return 0;
+}
+void quicksort(card *A,int p,int r){
+
+  int q;
+  if(p<r){
+    q=partition(A,p,r);
+    quicksort(A,p,q-1);
+    quicksort(A,q+1,r);
+  }
+}
+int partition(card *A,int p,int r){
+
+  int i,j;
+  int x;
+  card swap;
+
+  i=p-1;
+  x=A[r].val;
+
+  for(j=p;j<r;j++){
+    if(A[j].val<=x){
+      i++;
+      swap=A[i];
+      A[i]=A[j];
+      A[j]=swap;
+    }
+  }
+  swap=A[i+1];
+  A[i+1]=A[r];
+  A[r]=swap;
+  return i+1;
+}
+
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code reads a list of cards, each represented by a character and an integer value, sorts them based on their integer values using a quicksort algorithm, and checks the stability of the sorting process. It outputs whether the sorting is stable and prints the sorted list of cards.
+
+## 2. Inputs
+- An integer `n` representing the number of cards.
+- A sequence of `n` pairs, each consisting of a character and an integer.
+
+## 3. Outputs
+- A string indicating whether the sorting is "Stable" or "Not stable".
+- A sequence of `n` lines, each containing a character and an integer representing the sorted cards.
+
+## 4. Preconditions
+- The input integer `n` must be a non-negative integer.
+- Each card input must consist of a valid character followed by a valid integer.
+
+## 5. Postconditions
+- The output sequence of cards is sorted in non-decreasing order based on the integer values.
+- The stability of the sorting process is determined by comparing the original indices of cards with equal integer values, and this result is reported.
+
+## 6. Invariants
+- The original order of cards with equal integer values is preserved if the sorting is stable.
+- The array of cards is modified in place during the sorting process.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format, the behavior is undefined.
+- No explicit error handling is implemented for invalid inputs.
+
+## 8. State Transitions (if applicable)
+- The state transitions from an unsorted array of cards to a sorted array of cards after the sorting operation is completed.
+
+## 9. Non-functional Constraints (if inferable)
+- The sorting operation is expected to have an average time complexity of O(n log n).
+- The space complexity is O(log n) due to the recursive nature of the quicksort algorithm.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how stability is determined when multiple cards have the same integer value. It assumes that the original indices are sufficient for determining stability without explicitly stating that the sorting algorithm must maintain the relative order of cards with equal values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the sorting algorithm must ensure that cards with equal integer values retain their original order in the output. This includes explicitly stating that the sorting process must not only sort by value but also respect the original indices of cards with equal values.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program checks for stability by comparing the original indices of cards with equal values after sorting. If the original index of a card with a lower value is greater than that of a card with a higher value, it indicates that the sorting is not stable. The failing test case demonstrates that the generated program incorrectly assumes stability when it does not hold, indicating a misunderstanding of how stability should be defined and checked in the context of sorting.
+
+```

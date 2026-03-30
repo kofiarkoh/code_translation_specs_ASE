@@ -1,0 +1,124 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+int main(){
+  int N,ans=0;
+  scanf("%d",&N);
+  char S[N+1];
+  char T[N+1];
+  scanf("%s",S);
+  scanf("%s",T);
+
+  int i=N-1;
+  int j=i;
+  while (i>=0)
+  {
+    int i=N-1;
+    while (j>=0&&S[i]!=T[j])
+    {
+      j--;
+    }
+    if(j>=0){
+      while (j>=0&&S[i]==T[j]){ i--; j--; }
+      if (j<0){
+        ans=2*N-(N-i-1);
+        break;
+      }
+    }else
+    {
+      ans=2*N-(N-i-1);
+      break;
+    }
+  }
+
+  printf("%d",ans);
+
+  return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a specific integer value based on the comparison of two input strings of equal length. It determines how many characters from the second string can be matched with the first string in reverse order and calculates a result based on the matching process.
+
+# 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- A string \( S \) of length \( N \).
+- A string \( T \) of length \( N \).
+
+# 3. Outputs
+- An integer value representing the computed result based on the matching of characters between the two strings.
+
+# 4. Preconditions
+- The input integer \( N \) must be a non-negative integer.
+- The strings \( S \) and \( T \) must be properly formatted and contain exactly \( N \) characters each.
+
+# 5. Postconditions
+- The output integer is guaranteed to be non-negative and reflects the result of the matching process between the two strings.
+
+# 6. Invariants
+- The lengths of strings \( S \) and \( T \) remain constant at \( N \) throughout the execution.
+- The matching process only considers characters from the end of the strings moving towards the beginning.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input format is incorrect (e.g., non-integer for \( N \) or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the indices of the strings are manipulated during the matching process, but the overall state is defined by the current values of \( i \), \( j \), and \( ans \).
+
+# 9. Non-functional Constraints (if inferable)
+- The execution time is dependent on the length of the strings, with a worst-case time complexity proportional to \( N^2 \) due to nested iterations.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not adequately describe how the result is computed based on the matching process. It implies a simple count of matches rather than the more complex calculation that the source program performs.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify that the output is not merely the count of matching characters but rather a specific calculation based on the positions of matches and the total length of the strings. It should detail how the result is derived from the matching process, particularly the conditions under which the result is computed.
+
+D. **Why this clarification is supported by the source program**  
+- The source program computes the result based on the number of characters matched in reverse order and includes additional logic to derive the final output based on the position of the last match. The output is calculated as `2*N - (N - i - 1)` when a match is found, which is not captured in the current specification. This indicates that the specification's description of the output is overly simplistic and does not reflect the actual behavior of the source code.
+
+```

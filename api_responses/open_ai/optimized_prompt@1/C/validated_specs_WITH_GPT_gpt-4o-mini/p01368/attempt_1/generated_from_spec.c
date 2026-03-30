@@ -1,0 +1,96 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_LOCATIONS 100
+#define MAX_TASKS 100
+
+// Function to find the maximum number of non-overlapping tasks
+int maxNonOverlappingTasks(int N, int M, int L, int distances[MAX_LOCATIONS][MAX_LOCATIONS], int tasks[MAX_TASKS][2]) {
+    // Initialize the distance matrix with a large value
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (i == j) {
+                distances[i][j] = 0; // Distance to self is zero
+            } else {
+                distances[i][j] = 1e9; // Use a large value to represent infinity
+            }
+        }
+    }
+
+    // Update the distance matrix based on the input connections
+    for (int i = 0; i < M; i++) {
+        int u, v;
+        scanf("%d %d", &u, &v);
+        distances[u][v] = 1; // Assuming distance of 1 for direct connections
+        distances[v][u] = 1; // Assuming undirected connections
+    }
+
+    // Floyd-Warshall algorithm to find shortest paths
+    for (int k = 0; k < N; k++) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (distances[i][j] > distances[i][k] + distances[k][j]) {
+                    distances[i][j] = distances[i][k] + distances[k][j];
+                }
+            }
+        }
+    }
+
+    // Sort tasks based on end times for greedy selection
+    for (int i = 0; i < L; i++) {
+        for (int j = i + 1; j < L; j++) {
+            if (tasks[i][1] > tasks[j][1]) {
+                int temp[2] = {tasks[i][0], tasks[i][1]};
+                tasks[i][0] = tasks[j][0];
+                tasks[i][1] = tasks[j][1];
+                tasks[j][0] = temp[0];
+                tasks[j][1] = temp[1];
+            }
+        }
+    }
+
+    // Greedily select the maximum number of non-overlapping tasks
+    int count = 0;
+    int last_end_time = -1; // Initialize to -1 to allow the first task to be selected
+
+    for (int i = 0; i < L; i++) {
+        if (tasks[i][0] >= last_end_time) {
+            count++;
+            last_end_time = tasks[i][1]; // Update the end time to the current task's end time
+        }
+    }
+
+    return count; // Return the maximum number of non-overlapping tasks
+}
+
+int main() {
+    int T; // Number of test cases
+    scanf("%d", &T); // Read number of test cases
+
+    while (T--) {
+        int N, M, L;
+        scanf("%d %d %d", &N, &M, &L); // Read N, M, L
+
+        int distances[MAX_LOCATIONS][MAX_LOCATIONS];
+        int tasks[MAX_TASKS][2];
+
+        // Read distance connections
+        for (int i = 0; i < M; i++) {
+            int u, v;
+            scanf("%d %d", &u, &v);
+            distances[u][v] = 1; // Assuming distance of 1 for direct connections
+            distances[v][u] = 1; // Assuming undirected connections
+        }
+
+        // Read task times
+        for (int i = 0; i < L; i++) {
+            scanf("%d %d", &tasks[i][0], &tasks[i][1]);
+        }
+
+        // Compute the maximum number of non-overlapping tasks
+        int result = maxNonOverlappingTasks(N, M, L, distances, tasks);
+        printf("%d\n", result); // Output the result for the test case
+    }
+
+    return 0;
+}

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost associated with a set of tasks and their corresponding weights, based on given input values. It processes two sequences of integers to derive a minimum value from a computed matrix, where the cost is determined by the relationship between tasks and weights.
+
+## 2. Inputs
+- Two integers, `n` and `m`, representing the number of tasks and weights, respectively. Both `n` and `m` must be positive integers.
+- An array of integers `k` of size `n`, where each element `k[i]` (for `1 ≤ i ≤ n`) represents the weight associated with the `i`-th task.
+- An array of integers `t` of size `m`, where each element `t[j]` (for `1 ≤ j ≤ m`) represents the cost associated with the `j`-th weight.
+
+## 3. Outputs
+- A single integer representing the minimum computed cost based on the provided inputs, derived from the relationship between the tasks and weights.
+
+## 4. Preconditions
+- The input integers `n` and `m` must be positive.
+- The sizes of the arrays `k` and `t` must match the values of `n` and `m`, respectively.
+
+## 5. Postconditions
+- The output integer is the minimum cost derived from the input arrays, calculated according to the defined relationships between tasks and weights. The computation considers both the weights from array `k` and the costs from array `t`.
+
+## 6. Invariants
+- The matrix used for computation is initialized to a high constant value, ensuring that any valid computed cost will be lower.
+- The first column of the matrix is consistently set to zero, representing a base case for the computation, indicating that no tasks yield a cost of zero.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or exceptional cases such as negative values for `n` or `m`, or insufficient input data. It is assumed that inputs are valid as per the preconditions.
+
+## 8. State Transitions
+- The state transitions occur through the iterative updates of the matrix, reflecting the ongoing computation of minimum costs as the input arrays are processed. The matrix is updated based on the combination of weights and costs, with careful attention to the indices used for accessing the input arrays.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial in relation to the sizes of the input arrays, specifically O(m * n). 
+
+## 10. Indexing Clarification
+- The program uses one-based indexing for the input arrays `k` and `t`, meaning that the first element of each array corresponds to index 1. The matrix used for computation is indexed from 0 to `m` for rows and 0 to `n` for columns, with the first row and column serving as base cases. The relationship between the indices of the input arrays and the matrix must be carefully maintained to ensure correct calculations.
+
+```

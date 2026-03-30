@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_LEN 100 // Define a maximum length for the expression
+
+// Function prototypes
+long long maxEval(const char *expression);
+long long eval(const char *expression, int start, int end);
+long long applyOp(long long a, long long b, char op);
+
+// Main function to evaluate the expression
+long long maxEval(const char *expression) {
+    return eval(expression, 0, strlen(expression) - 1);
+}
+
+// Recursive function to evaluate the expression
+long long eval(const char *expression, int start, int end) {
+    long long maxResult = 0;
+    long long currentNum = 0;
+    char currentOp = '+'; // Start with '+' to handle the first number
+
+    for (int i = start; i <= end; i++) {
+        if (isdigit(expression[i])) {
+            currentNum = currentNum * 10 + (expression[i] - '0'); // Build the current number
+        }
+
+        // If we hit an operator or the end of the expression, we evaluate
+        if (!isdigit(expression[i]) || i == end) {
+            if (currentOp == '+') {
+                maxResult += currentNum; // Add the current number
+            } else if (currentOp == '-') {
+                maxResult -= currentNum; // Subtract the current number
+            } else if (currentOp == '*') {
+                maxResult *= currentNum; // Multiply with the current number
+            }
+
+            // Reset for the next number and update the operator
+            currentNum = 0;
+            currentOp = expression[i];
+        }
+
+        // Handle parentheses
+        if (expression[i] == '(') {
+            int j = i, parenCount = 0;
+            // Find the matching closing parenthesis
+            while (j <= end) {
+                if (expression[j] == '(') parenCount++;
+                if (expression[j] == ')') parenCount--;
+                if (parenCount == 0) break;
+                j++;
+            }
+            // Evaluate the expression inside the parentheses
+            long long subResult = eval(expression, i + 1, j - 1);
+            if (currentOp == '+') {
+                maxResult += subResult;
+            } else if (currentOp == '-') {
+                maxResult -= subResult;
+            } else if (currentOp == '*') {
+                maxResult *= subResult;
+            }
+            i = j; // Move the index to the closing parenthesis
+        }
+    }
+
+    return maxResult; // Return the maximum result
+}
+
+// Function to apply an operator to two operands
+long long applyOp(long long a, long long b, char op) {
+    switch (op) {
+        case '+': return a + b;
+        case '-': return a - b;
+        case '*': return a * b;
+        default: return 0; // Should not reach here
+    }
+}
+
+// Example usage
+int main() {
+    const char *expression = "3+(2*2)"; // Example expression
+    long long result = maxEval(expression);
+    printf("Maximum result: %lld\n", result);
+    return 0;
+}

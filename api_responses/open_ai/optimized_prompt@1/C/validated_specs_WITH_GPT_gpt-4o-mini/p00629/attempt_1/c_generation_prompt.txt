@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code processes multiple datasets of structured records, sorts them based on specific criteria, and outputs a limited selection of identifiers based on predefined rules regarding their associated attributes.
+
+# 2. Inputs
+- A series of datasets, each beginning with an integer `n` indicating the number of records.
+- Each record consists of four integers representing attributes of a structure.
+
+# 3. Outputs
+- A list of identifiers from the processed records, printed in a specific order, with a maximum of 25 identifiers based on selection criteria.
+
+# 4. Preconditions
+- The input must consist of valid integers.
+- The first integer in each dataset must be non-negative, with `0` indicating the end of input.
+- Each dataset must contain at most 300 records.
+
+# 5. Postconditions
+- The output will contain up to 25 identifiers from the records, selected based on sorting and frequency criteria.
+- The identifiers are printed in the order determined by the sorting process.
+
+# 6. Invariants
+- The records are sorted primarily by the third attribute in descending order, then by the fourth attribute in ascending order, and finally by the first attribute in ascending order.
+- The selection of identifiers adheres to the frequency limits defined for each unique second attribute.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully upon receiving a `0` as the first input, without processing further data.
+- No explicit error handling for invalid input formats is implemented; behavior is undefined for such cases.
+
+# 8. State Transitions (if applicable)
+- The program transitions between states of reading input, processing records, sorting, and outputting results, with each dataset being processed independently until termination.
+
+# 9. Non-functional Constraints (if inferable)
+- The program is expected to handle up to 300 records efficiently within a single dataset.
+- The output is limited to a maximum of 25 identifiers, ensuring concise results.
+
+```

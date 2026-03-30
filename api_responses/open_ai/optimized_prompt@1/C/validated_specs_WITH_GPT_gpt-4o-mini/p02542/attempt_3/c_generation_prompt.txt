@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a network flow algorithm to compute the minimum cost of transporting flow through a directed graph represented by edges and nodes. It utilizes a successive shortest path approach to find the optimal flow configuration while minimizing the associated costs.
+
+## 2. Inputs
+- An integer \( N \) representing the number of nodes.
+- An integer \( M \) representing the number of edges.
+- A 2D character array representing a grid where each cell can be either passable ('.') or impassable ('#').
+- A list of edges, each defined by its properties (id, head, tail, capacity, and cost).
+- An array of integers representing supply/demand values for each node.
+
+## 3. Outputs
+- A long long integer representing the minimum cost of flow through the network. If no valid flow configuration exists, it returns a predefined infinite value.
+
+## 4. Preconditions
+- The input grid must be properly formatted and contain valid characters indicating passable ('.') and impassable ('#') cells.
+- The number of nodes and edges must be non-negative integers.
+- The edges must be defined with valid properties (e.g., non-negative capacities).
+
+## 5. Postconditions
+- The function guarantees that the returned minimum cost is the lowest possible cost for the specified flow configuration, or an infinite value if no valid flow exists.
+
+## 6. Invariants
+- The flow values for each edge remain within the defined capacity limits throughout the execution.
+- The distance values and potential values are consistently updated to reflect the current state of the network.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during execution, the program may terminate without returning a valid result.
+- If the input does not conform to expected formats or constraints, the behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur as nodes are processed and flow is adjusted based on the current distances and potentials. The state of the network is updated iteratively as flows are pushed through the edges.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate within polynomial time complexity relative to the number of nodes and edges, though specific performance characteristics may vary based on the input structure. Memory usage is proportional to the number of nodes and edges due to dynamic allocations.
+
+## 10. Edge Cases
+- The algorithm must handle scenarios where the grid contains impassable cells ('#'). These cells can create isolated nodes or paths that cannot be traversed, potentially leading to configurations where no valid flow exists.
+- If there are no valid paths available for flow due to the arrangement of impassable cells, the algorithm should return an infinite value, indicating that the flow cannot be achieved under the given constraints.
+- The algorithm should also account for cases where all nodes are isolated due to impassable cells, ensuring that the output reflects the impossibility of establishing any flow.
+
+```

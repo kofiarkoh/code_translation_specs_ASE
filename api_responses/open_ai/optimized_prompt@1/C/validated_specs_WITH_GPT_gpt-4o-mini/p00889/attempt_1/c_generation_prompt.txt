@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a sequence of integers to compute a count of specific patterns based on given parameters. It utilizes a hash table for efficient lookups and inserts to track occurrences of computed values derived from the input sequence.
+
+# 2. Inputs
+- Four integers: `n` (length of the sequence), `s` (initial seed value), `w` (a transformation value), and `q` (a modulus value).
+- The input continues until a non-positive value for `n` is encountered.
+
+# 3. Outputs
+- An integer output for each valid input set, representing the computed count based on the specified conditions.
+
+# 4. Preconditions
+- The input values must be integers, with `n` being greater than zero for processing to occur.
+- The modulus value `q` must be a positive integer.
+
+# 5. Postconditions
+- The output integer reflects the total count of specific patterns found in the sequence derived from the input parameters.
+
+# 6. Invariants
+- The hash table maintains a consistent state where each entry either contains a valid key-value pair or is empty.
+- The transformation of the sequence is consistent with the defined rules based on the input parameters.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive integer is provided for `n`, without producing output for that case.
+- No explicit error handling for invalid input formats is defined; behavior is unspecified for such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each input set, updating the hash table and the count based on the computed values from the sequence.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently within the constraints of the hash table size and the input limits, ensuring timely responses for valid input sets.
+
+```

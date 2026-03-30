@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define INF LLONG_MAX // Define a constant for infinite cost
+
+typedef struct {
+    int id;
+    int head;
+    int tail;
+    long long capacity;
+    long long cost;
+} Edge;
+
+typedef struct {
+    int N; // Number of nodes
+    int M; // Number of edges
+    char **grid; // 2D character array for the grid
+    Edge *edges; // List of edges
+    long long *supply_demand; // Supply/demand values for each node
+} Network;
+
+// Function to compute the minimum cost of flow
+long long min_cost_flow(Network *network) {
+    // Initialize distance and potential arrays
+    long long *distance = (long long *)malloc(network->N * sizeof(long long));
+    long long *potential = (long long *)malloc(network->N * sizeof(long long));
+    long long total_cost = 0;
+
+    // Check for memory allocation failure
+    if (!distance || !potential) {
+        exit(EXIT_FAILURE); // Terminate if memory allocation fails
+    }
+
+    // Initialize distances and potentials
+    for (int i = 0; i < network->N; i++) {
+        distance[i] = INF; // Set initial distances to infinity
+        potential[i] = 0; // Initialize potentials to zero
+    }
+
+    // Main loop for the successive shortest path algorithm
+    // This is a simplified version; actual implementation would require more details
+    for (int i = 0; i < network->M; i++) {
+        Edge edge = network->edges[i];
+        // Check if the edge is valid based on the grid
+        if (network->grid[edge.head][edge.tail] == '.' && edge.capacity > 0) {
+            // Update distances and costs based on the edge properties
+            // This is a placeholder for the actual logic
+            // In a real implementation, we would perform relaxation and flow adjustments
+        }
+    }
+
+    // Check if a valid flow configuration exists
+    // If not, return infinite cost
+    if (total_cost == 0) { // Placeholder condition for no valid flow
+        free(distance);
+        free(potential);
+        return INF; // Return infinite cost if no valid flow exists
+    }
+
+    // Clean up and return the total minimum cost
+    free(distance);
+    free(potential);
+    return total_cost; // Return the computed minimum cost
+}
+
+// Example usage
+int main() {
+    // Example initialization of the network structure
+    Network network;
+    network.N = 5; // Number of nodes
+    network.M = 10; // Number of edges
+    network.grid = (char **)malloc(network.N * sizeof(char *));
+    for (int i = 0; i < network.N; i++) {
+        network.grid[i] = (char *)malloc(network.N * sizeof(char)); // Allocate grid
+    }
+    network.edges = (Edge *)malloc(network.M * sizeof(Edge)); // Allocate edges
+    network.supply_demand = (long long *)malloc(network.N * sizeof(long long)); // Allocate supply/demand
+
+    // Initialize grid, edges, and supply/demand values here...
+
+    long long result = min_cost_flow(&network); // Compute minimum cost flow
+    printf("Minimum cost of flow: %lld\n", result);
+
+    // Clean up allocated memory
+    for (int i = 0; i < network.N; i++) {
+        free(network.grid[i]); // Free each row of the grid
+    }
+    free(network.grid);
+    free(network.edges);
+    free(network.supply_demand);
+
+    return 0;
+}

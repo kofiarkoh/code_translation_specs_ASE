@@ -1,0 +1,145 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 0648 Art Exhibition
+// 2018.3.29 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+
+//#define getchar_unlocked()  getchar()
+int in()	/* 整数値の入力 */
+{
+	int n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+long long big()		/* long long 整数値の入力 */
+{
+	long long n = 0, c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define INF 0x1010101010101010LL
+typedef struct { long long a; int b; } T;
+T tbl[500002];
+long long s[500002];
+
+int cmp(T *a, T *b) {
+	if (a->a == b->a) return a->b - b->b;
+	if (a->a < b->a) return -1;
+	return 1;
+}
+
+int main()
+{
+	int N, i;
+	long long t, min, max;
+
+	N = in();
+	for (i = 1; i <= N; i++) tbl[i].a = big(), tbl[i].b = in();
+	qsort(tbl+1, N, sizeof(T), cmp);
+
+	min = INF, max = -INF;
+	for (i = 1; i <= N; i++) {
+		t = s[i-1] - tbl[i].a;
+		if (t < min) min = t;
+		s[i] = s[i-1] + tbl[i].b;
+		t = s[i] - tbl[i].a - min;
+		if (t > max) max = t;
+	}
+	printf("%lld\n", max);
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a list of pairs of integers, where each pair consists of a long integer and a regular integer. It computes a maximum value based on the differences between the cumulative sums of the regular integers and the minimum long integer encountered during the processing of the pairs.
+
+## 2. Inputs
+- An integer \( N \) representing the number of pairs.
+- \( N \) pairs of integers, where each pair consists of:
+  - A long integer.
+  - A regular integer.
+
+## 3. Outputs
+- A single long integer representing the maximum computed value based on the input pairs.
+
+## 4. Preconditions
+- \( N \) must be a positive integer.
+- Each long integer and regular integer in the pairs must be valid integers within the range of their respective types.
+
+## 5. Postconditions
+- The output is the maximum value derived from the differences between the cumulative sums of the regular integers and the minimum long integer encountered up to each point in the processing.
+
+## 6. Invariants
+- The cumulative sum of the regular integers is maintained throughout the processing.
+- The minimum value of the long integers is updated as new pairs are processed.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or errors during input reading. It assumes that all inputs are well-formed and within valid ranges.
+
+## 8. State Transitions
+- The state transitions occur as each pair is processed, updating the cumulative sum of regular integers and the minimum long integer accordingly. The maximum value is recalculated at each step based on the current cumulative sum and the minimum long integer.
+
+## 9. Non-functional Constraints
+- The algorithm's time complexity is influenced by the sorting step, which is \( O(N \log N) \). The overall space complexity is \( O(N) \) due to the storage of input pairs and cumulative sums.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define how the maximum value is computed in relation to the cumulative sum and the minimum long integer. Specifically, it lacks clarity on the timing and conditions under which the maximum value is updated.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the maximum value is derived from the difference between the cumulative sum of regular integers and the minimum long integer encountered up to the current index, rather than just the cumulative sum minus the minimum long integer at the end of the loop.
+
+D. **Why this clarification is supported by the source program**  
+The source program maintains a running minimum of the long integers and calculates the maximum value based on the cumulative sum and this running minimum at each step. The failing test case indicates that the generated program does not correctly implement this logic, as it computes the maximum value differently, leading to an incorrect result. The source program's logic suggests that the maximum should be updated based on the cumulative sum minus the minimum long integer at each iteration, not just at the end.
+
+```

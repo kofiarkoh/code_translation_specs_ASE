@@ -1,0 +1,60 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007
+
+// Function to update the BIT array
+void update(int *BIT, int index, int value, int size) {
+    while (index <= size) {
+        BIT[index] = (BIT[index] + value) % MOD; // Ensure we stay within modulus
+        index += index & -index; // Move to the next index
+    }
+}
+
+// Function to get the cumulative sum from the BIT array
+int getSum(int *BIT, int index) {
+    int sum = 0;
+    while (index > 0) {
+        sum = (sum + BIT[index]) % MOD; // Ensure we stay within modulus
+        index -= index & -index; // Move to the parent index
+    }
+    return sum;
+}
+
+int computeValue(int n) {
+    // Initialize BIT array with size n + 1 (1-based indexing)
+    int *BIT = (int *)calloc(n + 1, sizeof(int));
+    if (!BIT) {
+        return -1; // Memory allocation failure (undefined behavior in spec)
+    }
+
+    // Initialize the first two values based on specific calculations
+    BIT[1] = 1; // Assuming some initial value for index 1
+    BIT[2] = 2; // Assuming some initial value for index 2
+
+    int tmp = 0; // Variable to hold the computed value
+
+    // Compute values for indices from 3 to n
+    for (int i = 3; i <= n; i++) {
+        // Calculate tmp based on the BIT and current index
+        tmp = (getSum(BIT, i - 3) + (n - i + 1) + (i - 1)) % MOD; // Adjusting based on spec
+        update(BIT, i, tmp, n); // Update BIT with the new value
+    }
+
+    free(BIT); // Free allocated memory for BIT
+    return tmp; // Return the final computed value
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read input
+
+    if (n < 1) {
+        // Undefined behavior as per spec; no handling for invalid input
+        return -1; // Exit with error code
+    }
+
+    int result = computeValue(n); // Compute the result
+    printf("%d\n", result); // Output the result
+    return 0;
+}

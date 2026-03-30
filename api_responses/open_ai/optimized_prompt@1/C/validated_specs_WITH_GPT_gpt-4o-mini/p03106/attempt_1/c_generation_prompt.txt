@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code computes the largest common divisor of two integers that is also the c-th common divisor, based on user input. It reads three integers and returns the c-th common divisor of the first two integers.
+
+# 2. Inputs
+- Three integers: `a`, `b`, and `c`.
+
+# 3. Outputs
+- An integer representing the c-th common divisor of `a` and `b`. If the c-th common divisor does not exist, the output is undefined.
+
+# 4. Preconditions
+- The integers `a` and `b` must be positive.
+- The integer `c` must be a positive integer.
+
+# 5. Postconditions
+- If the c-th common divisor exists, it is printed as output.
+- If the c-th common divisor does not exist, the output may be an uninitialized value.
+
+# 6. Invariants
+- The variable `sum` counts the number of common divisors found during the computation.
+- The variable `l` holds the value of the last found common divisor that corresponds to the c-th count.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle cases where `c` exceeds the total number of common divisors.
+- The code does not handle invalid input formats or non-integer inputs.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program iterates through potential divisors, updating the count of common divisors and the last found common divisor.
+
+# 9. Non-functional Constraints (if inferable)
+- The performance of the code is dependent on the values of `a` and `b`, as it iterates from the smaller of the two down to 1, potentially leading to a time complexity of O(min(a, b)).
+
+```

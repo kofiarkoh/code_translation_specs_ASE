@@ -1,0 +1,36 @@
+#include <stdio.h>
+
+int main() {
+    long long T[3]; // 1-based indexing, T[1] and T[2] will be used
+    long long A[3]; // 1-based indexing, A[1] and A[2] will be used
+    long long B[3]; // 1-based indexing, B[1] and B[2] will be used
+
+    // Input reading (assumed to be provided in the correct order)
+    scanf("%lld %lld", &T[1], &T[2]);
+    scanf("%lld %lld", &A[1], &A[2]);
+    scanf("%lld %lld", &B[1], &B[2]);
+
+    // Ensure T[1] and T[2] are not zero to avoid division by zero
+    if (T[1] == 0 || T[2] == 0) {
+        return 1; // Exit if invalid input (not specified in the requirements)
+    }
+
+    // Check if A and B are equivalent under the linear combination
+    if (A[1] * T[2] == B[1] * T[1]) {
+        printf("infinity\n");
+    } else {
+        // Modify A and B if A[1] > B[1]
+        if (A[1] > B[1]) {
+            A[1] -= B[1]; // Modify A[1]
+            A[2] -= B[2]; // Modify A[2]
+            B[1] = 0;     // Set B[1] to 0
+            B[2] = 0;     // Set B[2] to 0
+        }
+
+        // Calculate the output based on the differences
+        long long result = (A[1] - B[1]) + (A[2] - B[2]);
+        printf("%lld\n", result);
+    }
+
+    return 0;
+}

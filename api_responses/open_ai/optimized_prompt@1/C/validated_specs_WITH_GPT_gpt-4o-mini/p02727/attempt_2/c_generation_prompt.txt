@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code reads a set of integers from input, processes them through sorting and conditional logic, and computes the sum of selected integers from two arrays, outputting the result.
+
+## 2. Inputs
+- Five integers: X, Y, A, B, C.
+- A sequence of A integers for the first array.
+- A sequence of B integers for the second array.
+- A sequence of C integers for the third array.
+
+## 3. Outputs
+- A single integer representing the sum of selected integers from the first and second arrays.
+
+## 4. Preconditions
+- The input must consist of exactly five integers followed by A, B, and C integers respectively.
+- A, B, and C must be non-negative integers.
+
+## 5. Postconditions
+- The output is the sum of the first X integers from the first array and the first Y integers from the second array after processing, where processing involves conditional replacements based on the third array.
+
+## 6. Invariants
+- The first array is sorted in descending order.
+- The second array is sorted in descending order.
+- The third array is not modified but is used to conditionally replace elements in the first and second arrays based on specific comparison logic.
+
+## 7. Error Handling / Exceptional Behavior
+- The program returns an error code if the input does not match the expected format or if any input reading fails.
+
+## 8. State Transitions
+- The state transitions occur as elements from the third array are conditionally placed into the first and second arrays. Specifically:
+  - For each element in the third array, if the current index of the first array is valid and the element from the third array is greater than the current element in the first array, the current element is replaced.
+  - If the current index of the first array is invalid or the element from the third array is not greater than the current element in the first array, the program checks the second array under similar conditions.
+  - This process continues until either the third array is exhausted or no further replacements can be made in both arrays.
+
+## 9. Non-functional Constraints
+- The program must handle input sizes up to the defined limits of A, B, and C efficiently, ensuring that sorting and processing are performed within acceptable time limits.
+
+```

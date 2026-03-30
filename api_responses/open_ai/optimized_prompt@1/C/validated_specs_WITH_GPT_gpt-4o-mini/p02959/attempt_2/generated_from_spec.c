@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+long long compute_cumulative_sum(int N, long long A[], long long B[]) {
+    long long S = 0; // Cumulative sum initialized to zero
+
+    // Set the first and last elements of B to zero as per the specification
+    B[0] = 0;
+    B[N + 1] = 0;
+
+    // Iterate from 1 to N+1
+    for (int i = 1; i <= N + 1; i++) {
+        // Increment S by the lesser of A[i] and B[i-1]
+        S += (A[i] < B[i - 1]) ? A[i] : B[i - 1];
+
+        // Adjust A[i] based on the comparison with B[i-1]
+        if (A[i] > B[i - 1]) {
+            A[i] -= B[i - 1];
+        } else {
+            A[i] = 0; // Set to zero if A[i] is not greater
+        }
+
+        // Increment S by the lesser of the updated A[i] and B[i]
+        S += (A[i] < B[i]) ? A[i] : B[i];
+
+        // Adjust B[i] based on the comparison with the updated A[i]
+        if (A[i] > B[i]) {
+            B[i] -= A[i];
+        } else {
+            B[i] -= A[i]; // This is effectively the same as decrementing by A[i]
+        }
+    }
+
+    return S; // Return the final cumulative sum
+}

@@ -1,0 +1,63 @@
+#include <stdio.h>
+
+#define MAX_N 1000
+#define MOD 1000000007
+
+int n; // Number of nodes
+int edges[MAX_N][2]; // Edges of the tree
+long long dp[MAX_N][2]; // Dynamic programming table: dp[node][0] = exclude, dp[node][1] = include
+int subtree_size[MAX_N]; // Size of each subtree
+
+void dfs(int node, int parent) {
+    // Initialize the subtree size and dp values
+    subtree_size[node] = 1;
+    dp[node][0] = 1; // Exclude this node
+    dp[node][1] = 1; // Include this node
+
+    for (int i = 0; i < n - 1; i++) {
+        if (edges[i][0] == node && edges[i][1] != parent) {
+            int child = edges[i][1];
+            dfs(child, node);
+            subtree_size[node] += subtree_size[child];
+
+            // Update dp values based on the child's dp values
+            dp[node][0] = (dp[node][0] * (dp[child][0] + dp[child][1]) % MOD) % MOD; // Exclude this node
+            dp[node][1] = (dp[node][1] * dp[child][0]) % MOD; // Include this node
+        } else if (edges[i][1] == node && edges[i][0] != parent) {
+            int child = edges[i][0];
+            dfs(child, node);
+            subtree_size[node] += subtree_size[child];
+
+            // Update dp values based on the child's dp values
+            dp[node][0] = (dp[node][0] * (dp[child][0] + dp[child][1]) % MOD) % MOD; // Exclude this node
+            dp[node][1] = (dp[node][1] * dp[child][0]) % MOD; // Include this node
+        }
+    }
+}
+
+long long compute_result() {
+    long long result = 0;
+    for (int i = 0; i < n; i++) {
+        result = (result + dp[i][0] + dp[i][1]) % MOD; // Aggregate results from all nodes
+    }
+    return result;
+}
+
+int main() {
+    // Read number of nodes
+    scanf("%d", &n);
+    
+    // Read edges
+    for (int i = 0; i < n - 1; i++) {
+        scanf("%d %d", &edges[i][0], &edges[i][1]);
+    }
+
+    // Start DFS from the first node (assuming 0-indexed)
+    dfs(0, -1);
+
+    // Compute and print the result
+    long long result = compute_result();
+    printf("%lld\n", result);
+    
+    return 0;
+}

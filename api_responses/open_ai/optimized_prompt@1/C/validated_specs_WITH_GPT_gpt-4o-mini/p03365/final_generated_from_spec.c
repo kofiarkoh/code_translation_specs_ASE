@@ -1,0 +1,76 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007 // Predefined constant for modulo operations
+#define MAX_N 1000000  // Maximum value for n
+
+// Precomputed factorials and their modular inverses
+long long fact[MAX_N + 1];
+long long inv_fact[MAX_N + 1];
+
+// Function to compute modular exponentiation
+long long mod_exp(long long base, long long exp, long long mod) {
+    long long result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % mod;
+        }
+        base = (base * base) % mod;
+        exp /= 2;
+    }
+    return result;
+}
+
+// Function to precompute factorials and their inverses
+void precompute_factorials() {
+    fact[0] = 1;
+    for (int i = 1; i <= MAX_N; i++) {
+        fact[i] = (fact[i - 1] * i) % MOD;
+    }
+    inv_fact[MAX_N] = mod_exp(fact[MAX_N], MOD - 2, MOD); // Fermat's little theorem
+    for (int i = MAX_N - 1; i >= 0; i--) {
+        inv_fact[i] = (inv_fact[i + 1] * (i + 1)) % MOD;
+    }
+}
+
+// Function to compute binomial coefficient C(n, r)
+long long choose(int n, int r) {
+    if (r < 0 || r > n) {
+        return 0; // Return zero for out-of-bounds r
+    }
+    return (fact[n] * inv_fact[r] % MOD) * inv_fact[n - r] % MOD;
+}
+
+// Main computation function
+long long compute_combinatorial_value(int n) {
+    if (n < 0 || n > MAX_N) {
+        return 0; // Return zero for invalid n
+    }
+
+    long long temp[MAX_N + 1] = {0}; // Array to store intermediate results
+
+    // Populate the temp array
+    for (int k = 0; k < n; k++) {
+        temp[k] = (choose(k - 1, n - 1 - k) * fact[k] % MOD * fact[n - 1 - k]) % MOD;
+    }
+
+    long long result = 0;
+
+    // Compute the final result based on temp array
+    for (int k = 1; k < n; k++) {
+        result = (result + (temp[k] - temp[k - 1] + MOD) % MOD * k) % MOD;
+    }
+
+    return result; // Return the final computed result
+}
+
+int main() {
+    precompute_factorials(); // Precompute factorials and inverses
+
+    int n;
+    scanf("%d", &n); // Read input n
+    long long result = compute_combinatorial_value(n); // Compute result
+    printf("%lld\n", result); // Output the result
+
+    return 0;
+}

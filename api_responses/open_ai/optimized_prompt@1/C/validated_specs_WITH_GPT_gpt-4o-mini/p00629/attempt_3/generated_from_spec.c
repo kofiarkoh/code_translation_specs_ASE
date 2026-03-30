@@ -1,0 +1,89 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_RECORDS 300
+#define MAX_OUTPUT 25
+
+typedef struct {
+    int I; // Identifier
+    int U; // Second attribute
+    int A; // Third attribute
+    int P; // Fourth attribute
+} Record;
+
+// Comparison function for sorting records
+int compare(const void *a, const void *b) {
+    Record *recordA = (Record *)a;
+    Record *recordB = (Record *)b;
+
+    // Sort by A (descending), then by P (ascending), then by I (ascending)
+    if (recordA->A != recordB->A) {
+        return recordB->A - recordA->A; // Descending order for A
+    }
+    if (recordA->P != recordB->P) {
+        return recordA->P - recordB->P; // Ascending order for P
+    }
+    return recordA->I - recordB->I; // Ascending order for I
+}
+
+int main() {
+    int n;
+    while (1) {
+        // Read the number of records
+        scanf("%d", &n);
+        if (n == 0) {
+            break; // Terminate on input of 0
+        }
+
+        Record records[MAX_RECORDS];
+        int count = 0;
+
+        // Read records
+        for (int i = 0; i < n && count < MAX_RECORDS; i++) {
+            scanf("%d %d %d %d", &records[count].I, &records[count].U, &records[count].A, &records[count].P);
+            count++;
+        }
+
+        // Sort records
+        qsort(records, count, sizeof(Record), compare);
+
+        // Frequency tracking for U
+        int frequency[1001] = {0}; // Assuming U values are in the range 0-1000
+        for (int i = 0; i < count; i++) {
+            frequency[records[i].U]++;
+        }
+
+        // Selection of identifiers based on frequency
+        int outputCount = 0;
+        int selected[MAX_OUTPUT] = {0}; // To track selected identifiers
+        for (int i = 0; i < count && outputCount < MAX_OUTPUT; i++) {
+            int u = records[i].U;
+            int selectedCount = 0;
+
+            // Count how many identifiers have been selected for this U
+            for (int j = 0; j < i; j++) {
+                if (records[j].U == u && selected[records[j].I] == 1) {
+                    selectedCount++;
+                }
+            }
+
+            // Determine how many can be selected based on frequency
+            int maxSelect = 0;
+            if (frequency[u] == 3) {
+                maxSelect = 3;
+            } else if (frequency[u] == 2) {
+                maxSelect = 2;
+            } else if (frequency[u] == 1) {
+                maxSelect = 1;
+            }
+
+            // Select the identifier if within the limit
+            if (selectedCount < maxSelect) {
+                selected[records[i].I] = 1; // Mark as selected
+                printf("%d\n", records[i].I); // Output the identifier
+                outputCount++;
+            }
+        }
+    }
+    return 0;
+}

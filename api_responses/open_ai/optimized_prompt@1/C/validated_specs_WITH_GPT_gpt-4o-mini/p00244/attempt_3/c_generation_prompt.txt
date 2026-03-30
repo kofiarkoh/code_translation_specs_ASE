@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a search algorithm to find the minimum cost to travel from a starting node to a goal node in a graph. Nodes represent locations, and edges represent paths with associated costs. The algorithm allows for a limited number of special conditions, represented by a counter, which can alter the cost of travel. It evaluates multiple paths to determine the minimum cost, considering both the base costs of edges and the effects of the special conditions.
+
+## 2. Inputs
+- A series of test cases, each consisting of:
+  - An integer representing the number of nodes in the graph (greater than zero).
+  - An integer representing the number of edges (non-negative).
+  - For each edge, three integers representing two nodes (valid indices within the range of the defined graph) and the cost of the edge.
+
+## 3. Outputs
+- For each test case, an integer representing the minimum cost to travel from the starting node to the goal node, considering the defined constraints. If the goal node is unreachable, a specific value will indicate this condition.
+
+## 4. Preconditions
+- The number of nodes must be greater than zero.
+- The number of edges must be non-negative.
+- Each edge must connect valid nodes within the range of the defined graph.
+
+## 5. Postconditions
+- The output is the minimum cost to reach the goal node from the start node. If the goal node is unreachable, the output will reflect that by returning a specific value.
+
+## 6. Invariants
+- The graph structure remains consistent throughout execution, with nodes and edges defined as per the input.
+- The priority queue maintains the order of nodes based on their current cost during the search process.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input specifies zero nodes, the program terminates without processing further.
+- If the goal node is unreachable, the output will reflect that by returning a specific value.
+
+## 8. State Transitions
+- State transitions occur as nodes are dequeued from the priority queue, and new nodes are enqueued based on the calculated costs and remaining special conditions. The algorithm evaluates multiple paths to the goal node, updating costs as necessary based on the current state and the effects of special conditions.
+
+## 9. Path Evaluation
+- The algorithm considers all available paths to the goal node, updating the minimum cost based on the costs of edges traversed. If multiple paths lead to the goal node, the algorithm will return the minimum cost among them. In cases where paths have equal costs, the algorithm will prioritize the first path encountered in the search order.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of the input size, focusing on minimizing the computational complexity associated with the search process. The algorithm should correctly handle scenarios where multiple paths exist to the goal node, ensuring that the minimum cost is accurately determined based on the available paths and special conditions.
+
+```

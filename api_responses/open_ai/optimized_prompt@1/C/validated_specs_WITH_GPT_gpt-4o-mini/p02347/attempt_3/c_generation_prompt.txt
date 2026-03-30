@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code constructs a k-d tree from a set of points and allows for querying points within a specified rectangular region. It guarantees that all points within the defined bounds are identified and returned in sorted order based on their unique IDs.
+
+## 2. Inputs
+- An integer `n` representing the number of points, where `0 ≤ n ≤ MAX_N`.
+- A list of `n` pairs of integers representing the coordinates (x, y) of each point.
+- An integer `q` representing the number of queries, where `0 ≤ q`.
+- A list of `q` queries, each defined by four integers (sx, tx, sy, ty) representing the inclusive bounds of a rectangular region.
+
+## 3. Outputs
+- For each query, a list of point IDs corresponding to points within the specified rectangular region, printed in ascending order.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative and less than or equal to `MAX_N`.
+- Each point's coordinates must be valid integers.
+- The input integer `q` must be non-negative.
+
+## 5. Postconditions
+- The output for each query contains the IDs of all points that lie within the specified rectangular bounds, sorted in ascending order.
+- The output for each query is separated by a newline.
+
+## 6. Invariants
+- The k-d tree structure remains valid throughout the execution, ensuring that each node correctly represents a partition of the point set.
+- The point IDs are unique and correspond to their respective points.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` is zero, no points are processed, and no output is generated for queries.
+- If a query's bounds do not encompass any points, the output will be empty for that query.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur during the construction of the k-d tree and the querying process, where the state changes from an unprocessed set of points to a structured tree and then to a list of identified point IDs.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to handle up to a million points efficiently, with time complexity primarily influenced by the logarithmic nature of the k-d tree for queries.
+
+## 10. Comparison Function Behavior
+- The comparison functions used for sorting (e.g., `cmpx_func`, `cmpy_func`, and `cmpi_func`) must be defined before their usage in sorting operations. They must return an integer indicating the relative order of the elements being compared. Specifically:
+  - A negative value if the first element is less than the second.
+  - A positive value if the first element is greater than the second.
+  - Zero if the elements are equal.
+- The comparison functions must handle inputs of the appropriate types, ensuring that they are correctly cast to the expected types before comparison.
+
+```

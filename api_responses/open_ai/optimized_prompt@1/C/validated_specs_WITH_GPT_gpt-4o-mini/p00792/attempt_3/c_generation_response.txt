@@ -1,0 +1,90 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define GRID_MIN 0
+#define GRID_MAX 800
+#define INITIAL_X 50
+#define INITIAL_Y 0
+#define EXIT_X 100
+#define EXIT_Y 50
+
+typedef struct {
+    char orientation; // 'x' for vertical, 'y' for horizontal
+    int x;
+    int y;
+} Mirror;
+
+typedef struct {
+    int x;
+    int y;
+    int direction; // 0 for right, 1 for up, 2 for left, 3 for down
+} Point;
+
+void process_movement(Point *point, Mirror *mirrors, int n) {
+    while (1) {
+        // Check for exit condition
+        if (point->x == EXIT_X && point->y == EXIT_Y && point->direction == 0) {
+            break;
+        }
+
+        // Move the point based on its current direction
+        switch (point->direction) {
+            case 0: // Moving right
+                point->x++;
+                break;
+            case 1: // Moving up
+                point->y++;
+                break;
+            case 2: // Moving left
+                point->x--;
+                break;
+            case 3: // Moving down
+                point->y--;
+                break;
+        }
+
+        // Check for boundary conditions
+        if (point->x < GRID_MIN || point->x > GRID_MAX || point->y < GRID_MIN || point->y > GRID_MAX) {
+            break; // Stop movement if out of bounds
+        }
+
+        // Check for mirror interactions
+        for (int i = 0; i < n; i++) {
+            if ((point->direction == 0 && point->y == mirrors[i].y && point->x == mirrors[i].x) || // right
+                (point->direction == 1 && point->x == mirrors[i].x && point->y == mirrors[i].y) || // up
+                (point->direction == 2 && point->y == mirrors[i].y && point->x == mirrors[i].x) || // left
+                (point->direction == 3 && point->x == mirrors[i].x && point->y == mirrors[i].y)) { // down
+                // Change direction based on mirror orientation
+                if (mirrors[i].orientation == 'x') {
+                    point->direction = (point->direction == 0) ? 2 : (point->direction == 1) ? 1 : (point->direction == 3) ? 0 : 3; // Reflect horizontally
+                } else if (mirrors[i].orientation == 'y') {
+                    point->direction = (point->direction == 0) ? 1 : (point->direction == 1) ? 0 : (point->direction == 2) ? 3 : 2; // Reflect vertically
+                }
+                break; // Only the first mirror encountered affects the direction
+            }
+        }
+    }
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of mirrors
+
+    if (n < 0) {
+        return 1; // Terminate gracefully on negative input
+    }
+
+    Mirror mirrors[n];
+    for (int i = 0; i < n; i++) {
+        scanf(" %c %d %d", &mirrors[i].orientation, &mirrors[i].x, &mirrors[i].y);
+    }
+
+    Point point = {INITIAL_X, INITIAL_Y, 0}; // Start at (50, 0) moving right
+
+    process_movement(&point, mirrors, n);
+
+    printf("%d %d\n", point.x, point.y); // Output final coordinates
+    return 0;
+}
+```

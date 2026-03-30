@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of edges in a graph that are not part of any shortest path between any pair of nodes. It reads the number of nodes and edges, processes the edge weights, and applies the Floyd-Warshall algorithm to determine shortest paths. The program accounts for the possibility of disconnected components and parallel edges.
+
+## 2. Inputs
+- Two integers representing the number of nodes \( N \) and the number of edges \( M \).
+- \( M \) sets of three integers representing the edges, where each set contains:
+  - Two integers representing the nodes connected by the edge (0 to \( N-1 \)).
+  - An integer representing the non-negative weight of the edge.
+
+## 3. Outputs
+- An integer representing the count of edges that are not part of any shortest path in the graph.
+
+## 4. Preconditions
+- \( N \) and \( M \) are non-negative integers.
+- Each edge connects valid node indices (0 to \( N-1 \)).
+- Edge weights are non-negative integers.
+
+## 5. Postconditions
+- The output integer is less than or equal to \( M \).
+- The output integer reflects the number of edges that do not contribute to any shortest path between any pairs of nodes.
+
+## 6. Invariants
+- The distance matrix is initialized such that the distance from a node to itself is zero, and the distance between different nodes is set to a large value, indicating that they are initially unreachable.
+- The distance matrix is updated to reflect the minimum distances based on the edges provided, including handling of parallel edges by retaining the minimum weight.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds indices explicitly. If the input does not conform to the expected format, behavior is undefined.
+- The program assumes that the input will not lead to memory access violations, such as accessing uninitialized or out-of-bounds memory.
+
+## 8. State Transitions
+- The state transitions occur through the updates of the distance matrix as edges are processed and during the execution of the Floyd-Warshall algorithm. The program handles cases where nodes may not be connected, resulting in a distance matrix that reflects unreachable nodes.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity of \( O(N^3) \) due to the Floyd-Warshall implementation, which may limit performance for large values of \( N \). The program is designed to handle graphs that may be sparse or contain disconnected components.
+
+```

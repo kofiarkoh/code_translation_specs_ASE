@@ -1,0 +1,93 @@
+```c
+#include <stdio.h>
+#include <limits.h>
+
+int compute_min_cost(int n, int m, int adjustments[], int values[]) {
+    // Initialize a cost array to store the minimum costs for each adjustment
+    int cost[m];
+    
+    // Initialize the cost array with maximum possible values
+    for (int j = 0; j < m; j++) {
+        cost[j] = INT_MAX; // Start with "infinity"
+    }
+
+    // Process each value to compute the cumulative transformation cost
+    for (int i = 0; i < n; i++) {
+        int new_cost[m];
+        
+        // Initialize new_cost array for the current value
+        for (int j = 0; j < m; j++) {
+            new_cost[j] = INT_MAX; // Start with "infinity"
+        }
+
+        // Calculate the cost for each adjustment
+        for (int j = 0; j < m; j++) {
+            // Ensure adjustments are within the valid range [0, 255]
+            if (adjustments[j] < 0 || adjustments[j] > 255) {
+                continue; // Skip invalid adjustments
+            }
+
+            // Calculate the transformation cost
+            int transformation_cost = (values[i] - adjustments[j]) * (values[i] - adjustments[j]);
+
+            // Update the new_cost array with the minimum cumulative cost
+            for (int k = 0; k < m; k++) {
+                if (cost[k] != INT_MAX) { // Only consider valid previous costs
+                    int total_cost = cost[k] + transformation_cost;
+                    if (total_cost < new_cost[j]) {
+                        new_cost[j] = total_cost; // Update to the minimum cost
+                    }
+                }
+            }
+        }
+
+        // Update the cost array for the next iteration
+        for (int j = 0; j < m; j++) {
+            cost[j] = new_cost[j];
+        }
+    }
+
+    // Find the minimum cost from the final cost array
+    int min_cost = INT_MAX;
+    for (int j = 0; j < m; j++) {
+        if (cost[j] < min_cost) {
+            min_cost = cost[j];
+        }
+    }
+
+    // If min_cost is still INT_MAX, it means no valid transformation was possible
+    return (min_cost == INT_MAX) ? -1 : min_cost; // Return -1 to indicate infinite cost
+}
+
+int main() {
+    int n, m;
+    // Read n and m from input
+    scanf("%d %d", &n, &m);
+    
+    // Ensure n and m are positive
+    if (n <= 0 || m <= 0) {
+        return -1; // Invalid input
+    }
+
+    int adjustments[m];
+    int values[n];
+
+    // Read adjustment values
+    for (int i = 0; i < m; i++) {
+        scanf("%d", &adjustments[i]);
+    }
+
+    // Read values to be transformed
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &values[i]);
+    }
+
+    // Compute the minimum cumulative transformation cost
+    int result = compute_min_cost(n, m, adjustments, values);
+    
+    // Output the result
+    printf("%d\n", result);
+    
+    return 0;
+}
+```

@@ -1,0 +1,157 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+char a[1024][80];
+int ap;
+
+void reverse(char *s, int n)
+{
+    int i;
+    for(i=0;i<n/2;++i) {
+        char t=s[i];
+        s[i]=s[n-1-i];
+        s[n-1-i]=t;
+    }
+}
+void swap(char *s1, char *s2)
+{
+    int i=0;
+    char t[80], *p;
+    for(p=s2;*p;++p) t[i++]=*p;
+    for(p=s1;p!=s2;++p) t[i++]=*p;
+    t[i]=0;
+    strcpy(s1, t);
+}
+int contain(char* s)
+{
+    int i;
+    for(i=0;i<ap;++i) if (!strcmp(a[i], s)) return 1;
+    return 0;
+}
+
+int main(void)
+{
+    int n;
+    scanf("%d", &n);
+    while (n--) {
+        int i, len;
+        char s[80], t[80];
+        scanf("%s", s);
+
+        ap=0;
+        len=strlen(s);
+        strcpy(t, s);
+        for(i=1;i<len;++i) {
+            if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s, i); if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s+i, len-i); if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s, i); if (!contain(s)) strcpy(a[ap++], s);
+            strcpy(s, t);
+            swap(s, s+i);
+            if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s, len-i); if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s+len-i, i); if (!contain(s)) strcpy(a[ap++], s);
+            reverse(s, len-i); if (!contain(s)) strcpy(a[ap++], s);
+            strcpy(s, t);
+        }
+        printf("%d\n", ap);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a specified number of strings, generating and storing unique variations of each string based on a series of transformations. These transformations include multiple reversals and swaps of substrings. The program counts and outputs the total number of unique variations generated for each input string.
+
+## 2. Inputs
+- An integer representing the number of strings to process.
+- A series of strings, each with a maximum length of 79 characters (plus a null terminator).
+
+## 3. Outputs
+- An integer for each input string, representing the count of unique variations generated.
+
+## 4. Preconditions
+- The input integer must be non-negative.
+- Each input string must be null-terminated and not exceed the maximum length.
+
+## 5. Postconditions
+- The output integer reflects the total number of unique variations generated from the input string, considering all transformations applied.
+
+## 6. Invariants
+- The array used to store unique variations is maintained throughout the execution, ensuring no duplicates are stored.
+- The count of unique variations is updated only when a new variation is successfully added.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input string exceeds the maximum length, behavior is undefined.
+- If memory limits are exceeded (e.g., too many unique variations), behavior is undefined.
+
+## 8. State Transitions
+- The state transitions involve the transformation of the input string through a series of operations:
+  1. The original string is checked for uniqueness and stored if it is not already present.
+  2. The string undergoes a series of reversals:
+     - The first `i` characters are reversed.
+     - The last `len-i` characters are reversed.
+     - The entire string is restored and then swapped with its substring starting from index `i`.
+     - The resulting string is checked for uniqueness after each transformation.
+  3. The transformations are repeated for all valid substring lengths, ensuring that all possible variations are considered.
+
+## 9. Non-functional Constraints
+- The algorithm's performance may degrade with longer strings due to the combinatorial nature of the transformations applied. The number of unique variations generated can grow significantly based on the input string's length and content.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define the specific transformations that should be applied to the strings, particularly the reversal operation. It assumes the existence of a `strrev` function without specifying how to implement it or that it should be part of the transformations.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should explicitly detail the transformations, including how to reverse a string or substring, and clarify that these operations must be implemented within the program rather than relying on standard library functions that may not exist in all environments.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a custom `reverse` function to handle string reversal, indicating that the transformation logic is critical to the program's functionality. The absence of a standard `strrev` function in C means that the specification should not assume its availability and should instead describe the required operations in detail. This would prevent misunderstandings about the expected behavior and implementation of string transformations.
+
+```

@@ -1,0 +1,69 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_STRINGS 100 // Maximum number of unique strings
+#define MAX_PAGES 1000  // Maximum number of page numbers per string
+
+typedef struct {
+    char *string;          // Unique string
+    int pages[MAX_PAGES]; // Associated page numbers
+    int count;            // Count of occurrences
+    int page_count;       // Number of page numbers recorded
+} StringEntry;
+
+StringEntry entries[MAX_STRINGS]; // Collection of unique strings
+int entry_count = 0;               // Number of unique strings
+
+// Function to compare two StringEntry structures for qsort
+int compare(const void *a, const void *b) {
+    return strcmp(((StringEntry *)a)->string, ((StringEntry *)b)->string);
+}
+
+void add_entry(const char *str, int page) {
+    // Check if the string already exists
+    for (int i = 0; i < entry_count; i++) {
+        if (strcmp(entries[i].string, str) == 0) {
+            // String exists, add the page number
+            entries[i].pages[entries[i].page_count++] = page;
+            entries[i].count++;
+            return;
+        }
+    }
+    
+    // If the string is new, add it to the collection
+    if (entry_count < MAX_STRINGS) {
+        entries[entry_count].string = strdup(str); // Duplicate the string
+        entries[entry_count].pages[0] = page;      // First page number
+        entries[entry_count].count = 1;             // Initial count
+        entries[entry_count].page_count = 1;        // Initial page count
+        entry_count++;
+    }
+}
+
+int main() {
+    char str[256]; // Buffer for input strings
+    int page;     // Buffer for input page numbers
+
+    // Read input until EOF
+    while (scanf("%255s %d", str, &page) == 2) {
+        add_entry(str, page); // Add the string and page number to the collection
+    }
+
+    // Sort the entries based on the unique strings
+    qsort(entries, entry_count, sizeof(StringEntry), compare);
+
+    // Output the sorted strings and their associated page numbers
+    for (int i = 0; i < entry_count; i++) {
+        printf("%s", entries[i].string); // Print the unique string
+        for (int j = 0; j < entries[i].page_count; j++) {
+            printf(" %d", entries[i].pages[j]); // Print associated page numbers
+        }
+        printf("\n"); // New line after each entry
+        free(entries[i].string); // Free the duplicated string
+    }
+
+    return 0;
+}
+```

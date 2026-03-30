@@ -1,0 +1,74 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int compute_max_value(int *arr, int n) {
+    // Dynamic programming table to store computed values
+    int **dp = (int **)malloc(n * sizeof(int *));
+    for (int i = 0; i < n; i++) {
+        dp[i] = (int *)malloc(n * sizeof(int));
+    }
+
+    // Initialize the DP table
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            dp[i][j] = 0; // Start with zero
+        }
+    }
+
+    // Fill the DP table based on the specified relationships
+    for (int length = 1; length <= n; length++) { // Length of the subarray
+        for (int i = 0; i < n; i++) { // Starting index
+            int j = (i + length - 1) % n; // Ending index in circular manner
+            if (length == 1) {
+                dp[i][j] = abs(arr[i] - arr[j]); // Base case for single element
+            } else {
+                // Calculate the maximum value based on previous computations
+                dp[i][j] = abs(arr[i] - arr[j]) + dp[(i + 1) % n][j]; // Example relation
+                // Additional relations can be added here based on the specification
+            }
+        }
+    }
+
+    // Find the maximum value in the DP table
+    int max_value = INT_MIN;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            if (dp[i][j] > max_value) {
+                max_value = dp[i][j];
+            }
+        }
+    }
+
+    // Free allocated memory
+    for (int i = 0; i < n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+
+    return max_value; // Return the computed maximum value
+}
+
+int main() {
+    int test_cases;
+    scanf("%d", &test_cases); // Read number of test cases
+
+    while (test_cases--) {
+        int n;
+        scanf("%d", &n); // Read number of elements in the array
+        int *arr = (int *)malloc(n * sizeof(int)); // Allocate memory for the array
+
+        for (int i = 0; i < n; i++) {
+            scanf("%d", &arr[i]); // Read array elements
+        }
+
+        int result = compute_max_value(arr, n); // Compute the maximum value
+        printf("%d\n", result); // Output the result for the test case
+
+        free(arr); // Free allocated memory for the array
+    }
+
+    return 0; // Successful execution
+}
+```

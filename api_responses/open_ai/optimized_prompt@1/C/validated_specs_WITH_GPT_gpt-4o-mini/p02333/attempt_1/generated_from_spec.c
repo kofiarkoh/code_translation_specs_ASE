@@ -1,0 +1,72 @@
+#include <stdio.h>
+
+#define MAX_LIMIT 1000 // Predefined maximum limit for factorial calculations
+#define MODULO 1000000007 // Predefined constant for modulo operation
+
+// Function to compute factorials and inverse factorials
+void compute_factorials(long long factorial[], long long inv_factorial[], int max) {
+    factorial[0] = 1;
+    for (int i = 1; i <= max; i++) {
+        factorial[i] = (factorial[i - 1] * i) % MODULO;
+    }
+    
+    // Compute inverse factorial using Fermat's Little Theorem
+    inv_factorial[max] = 1; // Inverse of factorial[max] mod MODULO
+    for (int i = max - 1; i >= 0; i--) {
+        inv_factorial[i] = (inv_factorial[i + 1] * (i + 1)) % MODULO;
+    }
+}
+
+// Function to compute combinations C(n, r)
+long long combination(int n, int r, long long factorial[], long long inv_factorial[]) {
+    if (r < 0 || n < r) {
+        return 0; // Return zero for invalid combinations
+    }
+    return (factorial[n] * inv_factorial[r] % MODULO * inv_factorial[n - r] % MODULO) % MODULO;
+}
+
+// Main function to compute the result based on the specification
+long long compute_expression(int n, int m) {
+    if (n < 0 || m < 0 || m > MAX_LIMIT) {
+        return 0; // Return zero for invalid inputs
+    }
+
+    long long factorial[MAX_LIMIT + 1];
+    long long inv_factorial[MAX_LIMIT + 1];
+    
+    // Compute factorials and inverse factorials
+    compute_factorials(factorial, inv_factorial, m);
+
+    long long result = 0;
+    for (int i = 0; i <= m; i++) {
+        long long comb = combination(m, i, factorial, inv_factorial);
+        long long term = (comb * pow(2, n)) % MODULO; // Modular exponentiation
+        result = (result + term) % MODULO; // Summation of terms
+    }
+
+    return result; // Return the final result
+}
+
+// Function to perform modular exponentiation
+long long pow(long long base, int exp) {
+    long long result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % MODULO; // Apply modulo
+        }
+        base = (base * base) % MODULO; // Apply modulo
+        exp /= 2;
+    }
+    return result;
+}
+
+int main() {
+    int n, m;
+    // Example input; in practice, these would be read from user input or another source
+    n = 5; // Example exponent
+    m = 10; // Example upper limit for combinations
+
+    long long result = compute_expression(n, m);
+    printf("%lld\n", result); // Output the result
+    return 0;
+}

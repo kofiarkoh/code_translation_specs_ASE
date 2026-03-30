@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *tree;
+    int size;
+} BIT;
+
+// Function to create a Binary Indexed Tree
+BIT* createBIT(int n) {
+    BIT *bit = (BIT *)malloc(sizeof(BIT));
+    bit->size = n;
+    bit->tree = (int *)calloc(n + 1, sizeof(int)); // 1-based indexing
+    return bit;
+}
+
+// Function to update the BIT
+void updateBIT(BIT *bit, int index, int value) {
+    for (; index <= bit->size; index += index & -index) {
+        bit->tree[index] += value;
+    }
+}
+
+// Function to get the cumulative frequency from the BIT
+int getSum(BIT *bit, int index) {
+    int sum = 0;
+    for (; index > 0; index -= index & -index) {
+        sum += bit->tree[index];
+    }
+    return sum;
+}
+
+// Function to count elements less than or equal to m
+int count(int m, int *a, int n) {
+    int count = 0;
+    for (int i = 0; i < n; i++) {
+        if (a[i] <= m) {
+            count++;
+        }
+    }
+    return count;
+}
+
+// Function to find the largest l satisfying the condition
+int findLargestL(int n, int *a) {
+    // Create a Binary Indexed Tree
+    BIT *bit = createBIT(n);
+    
+    // Populate the BIT with the counts of elements
+    for (int i = 0; i < n; i++) {
+        updateBIT(bit, a[i], 1); // Increment count for each element
+    }
+
+    int l = 0, r = 1000000; // Assuming a reasonable upper limit for l
+    while (l < r) {
+        int m = (l + r + 1) / 2; // Midpoint for binary search
+        int sum = getSum(bit, m); // Get count of elements <= m
+        
+        // Check the condition
+        if (4 * sum >= n * (n + 1)) {
+            l = m; // m is a valid candidate, search in the upper half
+        } else {
+            r = m - 1; // m is not valid, search in the lower half
+        }
+    }
+
+    // Clean up
+    free(bit->tree);
+    free(bit);
+    
+    return l; // Return the largest l found
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of elements
+    int *a = (int *)malloc(n * sizeof(int)); // Allocate array
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &a[i]); // Read elements into the array
+    }
+
+    int result = findLargestL(n, a); // Find the largest l
+    printf("%d\n", result); // Output the result
+
+    free(a); // Free allocated array
+    return 0;
+}

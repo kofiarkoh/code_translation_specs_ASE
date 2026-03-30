@@ -1,0 +1,180 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MOD_BY 1000000007
+
+int add(int a,int b) {
+	int r=a+b;
+	if(r>=MOD_BY)r-=MOD_BY;
+	return r;
+}
+
+/*
+int mul(int a,int b) {
+	return (int)(((long long)a*(long long)b)%MOD_BY);
+}
+*/
+
+int N,M;
+int existPos;
+char A[10240];
+char B[10240];
+char C[512];
+
+int memo[10002][502][2][2];
+int numberOfNumber[10002][2][2];
+
+int getNumberOfNumber(int pos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+	if(pos>=N)return 1;
+	if(numberOfNumber[pos][ueFlag][sitaFlag]>0)return numberOfNumber[pos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		ret=add(ret,getNumberOfNumber(pos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+	}
+
+	numberOfNumber[pos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int search(int pos,int seqPos,int ueFlag,int sitaFlag) {
+	int ret=0;
+	int i;
+	int imin,imax;
+
+	if(seqPos>=M)return getNumberOfNumber(pos,ueFlag,sitaFlag);
+	if(pos>=N)return 0;
+	if(memo[pos][seqPos][ueFlag][sitaFlag]>0)return memo[pos][seqPos][ueFlag][sitaFlag]-1;
+
+	imin=sitaFlag?A[pos]:0;
+	imax=ueFlag?B[pos]:9;
+	for(i=imin;i<=imax;i++) {
+		if(seqPos==0) {
+			ret=add(ret,search(pos+1,0,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+		if((!sitaFlag || i!=imin || existPos<=pos) && seqPos<M && C[seqPos]==i) {
+			ret=add(ret,search(pos+1,seqPos+1,ueFlag&&(i==imax),sitaFlag&&(i==imin)));
+		}
+	}
+
+	memo[pos][seqPos][ueFlag][sitaFlag]=ret+1;
+	return ret;
+}
+
+int main(void) {
+	int Alen,Blen;
+	int i;
+	if(scanf("%s%s%s",A,B,C)!=3)return 1;
+	Alen=strlen(A);
+	Blen=strlen(B);
+	if(Alen<Blen) {
+		for(i=0;i<Alen;i++)A[Blen-i-1]=A[Alen-i-1];
+		for(i=0;i<Blen-Alen;i++)A[i]='0';
+	}
+	N=Blen;
+	M=strlen(C);
+	existPos=Blen-Alen;
+	for(i=0;i<N;i++) {
+		A[i]-='0';
+		B[i]-='0';
+	}
+	for(i=0;i<M;i++)C[i]-='0';
+	printf("%d\n",search(0,0,1,1));
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of valid sequences that can be formed based on two input strings representing lower and upper bounds, and a target sequence. It ensures that the generated sequences adhere to specified constraints defined by the bounds and the target.
+
+## 2. Inputs
+- Two strings representing lower and upper bounds (A and B).
+- One string representing a target sequence (C).
+
+## 3. Outputs
+- An integer representing the count of valid sequences that can be formed according to the specified constraints.
+
+## 4. Preconditions
+- The input strings A, B, and C must be provided and contain only numeric characters.
+- The lengths of A and B must be non-negative.
+- The length of C must be non-negative.
+
+## 5. Postconditions
+- The output integer is non-negative and represents the total number of valid sequences that can be formed based on the input constraints.
+
+## 6. Invariants
+- The values in the input strings are converted from character representations to their corresponding integer values.
+- The computed results are stored in a memoization structure to avoid redundant calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- If fewer than three strings are provided as input, the program terminates with an error code.
+- The program does not handle invalid characters in the input strings; it assumes all characters are valid numeric digits.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur through recursive calls that explore different combinations of digits based on the current position in the strings and the flags indicating bounds and sequence matching.
+- The algorithm adjusts the length of string A to match that of string B by padding A with leading zeros when A is shorter than B. This adjustment is crucial for ensuring that the sequences generated are valid within the specified bounds.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm is designed to operate within a time complexity that allows for efficient computation of valid sequences, leveraging memoization to optimize repeated calculations. The output is guaranteed to be computed modulo a predefined constant to prevent overflow.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address the handling of input strings that may not conform to expected lengths or formats, particularly in relation to the padding of string A to match the length of string B.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the algorithm handles cases where the lengths of the input strings A and B differ, specifically detailing the padding mechanism and its implications on the valid sequences generated.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes logic to pad string A with leading zeros when its length is less than that of string B. This behavior is crucial for ensuring that the sequences generated are valid within the specified bounds. However, the current specification does not explicitly mention this padding behavior or its significance, leading to potential misunderstandings about the expected input and output.
+
+```

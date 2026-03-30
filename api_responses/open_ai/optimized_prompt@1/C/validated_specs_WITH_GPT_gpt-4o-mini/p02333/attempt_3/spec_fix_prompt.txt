@@ -1,0 +1,119 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define MOD 1000000007
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	makefact(2000,MOD);
+	int n,m;
+	scanf("%d%d",&n,&m);
+	ll s=0;
+	rep(i,0,m+1)s=(s+choose(m,i,MOD)*pom(i,n,MOD)*((m-i)%2==0?1:-1))%MOD;
+	printf("%lld\n",(s+MOD)%MOD);
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific mathematical expression involving combinations and modular exponentiation, returning the result as a long long integer. The computation is performed using a custom implementation of modular exponentiation to ensure correct handling of modular arithmetic.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` represents the exponent in the modular exponentiation.
+  - `m` represents the upper limit for the combination calculations.
+
+## 3. Outputs
+- A single long long integer representing the computed result of the mathematical expression, modulo a predefined constant.
+
+## 4. Preconditions
+- The input integers `n` and `m` must be non-negative.
+- The value of `m` must not exceed a predefined maximum limit for factorial calculations, specifically 2000, as this is the upper limit used in the factorial computations.
+
+## 5. Postconditions
+- The output is the result of the summation of terms calculated using combinations and modular exponentiation, adjusted to be non-negative by applying a modulo operation.
+
+## 6. Invariants
+- The factorial and inverse factorial arrays are correctly populated for all integers up to the maximum limit specified.
+- The modular arithmetic is consistently applied throughout the calculations to ensure results remain within the bounds of the modulo.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` or `r` (where `r` is derived from `i` in the combination calculation) are negative or if `n - r` is negative, the function returns zero for that combination calculation.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve the initialization of factorial and inverse factorial arrays, followed by the iterative computation of the summation based on the input values. The modular exponentiation is performed using a custom function that ensures correct results under modular conditions.
+
+## 9. Non-functional Constraints (if inferable)
+- The computation must complete within a reasonable time frame for inputs up to the maximum limit, ensuring efficiency in both time and space for the factorial calculations. The implementation of modular exponentiation must also be efficient to maintain overall performance.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not adequately describe how the summation of terms is computed, particularly the role of the alternating sign based on the parity of `(m - i)` in the original source program.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify that the result is computed as a summation of terms where each term is influenced by the parity of `(m - i)`, specifically that terms are alternately added and subtracted based on whether `(m - i)` is even or odd.
+
+D. **Why this clarification is supported by the source program**  
+- The source program includes a conditional expression `((m - i) % 2 == 0 ? 1 : -1)` that alters the contribution of each term in the summation based on the parity of `(m - i)`. This behavior directly affects the final output, and its absence in the specification leads to a mismatch in the expected and actual results.
+
+```

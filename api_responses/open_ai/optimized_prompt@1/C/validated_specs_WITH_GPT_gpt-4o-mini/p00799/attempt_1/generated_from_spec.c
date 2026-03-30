@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *usage_times;      // Array of usage times for the battery
+    int *recharge_times;   // Array of recharge times for the battery
+    int usage_count;       // Number of usages recorded
+    int recharge_count;    // Number of recharges recorded
+} Battery;
+
+int simulate_battery_management(int num_batteries, int time_limit, Battery *batteries) {
+    int total_usages = 0; // Total number of battery usages
+    int current_time = 0; // Current simulation time
+
+    // Iterate over each battery
+    for (int i = 0; i < num_batteries; i++) {
+        int usage_index = 0; // Index for usage times
+        int recharge_index = 0; // Index for recharge times
+        int battery_time = 0; // Time spent on this battery
+
+        // Process the battery until the time limit is reached
+        while (current_time < time_limit) {
+            // Check if there are more usage times available
+            if (usage_index < batteries[i].usage_count) {
+                // Use the battery
+                battery_time += batteries[i].usage_times[usage_index];
+                total_usages++; // Increment total usages
+                usage_index++; // Move to the next usage time
+            }
+
+            // Check if the battery has been used within the time limit
+            if (battery_time >= time_limit) {
+                break; // Stop if the battery time exceeds the limit
+            }
+
+            // Check if there are more recharge times available
+            if (recharge_index < batteries[i].recharge_count) {
+                // Recharge the battery
+                battery_time += batteries[i].recharge_times[recharge_index];
+                recharge_index++; // Move to the next recharge time
+            }
+
+            // Update the current time
+            current_time += battery_time;
+        }
+    }
+
+    return total_usages; // Return the total number of usages
+}
+
+int main() {
+    int num_batteries, time_limit;
+
+    // Read number of batteries and time limit
+    if (scanf("%d %d", &num_batteries, &time_limit) != 2 || num_batteries <= 0 || time_limit <= 0) {
+        return 1; // Terminate if input is invalid
+    }
+
+    Battery *batteries = malloc(num_batteries * sizeof(Battery));
+    for (int i = 0; i < num_batteries; i++) {
+        // Read usage and recharge counts for each battery
+        int usage_count, recharge_count;
+        scanf("%d %d", &usage_count, &recharge_count);
+        
+        // Allocate memory for usage and recharge times
+        batteries[i].usage_times = malloc(usage_count * sizeof(int));
+        batteries[i].recharge_times = malloc(recharge_count * sizeof(int));
+        batteries[i].usage_count = usage_count;
+        batteries[i].recharge_count = recharge_count;
+
+        // Read usage times
+        for (int j = 0; j < usage_count; j++) {
+            scanf("%d", &batteries[i].usage_times[j]);
+        }
+
+        // Read recharge times
+        for (int j = 0; j < recharge_count; j++) {
+            scanf("%d", &batteries[i].recharge_times[j]);
+        }
+    }
+
+    // Simulate the battery management system
+    int total_usages = simulate_battery_management(num_batteries, time_limit, batteries);
+    printf("%d\n", total_usages); // Output the total number of usages
+
+    // Free allocated memory
+    for (int i = 0; i < num_batteries; i++) {
+        free(batteries[i].usage_times);
+        free(batteries[i].recharge_times);
+    }
+    free(batteries);
+
+    return 0; // Successful termination
+}

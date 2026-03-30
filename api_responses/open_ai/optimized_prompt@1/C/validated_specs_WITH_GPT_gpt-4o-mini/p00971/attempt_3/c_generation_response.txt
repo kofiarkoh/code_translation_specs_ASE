@@ -1,0 +1,80 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define SMAX 100 // Define maximum length for input strings
+
+// Function prototypes
+void dfs(int pos1, int pos2, char *str1, char *str2, char *result, int *index);
+int next_occurrence(char *str, int start, char c);
+
+int main() {
+    char str1[SMAX + 1], str2[SMAX + 1];
+    char result[SMAX + 1]; // To store the output sequence
+    int index = 0;
+
+    // Read two binary strings from standard input
+    scanf("%s %s", str1 + 1, str2 + 1); // Indexing starts from 1
+
+    // Ensure null-termination
+    str1[0] = str2[0] = '\0'; // Placeholder for index 0
+    str1[SMAX] = str2[SMAX] = '\0'; // Ensure strings are null-terminated
+
+    // Call DFS to process the strings
+    dfs(1, 1, str1, str2, result, &index);
+
+    // Null-terminate the result string
+    result[index] = '\0';
+
+    // Print the result followed by a newline
+    printf("%s\n", result);
+    return 0;
+}
+
+// Depth-first search function to explore combinations
+void dfs(int pos1, int pos2, char *str1, char *str2, char *result, int *index) {
+    // Base case: if both positions exceed the length of their respective strings
+    if (str1[pos1] == '\0' && str2[pos2] == '\0') {
+        return;
+    }
+
+    // Explore the next occurrences of '0' and '1' in both strings
+    int next1_0 = next_occurrence(str1, pos1, '0');
+    int next1_1 = next_occurrence(str1, pos1, '1');
+    int next2_0 = next_occurrence(str2, pos2, '0');
+    int next2_1 = next_occurrence(str2, pos2, '1');
+
+    // Decision-making process based on next occurrences
+    if (next1_0 != -1 || next2_0 != -1) {
+        // If '0' can be taken from either string
+        if (next1_0 != -1 && (next2_0 == -1 || next1_0 < next2_0)) {
+            result[(*index)++] = '0';
+            dfs(next1_0, pos2, str1, str2, result, index);
+        } else {
+            result[(*index)++] = '0';
+            dfs(pos1, next2_0, str1, str2, result, index);
+        }
+    }
+
+    if (next1_1 != -1 || next2_1 != -1) {
+        // If '1' can be taken from either string
+        if (next1_1 != -1 && (next2_1 == -1 || next1_1 < next2_1)) {
+            result[(*index)++] = '1';
+            dfs(next1_1, pos2, str1, str2, result, index);
+        } else {
+            result[(*index)++] = '1';
+            dfs(pos1, next2_1, str1, str2, result, index);
+        }
+    }
+}
+
+// Function to find the next occurrence of a character in a string
+int next_occurrence(char *str, int start, char c) {
+    for (int i = start; str[i] != '\0'; i++) {
+        if (str[i] == c) {
+            return i; // Return the index of the next occurrence
+        }
+    }
+    return -1; // Return -1 if the character is not found
+}
+```

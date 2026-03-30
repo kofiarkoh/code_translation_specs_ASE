@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a combinatorial value based on the input parameters, utilizing factorials and modular arithmetic to manage large numbers. It calculates the result by considering the arrangements of colored objects, specifically focusing on the number of ways to arrange a specified number of red and black objects under constraints related to their connectivity.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` represents the total number of objects, which can be any non-negative integer.
+  - `m` is a positive integer greater than 1, serving as the modulus for all calculations.
+
+## 3. Outputs
+- A single long long integer representing the computed combinatorial value, adjusted to be non-negative by taking modulo `m`.
+
+## 4. Preconditions
+- `n` must be a non-negative integer.
+- `m` must be a positive integer greater than 1.
+
+## 5. Postconditions
+- The output is guaranteed to be in the range [0, m-1].
+- The output reflects the combinatorial arrangements of `n` objects, accounting for the specific constraints on the connectivity of colored objects.
+
+## 6. Invariants
+- The factorial and inverse factorial arrays are correctly populated for values up to 2010, ensuring accurate combinatorial calculations.
+- All calculations involving modular arithmetic maintain the integrity of the results within the modulus `m`.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` or `r` in the choose function is negative, or if `n` is less than `r`, the function returns 0, indicating an invalid combinatorial scenario.
+
+## 8. State Transitions
+- The state transitions involve the computation of factorials and their inverses, which are stored in arrays and used throughout the calculations. The final state is the computed result stored in a variable before output.
+
+## 9. Combinatorial Logic
+- The computation considers the arrangement of `i` red objects and `n-i` black objects, where the number of black objects that are not connected to red objects is denoted by `j`. The algorithm employs an inclusion-exclusion principle to account for the various configurations of connectivity among the objects.
+- The final result is influenced by the number of ways to choose `i` red objects from `n`, the arrangements of these objects, and the connectivity conditions defined by the nested loops.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of `n` up to 2010, with time complexity primarily influenced by the nested loops and factorial calculations.
+
+```

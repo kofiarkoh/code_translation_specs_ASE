@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int longest_increasing_subsequence(int n, int* a) {
+    // Check preconditions
+    if (n < 0 || n > 100000) {
+        // Undefined behavior if n is out of bounds
+        return -1; // Indicate error (undefined behavior)
+    }
+
+    // Array to store the smallest tail of all increasing subsequences
+    int* lis = (int*)malloc(n * sizeof(int));
+    if (lis == NULL) {
+        // Memory allocation failed
+        return -1; // Indicate error (undefined behavior)
+    }
+
+    int length = 0; // Length of the longest increasing subsequence
+
+    for (int i = 0; i < n; i++) {
+        // Binary search for the insertion point of a[i] in lis
+        int left = 0, right = length;
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            if (lis[mid] < a[i]) {
+                left = mid + 1; // Move right
+            } else {
+                right = mid; // Move left
+            }
+        }
+
+        // Update the lis array
+        lis[left] = a[i];
+        if (left == length) {
+            length++; // Increase the length of the longest increasing subsequence
+        }
+    }
+
+    free(lis); // Free allocated memory
+    return length; // Return the length of the longest increasing subsequence
+}
+
+// Example usage
+int main() {
+    int n = 8;
+    int a[] = {10, 9, 2, 5, 3, 7, 101, 18};
+    int result = longest_increasing_subsequence(n, a);
+    printf("Length of longest increasing subsequence: %d\n", result);
+    return 0;
+}

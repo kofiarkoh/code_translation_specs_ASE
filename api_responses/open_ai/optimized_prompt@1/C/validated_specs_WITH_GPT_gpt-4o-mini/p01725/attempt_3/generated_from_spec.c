@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+long long maxEval(char *expression);
+
+long long evaluate(long long left, long long right, char op) {
+    switch (op) {
+        case '+': return left + right;
+        case '-': return left - right;
+        case '*': return left * right;
+        default: return 0; // Should not reach here
+    }
+}
+
+long long maxExpression(char *expression, int start, int end) {
+    long long maxResult = LLONG_MIN;
+
+    for (int i = start; i <= end; i++) {
+        if (expression[i] >= '0' && expression[i] <= '9') {
+            continue; // Skip digits
+        }
+
+        // Evaluate left and right parts recursively
+        long long left = maxExpression(expression, start, i - 1);
+        long long right = maxExpression(expression, i + 1, end);
+
+        // Calculate the result of the current operation
+        long long result = evaluate(left, right, expression[i]);
+        if (result > maxResult) {
+            maxResult = result; // Update max result
+        }
+    }
+
+    // If no operator was found, it means we are at a number
+    if (maxResult == LLONG_MIN) {
+        char num[20];
+        int j = 0;
+        for (int i = start; i <= end; i++) {
+            if (expression[i] >= '0' && expression[i] <= '9') {
+                num[j++] = expression[i];
+            } else {
+                break; // Stop at the first non-digit
+            }
+        }
+        num[j] = '\0'; // Null-terminate the string
+        return atoll(num); // Convert to long long
+    }
+
+    return maxResult;
+}
+
+long long maxEval(char *expression) {
+    return maxExpression(expression, 0, strlen(expression) - 1);
+}
+
+int main() {
+    char expression[100]; // Assuming a maximum length of 100 for the expression
+    printf("Enter a mathematical expression: ");
+    scanf("%s", expression);
+    long long result = maxEval(expression);
+    printf("Maximum result: %lld\n", result);
+    return 0;
+}

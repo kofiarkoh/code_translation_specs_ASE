@@ -1,0 +1,143 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+// size: specify sizeof(str)
+int get_str(char *str, int size) {
+    if(!fgets(str, size, stdin)) return -1;
+    return 0;
+}
+
+int get_int(void) {
+  int num;
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return 0;
+  sscanf(line, "%d", &num);
+#else
+#error
+#endif
+  return num;
+}
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+
+    int pat, i;
+    for(pat = 0; pat < (1<<n); pat++) {
+        if(__builtin_popcount(pat)!=k) continue;
+        printf("%d:", pat);
+        for(i = 0; i < n; i++) {
+            if(!(pat & (1<<i))) continue;
+            printf(" %d", i);
+        }
+        putchar('\n');
+    }
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code generates and prints all combinations of indices from a set of size `n`, where exactly `k` indices are selected. Each combination is represented as a binary pattern, and the corresponding indices are printed in a specified format.
+
+# 2. Inputs
+- Two integers, `n` and `k`, representing the size of the set and the number of indices to select, respectively.
+
+# 3. Outputs
+- A series of lines, each containing a binary pattern followed by the selected indices, formatted as "pattern: index1 index2 ...".
+
+# 4. Preconditions
+- The input integers `n` and `k` must be non-negative.
+- The value of `k` must not exceed `n`.
+
+# 5. Postconditions
+- The output will contain all combinations of `k` indices from the set of size `n`, each represented by a unique binary pattern.
+
+# 6. Invariants
+- For each generated pattern, the number of set bits (1s) must equal `k`.
+- The indices printed correspond to the positions of the set bits in the binary representation of the pattern.
+
+# 7. Error Handling / Exceptional Behavior
+- If input reading fails, the function returns an error code (-1 or 0) without producing output.
+- If the input values do not meet the preconditions, the behavior is undefined, and no output is guaranteed.
+
+# 8. State Transitions (if applicable)
+- The state transitions involve reading input values, generating binary patterns, and printing output lines based on the generated patterns.
+
+# 9. Non-functional Constraints (if inferable)
+- The program is expected to handle input sizes within reasonable limits, constrained by the buffer size and the maximum representable patterns based on `n`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clarify how the binary pattern should be formatted when printed. Specifically, it lacks details on whether leading zeros should be included in the binary representation of the pattern.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should explicitly state the format of the binary pattern output, including whether it should be printed with leading zeros to match the size of `n`.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses a specific formatting approach (`%0*d`) to print the binary pattern, which includes leading zeros based on the size of `n`. The discrepancy between the expected output (without leading zeros) and the actual output (with leading zeros) indicates that the specification's lack of detail on output formatting led to the mismatch.
+
+```

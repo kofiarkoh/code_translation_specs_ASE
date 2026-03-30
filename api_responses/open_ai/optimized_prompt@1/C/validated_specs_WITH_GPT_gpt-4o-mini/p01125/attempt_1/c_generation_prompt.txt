@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The program processes a grid-based movement system where a user can mark specific grid cells as occupied. It allows for movement in four cardinal directions and checks if all occupied cells have been visited and marked as unoccupied.
+
+# 2. Inputs
+- A positive integer representing the number of occupied cells.
+- Pairs of integers indicating the coordinates of each occupied cell.
+- A positive integer representing the number of movement commands.
+- A series of movement commands consisting of a direction character and a positive integer indicating the number of steps to move in that direction.
+
+# 3. Outputs
+- A string indicating whether all occupied cells have been visited ("Yes" if all are unoccupied, "No" otherwise).
+
+# 4. Preconditions
+- The grid is defined with a fixed size (25x25).
+- The initial position for movement is set at coordinates (10, 10).
+- The coordinates for occupied cells and movement commands are within the grid boundaries.
+
+# 5. Postconditions
+- The program will output "Yes" if all initially occupied cells have been marked as unoccupied after processing all movement commands; otherwise, it will output "No".
+
+# 6. Invariants
+- The number of occupied cells is non-negative and decreases only when a cell is visited.
+- The position of movement is always updated based on the specified direction and number of steps.
+
+# 7. Error Handling / Exceptional Behavior
+- The program assumes valid input for coordinates and movement commands. No explicit error handling is implemented for invalid inputs or out-of-bounds movements.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur with each movement command, updating the current position and the status of occupied cells based on whether the new position corresponds to an occupied cell.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed grid size, ensuring constant space complexity for the occupied cell tracking. The time complexity is linear with respect to the number of movement commands and occupied cells.
+
+```

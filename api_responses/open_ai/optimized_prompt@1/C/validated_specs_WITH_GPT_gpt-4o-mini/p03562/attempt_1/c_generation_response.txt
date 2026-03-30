@@ -1,0 +1,55 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MD 998244353
+#define MAX_LENGTH 4000
+
+// Function to convert a binary string to an integer
+unsigned long long binaryStringToInt(const char *binary) {
+    unsigned long long result = 0;
+    while (*binary) {
+        result = (result << 1) | (*binary - '0'); // Shift left and add the next bit
+        binary++;
+    }
+    return result;
+}
+
+int main() {
+    int m;
+    char s[MAX_LENGTH + 1]; // Buffer for the first binary string
+    unsigned long long result = 0;
+
+    // Read the number of binary strings
+    if (scanf("%d", &m) != 1) {
+        return 1; // Error reading m
+    }
+
+    // Read the first binary string
+    if (scanf("%s", s) != 1) {
+        return 1; // Error reading the first binary string
+    }
+
+    // Convert the first binary string to an integer
+    result = binaryStringToInt(s) % MD;
+
+    // Process the additional binary strings
+    for (int i = 0; i < m; i++) {
+        char temp[MAX_LENGTH + 1]; // Buffer for additional binary strings
+        if (scanf("%s", temp) != 1) {
+            return 1; // Error reading additional binary string
+        }
+
+        // Convert the additional binary string to an integer
+        unsigned long long tempValue = binaryStringToInt(temp) % MD;
+
+        // Perform bitwise XOR with the result
+        result = (result ^ tempValue) % MD; // Ensure result stays within bounds
+    }
+
+    // Print the final result
+    printf("%llu\n", result);
+    return 0;
+}
+```

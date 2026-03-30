@@ -1,0 +1,162 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#define LEN 128
+
+void convert(char charNum[], int intNum[]) {
+    int i, j = 0;
+    for (i = (int)strlen(charNum) - 1; i >= 0 ; i --) {
+        intNum[j] = (int)charNum[i] - 48;
+        j ++;
+    }
+}
+
+int main(int argc, const char * argv[]) {
+    int dataSet;
+    int count = 1;
+    scanf("%d", &dataSet);
+    char firstNum[LEN], secondNum[LEN];
+    int fNum[LEN], sNum[LEN], sum[LEN];
+    int i, j, k, l;
+    while (count <= dataSet) {
+        count ++;
+        while (scanf("%s", firstNum) != EOF) {
+            break;
+        }
+        while (scanf("%s", secondNum) != EOF) {
+            break;
+        }
+        if (strlen(firstNum) > 80 || strlen(secondNum) > 80) {
+            printf("overflow\n");
+            continue;
+        }
+        for (i = 0; i < LEN; i ++) {
+            fNum[i] = 0;
+            sNum[i] = 0;
+            sum[i] = 0;
+        }
+        convert(firstNum, fNum);
+        convert(secondNum, sNum);
+        for (i = 0; i < LEN; i ++) {
+            sum[i] = fNum[i] + sNum[i];
+        }
+        for (i = 0; i < LEN; i ++) {
+            if (sum[i] >= 10) {
+                sum[i] %= 10;
+                sum[i + 1] += 1;
+            }
+        }
+        k = 0;
+        j = LEN - 1;
+        while (j >= 0) {
+            if (sum[j] == 0 && j != 0) {
+                k ++;
+                j --;
+            } else {
+                break;
+            }
+        }
+        if (k < LEN - 80) {
+            printf("overflow");
+        } else {
+            for (l = LEN - k - 1; l >= 0; l --) {
+                printf("%d", sum[l]);
+            }
+        }
+        printf("\n");
+    }
+    return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a specified number of datasets, each containing two strings representing non-negative integers. It converts these strings into integer arrays, computes their sum, and outputs the result. If the input strings exceed a certain length or if the computed sum exceeds a defined limit, it outputs an overflow message.
+
+# 2. Inputs
+- An integer indicating the number of datasets.
+- Two strings representing non-negative integers for each dataset.
+
+# 3. Outputs
+- The sum of the two integers as a string of digits.
+- An overflow message if the input strings exceed a length of 80 characters or if the computed sum exceeds a defined limit.
+
+# 4. Preconditions
+- The first input must be a valid integer representing the number of datasets.
+- Each subsequent input must be a valid string representation of a non-negative integer.
+
+# 5. Postconditions
+- The output will either be the sum of the two integers or an overflow message.
+- The sum will be correctly computed and formatted as a string of digits if no overflow occurs.
+
+# 6. Invariants
+- The lengths of the input strings must not exceed 80 characters.
+- The integer arrays used for computation are initialized to zero before use.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input strings exceed 80 characters, an overflow message is printed, and the current dataset is skipped.
+- If the computed sum exceeds the defined limit, an overflow message is printed.
+
+# 8. State Transitions (if applicable)
+- Transition from reading input to processing input upon receiving valid strings.
+- Transition from processing to outputting results based on the computed sum or overflow conditions.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle multiple datasets in a single execution.
+- The program should efficiently manage memory and processing time within the constraints of the input size.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address the handling of very large integers that exceed the limits of standard integer types, nor does it clarify how to handle the conversion of such large strings into integers.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the program must handle very large integers represented as strings, which may exceed the limits of standard integer types. It should also specify the expected behavior when such large integers are encountered, including how to manage potential overflows during conversion and summation.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses arrays to store digits of the numbers, allowing it to handle very large integers beyond typical integer limits. The failure in the test case indicates that the generated program does not account for this capability, leading to incorrect outputs when large numbers are processed. The source program's logic for summing digits and managing carries is designed to handle such cases, which is not reflected in the current specification.
+
+```

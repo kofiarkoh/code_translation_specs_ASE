@@ -1,0 +1,40 @@
+#include <stdio.h>
+#include <string.h>
+
+int calculate_rotations(const char *init, const char *unlock, int n) {
+    int total_rotations = 0;
+
+    for (int i = 0; i < n; i++) {
+        int diff = unlock[i] - init[i]; // Calculate the difference
+        if (diff < 0) {
+            diff += 10; // Adjust for circular rotation
+        }
+        total_rotations += diff; // Accumulate total rotations
+    }
+
+    return total_rotations; // Return the total rotations needed
+}
+
+int main() {
+    int n;
+    char init[11], unlock[11]; // Max length is 10 + 1 for null terminator
+
+    while (1) {
+        scanf("%d", &n); // Read the length of sequences
+        if (n <= 0) {
+            break; // Terminate if n is non-positive
+        }
+
+        scanf("%s %s", init, unlock); // Read the two sequences
+
+        // Check for identical sequences
+        if (strcmp(init, unlock) == 0) {
+            printf("0\n"); // Output 0 if sequences are identical
+        } else {
+            int rotations = calculate_rotations(init, unlock, n);
+            printf("%d\n", rotations); // Output the calculated rotations
+        }
+    }
+
+    return 0; // Graceful termination
+}

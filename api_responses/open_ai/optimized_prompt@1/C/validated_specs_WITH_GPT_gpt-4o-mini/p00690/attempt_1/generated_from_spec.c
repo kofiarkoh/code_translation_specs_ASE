@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int station1;
+    int station2;
+    int distance;
+} Connection;
+
+typedef struct {
+    int *stations;
+    int length;
+} Path;
+
+int maxLength = 0;
+Path longestPath;
+
+void dfs(int currentStation, int *visited, int currentLength, int *currentPath, int pathIndex, int numStations, Connection *connections, int numConnections) {
+    visited[currentStation] = 1; // Mark the current station as visited
+    currentPath[pathIndex] = currentStation; // Add current station to the path
+    pathIndex++;
+
+    for (int i = 0; i < numConnections; i++) {
+        if (connections[i].station1 == currentStation && !visited[connections[i].station2]) {
+            // Explore the connection to station2
+            dfs(connections[i].station2, visited, currentLength + connections[i].distance, currentPath, pathIndex, numStations, connections, numConnections);
+        } else if (connections[i].station2 == currentStation && !visited[connections[i].station1]) {
+            // Explore the connection to station1
+            dfs(connections[i].station1, visited, currentLength + connections[i].distance, currentPath, pathIndex, numStations, connections, numConnections);
+        }
+    }
+
+    // Check if the current path is the longest found
+    if (currentLength > maxLength) {
+        maxLength = currentLength;
+        longestPath.length = pathIndex;
+        longestPath.stations = (int *)malloc(pathIndex * sizeof(int));
+        for (int j = 0; j < pathIndex; j++) {
+            longestPath.stations[j] = currentPath[j]; // Store the longest path
+        }
+    }
+
+    visited[currentStation] = 0; // Backtrack: unmark the current station
+}
+
+void findLongestPath(int numStations, int numConnections, Connection *connections) {
+    if (numStations == 0) {
+        return; // Terminate gracefully if no stations
+    }
+
+    int *visited = (int *)calloc(numStations, sizeof(int)); // Track visited stations
+    int *currentPath = (int *)malloc(numStations * sizeof(int)); // Current path storage
+
+    for (int i = 0; i < numStations; i++) {
+        dfs(i, visited, 0, currentPath, 0, numStations, connections, numConnections); // Start DFS from each station
+    }
+
+    free(visited);
+    free(currentPath);
+}
+
+int main() {
+    int numStations, numConnections;
+    scanf("%d %d", &numStations, &numConnections); // Read number of stations and connections
+
+    if (numStations <= 0 || numConnections <= 0) {
+        return 0; // Invalid input, terminate gracefully
+    }
+
+    Connection *connections = (Connection *)malloc(numConnections * sizeof(Connection)); // Allocate memory for connections
+
+    for (int i = 0; i < numConnections; i++) {
+        scanf("%d %d %d", &connections[i].station1, &connections[i].station2, &connections[i].distance); // Read connections
+    }
+
+    findLongestPath(numStations, numConnections, connections); // Find the longest path
+
+    // Output the results
+    printf("%d\n", maxLength); // Output the length of the longest path
+    for (int i = 0; i < longestPath.length; i++) {
+        printf("%d ", longestPath.stations[i]); // Output the stations in the longest path
+    }
+    printf("\n");
+
+    free(connections);
+    free(longestPath.stations); // Free allocated memory for the longest path
+    return 0;
+}

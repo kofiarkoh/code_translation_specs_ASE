@@ -1,0 +1,57 @@
+#include <stdio.h>
+
+#define N 1000000007 // Predefined constant for modulus
+
+// Function to compute factorial modulo N
+void compute_factorials(int max, long long factorials[]) {
+    factorials[0] = 1; // 0! = 1
+    for (int i = 1; i <= max; i++) {
+        factorials[i] = (factorials[i - 1] * i) % N; // Compute factorials modulo N
+    }
+}
+
+// Function to compute modular inverse using Fermat's Little Theorem
+long long mod_inverse(long long a) {
+    long long result = 1;
+    long long exponent = N - 2; // a^(N-2) mod N
+    while (exponent > 0) {
+        if (exponent % 2 == 1) {
+            result = (result * a) % N; // Multiply result by a if exponent is odd
+        }
+        a = (a * a) % N; // Square a
+        exponent /= 2; // Divide exponent by 2
+    }
+    return result;
+}
+
+// Function to compute combinations C(n, r) % N
+long long combinations(int n, int r, long long factorials[]) {
+    if (r > n) return 0; // Invalid case
+    return (factorials[n] * mod_inverse(factorials[r]) % N * mod_inverse(factorials[n - r]) % N) % N;
+}
+
+// Main function to compute the combinatorial value based on inputs x, y, k
+int compute_combinatorial_value(int x, int y, int k) {
+    if (x < 0 || y < 0 || k < 0) return 0; // Check for non-negative inputs
+    int n = x + y + 2 * k; // Calculate n
+    long long factorials[n + 1]; // Memoization table for factorials
+
+    compute_factorials(n, factorials); // Populate the factorials table
+
+    // Compute the combinatorial value C(x + y + k, k)
+    long long result = combinations(x + y + k, k, factorials);
+    
+    return (int)((result + N) % N); // Ensure result is non-negative
+}
+
+int main() {
+    int x, y, k;
+    // Example input
+    x = 5;
+    y = 3;
+    k = 2;
+
+    int result = compute_combinatorial_value(x, y, k);
+    printf("%d\n", result); // Output the result
+    return 0;
+}

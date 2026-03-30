@@ -1,0 +1,121 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int N, a[401];
+long long dp[401][401] = {}, sum[401];
+const long long sup = (long long)1 << 60;
+
+long long recursion(int l, int r)
+{
+	if (dp[l][r] != 0 || l == r) return dp[l][r];
+	else dp[l][r] = sup;
+	
+	int k;
+	long long tmp;
+	for (k = l + 1; k <= r; k++) {
+		tmp = recursion(l, k - 1) + recursion(k, r);
+		if (tmp < dp[l][r]) dp[l][r] = tmp;
+	}
+	dp[l][r] += sum[r] - sum[l-1];
+	return dp[l][r];
+}
+
+int main()
+{
+	int i;
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d", &(a[i]));
+	for (i = 1, sum[0] = 0; i <= N; i++) sum[i] = sum[i-1] + a[i];
+	printf("%lld\n", recursion(1, N));
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost of partitioning a sequence of integers into contiguous segments. The cost of a partition is defined as the sum of the integers in the segments, plus the costs incurred from recursively partitioning the segments. The result is the minimum total cost for partitioning the entire sequence.
+
+## 2. Inputs
+- An integer \( N \) representing the number of elements in the sequence.
+- A sequence of \( N \) integers, which can be positive, negative, or zero.
+
+## 3. Outputs
+- A single long long integer representing the minimum cost of partitioning the sequence.
+
+## 4. Preconditions
+- \( N \) is a positive integer.
+- The sequence contains \( N \) integers.
+
+## 5. Postconditions
+- The output is the minimum cost of partitioning the sequence, calculated as the sum of the integers in the segments plus the costs of the recursive partitions.
+
+## 6. Invariants
+- The computed minimum cost for any sub-sequence defined by indices \( l \) and \( r \) is stored in a memoization table to avoid redundant calculations.
+- The cumulative sum of the sequence is maintained to facilitate efficient cost calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid values. It assumes valid input as per the preconditions.
+- If the input exceeds the defined limits (e.g., more than 400 elements), behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur through recursive calls that partition the sequence into smaller segments. The memoization table is updated with the minimum costs as the recursion unwinds, ensuring that the cost of each segment is accurately aggregated.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial in relation to \( N \), specifically \( O(N^3) \), due to the nested recursive calls and memoization.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the input array is passed to the recursive function or how it is accessed within the context of the memoization table.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the expected structure and accessibility of the input array within the recursive computation, particularly how the array is passed to the functions that utilize it.
+
+D. **Why this clarification is supported by the source program**  
+   - In the source program, the input array `a` is globally accessible, which allows the recursive function `recursion` to directly access it without needing to pass it as a parameter. The generated code, however, assumes that the array is passed as a parameter, leading to a compilation error due to the undeclared identifier `arr`. This discrepancy indicates a misunderstanding of how the input data is managed in the original source program.
+
+```

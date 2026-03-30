@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes a list of integers by performing prime factorization and counting specific conditions based on the prime factors of each integer. It outputs a count of integers that meet defined criteria during the processing.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the input list.
+- An array of `n` integers, each of which can be positive or negative.
+
+## 3. Outputs
+- A single long integer representing the count of integers that meet specific criteria based on their prime factors.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative.
+- The input array must contain `n` valid integers.
+
+## 5. Postconditions
+- The output is a long integer that reflects the count of integers meeting specific criteria based on their prime factors, including conditions related to their square and cube factors.
+
+## 6. Invariants
+- The original input array of integers remains unmodified during processing.
+- The count is incremented based on defined conditions related to the prime factorization of each integer.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input array is empty, the output will be zero.
+- If any computed value exceeds a defined threshold (specifically, 10 billion), it is handled by setting it to a sentinel value, which indicates that the count for that integer should be incremented based on its original node count.
+
+## 8. State Transitions
+- State transitions occur as each integer is processed, with changes in the count based on evaluations of prime factors. The program tracks the number of occurrences of each unique integer and updates the count based on specific conditions related to their prime factors.
+
+## 9. Non-functional Constraints
+- The algorithm's performance is influenced by the number of integers and their values, particularly in terms of time complexity related to prime factorization, sorting operations, and the handling of large integers. The program employs efficient algorithms for prime factorization and binary search to optimize performance.
+
+```

@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum sum of values collected by two entities moving through a grid from the top-left corner to the bottom-right corner. The entities can move down or to the right, and their paths may overlap. The result is output as a single integer representing the maximum sum of values collected by both entities upon reaching the bottom-right corner of the grid.
+
+## 2. Inputs
+- A grid defined by its width and height, followed by the integer values in each cell of the grid.
+- Input can be read from a file or standard input.
+
+## 3. Outputs
+- A single integer representing the maximum sum of values collected by the two entities upon reaching the bottom-right corner of the grid.
+
+## 4. Preconditions
+- The grid dimensions (width and height) must be positive integers.
+- The grid must not exceed the defined maximum size of 205x205.
+- The input must be formatted correctly to allow for successful parsing.
+
+## 5. Postconditions
+- The output integer is the maximum sum of values collected by the two entities, calculated based on the defined movement rules and the interactions between their paths.
+
+## 6. Invariants
+- The grid values remain unchanged throughout the execution.
+- The maximum sum is updated based on valid movements within the grid, considering both entities' positions and the values they collect.
+
+## 7. Error Handling / Exceptional Behavior
+- If the movement of either entity goes out of the grid boundaries, the operation for that path is aborted, and the entities do not collect values from that path.
+- If the input format is incorrect, the behavior is undefined, but the program does not handle such errors explicitly.
+
+## 8. State Transitions
+- The state transitions occur as the entities move through the grid, updating their positions and the maximum sum collected based on valid movements. When both entities occupy the same cell, the value from that cell is counted only once towards the total sum. If either entity attempts to move out of the grid boundaries, the movement is aborted for that entity.
+
+## 9. Non-functional Constraints
+- The program must operate within the constraints of memory and processing time suitable for the maximum grid size defined.
+
+```

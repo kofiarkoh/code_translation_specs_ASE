@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_NODES 100 // Assuming a reasonable upper limit for nodes
+#define MAX_COST INT_MAX // Represents an unreachable cost
+
+// Function to compute the minimum cost to traverse the specified sequence of nodes
+int compute_min_cost(int N, int M, int edges[M][4], int R, int visit_sequence[R]) {
+    // Initialize distance matrices for direct and indirect paths
+    int dist[MAX_NODES][MAX_NODES];
+
+    // Set all distances to MAX_COST, except for self-distances
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            dist[i][j] = (i == j) ? 0 : MAX_COST;
+        }
+    }
+
+    // Process edges to fill the distance matrix
+    for (int i = 0; i < M; i++) {
+        int x = edges[i][0];
+        int y = edges[i][1];
+        int s = edges[i][2];
+        // Update the distance for both direct and indirect edges
+        if (dist[x][y] > s) {
+            dist[x][y] = s;
+            dist[y][x] = s; // Assuming undirected edges
+        }
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for (int k = 0; k < N; k++) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (dist[i][j] > dist[i][k] + dist[k][j]) {
+                    dist[i][j] = dist[i][k] + dist[k][j];
+                }
+            }
+        }
+    }
+
+    // Calculate the minimum cost to traverse the visit_sequence
+    int total_cost = 0;
+    for (int i = 0; i < R - 1; i++) {
+        int from = visit_sequence[i];
+        int to = visit_sequence[i + 1];
+        if (dist[from][to] == MAX_COST) {
+            return MAX_COST; // No valid path exists
+        }
+        total_cost += dist[from][to];
+    }
+
+    return total_cost;
+}
+
+int main() {
+    int N, M;
+    while (scanf("%d %d", &N, &M) == 2) {
+        int edges[M][4];
+        for (int i = 0; i < M; i++) {
+            scanf("%d %d %d %*s", &edges[i][0], &edges[i][1], &edges[i][2]); // Ignore edge type
+        }
+        int R;
+        scanf("%d", &R);
+        int visit_sequence[R];
+        for (int i = 0; i < R; i++) {
+            scanf("%d", &visit_sequence[i]);
+        }
+        int result = compute_min_cost(N, M, edges, R, visit_sequence);
+        printf("%d\n", result);
+    }
+    return 0;
+}

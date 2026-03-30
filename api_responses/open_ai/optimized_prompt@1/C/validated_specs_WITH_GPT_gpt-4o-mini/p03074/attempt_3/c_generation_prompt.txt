@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a sequence of binary digits (represented as characters) and computes the maximum sum of counts of contiguous segments of '1's and '0's, allowing for a specified number of changes between segments. The computation considers the cumulative effect of changes on segment counts, where each change can convert a segment of '0's to '1's or vice versa, effectively merging segments.
+
+## 2. Inputs
+- Two integers: 
+  - The first integer specifies the number of binary digits to process (denoted as `num`), which must be non-negative and less than or equal to a defined maximum limit (`NUM_MAX`).
+  - The second integer specifies the number of allowed changes between segments (denoted as `changes`), which must be non-negative.
+- A string of binary digits (characters '0' and '1') with a length equal to the first integer (`num`).
+
+## 3. Outputs
+- An integer representing the maximum sum of counts of contiguous segments of '1's and '0's after applying the allowed changes. This value reflects the optimal combination of segments achieved through the allowed changes.
+
+## 4. Preconditions
+- The first input integer (`num`) must be non-negative and less than or equal to `NUM_MAX`.
+- The second input integer (`changes`) must be non-negative.
+- The string input must have a length equal to the first integer (`num`).
+
+## 5. Postconditions
+- The output integer is non-negative and represents the maximum possible sum of counts of segments after applying the allowed changes.
+
+## 6. Invariants
+- The input string is processed to create a representation of contiguous segments of '1's and '0's.
+- The cumulative counts of segments are maintained throughout the computation, allowing for the evaluation of potential segment combinations based on the allowed changes.
+
+## 7. Error Handling / Exceptional Behavior
+- If the first input integer (`num`) is zero, the function will return immediately without processing further.
+- If the size of the string is zero, the function will return immediately without processing further.
+
+## 8. State Transitions
+- The state transitions occur as the program processes the input string, updating segment counts and cumulative sums based on the current character and the previous character. The transitions also account for the application of changes, which can combine segments of different types, thereby affecting the total count of segments.
+
+## 9. Non-functional Constraints
+- The program operates within defined memory limits, ensuring that the size of arrays does not exceed specified maximums. The cumulative array and segment counts are managed to prevent overflow and maintain efficiency.
+
+```

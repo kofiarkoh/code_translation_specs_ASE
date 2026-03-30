@@ -1,0 +1,128 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_SIZE 200005
+
+typedef struct {
+    int data[MAX_SIZE];
+    int size;
+    int min[MAX_SIZE];
+    int max[MAX_SIZE];
+} Queue;
+
+Queue first_half;
+Queue second_half;
+
+void init_queue(Queue *q) {
+    q->size = 0;
+}
+
+void add_to_queue(Queue *q, int value) {
+    // Add value to the queue
+    q->data[q->size] = value;
+    // Update size
+    q->size++;
+    
+    // Update min and max
+    if (q->size == 1) {
+        q->min[0] = value;
+        q->max[0] = value;
+    } else {
+        q->min[q->size - 1] = value < q->min[q->size - 2] ? value : q->min[q->size - 2];
+        q->max[q->size - 1] = value > q->max[q->size - 2] ? value : q->max[q->size - 2];
+    }
+}
+
+void delete_from_queue(Queue *q) {
+    // Remove the first element (FIFO)
+    if (q->size > 0) {
+        for (int i = 1; i < q->size; i++) {
+            q->data[i - 1] = q->data[i];
+            q->min[i - 1] = q->min[i];
+            q->max[i - 1] = q->max[i];
+        }
+        q->size--;
+    }
+}
+
+int get_min(Queue *q) {
+    return q->min[q->size - 1];
+}
+
+int get_max(Queue *q) {
+    return q->max[q->size - 1];
+}
+
+int get_min_at_index(Queue *q, int index) {
+    return q->min[index];
+}
+
+int get_max_at_index(Queue *q, int index) {
+    return q->max[index];
+}
+
+int main() {
+    int q, op, value, index;
+    char output[100];
+
+    init_queue(&first_half);
+    init_queue(&second_half);
+
+    scanf("%d", &q); // Read number of operations
+
+    for (int i = 0; i < q; i++) {
+        scanf("%d", &op); // Read operation type
+
+        switch (op) {
+            case 0: // Add to first half
+                scanf("%d", &value);
+                add_to_queue(&first_half, value);
+                break;
+            case 1: // Delete from first half
+                delete_from_queue(&first_half);
+                break;
+            case 2: // Get min from first half
+                sprintf(output, "%d", get_min(&first_half));
+                printf("%s\n", output);
+                break;
+            case 3: // Get min from second half
+                sprintf(output, "%d", get_min(&second_half));
+                printf("%s\n", output);
+                break;
+            case 4: // Get min from first half at index
+                scanf("%d", &index);
+                sprintf(output, "%d", get_min_at_index(&first_half, index));
+                printf("%s\n", output);
+                break;
+            case 5: // Get min from second half at index
+                scanf("%d", &index);
+                sprintf(output, "%d", get_min_at_index(&second_half, index));
+                printf("%s\n", output);
+                break;
+            case 6: // Get max from first half
+                sprintf(output, "%d", get_max(&first_half));
+                printf("%s\n", output);
+                break;
+            case 7: // Get max from second half
+                sprintf(output, "%d", get_max(&second_half));
+                printf("%s\n", output);
+                break;
+            case 8: // Get max from first half at index
+                scanf("%d", &index);
+                sprintf(output, "%d", get_max_at_index(&first_half, index));
+                printf("%s\n", output);
+                break;
+            case 9: // Get max from second half at index
+                scanf("%d", &index);
+                sprintf(output, "%d", get_max_at_index(&second_half, index));
+                printf("%s\n", output);
+                break;
+        }
+    }
+
+    printf("end\n"); // End of output
+    return 0;
+}
+```

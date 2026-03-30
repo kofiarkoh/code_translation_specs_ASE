@@ -1,0 +1,102 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DESKS 100
+#define MAX_CAPACITY 100
+#define MAX_BOOKS 100
+
+typedef struct {
+    int book_id;
+    int last_used; // To track the least recently used
+} Book;
+
+typedef struct {
+    Book books[MAX_CAPACITY];
+    int count; // Current number of books on the desk
+} Desk;
+
+void process_requests(int m, int c, int n, int requests[][MAX_BOOKS]) {
+    Desk desks[MAX_DESKS] = {0}; // Initialize desks
+    int total_assignments = 0;
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; requests[i][j] != -1; j++) { // Assuming -1 marks end of requests for a student
+            int book_id = requests[i][j];
+            int assigned = 0;
+
+            // Try to assign the book to an existing desk
+            for (int d = 0; d < m; d++) {
+                // Check if the book is already assigned
+                int found = 0;
+                for (int k = 0; k < desks[d].count; k++) {
+                    if (desks[d].books[k].book_id == book_id) {
+                        found = 1;
+                        desks[d].books[k].last_used = i; // Update last used
+                        break;
+                    }
+                }
+
+                if (found) {
+                    assigned = 1;
+                    break; // Book is already assigned
+                }
+
+                // If desk is not full, assign the book
+                if (desks[d].count < c) {
+                    desks[d].books[desks[d].count].book_id = book_id;
+                    desks[d].books[desks[d].count].last_used = i; // Mark as used
+                    desks[d].count++;
+                    total_assignments++;
+                    assigned = 1;
+                    break;
+                }
+            }
+
+            // If not assigned, we need to replace the least recently used book
+            if (!assigned) {
+                int lru_desk = 0;
+                int lru_index = 0;
+                int lru_time = desks[0].books[0].last_used;
+
+                // Find the least recently used book across all desks
+                for (int d = 0; d < m; d++) {
+                    for (int k = 0; k < desks[d].count; k++) {
+                        if (desks[d].books[k].last_used < lru_time) {
+                            lru_time = desks[d].books[k].last_used;
+                            lru_desk = d;
+                            lru_index = k;
+                        }
+                    }
+                }
+
+                // Replace the least recently used book
+                desks[lru_desk].books[lru_index].book_id = book_id;
+                desks[lru_desk].books[lru_index].last_used = i; // Mark as used
+                total_assignments++;
+            }
+        }
+    }
+
+    printf("%d\n", total_assignments); // Output the total assignments
+}
+
+int main() {
+    int m, c, n;
+    // Example input: m = 2, c = 3, n = 2
+    // Requests for students: {1, 2, -1}, {2, 3, -1} (where -1 indicates end of requests)
+    int requests[2][MAX_BOOKS] = {
+        {1, 2, -1},
+        {2, 3, -1}
+    };
+
+    // Read inputs
+    scanf("%d %d %d", &m, &c, &n);
+    if (m <= 0 || c <= 0 || n <= 0) {
+        return 0; // Terminate gracefully on non-positive values
+    }
+
+    // Process the requests
+    process_requests(m, c, n, requests);
+
+    return 0;
+}

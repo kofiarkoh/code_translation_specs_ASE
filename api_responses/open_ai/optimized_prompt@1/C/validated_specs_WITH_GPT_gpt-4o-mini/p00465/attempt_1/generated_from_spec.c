@@ -1,0 +1,137 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int level;
+    int x;
+    int y;
+} Cell;
+
+typedef struct {
+    Cell *cells;
+    int size;
+    int capacity;
+} PriorityQueue;
+
+// Function to create a priority queue
+PriorityQueue* createPriorityQueue(int capacity) {
+    PriorityQueue *pq = (PriorityQueue *)malloc(sizeof(PriorityQueue));
+    pq->cells = (Cell *)malloc(capacity * sizeof(Cell));
+    pq->size = 0;
+    pq->capacity = capacity;
+    return pq;
+}
+
+// Function to swap two cells in the priority queue
+void swap(Cell *a, Cell *b) {
+    Cell temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+// Function to insert a cell into the priority queue
+void insert(PriorityQueue *pq, Cell cell) {
+    if (pq->size == pq->capacity) {
+        pq->capacity *= 2;
+        pq->cells = (Cell *)realloc(pq->cells, pq->capacity * sizeof(Cell));
+    }
+    pq->cells[pq->size++] = cell;
+
+    // Bubble up to maintain the heap property
+    int i = pq->size - 1;
+    while (i > 0 && pq->cells[i].level < pq->cells[(i - 1) / 2].level) {
+        swap(&pq->cells[i], &pq->cells[(i - 1) / 2]);
+        i = (i - 1) / 2;
+    }
+}
+
+// Function to remove the minimum cell from the priority queue
+Cell removeMin(PriorityQueue *pq) {
+    Cell minCell = pq->cells[0];
+    pq->cells[0] = pq->cells[--pq->size];
+
+    // Bubble down to maintain the heap property
+    int i = 0;
+    while (2 * i + 1 < pq->size) {
+        int child = 2 * i + 1;
+        if (child + 1 < pq->size && pq->cells[child + 1].level < pq->cells[child].level) {
+            child++;
+        }
+        if (pq->cells[i].level <= pq->cells[child].level) {
+            break;
+        }
+        swap(&pq->cells[i], &pq->cells[child]);
+        i = child;
+    }
+    return minCell;
+}
+
+// Function to check if coordinates are within bounds
+int inBounds(int x, int y, int W, int H) {
+    return x >= 1 && x <= W && y >= 1 && y <= H;
+}
+
+// Function to find the minimum combined authentication level
+int minCombinedAuthLevel(int W, int H, int startX, int startY, int **grid) {
+    int directions[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}; // Right, Down, Left, Up
+    int visited[H][W];
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            visited[i][j] = 0; // Mark all cells as unvisited
+        }
+    }
+
+    PriorityQueue *pq = createPriorityQueue(10);
+    insert(pq, (Cell){grid[startY - 1][startX - 1], startX - 1, startY - 1});
+    visited[startY - 1][startX - 1] = 1;
+
+    int minAuthLevel = INT_MAX;
+
+    while (pq->size > 0) {
+        Cell current = removeMin(pq);
+        minAuthLevel = (minAuthLevel < current.level) ? minAuthLevel : current.level;
+
+        for (int i = 0; i < 4; i++) {
+            int newX = current.x + directions[i][0];
+            int newY = current.y + directions[i][1];
+
+            if (inBounds(newX + 1, newY + 1, W, H) && !visited[newY][newX]) {
+                visited[newY][newX] = 1;
+                insert(pq, (Cell){grid[newY][newX], newX, newY});
+            }
+        }
+    }
+
+    free(pq->cells);
+    free(pq);
+    return minAuthLevel;
+}
+
+int main() {
+    int R;
+    scanf("%d", &R); // Read number of test cases
+
+    for (int i = 0; i < R; i++) {
+        int W, H, X, Y;
+        scanf("%d %d %d %d", &W, &H, &X, &Y); // Read grid dimensions and starting coordinates
+
+        int **grid = (int **)malloc(H * sizeof(int *));
+        for (int j = 0; j < H; j++) {
+            grid[j] = (int *)malloc(W * sizeof(int));
+            for (int k = 0; k < W; k++) {
+                scanf("%d", &grid[j][k]); // Read authentication levels
+            }
+        }
+
+        int result = minCombinedAuthLevel(W, H, X, Y, grid);
+        printf("%d\n", result); // Output the result for the test case
+
+        for (int j = 0; j < H; j++) {
+            free(grid[j]);
+        }
+        free(grid);
+    }
+
+    return 0;
+}

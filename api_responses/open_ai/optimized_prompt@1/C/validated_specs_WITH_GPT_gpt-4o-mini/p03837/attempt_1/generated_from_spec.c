@@ -1,0 +1,81 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M);
+
+    // Initialize the distance matrix
+    long long **dist = malloc(N * sizeof(long long *));
+    for (int i = 0; i < N; i++) {
+        dist[i] = malloc(N * sizeof(long long));
+        for (int j = 0; j < N; j++) {
+            if (i == j) {
+                dist[i][j] = 0; // Distance to self is zero
+            } else {
+                dist[i][j] = LLONG_MAX; // Initialize to a large value
+            }
+        }
+    }
+
+    // Read edges and populate the distance matrix
+    for (int i = 0; i < M; i++) {
+        int u, v, weight;
+        scanf("%d %d %d", &u, &v, &weight);
+        // Update the distance for the edge (u, v)
+        if (dist[u][v] > weight) {
+            dist[u][v] = weight; // Only keep the minimum weight for parallel edges
+        }
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for (int k = 0; k < N; k++) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                if (dist[i][k] < LLONG_MAX && dist[k][j] < LLONG_MAX) {
+                    if (dist[i][j] > dist[i][k] + dist[k][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                    }
+                }
+            }
+        }
+    }
+
+    // Count edges not part of any shortest path
+    int count_not_in_shortest_path = 0;
+    for (int i = 0; i < M; i++) {
+        int u, v, weight;
+        scanf("%d %d %d", &u, &v, &weight);
+        int is_part_of_shortest_path = 0;
+
+        // Check if this edge is part of any shortest path
+        for (int start = 0; start < N; start++) {
+            for (int end = 0; end < N; end++) {
+                if (dist[start][end] == dist[start][u] + weight + dist[v][end] ||
+                    dist[start][end] == dist[start][v] + weight + dist[u][end]) {
+                    is_part_of_shortest_path = 1;
+                    break;
+                }
+            }
+            if (is_part_of_shortest_path) {
+                break;
+            }
+        }
+
+        if (!is_part_of_shortest_path) {
+            count_not_in_shortest_path++;
+        }
+    }
+
+    // Output the count of edges not part of any shortest path
+    printf("%d\n", count_not_in_shortest_path);
+
+    // Free allocated memory
+    for (int i = 0; i < N; i++) {
+        free(dist[i]);
+    }
+    free(dist);
+
+    return 0;
+}

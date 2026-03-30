@@ -1,0 +1,25 @@
+#include <stdio.h>
+
+int main() {
+    int num_cases; // Number of cases to process
+    scanf("%d", &num_cases); // Read the number of cases
+
+    // Preconditions: num_cases must be a positive integer
+    for (int case_num = 1; case_num <= num_cases; case_num++) {
+        int input_value; // Input integer for the current case
+        scanf("%d", &input_value); // Read the input integer
+
+        // Output the case header
+        printf("Case %d:\n", case_num);
+
+        // Generate and output ten derived integers based on the input_value
+        for (int i = 0; i < 10; i++) {
+            // The transformation is assumed to be input_value + i
+            // This is a placeholder; the actual transformation should be defined in the specification
+            int derived_value = input_value + i; // Example transformation
+            printf("%d\n", derived_value); // Output the derived value
+        }
+    }
+
+    return 0; // End of program
+}

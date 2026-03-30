@@ -1,0 +1,120 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+int  n , yaku[101] = {0};
+
+int num(int a){
+  int c = 0;
+  for(int i = 2;i <= n;i ++){
+    if(yaku[i] >= a-1) c ++;
+  }
+
+  return c;
+}
+
+int main(void){
+  scanf("%d",&n);
+
+
+  for(int i = 2;i <= n;i ++){
+    int a = i , waru = 2;
+    while(a > 1){
+      while(a%waru == 0){
+        a /= waru;
+        yaku[waru] ++;
+      }
+      waru ++; 
+    }
+  }
+
+  int ans = num(75) + num(25)*(num(3)-1) + num(15)*(num(5)-1) + num(5)*(num(5)-1)*(num(3)-2)/2;
+
+  printf("%d\n",ans);
+  
+  return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a specific integer value based on the prime factorization of integers from 2 to a given input number. It counts the occurrences of certain factors and combines these counts using a defined mathematical expression to produce a final result.
+
+# 2. Inputs
+- A single integer input representing the upper limit for factorization, denoted as `n`, where `n` is greater than or equal to 2.
+
+# 3. Outputs
+- A single integer output representing the computed result based on the factor counts.
+
+# 4. Preconditions
+- The input integer `n` must be at least 2.
+- The input must be a valid integer that can be read from standard input.
+
+# 5. Postconditions
+- The output integer is the result of a specific calculation involving the counts of prime factors of integers from 2 to `n`.
+
+# 6. Invariants
+- The array used to store counts of prime factors is initialized to zero before any calculations.
+- The counts of prime factors are updated correctly during the factorization process.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values or integers less than 2) and may exhibit undefined behavior in such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the factorization process, where the counts of prime factors are updated based on the division of integers.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is dependent on the value of `n`, specifically related to the number of integers processed and their factorization.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the counts of prime factors are to be combined in the final result. It lacks detail on the specific mathematical expression used to compute the output, which is crucial for understanding the expected behavior.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the exact formula or method used to combine the counts of prime factors to produce the final result. It should specify how different counts are weighted or combined, particularly the use of specific multipliers and the significance of certain counts in the final calculation.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a specific mathematical expression involving multiple calls to the `num` function with different parameters, which are then combined in a complex way to produce the final result. The absence of this detail in the specification leads to a misunderstanding of how the counts should be aggregated, resulting in discrepancies between the expected and actual outputs. The failing test case indicates that the generated program does not replicate this nuanced calculation, suggesting that the specification does not fully capture the intended logic of the original source program.
+
+```

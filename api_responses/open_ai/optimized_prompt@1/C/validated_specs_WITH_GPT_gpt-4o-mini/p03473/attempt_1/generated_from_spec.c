@@ -1,0 +1,29 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define CONSTANT_VALUE 100 // Define the constant value for the computation
+
+int main() {
+    int input; // Variable to store user input
+    int result; // Variable to store the result of the computation
+
+    // Prompt the user for input
+    printf("Enter an integer: ");
+    
+    // Read input from the user
+    if (scanf("%d", &input) != 1) {
+        // If input is not a valid integer, undefined behavior may occur
+        // This is a placeholder for handling invalid input
+        // In a real-world scenario, we might want to handle this more gracefully
+        fprintf(stderr, "Invalid input. Exiting.\n");
+        return 1; // Exit with an error code
+    }
+
+    // Compute the difference from the constant value
+    result = CONSTANT_VALUE - input;
+
+    // Output the result
+    printf("%d\n", result);
+
+    return 0; // Successful execution
+}

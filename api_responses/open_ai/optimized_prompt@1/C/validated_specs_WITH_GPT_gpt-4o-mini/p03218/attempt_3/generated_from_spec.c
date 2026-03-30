@@ -1,0 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to compute the greatest common divisor (GCD) using the Euclidean algorithm
+int gcd(int a, int b) {
+    while (b != 0) {
+        int temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
+// Function to compute the product of GCDs of each element and its index, modulo a prime
+int compute_gcd_product(int N, int *sequence, int prime) {
+    long long product = 1; // Use long long to prevent overflow during multiplication
+
+    for (int i = 0; i < N; i++) {
+        int current_gcd = gcd(sequence[i], i); // Compute GCD of element and its index
+        product = (product * current_gcd) % prime; // Update product modulo prime
+    }
+
+    return (int)product; // Return the final product as an integer
+}
+
+int main() {
+    int N; // Number of elements in the sequence
+    int prime; // Specified prime number
+
+    // Read inputs
+    scanf("%d", &N);
+    if (N <= 0) {
+        // Undefined behavior if N is non-positive
+        return 1; // Exit with error
+    }
+
+    // Allocate memory for the sequence
+    int *sequence = (int *)malloc(N * sizeof(int));
+    if (sequence == NULL) {
+        // Memory allocation failed
+        return 1; // Exit without producing output
+    }
+
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &sequence[i]);
+        if (sequence[i] < 0) {
+            // Undefined behavior if any integer in the sequence is negative
+            free(sequence); // Free allocated memory
+            return 1; // Exit with error
+        }
+    }
+
+    scanf("%d", &prime); // Read the specified prime number
+
+    // Compute the product of GCDs
+    int result = compute_gcd_product(N, sequence, prime);
+    printf("%d\n", result); // Output the result
+
+    free(sequence); // Free allocated memory
+    return 0; // Successful execution
+}

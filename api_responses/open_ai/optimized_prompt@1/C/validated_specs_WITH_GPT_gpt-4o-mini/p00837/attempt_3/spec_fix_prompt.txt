@@ -1,0 +1,169 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code simulates a book replacement algorithm for a library system, managing the allocation of books to students based on their requests. It processes multiple sets of requests, ensuring that books are assigned to desks while adhering to capacity constraints and implementing a least recently used (LRU) policy for book replacement.
+
+## 2. Inputs
+- A series of sets of integers where each set contains:
+  - The number of desks (m).
+  - The capacity of each desk (c).
+  - The number of students (n).
+  - For each student, a list of book IDs they request.
+
+## 3. Outputs
+- An integer representing the total number of desk assignments made across all requests.
+
+## 4. Preconditions
+- The number of desks (m), capacity (c), and number of students (n) must be positive integers.
+- Each book ID requested must be a valid identifier within the defined range.
+
+## 5. Postconditions
+- All book requests are processed, and the total number of desk assignments is calculated and printed.
+- Each book is assigned to a desk according to the least recently used policy, respecting desk capacity.
+
+## 6. Invariants
+- The number of books on each desk does not exceed its capacity at any time.
+- Each book can only be assigned to one desk at a time.
+- The order of book requests is preserved in the processing.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive value for the number of desks is encountered.
+- No explicit error handling for invalid book IDs or malformed input is implemented.
+
+## 8. State Transitions
+- The state transitions occur as books are assigned to desks, with changes in the number of books on each desk and updates to the tracking of which desk each book is assigned to.
+- When a desk reaches its maximum capacity and a new book request comes in, the least recently used book on that desk is identified and replaced according to the LRU policy. If all desks are full, the program will still attempt to replace a book based on the LRU policy across all desks.
+
+## 9. Non-functional Constraints
+- The algorithm must efficiently handle up to 5000 requests and 100 book IDs, ensuring timely processing within reasonable limits for typical input sizes.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe the handling of desk capacity and the replacement policy when multiple desks are full. It implies a straightforward LRU policy without detailing how it should be applied across multiple desks.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the LRU policy is applied when all desks are at full capacity. Specifically, it should detail the conditions under which a book is replaced and how the selection of which book to replace is determined when multiple desks are full.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a complex logic for managing desk assignments and replacements, particularly when a desk reaches its maximum capacity. It includes checks for the state of all desks and adjusts assignments based on the least recently used policy across multiple desks, which is not clearly articulated in the current specification. The discrepancy between the expected and actual outputs suggests that the specification's abstraction of the LRU policy does not capture the nuances of the source program's behavior.
+
+```

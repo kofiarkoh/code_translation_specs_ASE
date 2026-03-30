@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a list of integers to identify the smallest unique concatenation of two distinct integers from the list. It guarantees that the smallest concatenated value is stored and returned.
+
+## 2. Inputs
+- An integer \( N \) representing the number of elements in the list.
+- A list of \( N \) integers.
+
+## 3. Outputs
+- An integer representing the smallest unique concatenated value formed by concatenating two distinct integers from the input list.
+
+## 4. Preconditions
+- \( N \) must be a positive integer.
+- The list must contain at least two distinct integers.
+
+## 5. Postconditions
+- The output integer is the smallest value obtained by concatenating two distinct integers from the list.
+- If no valid concatenation exists, the output will be the maximum possible integer defined in the code.
+
+## 6. Invariants
+- The list of integers remains unchanged throughout the execution.
+- The output is always derived from valid concatenations of distinct integers.
+
+## 7. Error Handling / Exceptional Behavior
+- If \( N \) is less than 2, the behavior is undefined as the code does not handle this case explicitly.
+- The code does not handle invalid input types or out-of-bounds values for the integers.
+- The program assumes that the integers can be concatenated without exceeding the limits of the data type used for storage. If the concatenated value exceeds the maximum representable integer, the behavior is not defined.
+
+## 8. State Transitions
+- The state transitions occur as the code iterates through pairs of integers, updating the stored smallest concatenated value based on comparisons.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity of \( O(N^2) \), which may be inefficient for large values of \( N \).
+- The program requires appropriate handling of large integers resulting from concatenation. It is necessary to include libraries such as `<stdlib.h>` for functions that manage large integer values, ensuring that concatenated values do not exceed the limits of the data type used.
+
+```

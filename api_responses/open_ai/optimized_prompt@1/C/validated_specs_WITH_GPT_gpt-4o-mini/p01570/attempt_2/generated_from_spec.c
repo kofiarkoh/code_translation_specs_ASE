@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+long long compute_graph_value(int N, int *m, int *memo) {
+    // Array to store the computed values for each node
+    long long *computed_values = (long long *)malloc(N * sizeof(long long));
+    if (computed_values == NULL) {
+        // Undefined behavior if memory allocation fails
+        return 0; // Placeholder for undefined behavior
+    }
+
+    // Initialize computed values to 0
+    for (int i = 0; i < N; i++) {
+        computed_values[i] = 0;
+    }
+
+    // Process each node to compute its value based on its children
+    for (int i = 0; i < N; i++) {
+        if (memo[i] == -1) { // Root node
+            computed_values[i] = m[i]; // Start with its own value
+        }
+    }
+
+    // Aggregate contributions from child nodes
+    for (int i = 0; i < N; i++) {
+        if (memo[i] != -1) { // If not a root node
+            int parent_index = memo[i];
+            // Add the value of the current node to its parent
+            computed_values[parent_index] += computed_values[i];
+        }
+    }
+
+    // Calculate the total value from all root nodes
+    long long total_value = 0;
+    for (int i = 0; i < N; i++) {
+        if (memo[i] == -1) { // Only consider root nodes
+            total_value += computed_values[i];
+        }
+    }
+
+    // Free allocated memory
+    free(computed_values);
+
+    return total_value; // Return the total computed value for the graph
+}
+
+// Example usage
+int main() {
+    int N = 5;
+    int m[] = {1, 2, 3, 4, 5};
+    int memo[] = {-1, 0, 0, 1, 1}; // Node 1 and 2 are children of node 0, etc.
+
+    long long result = compute_graph_value(N, m, memo);
+    printf("Total computed value: %lld\n", result);
+
+    return 0;
+}

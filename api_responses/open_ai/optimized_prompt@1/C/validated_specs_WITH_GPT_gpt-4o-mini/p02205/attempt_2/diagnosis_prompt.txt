@@ -1,0 +1,154 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 3130 Calculation Training
+// 2020.1.14 bal4u
+
+#include <stdio.h>
+
+typedef long long ll;
+
+int main()
+{
+	ll N; int i, A, B;
+	
+	scanf("%lld%d%d", &N, &A, &B);
+	N %= 12;
+	i = 0; while (i < N) {
+		A = A-B, ++i;
+		if (i == N) break;
+		B = A+B, ++i;
+	}
+	printf("%d %d\n", A, B);
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code performs a series of arithmetic operations based on an input value, modifying two integer variables through a defined iterative process. It calculates and outputs the final values of these variables after a specified number of iterations.
+
+# 2. Inputs
+- A non-negative integer \( N \) (modulo 12).
+- Two integers \( A \) and \( B \).
+
+# 3. Outputs
+- Two integers representing the final values of \( A \) and \( B \) after processing.
+
+# 4. Preconditions
+- \( N \) must be a non-negative integer.
+- \( A \) and \( B \) must be valid integers.
+
+# 5. Postconditions
+- The output values of \( A \) and \( B \) reflect the result of a series of arithmetic operations performed \( N \) times, where \( N \) is constrained to the range [0, 11].
+
+# 6. Invariants
+- During each iteration, \( A \) and \( B \) are updated based on the previous values of both variables.
+- The loop iterates a maximum of \( N \) times, ensuring that the operations are bounded.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-range values explicitly. It assumes that inputs are provided correctly as specified.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the iterative updates of \( A \) and \( B \) based on the current values and the iteration count.
+
+# 9. Non-functional Constraints (if inferable)
+- The execution time is expected to be linear with respect to \( N \), with a maximum of 12 iterations. The space complexity is constant, as only a fixed number of variables are used.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+void process(int N, int *A, int *B) {
+    // Ensure N is within the specified range [0, 11]
+    N = N % 12; // Modulo operation as per specification
+
+    // Iterate N times to update A and B
+    for (int i = 0; i < N; i++) {
+        // Update A and B based on their previous values
+        int tempA = *A; // Store the current value of A
+        int tempB = *B; // Store the current value of B
+        
+        // Example arithmetic operations (assumed based on typical patterns)
+        *A = tempA + tempB; // Update A to be the sum of A and B
+        *B = tempA - tempB; // Update B to be the difference of A and B
+    }
+}
+
+int main() {
+    int N; // Input for number of iterations
+    int A, B; // Input integers
+
+    // Example input (in a real scenario, these would be read from user or other sources)
+    N = 5; // Example value for N
+    A = 3; // Example initial value for A
+    B = 2; // Example initial value for B
+
+    // Call the processing function
+    process(N, &A, &B);
+
+    // Output the final values of A and B
+    printf("Final A: %d, Final B: %d\n", A, B);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02205/p02205_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02205/p02205_sample1_output.txt
+Input:
+15 20 5
+Expected:
+-5 20
+Actual:
+Final A: 20, Final B: 4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

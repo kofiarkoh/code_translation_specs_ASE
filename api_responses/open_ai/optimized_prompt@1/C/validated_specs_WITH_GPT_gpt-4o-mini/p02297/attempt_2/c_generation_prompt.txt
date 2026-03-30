@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the area of a polygon defined by a set of vertices provided as input. It reads the number of vertices and their coordinates, computes the area using a specific implementation of the shoelace formula, and outputs the result formatted to one decimal place.
+
+## 2. Inputs
+- An integer \( n \) representing the number of vertices of the polygon, which must be a positive integer.
+- A sequence of \( n \) pairs of integers representing the x and y coordinates of each vertex.
+
+## 3. Outputs
+- A single floating-point number representing the area of the polygon, formatted to one decimal place.
+
+## 4. Preconditions
+- The number of vertices \( n \) is a positive integer.
+- Each vertex coordinate is an integer.
+
+## 5. Postconditions
+- The output area is a non-negative floating-point number.
+- The area is calculated based on the provided vertices using the shoelace formula, which is defined as:
+  \[
+  \text{Area} = \frac{1}{2} \left| \sum_{i=0}^{n-1} (x_i \cdot y_{i+1} - y_i \cdot x_{i+1}) \right|
+  \]
+  where \( (x_{n}, y_{n}) \) is defined as \( (x_0, y_0) \) to close the polygon.
+
+## 6. Invariants
+- The number of vertices remains constant throughout the execution.
+- The coordinates of the vertices are stored in a fixed-size structure.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values, negative numbers for the number of vertices).
+- The behavior is undefined for inputs that do not conform to the preconditions.
+
+## 8. State Transitions
+- The state transitions from reading input to calculating the area using the specified shoelace formula, and finally to outputting the result.
+
+## 9. Non-functional Constraints
+- The area calculation is performed in linear time relative to the number of vertices.
+
+```

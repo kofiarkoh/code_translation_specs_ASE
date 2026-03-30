@@ -1,0 +1,53 @@
+#include <stdio.h>
+
+#define MAX_ORIENTATIONS 6
+#define MAX_BLOCKS 100 // Assuming a maximum number of blocks for the grid
+
+// Function to simulate block placements
+void simulate_blocks(int placements, int orientations[][2]) {
+    int height_map[MAX_BLOCKS] = {0}; // Height map to track number of blocks
+    int top_map[MAX_BLOCKS] = {0};     // Top map to track top block orientation
+    int orientation_count[MAX_ORIENTATIONS + 1] = {0}; // Count of blocks for each orientation
+
+    // Process each block placement
+    for (int i = 0; i < placements; i++) {
+        int top_orientation = orientations[i][0];
+        int front_orientation = orientations[i][1];
+
+        // Update height and top map
+        height_map[i]++; // Increment height for the current position
+        top_map[i] = top_orientation; // Set the top orientation
+
+        // Count the orientation
+        if (top_orientation >= 1 && top_orientation <= MAX_ORIENTATIONS) {
+            orientation_count[top_orientation]++;
+        }
+    }
+
+    // Output the count of blocks for each orientation
+    for (int j = 1; j <= MAX_ORIENTATIONS; j++) {
+        printf("%d", orientation_count[j]);
+        if (j < MAX_ORIENTATIONS) {
+            printf(" "); // Space-separated output
+        }
+    }
+    printf("\n"); // New line after output
+}
+
+int main() {
+    int placements;
+    scanf("%d", &placements); // Read the number of block placements
+
+    // Array to hold orientations
+    int orientations[MAX_BLOCKS][2];
+
+    // Read the pairs of orientations
+    for (int i = 0; i < placements; i++) {
+        scanf("%d %d", &orientations[i][0], &orientations[i][1]);
+    }
+
+    // Simulate the block placements
+    simulate_blocks(placements, orientations);
+
+    return 0;
+}

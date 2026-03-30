@@ -1,0 +1,45 @@
+#include <stdio.h>
+
+#define MAX_SIZE 100010
+
+int main() {
+    int n, k;
+    int arr[MAX_SIZE];
+
+    // Read inputs for n and k
+    scanf("%d %d", &n, &k);
+    
+    // Read the array elements
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    // Check if n equals k
+    if (n == k) {
+        int all_satisfy = 1; // Assume all elements satisfy the condition
+        for (int i = 0; i < n; i++) {
+            // Check the modular condition (assumed to be arr[i] % k == 0)
+            if (arr[i] % k != 0) {
+                all_satisfy = 0; // Found an element that does not satisfy
+                break;
+            }
+        }
+        // Output based on the condition check
+        if (all_satisfy) {
+            printf("Yes\n");
+        } else {
+            printf("No\n");
+        }
+    } else {
+        // n does not equal k
+        int cnt = n; // Count of processed elements (initially all are unprocessed)
+        // Output based on the parity of unprocessed elements
+        if ((n - cnt) % 2 == 0 || (n % 2 == 0 && k % 2 == 0)) {
+            printf("Yes\n");
+        } else {
+            printf("No\n");
+        }
+    }
+
+    return 0;
+}

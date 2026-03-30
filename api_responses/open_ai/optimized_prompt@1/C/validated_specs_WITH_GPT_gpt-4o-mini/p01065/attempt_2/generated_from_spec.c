@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int max_value(int n, int x, int y, int items[][4]) {
+    // Create a dynamic programming table
+    // dp[i][j] will hold the maximum value obtainable with i resources of category 1
+    // and j resources of category 2
+    int **dp = (int **)malloc((x + 1) * sizeof(int *));
+    for (int i = 0; i <= x; i++) {
+        dp[i] = (int *)malloc((y + 1) * sizeof(int));
+        for (int j = 0; j <= y; j++) {
+            dp[i][j] = 0; // Initialize the table with 0
+        }
+    }
+
+    // Iterate through each item
+    for (int k = 0; k < n; k++) {
+        int a = items[k][0]; // resource cost in the first category
+        int b = items[k][1]; // resource cost in the second category
+        int c = items[k][2]; // value gained from the item
+        int d = items[k][3]; // additional resource gained in the second category
+
+        // Update the dp table in reverse order to avoid overwriting results from the current iteration
+        for (int i = x; i >= a; i--) {
+            for (int j = y; j >= b; j--) {
+                // Calculate new resource limits after selecting the item
+                int new_i = i - a; // remaining resources in category 1
+                int new_j = j - b + d; // remaining resources in category 2 after gaining additional resources
+
+                // Ensure new_j does not exceed the limit
+                if (new_j > y) {
+                    new_j = y; // Cap the resources to the maximum limit
+                }
+
+                // Update the maximum value obtainable
+                dp[i][j] = (dp[i][j] > dp[new_i][new_j] + c) ? dp[i][j] : (dp[new_i][new_j] + c);
+            }
+        }
+    }
+
+    // The maximum value obtainable will be in dp[x][y]
+    int result = dp[x][y];
+
+    // Free the allocated memory for the dp table
+    for (int i = 0; i <= x; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+
+    return result; // Return the maximum value
+}
+
+int main() {
+    // Example usage
+    int n = 3; // Number of items
+    int x = 5; // Maximum resources for category 1
+    int y = 5; // Maximum resources for category 2
+    int items[3][4] = {
+        {2, 3, 5, 1}, // Item 1: a=2, b=3, c=5, d=1
+        {3, 2, 6, 2}, // Item 2: a=3, b=2, c=6, d=2
+        {4, 1, 7, 3}  // Item 3: a=4, b=1, c=7, d=3
+    };
+
+    int maxValue = max_value(n, x, y, items);
+    printf("Maximum value obtainable: %d\n", maxValue); // Output the result
+
+    return 0;
+}

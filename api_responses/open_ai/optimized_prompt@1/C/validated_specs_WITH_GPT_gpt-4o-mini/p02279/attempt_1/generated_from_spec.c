@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 100000
+
+typedef struct Node {
+    int id;                 // Node identifier
+    int parent;             // Parent identifier
+    int depth;              // Depth of the node
+    int num_children;       // Number of children
+    int children[MAX_NODES]; // Array of children identifiers
+} Node;
+
+Node tree[MAX_NODES]; // Array to hold the nodes
+int node_count;       // Total number of nodes
+
+// Function to recursively calculate the depth of each node
+void calculate_depth(int node_id, int depth) {
+    tree[node_id].depth = depth; // Set the depth of the current node
+    for (int i = 0; i < tree[node_id].num_children; i++) {
+        int child_id = tree[node_id].children[i];
+        calculate_depth(child_id, depth + 1); // Recur for each child
+    }
+}
+
+// Function to print the properties of each node
+void print_node_properties() {
+    for (int i = 0; i < node_count; i++) {
+        printf("Node ID: %d\n", tree[i].id);
+        printf("Parent ID: %d\n", tree[i].parent);
+        printf("Depth: %d\n", tree[i].depth);
+        
+        // Determine the type of the node
+        if (tree[i].parent == -1) {
+            printf("Type: root\n");
+        } else if (tree[i].num_children == 0) {
+            printf("Type: leaf\n");
+        } else {
+            printf("Type: internal\n");
+        }
+
+        // Print children identifiers
+        printf("Children: ");
+        for (int j = 0; j < tree[i].num_children; j++) {
+            printf("%d ", tree[i].children[j]);
+        }
+        printf("\n\n");
+    }
+}
+
+int main() {
+    // Read the number of nodes
+    scanf("%d", &node_count);
+    
+    // Read each node's information
+    for (int i = 0; i < node_count; i++) {
+        int id, num_children;
+        scanf("%d %d", &id, &num_children);
+        
+        tree[id].id = id; // Set the node identifier
+        tree[id].parent = (i == 0) ? -1 : -1; // Root node has no parent
+        tree[id].num_children = num_children; // Set number of children
+        
+        // Read children identifiers
+        for (int j = 0; j < num_children; j++) {
+            int child_id;
+            scanf("%d", &child_id);
+            tree[id].children[j] = child_id; // Store child identifier
+            tree[child_id].parent = id; // Set parent for the child
+        }
+    }
+
+    // Calculate the depth of each node starting from the root
+    calculate_depth(0, 0); // Assuming the root node has ID 0
+
+    // Print the properties of each node
+    print_node_properties();
+
+    return 0;
+}

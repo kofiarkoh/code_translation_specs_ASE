@@ -1,0 +1,98 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+
+int main(void){
+  int a,b,c;
+  scanf("%d %d %d",&a,&b,&c);
+  if(b/a<=c){
+    printf("%d\n",b/a);
+  }else{
+    printf("%d\n",c);
+  }
+  return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program reads three integer values and computes the integer division of the first two values. It then compares this result with the third value and outputs the smaller of the two.
+
+# 2. Inputs
+Three integer values are provided as input.
+
+# 3. Outputs
+The program outputs a single integer, which is either the result of the integer division of the first two values or the third value, whichever is smaller.
+
+# 4. Preconditions
+- The first input value must be non-zero to avoid division by zero.
+- All input values must be valid integers.
+
+# 5. Postconditions
+- The output is guaranteed to be the smaller of the integer division result of the first two inputs and the third input.
+
+# 6. Invariants
+- The output will always be an integer.
+- The output will be less than or equal to the third input.
+
+# 7. Error Handling / Exceptional Behavior
+- If the first input is zero, the program will not produce a valid output due to division by zero, but this scenario is not explicitly handled in the code.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state (waiting for user input) to an output state (displaying the result) after processing the inputs.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a finite time frame, assuming valid inputs are provided.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not clearly define how the integer division is performed, specifically the order of the operands. It implies that the division is `b/a`, but the generated code incorrectly uses `a/b`.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should explicitly state the order of the operands in the integer division operation. It should clarify that the division is performed as `b/a` rather than `a/b`.
+
+D. **Why this clarification is supported by the source program**  
+- The source program performs the division as `b/a` and compares the result to `c`. The failing test case indicates that the output is `0` because the division `2/9` results in `0`, which is less than `3`. This behavior is not aligned with the expected output of `3`, suggesting that the specification's abstraction of the division operation is incorrect.
+
+```

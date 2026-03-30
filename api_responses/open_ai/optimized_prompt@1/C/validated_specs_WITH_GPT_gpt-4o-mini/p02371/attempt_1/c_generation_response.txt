@@ -1,0 +1,62 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int maxPathCost(int n, int* a, int* b, int* c) {
+    // Initialize cumulative costs to a large value
+    int* costs = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        costs[i] = INT_MIN; // Use INT_MIN to represent unvisited nodes
+    }
+    costs[0] = 0; // Starting vertex cost is 0
+
+    // Create adjacency list representation of the graph
+    int** graph = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        graph[i] = (int*)malloc(n * sizeof(int));
+        for (int j = 0; j < n; j++) {
+            graph[i][j] = -1; // Initialize with -1 to indicate no edge
+        }
+    }
+
+    // Populate the graph with edges and costs
+    for (int i = 0; i < n - 1; i++) {
+        graph[a[i]][b[i]] = c[i];
+        graph[b[i]][a[i]] = c[i]; // Undirected graph
+    }
+
+    // Depth-First Search (DFS) to explore the graph
+    void dfs(int node, int currentCost) {
+        for (int neighbor = 0; neighbor < n; neighbor++) {
+            if (graph[node][neighbor] != -1) { // If there is an edge
+                int newCost = currentCost + graph[node][neighbor];
+                if (newCost > costs[neighbor]) {
+                    costs[neighbor] = newCost; // Update cost if new path is better
+                    dfs(neighbor, newCost); // Recur for the neighbor
+                }
+            }
+        }
+    }
+
+    // Start DFS from the starting vertex (0)
+    dfs(0, 0);
+
+    // Find the maximum cost from the costs array
+    int maxCost = 0;
+    for (int i = 0; i < n; i++) {
+        if (costs[i] > maxCost) {
+            maxCost = costs[i];
+        }
+    }
+
+    // Free allocated memory
+    free(costs);
+    for (int i = 0; i < n; i++) {
+        free(graph[i]);
+    }
+    free(graph);
+
+    return maxCost > 0 ? maxCost : 0; // Return 0 if no path exists
+}
+```

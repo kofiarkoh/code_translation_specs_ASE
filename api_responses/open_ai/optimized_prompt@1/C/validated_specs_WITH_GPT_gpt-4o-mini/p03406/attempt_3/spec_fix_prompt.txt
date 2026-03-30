@@ -1,0 +1,160 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+#define N	16
+#define M	16
+#define N_	(1 << N)
+#define MD	1000000007
+
+int vv[N_], ff[N_], gg[N_];
+
+void init() {
+	int i;
+
+	ff[0] = gg[0] = 1;
+	for (i = 1; i < N_; i++) {
+		vv[i] = i == 1 ? 1 : (long long) vv[i - MD % i] * (MD / i + 1) % MD;
+		ff[i] = (long long) ff[i - 1] * i % MD;
+		gg[i] = (long long) gg[i - 1] * vv[i] % MD;
+	}
+}
+
+long long choose(int n, int k) {
+	return k > n ? 0 : (long long) ff[n] * gg[k] % MD * gg[n - k] % MD;
+}
+
+int main() {
+	static int aa[M], dp[N_];
+	int n, m, h, i, b, ans;
+
+	init();
+	scanf("%d%d", &n, &m);
+	for (h = 0; h < m; h++)
+		scanf("%d", &aa[h]), aa[h] = (1 << n) - aa[h];
+	dp[0] = 1;
+	for (h = m - 1; h >= 0; h--)
+		for (b = (1 << n) - 1; b >= 0; b--) {
+			int x = dp[b];
+
+			if (x == 0)
+				continue;
+			for (i = 0; i < n; i++)
+				if ((b & 1 << i) == 0)
+					dp[b | 1 << i] = (dp[b | 1 << i] + x * choose(aa[h] - b, (1 << i) - 1)) % MD;
+		}
+	ans = 0;
+	for (b = 0; b < 1 << n; b++) {
+		int x, n_, cnt;
+
+		x = dp[b];
+		if (x == 0)
+			continue;
+		n_ = (1 << n) - 1 - b, cnt = n;
+		for (i = 0; i < n; i++)
+			if ((b & 1 << i) == 0) {
+				x = x * choose(n_, 1 << i) % MD;
+				n_ -= 1 << i;
+				cnt++;
+			}
+		ans = (ans + (cnt % 2 == 0 ? 1 : -1) * x) % MD;
+	}
+	for (i = 0; i < n; i++)
+		ans = (long long) ans * ff[1 << i] * 2 % MD;
+	if (ans < 0)
+		ans += MD;
+	printf("%d\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific combinatorial result based on input parameters, utilizing precomputed factorials and inverse factorials to facilitate efficient calculations. It processes a set of integers, transforming them into a format suitable for combinatorial analysis, and derives a final result that is printed as output.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` determines the size of a bitmask, specifically `2^n`.
+  - `m` indicates the number of subsequent integers to be processed.
+- An array of `m` integers, each representing a value that will be transformed using the formula `aa[h] = (1 << n) - aa[h]` before being used in calculations.
+
+## 3. Outputs
+- A single integer representing the computed result, which is guaranteed to be non-negative and less than the modulus `MD`.
+
+## 4. Preconditions
+- `n` must be a non-negative integer such that `0 <= n <= 16`.
+- `m` must be a non-negative integer.
+- Each integer in the input array must be non-negative and less than or equal to `2^n`.
+
+## 5. Postconditions
+- The output integer is computed based on combinatorial logic applied to the transformed input values and is guaranteed to be within the range `[0, MD - 1]`.
+
+## 6. Invariants
+- The arrays used for factorials (`ff`) and inverse factorials (`gg`) are initialized and populated correctly before any calculations are performed.
+- The dynamic programming array (`dp`) maintains valid states throughout its updates, reflecting the cumulative results of the combinatorial calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- If `k` is greater than `n` in the combinatorial function `choose`, it returns `0`.
+- The output is adjusted to ensure it is non-negative by adding the modulus `MD` if necessary.
+
+## 8. State Transitions
+- The state of the dynamic programming array (`dp`) is updated iteratively based on the current bitmask and the values derived from the transformed input array. The updates reflect the cumulative results of combinatorial calculations, where each bit in the bitmask represents whether a specific element is included in the current subset.
+
+## 9. Non-functional Constraints
+- All computations are performed modulo `MD`, ensuring that all intermediate results remain within a manageable range to prevent overflow and maintain performance. The algorithm is designed to efficiently handle the combinatorial logic through dynamic programming, leveraging precomputed values to optimize performance.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately capture the combinatorial logic and the specific transformations applied to the input values, particularly how the dynamic programming array (`dp`) is updated based on the transformed input values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the dynamic programming updates are performed based on the transformed input values and how these updates relate to the combinatorial calculations. Specifically, it should detail the conditions under which the `dp` array is updated and how the final result is derived from it.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program employs a specific combinatorial logic that involves iterating over the transformed input values and updating the `dp` array based on the current state of the bitmask. The failure suggests that the generated program does not correctly implement this logic, leading to an incorrect final result. The transformation of the input values and the subsequent updates to the `dp` array are crucial for achieving the expected output, which is not sufficiently detailed in the current specification.
+
+```

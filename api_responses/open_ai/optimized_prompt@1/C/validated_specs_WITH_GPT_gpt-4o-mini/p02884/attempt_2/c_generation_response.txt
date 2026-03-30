@@ -1,0 +1,121 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+
+typedef struct {
+    int from;
+    int to;
+} Edge;
+
+double compute_min_average_distance(int num_nodes, int num_edges, Edge* edges) {
+    // Initialize distances to a large value
+    double* distances = (double*)malloc(num_nodes * sizeof(double));
+    int* reachable = (int*)malloc(num_nodes * sizeof(int));
+    int reachable_count = 0;
+
+    for (int i = 0; i < num_nodes; i++) {
+        distances[i] = (i == 0) ? 0.0 : DBL_MAX; // Distance to starting node is 0
+        reachable[i] = 0; // Initialize reachable status
+    }
+
+    // Bellman-Ford-like relaxation to find shortest paths
+    for (int i = 0; i < num_nodes - 1; i++) {
+        for (int j = 0; j < num_edges; j++) {
+            if (distances[edges[j].from] != DBL_MAX) {
+                double new_distance = distances[edges[j].from] + 1.0; // Each edge has a weight of 1
+                if (new_distance < distances[edges[j].to]) {
+                    distances[edges[j].to] = new_distance;
+                }
+            }
+        }
+    }
+
+    // Mark reachable nodes and count them
+    for (int i = 0; i < num_nodes; i++) {
+        if (distances[i] < DBL_MAX) {
+            reachable[i] = 1;
+            reachable_count++;
+        }
+    }
+
+    // If no nodes are reachable, return 0.0
+    if (reachable_count == 0) {
+        free(distances);
+        free(reachable);
+        return 0.0;
+    }
+
+    // Calculate the minimum average distance
+    double min_average_distance = DBL_MAX;
+
+    // Check average distance without removing any edge
+    double total_distance = 0.0;
+    for (int i = 0; i < num_nodes; i++) {
+        if (reachable[i]) {
+            total_distance += distances[i];
+        }
+    }
+    min_average_distance = total_distance / reachable_count;
+
+    // Check average distance for each edge removal
+    for (int e = 0; e < num_edges; e++) {
+        // Temporarily remove the edge
+        double original_distance = distances[edges[e].to];
+        distances[edges[e].to] = DBL_MAX;
+
+        // Recalculate distances
+        for (int i = 0; i < num_nodes - 1; i++) {
+            for (int j = 0; j < num_edges; j++) {
+                if (distances[edges[j].from] != DBL_MAX) {
+                    double new_distance = distances[edges[j].from] + 1.0;
+                    if (new_distance < distances[edges[j].to]) {
+                        distances[edges[j].to] = new_distance;
+                    }
+                }
+            }
+        }
+
+        // Recalculate reachable nodes and total distance
+        total_distance = 0.0;
+        reachable_count = 0;
+        for (int i = 0; i < num_nodes; i++) {
+            if (distances[i] < DBL_MAX) {
+                total_distance += distances[i];
+                reachable_count++;
+            }
+        }
+
+        // If reachable nodes exist, calculate the average distance
+        if (reachable_count > 0) {
+            double average_distance = total_distance / reachable_count;
+            if (average_distance < min_average_distance) {
+                min_average_distance = average_distance;
+            }
+        }
+
+        // Restore the original distance
+        distances[edges[e].to] = original_distance;
+    }
+
+    free(distances);
+    free(reachable);
+    return min_average_distance;
+}
+
+int main() {
+    int num_nodes, num_edges;
+    scanf("%d %d", &num_nodes, &num_edges);
+    
+    Edge* edges = (Edge*)malloc(num_edges * sizeof(Edge));
+    for (int i = 0; i < num_edges; i++) {
+        scanf("%d %d", &edges[i].from, &edges[i].to);
+    }
+
+    double result = compute_min_average_distance(num_nodes, num_edges, edges);
+    printf("%.10f\n", result); // Output with precision up to 10 decimal places
+
+    free(edges);
+    return 0;
+}
+```

@@ -1,0 +1,158 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1310: Find the Multiples
+// 2017.10.3 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HASHSIZ 300017
+typedef struct { int b; int v; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash + HASHSIZ;
+
+int lookup(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) return p->v;
+		if (++p == hashend) p = hash;
+	}
+	return 0;
+}
+
+void insert(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) { p->v++; return; }
+		if (++p == hashend) p = hash;
+	}
+	p->b = b, p->v = 1;
+}
+
+int a[100002];
+int b[100002];
+int tr[10][6];
+
+int main()
+{
+	int n, s, w, q, g, i, k, ans;
+
+	tr[0][2] = tr[2][2] = tr[4][2] = tr[6][2] = tr[8][2] = tr[0][5] = tr[5][5] = 1;
+
+    while (scanf("%d%d%d%d", &n, &s, &w, &q) && n > 0) {
+		g = s;
+		for (i = 0; i < n; i++) {
+			a[i] = (g/7) % 10;
+			if (g & 1) g = (g >> 1) ^ w;
+			else g >>= 1;
+		}
+
+		ans = 0;
+		if (q == 2 || q == 5) {
+			for (k = 0, i = 0; i < n; i++) {
+				if (a[i]) k++;
+				if (tr[a[i]][q]) ans += k;
+			}
+		} else {
+			memset(hash, 0, sizeof(hash));
+			for (k = 1, b[n] = 0, i = n-1; i >= 0; i--){
+				b[i] = (k*a[i] + b[i+1]) % q;
+				k = ((k<<3)+(k<<1)) % q;
+			}
+			for (i = 0; i < n; i++) {
+				if (a[i]) insert(b[i]+1);
+				ans += lookup(b[i+1]+1);
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a sequence of integers to compute a count of specific patterns based on given parameters. It utilizes a hash table for efficient lookups and inserts to track occurrences of computed values derived from the input sequence.
+
+# 2. Inputs
+- Four integers: `n` (length of the sequence), `s` (initial seed value), `w` (a transformation value), and `q` (a modulus value).
+- The input continues until a non-positive value for `n` is encountered.
+
+# 3. Outputs
+- An integer output for each valid input set, representing the computed count based on the specified conditions.
+
+# 4. Preconditions
+- The input values must be integers, with `n` being greater than zero for processing to occur.
+- The modulus value `q` must be a positive integer.
+
+# 5. Postconditions
+- The output integer reflects the total count of specific patterns found in the sequence derived from the input parameters.
+
+# 6. Invariants
+- The hash table maintains a consistent state where each entry either contains a valid key-value pair or is empty.
+- The transformation of the sequence is consistent with the defined rules based on the input parameters.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive integer is provided for `n`, without producing output for that case.
+- No explicit error handling for invalid input formats is defined; behavior is unspecified for such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each input set, updating the hash table and the count based on the computed values from the sequence.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently within the constraints of the hash table size and the input limits, ensuring timely responses for valid input sets.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the count of specific patterns is derived from the input sequence and the transformation logic. It lacks details on how the hash table is utilized to accumulate counts based on the computed values.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the specific conditions under which counts are incremented, particularly how the hash table is used to track occurrences of computed values and how these values relate to the input parameters.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a hash table to track occurrences of computed values derived from the input sequence, and the counting logic is dependent on specific conditions related to the values in the sequence and the transformation rules. The failure in the generated program suggests that it does not replicate this nuanced counting mechanism, leading to incorrect outputs. The original program's logic for counting based on the hash table and the transformation of the sequence is not reflected in the generated code, indicating a misunderstanding of the counting rules.
+
+```

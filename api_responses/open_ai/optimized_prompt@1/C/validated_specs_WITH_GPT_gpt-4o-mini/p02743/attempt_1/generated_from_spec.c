@@ -1,0 +1,20 @@
+#include <stdio.h>
+
+int main() {
+    long double a, b, d;
+
+    // Read three long double values from input
+    if (scanf("%Lf %Lf %Lf", &a, &b, &d) != 3) {
+        // If the input is not valid, undefined behavior may occur as per specification
+        return 1; // Exit with an error code (though not specified in the requirements)
+    }
+
+    // Check the condition d^2 > 4ab and d > 0
+    if ((d * d > 4 * a * b) && (d > 0)) {
+        printf("Yes\n"); // Output "Yes" if the condition holds
+    } else {
+        printf("No\n"); // Output "No" if the condition does not hold
+    }
+
+    return 0; // Successful execution
+}

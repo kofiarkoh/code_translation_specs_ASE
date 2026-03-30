@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WORD_LENGTH 204
+#define MAX_WORDS 50000
+#define MAX_QUERIES 50000
+
+typedef struct {
+    char word[MAX_WORD_LENGTH + 1];
+    char reversed[MAX_WORD_LENGTH + 1];
+} WordPair;
+
+WordPair words[MAX_WORDS];
+int word_count = 0;
+
+// Function to reverse a string
+void reverse_string(const char *src, char *dest) {
+    int len = strlen(src);
+    for (int i = 0; i < len; i++) {
+        dest[i] = src[len - 1 - i];
+    }
+    dest[len] = '\0'; // Null-terminate the reversed string
+}
+
+// Function to compare two strings for wildcard matching
+int matches(const char *word, const char *query) {
+    // Simple wildcard matching implementation
+    while (*query) {
+        if (*query == '*') {
+            // Skip the wildcard and check the rest
+            query++;
+            if (!*query) return 1; // If end of query, match
+            while (*word && *word != *query) word++;
+        } else if (*word != *query) {
+            return 0; // No match
+        }
+        word++;
+        query++;
+    }
+    return *word == '\0'; // Match if we reached the end of the word
+}
+
+// Function to process input and count matches for each query
+void process_queries(int query_count) {
+    char query[MAX_WORD_LENGTH + 1];
+    for (int i = 0; i < query_count; i++) {
+        scanf("%s", query); // Read the query
+        int match_count = 0;
+        for (int j = 0; j < word_count; j++) {
+            if (matches(words[j].word, query) || matches(words[j].reversed, query)) {
+                match_count++;
+            }
+        }
+        printf("%d\n", match_count); // Output the count of matches
+    }
+}
+
+int main() {
+    int N, M;
+    scanf("%d %d", &N, &M); // Read N and M
+
+    // Read word pairs
+    for (int i = 0; i < N; i++) {
+        scanf("%s", words[i].word);
+        reverse_string(words[i].word, words[i].reversed);
+        word_count++;
+    }
+
+    // Process queries
+    process_queries(M);
+
+    return 0;
+}

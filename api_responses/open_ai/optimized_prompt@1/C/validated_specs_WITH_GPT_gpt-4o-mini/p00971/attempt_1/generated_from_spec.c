@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_LENGTH 1000 // Define a maximum length for the input strings
+
+// Function to find the optimal combination of binary digits from two strings
+void process_binary_strings(const char *str1, const char *str2, char *output) {
+    int len1 = strlen(str1);
+    int len2 = strlen(str2);
+    int i, j, k = 0;
+
+    // Dynamic programming table to store results
+    int dp[MAX_LENGTH + 1][MAX_LENGTH + 1];
+
+    // Initialize the DP table
+    for (i = 0; i <= len1; i++) {
+        for (j = 0; j <= len2; j++) {
+            dp[i][j] = 0; // Base case: no common subsequence
+        }
+    }
+
+    // Fill the DP table based on the rules for combining binary strings
+    for (i = 1; i <= len1; i++) {
+        for (j = 1; j <= len2; j++) {
+            if (str1[i - 1] == str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1; // Characters match
+            } else {
+                dp[i][j] = dp[i - 1][j] > dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1]; // Take max
+            }
+        }
+    }
+
+    // Backtrack to find the optimal combination
+    i = len1;
+    j = len2;
+    while (i > 0 && j > 0) {
+        if (str1[i - 1] == str2[j - 1]) {
+            output[k++] = str1[i - 1]; // Add matching character to output
+            i--;
+            j--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--; // Move in str1
+        } else {
+            j--; // Move in str2
+        }
+    }
+
+    // Reverse the output to get the correct order
+    for (int l = 0; l < k / 2; l++) {
+        char temp = output[l];
+        output[l] = output[k - l - 1];
+        output[k - l - 1] = temp;
+    }
+    output[k] = '\0'; // Null-terminate the output string
+}
+
+int main() {
+    char str1[MAX_LENGTH + 1], str2[MAX_LENGTH + 1];
+    char output[MAX_LENGTH + 1];
+
+    // Read two binary strings from standard input
+    scanf("%s %s", str1 + 1, str2 + 1); // Indexing starts from 1
+
+    // Process the binary strings to find the optimal combination
+    process_binary_strings(str1, str2, output);
+
+    // Print the output sequence followed by a newline
+    printf("%s\n", output);
+
+    return 0;
+}

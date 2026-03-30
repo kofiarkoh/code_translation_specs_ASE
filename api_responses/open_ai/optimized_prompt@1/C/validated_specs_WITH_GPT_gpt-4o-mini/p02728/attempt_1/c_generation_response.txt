@@ -1,0 +1,67 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MODULO_CONSTANT 1000000007 // Define the modulo constant
+
+// Function to perform depth-first search and compute values for each node
+void dfs(int node, int parent, int *a, int *b, long long *tans, int *tS, int n) {
+    tans[node] = 1; // Initialize the computed value for the current node
+    tS[node] = 0;   // Initialize the child count for the current node
+
+    for (int i = 0; i < n - 1; i++) {
+        // Check if the edge connects to the current node
+        if (a[i] == node && b[i] != parent) {
+            dfs(b[i], node, a, b, tans, tS, n); // Recur for child node
+            tans[node] = (tans[node] * (tans[b[i]] + 1)) % MODULO_CONSTANT; // Update computed value
+            tS[node]++; // Increment child count
+        } else if (b[i] == node && a[i] != parent) {
+            dfs(a[i], node, a, b, tans, tS, n); // Recur for child node
+            tans[node] = (tans[node] * (tans[a[i]] + 1)) % MODULO_CONSTANT; // Update computed value
+            tS[node]++; // Increment child count
+        }
+    }
+}
+
+long long* compute_tree_values(int n, int *a, int *b) {
+    long long *tans = (long long *)malloc(n * sizeof(long long)); // Output array for computed values
+    int *tS = (int *)malloc(n * sizeof(int)); // Array to count child nodes
+
+    for (int i = 0; i < n; i++) {
+        tans[i] = 0; // Initialize output array
+        tS[i] = 0;   // Initialize child count array
+    }
+
+    // Start DFS from the root node (assuming node 0 is the root)
+    dfs(0, -1, a, b, tans, tS, n);
+
+    free(tS); // Free the child count array
+    return tans; // Return the computed values
+}
+
+int main() {
+    int n; // Number of nodes
+    scanf("%d", &n); // Read number of nodes
+
+    int *a = (int *)malloc((n - 1) * sizeof(int)); // Array for edges
+    int *b = (int *)malloc((n - 1) * sizeof(int)); // Array for edges
+
+    // Read edges
+    for (int i = 0; i < n - 1; i++) {
+        scanf("%d %d", &a[i], &b[i]);
+    }
+
+    long long *result = compute_tree_values(n, a, b); // Compute values
+
+    // Output results
+    for (int i = 0; i < n; i++) {
+        printf("%lld\n", result[i]);
+    }
+
+    free(a); // Free the edges array
+    free(b); // Free the edges array
+    free(result); // Free the result array
+
+    return 0;
+}
+```

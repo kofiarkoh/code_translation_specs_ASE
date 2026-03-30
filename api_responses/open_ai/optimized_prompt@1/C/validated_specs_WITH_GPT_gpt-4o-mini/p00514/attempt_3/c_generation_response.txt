@@ -1,0 +1,80 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DIGITS 1000 // Maximum number of digits to store large integers
+
+// Function to multiply a large number represented as an array by an integer
+void multiply(int *result, int *size, int x) {
+    int carry = 0;
+    for (int i = 0; i < *size; i++) {
+        int prod = result[i] * x + carry;
+        result[i] = prod % 10; // Store the last digit
+        carry = prod / 10; // Carry over the rest
+    }
+    while (carry) {
+        result[(*size)++] = carry % 10; // Add new digits
+        carry /= 10;
+    }
+}
+
+// Function to divide a large number represented as an array by an integer
+void divide(int *result, int *size, int divisor) {
+    int carry = 0;
+    for (int i = *size - 1; i >= 0; i--) {
+        long long current = carry * 10 + result[i];
+        result[i] = current / divisor; // Divide the current segment
+        carry = current % divisor; // Remainder for the next iteration
+    }
+    // Adjust size if leading digits are zero
+    while (*size > 1 && result[*size - 1] == 0) {
+        (*size)--;
+    }
+}
+
+// Function to compute the binomial coefficient (n+r-1)C(n-1)
+void binomial_coefficient(int n, int r) {
+    if (r < 0) {
+        printf("0\n");
+        return;
+    }
+    if (r == 0) {
+        printf("1\n");
+        return;
+    }
+
+    int n2 = n - 1; // n-1 for the binomial coefficient
+    int total = n + r - 1; // n+r-1
+    int result[MAX_DIGITS] = {0}; // Array to store the result
+    result[0] = 1; // Initialize to 1
+    int size = 1; // Current size of the result
+
+    // Calculate (n+r-1)(n+r-2)...(r) / (n-1)!
+    for (int i = total; i > r; i--) {
+        multiply(result, &size, i); // Multiply by (n+r-1), (n+r-2), ..., (r+1)
+    }
+    for (int i = 1; i <= n2; i++) {
+        divide(result, &size, i); // Divide by (n-1)!
+    }
+
+    // Print the result
+    for (int i = size - 1; i >= 0; i--) {
+        printf("%d", result[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    int n, m, r;
+    // Read input values
+    scanf("%d %d %d", &n, &m, &r);
+    // Check precondition: r - n * m >= 0
+    if (r < n * m) {
+        printf("0\n");
+        return 0;
+    }
+    // Compute and print the binomial coefficient
+    binomial_coefficient(n, r);
+    return 0;
+}
+```

@@ -1,0 +1,182 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int main(){
+  char s[50];
+  int d[5],n,c,i,r;
+  int m12=365*13+4-11;
+  int d400=365*400+100-4+1;
+  int d100=365*100+25 -1;
+  int d4  =365*4  +1;
+  int a[5];
+  int M[]={0,31,28,31,30,31,30,31,31,30,31,30,31};
+  unsigned long long dt,t;
+  while(scanf("%s",s),s[0]-'#'){
+    for(i=c=n=r=0;s[i];i++){
+      if(s[i]=='.'){
+	c++;
+	d[r++]=n;
+	n=0;
+      }
+      else{
+	n*=10;
+	n+=s[i]-'0';
+      }
+    }
+    d[r]=n;
+    dt=0;//-m12;
+    if(c==2){
+      //printf("%d %d %d\n",d[0],d[1],d[2]);
+      for(i=1;i<d[1];i++)dt+=M[i];
+      if(d[1]>2&&d[0]%4==0&&(d[0]%100||d[0]%400==0))dt++;
+      dt+=(unsigned long long)d[2]-1;
+      d[0]-=2001;
+      dt+=(unsigned long long)365*d[0]+d[0]/4-d[0]/100+d[0]/400+366-m12;
+      //printf("%d\n",m12);
+      a[4]=dt%20;
+      dt/=20;
+      a[3]=dt%18;
+      dt/=18;
+      a[2]=dt%20;
+      dt/=20;
+      a[1]=dt%20;
+      dt/=20;
+      a[0]=dt%13;
+      printf("%d.%d.%d.%d.%d\n",a[0],a[1],a[2],a[3],a[4]);      
+    }
+    else{
+      dt=d[0];
+      dt=dt*20+d[1];
+      dt=dt*20+d[2];
+      dt=dt*18+d[3];
+      dt=dt*20+d[4];
+      dt+=4738+1;
+      for(a[0]=2000;dt>365;a[0]++){
+	t=dt;
+	dt-=365;
+	if(a[0]%4==0&&(a[0]%100||a[0]%400==0))dt--;
+      }
+      if(dt==0){
+	dt=t;
+	a[0]--;
+      }
+      /*a[0] =(dt/d400)*400;
+      dt%d400;
+      a[0]+=(dt/d100)*100;
+      dt%=d100;
+      a[0]+=(dt/d4  )*4  ;
+      dt%=d4  ;
+      a[0]+=(dt/365);
+      dt%=365;//*/
+      //if(59>dt&&a[0]%4==0&&(a[0]%100||a[0]%400==0))dt++;
+      for(i=1;i<13;i++){
+	if(dt<=M[i])break;
+	dt-=M[i];
+	if(i==2&&a[0]%4==0&&(a[0]%100||a[0]%400==0)){
+	  dt--;
+	  if(dt==0){
+	    dt=29;
+	    break;
+	  }
+	}
+      }
+      printf("%d.%d.%lld\n",a[0],i,dt);
+    }
+  }
+  return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code converts date representations between two formats: a string format of the form "YYYY.MM.DD" and a numerical format represented by five integers. It outputs the corresponding date in the alternate format based on the input provided.
+
+## 2. Inputs
+- A string representing a date in the format "YYYY.MM.DD" or five integers representing a date in a numerical format.
+- The string input must not start with the character '#'.
+
+## 3. Outputs
+- A date output in the format "A.B.C.D.E" where:
+  - A, B, C, D, and E are integers derived from the input date.
+
+## 4. Preconditions
+- The input string must be well-formed, containing valid integers separated by periods.
+- The numerical input must consist of exactly five integers.
+
+## 5. Postconditions
+- The output will be a valid date representation in the specified format based on the input.
+- The output will reflect the correct conversion between the two date formats.
+
+## 6. Invariants
+- The year component of the date is always adjusted to be relative to the year 2001.
+- Leap year rules are consistently applied when calculating the number of days in February.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle malformed input or out-of-range values explicitly; it assumes valid input as per the preconditions.
+- If the input string starts with '#', the program terminates without processing further.
+
+## 8. State Transitions
+- The program transitions between reading input, processing the date conversion, and outputting the result based on the input format.
+- When processing the string format, the program extracts the year, month, and day components and calculates the total number of days since a reference date.
+- When processing the numerical format, the program interprets the five integers as follows:
+  - If the first integer is a valid year, it is treated as such, and the subsequent integers represent month and day.
+  - If the first integer does not represent a valid year, the program interprets the five integers as a sequence of values that contribute to a total day count, which is then converted back to a date.
+
+## 9. Non-functional Constraints
+- The program operates within a fixed memory allocation for input and output storage.
+- The performance is dependent on the input size but is expected to handle typical date formats efficiently.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately describe how the conversion from the string format to the numerical format and vice versa should handle the total number of days, particularly in relation to the year, month, and day calculations.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the total number of days is calculated and how it relates to the output format, especially when converting from the numerical format back to the date format. It should specify the rules for determining the month and day from the total days, including how to handle edge cases like leap years and month boundaries.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program contains complex logic for calculating the total number of days based on the input date, including leap year adjustments and month calculations. The generated C program simplifies these calculations, which leads to incorrect outputs. The discrepancy between the expected and actual outputs suggests that the specification does not fully capture the intricacies of these calculations, particularly how to derive the month and day from a total day count.
+
+```

@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <limits.h>
+
+#define MAX_N 200000
+
+// Function to compute the minimum cost based on the given indices and queries
+long long compute_min_cost(int n, int q, int i, int j, int queries[]) {
+    // Initialize the minimum costs to a large value
+    long long min_costs[MAX_N];
+    for (int k = 0; k < n; k++) {
+        min_costs[k] = LLONG_MAX; // Use long long max to represent "infinity"
+    }
+
+    // Set the initial costs based on the starting indices
+    min_costs[i] = 0; // Starting point cost is 0
+    min_costs[j] = 0; // Starting point cost is 0
+
+    long long total_cost = 0;
+
+    // Process each query
+    for (int k = 0; k < q; k++) {
+        int query_index = queries[k];
+
+        // Ensure the query index is within bounds
+        if (query_index < 0 || query_index >= n) {
+            // Undefined behavior as per specification; we assume valid input
+            return -1; // Placeholder for undefined behavior
+        }
+
+        // Calculate the cost to reach the current query index
+        long long cost_to_query = LLONG_MAX;
+        if (min_costs[i] != LLONG_MAX) {
+            cost_to_query = (min_costs[i] + abs(query_index - i));
+        }
+        if (min_costs[j] != LLONG_MAX) {
+            long long cost_from_j = (min_costs[j] + abs(query_index - j));
+            if (cost_from_j < cost_to_query) {
+                cost_to_query = cost_from_j;
+            }
+        }
+
+        // Update the minimum cost for the current query index
+        if (cost_to_query < min_costs[query_index]) {
+            min_costs[query_index] = cost_to_query;
+        }
+
+        // Accumulate the total cost
+        total_cost += min_costs[query_index];
+        
+        // Update the indices for the next iteration
+        i = j; // Move to the next state
+        j = query_index; // Update j to the current query index
+    }
+
+    return total_cost; // Return the total minimum cost
+}
+
+int main() {
+    int n, q, i, j;
+    // Assume valid input is provided for n, q, i, j, and queries
+    // Example input handling can be added here
+
+    // Example usage
+    int queries[] = {1, 2, 3}; // Example query indices
+    n = 5; // Number of indices
+    q = 3; // Number of queries
+    i = 0; // Initial index i
+    j = 1; // Initial index j
+
+    long long result = compute_min_cost(n, q, i, j, queries);
+    printf("%lld\n", result); // Output the result
+
+    return 0;
+}

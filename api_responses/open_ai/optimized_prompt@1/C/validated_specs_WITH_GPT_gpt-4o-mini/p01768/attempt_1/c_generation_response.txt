@@ -1,0 +1,143 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_NAME_LENGTH 11 // 10 characters + 1 for null terminator
+
+typedef struct Ingredient {
+    char name[MAX_NAME_LENGTH];
+    int cost;
+    struct Ingredient** connections; // Adjacency list for connections
+    int connection_count;
+    int min_cost; // Minimum cost after processing connections
+} Ingredient;
+
+typedef struct Graph {
+    Ingredient* ingredients;
+    int ingredient_count;
+} Graph;
+
+// Function prototypes
+Graph* create_graph(int n);
+void add_ingredient(Graph* graph, int index, const char* name, int cost);
+void add_connection(Graph* graph, const char* name1, const char* name2);
+void compute_min_costs(Graph* graph);
+int dfs(Ingredient* ingredient, int* visited);
+int total_min_cost(Graph* graph);
+void free_graph(Graph* graph);
+
+int main() {
+    int n; // Number of ingredients
+    scanf("%d", &n);
+    
+    Graph* graph = create_graph(n);
+    
+    for (int i = 0; i < n; i++) {
+        char name[MAX_NAME_LENGTH];
+        int cost;
+        scanf("%s %d", name, &cost);
+        add_ingredient(graph, i, name, cost);
+    }
+    
+    int m; // Number of connections
+    scanf("%d", &m);
+    
+    for (int i = 0; i < m; i++) {
+        char name1[MAX_NAME_LENGTH], name2[MAX_NAME_LENGTH];
+        scanf("%s %s", name1, name2);
+        add_connection(graph, name1, name2);
+    }
+    
+    compute_min_costs(graph);
+    int result = total_min_cost(graph);
+    printf("%d\n", result);
+    
+    free_graph(graph);
+    return 0;
+}
+
+Graph* create_graph(int n) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->ingredients = (Ingredient*)malloc(n * sizeof(Ingredient));
+    graph->ingredient_count = n;
+    for (int i = 0; i < n; i++) {
+        graph->ingredients[i].connections = NULL;
+        graph->ingredients[i].connection_count = 0;
+        graph->ingredients[i].min_cost = -1; // Initialize to -1 to indicate unvisited
+    }
+    return graph;
+}
+
+void add_ingredient(Graph* graph, int index, const char* name, int cost) {
+    strncpy(graph->ingredients[index].name, name, MAX_NAME_LENGTH);
+    graph->ingredients[index].cost = cost;
+}
+
+void add_connection(Graph* graph, const char* name1, const char* name2) {
+    Ingredient* ing1 = NULL;
+    Ingredient* ing2 = NULL;
+    
+    // Find the ingredients by name
+    for (int i = 0; i < graph->ingredient_count; i++) {
+        if (strcmp(graph->ingredients[i].name, name1) == 0) {
+            ing1 = &graph->ingredients[i];
+        }
+        if (strcmp(graph->ingredients[i].name, name2) == 0) {
+            ing2 = &graph->ingredients[i];
+        }
+    }
+    
+    // If either ingredient is not found, behavior is undefined (as per spec)
+    if (ing1 && ing2) {
+        // Add connection
+        ing1->connections = realloc(ing1->connections, (ing1->connection_count + 1) * sizeof(Ingredient*));
+        ing1->connections[ing1->connection_count++] = ing2;
+        
+        ing2->connections = realloc(ing2->connections, (ing2->connection_count + 1) * sizeof(Ingredient*));
+        ing2->connections[ing2->connection_count++] = ing1; // Assuming undirected graph
+    }
+}
+
+void compute_min_costs(Graph* graph) {
+    int* visited = (int*)calloc(graph->ingredient_count, sizeof(int));
+    
+    for (int i = 0; i < graph->ingredient_count; i++) {
+        if (visited[i] == 0) {
+            dfs(&graph->ingredients[i], visited);
+        }
+    }
+    
+    free(visited);
+}
+
+int dfs(Ingredient* ingredient, int* visited) {
+    if (visited[ingredient - ingredient->connections[0]]) return ingredient->min_cost; // Already visited
+    
+    visited[ingredient - ingredient->connections[0]] = 1; // Mark as visited
+    int min_cost = ingredient->cost; // Start with the ingredient's own cost
+    
+    for (int i = 0; i < ingredient->connection_count; i++) {
+        min_cost += dfs(ingredient->connections[i], visited); // Aggregate costs from connections
+    }
+    
+    ingredient->min_cost = min_cost; // Update minimum cost
+    return min_cost;
+}
+
+int total_min_cost(Graph* graph) {
+    int total_cost = 0;
+    for (int i = 0; i < graph->ingredient_count; i++) {
+        total_cost += graph->ingredients[i].min_cost; // Sum up minimum costs
+    }
+    return total_cost;
+}
+
+void free_graph(Graph* graph) {
+    for (int i = 0; i < graph->ingredient_count; i++) {
+        free(graph->ingredients[i].connections); // Free connections
+    }
+    free(graph->ingredients); // Free ingredients
+    free(graph); // Free graph structure
+}
+```

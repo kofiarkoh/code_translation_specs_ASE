@@ -1,0 +1,40 @@
+#include <stdio.h>
+
+void generate_sequence(int k) {
+    // Handle the case where k >= 50
+    if (k >= 50) {
+        for (int i = 0; i < 50; i++) {
+            printf("%d\n", i); // Output integers from 0 to 49
+        }
+    }
+    // Handle the case where 2 <= k < 50
+    else if (k >= 2) {
+        for (int i = 0; i < k; i++) {
+            printf("%d\n", i); // Output integers from 0 to k-1
+        }
+    }
+    // Handle the case where k == 0
+    else if (k == 0) {
+        for (int i = 0; i < 4; i++) {
+            printf("%d\n", i); // Output integers from 0 to 3
+        }
+    }
+    // Handle the case where k < 0
+    else {
+        for (int i = 0; i < 3; i++) {
+            printf("%d\n", i); // Output integers from 0 to 2
+        }
+    }
+}
+
+int main() {
+    int k;
+    // Read an integer input
+    if (scanf("%d", &k) != 1) {
+        // Undefined behavior if input is not a valid integer
+        return 1; // Exit with error code
+    }
+    
+    generate_sequence(k); // Generate and output the sequence based on k
+    return 0; // Successful execution
+}

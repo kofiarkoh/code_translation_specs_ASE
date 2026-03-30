@@ -1,0 +1,115 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+int main(void)
+{
+	int a[1000],k,n,m;
+	int i,j;
+	int temp;
+	scanf("%d %d",&n,&m);
+	for(i=1;i<=n;i++)scanf("%d",&a[i]);
+	k=1;
+	do{
+		for(i=1,j=2;i<n,j<=n;i++,j++){
+			if(a[i]%k>a[j]%k){
+				temp=a[i];
+				a[i]=a[j];
+				a[j]=temp;
+			}
+		}
+		k++;
+	}while(k<=m);
+	for(i=1;i<=n;i++)printf("%d\n",a[i]);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code sorts an array of integers based on the modulo operation with respect to a series of increasing divisors, producing a final sorted array. The sorting is performed iteratively using divisors from 1 to `m`.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` represents the number of elements in the array and must be a positive integer.
+  - `m` represents the maximum divisor used for sorting and must also be a positive integer.
+- An array of `n` integers, which must be provided in the input.
+
+## 3. Outputs
+- A sorted array of `n` integers, printed in ascending order based on the results of the modulo operation with divisors from 1 to `m`.
+
+## 4. Preconditions
+- The input integers `n` and `m` must be positive.
+- The number of elements in the array must exactly match the value of `n`.
+
+## 5. Postconditions
+- The output array is sorted such that for any two elements `a[i]` and `a[j]` (where `i < j`), the condition `a[i] % k <= a[j] % k` holds for all divisors `k` from 1 to `m`. In cases where two elements yield the same modulo result for all divisors, their relative order in the output will be determined by their original order in the input array (i.e., stable sorting).
+
+## 6. Invariants
+- The array remains unchanged outside the sorting process until the final output is produced.
+- The sorting process iteratively refines the order of the array based on the modulo results, ensuring stability in the presence of ties.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values for `n` or `m` are non-positive, the behavior is undefined, and no output is guaranteed.
+- If fewer than `n` integers are provided for the array, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- The state of the array transitions from an unsorted state to a sorted state through multiple iterations based on the modulo operation, with the potential for stable sorting in the presence of ties.
+
+## 9. Non-functional Constraints (if inferable)
+- The sorting process may have a time complexity that increases with larger values of `n` and `m`, potentially affecting performance for large inputs.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clarify how the program should handle the case when the number of elements read does not match the expected count `n`. The generated code checks the size of the array using `sizeof(arr)`, which will not yield the expected result since `arr` is a pointer after dynamic allocation.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should explicitly state that the program must ensure that exactly `n` integers are read into the array and that any deviation from this should result in an error or undefined behavior.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program relies on the assumption that the input will always provide exactly `n` integers. If fewer integers are provided, the program will not function correctly, leading to potential runtime errors. The current specification does not adequately address this critical aspect of input handling, which is essential for the program's correct execution.
+
+```

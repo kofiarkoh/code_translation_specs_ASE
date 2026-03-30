@@ -1,0 +1,105 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_SIZE 100000
+
+typedef struct {
+    long long sum;      // Sum of the segment
+    long long lazy;     // Lazy value for deferred updates
+} SegmentTreeNode;
+
+SegmentTreeNode tree[4 * MAX_SIZE]; // Segment tree array
+int n; // Number of elements
+
+// Function to build the segment tree
+void build(int node, int start, int end) {
+    if (start == end) {
+        tree[node].sum = 0; // Initialize leaves to 0
+        tree[node].lazy = 0; // No pending updates
+    } else {
+        int mid = (start + end) / 2;
+        build(2 * node + 1, start, mid);
+        build(2 * node + 2, mid + 1, end);
+        tree[node].sum = tree[2 * node + 1].sum + tree[2 * node + 2].sum; // Internal node sum
+        tree[node].lazy = 0; // No pending updates
+    }
+}
+
+// Function to propagate updates to children
+void propagate(int node, int start, int end) {
+    if (tree[node].lazy != 0) {
+        // Apply the pending update
+        tree[node].sum += (end - start + 1) * tree[node].lazy; // Update sum
+
+        if (start != end) {
+            // Not a leaf node, propagate the lazy value to children
+            tree[2 * node + 1].lazy += tree[node].lazy;
+            tree[2 * node + 2].lazy += tree[node].lazy;
+        }
+        tree[node].lazy = 0; // Clear the lazy value
+    }
+}
+
+// Function to update a range with a value
+void update(int node, int start, int end, int l, int r, long long value) {
+    propagate(node, start, end); // Ensure any pending updates are applied
+
+    if (start > end || start > r || end < l) {
+        return; // Out of range
+    }
+
+    if (start >= l && end <= r) {
+        // Current segment is fully within the range
+        tree[node].lazy += value; // Set lazy value
+        propagate(node, start, end); // Apply the update
+        return;
+    }
+
+    // Partially in range, update children
+    int mid = (start + end) / 2;
+    update(2 * node + 1, start, mid, l, r, value);
+    update(2 * node + 2, mid + 1, end, l, r, value);
+    tree[node].sum = tree[2 * node + 1].sum + tree[2 * node + 2].sum; // Update current node sum
+}
+
+// Function to get the sum of a range
+long long get_sum(int node, int start, int end, int l, int r) {
+    propagate(node, start, end); // Ensure any pending updates are applied
+
+    if (start > end || start > r || end < l) {
+        return 0; // Out of range
+    }
+
+    if (start >= l && end <= r) {
+        return tree[node].sum; // Current segment is fully within the range
+    }
+
+    // Partially in range, query children
+    int mid = (start + end) / 2;
+    long long sum_left = get_sum(2 * node + 1, start, mid, l, r);
+    long long sum_right = get_sum(2 * node + 2, mid + 1, end, l, r);
+    return sum_left + sum_right; // Combine results
+}
+
+int main() {
+    int q; // Number of queries
+    scanf("%d %d", &n, &q); // Read number of elements and queries
+    build(0, 0, n - 1); // Build the segment tree
+
+    for (int i = 0; i < q; i++) {
+        int command, l, r;
+        long long value = 0;
+        scanf("%d %d %d", &command, &l, &r); // Read command and range
+        if (command == 1) { // Update command
+            scanf("%lld", &value); // Read value for update
+            update(0, 0, n - 1, l, r, value); // Update range
+        } else if (command == 2) { // Get sum command
+            long long result = get_sum(0, 0, n - 1, l, r); // Get sum of range
+            printf("%lld\n", result); // Output the result
+        }
+    }
+
+    return 0;
+}
+```

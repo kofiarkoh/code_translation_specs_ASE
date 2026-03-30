@@ -1,0 +1,111 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int main(){
+    int i,l,a=0,c=0,b[256]={0};
+    char s[100];
+    scanf("%s",s);
+    for(l=0;s[l];l++)b[s[l]]++;
+    while(l){
+        for(i=0;i<256;i++){
+            if(b[i]){
+                a++;
+                l--;
+                c++;
+                b[i]--;
+            }
+            else{
+                if(c>3)a-=c-3;
+                c=0;
+            }
+        }
+    }
+    printf("%d\n",a);
+    return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a string input to count the number of unique characters, adjusting the count based on the frequency of consecutive occurrences of characters. The output is a non-negative integer representing the adjusted count of unique characters, which is modified according to specific rules regarding consecutive characters.
+
+## 2. Inputs
+- A string of characters, with a maximum length of 99 characters (excluding the null terminator).
+
+## 3. Outputs
+- A single non-negative integer representing the adjusted count of unique characters in the input string.
+
+## 4. Preconditions
+- The input string must be null-terminated and contain at most 99 characters.
+- The input string may contain any characters, including non-alphabetic ones.
+
+## 5. Postconditions
+- The output integer reflects the count of unique characters, adjusted according to the frequency of consecutive characters in the input string. Specifically, if a character appears consecutively more than three times, the count of unique characters is decremented by the number of excess occurrences beyond three.
+
+## 6. Invariants
+- The count of unique characters is non-negative throughout the execution.
+- The frequency of each character is tracked accurately during processing.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to input size or format. It assumes valid input as per the preconditions.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as characters are processed, updating the counts of unique characters and their frequencies based on the input string. The count of unique characters is adjusted based on the number of consecutive occurrences of each character.
+
+## 9. Non-functional Constraints (if inferable)
+- The processing time is linear with respect to the length of the input string, as each character is processed a limited number of times.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the unique character count should be adjusted when characters appear consecutively. Specifically, it lacks clarity on how to handle the counting of unique characters when they are not consecutive.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify that the unique character count should include all unique characters regardless of their consecutive occurrences, and that the adjustment for consecutive characters should only apply to the count of unique characters that exceed three consecutive occurrences.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program counts unique characters and adjusts the count based on consecutive occurrences, but it does so in a way that suggests the unique count is decremented only when there are more than three consecutive occurrences. The failing test case indicates that the expected output includes all unique characters, suggesting that the current specification's description of the adjustment logic is insufficient or misleading. The source program's logic implies that the unique count should reflect all unique characters, not just those that are adjusted based on consecutive occurrences.
+
+```

@@ -1,0 +1,59 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+void calculate_optimal_schedule(int days, int *costs, int **satisfaction_scores, int *optimal_schedule) {
+    // Initialize the random number generator
+    srand(time(NULL));
+
+    // Initialize the current schedule and its satisfaction score
+    for (int i = 0; i < days; i++) {
+        optimal_schedule[i] = 0; // Start with type 0 for each day
+    }
+
+    int current_score = 0;
+    for (int i = 0; i < days; i++) {
+        current_score += satisfaction_scores[i][optimal_schedule[i]];
+    }
+
+    // Attempt to find a better schedule
+    for (int i = 0; i < days; i++) {
+        // Randomly select a new type for the current day
+        int new_type = rand() % (sizeof(costs) / sizeof(costs[0])); // Assuming costs array size is known
+
+        // Calculate the new score if we switch to the new type
+        int new_score = current_score - satisfaction_scores[i][optimal_schedule[i]] + satisfaction_scores[i][new_type];
+
+        // Update the schedule if the new score is better
+        if (new_score > current_score) {
+            optimal_schedule[i] = new_type;
+            current_score = new_score; // Update the current score
+        }
+    }
+}
+
+int main() {
+    int days = 5; // Example number of days
+    int costs[] = {10, 20, 30}; // Example costs
+    int satisfaction_scores[5][3] = {
+        {5, 10, 15},
+        {10, 5, 20},
+        {15, 20, 5},
+        {20, 15, 10},
+        {5, 10, 5}
+    };
+
+    int optimal_schedule[5]; // Array to hold the optimal schedule
+
+    // Call the function to calculate the optimal schedule
+    calculate_optimal_schedule(days, costs, (int **)satisfaction_scores, optimal_schedule);
+
+    // Output the optimal schedule
+    for (int i = 0; i < days; i++) {
+        printf("Day %d: Type %d\n", i + 1, optimal_schedule[i]);
+    }
+
+    return 0;
+}
+```

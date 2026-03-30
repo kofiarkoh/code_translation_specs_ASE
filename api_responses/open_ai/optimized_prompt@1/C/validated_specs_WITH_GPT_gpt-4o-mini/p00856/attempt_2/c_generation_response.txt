@@ -1,0 +1,91 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <float.h>
+
+double compute_probability(int N, int T, int L, int B, int *obstacles, int *barriers, int current_position, int remaining_moves);
+
+double probability_of_success(int N, int T, int L, int B, int *obstacles, int *barriers) {
+    // If all input values are zero, terminate gracefully
+    if (N == 0 && T == 0 && L == 0 && B == 0) {
+        return 0.0; // Defined behavior for all zeros
+    }
+
+    // Start the recursive probability calculation from position 0 with T turns and 6 moves
+    return compute_probability(N, T, L, B, obstacles, barriers, 0, 6);
+}
+
+double compute_probability(int N, int T, int L, int B, int *obstacles, int *barriers, int current_position, int remaining_moves) {
+    // Base cases for recursion
+    if (remaining_moves <= 0) {
+        return 1.0; // Success if no moves left
+    }
+    if (T <= 0) {
+        return 0.0; // Failure if no turns left
+    }
+
+    double total_probability = 0.0;
+    int valid_moves = 0;
+
+    // Evaluate moves from 1 to 6
+    for (int move = 1; move <= 6; move++) {
+        int next_position = current_position + move;
+
+        // Check if the next position is within bounds
+        if (next_position >= 0 && next_position < N) {
+            // Check if the next position is an obstacle or barrier
+            int is_obstacle = 0;
+            int is_barrier = 0;
+
+            for (int i = 0; i < L; i++) {
+                if (obstacles[i] == next_position) {
+                    is_obstacle = 1;
+                    break;
+                }
+            }
+
+            for (int j = 0; j < B; j++) {
+                if (barriers[j] == next_position) {
+                    is_barrier = 1;
+                    break;
+                }
+            }
+
+            // Calculate probability based on the state of the next position
+            if (!is_obstacle && !is_barrier) {
+                total_probability += compute_probability(N, T - 1, L, B, obstacles, barriers, next_position, remaining_moves - 1);
+                valid_moves++;
+            } else if (is_obstacle) {
+                // If it's an obstacle, we do not count this move
+                continue;
+            } else if (is_barrier) {
+                // If it's a barrier, we do not count this move
+                continue;
+            }
+        }
+    }
+
+    // If no valid moves were found, return 0.0
+    if (valid_moves == 0) {
+        return 0.0;
+    }
+
+    // Return the average probability of valid moves
+    return total_probability / valid_moves;
+}
+
+int main() {
+    // Example usage
+    int N = 10; // Total positions
+    int T = 3;  // Total turns
+    int L = 2;  // Number of obstacles
+    int B = 1;  // Number of barriers
+    int obstacles[] = {3, 5}; // Positions of obstacles
+    int barriers[] = {7};      // Positions of barriers
+
+    double probability = probability_of_success(N, T, L, B, obstacles, barriers);
+    printf("Probability of success: %f\n", probability);
+
+    return 0;
+}
+```

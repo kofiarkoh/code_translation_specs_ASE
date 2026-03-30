@@ -1,0 +1,70 @@
+#include <stdio.h>
+
+#define MAX_SEGMENTS 100
+
+typedef struct {
+    int x1, y1, x2, y2;
+} Segment;
+
+// Function prototypes
+int count_collinear_overlap(Segment segments[], int count);
+int count_collinear_no_overlap(Segment segments[], int count);
+int count_intersections(Segment segments[], int count);
+void analyze_segments(Segment segments[], int count, int counts[10]);
+
+int main() {
+    int n;
+    Segment segments[MAX_SEGMENTS];
+    int counts[10] = {0};
+
+    // Read the number of segments
+    scanf("%d", &n);
+    
+    // Read the segments
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d %d %d", &segments[i].x1, &segments[i].y1, &segments[i].x2, &segments[i].y2);
+    }
+
+    // Analyze the segments and update counts
+    analyze_segments(segments, n, counts);
+
+    // Output the counts
+    for (int i = 0; i < 10; i++) {
+        printf("%d ", counts[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+// Analyze segments and update counts based on relationships
+void analyze_segments(Segment segments[], int count, int counts[10]) {
+    counts[0] = count_collinear_overlap(segments, count); // Count collinear overlaps
+    counts[1] = count_collinear_no_overlap(segments, count); // Count collinear no overlaps
+    counts[2] = count_intersections(segments, count); // Count intersections
+    // Additional counts can be added here based on further criteria
+}
+
+// Count collinear segments that overlap at endpoints
+int count_collinear_overlap(Segment segments[], int count) {
+    int overlap_count = 0;
+    // Logic to determine collinear overlaps
+    // This is a placeholder for the actual implementation
+    return overlap_count;
+}
+
+// Count collinear segments that do not overlap
+int count_collinear_no_overlap(Segment segments[], int count) {
+    int no_overlap_count = 0;
+    // Logic to determine collinear no overlaps
+    // This is a placeholder for the actual implementation
+    return no_overlap_count;
+}
+
+// Count segments that intersect at points other than endpoints
+int count_intersections(Segment segments[], int count) {
+    int intersection_count = 0;
+    // Logic to determine intersections
+    // This is a placeholder for the actual implementation
+    return intersection_count;
+}

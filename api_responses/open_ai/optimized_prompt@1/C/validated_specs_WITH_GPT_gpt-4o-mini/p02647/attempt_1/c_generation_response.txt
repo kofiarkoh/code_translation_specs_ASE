@@ -1,0 +1,63 @@
+```c
+#include <stdio.h>
+
+void transform_array(int N, int K, int arr[]) {
+    // Iterate K times to transform the array
+    for (int i = 0; i < K; i++) {
+        // Create a temporary array to hold the new values
+        int temp[N];
+        
+        // Apply transformation logic
+        for (int j = 0; j < N; j++) {
+            // Initialize the transformed value to the current value
+            temp[j] = arr[j];
+            
+            // Check the left neighbor if it exists
+            if (j > 0) {
+                // Update the transformed value to be the minimum of itself and the left neighbor
+                temp[j] = (temp[j] < arr[j - 1]) ? temp[j] : arr[j - 1];
+            }
+            
+            // Check the right neighbor if it exists
+            if (j < N - 1) {
+                // Update the transformed value to be the minimum of itself and the right neighbor
+                temp[j] = (temp[j] < arr[j + 1]) ? temp[j] : arr[j + 1];
+            }
+        }
+        
+        // Copy the transformed values back to the original array
+        for (int j = 0; j < N; j++) {
+            arr[j] = temp[j];
+        }
+    }
+}
+
+int main() {
+    int N, K;
+    
+    // Read N and K from input
+    scanf("%d %d", &N, &K);
+    
+    // Declare the array of size N
+    int arr[N];
+    
+    // Read the array elements from input
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &arr[i]);
+    }
+    
+    // Transform the array based on the specified constraints
+    transform_array(N, K, arr);
+    
+    // Print the transformed array in a single line
+    for (int i = 0; i < N; i++) {
+        printf("%d", arr[i]);
+        if (i < N - 1) {
+            printf(" "); // Print space between elements
+        }
+    }
+    printf("\n"); // New line after printing the array
+    
+    return 0;
+}
+```

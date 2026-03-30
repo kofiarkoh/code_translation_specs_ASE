@@ -1,0 +1,131 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	int n,m;
+	scanf("%d%d",&n,&m);
+	makefact(2010,m);
+	ll ans=0;
+	rep(i,1,n){
+		ll temp=0;
+		rep(j,0,n-i){
+			//赤がi個で、黒n-i個のうちj個が赤と繋がっていない
+			ll aaa=pom(pom(2,(n-i-j),m)-1,i,m)*choose(n-i,j,m)%m;
+			temp+=j%2?-aaa:aaa;
+		}
+		ans+=temp%m*pom(2,i*(i-1)/2,m)%m*pom(2,(n-i)*(n-i-1)/2,m)%m*choose(n,i,m)%m;
+	}
+	printf("%lld\n",(ans%m+m)%m);
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a combinatorial value based on the input parameters, utilizing factorials and modular arithmetic to manage large numbers. It calculates the result by considering the arrangements of colored objects, specifically focusing on the number of ways to arrange a specified number of red and black objects under constraints related to their connectivity.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` represents the total number of objects, which can be any non-negative integer.
+  - `m` is a positive integer greater than 1, serving as the modulus for all calculations.
+
+## 3. Outputs
+- A single long long integer representing the computed combinatorial value, adjusted to be non-negative by taking modulo `m`.
+
+## 4. Preconditions
+- `n` must be a non-negative integer.
+- `m` must be a positive integer greater than 1.
+
+## 5. Postconditions
+- The output is guaranteed to be in the range [0, m-1].
+- The output reflects the combinatorial arrangements of `n` objects, accounting for the specific constraints on the connectivity of colored objects.
+
+## 6. Invariants
+- The factorial and inverse factorial arrays are correctly populated for values up to 2010, ensuring accurate combinatorial calculations.
+- All calculations involving modular arithmetic maintain the integrity of the results within the modulus `m`.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` or `r` in the choose function is negative, or if `n` is less than `r`, the function returns 0, indicating an invalid combinatorial scenario.
+
+## 8. State Transitions
+- The state transitions involve the computation of factorials and their inverses, which are stored in arrays and used throughout the calculations. The final state is the computed result stored in a variable before output.
+
+## 9. Combinatorial Logic
+- The computation considers the arrangement of `i` red objects and `n-i` black objects, where the number of black objects that are not connected to red objects is denoted by `j`. The algorithm employs an inclusion-exclusion principle to account for the various configurations of connectivity among the objects.
+- The final result is influenced by the number of ways to choose `i` red objects from `n`, the arrangements of these objects, and the connectivity conditions defined by the nested loops.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of `n` up to 2010, with time complexity primarily influenced by the nested loops and factorial calculations.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately capture the complexity of the combinatorial logic involving the arrangements of red and black objects, particularly the connectivity constraints and how they influence the final result.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the connectivity of the objects affects the combinatorial arrangements, specifically detailing the role of the variable `j` (the number of black objects not connected to red objects) and how it interacts with the counts of red and black objects.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program includes intricate calculations that depend on the inclusion-exclusion principle and the specific arrangements of red and black objects, which are not fully articulated in the current specification. The failure of the generated program to produce the expected output suggests that the abstraction of the combinatorial logic is oversimplified, leading to incorrect results when the connectivity conditions are not properly accounted for.
+
+```

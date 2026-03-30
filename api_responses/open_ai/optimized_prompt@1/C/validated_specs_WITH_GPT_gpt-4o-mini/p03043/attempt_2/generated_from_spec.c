@@ -1,0 +1,41 @@
+#include <stdio.h>
+
+int main() {
+    int N, K;
+    
+    // Read input values for N and K
+    scanf("%d %d", &N, &K);
+    
+    // Preconditions: N and K must be positive integers
+    // Initialize the array of denominators
+    double denominators[N];
+    
+    // Initialize the array to zero
+    for (int i = 0; i < N; i++) {
+        denominators[i] = 0.0;
+    }
+    
+    // Populate the denominators based on the specified calculation
+    for (int i = 0; i < N; i++) {
+        double multiplier = 1.0;
+        // Double the multiplier until it exceeds K * i
+        while (multiplier <= K * i) {
+            multiplier *= 2.0;
+        }
+        denominators[i] = multiplier; // Assign the computed value to the array
+    }
+    
+    // Calculate the cumulative result
+    double first_denominator = denominators[0];
+    double cumulative_sum = 0.0;
+    
+    // If the first denominator is zero, the output will be undefined
+    for (int i = 1; i < N; i++) {
+        cumulative_sum += first_denominator / denominators[i];
+    }
+    
+    // Output the result formatted to twelve decimal places
+    printf("%.12f\n", cumulative_sum / first_denominator);
+    
+    return 0;
+}

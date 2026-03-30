@@ -1,0 +1,82 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+long long minCostPartition(int* arr, int N);
+
+// Memoization table to store minimum costs for sub-sequences
+long long** memo;
+
+// Function to compute the minimum cost of partitioning
+long long computeCost(int l, int r, int* prefixSum) {
+    // If the segment is already computed, return the stored value
+    if (memo[l][r] != -1) {
+        return memo[l][r];
+    }
+
+    // Base case: if the segment is a single element
+    if (l == r) {
+        memo[l][r] = arr[l];
+        return memo[l][r];
+    }
+
+    long long minCost = LLONG_MAX;
+
+    // Try partitioning the segment at every possible point
+    for (int mid = l; mid < r; mid++) {
+        long long cost = prefixSum[r + 1] - prefixSum[l] + computeCost(l, mid, prefixSum) + computeCost(mid + 1, r, prefixSum);
+        if (cost < minCost) {
+            minCost = cost;
+        }
+    }
+
+    // Store the computed minimum cost in the memoization table
+    memo[l][r] = minCost;
+    return minCost;
+}
+
+long long minCostPartition(int* arr, int N) {
+    // Allocate memory for memoization table
+    memo = (long long**)malloc(N * sizeof(long long*));
+    for (int i = 0; i < N; i++) {
+        memo[i] = (long long*)malloc(N * sizeof(long long));
+        for (int j = 0; j < N; j++) {
+            memo[i][j] = -1; // Initialize with -1 to indicate uncomputed values
+        }
+    }
+
+    // Create a prefix sum array for efficient cost calculation
+    int* prefixSum = (int*)malloc((N + 1) * sizeof(int));
+    prefixSum[0] = 0;
+    for (int i = 0; i < N; i++) {
+        prefixSum[i + 1] = prefixSum[i] + arr[i];
+    }
+
+    // Compute the minimum cost for the entire sequence
+    long long result = computeCost(0, N - 1, prefixSum);
+
+    // Free allocated memory
+    for (int i = 0; i < N; i++) {
+        free(memo[i]);
+    }
+    free(memo);
+    free(prefixSum);
+
+    return result;
+}
+
+// Example usage
+int main() {
+    int N;
+    scanf("%d", &N); // Read the number of elements
+    int* arr = (int*)malloc(N * sizeof(int));
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &arr[i]); // Read the sequence of integers
+    }
+
+    long long minCost = minCostPartition(arr, N);
+    printf("%lld\n", minCost); // Output the minimum cost
+
+    free(arr);
+    return 0;
+}

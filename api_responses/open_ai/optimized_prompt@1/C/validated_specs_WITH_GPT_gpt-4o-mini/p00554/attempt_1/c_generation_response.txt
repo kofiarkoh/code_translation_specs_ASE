@@ -1,0 +1,57 @@
+```c
+#include <stdio.h>
+
+#define MAX_PAIRS 100 // Assuming a maximum size for the arrays
+
+int main() {
+    int n, m;
+    int firstArray[MAX_PAIRS], secondArray[MAX_PAIRS];
+    int count1 = 0; // Count of pairs where first integer >= n
+    int cumulativeSum = 0;
+
+    // Read inputs
+    scanf("%d %d", &n, &m); // Read n and m
+
+    // Preconditions check (not explicitly handled as per specification)
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        scanf("%d %d", &a, &b); // Read pairs of integers
+        firstArray[i] = a; // Store first integer
+        secondArray[i] = b; // Store second integer
+
+        // Count how many first integers are >= n
+        if (a >= n) {
+            count1++;
+        }
+    }
+
+    // Modify the second array based on the threshold condition
+    for (int i = 0; i < m; i++) {
+        if (firstArray[i] >= n) {
+            secondArray[i] = 0; // Set to 0 if first integer >= n
+        }
+    }
+
+    // Sort the second array using a simple bubble sort (O(m^2) as specified)
+    for (int i = 0; i < m - 1; i++) {
+        for (int j = 0; j < m - i - 1; j++) {
+            if (secondArray[j] > secondArray[j + 1]) {
+                // Swap
+                int temp = secondArray[j];
+                secondArray[j] = secondArray[j + 1];
+                secondArray[j + 1] = temp;
+            }
+        }
+    }
+
+    // Calculate the cumulative sum of the first m - count1 - 1 elements
+    for (int i = 0; i < m - count1 - 1; i++) {
+        cumulativeSum += secondArray[i];
+    }
+
+    // Output the cumulative sum
+    printf("%d\n", cumulativeSum);
+
+    return 0;
+}
+```

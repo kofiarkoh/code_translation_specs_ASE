@@ -1,0 +1,32 @@
+#include <stdio.h>
+
+int main() {
+    int X, Y;
+
+    // Read dimensions X and Y
+    scanf("%d %d", &X, &Y);
+
+    // Termination condition: if both X and Y are zero, exit the program
+    if (X == 0 && Y == 0) {
+        return 0;
+    }
+
+    // Initialize the sum variable
+    int sum = 0;
+
+    // Process the course data in a grid of size X by Y
+    for (int i = 0; i < X; i++) {
+        for (int j = 0; j < Y; j++) {
+            int value;
+            // Read each integer in the grid
+            scanf("%d", &value);
+            // Accumulate the sum based on the course data
+            sum += value;
+        }
+    }
+
+    // Output the computed sum
+    printf("%d\n", sum);
+
+    return 0;
+}

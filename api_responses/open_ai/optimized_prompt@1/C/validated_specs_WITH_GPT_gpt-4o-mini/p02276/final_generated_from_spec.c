@@ -1,0 +1,62 @@
+#include <stdio.h>
+
+#define MAX_SIZE 1000 // Define maximum size of the array
+
+void partition_and_highlight(int n, int arr[]) {
+    // Check for precondition: n must be greater than 0 and less than or equal to MAX_SIZE
+    if (n <= 0 || n > MAX_SIZE) {
+        return; // Undefined behavior as per specification
+    }
+
+    int pivot = arr[n - 1]; // The pivot is the last element
+    int i, j = 0;
+
+    // Create a temporary array to hold the partitioned result
+    int temp[MAX_SIZE];
+
+    // Partitioning process
+    for (i = 0; i < n - 1; i++) {
+        if (arr[i] <= pivot) {
+            temp[j++] = arr[i]; // Elements less than or equal to pivot
+        }
+    }
+
+    // Place the pivot in the temporary array
+    temp[j++] = pivot; // Highlighted pivot
+
+    // Continue adding elements greater than the pivot
+    for (i = 0; i < n - 1; i++) {
+        if (arr[i] > pivot) {
+            temp[j++] = arr[i]; // Elements greater than pivot
+        }
+    }
+
+    // Output the result with the pivot highlighted
+    for (i = 0; i < j; i++) {
+        if (i == j - 1) {
+            // Highlight the pivot by enclosing it in brackets
+            printf("[%d]", temp[i]);
+        } else {
+            printf("%d ", temp[i]);
+        }
+    }
+    printf("\n");
+}
+
+int main() {
+    int n;
+    int arr[MAX_SIZE];
+
+    // Read the number of elements
+    scanf("%d", &n);
+
+    // Read the sequence of integers
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &arr[i]);
+    }
+
+    // Call the partition and highlight function
+    partition_and_highlight(n, arr);
+
+    return 0;
+}

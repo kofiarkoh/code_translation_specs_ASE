@@ -1,0 +1,63 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N_MAX 1000 // Define the maximum limit for n + m
+#define MOD 1000000007 // Define the modulus for arithmetic operations
+
+// Function to compute modular inverse of 2
+long long mod_inv2(int j) {
+    // Using Fermat's Little Theorem for modular inverse
+    return (MOD + 1) / 2; // Since MOD is prime, inv(2) = 2^(MOD-2) % MOD
+}
+
+int main() {
+    int n, m;
+    
+    // Read input values
+    if (scanf("%d %d", &n, &m) != 2 || n < 0 || m < 0 || n + m > N_MAX) {
+        // Invalid input handling
+        printf("-1\n");
+        return 0;
+    }
+
+    // Initialize dynamic programming arrays
+    long long dp[N_MAX + 1][N_MAX + 1];
+    long long dq[N_MAX + 1][N_MAX + 1];
+    long long pow2[N_MAX + 1];
+
+    // Precompute powers of 2 modulo MOD
+    pow2[0] = 1;
+    for (int i = 1; i <= N_MAX; i++) {
+        pow2[i] = (pow2[i - 1] * 2) % MOD;
+    }
+
+    // Initialize dp and dq arrays
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (i == 0) {
+                dp[i][j] = 1; // Base case
+            } else {
+                dp[i][j] = 0; // Initialize dp[i][j]
+            }
+            dq[i][j] = 0; // Initialize dq[i][j]
+        }
+    }
+
+    // Fill the dp and dq arrays based on the specified rules
+    for (int i = 1; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (j > 0) {
+                dp[i][j] = ( (j + 1) * dp[i - 1][j] % MOD + (j > 1 ? dq[i - 1][j - 1] * pow2[j - 1] % MOD : 0) ) % MOD;
+            }
+            if (j > 0) {
+                dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j % MOD) * mod_inv2(j) % MOD) % MOD;
+            }
+        }
+    }
+
+    // The result is stored in dp[n][m]
+    printf("%lld\n", dp[n][m]);
+    return 0;
+}
+```

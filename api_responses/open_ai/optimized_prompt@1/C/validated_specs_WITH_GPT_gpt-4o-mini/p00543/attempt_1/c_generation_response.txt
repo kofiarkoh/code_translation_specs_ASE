@@ -1,0 +1,63 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+// Function to compare two integers based on their modulo results for all divisors from 1 to m
+int compare(const void *a, const void *b, void *m) {
+    int mod_a, mod_b;
+    int max_divisor = *(int *)m;
+
+    for (int k = 1; k <= max_divisor; k++) {
+        mod_a = *(int *)a % k;
+        mod_b = *(int *)b % k;
+        if (mod_a != mod_b) {
+            return mod_a - mod_b; // Return comparison based on modulo results
+        }
+    }
+    return 0; // They are equal for all divisors
+}
+
+// Function to sort the array based on the specified criteria
+void sort_array(int *array, int n, int m) {
+    // Using qsort with a custom comparator
+    qsort_r(array, n, sizeof(int), compare, &m);
+}
+
+int main() {
+    int n, m;
+
+    // Read input values for n and m
+    scanf("%d %d", &n, &m);
+
+    // Preconditions check: n and m must be positive
+    if (n <= 0 || m <= 0) {
+        return 1; // Undefined behavior, exit
+    }
+
+    int *array = malloc(n * sizeof(int));
+
+    // Read the array elements
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &array[i]);
+    }
+
+    // Postcondition check: Ensure the number of elements matches n
+    if (sizeof(array) / sizeof(array[0]) != n) {
+        free(array);
+        return 1; // Undefined behavior, exit
+    }
+
+    // Sort the array based on the specified criteria
+    sort_array(array, n, m);
+
+    // Print the sorted array
+    for (int i = 0; i < n; i++) {
+        printf("%d ", array[i]);
+    }
+    printf("\n");
+
+    // Free allocated memory
+    free(array);
+    return 0;
+}
+```

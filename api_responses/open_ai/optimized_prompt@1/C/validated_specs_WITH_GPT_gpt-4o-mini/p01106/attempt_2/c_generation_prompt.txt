@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a series of inputs to determine a sequence of directional commands ('L' for left and 'R' for right) based on the binary representation of two integers. It generates a string that reflects the relationship between the two integers, influenced by a specified number of bits and the transformation of these bits based on the value of the first integer.
+
+## 2. Inputs
+- An integer `n` representing the number of bits (must be greater than 0).
+- Two long long integers `i` and `j`, which are analyzed based on their binary representations.
+
+## 3. Outputs
+- A string of length `n` consisting of characters 'L' and 'R', representing the directional commands derived from the binary comparisons of `i` and `j`.
+
+## 4. Preconditions
+- The integer `n` must be greater than 0.
+- The inputs must be valid integers that can be read and processed.
+
+## 5. Postconditions
+- The output string will accurately reflect the directional commands based on the binary comparison of the integers `i` and `j` for the specified number of bits `n`, taking into account any transformations applied to `i` and `j`.
+
+## 6. Invariants
+- The length of the output string is always equal to `n`.
+- The output string is constructed based on the binary values of `i` and `j`, with the comparison influenced by the bitwise negation of `i` when its bits are 0.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive value for `n` is encountered.
+- No specific error handling for invalid input formats is implemented; behavior is undefined for such cases.
+
+## 8. State Transitions
+- The state transitions occur through the iterative processing of bits from the integers `i` and `j`. If a bit in `i` is 0, the corresponding bit in `j` is negated before comparison, leading to the construction of the output string based on the evaluated conditions.
+
+## 9. Non-functional Constraints
+- The program operates in a time complexity that is linear with respect to `n`, as it processes each bit of the input integers sequentially.
+
+```

@@ -1,0 +1,65 @@
+```c
+#include <stdio.h>
+
+#define GRID_SIZE 10
+#define SUBGRID_SIZE 8
+
+void explode(char grid[GRID_SIZE][GRID_SIZE], int x, int y) {
+    // Check if the coordinates are within the bounds of the subgrid
+    if (x < 1 || x > SUBGRID_SIZE || y < 1 || y > SUBGRID_SIZE) {
+        return; // Out of bounds, do nothing
+    }
+
+    // Adjust for 0-based indexing
+    x--; 
+    y--;
+
+    // If the current cell is '1', set it to '0'
+    if (grid[y][x] == '1') {
+        grid[y][x] = '0';
+
+        // Recursively explode in all four directions
+        explode(grid, x + 1 + 1, y + 1); // right
+        explode(grid, x - 1 + 1, y + 1); // left
+        explode(grid, x + 1, y + 1 + 1); // down
+        explode(grid, x + 1, y - 1 + 1); // up
+    }
+}
+
+void process_datasets(int datasets, char grids[][SUBGRID_SIZE][SUBGRID_SIZE], int coords[][2]) {
+    for (int i = 0; i < datasets; i++) {
+        // Call explode on the specified starting coordinates
+        explode(grids[i], coords[i][0], coords[i][1]);
+
+        // Print the modified grid
+        for (int j = 0; j < SUBGRID_SIZE; j++) {
+            for (int k = 0; k < SUBGRID_SIZE; k++) {
+                printf("%c", grids[i][j][k]);
+            }
+            printf("\n");
+        }
+    }
+}
+
+int main() {
+    // Example usage
+    int datasets = 1; // Number of datasets
+    char grids[1][SUBGRID_SIZE][SUBGRID_SIZE] = {
+        {
+            {'1', '1', '0', '0', '0', '0', '0', '0'},
+            {'1', '1', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'},
+            {'0', '0', '0', '0', '0', '0', '0', '0'}
+        }
+    };
+    int coords[1][2] = {{1, 1}}; // Starting coordinates for explosion
+
+    process_datasets(datasets, grids, coords);
+
+    return 0;
+}
+```

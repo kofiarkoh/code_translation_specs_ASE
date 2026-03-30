@@ -1,0 +1,92 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(){
+  int m;
+  scanf("%d", &m);
+  printf("%d\n", 48 - m);
+  return 0;
+}
+```
+
+Current specification:
+```text
+1. **Functional Description**  
+   The program reads an integer input and computes its difference from a constant value, then outputs the result.
+
+2. **Inputs**  
+   An integer value provided by the user.
+
+3. **Outputs**  
+   An integer value representing the difference between a constant value and the input integer.
+
+4. **Preconditions**  
+   The input must be a valid integer.
+
+5. **Postconditions**  
+   The output is the result of subtracting the input integer from a constant value.
+
+6. **Invariants**  
+   The output will always be an integer.
+
+7. **Error Handling / Exceptional Behavior**  
+   If the input is not a valid integer, the program may exhibit undefined behavior or produce an incorrect output.
+
+8. **State Transitions (if applicable)**  
+   The program transitions from an input state to an output state based on the computation performed.
+
+9. **Non-functional Constraints (if inferable)**  
+   The program completes execution in a finite time frame, assuming valid input is provided.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   The specification does not clearly define the constant value used in the computation. It states that the output is the result of subtracting the input integer from a "constant value," but it does not specify what that constant value is.
+
+C. **What general behavior should be clarified in the specification**  
+   The specification should explicitly state the constant value from which the input integer is subtracted. This includes clarifying that the constant value is 48, as used in the source program.
+
+D. **Why this clarification is supported by the source program**  
+   The source program clearly uses the constant value of 48 in the computation (`printf("%d\n", 48 - m);`). The mismatch in expected output (38) versus the actual output (resulting from a different constant value of 100 in the generated code) indicates that the specification's abstraction of the constant value is incorrect or incomplete. This leads to a misunderstanding of the program's intended behavior.
+
+```

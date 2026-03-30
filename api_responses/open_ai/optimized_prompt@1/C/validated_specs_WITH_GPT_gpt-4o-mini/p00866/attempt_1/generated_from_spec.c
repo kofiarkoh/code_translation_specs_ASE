@@ -1,0 +1,70 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_SETS 100 // Assuming a maximum number of input sets
+
+typedef struct {
+    int hour;
+    int minute;
+    int second;
+} TimeStamp;
+
+// Function to check if the clock hands align at a given time
+int handsAlign(int hour, int minute, int second) {
+    // Convert all hands to seconds
+    int hourInSeconds = (hour % 12) * 3600 + (minute * 60) + second;
+    int minuteInSeconds = (minute * 60) + second;
+    int secondInSeconds = second;
+
+    // Check if all hands align (i.e., they are at the same position)
+    return (hourInSeconds % 3600 == minuteInSeconds % 3600) &&
+           (minuteInSeconds % 60 == secondInSeconds % 60);
+}
+
+// Function to find the earliest and latest alignment times
+void findAlignmentTimes(int n, TimeStamp *timestamps) {
+    TimeStamp earliest = {24, 0, 0}; // Initialize to max time
+    TimeStamp latest = {0, 0, 0};     // Initialize to min time
+
+    for (int i = 0; i < n; i++) {
+        for (int minuteOffset = 0; minuteOffset < 60; minuteOffset++) {
+            // Check alignment for each minute offset
+            if (handsAlign(timestamps[i].hour, (timestamps[i].minute + minuteOffset) % 60, timestamps[i].second)) {
+                // Update earliest time
+                if (timestamps[i].hour < earliest.hour ||
+                    (timestamps[i].hour == earliest.hour && timestamps[i].minute < earliest.minute) ||
+                    (timestamps[i].hour == earliest.hour && timestamps[i].minute == earliest.minute && timestamps[i].second < earliest.second)) {
+                    earliest = timestamps[i];
+                }
+                // Update latest time
+                if (timestamps[i].hour > latest.hour ||
+                    (timestamps[i].hour == latest.hour && timestamps[i].minute > latest.minute) ||
+                    (timestamps[i].hour == latest.hour && timestamps[i].minute == latest.minute && timestamps[i].second > latest.second)) {
+                    latest = timestamps[i];
+                }
+            }
+        }
+    }
+
+    // Output the results
+    printf("Earliest alignment: %02d:%02d:%02d\n", earliest.hour, earliest.minute, earliest.second);
+    printf("Latest alignment: %02d:%02d:%02d\n", latest.hour, latest.minute, latest.second);
+}
+
+int main() {
+    int n;
+    TimeStamp timestamps[MAX_SETS];
+
+    // Read the number of sets
+    scanf("%d", &n); // Assumes well-formed input as per specification
+
+    // Read each set of clock hand positions
+    for (int i = 0; i < n; i++) {
+        scanf("%d %d %d", &timestamps[i].hour, &timestamps[i].minute, &timestamps[i].second);
+    }
+
+    // Find and print the alignment times
+    findAlignmentTimes(n, timestamps);
+
+    return 0;
+}

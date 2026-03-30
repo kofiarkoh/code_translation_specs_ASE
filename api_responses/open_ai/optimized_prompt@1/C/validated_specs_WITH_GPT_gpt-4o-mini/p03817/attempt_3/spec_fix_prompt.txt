@@ -1,0 +1,124 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdbool.h>
+#include<string.h>
+#include<math.h>
+#include<ctype.h>
+
+typedef long long ll;
+
+ll gcd(ll a, ll b) { if (b == 0) return a; return gcd(b, a % b); }
+
+ll lcm(ll a, ll b) { return a / gcd(a, b) * b; }
+
+ll max(ll a, ll b) { return (a > b) ? a : b; }
+
+ll min(ll a, ll b) { return (a < b) ? a : b; }
+
+ll asc(const void* a, const void* b) { return *(ll*)a - *(ll*)b; }
+
+ll dsc(const void* a, const void* b) { return *(ll*)b - *(ll*)a; }
+
+bool flag;
+
+int main() {
+	ll n,ans,res;
+	scanf("%lld", &n);
+	if (n % 11 == 0) res = 0;
+	else if (n % 11 >= 1 && n % 11 <= 6) res = 1;
+	else res = 2;
+	ans = n / 11 * 2 + res;
+	printf("%lld", ans);
+	
+	return 0;
+}
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific integer value based on the input integer, derived from the division of the input by a constant (11) and adjusted by the remainder of that division.
+
+## 2. Inputs
+- A single integer input, `n`, which is a long long integer.
+
+## 3. Outputs
+- A single integer output, which is the computed result based on the input.
+
+## 4. Preconditions
+- The input integer `n` must be a valid long long integer.
+
+## 5. Postconditions
+- The output is calculated as follows:
+  - If `n` is divisible by 11, the output is `2 * (n / 11)`.
+  - If the remainder of `n` when divided by 11 is between 1 and 6 (inclusive), the output is `2 * (n / 11) + 1`.
+  - If the remainder of `n` when divided by 11 is between 7 and 10 (inclusive), the output is `2 * (n / 11) + 2`.
+
+## 6. Invariants
+- The output is always a non-negative integer.
+- The relationship between the input and output is deterministic based on the defined conditions.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios (e.g., non-integer input). It assumes that the input will always be a valid long long integer.
+
+## 8. State Transitions
+- The state transitions are based solely on the value of the input `n` and its modulus with respect to 11, leading to a single output state determined by the quotient and the specific remainder.
+
+## 9. Non-functional Constraints
+- The computation is performed in constant time, O(1), regardless of the input size.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the output is computed when the input `n` is not a multiple of 11, particularly for values that yield a remainder of 1 through 10.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should explicitly state the expected output for all possible remainders when `n` is divided by 11, particularly focusing on the specific cases for remainders 1 through 10.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program computes the output based on the quotient and the remainder of the division by 11, but the current specification's description of the output for remainders is vague and does not align with the actual behavior of the source code. The source program clearly defines the output for each possible remainder, which is not fully captured in the specification.
+
+```

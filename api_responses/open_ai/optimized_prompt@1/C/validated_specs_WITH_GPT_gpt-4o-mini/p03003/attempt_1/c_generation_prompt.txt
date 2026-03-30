@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# 1. Functional Description
+The code computes the number of distinct interleavings of two sequences, ensuring that the order of elements from each sequence is preserved. The result is returned modulo a specified constant.
+
+# 2. Inputs
+- Two integers, `n` and `m`, representing the lengths of two sequences.
+- An array of integers `s` of length `n`.
+- An array of integers `t` of length `m`.
+
+# 3. Outputs
+- A single integer representing the number of distinct interleavings of the sequences, modulo a specified constant.
+
+# 4. Preconditions
+- The input integers `n` and `m` must be non-negative.
+- The arrays `s` and `t` must be of lengths `n` and `m`, respectively.
+
+# 5. Postconditions
+- The output integer is non-negative and less than the specified constant.
+- The output represents the count of valid interleavings of the two sequences.
+
+# 6. Invariants
+- For any valid indices `i` and `j`, the value at `dp[i][j]` represents the number of ways to interleave the first `i` elements of `s` and the first `j` elements of `t`.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input scenarios (e.g., negative lengths or malformed input).
+- If the input is valid, the computation will proceed without errors, but the behavior is undefined for invalid inputs.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur within a nested loop structure, updating the `dp` array based on the current indices of the sequences being processed.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in a time complexity of O(n * m), where `n` and `m` are the lengths of the input sequences.
+- The results are computed using modular arithmetic to prevent overflow and ensure results fit within standard integer limits.
+
+```

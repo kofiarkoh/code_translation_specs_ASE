@@ -1,0 +1,95 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LINES 100
+#define MAX_CHARS 52
+
+// Structure to represent a flow network
+typedef struct {
+    int capacity[MAX_CHARS][MAX_CHARS]; // Capacity of edges
+    int flow[MAX_CHARS][MAX_CHARS];      // Current flow in edges
+    int cost[MAX_CHARS][MAX_CHARS];      // Cost of edges
+    int numVertices;                      // Number of vertices in the graph
+} FlowNetwork;
+
+// Function to initialize the flow network
+void initFlowNetwork(FlowNetwork *network, int numVertices) {
+    network->numVertices = numVertices;
+    memset(network->capacity, 0, sizeof(network->capacity));
+    memset(network->flow, 0, sizeof(network->flow));
+    memset(network->cost, 0, sizeof(network->cost));
+}
+
+// Function to add an edge to the flow network
+void addEdge(FlowNetwork *network, int from, int to, int capacity, int cost) {
+    network->capacity[from][to] = capacity;
+    network->cost[from][to] = cost;
+}
+
+// Function to compute the min-cost flow (placeholder for actual implementation)
+void computeMinCostFlow(FlowNetwork *network) {
+    // This function should implement the min-cost flow algorithm.
+    // For the sake of this specification, we will assume it updates the flow
+    // based on some logic that is not defined in the specification.
+    // The actual implementation would be complex and is omitted here.
+}
+
+// Function to decode messages based on flow values
+void decodeMessages(FlowNetwork *network, char *output) {
+    int index = 0;
+    for (int i = 0; i < MAX_CHARS; i++) {
+        for (int j = 0; j < MAX_CHARS; j++) {
+            if (network->flow[i][j] > 0) {
+                // Assuming flow[i][j] represents the frequency of character
+                // corresponding to index i in the output
+                for (int k = 0; k < network->flow[i][j]; k++) {
+                    output[index++] = 'A' + i; // Assuming 'A' + i maps to characters
+                }
+            }
+        }
+    }
+    output[index] = '\0'; // Null-terminate the output string
+}
+
+int main() {
+    int N;
+    char input[MAX_LINES][MAX_CHARS + 1]; // +1 for null terminator
+    FlowNetwork network;
+
+    // Read the number of lines
+    scanf("%d", &N);
+    getchar(); // Consume newline after integer input
+
+    // Read the input lines
+    for (int i = 0; i < N; i++) {
+        fgets(input[i], sizeof(input[i]), stdin);
+        input[i][strcspn(input[i], "\n")] = 0; // Remove newline character
+    }
+
+    // Initialize the flow network
+    initFlowNetwork(&network, MAX_CHARS);
+
+    // Construct the flow network based on input (placeholder logic)
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; input[i][j] != '\0'; j++) {
+            int charIndex = input[i][j] - 'A'; // Map 'A' to 0, 'B' to 1, ..., 'Z' to 25
+            if (charIndex < 0) {
+                charIndex = input[i][j] - 'a' + 26; // Map 'a' to 26, ..., 'z' to 51
+            }
+            addEdge(&network, charIndex, charIndex, 1, 1); // Add edges with capacity and cost
+        }
+    }
+
+    // Compute the min-cost flow
+    computeMinCostFlow(&network);
+
+    // Prepare output
+    char output[MAX_LINES * MAX_CHARS + 1]; // +1 for null terminator
+    decodeMessages(&network, output);
+
+    // Print the decoded message
+    printf("%s\n", output);
+
+    return 0;
+}

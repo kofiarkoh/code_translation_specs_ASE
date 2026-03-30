@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the minimum number of rotations required to transform an initial sequence of digits into a target sequence, where each element is a digit between 0 and 9. The program reads multiple pairs of sequences until a termination condition is met.
+
+## 2. Inputs
+- An integer `n` representing the length of the sequences, which must be greater than 0 and less than or equal to 10.
+- Two strings `init` and `unlock`, each of length `n`, representing the initial and target sequences of digits. These strings must contain only numeric characters (digits).
+
+## 3. Outputs
+- For each pair of sequences, the output is the minimum number of rotations required to transform `init` into `unlock`. If the sequences are identical, the output is `0`.
+
+## 4. Preconditions
+- The input integer `n` must be greater than 0 and less than or equal to 10.
+- The strings `init` and `unlock` must contain only numeric characters (digits).
+
+## 5. Postconditions
+- The output is a non-negative integer representing the minimum rotations needed to transform `init` into `unlock`, or `0` if the sequences are identical.
+
+## 6. Invariants
+- The variable `min_` holds the minimum number of rotations found during the computation and is initialized to a value greater than any possible rotation count.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input sequences are identical, the output is `0`.
+- The program terminates gracefully when a non-positive integer is provided for `n`.
+
+## 8. State Transitions
+- The state transitions occur through the recursive function calls in `rotate_count`, which modifies the `diff` array and accumulates the rotation count based on the differences between corresponding digits in the `init` and `unlock` sequences.
+
+## 9. Counting Logic
+- The rotations are counted based on the differences between corresponding digits in the `init` and `unlock` sequences. Each digit in the `unlock` sequence can be reached from the corresponding digit in the `init` sequence by rotating through a circular range of values (0-9). The difference is calculated such that if the difference is negative, it is adjusted by adding 10 to ensure a valid rotation count.
+
+## 10. Termination Behavior
+- The program continues to read pairs of sequences until a non-positive integer is provided for `n`, at which point it terminates.
+
+## 11. Output Semantics
+- The output for each sequence pair is printed on a new line, representing the minimum number of rotations required to align the sequences.
+
+```

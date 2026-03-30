@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a pathfinding algorithm using Dijkstra's method to determine the minimum cost to traverse a grid from a starting point to a target point, while considering obstacles (bombs) and varying movement costs based on terrain types.
+
+## 2. Inputs
+- Two positive integers representing the height (H) and width (W) of the grid.
+- Two non-negative integers representing the costs associated with moving through different types of terrain (A and B).
+- A grid of characters representing the map, where:
+  - `'*'` indicates a bomb, which affects movement costs for the bomb's cell and its adjacent cells.
+  - `'s'` indicates the starting position.
+  - `'g'` indicates the goal position.
+  - Other characters represent traversable terrain.
+
+## 3. Outputs
+- A long integer representing the minimum cost to reach the target position from the starting position.
+- If the target position is unreachable, the output is the string "INF".
+
+## 4. Preconditions
+- The grid dimensions (H and W) must be positive integers.
+- The grid must contain exactly one starting position (`'s'`) and one goal position (`'g'`).
+- The grid must be properly formatted with valid characters as specified.
+
+## 5. Postconditions
+- If a path exists from the starting position to the goal position, the output will be the minimum cost calculated based on the defined movement costs, taking into account the effects of bombs.
+- If no path exists, the output will indicate that the target is unreachable.
+
+## 6. Invariants
+- The grid remains unchanged throughout the execution of the algorithm.
+- The priority queue used for Dijkstra's algorithm maintains the correct order of elements based on their associated costs.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input grid is malformed or does not meet the specified conditions, the behavior is undefined.
+- If the starting or goal position is not found, the output will be "INF".
+
+## 8. State Transitions
+- The state transitions occur as the algorithm explores the grid, updating the cost to reach each cell based on the movement rules and the presence of bombs. The algorithm considers the influence of bombs on the movement costs of the bomb's cell and its adjacent cells, ensuring that movement into these cells is handled according to the defined costs. Specifically:
+  - Movement into a bomb cell is allowed but incurs a specific cost.
+  - Movement into adjacent cells of a bomb cell is allowed only if the bomb does not affect the movement (i.e., if the adjacent cell is not marked as a bomb).
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of the grid size, with a maximum of 500,000 cells in the priority queue. The algorithm must also handle boundary conditions appropriately, ensuring that it does not attempt to access cells outside the defined grid dimensions.
+
+```

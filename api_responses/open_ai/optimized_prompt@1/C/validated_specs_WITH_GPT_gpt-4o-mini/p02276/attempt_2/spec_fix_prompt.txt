@@ -1,0 +1,129 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#define N 1000000
+int A[N];
+int Partition(int p, int r){
+  int x, i, j, tmp;
+  x = A[r];
+  i = p-1;
+  for(j = p; j < r; j++){
+    if(A[j] <= x){
+      i++;
+      tmp = A[i];
+      A[i] = A[j];
+      A[j] = tmp;
+} }
+  tmp = A[i+1];
+  A[i+1] = A[r];
+  A[r] = tmp;
+  return i+1;
+}
+ int main(){
+  int n, i, x;
+  scanf("%d", &n);
+  for(i = 1; i <= n; i++){
+    scanf("%d", &A[i]);
+  }
+  x = Partition(1, n);
+ for(i = 1; i <= n; i++){
+  if(i == x){
+    printf("[%d]",A[i]);
+} else {
+    printf("%d",A[i]);
+  }
+if(i < n) {
+    printf(" ");
+  }
+ }
+  printf("\n");
+  return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a sequence of integers, partitions the sequence around a pivot, and outputs the sequence with the pivot highlighted.
+
+# 2. Inputs
+- An integer `n` representing the number of elements in the sequence.
+- A sequence of `n` integers.
+
+# 3. Outputs
+- A sequence of `n` integers where the pivot element is enclosed in brackets.
+
+# 4. Preconditions
+- The input integer `n` must be greater than zero and less than or equal to the maximum defined size of the array.
+- The input integers must be valid integers.
+
+# 5. Postconditions
+- The output sequence contains all input integers.
+- One integer, the pivot, is highlighted by enclosing it in brackets.
+
+# 6. Invariants
+- The array remains within the bounds defined by the maximum size.
+- The sequence is partitioned such that all elements less than or equal to the pivot are positioned before it.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input for `n` is invalid (e.g., non-integer or out of bounds), the behavior is undefined.
+- If fewer than `n` integers are provided, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions from an unpartitioned array to a partitioned array after the partition operation is performed.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates with a time complexity of O(n) for the partitioning process.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clearly define how the pivot is selected for partitioning. It assumes the first element as the pivot in the generated code, which is not aligned with the source program's behavior of using the last element as the pivot.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should explicitly state that the pivot for partitioning is the last element of the input sequence, rather than an arbitrary choice (like the first element).
+
+D. **Why this clarification is supported by the source program**  
+In the source program, the pivot is defined as `x = A[r];`, where `r` is the index of the last element in the array. This behavior is critical for the partitioning logic to function correctly, and the generated code's assumption about the pivot leads to incorrect output, as evidenced by the failing test case.
+
+```

@@ -1,0 +1,21 @@
+#include <stdio.h>
+
+int main() {
+    int inputs[5]; // Array to hold the five integer inputs
+    // Read exactly five integers from standard input
+    for (int i = 0; i < 5; i++) {
+        scanf("%d", &inputs[i]);
+    }
+
+    // Check each input for the first occurrence of zero
+    for (int i = 0; i < 5; i++) {
+        if (inputs[i] == 0) {
+            // Output the position (1-based index) of the first zero found
+            printf("%d\n", i + 1);
+            return 0; // Exit after the first zero is found
+        }
+    }
+
+    // If no zero was found, no output is generated as per specification
+    return 0; // Explicit return for clarity, no output needed
+}

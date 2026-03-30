@@ -1,0 +1,74 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define MAX_DAYS 100 // Assuming a maximum number of days for the sake of array size
+#define MAX_TYPES 10 // Assuming a maximum number of types for the sake of array size
+
+// Function to calculate the total satisfaction score based on the current schedule
+int calculate_score(int D, int type, int schedul[], int s[][MAX_TYPES], int c[]) {
+    int total_score = 0;
+    for (int day = 1; day <= D; day++) {
+        total_score += s[day][schedul[day]] - c[schedul[day]]; // Satisfaction minus cost
+    }
+    return total_score;
+}
+
+// Function to optimize the schedule
+void optimize_schedule(int D, int c[], int s[][MAX_TYPES], int schedul[]) {
+    int best_score = -1; // Start with a score that is guaranteed to be lower than any valid score
+    int current_score;
+
+    // Initialize the schedule randomly
+    for (int day = 1; day <= D; day++) {
+        schedul[day] = rand() % (sizeof(c) / sizeof(c[0]) - 1); // Random type selection
+    }
+
+    // Calculate the initial score
+    best_score = calculate_score(D, sizeof(c) / sizeof(c[0]) - 1, schedul, s, c);
+
+    // Time constraint handling
+    clock_t start_time = clock();
+    while (((double)(clock() - start_time) / CLOCKS_PER_SEC) < 2.0) {
+        // Randomly select a day to change
+        int day_to_change = rand() % D + 1; // Random day selection (1 to D)
+        int new_type = rand() % (sizeof(c) / sizeof(c[0]) - 1); // Random type selection
+
+        // Swap the type for the selected day
+        int old_type = schedul[day_to_change];
+        schedul[day_to_change] = new_type;
+
+        // Calculate the new score
+        current_score = calculate_score(D, sizeof(c) / sizeof(c[0]) - 1, schedul, s, c);
+
+        // Update the schedule only if the new score is better
+        if (current_score > best_score) {
+            best_score = current_score; // Update best score
+        } else {
+            schedul[day_to_change] = old_type; // Revert to old type if not better
+        }
+    }
+}
+
+int main() {
+    int D; // Number of days
+    int c[MAX_TYPES]; // Costs array
+    int s[MAX_DAYS][MAX_TYPES]; // Satisfaction scores array
+    int schedul[MAX_DAYS]; // Optimal schedule
+
+    // Assume D, c, and s are initialized with valid data here
+
+    // Seed random number generator
+    srand(time(NULL));
+
+    // Optimize the schedule
+    optimize_schedule(D, c, s, schedul);
+
+    // Output the optimal schedule
+    for (int day = 1; day <= D; day++) {
+        printf("%d ", schedul[day]); // Print the schedule for each day
+    }
+    printf("\n");
+
+    return 0;
+}

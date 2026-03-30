@@ -1,0 +1,104 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int main()
+{
+    long long int n,k,i,x,t;
+    scanf("%lld%lld",&n,&k);
+    long long int a[n];
+    for(i=0;i<n;i++){
+        scanf("%lld",&a[i]);
+    }
+    t=((n-k)/(k-1))+1;
+   if(k+((t-1)*(k-1))<n)t++;
+   printf("%lld\n",t);
+}
+
+```
+
+Current specification:
+```text
+1. **Functional Description**  
+   The code calculates and outputs the minimum number of groups required to partition a sequence of integers, given a specific group size constraint.
+
+2. **Inputs**  
+   - Two integers: `n` (the total number of integers) and `k` (the maximum size of each group).
+   - A sequence of `n` integers.
+
+3. **Outputs**  
+   - A single integer representing the minimum number of groups needed to partition the sequence under the specified constraints.
+
+4. **Preconditions**  
+   - `n` and `k` are positive integers.
+   - The value of `k` must be greater than 1.
+   - The sequence of integers must be provided in a valid format.
+
+5. **Postconditions**  
+   - The output integer is greater than or equal to 1.
+   - The output integer reflects the minimum number of groups that can be formed based on the input values.
+
+6. **Invariants**  
+   - The total number of integers processed is equal to `n`.
+   - The maximum size of any group does not exceed `k`.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `k` is less than or equal to 1, the behavior is undefined.
+   - If the input format is invalid, the program may not produce a valid output.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions from reading input values to computing the number of groups, and finally to outputting the result.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The computation must complete in a time complexity that is linear with respect to `n`.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   The specification does not accurately describe how to calculate the number of groups when there are constraints on the maximum group size and the distribution of elements across those groups.
+
+C. **What general behavior should be clarified in the specification**  
+   The specification should clarify how to handle the case where the number of elements does not evenly divide by the maximum group size, particularly in scenarios where additional groups may be needed due to the constraints imposed by `k`.
+
+D. **Why this clarification is supported by the source program**  
+   The source program uses a more complex calculation involving the variables `t`, `n`, and `k` to determine the number of groups, which accounts for cases where the total number of elements exceeds the maximum group size in a way that requires additional groups. The current specification oversimplifies the counting logic by only considering integer division and remainder, which does not align with the behavior of the source program.
+
+```

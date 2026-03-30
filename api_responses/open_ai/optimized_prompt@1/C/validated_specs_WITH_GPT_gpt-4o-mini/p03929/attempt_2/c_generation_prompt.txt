@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes a count of integers that satisfy specific modular conditions based on two input values, `n` and `k`. It processes these values through a series of checks and iterations to derive a final count, which is then output.
+
+## 2. Inputs
+- Two integers, `n` and `k`, where:
+  - `n` is multiplied by 7 before further processing.
+  - `k` is used in modular arithmetic checks.
+
+## 3. Outputs
+- A single integer representing the computed count based on the specified modular conditions.
+
+## 4. Preconditions
+- The inputs `n` and `k` must be valid integers.
+- The input values should be within the range of representable values for long long integers.
+
+## 5. Postconditions
+- The output integer reflects the count of integers that meet the defined modular conditions based on the transformed value of `n` and the input `k`.
+
+## 6. Invariants
+- The count of integers satisfying the conditions is non-negative.
+- The transformation of `n` (multiplication by 7) is consistently applied before any calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or exceptional cases. It assumes valid input is provided.
+
+## 8. State Transitions
+- The program transitions through several states as it computes intermediate counts based on the input values:
+  1. It initializes a count based on values of `i` from 1 to `n % 693`, checking if `i % 7 > 1` and if `9 * i % 11 == k`.
+  2. It computes a base count for values of `i` from 1 to 693 under the same conditions.
+  3. It adjusts the count by decrementing for values of `i` from 1 to 7 that meet the conditions.
+  4. It further adjusts the count for values of `i` from `n - 6` to `n` that also meet the conditions.
+
+## 9. Non-functional Constraints
+- The computation must complete in a reasonable time frame, given the constraints of the input size. The performance is influenced by the range of `n` and the efficiency of the loops used in the calculations. 
+
+## 10. Specific Conditions
+- The program checks for integers `i` such that:
+  - In the first loop, `i` must be less than or equal to `n % 693`, and must satisfy `i % 7 > 1` and `9 * i % 11 == k`.
+  - In the second loop, `i` ranges from 1 to 693, with the same conditions applied.
+  - The third loop decrements the count for `i` values from 1 to 7 that satisfy `i % 7 > 1` and `9 * i % 11 == k`.
+  - The fourth loop decrements the count for `i` values from `n - 6` to `n` that satisfy `i % 7 > 1` and `i * 9 % 11 == k`.
+
+```

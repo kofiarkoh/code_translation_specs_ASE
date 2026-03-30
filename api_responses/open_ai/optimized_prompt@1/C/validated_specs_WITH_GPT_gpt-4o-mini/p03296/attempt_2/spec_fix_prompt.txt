@@ -1,0 +1,103 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main()
+{
+	int i, N, a[101], count = 0;
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d", &(a[i]));
+	for (i = 2; i <= N; i++) {
+		if (a[i] == a[i-1]) {
+			count++;
+			i++;
+		}
+	}
+	printf("%d\n", count);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code counts the number of pairs of consecutive identical integers in a sequence provided by the user and outputs this count.
+
+# 2. Inputs
+- An integer \( N \) representing the number of integers in the sequence.
+- A sequence of \( N \) integers.
+
+# 3. Outputs
+- An integer representing the count of pairs of consecutive identical integers in the sequence.
+
+# 4. Preconditions
+- \( N \) must be a positive integer.
+- The sequence must contain exactly \( N \) integers.
+
+# 5. Postconditions
+- The output integer is the total number of pairs of consecutive integers in the sequence that are identical.
+
+# 6. Invariants
+- The count of pairs is non-negative and can only increase when consecutive identical integers are found.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid inputs (e.g., non-integer values or out-of-bounds indices).
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the input integers are read and processed, specifically when a pair of consecutive identical integers is identified, which increments the count.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution within a reasonable time frame for typical input sizes, specifically for \( N \) up to 100.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clarify how to handle overlapping pairs of consecutive identical integers. It implies that each pair should be counted separately, but the source program's behavior suggests that it skips the next integer after counting a pair, which leads to a different counting mechanism.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify whether overlapping pairs of consecutive identical integers should be counted separately or if they should be treated as a single occurrence. Specifically, it should define how the counting should proceed when consecutive identical integers are found.
+
+D. **Why this clarification is supported by the source program**  
+The source program increments the index `i` by 2 when a pair is found, effectively skipping the next integer. This behavior indicates that the program counts overlapping pairs differently than a straightforward count of all pairs. The specification should reflect this logic to align with the actual behavior of the source code.
+
+```

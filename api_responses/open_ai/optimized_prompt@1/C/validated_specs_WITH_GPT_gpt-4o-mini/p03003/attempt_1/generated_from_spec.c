@@ -1,0 +1,40 @@
+#include <stdio.h>
+
+#define MODULO_CONSTANT 1000000007 // Specify the modulo constant as per requirement
+
+int countInterleavings(int n, int m, int *s, int *t) {
+    // Create a 2D array to store the number of interleavings
+    long long dp[n + 1][m + 1];
+
+    // Initialize the dp array
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (i == 0 && j == 0) {
+                dp[i][j] = 1; // Base case: one way to interleave two empty sequences
+            } else {
+                dp[i][j] = 0; // Initialize to 0
+                if (i > 0) {
+                    dp[i][j] += dp[i - 1][j]; // Add ways from s
+                }
+                if (j > 0) {
+                    dp[i][j] += dp[i][j - 1]; // Add ways from t
+                }
+                dp[i][j] %= MODULO_CONSTANT; // Apply modulo to prevent overflow
+            }
+        }
+    }
+
+    // The result is the number of interleavings of the full sequences
+    return (int)dp[n][m]; // Cast to int as per postcondition
+}
+
+int main() {
+    // Example usage
+    int n = 2, m = 2;
+    int s[] = {1, 2};
+    int t[] = {3, 4};
+    
+    int result = countInterleavings(n, m, s, t);
+    printf("%d\n", result); // Output the result
+    return 0;
+}

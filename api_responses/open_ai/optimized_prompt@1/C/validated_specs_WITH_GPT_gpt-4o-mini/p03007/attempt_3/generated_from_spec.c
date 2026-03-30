@@ -1,0 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+void depth_first_search(long long *arr, int n, long long sum, int index, bool *visited) {
+    // Base case: if index is out of bounds, return
+    if (index >= n) return;
+
+    // Mark the current index as visited
+    visited[index] = true;
+
+    // Print the current element and the computed sum
+    printf("Pair: (%lld, %lld)\n", arr[index], sum);
+
+    // Recursive call to the next index
+    depth_first_search(arr, n, sum, index + 1, visited);
+}
+
+long long compute_sum(long long *arr, int n) {
+    long long sum = 0;
+
+    // Compute the sum of absolute values
+    for (int i = 0; i < n; i++) {
+        sum += (arr[i] < 0) ? -arr[i] : arr[i];
+    }
+
+    return sum;
+}
+
+int compare(const void *a, const void *b) {
+    // Comparison function for qsort
+    return (*(long long *)a > *(long long *)b) - (*(long long *)a < *(long long *)b);
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of elements
+
+    long long *arr = (long long *)malloc(n * sizeof(long long));
+    for (int i = 0; i < n; i++) {
+        scanf("%lld", &arr[i]); // Read each long long integer
+    }
+
+    // Sort the array in non-decreasing order
+    qsort(arr, n, sizeof(long long), compare);
+
+    // Compute the sum of absolute values
+    long long sum = compute_sum(arr, n);
+
+    // Array to track visited elements during DFS
+    bool *visited = (bool *)calloc(n, sizeof(bool));
+
+    // Perform depth-first search to print pairs
+    depth_first_search(arr, n, sum, 0, visited);
+
+    // Free allocated memory
+    free(arr);
+    free(visited);
+
+    return 0;
+}

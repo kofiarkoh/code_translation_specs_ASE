@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a system for managing and querying a dynamic array of integers, specifically designed to calculate the total cost of moving houses based on input positions. It allows for updates to the array and queries for the maximum value within specified ranges, which are used to compute the total cost.
+
+## 2. Inputs
+- An integer `n` representing the number of houses.
+- A sequence of `n` integers representing the positions of the houses.
+
+## 3. Outputs
+- A single long integer representing the total cost of moving the houses, calculated as the difference between the expected total cost of moving all houses and the cumulative maximum values derived from the segment tree updates.
+
+## 4. Preconditions
+- The input integer `n` must be a positive integer.
+- The sequence of positions must contain exactly `n` integers.
+
+## 5. Postconditions
+- The output is the total cost of moving the houses, which is calculated by subtracting the cumulative maximum value obtained from the segment tree after each update from the expected total cost, defined as the sum of the first `n` natural numbers.
+
+## 6. Invariants
+- The segment tree structure remains valid after each update, ensuring that it can accurately return the maximum value for any queried range.
+- The size of the segment tree is always a power of two, accommodating the number of houses.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input formats or out-of-bounds errors. It assumes that inputs are well-formed and within the expected range.
+
+## 8. State Transitions
+- State transitions occur during updates to the segment tree, where the maximum values are recalculated and stored as new values are added. Each update modifies the segment tree based on the current position and the maximum value queried from the segment tree at that position, influencing subsequent calculations of the total cost. The cumulative maximum is derived incrementally from the segment tree after each update.
+
+## 9. Non-functional Constraints
+- The implementation is expected to operate efficiently within the constraints of the input size, utilizing logarithmic time complexity for updates and queries due to the segment tree structure.
+
+```

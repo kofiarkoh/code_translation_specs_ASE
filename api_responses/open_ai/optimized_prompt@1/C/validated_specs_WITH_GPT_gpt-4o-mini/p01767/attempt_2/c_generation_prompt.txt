@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes two arrays of integers and a corresponding array of long integers to determine if the cumulative sum of elements from the first array, up to a specified upper bound, is greater than or equal to values in the second array. The upper bound is defined as the index of the first element in the sorted first array that is greater than the current element from the second array.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the first array.
+- An array of `n` integers, which will be sorted in non-decreasing order.
+- An integer `m` representing the number of elements in the second array.
+- An array of `m` integers, which are used to determine the upper bounds for cumulative sum calculations.
+- An array of `m` long integers, which are compared against the cumulative sums.
+
+## 3. Outputs
+- For each element in the second array, outputs "Yes" if the cumulative sum of the first array up to the upper bound determined by the element is greater than or equal to the corresponding long integer; otherwise, outputs "No".
+
+## 4. Preconditions
+- The first array must contain `n` integers.
+- The second array must contain `m` integers.
+- The third array must contain `m` long integers.
+- The first array must be sorted in non-decreasing order before processing.
+
+## 5. Postconditions
+- The output will consist of `m` lines, each containing either "Yes" or "No", corresponding to the evaluations of the cumulative sums against the long integers.
+
+## 6. Invariants
+- The cumulative sum of the first array is non-decreasing as elements are added.
+- The upper bound index returned by the `upperBound` function is always within the valid range of the first array, specifically indicating the position of the first element that exceeds the current key from the second array.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios such as non-integer values or out-of-bounds access. It assumes that inputs are well-formed and within specified limits.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the cumulative sum is updated based on the elements of the first array and as each query from the second array is processed to produce the output.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently with a time complexity of O(n log n) for sorting and O(m log n) for processing queries, making it suitable for large input sizes up to the specified limits.
+
+```

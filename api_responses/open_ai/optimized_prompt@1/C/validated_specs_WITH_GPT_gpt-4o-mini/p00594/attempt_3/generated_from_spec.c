@@ -1,0 +1,56 @@
+#include <stdio.h>
+
+#define MAX_INTEGERS 1000000
+
+int main() {
+    int numbers[MAX_INTEGERS + 1]; // +1 for the terminating zero
+    int count = 0;
+    
+    // Read integers until zero is encountered
+    while (count < MAX_INTEGERS) {
+        scanf("%d", &numbers[count]);
+        if (numbers[count] == 0) {
+            break; // Terminate input on zero
+        }
+        count++;
+    }
+
+    // If no integers were read, output "NO COLOR"
+    if (count == 0) {
+        printf("NO COLOR\n");
+        return 0;
+    }
+
+    int max_length = 0;
+    int current_length = 1;
+    int most_frequent = numbers[0];
+    
+    // Process the array to find the longest contiguous segment
+    for (int i = 1; i < count; i++) {
+        if (numbers[i] == numbers[i - 1]) {
+            current_length++; // Increase length of current segment
+        } else {
+            // Check if the current segment is the longest
+            if (current_length > max_length) {
+                max_length = current_length;
+                most_frequent = numbers[i - 1];
+            }
+            current_length = 1; // Reset for new number
+        }
+    }
+    
+    // Final check for the last segment
+    if (current_length > max_length) {
+        max_length = current_length;
+        most_frequent = numbers[count - 1];
+    }
+
+    // Check if the longest segment exceeds half the total count
+    if (max_length > count / 2) {
+        printf("%d\n", most_frequent);
+    } else {
+        printf("NO COLOR\n");
+    }
+
+    return 0;
+}

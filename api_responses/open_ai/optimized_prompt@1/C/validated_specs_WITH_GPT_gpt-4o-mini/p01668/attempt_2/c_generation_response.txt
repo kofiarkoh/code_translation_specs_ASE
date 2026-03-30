@@ -1,0 +1,109 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MOD 1000000007 // Define a constant for modulo operation
+
+// Function to convert a string of digits to an integer
+int string_to_int(const char *str) {
+    int result = 0;
+    while (*str) {
+        result = result * 10 + (*str - '0');
+        str++;
+    }
+    return result;
+}
+
+// Memoization structure
+typedef struct {
+    int **dp;
+    int max_length;
+} Memoization;
+
+// Recursive function to count valid sequences
+int count_sequences(const char *A, const char *B, const char *C, int pos, int tightA, int tightB, Memoization *memo) {
+    // Base case: if we have processed all characters in C
+    if (pos == strlen(C)) {
+        return 1; // Found a valid sequence
+    }
+
+    // Check memoization
+    if (memo->dp[pos][tightA * 2 + tightB] != -1) {
+        return memo->dp[pos][tightA * 2 + tightB];
+    }
+
+    int count = 0;
+    int lower_bound = tightA ? (A[pos] - '0') : 0;
+    int upper_bound = tightB ? (B[pos] - '0') : 9;
+
+    // Iterate through possible digits
+    for (int digit = lower_bound; digit <= upper_bound; digit++) {
+        if (digit == (C[pos] - '0')) {
+            count = (count + count_sequences(A, B, C, pos + 1, tightA && (digit == lower_bound), tightB && (digit == upper_bound), memo)) % MOD;
+        }
+    }
+
+    // Store result in memoization table
+    memo->dp[pos][tightA * 2 + tightB] = count;
+    return count;
+}
+
+// Main function to compute the number of valid sequences
+int compute_valid_sequences(const char *A, const char *B, const char *C) {
+    // Pad A with leading zeros if necessary
+    int lenA = strlen(A);
+    int lenB = strlen(B);
+    int lenC = strlen(C);
+    int max_length = lenB > lenC ? lenB : lenC;
+
+    char *paddedA = (char *)malloc(max_length + 1);
+    char *paddedB = (char *)malloc(max_length + 1);
+    char *paddedC = (char *)malloc(max_length + 1);
+
+    // Initialize padded strings
+    memset(paddedA, '0', max_length);
+    memset(paddedB, '0', max_length);
+    memset(paddedC, '0', max_length);
+    paddedA[max_length] = paddedB[max_length] = paddedC[max_length] = '\0';
+
+    // Copy original strings into padded strings
+    strcpy(paddedA + (max_length - lenA), A);
+    strcpy(paddedB + (max_length - lenB), B);
+    strcpy(paddedC + (max_length - lenC), C);
+
+    // Initialize memoization structure
+    Memoization memo;
+    memo.max_length = max_length;
+    memo.dp = (int **)malloc(max_length * sizeof(int *));
+    for (int i = 0; i < max_length; i++) {
+        memo.dp[i] = (int *)malloc(4 * sizeof(int)); // 2 tight flags
+        memset(memo.dp[i], -1, 4 * sizeof(int)); // Initialize with -1
+    }
+
+    // Compute the number of valid sequences
+    int result = count_sequences(paddedA, paddedB, paddedC, 0, 1, 1, &memo);
+
+    // Free allocated memory
+    for (int i = 0; i < max_length; i++) {
+        free(memo.dp[i]);
+    }
+    free(memo.dp);
+    free(paddedA);
+    free(paddedB);
+    free(paddedC);
+
+    return result;
+}
+
+// Entry point of the program
+int main(int argc, char *argv[]) {
+    if (argc < 4) {
+        return 1; // Terminate with error code if fewer than 3 strings are provided
+    }
+
+    int result = compute_valid_sequences(argv[1], argv[2], argv[3]);
+    printf("%d\n", result); // Output the result
+    return 0;
+}
+```

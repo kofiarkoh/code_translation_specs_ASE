@@ -1,0 +1,188 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1068: School of Killifish
+// 2017.12.14 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define INF 0x7fffffff
+
+int pool[9000000];
+int **seg;
+int h, w;
+int r1, c1, r2, c2, g;
+
+void update(int r, int c, int x)
+{
+	int c2, t, a;
+
+	r += h - 1;
+	c += w - 1;
+	seg[r][c] = x;
+
+	while (r >= 0) {
+		c2 = c;
+		while (c2) {
+			if (!(c2 & 1)) c2--;
+			t = c2, c2 >>= 1;
+			a = seg[r][t++]; if (a > seg[r][t]) a = seg[r][t];
+			seg[r][c2] = a;
+		}
+		if (r == 0) break;
+
+		if (!(r & 1)) r--;
+		t = r, r >>= 1;
+		a = seg[t++][c]; if (a > seg[t][c]) a = seg[t][c];
+		seg[r][c] = a;
+	}
+}
+ 
+int query2(int l, int r, int k)
+{
+	int m, lmin, rmin;
+
+	if (c2 <= l || r <= c1) return INF;
+    if (c1 <= l && r <= c2) return seg[g][k];
+     
+	k <<= 1, m = (l + r) >> 1;
+    lmin = query2(l, m, ++k);
+    rmin = query2(m, r, ++k);
+    if (lmin > rmin) lmin = rmin; 
+    return lmin;
+}
+ 
+int query(int l, int r, int k)
+{
+	int m, lmin, rmin;
+
+    if (r2 <= l || r <= r1) return INF;
+    if (r1 <= l && r <= r2) { g = k; return query2(0, w, 0); }
+    
+	k <<= 1, m = (l + r) >> 1;
+    lmin = query(l, m, ++k);
+    rmin = query(m, r, ++k);
+    if (lmin > rmin) lmin = rmin;
+    return lmin;
+}
+ 
+int main()
+{
+	int R, C, Q, h2, w2, r, c, v, i;
+
+    while (scanf("%d%d%d", &R, &C, &Q) && R > 0) {
+
+		h = w = 1;
+		while (h < R) h <<= 1;
+		while (w < C) w <<= 1;
+
+		h2 = (h << 1) - 1, w2 = (w << 1) - 1;
+
+		memset(pool, 0, sizeof(pool));
+		seg = malloc(h2 * sizeof(int *));
+		for (r = 0; r < h2; r++) seg[r] = pool + r*w2;
+
+        for (r = 0; r < R; r++) for (c = 0; c < C; c++)
+			scanf("%d", &v), update(r, c, v);
+
+        for (i = 0; i < Q; i++) {
+			scanf("%d%d%d%d", &r1, &c1, &r2, &c2);
+			r2++, c2++;
+            printf("%d\n", query(0, h, 0));
+        }
+
+		free(seg);
+    }
+    return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a 2D segment tree to efficiently handle updates and range minimum queries on a grid of integers. It allows for dynamic updates to individual elements and retrieves the minimum value within specified rectangular subregions of the grid.
+
+# 2. Inputs
+- Dimensions of the grid: two integers representing the number of rows and columns.
+- A series of integers to populate the grid.
+- A number of queries, each consisting of four integers defining the corners of a rectangular subregion.
+
+# 3. Outputs
+- For each query, the minimum value found within the specified rectangular subregion of the grid.
+
+# 4. Preconditions
+- The number of rows and columns must be positive integers.
+- The grid must be populated with integers before any queries are made.
+- Query coordinates must be within the bounds of the grid.
+
+# 5. Postconditions
+- The grid is updated with new values as specified by the update operations.
+- Each query returns the correct minimum value from the specified subregion of the grid.
+
+# 6. Invariants
+- The segment tree structure remains consistent and correctly reflects the current state of the grid after each update.
+- The minimum values stored in the segment tree are accurate representations of the corresponding subregions of the grid.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input dimensions are non-positive, the program terminates without processing further.
+- If queries are made with out-of-bounds coordinates, the program returns a predefined constant indicating an invalid query.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during updates to the grid, where the segment tree is modified to reflect the new values.
+- The state is also queried during the range minimum queries, which do not alter the grid but read from the segment tree.
+
+# 9. Non-functional Constraints (if inferable)
+- The implementation is expected to handle large grids efficiently, with logarithmic time complexity for updates and queries relative to the number of rows and columns.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Missing edge case or wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not clearly define how the segment tree handles updates and queries when the specified subregion includes the edges of the grid or when the queries are made with coordinates that are at the boundaries of the grid.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify how the segment tree manages queries that involve overlapping or edge cases, particularly when the query coordinates are at the boundaries of the grid. It should also specify the expected behavior when the query range is partially outside the grid.
+
+D. **Why this clarification is supported by the source program**  
+- The source program includes checks for out-of-bounds conditions in the `query` function, returning a predefined constant (INF) when the query range is invalid. However, the handling of edge cases, such as when the query range is exactly at the grid's boundaries or overlaps with them, is not explicitly addressed in the specification. This could lead to discrepancies between expected and actual behavior, as seen in the failing test case.
+
+```

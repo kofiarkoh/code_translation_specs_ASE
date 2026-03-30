@@ -1,0 +1,169 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <string.h>
+
+#define MAX_SIZE 1000 // Maximum grid size
+#define INF "INF"
+
+// Directions for moving in the grid (up, down, left, right)
+int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+// Structure to represent a cell in the priority queue
+typedef struct {
+    int x, y;
+    long cost;
+} Node;
+
+// Min-heap for Dijkstra's algorithm
+typedef struct {
+    Node nodes[MAX_SIZE * MAX_SIZE];
+    int size;
+} MinHeap;
+
+// Function prototypes
+void insert(MinHeap *heap, Node node);
+Node extractMin(MinHeap *heap);
+int isEmpty(MinHeap *heap);
+long dijkstra(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int A, int B, int startX, int startY, int goalX, int goalY);
+void markBombs(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int bombCost[MAX_SIZE][MAX_SIZE]);
+
+int main() {
+    int H, W, A, B;
+    scanf("%d %d %d %d", &H, &W, &A, &B);
+    
+    char grid[MAX_SIZE][MAX_SIZE];
+    int startX = -1, startY = -1, goalX = -1, goalY = -1;
+
+    // Read the grid and find start and goal positions
+    for (int i = 0; i < H; i++) {
+        scanf("%s", grid[i]);
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 's') {
+                startX = i;
+                startY = j;
+            } else if (grid[i][j] == 'g') {
+                goalX = i;
+                goalY = j;
+            }
+        }
+    }
+
+    // Check for valid start and goal positions
+    if (startX == -1 || startY == -1 || goalX == -1 || goalY == -1) {
+        printf("%s\n", INF);
+        return 0;
+    }
+
+    long minCost = dijkstra(grid, H, W, A, B, startX, startY, goalX, goalY);
+    if (minCost == LONG_MAX) {
+        printf("%s\n", INF);
+    } else {
+        printf("%ld\n", minCost);
+    }
+
+    return 0;
+}
+
+void insert(MinHeap *heap, Node node) {
+    heap->nodes[heap->size++] = node;
+    // Bubble up to maintain heap property
+    int i = heap->size - 1;
+    while (i > 0) {
+        int parent = (i - 1) / 2;
+        if (heap->nodes[parent].cost <= heap->nodes[i].cost) break;
+        Node temp = heap->nodes[parent];
+        heap->nodes[parent] = heap->nodes[i];
+        heap->nodes[i] = temp;
+        i = parent;
+    }
+}
+
+Node extractMin(MinHeap *heap) {
+    Node minNode = heap->nodes[0];
+    heap->nodes[0] = heap->nodes[--heap->size];
+    // Bubble down to maintain heap property
+    int i = 0;
+    while (1) {
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+        int smallest = i;
+        if (left < heap->size && heap->nodes[left].cost < heap->nodes[smallest].cost) {
+            smallest = left;
+        }
+        if (right < heap->size && heap->nodes[right].cost < heap->nodes[smallest].cost) {
+            smallest = right;
+        }
+        if (smallest == i) break;
+        Node temp = heap->nodes[i];
+        heap->nodes[i] = heap->nodes[smallest];
+        heap->nodes[smallest] = temp;
+        i = smallest;
+    }
+    return minNode;
+}
+
+int isEmpty(MinHeap *heap) {
+    return heap->size == 0;
+}
+
+long dijkstra(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int A, int B, int startX, int startY, int goalX, int goalY) {
+    long cost[MAX_SIZE][MAX_SIZE];
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            cost[i][j] = LONG_MAX; // Initialize costs to infinity
+        }
+    }
+    cost[startX][startY] = 0;
+
+    MinHeap heap = { .size = 0 };
+    insert(&heap, (Node){startX, startY, 0});
+
+    // Mark bomb effects
+    int bombCost[MAX_SIZE][MAX_SIZE] = {0};
+    markBombs(grid, H, W, bombCost);
+
+    while (!isEmpty(&heap)) {
+        Node current = extractMin(&heap);
+        if (current.x == goalX && current.y == goalY) {
+            return current.cost; // Return the cost to reach the goal
+        }
+
+        for (int i = 0; i < 4; i++) {
+            int newX = current.x + directions[i][0];
+            int newY = current.y + directions[i][1];
+
+            if (newX >= 0 && newX < H && newY >= 0 && newY < W) {
+                long newCost = current.cost;
+                if (grid[newX][newY] == '*') {
+                    newCost += bombCost[newX][newY]; // Cost for bomb cell
+                } else {
+                    newCost += (grid[newX][newY] == 's' || grid[newX][newY] == 'g') ? 0 : (grid[newX][newY] == 'A' ? A : B);
+                }
+
+                if (newCost < cost[newX][newY]) {
+                    cost[newX][newY] = newCost;
+                    insert(&heap, (Node){newX, newY, newCost});
+                }
+            }
+        }
+    }
+    return LONG_MAX; // Return infinity if goal is unreachable
+}
+
+void markBombs(char grid[MAX_SIZE][MAX_SIZE], int H, int W, int bombCost[MAX_SIZE][MAX_SIZE]) {
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == '*') {
+                bombCost[i][j] = 100; // Example bomb cost, adjust as needed
+                for (int d = 0; d < 4; d++) {
+                    int adjX = i + directions[d][0];
+                    int adjY = j + directions[d][1];
+                    if (adjX >= 0 && adjX < H && adjY >= 0 && adjY < W) {
+                        bombCost[adjX][adjY] += 50; // Example adjacent bomb cost, adjust as needed
+                    }
+                }
+            }
+        }
+    }
+}

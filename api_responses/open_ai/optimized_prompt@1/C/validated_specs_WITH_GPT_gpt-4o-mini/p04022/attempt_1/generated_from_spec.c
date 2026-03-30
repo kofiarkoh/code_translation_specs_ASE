@@ -1,0 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+long count_prime_factors(int n, int *arr) {
+    // Sentinel value for exceeding threshold
+    const long SENTINEL_VALUE = -1;
+    long count = 0;
+
+    // If the input array is empty, return zero
+    if (n == 0) {
+        return 0;
+    }
+
+    // Function to check if a number is prime
+    int is_prime(int num) {
+        if (num <= 1) return 0;
+        for (int i = 2; i * i <= num; i++) {
+            if (num % i == 0) return 0;
+        }
+        return 1;
+    }
+
+    // Process each integer in the array
+    for (int i = 0; i < n; i++) {
+        int current = arr[i];
+        int factor_count = 0;
+
+        // Perform prime factorization
+        for (int j = 2; j <= current; j++) {
+            while (current % j == 0) {
+                if (is_prime(j)) {
+                    factor_count++;
+                }
+                current /= j;
+            }
+        }
+
+        // Increment count based on specific conditions
+        // Here we assume a condition that counts if the number of prime factors is greater than 1
+        if (factor_count > 1) {
+            count++;
+        }
+
+        // Check for exceeding threshold (arbitrary example threshold)
+        if (count > 100) {
+            count = SENTINEL_VALUE; // Set to sentinel value if threshold exceeded
+            break; // Exit loop as per specification
+        }
+    }
+
+    return count;
+}
+
+int main() {
+    // Example usage
+    int arr[] = {12, 15, 7, 28}; // Example input
+    int n = sizeof(arr) / sizeof(arr[0]);
+    long result = count_prime_factors(n, arr);
+    printf("Count of specific conditions: %ld\n", result);
+    return 0;
+}

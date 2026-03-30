@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+```text
+1. **Functional Description**  
+   The code reads a number of names associated with years and outputs the name that corresponds to the most recent year that is less than or equal to a specified threshold.
+
+2. **Inputs**  
+   - An integer representing the number of names (N).
+   - An integer representing a year threshold (Q).
+   - N pairs of inputs, each consisting of an integer (year) and a string (name).
+
+3. **Outputs**  
+   - A string representing the name associated with the most recent year that is less than or equal to the specified threshold (Q). If multiple names correspond to years that meet this condition, the name associated with the largest year value is selected.
+
+4. **Preconditions**  
+   - The input for N must be a non-negative integer.
+   - The input for Q must be a non-negative integer.
+   - The number of names (N) must not exceed the predefined limit of 50.
+
+5. **Postconditions**  
+   - The output string is guaranteed to be one of the names read from the input, or the initial name if no valid year is found.
+   - If no years are less than or equal to Q, the output will be the first name in the list.
+
+6. **Invariants**  
+   - The list of names remains unchanged throughout the execution.
+   - The variable tracking the most recent name is updated only when a valid year is found, specifically to the name associated with the largest year value that is less than or equal to Q.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If the input for N is greater than 50, the behavior is undefined.
+   - If the input for Q is negative, the behavior is undefined.
+   - If the input for year is not a valid integer or the name is not a valid string, the behavior is undefined.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the program reads each name and year, updating the current most recent name based on the year comparison with Q. The name associated with the largest valid year is selected as the output.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The program must complete execution within a reasonable time frame for the maximum input size.  
+   - Memory usage is constrained by the fixed size of the names array.
+```
+
+```

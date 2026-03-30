@@ -1,0 +1,110 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int main(){
+	int n,ai,bi,i,k,c;
+	scanf("%d",&n);
+	scanf("%d",&k);
+	for(i=0;i<k;i++){
+		scanf("%d%d",&ai,&bi);
+		if(n+1-ai<ai)ai=n+1-ai;
+		if(n+1-bi<bi)bi=n+1-bi;
+		if(ai>bi)c=(bi-1)%3+1;
+		else c=(ai-1)%3+1;
+		printf("%d\n",c);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes a series of pairs of integers, adjusting their values based on a specified range and computing a result based on their adjusted values. For each pair, it guarantees to output a computed integer derived from the adjusted values.
+
+## 2. Inputs
+- An integer \( n \) representing the total range, which must be a positive integer.
+- An integer \( k \) indicating the number of pairs to process, which must be a non-negative integer.
+- A series of \( k \) integer pairs, each consisting of two values \( ai \) and \( bi \).
+
+## 3. Outputs
+- A series of \( k \) integers, each computed from the corresponding input pair based on specific adjustments to \( ai \) and \( bi \).
+
+## 4. Preconditions
+- The first input \( n \) must be a positive integer.
+- The second input \( k \) must be a non-negative integer.
+- Each subsequent pair of integers \( ai \) and \( bi \) must be within the range defined by \( 1 \) to \( n \).
+
+## 5. Postconditions
+- For each pair of integers \( ai \) and \( bi \), an output integer is produced, which is derived from the adjusted values of the input integers. The output integer is computed based on the minimum of the adjusted values.
+
+## 6. Invariants
+- The adjusted values of the input integers \( ai \) and \( bi \) are always within the range defined by \( 1 \) to \( n \).
+- The output integer is always a value between \( 1 \) and \( 3 \), inclusive.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid inputs or out-of-range values; behavior is undefined for inputs that do not meet the preconditions.
+
+## 8. State Transitions
+- State transitions occur with each iteration of processing an input pair, where the adjusted values are computed based on the following rules:
+  - If \( n + 1 - ai < ai \), then \( ai \) is adjusted to \( n + 1 - ai \).
+  - If \( n + 1 - bi < bi \), then \( bi \) is adjusted to \( n + 1 - bi \).
+- The output is generated based on the adjusted values, specifically taking the minimum of the adjusted values to determine the output integer.
+
+## 9. Non-functional Constraints
+- The processing time is linear with respect to the number of pairs, as each pair is processed independently.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not accurately describe how the output integer is computed from the adjusted values of \( ai \) and \( bi \). Specifically, it states that the output is derived from the minimum of the adjusted values, but the source program uses a different logic to determine the output based on the adjusted values.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the output integer is computed based on the adjusted values of \( ai \) and \( bi \) using a specific formula that involves taking the modulo of the adjusted values, rather than simply taking the minimum. The output is derived from the expression `(bi - 1) % 3 + 1` if \( ai > bi \), and `(ai - 1) % 3 + 1` otherwise.
+
+D. **Why this clarification is supported by the source program**  
+The source program explicitly computes the output based on the adjusted values using a modulo operation, which is not captured in the current specification. The output logic is contingent on the relationship between \( ai \) and \( bi \), which is not addressed in the specification. This discrepancy leads to incorrect outputs, as evidenced by the failing test case where the expected output does not match the actual output due to this misunderstanding of how the output is derived.
+
+```

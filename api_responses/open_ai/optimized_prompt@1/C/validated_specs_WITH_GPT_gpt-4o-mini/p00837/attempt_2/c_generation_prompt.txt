@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code simulates a book replacement algorithm for a library system, managing the allocation of books to students based on their requests. It processes multiple sets of requests, ensuring that books are assigned to desks while adhering to capacity constraints and implementing a least recently used (LRU) policy for book replacement.
+
+## 2. Inputs
+- A series of sets of integers where each set contains:
+  - The number of desks (m).
+  - The capacity of each desk (c).
+  - The number of students (n).
+  - For each student, a list of book IDs they request.
+
+## 3. Outputs
+- An integer representing the total number of desk assignments made across all requests.
+
+## 4. Preconditions
+- The number of desks (m), capacity (c), and number of students (n) must be positive integers.
+- Each book ID requested must be a valid identifier within the defined range.
+
+## 5. Postconditions
+- All book requests are processed, and the total number of desk assignments is calculated and printed.
+- Each book is assigned to a desk according to the least recently used policy, respecting desk capacity.
+
+## 6. Invariants
+- The number of books on each desk does not exceed its capacity at any time.
+- Each book can only be assigned to one desk at a time.
+- The order of book requests is preserved in the processing.
+
+## 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when a non-positive value for the number of desks is encountered.
+- No explicit error handling for invalid book IDs or malformed input is implemented.
+
+## 8. State Transitions
+- The state transitions occur as books are assigned to desks, with changes in the number of books on each desk and updates to the tracking of which desk each book is assigned to.
+- When a desk reaches its maximum capacity and a new book request comes in, the least recently used book on that desk is identified and replaced according to the LRU policy. If all desks are full, the program will still attempt to replace a book based on the LRU policy across all desks.
+
+## 9. Non-functional Constraints
+- The algorithm must efficiently handle up to 5000 requests and 100 book IDs, ensuring timely processing within reasonable limits for typical input sizes.
+
+```

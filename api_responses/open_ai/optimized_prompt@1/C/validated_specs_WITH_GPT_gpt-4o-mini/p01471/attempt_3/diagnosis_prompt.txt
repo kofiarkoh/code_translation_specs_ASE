@@ -1,0 +1,242 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 2354 Fractional Knapsack
+// 2018.3.17 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+// library
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+	if (c == '-') {	c = getchar_unlocked();
+		do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+		return -n;
+	}
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+// library
+
+#define ZERO(a)  (fabs(a)<1e-7)
+
+typedef struct { int w, v; double r; } T;
+T tbl[100002]; int sz;
+
+int cmp(T *a, T *b) { if (fabs(b->r - a->r)<1e-8) return 0; if (a->r <= b->r) return 1; return -1; }
+
+int main()
+{
+	int N, i, w, v;
+	double W, x, ans;
+
+	N = in(), W = in();
+	sz = 0, ans = 0;
+	while (N--) {
+		w = in(), v = in();
+		if (w >= 0 && v <= 0) continue;
+		if (w < 0 && v > 0) ans += v, W -= w;
+		else {
+			if ( w < 0) w = -w, v = -v, ans -= v, W += w; 
+			tbl[sz].w = w, tbl[sz].v = v, tbl[sz++].r = (double)v/w;
+		} 
+	}
+	qsort(tbl, sz, sizeof(T), cmp);
+
+	for (i = 0; i < sz && !ZERO(W); i++) {
+		x = W/tbl[i].w;	if (x > 1) x = 1;
+		W -= x*tbl[i].w, ans += x*tbl[i].v;
+	}
+	printf("%lf\n", ans);
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a solution to the fractional knapsack problem, calculating the maximum value that can be obtained given a set of items with specific weights and values, and a maximum weight capacity. It allows for the inclusion of fractional parts of items and handles items with negative weights and values appropriately.
+
+## 2. Inputs
+- An integer representing the number of items.
+- A double representing the maximum weight capacity of the knapsack.
+- For each item, an integer representing the weight and an integer representing the value.
+
+## 3. Outputs
+- A double representing the maximum value that can be obtained within the weight capacity of the knapsack.
+
+## 4. Preconditions
+- The number of items is a non-negative integer.
+- The maximum weight capacity is a non-negative double.
+- Each item's weight and value are integers. Weight can be negative, and value can be zero or negative.
+
+## 5. Postconditions
+- The output value is the maximum possible value that can be obtained without exceeding the specified weight capacity.
+- If the knapsack can hold items, the output is a non-negative double reflecting the total value of items added. If all items are invalid or the knapsack capacity is zero, the output will be zero.
+
+## 6. Invariants
+- The total weight of items considered does not exceed the maximum weight capacity.
+- Items with negative weights are treated as increasing the knapsack's capacity, while items with negative values contribute negatively to the total value.
+- The items are sorted based on their value-to-weight ratio before processing for inclusion in the knapsack.
+
+## 7. Error Handling / Exceptional Behavior
+- Items with non-positive values and non-negative weights are ignored.
+- If all items are invalid or the knapsack capacity is zero, the output will be zero.
+
+## 8. State Transitions
+- The state transitions involve updating the remaining weight capacity and the accumulated value as items are processed and added to the knapsack. Negative weights increase the remaining capacity, while negative values decrease the total value.
+
+## 9. Non-functional Constraints
+- The algorithm's performance is influenced by the sorting step, which has a time complexity of O(N log N), where N is the number of items. The overall space complexity is O(N) due to the storage of item data.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int weight;
+    int value;
+    double ratio; // value-to-weight ratio
+} Item;
+
+// Comparator function for sorting items based on value-to-weight ratio
+int compare(const void *a, const void *b) {
+    Item *itemA = (Item *)a;
+    Item *itemB = (Item *)b;
+    // Sort in descending order
+    return (itemB->ratio > itemA->ratio) - (itemB->ratio < itemA->ratio);
+}
+
+double fractional_knapsack(int num_items, double max_weight, int weights[], int values[]) {
+    if (num_items <= 0 || max_weight <= 0.0) {
+        return 0.0; // If no items or capacity is zero, return 0
+    }
+
+    Item *items = malloc(num_items * sizeof(Item));
+    if (!items) {
+        return 0.0; // Memory allocation failed
+    }
+
+    int valid_items = 0;
+
+    // Populate the items array and calculate value-to-weight ratios
+    for (int i = 0; i < num_items; i++) {
+        if (values[i] > 0 || weights[i] < 0) { // Only consider valid items
+            items[valid_items].weight = weights[i];
+            items[valid_items].value = values[i];
+            items[valid_items].ratio = (weights[i] != 0) ? (double)values[i] / weights[i] : 0.0; // Avoid division by zero
+            valid_items++;
+        }
+    }
+
+    // Sort items based on value-to-weight ratio
+    qsort(items, valid_items, sizeof(Item), compare);
+
+    double total_value = 0.0;
+    double remaining_capacity = max_weight;
+
+    // Process the sorted items
+    for (int i = 0; i < valid_items && remaining_capacity > 0; i++) {
+        if (items[i].weight < 0) {
+            // Negative weight increases capacity
+            remaining_capacity += -items[i].weight; // Increase capacity
+        } else if (items[i].weight > 0) {
+            // Positive weight item
+            if (remaining_capacity >= items[i].weight) {
+                // Can take the whole item
+                total_value += items[i].value;
+                remaining_capacity -= items[i].weight;
+            } else {
+                // Take a fraction of the item
+                total_value += items[i].value * (remaining_capacity / items[i].weight);
+                remaining_capacity = 0; // Knapsack is full
+            }
+        }
+        // Items with zero weight are ignored as they do not affect capacity
+    }
+
+    free(items); // Free allocated memory
+    return total_value; // Return the maximum value obtained
+}
+
+int main() {
+    int num_items = 5;
+    double max_weight = 10.0;
+    int weights[] = {2, 3, -1, 5, 0}; // Example weights
+    int values[] = {10, 15, -5, 20, 0}; // Example values
+
+    double max_value = fractional_knapsack(num_items, max_weight, weights, values);
+    printf("Maximum value in the knapsack: %.2f\n", max_value);
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p01471/p01471_sample1_output.txt
+Input:
+5 50
+10 60
+20 100
+30 120
+40 240
+50 300
+Expected:
+300.000000
+Actual:
+Maximum value in the knapsack: 45.00
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

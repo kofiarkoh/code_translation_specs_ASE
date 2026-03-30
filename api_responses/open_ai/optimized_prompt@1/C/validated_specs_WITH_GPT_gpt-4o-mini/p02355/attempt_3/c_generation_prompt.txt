@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the length of the smallest contiguous subarray that contains all integers from 1 to K at least once. If such a subarray does not exist, it returns zero.
+
+## 2. Inputs
+- Two integers, N and K, where:
+  - N is the number of elements in the array.
+  - K is the upper bound of the integers to be included in the subarray.
+- An array of N integers.
+
+## 3. Outputs
+- An integer representing the length of the smallest contiguous subarray containing all integers from 1 to K at least once, or zero if no such subarray exists.
+
+## 4. Preconditions
+- N is a non-negative integer.
+- K is a non-negative integer.
+- The array contains N integers.
+
+## 5. Postconditions
+- If a valid subarray exists, the output is the minimum length of such a subarray where each integer from 1 to K appears at least once.
+- If no valid subarray exists, the output is zero.
+
+## 6. Invariants
+- The algorithm maintains a count of occurrences of integers from 1 to K within the current window of the array, ensuring that each integer appears at least once for the subarray to be considered valid.
+
+## 7. Error Handling / Exceptional Behavior
+- If N is less than K, the output is zero, indicating that it is impossible to find a valid subarray.
+
+## 8. State Transitions
+- The state transitions occur as the window of the subarray is expanded or contracted based on the inclusion or exclusion of elements from the array, with adjustments made to ensure that the counts of integers from 1 to K allow for duplicates but ensure that each integer appears at least once.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is linear with respect to N, ensuring efficient processing for large input sizes.
+
+```

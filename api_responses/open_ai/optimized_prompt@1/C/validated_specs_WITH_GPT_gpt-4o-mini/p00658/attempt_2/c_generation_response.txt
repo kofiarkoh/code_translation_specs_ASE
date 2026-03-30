@@ -1,0 +1,136 @@
+```c
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_HEIGHT 51
+#define MAX_WIDTH 51
+
+typedef enum {
+    GAME_CONTINUE,
+    GAME_CLEARED,
+    GAME_DEATH_HOLE,
+    GAME_DEATH_BLOCK,
+    GAME_DEATH_GOAL,
+    GAME_GAVE_UP
+} GameStatus;
+
+typedef struct {
+    char grid[MAX_HEIGHT][MAX_WIDTH];
+    int height;
+    int width;
+    int player_x;
+    int player_y;
+    GameStatus status;
+} Game;
+
+void initialize_game(Game *game, int height, int width, char grid[MAX_HEIGHT][MAX_WIDTH]) {
+    if (height <= 0 || width <= 0 || height > MAX_HEIGHT || width > MAX_WIDTH) {
+        game->status = GAME_GAVE_UP; // Terminate gracefully on invalid dimensions
+        return;
+    }
+    game->height = height;
+    game->width = width;
+    game->status = GAME_CONTINUE;
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            game->grid[i][j] = grid[i][j];
+            if (grid[i][j] == 'P') { // Assuming 'P' marks the player's starting position
+                game->player_x = j;
+                game->player_y = i;
+            }
+        }
+    }
+}
+
+bool is_within_bounds(int x, int y, Game *game) {
+    return x >= 0 && x < game->width && y >= 0 && y < game->height;
+}
+
+void move_player(Game *game, int new_x, int new_y) {
+    if (!is_within_bounds(new_x, new_y, game)) {
+        return; // Ignore out-of-bounds movement
+    }
+
+    char target_cell = game->grid[new_y][new_x];
+    if (target_cell == '#') { // Assuming '#' represents an obstacle
+        return; // Ignore movement into an obstacle
+    } else if (target_cell == 'G') { // Assuming 'G' represents a goal
+        game->status = GAME_CLEARED; // Game cleared
+        return;
+    } else if (target_cell == 'H') { // Assuming 'H' represents a hole
+        game->status = GAME_DEATH_HOLE; // Death by hole
+        return;
+    } else if (target_cell == 'B') { // Assuming 'B' represents a block
+        // Logic for pushing/pulling blocks can be added here
+        return; // For now, ignore block interactions
+    }
+
+    // Update player's position
+    game->grid[game->player_y][game->player_x] = '.'; // Mark old position as empty
+    game->player_x = new_x;
+    game->player_y = new_y;
+    game->grid[new_y][new_x] = 'P'; // Mark new position with player
+}
+
+void process_commands(Game *game, const char *commands) {
+    for (const char *cmd = commands; *cmd != '\0' && game->status == GAME_CONTINUE; cmd++) {
+        switch (*cmd) {
+            case 'U': // Move up
+                move_player(game, game->player_x, game->player_y - 1);
+                break;
+            case 'D': // Move down
+                move_player(game, game->player_x, game->player_y + 1);
+                break;
+            case 'L': // Move left
+                move_player(game, game->player_x - 1, game->player_y);
+                break;
+            case 'R': // Move right
+                move_player(game, game->player_x + 1, game->player_y);
+                break;
+            default:
+                // Ignore invalid commands
+                break;
+        }
+    }
+}
+
+void print_game_status(Game *game) {
+    switch (game->status) {
+        case GAME_CLEARED:
+            printf("Game cleared!\n");
+            break;
+        case GAME_DEATH_HOLE:
+            printf("Death by hole!\n");
+            break;
+        case GAME_DEATH_BLOCK:
+            printf("Death by block!\n");
+            break;
+        case GAME_DEATH_GOAL:
+            printf("Death by walking goal!\n");
+            break;
+        case GAME_GAVE_UP:
+            printf("Game gave up!\n");
+            break;
+        default:
+            printf("Game in progress...\n");
+            break;
+    }
+}
+
+int main() {
+    Game game;
+    char initial_grid[MAX_HEIGHT][MAX_WIDTH] = {
+        {'.', '.', '.', '.', 'G'},
+        {'.', '#', '#', '.', '.'},
+        {'.', '.', 'P', '.', 'H'},
+        {'.', '.', '.', '.', '.'}
+    };
+    
+    initialize_game(&game, 4, 5, initial_grid);
+    process_commands(&game, "URR"); // Example command sequence
+    print_game_status(&game);
+    
+    return 0;
+}
+```

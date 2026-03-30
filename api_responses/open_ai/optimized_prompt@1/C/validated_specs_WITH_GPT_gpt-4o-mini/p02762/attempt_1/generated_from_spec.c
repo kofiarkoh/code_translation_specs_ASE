@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define N_MAX 1000 // Assuming a maximum size for the union-find structure
+
+typedef struct {
+    int parent[N_MAX + 1]; // Parent array for union-find
+    int size[N_MAX + 1];   // Size array to track sizes of sets
+    int removals[N_MAX + 1]; // Array to track removals for each element
+} UnionFind;
+
+// Initialize the union-find structure
+void init(UnionFind *uf, int n) {
+    for (int i = 1; i <= n; i++) {
+        uf->parent[i] = i; // Each element is its own parent
+        uf->size[i] = -1;  // Size is negative for root elements
+        uf->removals[i] = 0; // No removals initially
+    }
+}
+
+// Find the root of the set containing element x with path compression
+int find(UnionFind *uf, int x) {
+    if (uf->parent[x] != x) {
+        uf->parent[x] = find(uf, uf->parent[x]); // Path compression
+    }
+    return uf->parent[x];
+}
+
+// Union the sets containing x and y
+void union_sets(UnionFind *uf, int x, int y) {
+    int rootX = find(uf, x);
+    int rootY = find(uf, y);
+    
+    if (rootX != rootY) {
+        // Union by size
+        if (uf->size[rootX] < uf->size[rootY]) {
+            uf->parent[rootX] = rootY;
+            uf->size[rootY] += uf->size[rootX]; // Adjust size
+        } else {
+            uf->parent[rootY] = rootX;
+            uf->size[rootX] += uf->size[rootY]; // Adjust size
+        }
+    }
+}
+
+// Record a removal for element x
+void remove_element(UnionFind *uf, int x) {
+    int rootX = find(uf, x);
+    uf->removals[rootX]++; // Increment removals for the root
+}
+
+// Get the adjusted size of the set containing element x
+int get_adjusted_size(UnionFind *uf, int x) {
+    int rootX = find(uf, x);
+    return -uf->size[rootX] - uf->removals[rootX]; // Adjust size by removals
+}
+
+// Main function to process union and query operations
+int main() {
+    int n, m, k;
+    scanf("%d %d %d", &n, &m, &k); // Read n, m, k
+
+    UnionFind uf;
+    init(&uf, n); // Initialize union-find structure
+
+    // Process union operations
+    for (int i = 0; i < m; i++) {
+        int x, y;
+        scanf("%d %d", &x, &y); // Read union operation
+        union_sets(&uf, x, y);
+    }
+
+    // Process query operations
+    for (int i = 0; i < k; i++) {
+        int x, y;
+        scanf("%d %d", &x, &y); // Read query operation
+        // Here we could check connectivity, but the spec does not require output for this
+    }
+
+    // Output adjusted sizes for each element
+    for (int i = 1; i <= n; i++) {
+        printf("%d\n", get_adjusted_size(&uf, i)); // Print adjusted size
+    }
+
+    return 0;
+}

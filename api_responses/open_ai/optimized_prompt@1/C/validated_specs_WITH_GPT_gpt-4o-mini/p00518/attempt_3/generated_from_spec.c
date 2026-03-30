@@ -1,0 +1,61 @@
+#include <stdio.h>
+
+#define MODULO 10007
+#define MAX_KEYS 8 // 3 keys can form combinations from 0 to 7 (2^3 - 1)
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read the number of characters
+
+    // Preconditions check
+    if (N < 0 || N > 1000) {
+        return 1; // Exit if N is out of bounds
+    }
+
+    char input[N + 1]; // +1 for null terminator
+    scanf("%s", input); // Read the input string
+
+    // Schedule array to track combinations of keys
+    int schedule[MAX_KEYS] = {0};
+    schedule[0] = 1; // Start with no keys held
+
+    for (int i = 0; i < N; i++) {
+        char key = input[i];
+        int current_key = 0;
+
+        // Determine the binary value of the current key
+        if (key == 'J') {
+            current_key = 1; // 001 in binary
+        } else if (key == 'O') {
+            current_key = 2; // 010 in binary
+        } else if (key == 'I') {
+            current_key = 4; // 100 in binary
+        }
+
+        // Create a new schedule for the next state
+        int schedule_next[MAX_KEYS] = {0};
+
+        // Update the schedule based on the current key and previous combinations
+        for (int j = 0; j < MAX_KEYS; j++) {
+            if (schedule[j] > 0) {
+                // If the current key can combine with the previous keys
+                schedule_next[j | current_key] = (schedule_next[j | current_key] + schedule[j]) % MODULO;
+            }
+        }
+
+        // Update the schedule to the next state
+        for (int j = 0; j < MAX_KEYS; j++) {
+            schedule[j] = (schedule[j] + schedule_next[j]) % MODULO;
+        }
+    }
+
+    // Calculate the final cumulative value
+    int cumulative_value = 0;
+    for (int j = 1; j < MAX_KEYS; j++) { // Start from 1 to exclude the empty combination
+        cumulative_value = (cumulative_value + schedule[j]) % MODULO;
+    }
+
+    // Output the result
+    printf("%d\n", cumulative_value);
+    return 0;
+}

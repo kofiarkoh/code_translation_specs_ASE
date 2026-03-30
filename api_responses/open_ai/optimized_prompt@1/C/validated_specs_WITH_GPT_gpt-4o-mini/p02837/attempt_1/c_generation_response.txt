@@ -1,0 +1,65 @@
+```c
+#include <stdio.h>
+
+#define MAX_N 20
+
+// Function to count the number of set bits in an integer
+int count_set_bits(int num) {
+    int count = 0;
+    while (num) {
+        count += num & 1; // Increment count if the least significant bit is set
+        num >>= 1;        // Right shift to check the next bit
+    }
+    return count;
+}
+
+// Function to compute the maximum number of set bits based on constraints
+int max_set_bits(int n, int a[], int x[][MAX_N], int y[][MAX_N]) {
+    int max_bits = 0;
+
+    // Iterate through all possible combinations of integers from 1 to n
+    for (int i = 1; i < (1 << n); i++) { // 1 << n generates 2^n combinations
+        int valid = 1; // Assume the combination is valid
+        for (int j = 0; j < n; j++) {
+            if (a[j] > 0) { // Check only groups with constraints
+                for (int k = 0; k < a[j]; k++) {
+                    // Check if the current combination is valid based on constraints
+                    if (((i & (1 << (x[j][k] - 1))) == 0) || 
+                        ((i & (1 << (y[j][k] - 1))) == 0)) {
+                        valid = 0; // Mark as invalid if any constraint fails
+                        break;
+                    }
+                }
+            }
+            if (!valid) break; // Exit if already invalid
+        }
+        if (valid) {
+            // Count set bits in the valid combination
+            int set_bits = count_set_bits(i);
+            if (set_bits > max_bits) {
+                max_bits = set_bits; // Update max if current set bits are greater
+            }
+        }
+    }
+    return max_bits; // Return the maximum count of set bits found
+}
+
+int main() {
+    int n; // Number of groups
+    int a[MAX_N]; // Array to hold the number of constraints for each group
+    int x[MAX_N][MAX_N]; // Constraints array for x values
+    int y[MAX_N][MAX_N]; // Constraints array for y values
+
+    // Example input handling (not specified in the task, but necessary for testing)
+    // This part should be replaced with actual input logic as needed
+    n = 3; // Example value
+    a[0] = 2; x[0][0] = 1; y[0][0] = 2; // Example constraints for group 0
+    a[1] = 1; x[1][0] = 2; y[1][0] = 3; // Example constraints for group 1
+    a[2] = 0; // No constraints for group 2
+
+    int result = max_set_bits(n, a, x, y);
+    printf("Maximum number of set bits: %d\n", result); // Output the result
+
+    return 0;
+}
+```

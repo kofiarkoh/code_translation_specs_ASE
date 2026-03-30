@@ -1,0 +1,114 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 3130 Calculation Training
+// 2020.1.14 bal4u
+
+#include <stdio.h>
+
+typedef long long ll;
+
+int main()
+{
+	ll N; int i, A, B;
+	
+	scanf("%lld%d%d", &N, &A, &B);
+	N %= 12;
+	i = 0; while (i < N) {
+		A = A-B, ++i;
+		if (i == N) break;
+		B = A+B, ++i;
+	}
+	printf("%d %d\n", A, B);
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code performs a series of arithmetic operations based on an input value, modifying two integer variables through a defined iterative process. It calculates and outputs the final values of these variables after a specified number of iterations, where the operations depend on the current values of the variables.
+
+## 2. Inputs
+- A non-negative integer \( N \) (modulo 12), which determines the number of iterations.
+- Two integers \( A \) and \( B \).
+
+## 3. Outputs
+- Two integers representing the final values of \( A \) and \( B \) after processing.
+
+## 4. Preconditions
+- \( N \) must be a non-negative integer.
+- \( A \) and \( B \) must be valid integers.
+
+## 5. Postconditions
+- The output values of \( A \) and \( B \) reflect the result of a series of arithmetic operations performed \( N \) times, where \( N \) is constrained to the range [0, 11].
+
+## 6. Invariants
+- During each iteration, \( A \) is updated by subtracting the current value of \( B \) from it, and \( B \) is updated by adding the new value of \( A \) (after the subtraction) to the previous value of \( B \).
+- The loop iterates a maximum of \( N \) times, ensuring that the operations are bounded.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or out-of-range values explicitly. It assumes that inputs are provided correctly as specified.
+
+## 8. State Transitions
+- The state transitions occur through the iterative updates of \( A \) and \( B \) based on the current values and the iteration count. Specifically, in each iteration:
+  - \( A \) is updated to \( A - B \).
+  - \( B \) is updated to \( B + \text{(new value of } A\text{)} \).
+
+## 9. Non-functional Constraints
+- The execution time is expected to be linear with respect to \( N \), with a maximum of 12 iterations. The space complexity is constant, as only a fixed number of variables are used.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong assumption
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately address the behavior of the program when \( N \) exceeds 11, particularly how the modulo operation affects the values of \( A \) and \( B \) during the iterations.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify how the modulo operation on \( N \) interacts with the iterative process, especially when \( N \) is greater than 11. It should specify that the effective number of iterations is determined by \( N \mod 12 \) and how this affects the calculations of \( A \) and \( B \).
+
+D. **Why this clarification is supported by the source program**  
+The source program uses \( N \mod 12 \) to determine the number of iterations, which means that inputs greater than 11 will wrap around and affect the calculations differently than if \( N \) were simply treated as a direct count. The failing test case indicates that the generated program does not correctly replicate this behavior, leading to unexpected results when \( N \) is not constrained to the range [0, 11]. The specification should explicitly state that the effective iterations are based on the modulo operation, which is crucial for understanding the output.
+
+```

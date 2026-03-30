@@ -1,0 +1,63 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int longest_non_decreasing_subsequence(int n, int* a) {
+    // Array to store the smallest tail of all increasing subsequences
+    // of different lengths found so far.
+    int* tails = (int*)malloc(n * sizeof(int));
+    if (tails == NULL) {
+        return 0; // Handle memory allocation failure
+    }
+    
+    int length = 0; // Length of the longest non-decreasing subsequence
+
+    for (int i = 0; i < n; i++) {
+        // Binary search for the largest index j in tails such that tails[j] <= a[i]
+        int left = 0, right = length;
+        while (left < right) {
+            int mid = left + (right - left) / 2;
+            if (tails[mid] <= a[i]) {
+                left = mid + 1; // Move right if current element is less than or equal
+            } else {
+                right = mid; // Move left otherwise
+            }
+        }
+        
+        // left is now the length of the longest non-decreasing subsequence
+        // that can be extended by a[i]
+        if (left < length) {
+            tails[left] = a[i]; // Update the tail value
+        } else {
+            tails[length] = a[i]; // Extend the size of the tails array
+            length++;
+        }
+    }
+
+    free(tails); // Free allocated memory
+    return length; // Return the length of the longest non-decreasing subsequence
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of elements
+
+    // Undefined behavior if n is negative or exceeds 100,000
+    if (n < 0 || n > 100000) {
+        return 1; // Exit with an error code
+    }
+
+    int* a = (int*)malloc(n * sizeof(int)); // Allocate memory for the array
+    if (a == NULL) {
+        return 1; // Handle memory allocation failure
+    }
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &a[i]); // Read the array elements
+    }
+
+    int result = longest_non_decreasing_subsequence(n, a);
+    printf("%d\n", result); // Output the result
+
+    free(a); // Free allocated memory for the array
+    return 0; // Successful execution
+}

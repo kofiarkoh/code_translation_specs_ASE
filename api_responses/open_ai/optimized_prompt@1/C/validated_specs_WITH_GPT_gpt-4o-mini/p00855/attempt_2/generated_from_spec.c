@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+// Function to check if a number is prime
+bool is_prime(int n) {
+    if (n <= 1) return false; // 0 and 1 are not prime
+    for (int i = 2; i * i <= n; i++) {
+        if (n % i == 0) return false; // Found a divisor, not prime
+    }
+    return true; // No divisors found, it's prime
+}
+
+// Function to count primes in the adjusted range
+int count_primes(int lower, int upper) {
+    // Adjust lower bound
+    while (lower >= 0 && !is_prime(lower)) {
+        lower--; // Decrement until a prime is found
+    }
+
+    // Adjust upper bound
+    while (!is_prime(upper)) {
+        upper++; // Increment until a prime is found
+    }
+
+    // Count primes in the adjusted range
+    int count = 0;
+    for (int i = lower; i <= upper; i++) {
+        if (is_prime(i)) {
+            count++; // Increment count for each prime found
+        }
+    }
+
+    return count; // Return the count of primes found
+}
+
+int main() {
+    int lower, upper;
+
+    // Read input values
+    if (scanf("%d %d", &lower, &upper) != 2) {
+        // Undefined behavior if input is not valid integers
+        return 1; // Exit with error code
+    }
+
+    // Preconditions check: non-negative integers
+    if (lower < 0 || upper < 0) {
+        return 1; // Exit with error code
+    }
+
+    // Count primes in the specified range
+    int prime_count = count_primes(lower, upper);
+
+    // Output the count of prime numbers
+    printf("%d\n", prime_count);
+
+    return 0; // Successful execution
+}

@@ -1,0 +1,150 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#define SMAX 4000
+int next0[2][SMAX+2], next1[2][SMAX+2], dp[SMAX+2][SMAX+2];
+
+int dfs(int aloc, int bloc);
+void scns(int aloc, int bloc);
+int main(void)
+{
+  int i, alen, blen;
+  char a[SMAX+2], b[SMAX+2];
+  scanf("%s", a + 1);
+  scanf("%s", b + 1);
+  a[0] = b[0] = '?';
+  alen = strlen(a);
+  blen = strlen(b);
+  memset(dp, -1, sizeof(dp));
+  dp[alen][blen] = 0;
+  next0[0][alen] = next1[0][alen] = next0[0][alen-1] = next1[0][alen-1] = alen;
+  next0[1][blen] = next1[1][blen] = next0[1][blen-1] = next1[1][blen-1] = blen;
+  for (i = alen - 2; i >= 0; i--) {
+    if (a[i+1] == '0') {
+      next0[0][i] = i + 1;
+      next1[0][i] = next1[0][i+1];
+    } else {
+      next0[0][i] = next0[0][i+1];
+      next1[0][i] = i + 1;
+    }
+  }
+  for (i = blen - 2; i >= 0; i--) {
+    if (b[i+1] == '0') {
+      next0[1][i] = i + 1;
+      next1[1][i] = next1[1][i+1];
+    } else {
+      next0[1][i] = next0[1][i+1];
+      next1[1][i] = i + 1;                                                                                                  }
+  }
+  scns(0, 0);
+  putchar_unlocked('\n');
+}
+
+int dfs(int aloc, int bloc)
+{
+  int res, ans = SMAX + 2;
+  if (dp[aloc][bloc] != -1) return dp[aloc][bloc];
+  res = dfs(next0[0][aloc], next0[1][bloc]);
+  if (ans > res) ans = res;
+  res = dfs(next1[0][aloc], next1[1][bloc]);
+  if (ans > res) ans = res;
+  return dp[aloc][bloc] = ans + 1;
+}
+
+void scns(int aloc, int bloc)
+{
+  if (dfs(aloc, bloc) == dfs(next0[0][aloc], next0[1][bloc]) + 1) {
+    putchar_unlocked('0');
+    scns(next0[0][aloc], next0[1][bloc]);
+  } else if (dfs(aloc, bloc) == dfs(next1[0][aloc], next1[1][bloc]) + 1) {
+    putchar_unlocked('1');
+    scns(next1[0][aloc], next1[1][bloc]);
+  }
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes two binary strings, determining a sequence of binary digits that can be derived from both strings based on specific rules. It outputs a sequence of '0's and '1's that represents the optimal combination of characters from the two input strings.
+
+# 2. Inputs
+- Two binary strings, each containing characters '0' and '1', provided via standard input. The strings are indexed starting from 1, with an additional character at index 0 used as a placeholder.
+
+# 3. Outputs
+- A sequence of binary digits ('0' and '1') printed to standard output, followed by a newline character.
+
+# 4. Preconditions
+- The input strings must be valid binary strings containing only the characters '0' and '1'.
+- The total length of both strings must not exceed a predefined maximum limit.
+
+# 5. Postconditions
+- The output sequence is derived from the input strings according to the defined rules, ensuring that the sequence is the optimal combination based on the processing logic.
+
+# 6. Invariants
+- The dynamic programming table is initialized to a specific state, ensuring that previously computed results are reused to optimize performance.
+- The next occurrence arrays are maintained to facilitate efficient traversal of the input strings.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid characters. It assumes that the input adheres to the expected format.
+- If the input exceeds the maximum length, behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the algorithm recursively explores the next possible characters in both strings, updating the current position based on the next occurrence arrays.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is designed to operate within a time complexity that is efficient for the maximum input size, leveraging memoization to avoid redundant calculations.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clearly define how the optimal combination of characters is determined from the two binary strings. It lacks details on the specific rules or conditions under which '0's and '1's are selected, leading to ambiguity in the expected output.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the rules for combining characters from the two input strings, particularly how the algorithm decides to output '0' or '1' based on the input strings. It should specify the conditions under which characters are chosen and how they relate to the structure of the input strings.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a depth-first search (DFS) approach with specific next occurrence arrays to determine the optimal sequence of '0's and '1's. The logic in the `dfs` and `scns` functions indicates that the output is not merely based on matching characters but involves a more complex decision-making process that considers the structure of both strings. The current specification's lack of detail on these decision-making rules leads to a mismatch with the actual behavior of the source program, as evidenced by the failing test case.
+
+```

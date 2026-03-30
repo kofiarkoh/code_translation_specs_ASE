@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+```text
+1. **Functional Description**  
+   The code counts the occurrences of the substring "ABC" in a given string, allowing for overlapping occurrences.
+
+2. **Inputs**  
+   - An integer `n` representing the length of the string (must be at least 3).
+   - A string of characters with a maximum length of 50, which must be null-terminated.
+
+3. **Outputs**  
+   - An integer representing the count of occurrences of the substring "ABC" in the input string.
+
+4. **Preconditions**  
+   - The input integer `n` must be greater than or equal to 3.
+   - The input string must contain at least `n` characters.
+
+5. **Postconditions**  
+   - The output integer is non-negative and reflects the total number of times the substring "ABC" appears in the input string, including overlapping occurrences.
+
+6. **Invariants**  
+   - The count of occurrences is incremented only when the substring "ABC" is found.
+   - The loop iterates through the string while ensuring that the index does not exceed the bounds defined by `n`.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `n` is less than 3, the behavior is undefined as the loop will not execute.
+   - If the input string exceeds 50 characters, the behavior is undefined due to potential buffer overflow.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the loop iterates through the string, updating the count based on the detection of the substring "ABC". When an occurrence of "ABC" is found at index `i`, the next check starts at index `i + 1` to allow for overlapping matches.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The execution time is linear with respect to the length of the string, specifically O(n), where n is the input length.
+```
+
+```

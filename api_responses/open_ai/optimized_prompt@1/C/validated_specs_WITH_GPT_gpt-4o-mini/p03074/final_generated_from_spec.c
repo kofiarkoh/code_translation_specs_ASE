@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+
+#define NUM_MAX 1000 // Define the maximum limit for num
+
+int max_segment_sum(int num, int changes, const char *binary_string) {
+    // Check preconditions
+    if (num == 0 || strlen(binary_string) == 0) {
+        return 0; // Return immediately if num is zero or string is empty
+    }
+
+    // Create arrays to store segment lengths and types
+    int segment_lengths[NUM_MAX];
+    char segment_types[NUM_MAX];
+    int segment_count = 0;
+
+    // Process the binary string to create segments
+    for (int i = 0; i < num; i++) {
+        if (i == 0 || binary_string[i] != binary_string[i - 1]) {
+            // New segment detected
+            segment_lengths[segment_count] = 1; // Start with length 1
+            segment_types[segment_count] = binary_string[i]; // Store segment type
+            segment_count++;
+        } else {
+            // Increment the length of the current segment
+            segment_lengths[segment_count - 1]++;
+        }
+    }
+
+    // If there are no segments, return 0
+    if (segment_count == 0) {
+        return 0;
+    }
+
+    // Calculate the maximum sum of segments after applying changes
+    int max_sum = 0;
+
+    // Iterate through segments and calculate potential sums
+    for (int i = 0; i < segment_count; i++) {
+        int current_sum = 0;
+        int changes_left = changes;
+
+        // Start from the current segment and consider merging
+        for (int j = i; j < segment_count; j++) {
+            current_sum += segment_lengths[j]; // Add current segment length
+
+            // If we are not at the last segment, check if we can change
+            if (j < segment_count - 1) {
+                if (changes_left > 0) {
+                    changes_left--; // Use a change to merge with the next segment
+                } else {
+                    break; // No more changes left, stop merging
+                }
+            }
+        }
+
+        // Update max_sum if the current sum is greater
+        if (current_sum > max_sum) {
+            max_sum = current_sum;
+        }
+    }
+
+    return max_sum; // Return the maximum sum of segments
+}
+
+int main() {
+    int num, changes;
+    char binary_string[NUM_MAX + 1]; // +1 for null terminator
+
+    // Example input
+    num = 10; // Number of binary digits
+    changes = 1; // Number of allowed changes
+    strcpy(binary_string, "1100011000"); // Example binary string
+
+    // Call the function and print the result
+    int result = max_segment_sum(num, changes, binary_string);
+    printf("Maximum sum of segments: %d\n", result);
+
+    return 0;
+}

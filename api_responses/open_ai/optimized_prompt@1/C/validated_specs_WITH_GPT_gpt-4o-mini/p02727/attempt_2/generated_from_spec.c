@@ -1,0 +1,114 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int X, Y, A, B, C;
+    
+    // Read the five integers
+    if (scanf("%d %d %d %d %d", &X, &Y, &A, &B, &C) != 5) {
+        return 1; // Error: Input format mismatch
+    }
+    
+    // Allocate memory for the arrays
+    int *firstArray = malloc(A * sizeof(int));
+    int *secondArray = malloc(B * sizeof(int));
+    int *thirdArray = malloc(C * sizeof(int));
+    
+    // Check for memory allocation failure
+    if (!firstArray || !secondArray || !thirdArray) {
+        free(firstArray);
+        free(secondArray);
+        free(thirdArray);
+        return 1; // Error: Memory allocation failed
+    }
+    
+    // Read the first array
+    for (int i = 0; i < A; i++) {
+        if (scanf("%d", &firstArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error: Input reading failed
+        }
+    }
+    
+    // Read the second array
+    for (int i = 0; i < B; i++) {
+        if (scanf("%d", &secondArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error: Input reading failed
+        }
+    }
+    
+    // Read the third array
+    for (int i = 0; i < C; i++) {
+        if (scanf("%d", &thirdArray[i]) != 1) {
+            free(firstArray);
+            free(secondArray);
+            free(thirdArray);
+            return 1; // Error: Input reading failed
+        }
+    }
+    
+    // Sort the first and second arrays in descending order
+    // Simple bubble sort for demonstration; can be replaced with a more efficient sort
+    for (int i = 0; i < A - 1; i++) {
+        for (int j = 0; j < A - i - 1; j++) {
+            if (firstArray[j] < firstArray[j + 1]) {
+                int temp = firstArray[j];
+                firstArray[j] = firstArray[j + 1];
+                firstArray[j + 1] = temp;
+            }
+        }
+    }
+    
+    for (int i = 0; i < B - 1; i++) {
+        for (int j = 0; j < B - i - 1; j++) {
+            if (secondArray[j] < secondArray[j + 1]) {
+                int temp = secondArray[j];
+                secondArray[j] = secondArray[j + 1];
+                secondArray[j + 1] = temp;
+            }
+        }
+    }
+    
+    // Process the third array to conditionally replace elements in the first and second arrays
+    for (int i = 0; i < C; i++) {
+        // Replace in first array
+        for (int j = 0; j < A; j++) {
+            if (j < A && thirdArray[i] > firstArray[j]) {
+                firstArray[j] = thirdArray[i];
+                break; // Stop after the first replacement
+            }
+        }
+        
+        // Replace in second array
+        for (int j = 0; j < B; j++) {
+            if (j < B && thirdArray[i] > secondArray[j]) {
+                secondArray[j] = thirdArray[i];
+                break; // Stop after the first replacement
+            }
+        }
+    }
+    
+    // Compute the sum of the first X integers from the first array and first Y integers from the second array
+    int sum = 0;
+    for (int i = 0; i < X && i < A; i++) {
+        sum += firstArray[i];
+    }
+    for (int i = 0; i < Y && i < B; i++) {
+        sum += secondArray[i];
+    }
+    
+    // Output the result
+    printf("%d\n", sum);
+    
+    // Free allocated memory
+    free(firstArray);
+    free(secondArray);
+    free(thirdArray);
+    
+    return 0; // Successful execution
+}

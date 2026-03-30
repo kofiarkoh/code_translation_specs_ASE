@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_ITEMS 100
+#define MAX_ENERGY 100
+#define NA "NA"
+
+// Structure to hold item properties
+typedef struct {
+    int value;
+    int energy_cost;
+    int required_energy;
+} Item;
+
+// Memoization array
+int memo[MAX_ITEMS + 1][MAX_ENERGY + 1];
+
+// Function to initialize the memoization array
+void initialize_memo() {
+    for (int i = 0; i <= MAX_ITEMS; i++) {
+        for (int j = 0; j <= MAX_ENERGY; j++) {
+            memo[i][j] = -1; // -1 indicates uncomputed state
+        }
+    }
+}
+
+// Recursive function to find the minimum number of items
+int min_items(int target, int energy, Item items[], int N) {
+    // Base case: if target is less than or equal to zero, return 0
+    if (target <= 0) {
+        return 0;
+    }
+    // If energy exceeds the limit, return a large number (impossible state)
+    if (energy > MAX_ENERGY) {
+        return MAX_ITEMS + 1; // More than the maximum items
+    }
+    // Check memoization
+    if (memo[target][energy] != -1) {
+        return memo[target][energy];
+    }
+
+    int min_count = MAX_ITEMS + 1; // Start with an impossible count
+
+    // Try each item
+    for (int i = 0; i < N; i++) {
+        // Calculate new target and energy after using the item
+        int new_target = target - items[i].value;
+        int new_energy = energy + items[i].energy_cost;
+
+        // Recursive call to find the minimum items for the new state
+        int count = min_items(new_target, new_energy, items, N);
+        if (count < MAX_ITEMS + 1) {
+            min_count = (count + 1 < min_count) ? count + 1 : min_count; // Update minimum count
+        }
+    }
+
+    // Store the result in memoization array
+    memo[target][energy] = min_count;
+    return min_count;
+}
+
+int main() {
+    int D, N;
+    scanf("%d %d", &D, &N);
+
+    // Handle edge cases based on the specification
+    if (D < 0 || N < 0 || N > MAX_ITEMS) {
+        return 1; // Terminate with non-zero exit code for invalid input
+    }
+    if (D == 0 && N == 0) {
+        return 0; // Terminate without further processing
+    }
+    if (D <= 0) {
+        printf("0\n"); // No items needed to reach target
+        return 0;
+    }
+
+    Item items[MAX_ITEMS];
+
+    // Read item values
+    for (int i = 0; i < N; i++) {
+        if (scanf("%d %d %d", &items[i].value, &items[i].energy_cost, &items[i].required_energy) != 3) {
+            return 1; // Terminate with non-zero exit code for incorrect input format
+        }
+        // Ensure item attributes are non-negative
+        if (items[i].value < 0 || items[i].energy_cost < 0 || items[i].required_energy < 0) {
+            return 1; // Terminate for invalid item attributes
+        }
+    }
+
+    initialize_memo(); // Initialize memoization array
+
+    // Start the search for minimum items
+    int result = min_items(D, 0, items, N);
+
+    // Output the result
+    if (result > MAX_ITEMS) {
+        printf("%s\n", NA); // Target cannot be reached
+    } else {
+        printf("%d\n", result); // Minimum number of items needed
+    }
+
+    return 0;
+}

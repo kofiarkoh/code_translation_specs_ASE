@@ -1,0 +1,84 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LENGTH 3000
+
+// Function to compute the longest common subsequence
+char* longest_common_subsequence(const char* str1, const char* str2) {
+    int n = strlen(str1);
+    int m = strlen(str2);
+    
+    // Create a 2D array for dynamic programming
+    int** dp = (int**)malloc((n + 1) * sizeof(int*));
+    for (int i = 0; i <= n; i++) {
+        dp[i] = (int*)malloc((m + 1) * sizeof(int));
+    }
+
+    // Initialize the DP table
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= m; j++) {
+            if (i == 0 || j == 0) {
+                dp[i][j] = 0; // Base case
+            } else if (str1[i - 1] == str2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1; // Characters match
+            } else {
+                dp[i][j] = (dp[i - 1][j] > dp[i][j - 1]) ? dp[i - 1][j] : dp[i][j - 1]; // Take max
+            }
+        }
+    }
+
+    // Length of the LCS
+    int lcs_length = dp[n][m];
+    char* lcs = (char*)malloc((lcs_length + 1) * sizeof(char));
+    lcs[lcs_length] = '\0'; // Null-terminate the LCS string
+
+    // Backtrack to find the LCS string
+    int i = n, j = m;
+    while (i > 0 && j > 0) {
+        if (str1[i - 1] == str2[j - 1]) {
+            lcs[lcs_length - 1] = str1[i - 1]; // Match found
+            lcs_length--;
+            i--;
+            j--;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            i--; // Move up
+        } else {
+            j--; // Move left
+        }
+    }
+
+    // Free the DP table
+    for (int i = 0; i <= n; i++) {
+        free(dp[i]);
+    }
+    free(dp);
+
+    return lcs; // Return the LCS string
+}
+
+int main() {
+    char str1[MAX_LENGTH], str2[MAX_LENGTH];
+
+    // Read input strings
+    if (fgets(str1, MAX_LENGTH, stdin) == NULL || fgets(str2, MAX_LENGTH, stdin) == NULL) {
+        return 1; // Handle input error
+    }
+
+    // Remove newline characters from input
+    str1[strcspn(str1, "\n")] = 0;
+    str2[strcspn(str2, "\n")] = 0;
+
+    // Compute the longest common subsequence
+    char* lcs = longest_common_subsequence(str1, str2);
+
+    // Print the result
+    printf("%s\n", lcs);
+
+    // Free the LCS string
+    free(lcs);
+
+    return 0;
+}
+```

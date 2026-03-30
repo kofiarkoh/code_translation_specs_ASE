@@ -1,0 +1,270 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef long long ll;
+typedef char keytype;
+
+int gcd(int a, int b){ return (a % b) ? gcd(b, a % b) : b;}
+int lcm(int a, int b){ return (a / gcd(a, b)) * b;}
+
+/* a[0], ..., a[n-1] の数の最大公約数 */
+int ngcd(int n, int a[])
+{
+    int i, d;
+
+    d = a[0];
+    for (i = 1; i < n && d != 1; i++)
+        d = gcd(a[i], d);
+    return d;
+}
+
+void quicksort(keytype a[], int first, int last)
+{
+    int i, j;
+    keytype x, t;
+
+    x = a[(first + last) / 2];
+    i = first;  j = last;
+    for ( ; ; ) {
+        while (a[i] < x) i++;
+        while (x < a[j]) j--;
+        if (i >= j) break;
+        t = a[i];  a[i] = a[j];  a[j] = t;
+        i++;  j--;
+    }
+    if (first  < i - 1) quicksort(a, first , i - 1);
+    if (j + 1 < last) quicksort(a, j + 1, last);
+}
+
+int is_prime(int x){
+    if(x <= 1) return 0;
+    for(int i = 2; i * i <= x; i++){
+        if(x % i == 0) return 0;
+    }
+    return 1;
+}
+
+int is_substr(char s[], char t[], int i){
+    int flag = 1;
+
+    if(s[i] == '\0') flag = 0;
+
+    for(int j = 0; j < strlen(t); ++j, ++i){
+        if(s[i] != t[j]){
+            flag = 0;
+            break;
+        }
+    }
+    return flag;
+}
+
+// factor list, number of factors, natural number
+void factorize(int ftr[], int *num, int n){
+    int a = 2, cnt = 0;
+
+    while(n >= a){
+        if(n % a == 0){
+            n = n / a;
+            ftr[cnt++] = a;
+        }else{
+            a++;
+        }
+    }
+    *num = cnt;
+}
+
+//#define N 5
+//int p[N + 1];
+int nextperm(int p[], int N)  /* 辞書式順序で次の順列 */
+{
+    int i, j, t;
+
+    i = N - 1;
+    p[0] = 0;  /* 番人 */
+    while (p[i] >= p[i + 1]) i--;
+    if (i == 0) return 0;  /* 完了 */
+    j = N;
+    while (p[i] >= p[j]) j--;
+    t = p[i];  p[i] = p[j];  p[j] = t;
+    i++;  j = N;
+    while (i < j) {
+        t = p[i];  p[i] = p[j];  p[j] = t;  i++;  j--;
+    }
+    return 1;  /* 未了 */
+}
+
+void comb(int size1, int size2, int v[size1][size2]){
+  for(int i = 0; i < size1; i++){
+    v[i][0] = 1;
+    v[i][i] = 1;
+  }
+  for(int k = 1; k < size1; k++){
+    for(int j = 1; j < k; j++){
+      v[k][j] = (v[k-1][j-1] + v[k-1][j]);
+    }
+  }
+}
+
+int abs_val(int a, int b){
+    if(a > b) return a - b;
+    else return b - a;
+}
+
+const int inf = 1012345678;
+int main(){
+    int n;
+    ll l[100];
+
+    scanf("%d", &n);
+#if 1
+    l[0]=2LL, l[1]=1LL;
+    for(int i = 2; i <= n; i++){
+        l[i]= l[i-2] + l[i-1];
+    }
+    printf("%lld\n", l[n]);
+#endif
+    //ll ans = lucas(n);
+
+    //printf("%lld\n", ans);
+
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the nth term of a specific sequence, which is defined recursively. The sequence starts with the values 2 and 1 for the first two terms, and each subsequent term is the sum of the two preceding terms.
+
+# 2. Inputs
+- An integer `n` representing the index of the term in the sequence to compute, where `n` is a non-negative integer.
+
+# 3. Outputs
+- A long long integer representing the nth term of the sequence.
+
+# 4. Preconditions
+- The input integer `n` must be a non-negative integer (i.e., `n >= 0`).
+
+# 5. Postconditions
+- The output is the nth term of the sequence, which is defined as:
+  - `l[0] = 2`
+  - `l[1] = 1`
+  - For `n >= 2`, `l[n] = l[n-2] + l[n-1]`.
+
+# 6. Invariants
+- The values of the sequence are maintained in an array, where each term is computed based on the two preceding terms.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid inputs (e.g., negative integers). If a negative integer is provided, the behavior is undefined.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the sequence is computed iteratively, updating the array with the new term based on the previous two terms.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in linear time relative to the input `n`, and the space complexity is O(n) due to the storage of the sequence in an array.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+long long compute_nth_term(int n) {
+    // Preconditions: n must be a non-negative integer
+    // Postconditions: Returns the nth term of the sequence
+
+    // Handle the base cases
+    if (n == 0) {
+        return 2; // l[0] = 2
+    } else if (n == 1) {
+        return 1; // l[1] = 1
+    }
+
+    // Array to store the sequence values
+    long long l[n + 1]; // Space complexity is O(n)
+
+    // Initialize the first two terms
+    l[0] = 2;
+    l[1] = 1;
+
+    // Compute the sequence iteratively
+    for (int i = 2; i <= n; i++) {
+        l[i] = l[i - 2] + l[i - 1]; // l[n] = l[n-2] + l[n-1]
+    }
+
+    // Return the nth term
+    return l[n];
+}
+
+int main() {
+    int n;
+    printf("Enter a non-negative integer n: ");
+    scanf("%d", &n); // Input for the index of the term
+
+    // Call the function and print the result
+    long long result = compute_nth_term(n);
+    printf("The %dth term of the sequence is: %lld\n", n, result);
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p03544/p03544_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p03544/p03544_sample1_output.txt
+Input:
+10
+Expected:
+123
+Actual:
+Enter a non-negative integer n: The 10th term of the sequence is: 123
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

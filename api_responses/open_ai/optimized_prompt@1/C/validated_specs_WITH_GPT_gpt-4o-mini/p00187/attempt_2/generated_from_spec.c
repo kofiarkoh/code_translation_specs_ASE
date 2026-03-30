@@ -1,0 +1,66 @@
+#include <stdio.h>
+
+typedef struct {
+    int x;
+    int y;
+} Point;
+
+// Function to calculate the area of a triangle given three points
+int calculate_area(Point a, Point b, Point c) {
+    // Area = 0.5 * | ax(by - cy) + bx(cy - ay) + cx(ay - by) |
+    return (a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * (a.y - b.y));
+}
+
+// Function to check if two line segments intersect
+int do_intersect(Point p1, Point q1, Point p2, Point q2) {
+    // Using orientation to check for intersection
+    int o1 = (p1.x - p2.x) * (q2.y - p2.y) - (p1.y - p2.y) * (q2.x - p2.x);
+    int o2 = (p1.x - q2.x) * (p2.y - q2.y) - (p1.y - q2.y) * (p2.x - q2.x);
+    int o3 = (p2.x - p1.x) * (q1.y - p1.y) - (p2.y - p1.y) * (q1.x - p1.x);
+    int o4 = (p2.x - q1.x) * (p1.y - q1.y) - (p2.y - q1.y) * (p1.x - q1.x);
+    
+    // General case
+    if (o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0) {
+        return (o1 * o2 < 0) && (o3 * o4 < 0);
+    }
+    
+    // Collinear cases are not handled as they lead to "kyo"
+    return 0;
+}
+
+// Function to classify the area
+const char* classify_area(int area) {
+    if (area == 0) {
+        return "kyo"; // Collinear or overlapping
+    } else if (area < 10) {
+        return "syo-kichi";
+    } else if (area < 50) {
+        return "kichi";
+    } else if (area < 100) {
+        return "chu-kichi";
+    } else {
+        return "dai-kichi";
+    }
+}
+
+int main() {
+    Point a, b, c, d;
+    
+    // Read input coordinates
+    if (scanf("%d %d %d %d %d %d %d %d", &a.x, &a.y, &b.x, &b.y, &c.x, &c.y, &d.x, &d.y) != 8) {
+        return 1; // Invalid input
+    }
+    
+    // Check for intersection
+    if (do_intersect(a, b, c, d)) {
+        // Calculate area
+        int area = calculate_area(a, b, c);
+        // Classify area
+        printf("%s\n", classify_area(area));
+    } else {
+        // If segments do not intersect or are collinear/overlapping
+        printf("kyo\n");
+    }
+    
+    return 0;
+}

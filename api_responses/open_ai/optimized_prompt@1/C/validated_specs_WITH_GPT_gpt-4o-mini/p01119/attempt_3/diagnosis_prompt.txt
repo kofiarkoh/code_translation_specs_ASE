@@ -1,0 +1,307 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1634 Balance Scale
+// bal4u 2019.8.12
+
+#include <stdio.h>
+#include <string.h>
+
+//// 入出力関係
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in() {   // 非負整数の入力
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf); while ((c = gc()) >= '0');
+	return n;
+}
+
+void out(int n) { // 整数の表示（出力）
+	int i;
+	char b[20];
+
+	if (!n) pc('0');
+	else {
+		if (n < 0) pc('-'), n = -n;
+		i = 0; while (n) b[i++] = n % 10 + '0', n /= 10;
+		while (i--) pc(b[i]);
+		
+	}
+	pc('\n');
+}
+
+//// ハッシュ関数
+#define HASHSIZ 1000003
+typedef struct { int n, b; } HA;
+int ha1[HASHSIZ+5], *hae1 = ha1 + HASHSIZ;
+HA  ha2[HASHSIZ+5], *hae2 = ha2 + HASHSIZ;
+
+int lookup1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return 1;
+		if (++p == hae1) p = ha1;
+	}
+	return 0;
+}
+
+void insert1(int n) {
+	int *p = ha1 + n % HASHSIZ;
+	while (*p) {
+		if (*p == n) return;
+		if (++p == hae1) p = ha1;
+	}
+	*p = n;
+}
+
+int lookup2(int n, int b) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) {
+			if (p->b == b-1) { p->b = b; return 1; }
+			return 0;
+		}
+		if (++p == ha2) p = ha2;
+	}
+	return 0;
+}
+
+void insert2(int n) {
+	HA *p = ha2 + n % HASHSIZ;
+	while (p->n) {
+		if (p->n == n) return;
+		if (++p == ha2) p = ha2;
+	}
+	p->n = n, p->b = 1;
+}
+
+//// 本問題関連
+#define INF 0x7fffffff
+#define ABS(x)  ((x)>=0?(x):-(x))
+int q[60000];   // 3^10
+int a[102];
+int w[12];
+		
+int main()
+{
+	int n, m, i, j, end, x, ans;
+	
+	while (n = in()) {
+		m = in();
+		for (i = 0; i < n; i++) a[i] = in();
+		for (i = 0; i < m; i++) w[i] = in();
+		q[0] = 0, end = 1;
+		for (i = 0; i < m; i++) {
+			int e = end;
+			for (j = 0; j < e; j++) {
+				q[end++] = q[j] + w[i];
+				q[end++] = q[j] - w[i];
+			}
+		}
+		memset(ha1, 0, sizeof(ha1));
+		for (i = 0; i < end; i++) if (q[i] > 0) insert1(q[i]);
+		x = 0, ans = 0; for (i = 0; i < n; i++) if (!lookup1(a[i])) {
+			if (x == 0) {
+				int t; ans = INF;
+				memset(ha2, 0, sizeof(ha2));
+				for (j = 0; j < end; j++) {
+					if ((t = ABS(a[i]-q[j])) < ans) ans = t;
+					insert2(t);
+				}
+				x = 1;
+			} else {
+				int t, r = 0; x++, ans = INF;
+				for (j = 0; j < end; j++) {
+					t = ABS(a[i]-q[j]);
+					if (lookup2(t, x)) {
+						if (t < ans) ans = t;
+						r = 1;
+					}
+				}
+				if (r == 0) { ans = -1; break; }
+			}
+		}
+		out(ans);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a series of non-negative integers and weights to determine the minimum absolute difference between the integers and a set of computed values derived from the weights. It outputs the minimum difference or -1 if no valid difference is found.
+
+## 2. Inputs
+- A sequence of non-negative integers, where the first integer indicates the number of subsequent integers.
+- A sequence of non-negative weights, where the first integer indicates the number of subsequent weights.
+
+## 3. Outputs
+- An integer representing the minimum absolute difference between the input integers and the computed values, or -1 if no valid difference exists.
+
+## 4. Preconditions
+- The first input integer must be non-negative and indicate the number of integers to follow.
+- The second input integer must be non-negative and indicate the number of weights to follow.
+- The input integers and weights must be non-negative.
+
+## 5. Postconditions
+- The output is either the minimum absolute difference or -1, based on the comparison of input integers with computed values derived from the weights.
+
+## 6. Invariants
+- The computed values are generated by adding and subtracting weights from a base value, ensuring all combinations are considered.
+- Only non-negative computed values are stored and considered for comparison against the input integers.
+- The data structures used for storing computed values and differences maintain their integrity throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- If no valid absolute difference is found for any input integer, the output will be -1.
+- The program does not handle invalid input formats or negative integers explicitly.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each integer and weight, updating the set of computed values and tracking the minimum absolute difference. Negative computed values are ignored during this process.
+
+## 9. Non-functional Constraints (if inferable)
+- The program is expected to operate efficiently within the constraints of the input sizes, particularly with respect to memory usage and processing time for the given limits on integers and weights.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int main() {
+    int n, m;
+    
+    // Read the number of integers
+    if (scanf("%d", &n) != 1 || n < 0) {
+        return -1; // Invalid input for number of integers
+    }
+    
+    int *integers = (int *)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &integers[i]) != 1 || integers[i] < 0) {
+            free(integers);
+            return -1; // Invalid input for integers
+        }
+    }
+
+    // Read the number of weights
+    if (scanf("%d", &m) != 1 || m < 0) {
+        free(integers);
+        return -1; // Invalid input for number of weights
+    }
+    
+    int *weights = (int *)malloc(m * sizeof(int));
+    for (int i = 0; i < m; i++) {
+        if (scanf("%d", &weights[i]) != 1 || weights[i] < 0) {
+            free(integers);
+            free(weights);
+            return -1; // Invalid input for weights
+        }
+    }
+
+    // To store computed values
+    int *computed_values = (int *)malloc((1 << m) * sizeof(int)); // 2^m combinations
+    int count = 0;
+
+    // Generate all combinations of weights
+    for (int i = 0; i < (1 << m); i++) {
+        int sum = 0;
+        for (int j = 0; j < m; j++) {
+            if (i & (1 << j)) {
+                sum += weights[j]; // Add weight
+            } else {
+                sum -= weights[j]; // Subtract weight
+            }
+        }
+        if (sum >= 0) {
+            computed_values[count++] = sum; // Store only non-negative computed values
+        }
+    }
+
+    // Find the minimum absolute difference
+    int min_diff = INT_MAX;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < count; j++) {
+            int diff = abs(integers[i] - computed_values[j]);
+            if (diff < min_diff) {
+                min_diff = diff; // Update minimum difference
+            }
+        }
+    }
+
+    // If no valid difference was found, return -1
+    if (min_diff == INT_MAX) {
+        min_diff = -1;
+    }
+
+    printf("%d\n", min_diff); // Output the result
+
+    // Free allocated memory
+    free(integers);
+    free(weights);
+    free(computed_values);
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: collected_dataset/problem_test_inputs_and_outputs/p01119/p01119_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p01119/p01119_sample1_output.txt
+Exit code: 255
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+
+```

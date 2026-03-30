@@ -1,0 +1,61 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_ELEMENTS 100000
+
+// Function to process the queries and return the cumulative result
+long process_queries(int N, int Q, int *mapping, char *queries, int *values) {
+    long cumulative_result = 0;
+    int *modification_count = (int *)calloc(N + 1, sizeof(int)); // Count of modifications for each element
+
+    for (int i = 0; i < Q; i++) {
+        char query_type = queries[i];
+        int value = values[i];
+
+        if (query_type == 'M') {
+            // Increment the modification count for the specified element
+            if (value >= 1 && value <= N) {
+                modification_count[value]++;
+            }
+        } else {
+            // Retrieval operation
+            int current_index = value;
+            while (current_index >= 1 && current_index <= N) {
+                if (modification_count[current_index] > 0) {
+                    cumulative_result += current_index; // Add the index to the cumulative result
+                    break; // Exit after finding the first reachable element with modifications
+                }
+                current_index = mapping[current_index - 1]; // Move to the next element in the mapping
+            }
+            // If no reachable element is found, the loop may continue indefinitely as per specification
+        }
+    }
+
+    free(modification_count); // Free allocated memory
+    return cumulative_result; // Return the cumulative result of retrieval operations
+}
+
+int main() {
+    int N, Q;
+    // Read N and Q
+    scanf("%d %d", &N, &Q);
+    
+    int *mapping = (int *)malloc(N * sizeof(int));
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &mapping[i]); // Read the mapping
+    }
+
+    char *queries = (char *)malloc(Q * sizeof(char));
+    int *values = (int *)malloc(Q * sizeof(int));
+    for (int i = 0; i < Q; i++) {
+        scanf(" %c %d", &queries[i], &values[i]); // Read each query
+    }
+
+    long result = process_queries(N, Q, mapping, queries, values);
+    printf("%ld\n", result); // Output the cumulative result
+
+    free(mapping); // Free allocated memory
+    free(queries); // Free allocated memory
+    free(values); // Free allocated memory
+    return 0;
+}

@@ -1,0 +1,195 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2807 Fractal Tree
+// 2018.3.21 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+// 高速数値入出力
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+int in()   // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+double dbl()    // 実数の入力
+{
+	int minus = 0;
+	double x, y;
+	int n = 0, c = gc();
+	if (c == '-') minus = 1, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+
+	if (c == '.') {
+		x = 0;
+		y = 1, c = gc();
+		do y *= 0.1, x += y * (c & 0xf), c = gc(); while (c >= '0');
+		x += n;
+	}
+	else x = n;
+	if (minus) x = -x;
+	return x;
+}
+
+
+// 本問題関連
+#define MAX 100005
+typedef struct { int to, c; } T;
+int hi[MAX]; T *t[100005]; int N;
+int cost[MAX], depth[MAX], depth_max;
+double p[MAX], P;
+
+typedef struct { int n, d; } Q;
+Q q[MAX]; int top;
+char vis[MAX];
+
+void dfs()
+{
+	int i, node, d, to;
+
+	q[0].n = 1, q[0].d = 0, top = 1;
+	while (top) {
+		node = q[--top].n, d = q[top].d;
+
+		if (vis[node]) continue;
+		vis[node] = 1;
+
+		depth[node] = d;
+		if (d > depth_max) depth_max = d;
+		for (i = 0; i < hi[node]; i++) {
+			to = t[node][i].to;
+			if (!vis[to]) {
+				cost[to] = t[node][i].c;
+				q[top].n = to, q[top++].d = d + 1;
+			}
+		}
+	}
+}
+
+int main()
+{
+	int i, k, x, y, c;
+	int *memo, sz;
+	double a, b;
+
+	// 入力受付
+	P = dbl(), N = in();
+	memo = malloc(sizeof(int) * 3 * N);
+	sz = 0; for (i = 1; i < N; i++) {
+		memo[sz++] = x = in(), memo[sz++] = y = in(), memo[sz++] = in();
+		hi[x]++, hi[y]++;
+	}
+	for (i = 1; i <= N; i++) if (hi[i]) t[i] = malloc(sizeof(T)*hi[i]);
+	memset(hi+1, 0, sizeof(int)*N);
+	i = 0; while (i < sz) {
+		x = memo[i++], y = memo[i++], c = memo[i++];
+		k = hi[x]++, t[x][k].to = y, t[x][k].c = c;
+		k = hi[y]++, t[y][k].to = x, t[y][k].c = c;
+	}
+//	free(memo);
+
+	dfs();
+	p[0] = 1; for (i = 1; i <= depth_max; i++) p[i] = p[i - 1] * P;
+	a = 0, b = 1; for (i = 1; i <= N; i++)
+		a += cost[i] * p[depth[i]], b += p[depth[i]];
+	printf("%.10lf\n", a*b);
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a weighted sum based on the depth of nodes in a tree structure, where the weights are determined by a given probability factor. It reads input to construct the tree, performs a depth-first search to determine the depth of each node, and calculates a final result based on the accumulated costs and probabilities.
+
+# 2. Inputs
+- A floating-point number representing a probability factor.
+- A non-negative integer representing the number of nodes in the tree.
+- A series of triplets, each consisting of two integers (representing connected nodes) and a non-negative integer (representing the cost of the edge connecting them).
+
+# 3. Outputs
+- A single floating-point number representing the computed weighted sum, formatted to ten decimal places.
+
+# 4. Preconditions
+- The probability factor must be a valid floating-point number.
+- The number of nodes must be a non-negative integer.
+- Each triplet must consist of valid node indices and a non-negative cost.
+
+# 5. Postconditions
+- The output is a floating-point number that reflects the weighted sum of costs based on the depth of each node in the tree.
+
+# 6. Invariants
+- The tree structure remains consistent throughout the execution, with each node connected as specified by the input.
+- The depth of each node is accurately calculated and stored during the depth-first search.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid inputs or memory allocation failures. If invalid inputs are provided, the behavior is undefined.
+- Memory allocated for the tree structure is not freed, which may lead to memory leaks.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the depth-first search, where the state of each node changes from unvisited to visited, and the depth of each node is updated accordingly.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm is expected to operate efficiently within the constraints of the input size, specifically handling up to 100,000 nodes and edges.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not clarify how the costs associated with edges should be factored into the weighted sum calculation based on node depth.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should explicitly state how the costs of edges contribute to the weighted sum, particularly in relation to the depth of each node. It should clarify whether the cost should be multiplied by the depth or if it should be accumulated in a different manner.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program calculates the weighted sum by multiplying the cost of each node by a probability factor raised to the depth of that node. The generated C program, however, incorrectly accumulates the depth multiplied by the probability without considering the edge costs, leading to a total of zero when no edges are processed correctly. This indicates a misunderstanding of how costs should be integrated into the final output, which is a critical aspect of the original source program's behavior.
+
+```

@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a pathfinding algorithm that calculates the minimum cost to reach a destination in a graph represented by towns and taxi services. It utilizes a priority queue to manage the exploration of towns based on their associated costs.
+
+## 2. Inputs
+- Two integers, N and K, representing the number of towns and the number of bidirectional connections between towns, respectively.
+- For each town, two integers representing the taxi's unit cost and limit.
+- K pairs of integers representing the connections between towns, where each pair indicates a bidirectional connection.
+
+## 3. Outputs
+- An integer representing the minimum cost to reach the last town from the first town. If the destination is unreachable, the program terminates without producing any output.
+
+## 4. Preconditions
+- N and K must be non-negative integers, with N greater than zero.
+- The input for taxi details and connections must be valid integers.
+- If K is greater than zero, it must not exceed the maximum allowable connections based on the number of towns.
+
+## 5. Postconditions
+- The minimum cost to reach the last town is printed if reachable; otherwise, the program terminates without output.
+- All dynamically allocated memory for loads is freed before program termination.
+
+## 6. Invariants
+- The priority queue (heap) maintains the towns in order of their minimum cost to reach.
+- The `status_mincost` array holds the minimum cost to reach each town with a specific number of remaining taxi rides.
+
+## 7. Error Handling / Exceptional Behavior
+- The program returns an error code if the input format is incorrect or if memory allocation fails.
+- If K is zero, indicating no connections between towns, the program should terminate without output, as the destination town cannot be reached.
+- If the destination town is unreachable due to isolated towns or lack of connections, the program terminates without producing output.
+
+## 8. State Transitions
+- The state transitions occur as towns are explored and costs are updated in the priority queue. The state consists of the current town and the remaining taxi rides.
+
+## 9. Non-functional Constraints
+- The algorithm's performance is influenced by the number of towns and connections, with a complexity that may grow with the size of the input. Memory usage is also dependent on the number of connections and the dynamic allocation of loads.
+
+```

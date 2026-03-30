@@ -1,0 +1,58 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int key;
+    int identifier;
+} DataPair;
+
+// Comparator function for sorting DataPair by key
+int compare(const void *a, const void *b) {
+    return ((DataPair *)a)->key - ((DataPair *)b)->key;
+}
+
+// Function to process the data pairs and compute the result
+long compute_result(DataPair *data_pairs, int N) {
+    long result = 0;
+    const long MODULO_CONSTANT = 1000000007; // Example modulo constant
+
+    // Sort the data pairs based on keys
+    qsort(data_pairs, N, sizeof(DataPair), compare);
+
+    // Grouping and processing identifiers based on sorted keys
+    for (int i = 0; i < N; i++) {
+        // If the current key is the same as the previous one, update the identifier
+        if (i > 0 && data_pairs[i].key == data_pairs[i - 1].key) {
+            data_pairs[i].identifier = data_pairs[i - 1].identifier;
+        }
+        // Accumulate the result based on the key and identifier
+        result = (result + (long)data_pairs[i].key * data_pairs[i].identifier) % MODULO_CONSTANT;
+    }
+
+    return result;
+}
+
+int main() {
+    int N;
+    // Read the number of data pairs
+    scanf("%d", &N);
+    
+    // Allocate memory for data pairs
+    DataPair *data_pairs = (DataPair *)malloc(N * sizeof(DataPair));
+    
+    // Read the data pairs
+    for (int i = 0; i < N; i++) {
+        scanf("%d %d", &data_pairs[i].key, &data_pairs[i].identifier);
+    }
+
+    // Compute the result
+    long result = compute_result(data_pairs, N);
+    
+    // Output the result
+    printf("%ld\n", result);
+    
+    // Free allocated memory
+    free(data_pairs);
+    
+    return 0;
+}

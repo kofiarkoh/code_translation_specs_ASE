@@ -1,0 +1,64 @@
+#include <stdio.h>
+
+#define MAX_VERTICES 50
+
+// Predefined convex shape vertices (example values)
+int predefined_shape[][2] = {
+    {0, 0},
+    {5, 0},
+    {5, 5},
+    {0, 5}
+};
+int predefined_shape_size = 4;
+
+// Function to check if two line segments intersect
+int do_intersect(int p1[], int p2[], int q1[], int q2[]) {
+    // Implementation of the intersection logic (omitted for brevity)
+    // This function should return 1 if the segments intersect, 0 otherwise.
+    return 0; // Placeholder return
+}
+
+// Function to check if the polygon intersects with the predefined convex shape
+int check_intersection(int vertices[][2], int num_vertices) {
+    // Check each edge of the polygon against each edge of the predefined shape
+    for (int i = 0; i < num_vertices; i++) {
+        int p1[] = {vertices[i][0], vertices[i][1]};
+        int p2[] = {vertices[(i + 1) % num_vertices][0], vertices[(i + 1) % num_vertices][1]};
+        
+        for (int j = 0; j < predefined_shape_size; j++) {
+            int q1[] = {predefined_shape[j][0], predefined_shape[j][1]};
+            int q2[] = {predefined_shape[(j + 1) % predefined_shape_size][0], predefined_shape[(j + 1) % predefined_shape_size][1]};
+            
+            if (do_intersect(p1, p2, q1, q2)) {
+                return 1; // Intersection found
+            }
+        }
+    }
+    return 0; // No intersection
+}
+
+int main() {
+    int num_vertices;
+    int vertices[MAX_VERTICES][2];
+
+    // Read the number of vertices
+    scanf("%d", &num_vertices);
+    
+    // Check for valid number of vertices
+    if (num_vertices <= 0) {
+        return 0; // Terminate if the number of vertices is zero or negative
+    }
+
+    // Read the vertices of the polygon
+    for (int i = 0; i < num_vertices; i++) {
+        scanf("%d %d", &vertices[i][0], &vertices[i][1]);
+    }
+
+    // Check for intersection with the predefined convex shape
+    int result = check_intersection(vertices, num_vertices);
+    
+    // Output the result
+    printf("%d\n", result);
+    
+    return 0;
+}

@@ -1,0 +1,60 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_INPUT_LENGTH 11 // "YYYY.MM.DD" + null terminator
+#define NUM_INTS 5
+
+// Function to check if a year is a leap year
+int isLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+// Function to convert string date to numerical format
+void stringToNumerical(const char *dateStr, int *output) {
+    // Parse the string date format "YYYY.MM.DD"
+    sscanf(dateStr, "%d.%d.%d", &output[0], &output[1], &output[2]);
+    output[3] = 0; // Placeholder for unused values
+    output[4] = 0; // Placeholder for unused values
+}
+
+// Function to convert numerical date to string format
+void numericalToString(int *input, char *outputStr) {
+    // Adjust year relative to 2001
+    int adjustedYear = input[0] - 2001;
+    sprintf(outputStr, "%d.%d.%d.%d.%d", adjustedYear, input[1], input[2], input[3], input[4]);
+}
+
+int main() {
+    char input[MAX_INPUT_LENGTH];
+    int dateNums[NUM_INTS] = {0};
+    char outputStr[20]; // Sufficient size for output string
+
+    // Read input
+    if (fgets(input, sizeof(input), stdin) == NULL) {
+        return 1; // Error reading input
+    }
+
+    // Check for comment character
+    if (input[0] == '#') {
+        return 0; // Terminate without processing
+    }
+
+    // Check if input is in string format
+    if (strchr(input, '.') != NULL) {
+        // Convert string date to numerical format
+        stringToNumerical(input, dateNums);
+    } else {
+        // Assume input is in numerical format
+        sscanf(input, "%d %d %d %d %d", &dateNums[0], &dateNums[1], &dateNums[2], &dateNums[3], &dateNums[4]);
+    }
+
+    // Convert numerical date to string format
+    numericalToString(dateNums, outputStr);
+
+    // Output the result
+    printf("%s\n", outputStr);
+    return 0;
+}
+```

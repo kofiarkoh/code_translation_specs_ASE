@@ -1,0 +1,50 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+int count_unique_characters(const char *input) {
+    // Array to track the frequency of each character (ASCII range 0-255)
+    int frequency[256] = {0};
+    int unique_count = 0; // Count of unique characters
+
+    // Process each character in the input string
+    for (int i = 0; input[i] != '\0'; i++) {
+        // Increment the frequency of the current character
+        frequency[(unsigned char)input[i]]++;
+
+        // If this is the first occurrence of the character, increment unique_count
+        if (frequency[(unsigned char)input[i]] == 1) {
+            unique_count++;
+        }
+    }
+
+    // Adjust the unique count based on consecutive character frequencies
+    int adjusted_count = 0;
+    for (int i = 0; input[i] != '\0'; i++) {
+        // Check for consecutive characters
+        if (i == 0 || input[i] != input[i - 1]) {
+            // If it's the first occurrence of a new character, add to adjusted count
+            adjusted_count++;
+        }
+    }
+
+    // Return the adjusted count of unique characters
+    return adjusted_count;
+}
+
+int main() {
+    char input[100]; // Buffer for input string (99 characters + null terminator)
+    
+    // Read input string
+    fgets(input, sizeof(input), stdin);
+    
+    // Remove newline character if present
+    input[strcspn(input, "\n")] = '\0';
+
+    // Call the function and print the result
+    int result = count_unique_characters(input);
+    printf("%d\n", result);
+
+    return 0;
+}
+```

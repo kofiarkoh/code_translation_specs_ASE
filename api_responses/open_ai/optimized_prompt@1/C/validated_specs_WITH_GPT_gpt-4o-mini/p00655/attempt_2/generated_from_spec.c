@@ -1,0 +1,140 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+#define MAX_SIZE 200005
+
+typedef struct {
+    int first_half[MAX_SIZE];
+    int second_half[MAX_SIZE];
+    int first_size;
+    int second_size;
+    int first_min[MAX_SIZE];
+    int first_max[MAX_SIZE];
+    int second_min[MAX_SIZE];
+    int second_max[MAX_SIZE];
+} QueueStructure;
+
+void initialize(QueueStructure *qs) {
+    qs->first_size = 0;
+    qs->second_size = 0;
+}
+
+void add(QueueStructure *qs, int value) {
+    if (qs->first_size < qs->second_size) {
+        // Add to first half
+        qs->first_half[qs->first_size++] = value;
+        // Update min and max for first half
+        if (qs->first_size == 1) {
+            qs->first_min[0] = value;
+            qs->first_max[0] = value;
+        } else {
+            qs->first_min[qs->first_size - 1] = value < qs->first_min[qs->first_size - 2] ? value : qs->first_min[qs->first_size - 2];
+            qs->first_max[qs->first_size - 1] = value > qs->first_max[qs->first_size - 2] ? value : qs->first_max[qs->first_size - 2];
+        }
+    } else {
+        // Add to second half
+        qs->second_half[qs->second_size++] = value;
+        // Update min and max for second half
+        if (qs->second_size == 1) {
+            qs->second_min[0] = value;
+            qs->second_max[0] = value;
+        } else {
+            qs->second_min[qs->second_size - 1] = value < qs->second_min[qs->second_size - 2] ? value : qs->second_min[qs->second_size - 2];
+            qs->second_max[qs->second_size - 1] = value > qs->second_max[qs->second_size - 2] ? value : qs->second_max[qs->second_size - 2];
+        }
+    }
+}
+
+void delete(QueueStructure *qs) {
+    if (qs->first_size > 0) {
+        qs->first_size--;
+    } else if (qs->second_size > 0) {
+        qs->second_size--;
+    }
+    // Note: No updates to min/max arrays on delete as per specification
+}
+
+int get_min_first(QueueStructure *qs) {
+    return qs->first_min[qs->first_size - 1]; // Assumes valid index
+}
+
+int get_min_second(QueueStructure *qs) {
+    return qs->second_min[qs->second_size - 1]; // Assumes valid index
+}
+
+int get_min_first_index(QueueStructure *qs, int index) {
+    return qs->first_min[index]; // Assumes valid index
+}
+
+int get_min_second_index(QueueStructure *qs, int index) {
+    return qs->second_min[index]; // Assumes valid index
+}
+
+int get_max_first(QueueStructure *qs) {
+    return qs->first_max[qs->first_size - 1]; // Assumes valid index
+}
+
+int get_max_second(QueueStructure *qs) {
+    return qs->second_max[qs->second_size - 1]; // Assumes valid index
+}
+
+int get_max_first_index(QueueStructure *qs, int index) {
+    return qs->first_max[index]; // Assumes valid index
+}
+
+int get_max_second_index(QueueStructure *qs, int index) {
+    return qs->second_max[index]; // Assumes valid index
+}
+
+int main() {
+    QueueStructure qs;
+    initialize(&qs);
+    
+    int q, op, value, index;
+    scanf("%d", &q);
+    
+    for (int i = 0; i < q; i++) {
+        scanf("%d", &op);
+        switch (op) {
+            case 0: // Add
+                scanf("%d", &value);
+                add(&qs, value);
+                break;
+            case 1: // Delete
+                delete(&qs);
+                break;
+            case 2: // Get min first
+                printf("%d\n", get_min_first(&qs));
+                break;
+            case 3: // Get min second
+                printf("%d\n", get_min_second(&qs));
+                break;
+            case 4: // Get min first by index
+                scanf("%d", &index);
+                printf("%d\n", get_min_first_index(&qs, index));
+                break;
+            case 5: // Get min second by index
+                scanf("%d", &index);
+                printf("%d\n", get_min_second_index(&qs, index));
+                break;
+            case 6: // Get max first
+                printf("%d\n", get_max_first(&qs));
+                break;
+            case 7: // Get max second
+                printf("%d\n", get_max_second(&qs));
+                break;
+            case 8: // Get max first by index
+                scanf("%d", &index);
+                printf("%d\n", get_max_first_index(&qs, index));
+                break;
+            case 9: // Get max second by index
+                scanf("%d", &index);
+                printf("%d\n", get_max_second_index(&qs, index));
+                break;
+        }
+    }
+    
+    printf("end\n");
+    return 0;
+}

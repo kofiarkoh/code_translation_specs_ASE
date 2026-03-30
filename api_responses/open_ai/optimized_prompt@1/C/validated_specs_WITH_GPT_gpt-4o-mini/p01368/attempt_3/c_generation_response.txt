@@ -1,0 +1,90 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LOCATIONS 2002
+#define MAX_TASKS 1000
+#define INF 1000000000
+
+int distance[MAX_LOCATIONS][MAX_LOCATIONS];
+int task_start[MAX_TASKS], task_end[MAX_TASKS];
+int visited[MAX_TASKS];
+int match[MAX_TASKS];
+
+void floyd_warshall(int N) {
+    // Initialize distance matrix
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            if (i == j) {
+                distance[i][j] = 0;
+            } else {
+                distance[i][j] = INF; // No direct connection
+            }
+        }
+    }
+}
+
+int can_schedule(int task_index, int L) {
+    for (int i = 0; i < L; i++) {
+        if (visited[i]) continue; // Skip already matched tasks
+        // Check if the task can be scheduled
+        if (task_start[task_index] < task_end[i] && task_end[task_index] > task_start[i]) {
+            continue; // Overlapping tasks
+        }
+        visited[i] = 1; // Mark as visited
+        if (match[i] == -1 || can_schedule(match[i], L)) {
+            match[i] = task_index; // Assign task
+            return 1; // Successful match
+        }
+    }
+    return 0; // No match found
+}
+
+int max_tasks(int L) {
+    memset(match, -1, sizeof(match)); // Initialize matches
+    int count = 0;
+    for (int i = 0; i < L; i++) {
+        memset(visited, 0, sizeof(visited)); // Reset visited for each task
+        if (can_schedule(i, L)) {
+            count++; // Increment count of scheduled tasks
+        }
+    }
+    return count; // Return maximum number of tasks
+}
+
+int main() {
+    int T; // Number of test cases
+    scanf("%d", &T);
+    while (T--) {
+        int N, M, L;
+        scanf("%d %d %d", &N, &M, &L);
+        if (N < 0 || M < 0 || L < 0 || N > MAX_LOCATIONS || M > MAX_TASKS || L > MAX_TASKS) {
+            // Undefined behavior for invalid inputs
+            return 1; // Exit with error
+        }
+
+        floyd_warshall(N); // Initialize distance matrix
+
+        // Read distance connections
+        for (int i = 0; i < M; i++) {
+            int u, v;
+            scanf("%d %d", &u, &v);
+            if (u >= 0 && u < N && v >= 0 && v < N) {
+                distance[u][v] = 1; // Assuming distance of 1 for direct connections
+                distance[v][u] = 1; // Undirected graph
+            }
+        }
+
+        // Read tasks
+        for (int i = 0; i < L; i++) {
+            scanf("%d %d", &task_start[i], &task_end[i]);
+        }
+
+        // Calculate maximum number of tasks
+        int result = max_tasks(L);
+        printf("%d\n", result); // Output the result for the test case
+    }
+    return 0; // Successful execution
+}
+```

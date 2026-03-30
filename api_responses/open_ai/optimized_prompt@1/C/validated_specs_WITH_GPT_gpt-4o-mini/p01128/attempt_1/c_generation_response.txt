@@ -1,0 +1,67 @@
+```c
+#include <stdio.h>
+#include <limits.h>
+
+typedef struct {
+    int x1, y1, x2, y2; // Coordinates of the line segment
+    int state, label;   // State and label of the segment
+} LineSegment;
+
+// Function to check if two line segments intersect
+int doIntersect(int x1, int y1, int x2, int y2, int x3, int y3, int x4, int y4) {
+    // Calculate the orientation of the points
+    int o1 = (y2 - y1) * (x3 - x2) - (x2 - x1) * (y3 - y2);
+    int o2 = (y2 - y1) * (x4 - x2) - (x2 - x1) * (y4 - y2);
+    int o3 = (y4 - y3) * (x1 - x4) - (x4 - x3) * (y1 - y4);
+    int o4 = (y4 - y3) * (x2 - x4) - (x4 - x3) * (y2 - y4);
+    
+    // General case
+    if (o1 != 0 && o2 != 0 && o3 != 0 && o4 != 0)
+        return (o1 > 0) != (o2 > 0) && (o3 > 0) != (o4 > 0);
+    
+    // Special cases (collinear points)
+    return 0; // For simplicity, we only check general case
+}
+
+// Function to process each test case
+int processTestCase(int xa, int ya, int xb, int yb, int n, LineSegment segments[]) {
+    int transitions = INT_MAX; // Initialize to a high value
+    int currentState = 0; // Start in state 0
+
+    for (int i = 0; i < n; i++) {
+        LineSegment seg = segments[i];
+        // Check if the segment intersects with the reference line
+        if (doIntersect(xa, ya, xb, yb, seg.x1, seg.y1, seg.x2, seg.y2)) {
+            // If it intersects, toggle state based on segment's state
+            if (currentState != seg.state) {
+                currentState = seg.state;
+                transitions++; // Count a transition
+            }
+        }
+    }
+
+    return transitions == INT_MAX ? 0 : transitions; // Return 0 if no transitions were counted
+}
+
+int main() {
+    int testCases;
+    scanf("%d", &testCases); // Read number of test cases
+
+    while (testCases--) {
+        int xa, ya, xb, yb, n;
+        scanf("%d %d %d %d %d", &xa, &ya, &xb, &yb, &n); // Read coordinates and number of segments
+
+        LineSegment segments[n]; // Array to hold line segments
+        for (int i = 0; i < n; i++) {
+            scanf("%d %d %d %d %d %d", &segments[i].x1, &segments[i].y1, 
+                  &segments[i].x2, &segments[i].y2, 
+                  &segments[i].state, &segments[i].label); // Read segment data
+        }
+
+        int result = processTestCase(xa, ya, xb, yb, n, segments); // Process the test case
+        printf("%d\n", result); // Output the result
+    }
+
+    return 0;
+}
+```

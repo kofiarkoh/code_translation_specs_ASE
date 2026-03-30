@@ -1,0 +1,97 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_NODES 100 // Assuming a maximum number of nodes for the graph
+
+typedef struct {
+    int to;
+    double capacity;
+} Edge;
+
+typedef struct {
+    Edge *edges;
+    int edge_count;
+} Node;
+
+Node graph[MAX_NODES];
+double A[MAX_NODES][MAX_NODES]; // Coefficients for linear equations
+double C[MAX_NODES]; // Constants for the equations
+
+// Function prototypes
+double gauss_jordan(int n);
+double min_cost_flow(int n, int s, int t, int F);
+void clear_graph(int n);
+
+int main() {
+    int T;
+    scanf("%d", &T); // Read number of test cases
+
+    for (int i = 0; i < T; i++) {
+        int n, s, t, F;
+        scanf("%d %d %d %d", &n, &s, &t, &F); // Read nodes, source, sink, and flow
+
+        // Read the matrix A
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                scanf("%lf", &A[j][k]);
+            }
+        }
+
+        // Read the constants C
+        for (int j = 0; j < n; j++) {
+            scanf("%lf", &C[j]);
+        }
+
+        // Read the graph edges
+        clear_graph(n); // Clear previous graph data
+        for (int j = 0; j < n; j++) {
+            int M;
+            scanf("%d", &M); // Number of edges for node j
+            graph[j].edges = malloc(M * sizeof(Edge));
+            graph[j].edge_count = M;
+            for (int k = 0; k < M; k++) {
+                int to;
+                double capacity;
+                scanf("%d %lf", &to, &capacity); // Read connected node and capacity
+                graph[j].edges[k].to = to;
+                graph[j].edges[k].capacity = capacity;
+            }
+        }
+
+        // Calculate minimum cost flow
+        double result = min_cost_flow(n, s, t, F);
+        if (result < 0) {
+            printf("impossible\n");
+        } else {
+            printf("%.10lf\n", result);
+        }
+    }
+
+    return 0;
+}
+
+// Function to clear graph data
+void clear_graph(int n) {
+    for (int i = 0; i < n; i++) {
+        free(graph[i].edges); // Free previously allocated edges
+        graph[i].edges = NULL;
+        graph[i].edge_count = 0;
+    }
+}
+
+// Placeholder for Gauss-Jordan elimination
+double gauss_jordan(int n) {
+    // Implement Gauss-Jordan elimination here
+    // Return 0 if singular matrix detected
+    return 0; // Placeholder return
+}
+
+// Placeholder for minimum cost flow calculation
+double min_cost_flow(int n, int s, int t, int F) {
+    // Implement minimum cost flow algorithm here
+    return -1; // Return -1 if flow is impossible
+}
+```

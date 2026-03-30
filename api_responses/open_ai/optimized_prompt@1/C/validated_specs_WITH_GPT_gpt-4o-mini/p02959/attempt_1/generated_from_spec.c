@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+long long compute_cumulative_sum(int N, long long A[], long long B[]) {
+    // Preconditions: N is non-negative, A and B are valid arrays of size N+2
+    // Invariants: B[0] and B[N+1] are set to zero before processing
+    B[0] = 0; // Set the first element of B to zero
+    B[N + 1] = 0; // Set the last element of B to zero
+
+    long long cumulative_sum = 0; // Initialize cumulative sum
+
+    // Process each element in A and adjust B accordingly
+    for (int i = 1; i <= N; i++) {
+        // Adjust B[i] based on the value of A[i]
+        if (A[i] > 0) {
+            B[i] = B[i - 1] + A[i]; // Cumulative sum if A[i] is positive
+        } else {
+            B[i] = B[i - 1]; // No change if A[i] is non-positive
+        }
+        cumulative_sum += B[i]; // Add the current B[i] to the cumulative sum
+    }
+
+    return cumulative_sum; // Return the final cumulative sum
+}
+
+int main() {
+    int N = 5; // Example size
+    long long A[7] = {0, 1, 2, -1, 3, 4, 0}; // Example input for A
+    long long B[7]; // Array B of size N+2
+
+    long long result = compute_cumulative_sum(N, A, B);
+    printf("Cumulative Sum: %lld\n", result); // Output the result
+
+    return 0;
+}

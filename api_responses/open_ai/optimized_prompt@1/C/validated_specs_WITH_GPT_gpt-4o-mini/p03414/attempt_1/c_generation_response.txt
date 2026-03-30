@@ -1,0 +1,89 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int from;
+    int to;
+} Edge;
+
+void classify_edges(int num_nodes, int num_edges, Edge* edges) {
+    // Array to track visited nodes for DFS
+    int* visited = (int*)malloc(num_nodes * sizeof(int));
+    if (visited == NULL) {
+        // Undefined behavior if memory allocation fails, as per specification
+        return;
+    }
+
+    // Initialize visited array
+    for (int i = 0; i < num_nodes; i++) {
+        visited[i] = 0; // 0 means unvisited
+    }
+
+    // Function to perform DFS and mark connected components
+    void dfs(int node) {
+        visited[node] = 1; // Mark the node as visited
+        for (int i = 0; i < num_edges; i++) {
+            if (edges[i].from == node && !visited[edges[i].to]) {
+                dfs(edges[i].to);
+            }
+        }
+    }
+
+    // Classify each edge based on connectivity
+    for (int i = 0; i < num_edges; i++) {
+        // Reset visited array for each edge classification
+        for (int j = 0; j < num_nodes; j++) {
+            visited[j] = 0; // Reset to unvisited
+        }
+
+        // Start DFS from the 'from' node of the edge
+        dfs(edges[i].from);
+
+        // Check if the 'to' node is visited
+        if (visited[edges[i].to]) {
+            printf("same\n"); // Nodes are connected
+        } else {
+            printf("diff\n"); // Nodes are not connected
+        }
+    }
+
+    free(visited); // Free allocated memory
+}
+
+int main() {
+    int num_nodes, num_edges;
+
+    // Read number of nodes and edges
+    scanf("%d %d", &num_nodes, &num_edges);
+
+    // Undefined behavior if negative values are provided
+    if (num_nodes < 0 || num_edges < 0) {
+        return 1; // Exit with error code
+    }
+
+    // Allocate memory for edges
+    Edge* edges = (Edge*)malloc(num_edges * sizeof(Edge));
+    if (edges == NULL) {
+        // Undefined behavior if memory allocation fails
+        return 1; // Exit with error code
+    }
+
+    // Read edges
+    for (int i = 0; i < num_edges; i++) {
+        scanf("%d %d", &edges[i].from, &edges[i].to);
+        // Check for valid node indices
+        if (edges[i].from < 0 || edges[i].from >= num_nodes || 
+            edges[i].to < 0 || edges[i].to >= num_nodes) {
+            free(edges); // Free allocated memory
+            return 1; // Exit with error code
+        }
+    }
+
+    // Classify edges based on connectivity
+    classify_edges(num_nodes, num_edges, edges);
+
+    free(edges); // Free allocated memory
+    return 0;
+}
+```

@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int main() {
+    int n, m;
+    
+    // Read the number of integers
+    if (scanf("%d", &n) != 1 || n < 0) {
+        return -1; // Invalid input for number of integers
+    }
+    
+    int *integers = (int *)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        if (scanf("%d", &integers[i]) != 1 || integers[i] < 0) {
+            free(integers);
+            return -1; // Invalid input for integers
+        }
+    }
+
+    // Read the number of weights
+    if (scanf("%d", &m) != 1 || m < 0) {
+        free(integers);
+        return -1; // Invalid input for number of weights
+    }
+    
+    int *weights = (int *)malloc(m * sizeof(int));
+    for (int i = 0; i < m; i++) {
+        if (scanf("%d", &weights[i]) != 1 || weights[i] < 0) {
+            free(integers);
+            free(weights);
+            return -1; // Invalid input for weights
+        }
+    }
+
+    // To store computed values
+    int *computed_values = (int *)malloc((1 << m) * sizeof(int)); // 2^m combinations
+    int count = 0;
+
+    // Generate all combinations of weights
+    for (int i = 0; i < (1 << m); i++) {
+        int sum = 0;
+        for (int j = 0; j < m; j++) {
+            if (i & (1 << j)) {
+                sum += weights[j]; // Add weight
+            } else {
+                sum -= weights[j]; // Subtract weight
+            }
+        }
+        if (sum >= 0) {
+            computed_values[count++] = sum; // Store only non-negative computed values
+        }
+    }
+
+    // Find the minimum absolute difference
+    int min_diff = INT_MAX;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < count; j++) {
+            int diff = abs(integers[i] - computed_values[j]);
+            if (diff < min_diff) {
+                min_diff = diff; // Update minimum difference
+            }
+        }
+    }
+
+    // If no valid difference was found, return -1
+    if (min_diff == INT_MAX) {
+        min_diff = -1;
+    }
+
+    printf("%d\n", min_diff); // Output the result
+
+    // Free allocated memory
+    free(integers);
+    free(weights);
+    free(computed_values);
+
+    return 0;
+}

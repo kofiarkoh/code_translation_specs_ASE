@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates a score based on a series of game parameters provided as input. It processes these parameters to determine a final score or returns an error if specific conditions regarding the entities' attributes are not met.
+
+## 2. Inputs
+- An integer `n` representing the number of game entities.
+- For each entity indexed from `1` to `n`, four integers: `h[i]`, `a[i]`, `d[i]`, and `s[i]`, where:
+  - `h[i]` represents a health value.
+  - `a[i]` represents an attack value.
+  - `d[i]` represents a defense value.
+  - `s[i]` represents a score value.
+- An additional entity at index `0` with its own attributes: `h[0]`, `a[0]`, `d[0]`, and `s[0]`.
+
+## 3. Outputs
+- A long long integer representing the calculated score if all conditions are satisfied.
+- The string "-1" if any precondition is violated during processing.
+
+## 4. Preconditions
+- The input values for `n`, `h[i]`, `a[i]`, `d[i]`, and `s[i]` must be non-negative integers.
+- The number of entities `n` must be within the bounds of the array size (up to 40000).
+
+## 5. Postconditions
+- If the calculations are valid, the output will be the computed score.
+- If any precondition is violated, the output will be "-1".
+
+## 6. Invariants
+- The score is only updated if the attack value of an entity exceeds the defense value of the first entity (`a[i] > d[0]`).
+- The total turn count is adjusted based on the difference between the attack value of an entity and the defense value of the first entity.
+
+## 7. Error Handling / Exceptional Behavior
+- If the attack value of the first entity (`a[0]`) is less than or equal to the defense value of any subsequent entity (`d[i]` for `i` from `1` to `n`), the output will be "-1".
+- If the health of the first entity (`h[0]`) is less than or equal to the computed score at any point during processing, the output will be "-1".
+
+## 8. State Transitions
+- The state transitions occur as the score and turn values are updated based on the input parameters and conditions checked during processing. Specifically, the score is updated based on the calculated turns and the attributes of the entities.
+
+## 9. Non-functional Constraints
+- The algorithm must complete within a reasonable time frame for the maximum input size, as it involves sorting and linear processing of the input data.
+
+```

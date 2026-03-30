@@ -1,0 +1,43 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_LENGTH 999
+
+void transform_string(const char *input, char *output) {
+    // Iterate through each character of the input string
+    for (size_t i = 0; i < strlen(input); i++) {
+        char current_char = input[i];
+
+        // Check if the character is an uppercase letter
+        if (current_char >= 'A' && current_char <= 'Z') {
+            // Shift backward by three positions in the ASCII table
+            output[i] = current_char - 3;
+        } else {
+            // Shift forward by twenty-three positions in the ASCII table
+            output[i] = current_char + 23;
+        }
+    }
+    // Null-terminate the output string
+    output[strlen(input)] = '\0';
+}
+
+int main() {
+    char input[MAX_LENGTH + 1]; // +1 for null terminator
+    char output[MAX_LENGTH + 1]; // +1 for null terminator
+
+    // Read input string
+    if (fgets(input, sizeof(input), stdin) != NULL) {
+        // Remove newline character if present
+        input[strcspn(input, "\n")] = '\0';
+
+        // Transform the input string
+        transform_string(input, output);
+
+        // Print the transformed output string
+        printf("%s\n", output);
+    }
+
+    return 0;
+}
+```

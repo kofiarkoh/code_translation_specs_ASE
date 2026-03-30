@@ -1,0 +1,63 @@
+```c
+#include <stdio.h>
+#include <limits.h>
+
+int compute_min_cost(int n, int m, int k[], int t[]) {
+    // Initialize a matrix to store computed costs
+    // Using a high constant value for initialization
+    int matrix[n + 1][m + 1];
+
+    // Set the first column to zero (base case)
+    for (int i = 0; i <= n; i++) {
+        matrix[i][0] = 0;
+    }
+
+    // Initialize the rest of the matrix to a high constant value
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            matrix[i][j] = INT_MAX; // High constant value
+        }
+    }
+
+    // Compute the minimum costs based on the weights and costs
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            // Update the matrix with the minimum cost
+            if (k[i - 1] <= j) { // Check if the weight can be accommodated
+                // Calculate the cost considering the current weight
+                int cost = matrix[i - 1][j - k[i - 1]] + t[j - 1];
+                if (cost < matrix[i][j]) {
+                    matrix[i][j] = cost; // Update with the minimum cost
+                }
+            }
+            // Also carry forward the previous minimum cost
+            if (matrix[i - 1][j] < matrix[i][j]) {
+                matrix[i][j] = matrix[i - 1][j];
+            }
+        }
+    }
+
+    // Find the minimum cost from the last row of the matrix
+    int min_cost = INT_MAX;
+    for (int j = 1; j <= m; j++) {
+        if (matrix[n][j] < min_cost) {
+            min_cost = matrix[n][j];
+        }
+    }
+
+    return min_cost; // Return the minimum computed cost
+}
+
+int main() {
+    // Example usage
+    int n = 3; // Number of tasks
+    int m = 5; // Number of weights
+    int k[] = {1, 2, 3}; // Weights associated with tasks
+    int t[] = {10, 20, 30, 40, 50}; // Costs associated with weights
+
+    int result = compute_min_cost(n, m, k, t);
+    printf("Minimum cost: %d\n", result); // Output the minimum cost
+
+    return 0;
+}
+```

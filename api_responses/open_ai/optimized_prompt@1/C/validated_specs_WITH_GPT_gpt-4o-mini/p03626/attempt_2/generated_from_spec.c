@@ -1,0 +1,52 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MODULO 1000000007
+
+long calculate_result(int N, const char *S1, const char *S2) {
+    long result;
+    
+    // Check the first character match
+    if (S1[0] == S2[0]) {
+        result = 3; // Initial value if first characters match
+    } else {
+        result = 6; // Initial value if first characters do not match
+    }
+
+    // Iterate through the strings from the second character
+    for (int i = 1; i < N; i++) {
+        // If characters at the same position are equal
+        if (S1[i] == S2[i]) {
+            result = (result * 2) % MODULO; // Multiply by 2
+        }
+
+        // Check adjacency in S1
+        if (S1[i] == S1[i - 1]) {
+            // If the previous characters were equal, multiply by 3
+            if (S1[i - 1] == S2[i - 1]) {
+                result = (result * 3) % MODULO; // Multiply by 3
+            } else {
+                result = (result * 2) % MODULO; // Multiply by 2
+            }
+        }
+    }
+
+    // Ensure the result is non-negative and less than MODULO
+    return result < 0 ? 0 : result; // Return non-negative result
+}
+
+int main() {
+    int N;
+    char S1[100], S2[100];
+
+    // Example input reading (not specified in the task)
+    scanf("%d", &N);
+    scanf("%s", S1);
+    scanf("%s", S2);
+
+    // Call the function and print the result
+    long result = calculate_result(N, S1, S2);
+    printf("%ld\n", result);
+
+    return 0;
+}

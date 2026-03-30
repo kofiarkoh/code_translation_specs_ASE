@@ -1,0 +1,73 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WORD_LENGTH 204
+#define MAX_WORDS 50000
+#define MAX_QUERY_LENGTH 204
+
+typedef struct {
+    char word[MAX_WORD_LENGTH];
+    char reversed[MAX_WORD_LENGTH];
+} WordPair;
+
+WordPair words[MAX_WORDS];
+int word_count = 0;
+
+int matches(const char *query, const char *word) {
+    // Implement wildcard matching
+    const char *q = query, *w = word;
+    const char *star = NULL, *match = NULL;
+
+    while (*w) {
+        if (*q == *w || *q == '?') {
+            q++;
+            w++;
+        } else if (*q == '*') {
+            star = q++;
+            match = w;
+        } else if (star) {
+            q = star + 1;
+            w = ++match;
+        } else {
+            return 0;
+        }
+    }
+
+    while (*q == '*') q++; // Skip remaining '*'
+
+    return !*q; // If we reached the end of the query, it's a match
+}
+
+int count_matches(const char *query) {
+    int count = 0;
+    for (int i = 0; i < word_count; i++) {
+        if (matches(query, words[i].word) || matches(query, words[i].reversed)) {
+            count++;
+        }
+    }
+    return count;
+}
+
+int main() {
+    int N, M;
+    
+    // Read number of word pairs
+    if (scanf("%d", &N) != 1 || N < 0 || N > MAX_WORDS) return 1; // Undefined behavior on invalid input
+    for (int i = 0; i < N; i++) {
+        scanf("%s %s", words[i].word, words[i].reversed);
+        word_count++;
+    }
+
+    // Read number of queries
+    if (scanf("%d", &M) != 1 || M < 0) return 1; // Undefined behavior on invalid input
+    for (int i = 0; i < M; i++) {
+        char query[MAX_QUERY_LENGTH];
+        scanf("%s", query);
+        printf("%d\n", count_matches(query));
+    }
+
+    return 0;
+}
+```

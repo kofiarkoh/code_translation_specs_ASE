@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes a total count based on a sequence of integers, specifically calculating the total number of pairs that can be formed from the integers in the sequence. The calculation includes adjustments based on specific conditions related to the parity of the integers and their adjacent values.
+
+## 2. Inputs
+- An integer \( N \) representing the number of elements in the sequence, where \( N \) is a positive integer and less than or equal to 100,000.
+- A sequence of \( N \) long long integers.
+
+## 3. Outputs
+- A single long long integer representing the total count derived from the sequence, which reflects the number of pairs formed according to the specified logic.
+
+## 4. Preconditions
+- \( N \) must be a positive integer and less than or equal to 100,000.
+- Each integer in the sequence must be within the range of a long long integer.
+
+## 5. Postconditions
+- The output is the total count derived from the sequence, calculated by summing half of each integer in the sequence and adjusting the count based on specific conditions involving adjacent integers.
+
+## 6. Invariants
+- The sequence remains unchanged except for potential decrements to specific elements based on the conditions evaluated during the computation. Specifically, an element may be decremented if the preceding element is odd and the following element is greater than one.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input for \( N \) is not a valid positive integer, or if the sequence contains invalid integers, the behavior is undefined. The code does not handle such cases explicitly.
+
+## 8. State Transitions
+- The state transitions involve updating a cumulative count based on the values of the integers in the sequence. The count is incremented by half of each integer, and adjustments are made to the next integer in the sequence if the current integer is odd and the next integer is greater than one.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity of \( O(N) \), ensuring efficient processing for the maximum input size.
+
+```

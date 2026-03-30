@@ -1,0 +1,253 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+
+/* 20000! has 77338 digits */
+/* 9 digits in one int */
+#define TABAICHO_SIZE 8667
+#define TABAICHO_BLOCK 1000000000
+int tabaicho_main[TABAICHO_SIZE];
+
+void tabaicho_set(int num) {
+	int i;
+	tabaicho_main[0]=num;
+	for(i=1;i<TABAICHO_SIZE;i++)tabaicho_main[i]=0;
+}
+
+void tabaicho_mul(int num) {
+	int kuriagari=0;
+	long long calctemp;
+	int i;
+	for(i=0;i<TABAICHO_SIZE;i++) {
+		calctemp=(long long)tabaicho_main[i]*num;
+		calctemp+=kuriagari;
+		tabaicho_main[i]=calctemp%TABAICHO_BLOCK;
+		kuriagari=calctemp/TABAICHO_BLOCK;
+	}
+}
+
+void tabaicho_div(int num) {
+	long long remainder=0;
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		remainder=remainder*TABAICHO_BLOCK+tabaicho_main[i];
+		tabaicho_main[i]=remainder/num;
+		remainder=remainder%num;
+	}
+}
+
+void tabaicho_print(void) {
+	int i;
+	for(i=TABAICHO_SIZE-1;i>=0;i--) {
+		if(tabaicho_main[i]>0)break;
+	}
+	printf("%d",tabaicho_main[i]);
+	for(i--;i>=0;i--)printf("%09d",tabaicho_main[i]);
+	putchar('\n');
+}
+
+int main(void) {
+	int n,m,r;
+	scanf("%d%d%d",&n,&m,&r);
+	r-=n*m; /* n=3 r=8 m=1 xoo|xoo|xo */
+	if(r<0)puts("0");
+	else if(r==0)puts("1");
+	else {
+		int i,j,n2;
+		/* n=3 r=5 oo|oo|o */
+		/* (n+r-1)C(n-1) */
+		tabaicho_set(1);
+		n2=n-1;
+		if((n+r-1)-(n-1)<n-1)n2=(n+r-1)-(n-1);
+		for(i=0,j=n+r-1;i<n2;i++,j--)tabaicho_mul(j);
+		for(i=1;i<=n2;i++)tabaicho_div(i);
+		tabaicho_print();
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes and prints the binomial coefficient \((n+r-1)C(n-1)\) based on the input values \(n\), \(m\), and \(r\). It handles large integers using an array representation to accommodate values beyond standard data type limits.
+
+# 2. Inputs
+- Three integers: \(n\), \(m\), and \(r\).
+
+# 3. Outputs
+- A single integer representing the binomial coefficient, printed in a standard numerical format. If the result is zero, it prints "0"; if the result is one, it prints "1".
+
+# 4. Preconditions
+- The input integers \(n\), \(m\), and \(r\) must be non-negative.
+- The computation assumes that \(n\) and \(m\) are such that \(r - n \times m\) is non-negative.
+
+# 5. Postconditions
+- If \(r < 0\), the output is "0".
+- If \(r = 0\), the output is "1".
+- For \(r > 0\), the output is the computed binomial coefficient \((n+r-1)C(n-1)\).
+
+# 6. Invariants
+- The internal representation of the large integer result is maintained in an array, ensuring that each element correctly represents a segment of the overall value.
+- The array is initialized to zero except for the first element, which is set to one before multiplication operations.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- It does not account for overflow in the input values, assuming they are within reasonable bounds for computation.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the manipulation of the internal array during multiplication and division operations, reflecting changes in the computed binomial coefficient.
+
+# 9. Non-functional Constraints (if inferable)
+- The implementation is designed to handle very large integers, specifically up to the factorial of 20000, which requires efficient memory management and arithmetic operations. The performance is influenced by the size of \(n\) and \(r\).
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_DIGITS 10000 // Maximum digits to store large integers
+
+// Function to multiply a large number represented as an array by an integer
+void multiply(int *result, int multiplier, int *size) {
+    int carry = 0;
+    for (int i = 0; i < *size; i++) {
+        long long product = (long long)result[i] * multiplier + carry;
+        result[i] = product % 10; // Store last digit
+        carry = product / 10; // Carry over
+    }
+    while (carry) { // Handle remaining carry
+        result[*size] = carry % 10;
+        carry /= 10;
+        (*size)++;
+    }
+}
+
+// Function to compute the binomial coefficient (n+r-1)C(n-1)
+void binomial_coefficient(int n, int r, int *result, int *size) {
+    if (n == 0 || r == 0) {
+        result[0] = 1; // (n+r-1)C(n-1) = 1 when r = 0 or n = 0
+        *size = 1;
+        return;
+    }
+
+    int N = n + r - 1; // Compute n + r - 1
+    int K = n - 1; // Compute n - 1
+
+    // Initialize result array
+    result[0] = 1; // Start with 1
+    *size = 1; // Size of the result
+
+    // Calculate (N! / (K! * (N-K)!))
+    for (int i = 0; i < K; i++) {
+        multiply(result, N - i, size); // Multiply by (N - i)
+        // Divide by (i + 1)
+        for (int j = 0; j < *size; j++) {
+            if (result[j] < (i + 1)) {
+                // Handle division with carry
+                int carry = 0;
+                for (int k = *size - 1; k >= 0; k--) {
+                    long long current = carry * 10 + result[k];
+                    result[k] = current / (i + 1);
+                    carry = current % (i + 1);
+                }
+                // Remove leading zeros
+                while (*size > 1 && result[*size - 1] == 0) {
+                    (*size)--;
+                }
+                break;
+            }
+        }
+    }
+}
+
+// Main function to read input and compute the binomial coefficient
+int main() {
+    int n, m, r;
+    scanf("%d %d %d", &n, &m, &r); // Read inputs
+
+    // Check preconditions
+    if (n < 0 || m < 0 || r < 0 || r < n * m) {
+        printf("0\n"); // Output 0 for invalid conditions
+        return 0;
+    }
+
+    // Handle special cases
+    if (r == 0) {
+        printf("1\n"); // Output 1 if r is 0
+        return 0;
+    }
+
+    int result[MAX_DIGITS] = {0}; // Array to hold the result
+    int size = 0; // Size of the result
+
+    // Compute the binomial coefficient
+    binomial_coefficient(n, r, result, &size);
+
+    // Print the result in standard numerical format
+    for (int i = size - 1; i >= 0; i--) {
+        printf("%d", result[i]);
+    }
+    printf("\n");
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00514/p00514_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00514/p00514_sample1_output.txt
+Input:
+3 1 8
+Expected:
+21
+Actual:
+45
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

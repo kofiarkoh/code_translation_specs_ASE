@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes a binary string and a series of additional binary strings, performing a sequence of bitwise operations to compute a final integer result. The computation involves shifts and XOR operations that depend on the relative positions of the bits in the binary representations of the strings. The program iteratively compares bits from the primary string and the additional strings, applying transformations based on specific conditions.
+
+## 2. Inputs
+- An integer `m` representing the number of additional binary strings to process.
+- A binary string `s` of length up to `N` (4000).
+- `m` additional binary strings, each of variable length.
+
+## 3. Outputs
+- An integer result, which is printed to standard output. This integer represents a computed value based on the input binary strings and the operations performed on them.
+
+## 4. Preconditions
+- The first input must be a valid integer followed by a binary string.
+- Each subsequent input must be a valid binary string.
+
+## 5. Postconditions
+- The output integer is computed based on the bitwise operations performed on the input binary strings, specifically through shifts and XORs that are influenced by the positions of the bits in the binary representations.
+
+## 6. Invariants
+- The binary representations are maintained throughout the processing, ensuring that the integrity of the input data is preserved during transformations.
+- The result is computed modulo `MD` (998244353) to ensure it remains within a defined range.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle malformed input or out-of-bounds conditions. It assumes that inputs are well-formed and within expected limits.
+
+## 8. State Transitions
+- The state transitions occur through the manipulation of binary representations in arrays. The program utilizes shifts to align bits based on their indices and applies XOR operations to modify the state of the binary representations. The transitions depend on the relative positions of the bits in the binary strings, particularly when determining which bits to shift and XOR. Specifically, the program compares the highest set bits of the primary string and the additional strings, performing shifts and XORs based on these comparisons until certain conditions are met.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is dependent on the number of input strings and their lengths, with a focus on efficiency given the constraints of `N` and `L`. The operations are designed to handle potentially large binary representations efficiently. 
+
+## 10. Detailed Behavior
+- The program initializes a binary representation of the primary string `s` and processes each additional binary string in sequence. For each additional string, it constructs its binary representation and compares it with the primary string's representation. The program continues to shift and XOR the binary representations based on the positions of the bits until it reaches a termination condition, which is determined by the relative positions of the bits being compared. The final result is derived from the accumulated transformations and is influenced by the positions of the bits in the original strings.
+
+```

@@ -1,0 +1,57 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+long long sum_of_counts(int N, int K, int *array) {
+    // Step 1: Count occurrences of each integer
+    int max_value = 100; // Assuming a valid range for input integers
+    int *count = (int *)calloc(max_value + 1, sizeof(int)); // Count array initialized to zero
+
+    for (int i = 0; i < N; i++) {
+        count[array[i]]++; // Increment count for each integer
+    }
+
+    // Step 2: Collect unique counts
+    int unique_counts[max_value + 1];
+    int unique_count_size = 0;
+
+    for (int i = 0; i <= max_value; i++) {
+        if (count[i] > 0) {
+            unique_counts[unique_count_size++] = count[i]; // Store unique counts
+        }
+    }
+
+    // Step 3: Sort unique counts (using a simple bubble sort for clarity)
+    for (int i = 0; i < unique_count_size - 1; i++) {
+        for (int j = 0; j < unique_count_size - i - 1; j++) {
+            if (unique_counts[j] > unique_counts[j + 1]) {
+                // Swap
+                int temp = unique_counts[j];
+                unique_counts[j] = unique_counts[j + 1];
+                unique_counts[j + 1] = temp;
+            }
+        }
+    }
+
+    // Step 4: Calculate the sum of the first N - K unique counts
+    int limit = N - K < unique_count_size ? N - K : unique_count_size; // Determine the limit
+    long long sum = 0;
+
+    for (int i = 0; i < limit; i++) {
+        sum += unique_counts[i]; // Sum the counts
+    }
+
+    free(count); // Free allocated memory for count array
+    return sum; // Return the computed sum
+}
+
+int main() {
+    // Example usage
+    int N = 5;
+    int K = 2;
+    int array[] = {1, 2, 2, 3, 3};
+
+    long long result = sum_of_counts(N, K, array);
+    printf("Result: %lld\n", result); // Output the result
+
+    return 0;
+}

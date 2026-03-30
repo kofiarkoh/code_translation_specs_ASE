@@ -1,0 +1,145 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int main()
+{
+	int n;
+	scanf("%d", &n);
+	char s[1000006];
+	scanf("%s", s);
+	int q;
+	scanf("%d", &q);
+	int k[102];
+	int i, j;
+	for (i = 0; i < q; i++)
+		scanf("%d", &k[i]);
+	long long int ans;
+	long long int d, m, dm;
+	for (j = 0; j < q; j++)
+	{
+		ans = 0;
+		d = m = dm = 0;
+		for (i = 0; i < k[j]; i++)
+		{
+			if (s[i] == 'D')
+				d++;
+			if (s[i] == 'M')
+			{
+				m++;
+				dm += d;
+			}
+			if (s[i] == 'C')
+				ans += dm;
+		}
+		for (i = k[j]; i < n; i++)
+		{
+			if (s[i - k[j]] == 'D')
+			{
+				dm -= m;
+				d--;
+			}
+			if (s[i - k[j]] == 'M')
+				m--;
+			if (s[i] == 'D')
+				d++;
+			if (s[i] == 'M')
+			{
+				m++;
+				dm += d;
+			}
+			if (s[i] == 'C')
+				ans += dm;
+		}
+		printf("%lld\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a sequence of characters to compute a cumulative score based on specific character occurrences ('D', 'M', and 'C') over multiple queries. Each query specifies a window size, and the score is calculated for each window of that size in the character sequence.
+
+# 2. Inputs
+- An integer representing the length of a character sequence.
+- A character sequence consisting of 'D', 'M', and 'C'.
+- An integer representing the number of queries.
+- An array of integers, each representing a window size for the queries.
+
+# 3. Outputs
+- For each query, an integer representing the cumulative score calculated for the specified window size.
+
+# 4. Preconditions
+- The length of the character sequence is a positive integer.
+- The character sequence contains only the characters 'D', 'M', and 'C'.
+- The number of queries is a non-negative integer.
+- Each window size specified in the queries is a positive integer and does not exceed the length of the character sequence.
+
+# 5. Postconditions
+- The output for each query is a non-negative integer representing the cumulative score based on the occurrences of 'D', 'M', and 'C' within the specified window.
+
+# 6. Invariants
+- The cumulative score is updated correctly based on the counts of 'D' and 'M' as the window slides over the character sequence.
+- The counts of 'D' and 'M' are maintained accurately throughout the processing of each query.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the specified preconditions (e.g., invalid characters, negative sizes), the behavior is undefined, and no output is guaranteed.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the window slides over the character sequence, updating the counts of 'D', 'M', and the cumulative score based on the characters entering and exiting the window.
+
+# 9. Non-functional Constraints (if inferable)
+- The implementation is expected to handle large input sizes efficiently, given the constraints on the character sequence length and the number of queries.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not accurately describe how the cumulative score is calculated based on the occurrences of 'D', 'M', and 'C' within the specified window. Specifically, it fails to clarify the relationship between the counts of 'D' and 'M' and their contributions to the score, particularly how 'M' interacts with 'D' when calculating the cumulative score.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify how the counts of 'D' and 'M' contribute to the cumulative score, especially the interaction between these characters. It should specify that the score is not merely a sum of counts but involves a more complex relationship where 'M' contributes to the score based on the number of 'D's encountered before it.
+
+D. **Why this clarification is supported by the source program**  
+The source program maintains a cumulative score that is influenced by the counts of 'D' and 'M' in a way that is not captured by the current specification. The program uses a variable `dm` to accumulate the contributions of 'D' to the score when 'M' is encountered, indicating that the relationship between these characters is crucial for accurate score calculation. The failing test case suggests that the generated program does not account for this interaction correctly, leading to discrepancies in the expected output.
+
+```

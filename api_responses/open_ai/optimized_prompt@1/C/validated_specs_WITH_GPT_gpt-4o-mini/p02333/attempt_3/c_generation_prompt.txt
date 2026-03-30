@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a mathematical expression involving combinations and modular exponentiation, returning the result as a long long integer. The computation is performed using a custom implementation of modular exponentiation to ensure correct handling of modular arithmetic.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` represents the exponent in the modular exponentiation.
+  - `m` represents the upper limit for the combination calculations.
+
+## 3. Outputs
+- A single long long integer representing the computed result of the mathematical expression, modulo a predefined constant.
+
+## 4. Preconditions
+- The input integers `n` and `m` must be non-negative.
+- The value of `m` must not exceed a predefined maximum limit for factorial calculations, specifically 2000, as this is the upper limit used in the factorial computations.
+
+## 5. Postconditions
+- The output is the result of the summation of terms calculated using combinations and modular exponentiation, adjusted to be non-negative by applying a modulo operation.
+
+## 6. Invariants
+- The factorial and inverse factorial arrays are correctly populated for all integers up to the maximum limit specified.
+- The modular arithmetic is consistently applied throughout the calculations to ensure results remain within the bounds of the modulo.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` or `r` (where `r` is derived from `i` in the combination calculation) are negative or if `n - r` is negative, the function returns zero for that combination calculation.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve the initialization of factorial and inverse factorial arrays, followed by the iterative computation of the summation based on the input values. The modular exponentiation is performed using a custom function that ensures correct results under modular conditions.
+
+## 9. Summation Logic
+- The result is computed as a summation of terms, where each term is influenced by the parity of `(m - i)`. Specifically, terms are alternately added and subtracted based on whether `(m - i)` is even or odd, with even values contributing positively and odd values contributing negatively.
+
+## 10. Non-functional Constraints (if inferable)
+- The computation must complete within a reasonable time frame for inputs up to the maximum limit, ensuring efficiency in both time and space for the factorial calculations. The implementation of modular exponentiation must also be efficient to maintain overall performance.
+
+```

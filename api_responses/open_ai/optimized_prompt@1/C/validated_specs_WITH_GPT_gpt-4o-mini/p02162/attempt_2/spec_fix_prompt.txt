@@ -1,0 +1,100 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+
+int main(void) {
+	const char *A = "Alice", *B = "Bob", *D = "Draw";
+	int T1, T2, R1, R2;
+	if (scanf("%d%d%d%d", &T1, &T2, &R1, &R2) != 4) return 1;
+	if (R1 < 0 || R2 < 0) {
+		puts(T1 < T2 ? A : (T1 > T2 ? B : D));
+	} else {
+		puts(R1 > R2 ? A : (R1 < R2 ? B : D));
+	}
+	return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The program determines and outputs the result of a comparison based on two pairs of integer values. It identifies a winner or a draw based on the values provided.
+
+# 2. Inputs
+- Four integer values representing two time values and two result values.
+
+# 3. Outputs
+- A string indicating the winner ("Alice" or "Bob") or "Draw" based on the comparison of the input values.
+
+# 4. Preconditions
+- The input must consist of exactly four integers.
+- The result values must be non-negative integers.
+
+# 5. Postconditions
+- The output will be one of the three strings: "Alice", "Bob", or "Draw", based on the comparison logic defined in the program.
+
+# 6. Invariants
+- The program maintains that the result values are non-negative throughout its execution.
+
+# 7. Error Handling / Exceptional Behavior
+- If fewer or more than four integers are provided as input, the program will terminate without producing output.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state to an output state based on the evaluation of the input values.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a timely manner, with a focus on efficient input handling and output generation.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+- Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+- The specification does not clearly define the behavior when the result values are non-negative. Specifically, it fails to account for the scenario where the result values are compared only when they are non-negative, which leads to a different output than expected.
+
+C. **What general behavior should be clarified in the specification**  
+- The specification should clarify that when the result values are non-negative, the output is determined solely based on the comparison of these result values, and that the time values are only relevant when the result values are negative.
+
+D. **Why this clarification is supported by the source program**  
+- The source program explicitly checks if the result values are negative and, if so, uses the time values for comparison. If the result values are non-negative, it directly compares them to determine the output. This dual behavior is not adequately captured in the current specification, leading to the mismatch observed in the failing test case.
+
+```

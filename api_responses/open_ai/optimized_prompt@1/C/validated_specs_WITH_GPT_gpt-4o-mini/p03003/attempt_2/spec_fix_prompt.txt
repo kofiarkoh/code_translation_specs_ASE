@@ -1,0 +1,123 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+#include<string.h>
+
+long long dp[2010][2010];
+#define mod 1000000007
+int main(){
+	int n, m;
+	int s[2010], t[2010];
+	scanf("%d%d", &n,&m);	
+	for(int i = 0; i < n; i++) scanf("%d", s+i);
+	for(int i = 0; i < m; i++) scanf("%d", t+i);
+
+	for(int i = 0; i <= n; i++){
+		for(int j = 0; j <= m; j++){
+			if(i == 0 || j == 0){
+				dp[i][j] = 1;
+				continue;
+			}
+			dp[i][j] = (dp[i-1][j] + dp[i][j-1]) % mod;
+			if(s[i-1] != t[j-1]){
+				// dp[i-1][j-1] を mod の世界で引く
+				dp[i][j] -= dp[i-1][j-1];
+				dp[i][j] = dp[i][j] % mod;
+				if(dp[i][j] < 0) {
+					dp[i][j] += mod;
+				}
+			} 	
+		}
+	}
+	printf("%lld\n", dp[n][m]);
+	//cout << dp[n][m] << endl;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes the number of distinct interleavings of two sequences, ensuring that the order of elements from each sequence is preserved. The result is returned modulo a specified constant.
+
+# 2. Inputs
+- Two integers, `n` and `m`, representing the lengths of two sequences.
+- An array of integers `s` of length `n`.
+- An array of integers `t` of length `m`.
+
+# 3. Outputs
+- A single integer representing the number of distinct interleavings of the sequences, modulo a specified constant.
+
+# 4. Preconditions
+- The input integers `n` and `m` must be non-negative.
+- The arrays `s` and `t` must be of lengths `n` and `m`, respectively.
+
+# 5. Postconditions
+- The output integer is non-negative and less than the specified constant.
+- The output represents the count of valid interleavings of the two sequences.
+
+# 6. Invariants
+- For any valid indices `i` and `j`, the value at `dp[i][j]` represents the number of ways to interleave the first `i` elements of `s` and the first `j` elements of `t`.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input scenarios (e.g., negative lengths or malformed input).
+- If the input is valid, the computation will proceed without errors, but the behavior is undefined for invalid inputs.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur within a nested loop structure, updating the `dp` array based on the current indices of the sequences being processed.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in a time complexity of O(n * m), where `n` and `m` are the lengths of the input sequences.
+- The results are computed using modular arithmetic to prevent overflow and ensure results fit within standard integer limits.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not account for the condition where elements from the two sequences are equal, which affects the counting of distinct interleavings. Specifically, it fails to clarify how to handle cases where elements from both sequences are the same, leading to overcounting.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify how to handle cases where elements from the two sequences are equal. It should specify that when `s[i-1]` is equal to `t[j-1]`, the interleavings that include both elements should not be double-counted.
+
+D. **Why this clarification is supported by the source program**  
+The source program includes a condition that subtracts the count of interleavings when the last elements of the two sequences being considered are equal (`s[i-1] != t[j-1]`). This indicates that the counting logic is designed to avoid overcounting in such cases, which is not reflected in the current specification. The failing test case demonstrates that the generated program counts interleavings incorrectly when elements are equal, leading to the discrepancy between the expected and actual outputs.
+
+```

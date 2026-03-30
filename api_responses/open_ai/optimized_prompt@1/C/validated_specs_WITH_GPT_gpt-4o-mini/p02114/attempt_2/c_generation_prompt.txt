@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a square grid of characters to count and report the number of distinct connected components of a specific target character, which is defined as 'x'. Each component is defined by directly adjacent occurrences of the target character, where adjacency is determined by horizontal or vertical connections. The algorithm excludes any occurrences of the blocking character, defined as 'o', from being part of the same component.
+
+## 2. Inputs
+- A single integer representing the size of the grid (n), where n is a positive integer.
+- A grid of characters of size n x n, where each character can be one of three types: the target character ('x'), the blocking character ('o'), or an empty character.
+
+## 3. Outputs
+- An integer representing the number of distinct connected components of the target character ('x'), divided by three. The output is the integer result of this division.
+
+## 4. Preconditions
+- The input integer n must be a positive integer.
+- The grid must be filled with valid characters before processing, specifically including the target character and the blocking character.
+
+## 5. Postconditions
+- The output integer is the count of distinct connected components of the target character ('x'), adjusted according to the specified formula. The count reflects only those components that are formed by directly connected 'x' characters, with no influence from blocking characters.
+
+## 6. Invariants
+- The grid remains unchanged except for the marking of processed characters, which are marked as part of a connected component.
+- The count of connected components is incremented only when a new component of the target character ('x') is identified, ensuring that only directly connected occurrences are counted.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid inputs or out-of-bounds access. It assumes that the input adheres to the specified format and constraints. The behavior in cases of invalid input is undefined.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the grid is processed, marking characters as part of a connected component and updating the count of components. The algorithm transitions from an unvisited state to a visited state for each 'x' character that is part of a newly identified component.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is linear with respect to the number of grid cells, assuming a constant time operation for each cell. The performance is influenced by the size of the grid and the distribution of the target and blocking characters.
+
+```

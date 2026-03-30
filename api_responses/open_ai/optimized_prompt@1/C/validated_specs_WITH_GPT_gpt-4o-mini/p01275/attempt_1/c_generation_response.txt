@@ -1,0 +1,60 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_LENGTH 10
+
+// Function to calculate the minimum rotations required
+int rotate_count(const char *init, const char *unlock, int n) {
+    int min_ = n; // Initialize min_ to a value greater than any possible rotation count
+    int diff[MAX_LENGTH]; // Array to hold the differences between init and unlock
+
+    // Calculate the difference array
+    for (int i = 0; i < n; i++) {
+        diff[i] = (unlock[i] - init[i] + 10) % 10; // Calculate the required rotation for each digit
+    }
+
+    // Check for identical sequences
+    if (strcmp(init, unlock) == 0) {
+        return 0; // If sequences are identical, return 0
+    }
+
+    // Calculate the minimum rotations needed
+    for (int i = 0; i < n; i++) {
+        int rotations = 0;
+        for (int j = 0; j < n; j++) {
+            rotations += diff[(i + j) % n]; // Accumulate rotations needed for this starting point
+        }
+        if (rotations < min_) {
+            min_ = rotations; // Update min_ if a smaller rotation count is found
+        }
+    }
+
+    return min_; // Return the minimum rotations found
+}
+
+int main() {
+    int n;
+    char init[MAX_LENGTH + 1], unlock[MAX_LENGTH + 1];
+
+    // Read input until a non-positive integer is provided for n
+    while (1) {
+        scanf("%d", &n);
+        if (n <= 0) {
+            break; // Terminate if n is non-positive
+        }
+        scanf("%s %s", init, unlock); // Read the two sequences
+
+        // Ensure the input length matches n
+        if (strlen(init) != n || strlen(unlock) != n) {
+            continue; // Skip invalid input
+        }
+
+        // Calculate and print the minimum rotations
+        int result = rotate_count(init, unlock, n);
+        printf("%d\n", result);
+    }
+
+    return 0; // Graceful termination
+}
+```

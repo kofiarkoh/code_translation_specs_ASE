@@ -1,0 +1,51 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_INTEGERS 1000000
+
+int main() {
+    int numbers[MAX_INTEGERS];
+    int count = 0;
+    int input;
+
+    // Read integers until a zero is encountered
+    while (1) {
+        scanf("%d", &input);
+        if (input == 0) {
+            break; // Terminate input on zero
+        }
+        if (count < MAX_INTEGERS) {
+            numbers[count++] = input; // Store the integer
+        }
+    }
+
+    // If no integers were read, output "NO COLOR"
+    if (count == 0) {
+        printf("NO COLOR\n");
+        return 0;
+    }
+
+    // Frequency array to count occurrences of each integer
+    int *frequency = (int *)calloc(count, sizeof(int));
+    int max_freq = 0;
+    int dominant_color = numbers[0];
+
+    // Count frequencies of each integer
+    for (int i = 0; i < count; i++) {
+        frequency[numbers[i]]++; // Increment frequency count
+        if (frequency[numbers[i]] > max_freq) {
+            max_freq = frequency[numbers[i]];
+            dominant_color = numbers[i]; // Update dominant color
+        }
+    }
+
+    // Check if the frequency of the dominant color exceeds half the total count
+    if (max_freq > count / 2) {
+        printf("%d\n", dominant_color); // Output the dominant color
+    } else {
+        printf("NO COLOR\n"); // Output "NO COLOR" if no dominant color
+    }
+
+    free(frequency); // Free allocated memory
+    return 0;
+}

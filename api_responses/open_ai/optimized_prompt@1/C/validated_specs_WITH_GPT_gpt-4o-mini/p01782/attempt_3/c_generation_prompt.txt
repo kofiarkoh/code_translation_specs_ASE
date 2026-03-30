@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a min-cost flow algorithm to decode a set of ancient messages represented as a bipartite graph. It constructs a flow network based on character mappings, where each character is treated as a node, and computes the minimum cost to achieve a specified flow from a source node to a sink node. The output is derived from the flow values that represent the frequency of each character based on their relationships in the graph.
+
+## 2. Inputs
+- An integer \( N \) representing the number of lines of input.
+- \( N \) lines of characters, each containing up to 52 characters, representing the encoded messages.
+
+## 3. Outputs
+- A decoded string composed of uppercase and lowercase letters, derived from the input character mappings, printed to standard output. The frequency of each character in the output reflects the flow computed by the min-cost flow algorithm.
+
+## 4. Preconditions
+- The input must consist of a valid integer followed by \( N \) lines of characters, where \( N \) is non-negative and does not exceed the maximum defined limit.
+- Each character in the input lines must be a valid uppercase or lowercase letter.
+
+## 5. Postconditions
+- The output string contains characters decoded from the input, with the frequency of each character determined by the flow values computed through the min-cost flow algorithm. The algorithm aggregates flow values for characters that may appear multiple times across different input lines.
+
+## 6. Invariants
+- The flow network maintains valid capacities and costs for all edges throughout the execution of the min-cost flow algorithm.
+- The internal state of the flow network is consistent, ensuring that the flow does not exceed the capacities defined for each edge.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle erroneous input or exceptional conditions. It assumes that the input adheres to the specified format and constraints.
+
+## 8. State Transitions
+- The state transitions occur during the execution of the min-cost flow algorithm, where the flow values and distances are updated iteratively until the desired flow is achieved. The algorithm updates the flow network based on the capacities and costs of the edges, reflecting changes in the character mappings. The flow values for each character are aggregated to determine their final frequency in the output.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate within polynomial time complexity relative to the number of vertices and edges in the flow network, ensuring efficiency for reasonably sized inputs.
+
+```

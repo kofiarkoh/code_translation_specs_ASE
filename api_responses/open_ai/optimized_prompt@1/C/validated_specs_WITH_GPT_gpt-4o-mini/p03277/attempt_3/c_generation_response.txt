@@ -1,0 +1,81 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int *tree;
+    int size;
+} BIT;
+
+// Function to create a binary indexed tree
+BIT* createBIT(int size) {
+    BIT *bit = (BIT *)malloc(sizeof(BIT));
+    bit->size = size;
+    bit->tree = (int *)calloc(size + 1, sizeof(int)); // 1-based indexing
+    return bit;
+}
+
+// Function to update the binary indexed tree
+void updateBIT(BIT *bit, int index, int value) {
+    while (index <= bit->size) {
+        bit->tree[index] += value;
+        index += index & -index; // Move to the next index
+    }
+}
+
+// Function to get the cumulative frequency from the binary indexed tree
+int getCount(BIT *bit, int index) {
+    int sum = 0;
+    while (index > 0) {
+        sum += bit->tree[index];
+        index -= index & -index; // Move to the parent index
+    }
+    return sum;
+}
+
+// Function to find the largest integer l
+int findLargestL(int n, int *a) {
+    BIT *bit = createBIT(2 * n); // Create BIT for range [1, 2n]
+    
+    // Populate the binary indexed tree
+    for (int i = 0; i < n; i++) {
+        updateBIT(bit, a[i], 1); // Increment count for each element
+    }
+
+    int l = 1, r = 2 * n, result = 0;
+
+    // Perform binary search
+    while (l <= r) {
+        int m = l + (r - l) / 2; // Midpoint
+        int count = getCount(bit, m); // Count of elements <= m
+
+        // Check the condition
+        if (4 * count >= n * (n + 1)) {
+            result = m; // Update result
+            l = m + 1; // Search in the right half
+        } else {
+            r = m - 1; // Search in the left half
+        }
+    }
+
+    free(bit->tree);
+    free(bit);
+    return result; // Return the largest l found
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read number of elements
+    int *a = (int *)malloc(n * sizeof(int)); // Allocate array
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &a[i]); // Read elements into the array
+    }
+
+    int result = findLargestL(n, a); // Find the largest l
+    printf("%d\n", result); // Output the result
+
+    free(a); // Free allocated array
+    return 0;
+}
+```

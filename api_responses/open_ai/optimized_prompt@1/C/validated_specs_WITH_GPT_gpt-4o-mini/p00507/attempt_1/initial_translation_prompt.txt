@@ -1,0 +1,53 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+int N,i,j,k,c,a,A[10000000],R[3]={9999999999,9999999999,9999999999};
+
+int cmp(int *a,int *b){return *a>*b;}
+
+int main()
+{
+	scanf("%d",&N);
+	for(i=0;i<N;i++)scanf("%d",&A[i]);
+
+	for(i=0;i<N;i++)
+		for(j=0;j<N;j++)
+		{
+			if(i!=j)
+			{
+				for(k=10;A[j]%k!=A[j];k*=10);
+				a=A[i]*k+A[j];
+				for(k=0;k<3;k++)
+					if(R[k]>a)a^=R[k]^=a^=R[k];
+			}
+		}
+	printf("%d\n",R[2]);
+	return 0;
+}
+```

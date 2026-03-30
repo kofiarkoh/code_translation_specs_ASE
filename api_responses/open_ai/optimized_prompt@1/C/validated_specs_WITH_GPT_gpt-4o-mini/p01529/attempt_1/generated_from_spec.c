@@ -1,0 +1,48 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+int minCost(int n, int* weights) {
+    // Dynamic programming table to store minimum costs
+    long long dp[4001][4001]; // Using long long to prevent overflow during calculations
+
+    // Initialize the dp table
+    for (int i = 0; i <= n; i++) {
+        for (int j = 0; j <= n; j++) {
+            dp[i][j] = (i == j) ? 0 : LLONG_MAX; // Zero cost for single weights, max for others
+        }
+    }
+
+    // Fill the dp table
+    for (int length = 2; length <= n; length++) { // length of the subproblem
+        for (int i = 0; i <= n - length; i++) {
+            int j = i + length - 1; // end index of the subproblem
+            // Calculate the cost of combining weights from i to j
+            for (int k = i; k < j; k++) {
+                long long cost = dp[i][k] + dp[k + 1][j] + weights[i] + weights[j]; // cost of combining
+                if (cost < dp[i][j]) {
+                    dp[i][j] = cost; // update minimum cost
+                }
+            }
+        }
+    }
+
+    // The result is the minimum cost to combine all weights
+    return (int)dp[0][n - 1]; // Cast to int as the output is guaranteed to be non-negative
+}
+
+int main() {
+    int n;
+    scanf("%d", &n); // Read the number of weights
+    int* weights = (int*)malloc(n * sizeof(int)); // Allocate memory for weights
+
+    for (int i = 0; i < n; i++) {
+        scanf("%d", &weights[i]); // Read each weight
+    }
+
+    int result = minCost(n, weights); // Compute the minimum cost
+    printf("%d\n", result); // Output the result
+
+    free(weights); // Free allocated memory
+    return 0;
+}

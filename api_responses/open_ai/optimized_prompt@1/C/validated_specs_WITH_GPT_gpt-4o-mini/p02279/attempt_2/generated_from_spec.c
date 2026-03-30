@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_NODES 100000
+
+typedef struct Node {
+    int id;                 // Node identifier
+    int parent;             // Parent identifier
+    int depth;              // Depth of the node
+    int left;               // Left child identifier
+    int right;              // Right child identifier
+    struct Node* rightChild; // Pointer to the next right child
+} Node;
+
+Node* nodes[MAX_NODES]; // Array to hold pointers to nodes
+int nodeCount;           // Total number of nodes
+
+// Function to create a new node
+Node* createNode(int id, int parent, int depth) {
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->id = id;
+    newNode->parent = parent;
+    newNode->depth = depth;
+    newNode->left = -1; // Initialize left child as -1 (no child)
+    newNode->right = -1; // Initialize right child as -1 (no child)
+    newNode->rightChild = NULL; // Initialize right child pointer as NULL
+    return newNode;
+}
+
+// Function to print the properties of each node
+void printNodeProperties(Node* node) {
+    printf("Node ID: %d, Parent ID: %d, Depth: %d, Type: ", 
+           node->id, node->parent, node->depth);
+    if (node->parent == -1) {
+        printf("root");
+    } else if (node->left == -1 && node->right == -1) {
+        printf("leaf");
+    } else {
+        printf("internal");
+    }
+    printf(", Children: ");
+    if (node->left != -1) {
+        printf("%d", node->left);
+        Node* child = node->rightChild;
+        while (child != NULL) {
+            printf(" %d", child->id);
+            child = child->rightChild;
+        }
+    } else {
+        printf("none");
+    }
+    printf("\n");
+}
+
+// Function to construct the binary tree from input
+void constructTree() {
+    for (int i = 0; i < nodeCount; i++) {
+        int id, numChildren;
+        scanf("%d %d", &id, &numChildren);
+        nodes[id] = createNode(id, (i == 0) ? -1 : nodes[i - 1]->id, 0);
+        
+        // Link children
+        if (numChildren > 0) {
+            nodes[id]->left = numChildren > 0 ? id + 1 : -1; // First child as left
+            Node* currentChild = nodes[id]->left != -1 ? nodes[nodes[id]->left] : NULL;
+            for (int j = 1; j < numChildren; j++) {
+                int childId;
+                scanf("%d", &childId);
+                if (currentChild != NULL) {
+                    currentChild->rightChild = createNode(childId, id, 0);
+                    currentChild = currentChild->rightChild;
+                }
+            }
+        }
+    }
+}
+
+// Function to calculate the depth of each node
+void calculateDepth(Node* node, int depth) {
+    if (node == NULL) return;
+    node->depth = depth;
+    if (node->left != -1) {
+        calculateDepth(nodes[node->left], depth + 1);
+    }
+    Node* child = node->rightChild;
+    while (child != NULL) {
+        calculateDepth(child, depth);
+        child = child->rightChild;
+    }
+}
+
+int main() {
+    scanf("%d", &nodeCount); // Read the number of nodes
+    constructTree(); // Construct the tree
+    calculateDepth(nodes[0], 0); // Calculate depth starting from root
+
+    // Print properties of each node
+    for (int i = 0; i < nodeCount; i++) {
+        printNodeProperties(nodes[i]);
+    }
+
+    // Free allocated memory
+    for (int i = 0; i < nodeCount; i++) {
+        free(nodes[i]);
+    }
+
+    return 0;
+}

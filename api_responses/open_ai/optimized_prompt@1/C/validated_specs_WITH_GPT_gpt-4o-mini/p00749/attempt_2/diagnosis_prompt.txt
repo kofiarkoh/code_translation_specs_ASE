@@ -1,0 +1,315 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a grid representation of a structure to determine its stability based on specific criteria. It identifies connected components in the grid and evaluates whether the structure meets stability conditions.
+
+# 2. Inputs
+- A series of grids defined by their width and height.
+- Each grid cell contains either a character representing a part of the structure or a placeholder indicating empty space.
+
+# 3. Outputs
+- A string indicating the stability of the structure: either "STABLE" or "UNSTABLE".
+
+# 4. Preconditions
+- The input grid dimensions (width and height) must be positive integers.
+- The grid must be filled with valid characters representing the structure or empty spaces.
+
+# 5. Postconditions
+- The output will reflect the stability of the structure based on the evaluation of connected components and their properties.
+
+# 6. Invariants
+- The relationships between connected components are maintained throughout the processing.
+- The properties of each component (such as size and maximum x-coordinate) are consistently updated during the evaluation.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input dimensions are non-positive, the program terminates without processing.
+- The program assumes valid input; no explicit error handling for malformed input is implemented.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each grid cell, updating the relationships and properties of connected components based on their neighbors.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed memory limit defined by the maximum grid size.
+- Performance is influenced by the grid size, with potential implications for time complexity based on the number of connected components.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_WIDTH 100
+#define MAX_HEIGHT 100
+
+// Directions for exploring connected components (up, down, left, right)
+int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+// Function to check if a cell is within the grid bounds
+int is_within_bounds(int x, int y, int width, int height) {
+    return (x >= 0 && x < width && y >= 0 && y < height);
+}
+
+// Function to perform DFS and find connected components
+void dfs(char grid[MAX_HEIGHT][MAX_WIDTH], int visited[MAX_HEIGHT][MAX_WIDTH], 
+         int x, int y, int *size, int *max_x) {
+    visited[y][x] = 1; // Mark the cell as visited
+    (*size)++; // Increment the size of the component
+    if (x > *max_x) {
+        *max_x = x; // Update the maximum x-coordinate
+    }
+
+    // Explore all four directions
+    for (int i = 0; i < 4; i++) {
+        int new_x = x + directions[i][0];
+        int new_y = y + directions[i][1];
+        if (is_within_bounds(new_x, new_y, MAX_WIDTH, MAX_HEIGHT) && 
+            !visited[new_y][new_x] && grid[new_y][new_x] != ' ') {
+            dfs(grid, visited, new_x, new_y, size, max_x);
+        }
+    }
+}
+
+// Function to evaluate the stability of the structure
+const char* evaluate_stability(char grid[MAX_HEIGHT][MAX_WIDTH], int width, int height) {
+    int visited[MAX_HEIGHT][MAX_WIDTH] = {0}; // Visited array to track explored cells
+    int stable = 1; // Assume stable unless proven otherwise
+
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            if (grid[y][x] != ' ' && !visited[y][x]) {
+                int size = 0; // Size of the connected component
+                int max_x = x; // Maximum x-coordinate in the component
+                dfs(grid, visited, x, y, &size, &max_x);
+
+                // Stability condition: if the maximum x-coordinate is less than the size
+                if (max_x < size) {
+                    stable = 0; // Mark as unstable
+                }
+            }
+        }
+    }
+
+    return stable ? "STABLE" : "UNSTABLE"; // Return stability result
+}
+
+int main() {
+    int width, height;
+    char grid[MAX_HEIGHT][MAX_WIDTH];
+
+    // Read grid dimensions
+    scanf("%d %d", &width, &height);
+    
+    // Check for positive dimensions
+    if (width <= 0 || height <= 0) {
+        return 0; // Terminate without processing
+    }
+
+    // Read the grid
+    for (int y = 0; y < height; y++) {
+        scanf("%s", grid[y]);
+    }
+
+    // Evaluate and print the stability of the structure
+    printf("%s\n", evaluate_stability(grid, width, height));
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_output.txt
+Input:
+5 4
+.....
+..#..
+.###.
+#####
+6 6
+......
+..##..
+.####.
+######
+......
+......
+0 0
+Expected:
+STABLE
+UNSTABLE
+Actual:
+UNSTABLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

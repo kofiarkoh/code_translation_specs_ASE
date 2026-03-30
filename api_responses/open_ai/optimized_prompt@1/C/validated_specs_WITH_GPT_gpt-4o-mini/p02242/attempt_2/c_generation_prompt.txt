@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements Dijkstra's algorithm to compute the shortest path costs from a source node to all other nodes in a directed graph represented by a set of nodes, each with associated edges and costs. It reads the graph structure from input, processes it, and outputs the shortest path costs.
+
+## 2. Inputs
+- An integer representing the number of nodes in the graph.
+- For each node:
+  - An integer representing the node index.
+  - An integer representing the number of edges connected to the node.
+  - For each edge:
+    - An integer representing the destination node index.
+    - An integer representing the cost of the edge.
+
+## 3. Outputs
+- For each node, the output consists of:
+  - The node index.
+  - The shortest path cost from the source node to that node.
+
+## 4. Preconditions
+- The input must provide a valid integer for the number of nodes.
+- Each node index must be within the range of valid node indices (0 to n-1).
+- The number of edges for each node must be a non-negative integer.
+- The destination node indices must be valid and within the range of valid node indices.
+
+## 5. Postconditions
+- Each node's cost is updated to reflect the shortest path cost from the source node.
+- If a node is unreachable from the source node, its cost remains as initialized (-1).
+
+## 6. Invariants
+- The cost of the source node is always initialized to 0.
+- Nodes that have been visited will not be processed again.
+- The algorithm guarantees that once a node's cost is finalized, it will not change.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input for the number of nodes is invalid (e.g., negative), the behavior is undefined.
+- If the input for edges or costs is invalid, the behavior is also undefined.
+- The algorithm does not handle cycles or negative edge costs explicitly.
+- The algorithm does not guarantee that all nodes will be reachable from the source node, especially in cases where the graph is not fully connected.
+
+## 8. State Transitions
+- The state transitions occur as nodes are marked as visited and their costs are updated based on the edges processed.
+
+## 9. Non-functional Constraints
+- The algorithm operates in O(n^2) time complexity in the worst case, where n is the number of nodes, due to the lack of a priority queue.
+
+```

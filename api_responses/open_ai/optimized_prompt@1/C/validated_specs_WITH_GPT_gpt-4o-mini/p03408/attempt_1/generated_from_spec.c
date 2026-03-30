@@ -1,0 +1,50 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_STR_LEN 11 // 10 characters + null terminator
+#define MAX_STR_COUNT 100 // Arbitrary limit for the number of strings
+
+int main() {
+    int N, M;
+    char firstSet[MAX_STR_COUNT][MAX_STR_LEN];
+    char secondSet[MAX_STR_COUNT][MAX_STR_LEN];
+    int countFirst[MAX_STR_COUNT] = {0}; // Count occurrences in the first set
+    int adjustedCount[MAX_STR_COUNT] = {0}; // Adjusted counts after matching
+
+    // Read the number of strings in the first set
+    scanf("%d", &N);
+    // Read the strings in the first set
+    for (int i = 0; i < N; i++) {
+        scanf("%s", firstSet[i]);
+        countFirst[i]++; // Initialize count for each string
+    }
+
+    // Read the number of strings in the second set
+    scanf("%d", &M);
+    // Read the strings in the second set
+    for (int i = 0; i < M; i++) {
+        char temp[MAX_STR_LEN];
+        scanf("%s", temp);
+        // Check for matches in the first set
+        for (int j = 0; j < N; j++) {
+            if (strcmp(temp, firstSet[j]) == 0) {
+                countFirst[j]--; // Subtract occurrences for matches
+                if (countFirst[j] < 0) {
+                    countFirst[j] = 0; // Ensure non-negative counts
+                }
+            }
+        }
+    }
+
+    // Find the maximum adjusted count
+    int maxAdjustedCount = 0;
+    for (int i = 0; i < N; i++) {
+        if (countFirst[i] > maxAdjustedCount) {
+            maxAdjustedCount = countFirst[i];
+        }
+    }
+
+    // Output the maximum adjusted count
+    printf("%d\n", maxAdjustedCount);
+    return 0;
+}

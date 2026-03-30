@@ -1,0 +1,31 @@
+#include <stdio.h>
+
+const char* evaluate_state(int a, int b, int c) {
+    // The function evaluates the state based on the values of a, b, and c.
+    // According to the specification, valid inputs are strictly 0 or 1.
+    
+    // Check the specified input combinations
+    if (a == 1 && b == 1 && c == 0) {
+        return "Open"; // Input (1, 1, 0) results in "Open"
+    } else if (a == 0 && b == 0 && c == 1) {
+        return "Open"; // Input (0, 0, 1) results in "Open"
+    } else {
+        return "Close"; // All other combinations result in "Close"
+    }
+}
+
+int main() {
+    // Example usage of the evaluate_state function
+    int a, b, c;
+    
+    // Assuming inputs are provided correctly as 0 or 1
+    // In a real scenario, you would want to validate inputs
+    a = 1; // Example input
+    b = 1; // Example input
+    c = 0; // Example input
+    
+    // Output the result based on the inputs
+    printf("%s\n", evaluate_state(a, b, c));
+    
+    return 0;
+}

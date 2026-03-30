@@ -1,0 +1,58 @@
+```c
+#include <stdio.h>
+
+void transform_array(int N, int K, int arr[]) {
+    int temp[N]; // Temporary array to hold transformations
+    for (int i = 0; i < N; i++) {
+        temp[i] = arr[i]; // Initialize temp with current values
+    }
+
+    for (int iter = 0; iter < K; iter++) {
+        int min_value = temp[0]; // Track the minimum value in the array
+        for (int i = 0; i < N; i++) {
+            if (temp[i] < min_value) {
+                min_value = temp[i]; // Update minimum value
+            }
+        }
+        
+        // Terminate if the minimum value is less than N
+        if (min_value < N) {
+            break;
+        }
+
+        // Apply transformation logic
+        for (int i = 0; i < N; i++) {
+            if (temp[i] >= i) {
+                temp[0]++; // Increment first position if condition met
+            }
+            // Adjust temp[i] based on the difference and sum
+            if (i > temp[i]) {
+                temp[i] -= (i - temp[i]);
+            } else {
+                temp[i] += (temp[i] + i);
+            }
+        }
+    }
+
+    // Output the transformed array
+    for (int i = 0; i < N; i++) {
+        printf("%d", temp[i]);
+        if (i < N - 1) {
+            printf(" "); // Print space between numbers
+        }
+    }
+    printf("\n"); // New line at the end of output
+}
+
+int main() {
+    int N, K;
+    scanf("%d %d", &N, &K); // Read N and K
+    int arr[N];
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &arr[i]); // Read the array elements
+    }
+    
+    transform_array(N, K, arr); // Process the array
+    return 0;
+}
+```

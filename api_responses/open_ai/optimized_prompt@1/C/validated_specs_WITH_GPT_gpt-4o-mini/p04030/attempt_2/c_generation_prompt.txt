@@ -1,0 +1,57 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes an input string by removing characters that are preceded by the character 'B'. Each 'B' character decrements a counter, which effectively allows the removal of the most recently added character from the output string. The final output is a modified version of the input string, where characters are excluded based on the presence of 'B'.
+
+## 2. Inputs
+- A string of characters with a maximum length of 10 characters, terminated by a null character.
+
+## 3. Outputs
+- A modified string that contains characters from the input string, excluding those that are removed based on the presence of 'B'.
+
+## 4. Preconditions
+- The input string must be null-terminated and contain no more than 10 characters.
+
+## 5. Postconditions
+- The output string is null-terminated and contains only the characters from the input string that are not removed by the processing rules.
+
+## 6. Invariants
+- The output string maintains the order of characters from the input string, minus any characters removed due to the presence of 'B'.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input string exceeds the maximum length, behavior is undefined. The program does not handle this case explicitly.
+
+## 8. State Transitions
+- The state transitions occur as characters are read from the input string. The state is defined by the current position in the output string and the count of characters that have been added to it. Each 'B' character checks if there are characters present in the output string to remove; if so, it removes the last added character.
+
+## 9. Non-functional Constraints
+- The processing must complete in linear time relative to the length of the input string. The output string is limited to a maximum length of 10 characters.
+
+```

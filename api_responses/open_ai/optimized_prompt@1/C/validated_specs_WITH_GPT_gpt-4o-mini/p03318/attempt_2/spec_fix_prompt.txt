@@ -1,0 +1,110 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include<stdio.h>
+int S(long int x){
+	int r=0;
+	while(x>0){r+=x%10;x/=10;}
+	return r;
+}
+
+int main(){
+  long int n,i,j,x=1,y,r,s;
+  double m,o;
+  scanf("%ld",&n);
+  for(i=0;i<n;i++){
+    printf("%ld\n",x);
+    r=++x;
+  	m=(double)x/S(x);
+  	for(j=0,s=10;j<15;j++,s*=10L){
+  		y=s*(x/s+1)-1;o=(double)y/S(y);
+  		if(o<m){m=o;r=y;}
+  	}
+    x=r;
+  }
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code computes a sequence of values based on an input integer, where each value is derived from the previous one through a series of calculations involving digit sums and specific arithmetic operations. It outputs a specified number of these computed values.
+
+# 2. Inputs
+- An integer `n` representing the number of values to compute and output.
+
+# 3. Outputs
+- A sequence of `n` long integers, each representing a computed value based on the previous value in the sequence.
+
+# 4. Preconditions
+- The input integer `n` must be a non-negative integer.
+
+# 5. Postconditions
+- The output consists of `n` long integers, each printed on a new line.
+- Each computed value is greater than or equal to the previous value in the sequence.
+
+# 6. Invariants
+- The computed values are derived from the previous value using a consistent formula involving digit sums.
+- The digit sum function is always applied to positive integers.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- If `n` is negative, the output will not be generated.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur with each iteration of the loop, where the current value is updated based on the calculations performed.
+
+# 9. Non-functional Constraints (if inferable)
+- The output must be produced in a timely manner, with each value printed sequentially without delay.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+The specification does not accurately capture the complexity of the calculations involved in generating the sequence of values. Specifically, it oversimplifies the relationship between the current value and the next value by implying a direct increment based solely on the digit sum.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify that the next value in the sequence is not simply derived from the previous value by adding the digit sum, but rather involves a more complex calculation that includes additional arithmetic operations and comparisons to find a minimum value based on the digit sum of various derived numbers.
+
+D. **Why this clarification is supported by the source program**  
+The source program includes a loop that calculates a new value based on multiple iterations and comparisons involving the digit sum of different expressions derived from the current value. The actual computation involves finding a minimum value from a set of candidates, which is not reflected in the current specification. This complexity is essential to understanding how the sequence is generated and why the generated C program from the specification fails to match the source behavior.
+
+```

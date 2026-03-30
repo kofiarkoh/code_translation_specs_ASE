@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost of combining a sequence of weights, where the cost is determined by the sum of the weights involved in each combination. The result is the minimum cost to combine all weights into a single entity, calculated using a dynamic programming approach.
+
+## 2. Inputs
+- An integer `n` representing the number of weights.
+- A sequence of `n` non-negative integers representing the weights.
+
+## 3. Outputs
+- A single non-negative integer representing the minimum cost to combine all weights.
+
+## 4. Preconditions
+- The input must contain a valid integer `n` (1 ≤ n ≤ 4000).
+- The sequence of weights must contain exactly `n` non-negative integers.
+
+## 5. Postconditions
+- The output is the minimum cost calculated based on the provided weights.
+- The output is guaranteed to be non-negative.
+
+## 6. Invariants
+- The array of weights is non-decreasing as it accumulates the sum of previous weights.
+- The dynamic programming table is initialized to represent maximum possible costs, except for the diagonal elements which represent zero cost for single weights.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer values or insufficient data), the behavior is undefined.
+- The program does not handle negative weights or invalid input sizes.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iteratively updates the dynamic programming table based on previously computed costs and weight combinations. Specifically, for each subproblem defined by a range of weights, the algorithm evaluates potential combinations by summing the weights at the endpoints of the range and adjusting for previously combined weights.
+
+## 9. Cost Calculation
+- The cost of combining weights from index `i` to `j` is calculated as the sum of the weights from the start of the range to the end of the range, minus the weight of the last weight combined before the current range, if applicable. The algorithm seeks to minimize this cost by exploring all possible combinations of weights within the defined range.
+
+## 10. Non-functional Constraints
+- The algorithm operates within a time complexity of O(n^3), which is suitable for the input size limit of n up to 4000.
+
+```

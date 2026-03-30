@@ -1,0 +1,63 @@
+#include <stdio.h>
+
+int main() {
+    int X, Y;
+
+    // Continuously process input until termination condition is met
+    while (1) {
+        // Read dimensions
+        scanf("%d %d", &X, &Y);
+
+        // Termination condition
+        if (X == 0 && Y == 0) {
+            break;
+        }
+
+        // Initialize the course data grid
+        int courseData[X][Y];
+        int sum = 0;
+
+        // Read the course data
+        for (int i = 0; i < X; i++) {
+            for (int j = 0; j < Y; j++) {
+                scanf("%d", &courseData[i][j]);
+            }
+        }
+
+        // Analyze the course data based on specified rules
+        for (int i = 0; i < X; i++) {
+            for (int j = 0; j < Y; j++) {
+                if (courseData[i][j] == 0) {
+                    // Check contributions from neighboring cells
+                    // Contributions can be from left, right, above, and below
+                    if (i > 0 && courseData[i - 1][j] != 1) { // above
+                        sum++;
+                    }
+                    if (i < X - 1 && courseData[i + 1][j] != 1) { // below
+                        sum++;
+                    }
+                    if (j > 0 && courseData[i][j - 1] != 1) { // left
+                        sum++;
+                    }
+                    if (j < Y - 1 && courseData[i][j + 1] != 1) { // right
+                        sum++;
+                    }
+                } else if (courseData[i][j] == 1) {
+                    // Reset contributions from this cell
+                    // No action needed as contributions are blocked
+                } else if (courseData[i][j] == 2) {
+                    // Allow for additional contributions based on subsequent cells
+                    // This example assumes contributions can extend downwards
+                    if (i < X - 1 && courseData[i + 1][j] == 0) {
+                        sum++;
+                    }
+                }
+            }
+        }
+
+        // Output the computed sum
+        printf("%d\n", sum);
+    }
+
+    return 0;
+}

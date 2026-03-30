@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program processes two integers and a series of pairs of integers, modifying and sorting one of the arrays based on specific conditions, and ultimately computes and outputs a cumulative value derived from the modified array.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where `n` is a non-negative threshold and `m` is a positive integer representing the number of pairs to be processed.
+- `m` pairs of integers, each representing values to be stored in two separate arrays.
+
+## 3. Outputs
+- A single integer representing the cumulative sum of modified values from the second array, subject to specific conditions.
+
+## 4. Preconditions
+- The first input integer `m` must be greater than or equal to 1.
+- The second input integer `n` must be a non-negative integer.
+- Each of the `m` pairs of integers must be valid integers.
+
+## 5. Postconditions
+- The output integer is the sum of the first `m - count1 - 1` elements of the modified second array, where `count1` is the number of pairs where the first integer is greater than or equal to `n`. If `count1` is equal to or greater than `m - 1`, the output will be `0`.
+
+## 6. Invariants
+- The first array contains the original first integers from the input pairs.
+- The second array is modified based on the first array and the threshold `n`.
+- The count of pairs where the first integer is greater than or equal to `n` is maintained throughout processing.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format or range, the behavior is undefined; no explicit error handling is implemented.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as follows:
+  1. Read and store input values into two arrays.
+  2. Modify the arrays based on the threshold condition.
+  3. Sort the modified array.
+  4. Calculate the cumulative sum based on the modified array, only if `m - 1 > count1`.
+
+## 9. Non-functional Constraints (if inferable)
+- The program operates within a fixed memory limit, as the size of the arrays is statically defined.
+- The time complexity of sorting the array is O(m^2) due to the nested loops used for sorting.
+
+```

@@ -1,0 +1,36 @@
+#include <stdio.h>
+
+#define MAX_N 100 // Assuming a reasonable upper limit for n
+
+int main() {
+    int n;
+    int factor_counts[MAX_N + 1] = {0}; // Array to store counts of prime factors, initialized to zero
+
+    // Read input
+    scanf("%d", &n); // Assumes valid input as per specification
+
+    // Factorization process
+    for (int i = 2; i <= n; i++) {
+        int num = i;
+        for (int j = 2; j * j <= num; j++) {
+            while (num % j == 0) {
+                factor_counts[j]++; // Count the prime factor
+                num /= j; // Divide out the factor
+            }
+        }
+        if (num > 1) { // If num is still greater than 1, it is prime
+            factor_counts[num]++;
+        }
+    }
+
+    // Compute the final result based on the counts of prime factors
+    int result = 0;
+    for (int i = 2; i <= n; i++) {
+        result += factor_counts[i]; // Sum the counts of all prime factors
+    }
+
+    // Output the result
+    printf("%d\n", result); // Print the computed result
+
+    return 0;
+}

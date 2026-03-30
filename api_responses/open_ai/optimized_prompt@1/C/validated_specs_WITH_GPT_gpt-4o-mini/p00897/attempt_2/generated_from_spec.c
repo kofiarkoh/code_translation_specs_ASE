@@ -1,0 +1,128 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+typedef struct Road {
+    int destination;
+    int distance;
+    struct Road* next;
+} Road;
+
+typedef struct City {
+    char* name;
+    Road* roads;
+} City;
+
+typedef struct Graph {
+    City* cities;
+    int numCities;
+    int fuelCapacity;
+} Graph;
+
+Graph* createGraph(int numCities, int fuelCapacity) {
+    Graph* graph = malloc(sizeof(Graph));
+    graph->numCities = numCities;
+    graph->fuelCapacity = fuelCapacity;
+    graph->cities = malloc(numCities * sizeof(City));
+    for (int i = 0; i < numCities; i++) {
+        graph->cities[i].name = NULL;
+        graph->cities[i].roads = NULL;
+    }
+    return graph;
+}
+
+void addCity(Graph* graph, int index, const char* name) {
+    graph->cities[index].name = strdup(name);
+}
+
+void addRoad(Graph* graph, int from, int to, int distance) {
+    Road* newRoad = malloc(sizeof(Road));
+    newRoad->destination = to;
+    newRoad->distance = distance;
+    newRoad->next = graph->cities[from].roads;
+    graph->cities[from].roads = newRoad;
+}
+
+int findShortestPath(Graph* graph, int start, int goal) {
+    int* distances = malloc(graph->numCities * sizeof(int));
+    int* fuelRemaining = malloc(graph->numCities * sizeof(int));
+    int* visited = calloc(graph->numCities, sizeof(int));
+    
+    for (int i = 0; i < graph->numCities; i++) {
+        distances[i] = INT_MAX; // Initialize distances to infinity
+        fuelRemaining[i] = -1; // Initialize fuel remaining to -1 (unreachable)
+    }
+    
+    distances[start] = 0;
+    fuelRemaining[start] = graph->fuelCapacity; // Start with full fuel
+
+    for (int i = 0; i < graph->numCities; i++) {
+        int current = -1;
+        for (int j = 0; j < graph->numCities; j++) {
+            if (!visited[j] && (current == -1 || distances[j] < distances[current])) {
+                current = j; // Find the unvisited city with the smallest distance
+            }
+        }
+
+        if (current == -1 || distances[current] == INT_MAX) {
+            break; // No more reachable cities
+        }
+
+        visited[current] = 1; // Mark current city as visited
+
+        Road* road = graph->cities[current].roads;
+        while (road) {
+            int newDistance = distances[current] + road->distance;
+            int newFuel = fuelRemaining[current] - road->distance;
+
+            if (newFuel >= 0 && newDistance < distances[road->destination]) {
+                distances[road->destination] = newDistance;
+                fuelRemaining[road->destination] = newFuel; // Update fuel remaining
+            }
+            road = road->next;
+        }
+    }
+
+    int result = distances[goal];
+    free(distances);
+    free(fuelRemaining);
+    free(visited);
+    
+    return result == INT_MAX ? -1 : result; // Return -1 if no valid path found
+}
+
+void freeGraph(Graph* graph) {
+    for (int i = 0; i < graph->numCities; i++) {
+        free(graph->cities[i].name);
+        Road* road = graph->cities[i].roads;
+        while (road) {
+            Road* temp = road;
+            road = road->next;
+            free(temp);
+        }
+    }
+    free(graph->cities);
+    free(graph);
+}
+
+int main() {
+    // Example usage
+    int numCities = 3;
+    int fuelCapacity = 10;
+    Graph* graph = createGraph(numCities, fuelCapacity);
+    
+    addCity(graph, 0, "CityA");
+    addCity(graph, 1, "CityB");
+    addCity(graph, 2, "CityC");
+    
+    addRoad(graph, 0, 1, 5);
+    addRoad(graph, 1, 2, 4);
+    addRoad(graph, 0, 2, 10);
+    
+    int minDistance = findShortestPath(graph, 0, 2);
+    printf("Minimum distance from CityA to CityC: %d\n", minDistance);
+    
+    freeGraph(graph);
+    return 0;
+}

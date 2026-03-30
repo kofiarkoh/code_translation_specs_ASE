@@ -1,0 +1,42 @@
+#include <stdio.h>
+#include <limits.h>
+
+long long max_cumulative_value(int N, int K, int P[], int C[]) {
+    long long max_value = LLONG_MIN; // Initialize to minimum long long value
+    long long current_value;
+    
+    // Iterate through each starting index
+    for (int start = 0; start < N; start++) {
+        current_value = 0; // Reset current value for each starting index
+        int steps = 0; // Step counter
+        int visited[N]; // To track visited indices
+        for (int i = 0; i < N; i++) visited[i] = 0; // Initialize visited array
+
+        int index = start; // Start from the current index
+        while (steps < K) {
+            if (visited[index]) {
+                // Cycle detected, break to avoid infinite loop
+                break;
+            }
+            visited[index] = 1; // Mark this index as visited
+            current_value += C[index]; // Update current cumulative value
+            max_value = (current_value > max_value) ? current_value : max_value; // Update max value
+            index = P[index]; // Move to the next index based on P
+            steps++; // Increment step count
+        }
+    }
+    
+    return max_value; // Return the maximum cumulative value found
+}
+
+int main() {
+    // Example usage
+    int N = 5;
+    int K = 3;
+    int P[] = {1, 2, 0, 4, 3}; // Example mapping
+    int C[] = {10, 20, 30, 40, 50}; // Example cumulative values
+
+    long long result = max_cumulative_value(N, K, P, C);
+    printf("Maximum cumulative value: %lld\n", result);
+    return 0;
+}

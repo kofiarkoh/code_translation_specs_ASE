@@ -1,0 +1,104 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+
+typedef struct {
+    int destination;
+    int cost;
+} Edge;
+
+typedef struct {
+    int index;
+    int edge_count;
+    Edge* edges;
+} Node;
+
+void dijkstra(int node_count, Node* graph, int source_index) {
+    int* costs = (int*)malloc(node_count * sizeof(int));
+    int* visited = (int*)malloc(node_count * sizeof(int));
+    
+    // Initialize costs and visited arrays
+    for (int i = 0; i < node_count; i++) {
+        costs[i] = -1; // Unreachable nodes initialized to -1
+        visited[i] = 0; // All nodes unvisited
+    }
+    costs[source_index] = 0; // Cost to source node is 0
+
+    for (int i = 0; i < node_count; i++) {
+        // Find the unvisited node with the smallest cost
+        int min_cost = INT_MAX;
+        int min_index = -1;
+        for (int j = 0; j < node_count; j++) {
+            if (!visited[j] && costs[j] != -1 && costs[j] < min_cost) {
+                min_cost = costs[j];
+                min_index = j;
+            }
+        }
+
+        // If no unvisited node is reachable, break
+        if (min_index == -1) {
+            break;
+        }
+
+        // Mark the node as visited
+        visited[min_index] = 1;
+
+        // Update costs for neighbors
+        for (int j = 0; j < graph[min_index].edge_count; j++) {
+            Edge edge = graph[min_index].edges[j];
+            int new_cost = costs[min_index] + edge.cost;
+            if (costs[edge.destination] == -1 || new_cost < costs[edge.destination]) {
+                costs[edge.destination] = new_cost; // Update cost if it's lower
+            }
+        }
+    }
+
+    // Output the results
+    for (int i = 0; i < node_count; i++) {
+        printf("%d %d\n", i, costs[i]);
+    }
+
+    // Free allocated memory
+    free(costs);
+    free(visited);
+}
+
+int main() {
+    int node_count;
+    scanf("%d", &node_count); // Read number of nodes
+
+    if (node_count < 0) {
+        // Undefined behavior for negative node count
+        return 1; // Exit with error
+    }
+
+    Node* graph = (Node*)malloc(node_count * sizeof(Node));
+
+    for (int i = 0; i < node_count; i++) {
+        graph[i].index = i;
+        scanf("%d", &graph[i].edge_count); // Read number of edges
+
+        if (graph[i].edge_count < 0) {
+            // Undefined behavior for negative edge count
+            free(graph);
+            return 1; // Exit with error
+        }
+
+        graph[i].edges = (Edge*)malloc(graph[i].edge_count * sizeof(Edge));
+        for (int j = 0; j < graph[i].edge_count; j++) {
+            scanf("%d %d", &graph[i].edges[j].destination, &graph[i].edges[j].cost);
+            // No validation for destination index or cost as per specification
+        }
+    }
+
+    // The first node specified is treated as the source node
+    dijkstra(node_count, graph, 0);
+
+    // Free allocated memory for edges
+    for (int i = 0; i < node_count; i++) {
+        free(graph[i].edges);
+    }
+    free(graph);
+
+    return 0;
+}

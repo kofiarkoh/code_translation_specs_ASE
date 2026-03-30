@@ -1,0 +1,189 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+#define PGMAX 1001
+#define WDMAX 31
+
+typedef struct _index {
+	int pgnum[PGMAX];
+	int tm;
+	char str[WDMAX];
+} index_t;
+
+void swap( int i, int j, index_t idx[MAX] )
+{
+	char tmp_str[WDMAX];
+	int tmp_pgnum[PGMAX];
+	int tmp_tm;
+
+	strcpy( tmp_str, idx[i].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		tmp_pgnum[k] = idx[i].pgnum[k];
+	}
+	tmp_tm = idx[i].tm;
+
+	strcpy( idx[i].str, idx[j].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[i].pgnum[k] = idx[j].pgnum[k];
+	}
+	idx[i].tm = idx[j].tm;
+
+	strcpy( idx[j].str, tmp_str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[j].pgnum[k] = tmp_pgnum[k];
+	}
+	idx[j].tm = tmp_tm;
+}
+
+int main()
+{
+	index_t idx[MAX];
+	char tmp_str[WDMAX] = {};
+	int tmp_pgnum = 0, rgnum = 0, i = 0, j = 0, flag = 0, k = 0;
+
+	while ( scanf( "%s %d", tmp_str, &tmp_pgnum ) != EOF ) {
+		flag = 1;
+		i = 0;
+		while ( i < rgnum ) {
+			if ( strcmp( tmp_str, idx[i].str ) == 0 ) {
+				// BEPO?$5$l$?J8;zNs$NCf$+$i, B:#2sF~NO$5$l$?J8;zNs$,EPO?$5$l$F$$$k$+3NG'$9$k
+				idx[i].pgnum[tmp_pgnum] = 1;
+				idx[i].tm++;
+				flag = 0; // BF~NOJ8;zNs$,EPO?:Q$_$N>l9g
+				break;
+			}
+			i++;
+		}
+
+		if ( flag ) {
+			// BF~NOJ8;zNs$,EPO?$5$l$F$$$J$$>l9g
+			idx[rgnum].pgnum[tmp_pgnum] = 1;
+			idx[rgnum].tm++;
+			strcpy( idx[rgnum].str, tmp_str );
+			rgnum++;
+		}
+		
+	}
+
+	// BF~NOJ8;zNs$N@0Ns$r9T$&
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		for ( j = i+1 ; j < rgnum ; j++ ) {
+			if ( strcmp( idx[i].str, idx[j].str ) > 0 ) {
+				swap( i, j, idx );
+			}
+		}
+	}
+
+	// B@0Ns:Q$_$NF~NOJ8;zNs$NG[Ns$KBP$7$F, B=P8=$7$?%Z!<%8HV9f$J$I$r=PNO$9$k
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		printf( "%s\n", idx[i].str );
+		k = 0;
+		for ( j = 0 ; j < PGMAX ; j++ ) {
+			if ( idx[i].pgnum[j] == 1 ) { 
+				if ( k == idx[i].tm-1 ) {
+					printf( "%d\n", j );
+					break;
+				} else {
+					printf( "%d ", j );
+					k++;
+				}
+			}
+		}
+	}
+
+	return 0;	
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a series of string and integer pairs, maintaining a collection of unique strings along with their associated page numbers and a count of occurrences. It sorts the unique strings in lexicographical order and outputs each string followed by its associated page numbers.
+
+# 2. Inputs
+- A sequence of string and integer pairs, where each string is a word and the integer represents a page number. Input continues until the end of the input stream.
+
+# 3. Outputs
+- A sorted list of unique strings, each followed by the page numbers associated with that string. Page numbers are printed in the order they were encountered.
+
+# 4. Preconditions
+- The input must consist of valid strings and integers.
+- The number of unique strings must not exceed the defined maximum limit.
+
+# 5. Postconditions
+- Each unique string is stored with its associated page numbers and occurrence count.
+- The output is a sorted list of unique strings, each followed by its corresponding page numbers.
+
+# 6. Invariants
+- The collection of strings remains unique throughout the processing.
+- The page numbers for each string are correctly recorded and associated with the respective string.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle malformed input or memory allocation errors explicitly. It assumes valid input and sufficient memory availability.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as follows:
+  1. Read input and update the collection of strings and page numbers.
+  2. Sort the collection of strings.
+  3. Output the sorted strings and their associated page numbers.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within fixed memory limits defined by constants for maximum entries and page numbers.
+- The sorting operation has a time complexity that is dependent on the number of unique strings processed.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong assumption.
+
+B. **What the current specification may be missing or misstating**  
+The current specification does not explicitly address the handling of duplicate page numbers for the same string. It assumes that each string can have multiple associated page numbers, but it does not clarify how to handle cases where the same page number is encountered multiple times for the same string.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify whether duplicate page numbers for the same string are allowed and how they should be treated. Specifically, it should state if the program should ignore duplicate page numbers or if it should count them in some way.
+
+D. **Why this clarification is supported by the source program**  
+In the source program, when a string is found, the page number is added to the `pgnum` array without checking if it has already been recorded. This suggests that the program allows for duplicate page numbers, but the specification does not mention this behavior. The generated C program also assumes that page numbers can be duplicated, as it does not prevent adding the same page number multiple times for a string. The lack of clarity in the specification regarding this behavior could lead to confusion about the expected output when the same page number is encountered multiple times for a string.
+
+```

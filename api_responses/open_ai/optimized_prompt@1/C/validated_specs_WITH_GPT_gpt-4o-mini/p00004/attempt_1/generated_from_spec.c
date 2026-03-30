@@ -1,0 +1,19 @@
+#include <stdio.h>
+
+int main() {
+    float a, b, c, d, e, f;
+    // Read input until the end of the input stream
+    while (scanf("%f %f %f %f %f %f", &a, &b, &c, &d, &e, &f) == 6) {
+        // Check precondition: a must be non-zero to avoid division by zero
+        if (a != 0) {
+            // Compute derived values x and y based on a linear transformation
+            float x = (b + c) / a; // Example transformation
+            float y = (d + e + f) / a; // Example transformation
+            
+            // Output the results formatted to three decimal places
+            printf("%.3f %.3f\n", x, y);
+        }
+        // If a is zero, we do not output anything as per the specification
+    }
+    return 0; // Graceful termination upon reaching the end of the input stream
+}

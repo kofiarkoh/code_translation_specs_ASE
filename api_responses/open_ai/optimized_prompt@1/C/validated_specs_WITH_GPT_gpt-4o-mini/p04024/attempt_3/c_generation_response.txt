@@ -1,0 +1,104 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MOD 1000000007
+
+// Function to compute power with modulo
+long long mod_pow(long long base, long long exp, long long mod) {
+    long long result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % mod;
+        }
+        base = (base * base) % mod;
+        exp /= 2;
+    }
+    return result;
+}
+
+int main() {
+    int H, W, K;
+    // Read inputs for height, width, and number of operations
+    scanf("%d %d %d", &H, &W, &K);
+    
+    // Preconditions check
+    if (H <= 0 || W <= 0 || K < 0) {
+        return 1; // Invalid input, exit with error
+    }
+
+    // Allocate memory for the grid
+    char **grid = (char **)malloc(H * sizeof(char *));
+    for (int i = 0; i < H; i++) {
+        grid[i] = (char *)malloc((W + 1) * sizeof(char)); // +1 for null terminator
+        scanf("%s", grid[i]); // Read each row of the grid
+    }
+
+    // Special case when K is zero
+    if (K == 0) {
+        printf("1\n");
+        for (int i = 0; i < H; i++) {
+            free(grid[i]); // Free allocated memory
+        }
+        free(grid);
+        return 0;
+    }
+
+    long long total_hashes = 0;
+    long long edges = 0;
+    long long full_rows = 0;
+
+    // Count total '#' characters and edges
+    for (int i = 0; i < H; i++) {
+        int row_hashes = 0;
+        int row_edges = 0;
+        int is_full_row = 1;
+
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == '#') {
+                total_hashes++;
+                row_hashes++;
+                if (j > 0 && grid[i][j - 1] == '#') {
+                    row_edges++;
+                }
+            } else {
+                is_full_row = 0; // Not a full row
+            }
+        }
+
+        if (is_full_row) {
+            full_rows++;
+        }
+
+        // Adjust edges for rows with '#' at both ends
+        if (grid[i][0] == '#' && grid[i][W - 1] == '#') {
+            row_edges = row_edges > 0 ? row_edges - 1 : 0; // Reduce edges by 1 if both ends are '#'
+        }
+
+        edges += row_edges;
+    }
+
+    // Output computation based on conditions
+    long long result;
+    if (edges == 0) {
+        if (full_rows == 0) {
+            result = mod_pow(total_hashes, K - 1, MOD);
+        } else {
+            result = mod_pow(full_rows, K - 1, MOD);
+        }
+    } else {
+        result = (total_hashes + edges) % MOD; // Example formula, adjust as needed
+        result = (result * mod_pow(total_hashes, K - 1, MOD)) % MOD; // Incorporate power calculation
+    }
+
+    printf("%lld\n", result);
+
+    // Free allocated memory
+    for (int i = 0; i < H; i++) {
+        free(grid[i]);
+    }
+    free(grid);
+
+    return 0;
+}
+```

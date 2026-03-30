@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_H 100
+#define MAX_W 100
+#define MAX_MOVES 20
+
+// Directions for moving in the grid: up, down, left, right
+int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+
+char grid[MAX_H][MAX_W];
+bool visited[MAX_H][MAX_W];
+int H, W, A, B;
+
+typedef struct {
+    int x, y, movesA, movesB, steps;
+} State;
+
+int bfs(int startX, int startY) {
+    // Initialize the queue for BFS
+    State queue[MAX_H * MAX_W];
+    int front = 0, rear = 0;
+
+    // Start with the initial position
+    queue[rear++] = (State){startX, startY, 0, 0, 0};
+    visited[startX][startY] = true;
+
+    while (front < rear) {
+        State current = queue[front++];
+
+        // Check if we reached the goal
+        if (grid[current.x][current.y] == 'G') {
+            return current.steps;
+        }
+
+        // Explore neighbors
+        for (int i = 0; i < 4; i++) {
+            int newX = current.x + directions[i][0];
+            int newY = current.y + directions[i][1];
+
+            // Check bounds and obstacles
+            if (newX >= 0 && newX < H && newY >= 0 && newY < W && grid[newX][newY] != '#') {
+                // Determine move type and increment move counts
+                int newMovesA = current.movesA;
+                int newMovesB = current.movesB;
+
+                if (i == 0) newMovesA++; // Up
+                else if (i == 1) newMovesB++; // Down
+                else if (i == 2) newMovesA++; // Left
+                else if (i == 3) newMovesB++; // Right
+
+                // Check move limits and visited state
+                if (newMovesA <= A && newMovesB <= B && !visited[newX][newY]) {
+                    visited[newX][newY] = true;
+                    queue[rear++] = (State){newX, newY, newMovesA, newMovesB, current.steps + 1};
+                }
+            }
+        }
+    }
+
+    return -1; // Goal not reachable
+}
+
+int main() {
+    // Input grid dimensions and move limits
+    scanf("%d %d %d %d", &H, &W, &A, &B);
+
+    // Input grid representation
+    for (int i = 0; i < H; i++) {
+        scanf("%s", grid[i]);
+    }
+
+    // Find starting position
+    int startX = -1, startY = -1;
+    for (int i = 0; i < H; i++) {
+        for (int j = 0; j < W; j++) {
+            if (grid[i][j] == 'S') {
+                startX = i;
+                startY = j;
+            }
+        }
+    }
+
+    // Check preconditions
+    if (startX == H - 1 || (startX + 1 < H && grid[startX + 1][startY] == '#')) {
+        printf("-1\n");
+        return 0;
+    }
+
+    // Execute BFS to find minimum moves
+    int result = bfs(startX, startY);
+    if (result > MAX_MOVES) {
+        printf("-1\n");
+    } else {
+        printf("%d\n", result);
+    }
+
+    return 0;
+}

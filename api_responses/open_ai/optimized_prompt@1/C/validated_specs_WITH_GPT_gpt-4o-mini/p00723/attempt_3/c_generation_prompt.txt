@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a specified number of strings, generating and storing unique variations of each string based on a series of transformations. These transformations include multiple reversals of substrings and swaps of segments of the string. The program counts and outputs the total number of unique variations generated for each input string.
+
+## 2. Inputs
+- An integer representing the number of strings to process, which must be non-negative.
+- A series of strings, each with a maximum length of 79 characters (plus a null terminator).
+
+## 3. Outputs
+- An integer for each input string, representing the count of unique variations generated.
+
+## 4. Preconditions
+- The input integer must be non-negative.
+- Each input string must be null-terminated and not exceed the maximum length.
+
+## 5. Postconditions
+- The output integer reflects the total number of unique variations generated from the input string, considering all transformations applied.
+
+## 6. Invariants
+- The array used to store unique variations is maintained throughout the execution, ensuring no duplicates are stored.
+- The count of unique variations is updated only when a new variation is successfully added.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input string exceeds the maximum length, behavior is undefined.
+- If memory limits are exceeded (e.g., too many unique variations), behavior is undefined.
+
+## 8. State Transitions
+- The state transitions involve the transformation of the input string through a series of operations:
+  1. The original string is checked for uniqueness and stored if it is not already present.
+  2. The string undergoes a series of transformations:
+     - The first `i` characters are reversed.
+     - The last `len-i` characters are reversed.
+     - The string is restored to its original state and then swapped with its substring starting from index `i`.
+     - The resulting string is checked for uniqueness after each transformation.
+  3. The transformations are repeated for all valid substring lengths, ensuring that all possible variations are considered.
+
+## 9. Non-functional Constraints
+- The algorithm's performance may degrade with longer strings due to the combinatorial nature of the transformations applied. The number of unique variations generated can grow significantly based on the input string's length and content.
+
+## 10. Transformation Details
+- **Reversal**: The `reverse` function reverses the order of characters in a specified substring of the string. This operation is performed in-place and modifies the original string.
+- **Swapping**: The `swap` function exchanges segments of the string, specifically swapping the characters from the start of the string up to a specified index with the characters starting from that index. This operation also modifies the original string.
+
+This specification clarifies the transformations applied to the strings and ensures that the implementation details are consistent with the source program's behavior.
+
+```

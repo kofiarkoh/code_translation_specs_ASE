@@ -1,0 +1,113 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <stdio.h>
+#include <string.h>
+
+char str[10001];
+
+int main(void)
+{
+	while (scanf("%s", str) != EOF){
+		int joi = 0;
+		int ioi = 0;
+		int i;
+		
+		for (i = 0; i < strlen(str) - 2; i++){
+			if (strncmp(str + i, "JOI", 3) == 0){
+				joi++;
+			}
+			if (strncmp(str + i, "IOI", 3) == 0){
+				ioi++;
+			}
+		}
+		printf("%d\n", joi);
+		printf("%d\n", ioi);
+	}
+	
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code reads a sequence of strings until the end of input and counts the occurrences of the substrings "JOI" and "IOI" within each string. It outputs the counts for each substring consecutively for each input string.
+
+# 2. Inputs
+- A sequence of strings, each containing a maximum of 10,000 characters, read until the end of input.
+
+# 3. Outputs
+- For each input string, two integers are printed: the count of occurrences of "JOI" and the count of occurrences of "IOI".
+
+# 4. Preconditions
+- The input strings must be valid and contain only characters that can be processed by the reading function.
+- The input must be terminated by an end-of-file signal.
+
+# 5. Postconditions
+- The output consists of two integers for each input string, representing the counts of "JOI" and "IOI", respectively.
+
+# 6. Invariants
+- The counts of "JOI" and "IOI" are non-negative integers.
+- The counts are reset to zero for each new input string.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is empty, no output is produced.
+- The program does not handle malformed input or errors during reading; it assumes valid input until EOF.
+
+# 8. State Transitions (if applicable)
+- The program transitions from reading input to counting occurrences and then to outputting results for each string until EOF is reached.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates within a time complexity that is linear with respect to the length of each input string, as it processes each string in a single pass to count occurrences.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Wrong counting rule
+
+B. **What the current specification may be missing or misstating**  
+The specification does not clarify how overlapping occurrences of the substrings "JOI" and "IOI" should be counted. The source program counts overlapping occurrences, while the generated program counts non-overlapping occurrences.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should explicitly state that the counts of "JOI" and "IOI" include overlapping occurrences of these substrings.
+
+D. **Why this clarification is supported by the source program**  
+The source program uses `strncmp` in a loop that allows for overlapping matches, as it checks each substring starting from every character in the string up to `strlen(str) - 2`. This behavior indicates that the counting mechanism is designed to account for overlaps, which is not reflected in the generated program's counting logic using `strstr`, leading to discrepancies in the output.
+
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific combinatorial result based on input parameters, utilizing precomputed factorials and inverse factorials to facilitate efficient calculations. It processes a set of integers, transforming them into a format suitable for combinatorial analysis, and derives a final result that is printed as output.
+
+## 2. Inputs
+- Two integers, `n` and `m`, where:
+  - `n` determines the size of a bitmask, specifically `2^n`.
+  - `m` indicates the number of subsequent integers to be processed.
+- An array of `m` integers, each representing a value that will be transformed using the formula `aa[h] = (1 << n) - aa[h]` before being used in calculations.
+
+## 3. Outputs
+- A single integer representing the computed result, which is guaranteed to be non-negative and less than the modulus `MD`.
+
+## 4. Preconditions
+- `n` must be a non-negative integer such that `0 <= n <= 16`.
+- `m` must be a non-negative integer.
+- Each integer in the input array must be non-negative and less than or equal to `2^n`.
+
+## 5. Postconditions
+- The output integer is computed based on combinatorial logic applied to the transformed input values and is guaranteed to be within the range `[0, MD - 1]`.
+
+## 6. Invariants
+- The arrays used for factorials (`ff`) and inverse factorials (`gg`) are initialized and populated correctly before any calculations are performed.
+- The dynamic programming array (`dp`) maintains valid states throughout its updates, reflecting the cumulative results of the combinatorial calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- If `k` is greater than `n` in the combinatorial function `choose`, it returns `0`.
+- The output is adjusted to ensure it is non-negative by adding the modulus `MD` if necessary.
+
+## 8. State Transitions
+- The state of the dynamic programming array (`dp`) is updated iteratively based on the current bitmask and the values derived from the transformed input array. The updates reflect the cumulative results of combinatorial calculations, where each bit in the bitmask represents whether a specific element is included in the current subset.
+
+## 9. Non-functional Constraints
+- All computations are performed modulo `MD`, ensuring that all intermediate results remain within a manageable range to prevent overflow and maintain performance. The algorithm is designed to efficiently handle the combinatorial logic through dynamic programming, leveraging precomputed values to optimize performance.
+
+```

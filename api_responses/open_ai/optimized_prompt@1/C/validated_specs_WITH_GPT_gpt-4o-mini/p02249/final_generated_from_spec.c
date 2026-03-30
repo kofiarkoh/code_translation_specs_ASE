@@ -1,0 +1,68 @@
+#include <stdio.h>
+#include <string.h>
+
+void find_pattern(int H, int W, char text[H][W], int R, int C, char pattern[R][C]) {
+    // Iterate over all possible starting positions in the text grid
+    for (int i = 0; i <= H - R; i++) {
+        for (int j = 0; j <= W - C; j++) {
+            // Compute hash for the current sub-grid in the text
+            unsigned long text_hash = 0;
+            unsigned long pattern_hash = 0;
+
+            // Compute hash for the pattern grid
+            for (int r = 0; r < R; r++) {
+                for (int c = 0; c < C; c++) {
+                    pattern_hash = (pattern_hash * 31) + pattern[r][c]; // Simple hash function
+                }
+            }
+
+            // Compute hash for the current sub-grid in the text
+            for (int r = 0; r < R; r++) {
+                for (int c = 0; c < C; c++) {
+                    text_hash = (text_hash * 31) + text[i + r][j + c]; // Simple hash function
+                }
+            }
+
+            // Check if hashes match
+            if (text_hash == pattern_hash) {
+                // If hashes match, verify the actual characters
+                int match = 1;
+                for (int r = 0; r < R; r++) {
+                    for (int c = 0; c < C; c++) {
+                        if (text[i + r][j + c] != pattern[r][c]) {
+                            match = 0; // Found a mismatch
+                            break;
+                        }
+                    }
+                    if (!match) break; // Exit early if a mismatch is found
+                }
+
+                // If a match is confirmed, output the starting position
+                if (match) {
+                    printf("Match found at: (%d, %d)\n", i, j);
+                }
+            }
+        }
+    }
+}
+
+int main() {
+    // Example usage
+    int H = 5, W = 5;
+    char text[5][5] = {
+        {'a', 'b', 'c', 'd', 'e'},
+        {'f', 'g', 'h', 'i', 'j'},
+        {'k', 'l', 'm', 'n', 'o'},
+        {'p', 'q', 'r', 's', 't'},
+        {'u', 'v', 'w', 'x', 'y'}
+    };
+
+    int R = 2, C = 2;
+    char pattern[2][2] = {
+        {'g', 'h'},
+        {'l', 'm'}
+    };
+
+    find_pattern(H, W, text, R, C, pattern);
+    return 0;
+}

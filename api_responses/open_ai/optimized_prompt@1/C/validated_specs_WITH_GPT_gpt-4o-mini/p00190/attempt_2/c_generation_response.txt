@@ -1,0 +1,147 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define PUZZLE_SIZE 13
+#define HASH_TABLE_SIZE 1000
+#define NA -1
+
+typedef struct {
+    int state[PUZZLE_SIZE];
+    int moves;
+} PuzzleState;
+
+typedef struct HashNode {
+    int state[PUZZLE_SIZE];
+    struct HashNode* next;
+} HashNode;
+
+HashNode* hashTable[HASH_TABLE_SIZE];
+
+// Hash function to map puzzle state to a hash table index
+unsigned int hash(int* state) {
+    unsigned int hashValue = 0;
+    for (int i = 0; i < PUZZLE_SIZE; i++) {
+        hashValue = (hashValue * 31 + state[i]) % HASH_TABLE_SIZE;
+    }
+    return hashValue;
+}
+
+// Check if a state is already in the hash table
+int isStateVisited(int* state) {
+    unsigned int index = hash(state);
+    HashNode* node = hashTable[index];
+    while (node) {
+        if (memcmp(node->state, state, sizeof(int) * PUZZLE_SIZE) == 0) {
+            return 1; // State already visited
+        }
+        node = node->next;
+    }
+    return 0; // State not visited
+}
+
+// Add a state to the hash table
+void addStateToVisited(int* state) {
+    unsigned int index = hash(state);
+    HashNode* newNode = (HashNode*)malloc(sizeof(HashNode));
+    memcpy(newNode->state, state, sizeof(int) * PUZZLE_SIZE);
+    newNode->next = hashTable[index];
+    hashTable[index] = newNode;
+}
+
+// Function to check if the puzzle is solvable
+int isSolvable(int* state) {
+    int zeroCount = 0;
+    for (int i = 0; i < PUZZLE_SIZE; i++) {
+        if (state[i] == 0) {
+            zeroCount++;
+        }
+    }
+    return zeroCount == 1; // Must have exactly one empty space
+}
+
+// Function to perform the breadth-first search
+int bfs(int* initialState) {
+    PuzzleState queue[HASH_TABLE_SIZE];
+    int front = 0, rear = 0;
+
+    // Initialize the queue with the initial state
+    memcpy(queue[rear].state, initialState, sizeof(int) * PUZZLE_SIZE);
+    queue[rear].moves = 0;
+    rear++;
+
+    addStateToVisited(initialState);
+
+    // Define possible moves (up, down, left, right)
+    int moves[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    
+    while (front < rear) {
+        PuzzleState current = queue[front++];
+        
+        // Check if the current state is the goal state (sorted order)
+        int isGoal = 1;
+        for (int i = 0; i < PUZZLE_SIZE; i++) {
+            if (current.state[i] != i) {
+                isGoal = 0;
+                break;
+            }
+        }
+        if (isGoal) {
+            return current.moves; // Return the number of moves
+        }
+
+        // Find the position of the empty space (zero)
+        int zeroPos;
+        for (zeroPos = 0; zeroPos < PUZZLE_SIZE; zeroPos++) {
+            if (current.state[zeroPos] == 0) {
+                break;
+            }
+        }
+
+        // Explore possible moves
+        for (int i = 0; i < 4; i++) {
+            int newZeroPos = zeroPos + moves[i][0] * 4 + moves[i][1]; // Calculate new position
+            if (newZeroPos >= 0 && newZeroPos < PUZZLE_SIZE && (newZeroPos % 4 != zeroPos % 4 || moves[i][1] == 0)) {
+                // Valid move
+                PuzzleState newState = current;
+                // Swap the zero with the adjacent tile
+                newState.state[zeroPos] = newState.state[newZeroPos];
+                newState.state[newZeroPos] = 0;
+
+                if (!isStateVisited(newState.state)) {
+                    addStateToVisited(newState.state);
+                    newState.moves++;
+                    queue[rear++] = newState; // Add new state to the queue
+                }
+            }
+        }
+    }
+    return NA; // Puzzle cannot be solved
+}
+
+int main() {
+    int input[PUZZLE_SIZE];
+    
+    // Read input
+    for (int i = 0; i < PUZZLE_SIZE; i++) {
+        scanf("%d", &input[i]);
+    }
+
+    // Validate input
+    if (sizeof(input) / sizeof(input[0]) != PUZZLE_SIZE || !isSolvable(input)) {
+        printf("NA\n");
+        return 0; // Invalid input or unsolvable
+    }
+
+    // Perform BFS to find the minimum moves
+    int result = bfs(input);
+    if (result == NA) {
+        printf("NA\n");
+    } else {
+        printf("%d\n", result);
+    }
+
+    return 0;
+}
+```

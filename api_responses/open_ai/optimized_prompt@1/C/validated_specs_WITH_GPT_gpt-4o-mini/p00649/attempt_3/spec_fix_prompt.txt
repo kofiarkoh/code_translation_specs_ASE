@@ -1,0 +1,168 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1064: Yanagi's Comic
+// 2018.1.18 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int id, x1, y1, x2, y2; char used; } T;
+T tbl[10];
+int ans[10];
+int order;
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0;
+	int c = getchar_unlocked();
+	do n = (n<<3)+(n<<1) + (c & 0xf), c = getchar_unlocked();
+	while (c >= '0');
+	return n;
+}
+
+int cmp(T *a, T *b) { if (a->x1 - b->x1) return a->x1 - b->x1; return a->y1 - b->y1; }
+
+void calc(T *t, int n)
+{
+	int i, j, x, y, xx, yy;
+	T tmp[10];
+
+	qsort(t, n, sizeof(T), cmp);
+	ans[t[0].id] = ++order, t[0].used = 1;
+
+	y = t[0].y2, x = 501;
+	for (i = 0; i < n; i++) {
+		if (t[i].used) continue;
+		if (t[i].y1 < y && y < t[i].y2) { x = t[i].x1; break; }
+	}
+
+	xx = yy = 501, j = 0;
+	for (i = 0; i < n; i++) {
+		if (t[i].used) continue;
+		if (t[i].y2 <= y && t[i].x2 <= x) tmp[j++] = t[i], t[i].used = 1;
+	}
+	if (j > 0) calc(tmp, j);
+
+	for (i = 0; i < n; i++) if (t[i].used == 0) calc(t+i, n-i);
+}
+
+int main()
+{
+	int n, x1, y1, x2, y2;
+	int cno, i;
+
+	cno = 0; while (n = in()) {
+		for (i = 0; i < n; i++) {
+			x1 = in(), y1 = in(), x2 = in(), y2 = in();
+			tbl[i].id = i, tbl[i].used = 0;
+			if (x1 <= x2) tbl[i].x1 = x1, tbl[i].x2 = x2;
+			else          tbl[i].x1 = x2, tbl[i].x2 = x1;
+			if (y1 <= y2) tbl[i].y1 = y1, tbl[i].y2 = y2;
+			else          tbl[i].y1 = y2, tbl[i].y2 = y1;
+		}
+
+		order = 0;
+		calc(tbl, n);
+
+		if (!cno) cno = 1;
+		else putchar('\n');
+		for (i = 0; i < n; i++) printf("%d\n", ans[i]);
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes multiple sets of rectangular coordinates, determining a specific order of rectangles based on their spatial relationships. It outputs the order in which rectangles are processed, ensuring that overlapping rectangles are handled according to specific rules.
+
+## 2. Inputs
+- A series of integer values representing multiple sets of rectangles.
+- Each rectangle is defined by four integers: two pairs of coordinates (x1, y1) and (x2, y2).
+
+## 3. Outputs
+- For each set of rectangles, the output is a sequence of integers indicating the order in which each rectangle was processed. The order reflects the spatial relationships among the rectangles.
+
+## 4. Preconditions
+- The input must consist of valid integers representing the number of rectangles followed by the coordinates of each rectangle.
+- The number of rectangles in each set must be a positive integer.
+- The coordinates must be integers, and the input must be well-formed.
+
+## 5. Postconditions
+- Each rectangle is assigned a unique order based on its spatial relationship with other rectangles.
+- The output reflects the order of processing for all rectangles in each set, taking into account overlapping conditions.
+
+## 6. Invariants
+- Each rectangle retains its original coordinates throughout processing.
+- The order of rectangles is determined based on their spatial relationships, specifically considering overlaps and the conditions under which rectangles are marked as "used."
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or errors. It assumes that the input is well-formed and adheres to the expected format.
+
+## 8. State Transitions
+- The state transitions occur as rectangles are marked as "used" during processing. This affects subsequent calculations and the order of output. The marking of rectangles as "used" is contingent upon their spatial relationships, particularly when overlaps are detected.
+
+## 9. Non-functional Constraints
+- The processing of rectangles is expected to be efficient, as indicated by the use of sorting and recursive calculations. The maximum number of rectangles is limited to ten per set.
+
+## 10. Overlap Processing Rules
+- When determining the order of rectangles, if a rectangle overlaps with another, the rectangle that is processed first is the one that is positioned lower in the y-axis (i.e., has a smaller y2 value) and, in case of ties, the one with a smaller x1 value.
+- Rectangles that do not overlap with any previously processed rectangles are processed in the order determined by their y1 and x1 coordinates.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Missing edge case
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not adequately address how to handle cases where multiple rectangles overlap in a way that requires more complex processing than simply marking them as "used." Specifically, it lacks clarity on how to determine the order of processing when rectangles overlap in a non-linear fashion.
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify the rules for processing overlapping rectangles, particularly in scenarios where multiple rectangles may overlap with each other in a chain or network of overlaps. It should specify how to handle cases where a rectangle overlaps with multiple others and how to determine the final order of processing in such situations.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program uses a recursive approach to handle overlaps, which suggests that the order of processing is not merely determined by a single comparison but rather by a more complex relationship among rectangles. The failure of the generated program to produce the expected output indicates that the handling of overlaps is insufficiently defined in the specification, leading to incorrect processing of rectangles that share overlapping areas. The original program's logic for marking rectangles as "used" and the recursive calls imply that the order of processing is contingent on the specific relationships among all rectangles, not just pairwise comparisons.
+
+```

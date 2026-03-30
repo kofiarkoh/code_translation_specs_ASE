@@ -1,0 +1,38 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    // Check if exactly four integers are provided
+    if (argc != 5) {
+        return 0; // Terminate without output if input is incorrect
+    }
+
+    // Parse the input integers
+    int T1 = atoi(argv[1]);
+    int T2 = atoi(argv[2]);
+    int R1 = atoi(argv[3]);
+    int R2 = atoi(argv[4]);
+
+    // Check if result values are non-negative
+    if (R1 < 0 || R2 < 0) {
+        // If either result value is negative, compare time values
+        if (T1 < T2) {
+            printf("Alice\n");
+        } else if (T1 > T2) {
+            printf("Bob\n");
+        } else {
+            printf("Draw\n");
+        }
+    } else {
+        // If both result values are non-negative, compare result values
+        if (R1 < R2) {
+            printf("Alice\n");
+        } else if (R1 > R2) {
+            printf("Bob\n");
+        } else {
+            printf("Draw\n");
+        }
+    }
+
+    return 0;
+}

@@ -1,0 +1,66 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_STRINGS 100
+#define MAX_STRING_LENGTH 21 // 20 characters + 1 for null terminator
+#define MAX_CONCATENATED_LENGTH 5001 // 5000 characters + 1 for null terminator
+
+int main() {
+    int n, m;
+    
+    // Read the number of strings and the number of strings to concatenate
+    while (scanf("%d %d", &n, &m) == 2 && (n != 0 || m != 0)) {
+        char strings[MAX_STRINGS][MAX_STRING_LENGTH];
+        char concatenated[MAX_CONCATENATED_LENGTH];
+
+        // Read n strings
+        for (int i = 0; i < n; i++) {
+            scanf("%s", strings[i]);
+        }
+
+        // Read m strings and concatenate them
+        concatenated[0] = '\0'; // Initialize concatenated string
+        for (int i = 0; i < m; i++) {
+            char temp[MAX_STRING_LENGTH];
+            scanf("%s", temp);
+            strcat(concatenated, temp); // Concatenate strings
+        }
+
+        int count = 0; // To count distinct combinations
+        int len_concat = strlen(concatenated);
+        int flag[1 << n]; // Bitmask for tracking combinations
+        memset(flag, 0, sizeof(flag)); // Initialize flag array
+
+        // Iterate through the concatenated string
+        for (int start = 0; start < len_concat; start++) {
+            int current_mask = 0; // Reset current mask for each start position
+
+            // Check for matches starting from 'start'
+            for (int i = 0; i < n; i++) {
+                int len_str = strlen(strings[i]);
+                // Check if the substring matches
+                if (strncmp(&concatenated[start], strings[i], len_str) == 0) {
+                    current_mask |= (1 << i); // Set the bit for the matched string
+                    start += len_str - 1; // Move start index forward
+                }
+            }
+
+            // If we matched all strings, mark the combination
+            if (current_mask == (1 << n) - 1) {
+                flag[current_mask] = 1; // Mark this combination as found
+            }
+        }
+
+        // Count distinct combinations
+        for (int i = 0; i < (1 << n); i++) {
+            if (flag[i]) {
+                count++;
+            }
+        }
+
+        // Output the count of distinct combinations
+        printf("%d\n", count);
+    }
+
+    return 0;
+}

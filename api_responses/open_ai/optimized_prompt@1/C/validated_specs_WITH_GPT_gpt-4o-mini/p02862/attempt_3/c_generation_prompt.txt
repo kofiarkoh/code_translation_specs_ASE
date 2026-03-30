@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the number of distinct paths in a grid from the top-left corner to a point defined by two coordinates, given specific constraints. It employs combinatorial mathematics to determine the number of valid paths based on the input coordinates, specifically using the formula for combinations.
+
+## 2. Inputs
+- Two integers, `x` and `y`, representing coordinates in a grid.
+
+## 3. Outputs
+- A single integer representing the number of distinct paths from the origin to the point `(x, y)`, or `0` if the path is not valid.
+
+## 4. Preconditions
+- The input integers `x` and `y` must be non-negative integers.
+
+## 5. Postconditions
+- If the sum of `x` and `y` is not divisible by `3`, or if the adjusted coordinates `(x - n)` or `(y - n)` are negative, the output is `0`.
+- Otherwise, the output is the number of distinct paths calculated using the combinatorial formula \( C(x' + y', x') \) modulo `1000000007`, where \( x' = x - n \) and \( y' = y - n \) and \( n = \frac{x + y}{3} \).
+
+## 6. Invariants
+- The factorial and inverse factorial arrays are correctly initialized and populated for all integers from `0` to `1000000` before any combinatorial calculations are performed.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values for `x` or `y` are negative, or if the calculated values for `x'` or `y'` (where \( x' = x - n \) and \( y' = y - n \)) are negative, the output will be `0`.
+- If the sum of `x` and `y` is not divisible by `3`, the output will also be `0`.
+
+## 8. State Transitions
+- The state transitions occur during the initialization of the factorial and inverse factorial arrays, and upon receiving valid input values, transitioning to the calculation of the number of paths.
+
+## 9. Non-functional Constraints
+- The computation must be performed efficiently, ensuring that operations involving large integers are handled correctly within the constraints of modular arithmetic.
+
+```

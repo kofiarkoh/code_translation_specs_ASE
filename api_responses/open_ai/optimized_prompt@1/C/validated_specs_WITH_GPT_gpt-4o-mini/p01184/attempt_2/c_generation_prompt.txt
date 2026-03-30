@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a system to determine the maximum number of distinct groups that can be formed from a set of names based on specific criteria. It utilizes a hash table for efficient name storage and retrieval, and checks combinations of names to find valid groupings while ensuring that names are not reused across different groups.
+
+## 2. Inputs
+- A series of test cases, each consisting of:
+  - An integer `n` representing the number of names.
+  - An integer `m` representing the number of groups.
+  - `n` strings representing the names.
+  - For each group, an integer `j` indicating the number of names in that group followed by `j` strings representing the names.
+
+## 3. Outputs
+- For each test case, either:
+  - The maximum number of distinct groups that can be formed, followed by the names in those groups, or
+  - A message indicating that forming such groups is impossible.
+
+## 4. Preconditions
+- The input must consist of valid integers for `n` and `m`, where `n > 0`.
+- Each name must be a non-empty string with a maximum length of 21 characters.
+
+## 5. Postconditions
+- The output will reflect the maximum number of distinct groups that can be formed based on the provided names and group criteria.
+- If no valid grouping exists, the output will indicate impossibility.
+
+## 6. Invariants
+- The hash table remains consistent throughout the execution, ensuring that names can be inserted and looked up without duplication.
+- The array of flags maintains the state of which names have been accounted for in the group checks.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input format is incorrect or if `n` or `m` is non-positive, the program will not produce valid output.
+- The program does not handle memory allocation errors or invalid string inputs explicitly.
+
+## 8. State Transitions
+- The state transitions occur as names are inserted into the hash table and as group memberships are updated based on the input. The final state reflects the successful identification of valid groups or the impossibility of forming them.
+
+## 9. Non-functional Constraints
+- The program is expected to operate efficiently within the constraints of the hash table size and the number of names, ensuring that operations remain within acceptable time limits for typical input sizes.
+
+## 10. Group Counting Logic
+- The program counts distinct groups based on the criteria that no name can be reused across different groups. Each valid group must consist of names that do not overlap with names in other selected groups. The program checks combinations of names to ensure that the selected groups meet this criterion, and it identifies the maximum number of such groups that can be formed. If no valid combinations exist, the program will indicate that forming groups is impossible.
+
+```

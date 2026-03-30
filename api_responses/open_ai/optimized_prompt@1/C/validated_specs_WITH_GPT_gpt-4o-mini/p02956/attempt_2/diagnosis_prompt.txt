@@ -1,0 +1,263 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+#include <stdio.h>
+
+const int Mod = 998244353;
+
+typedef struct {
+	int key, id;
+} data;
+
+void merge_sort(data x[], int n)
+{
+	static data y[200001] = {};
+	if (n <= 1) return;
+	merge_sort(&(x[0]), n/2);
+	merge_sort(&(x[n/2]), (n+1)/2);
+	
+	int i, p, q;
+	for (i = 0, p = 0, q = n/2; i < n; i++) {
+		if (p >= n/2) y[i] = x[q++];
+		else if (q >= n) y[i] = x[p++];
+		else y[i] = (x[p].key < x[q].key)? x[p++]: x[q++];
+	}
+	for (i = 0; i < n; i++) x[i] = y[i];
+}
+
+void add_BIT(int N, int BIT[], int i, int k)
+{
+	while (i <= N) {
+		BIT[i] += k;
+		i += (i & -i);
+	}
+}
+
+int sum_BIT(int BIT[], int r)
+{
+	int sum = 0;
+	while (r > 0) {
+		sum += BIT[r];
+		r -= (r & -r);
+	}
+	return sum;
+}
+
+int main()
+{
+	int i, j, m, n, N, tmp;
+	data d[200001];
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) scanf("%d %d", &(d[i-1].key), &(d[i-1].id));
+	merge_sort(d, N);
+	for (i = 0, m = 1; i < N; i++, m++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) {
+			d[j].key = d[j].id;
+			d[j].id = m;
+		}
+		j = i - 1;
+	}
+	merge_sort(d, N);
+	for (i = 0, n = 1; i < N; i++, n++) {
+		for (j = i, tmp = d[i].key; j < N && d[j].key == tmp; j++) d[j].key = n;
+		j = i - 1;
+	}
+
+	long long pow[200001];
+	for (i = 1, pow[0] = 1; i <= N; i++) pow[i] = pow[i-1] * 2 % Mod;
+	
+	int BIT[200001] = {};
+	long long ans = (pow[N] - 1 + Mod) * N % Mod;
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[i - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		
+		for (j = i; j < N && d[j].key == d[i].key; j++) add_BIT(m, BIT, d[j].id, 1);
+		i = j - 1;
+	}
+	for (i = 1; i <= m; i++) BIT[i] = 0;
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) ans += pow[sum_BIT(BIT, d[j].id - 1)] + pow[N - i - 1 - sum_BIT(BIT, d[j].id)];
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--) add_BIT(m, BIT, d[j].id, 1);
+		i = j + 1;
+	}
+	
+	for (i = 0; i < N; i++) {
+		d[i].key ^= d[i].id;
+		d[i].id ^= d[i].key;
+		d[i].key ^= d[i].id;
+	}
+	merge_sort(d, N);
+
+	for (i = 0; i < N; i++) {
+		for (j = i; j < N && d[j].key == d[i].key; j++);
+		ans = (ans + (Mod - pow[i]) * (j - i)) % Mod;
+		i = j - 1;
+	}
+	for (i = N - 1; i >= 0; i--) {
+		for (j = i; j >= 0 && d[j].key == d[i].key; j--);
+		ans = (ans + (Mod - pow[N-i-1]) * (i - j)) % Mod;
+		i = j + 1;
+	}
+	
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code processes a list of data pairs, each consisting of a key and an identifier, to compute a specific numerical result based on the relationships between the keys and identifiers. It performs sorting, grouping, and mathematical operations to derive the final output.
+
+# 2. Inputs
+- An integer \( N \) representing the number of data pairs.
+- \( N \) pairs of integers, each consisting of a key and an identifier.
+
+# 3. Outputs
+- A single long integer representing the computed result based on the input data.
+
+# 4. Preconditions
+- \( N \) must be a positive integer.
+- Each key and identifier must be valid integers within the constraints of the data structure.
+
+# 5. Postconditions
+- The output is a long integer that is computed based on the sorted and processed data pairs, adhering to the specified mathematical operations.
+
+# 6. Invariants
+- The data pairs are maintained in a sorted order based on their keys throughout the processing.
+- The identifiers are updated based on the grouping of keys, ensuring that identical keys share the same identifier.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle errors related to input format or out-of-bounds access. It assumes valid input as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur during the sorting and updating of the data pairs, where the keys and identifiers are modified based on their relationships.
+
+# 9. Non-functional Constraints (if inferable)
+- The operations must complete within a reasonable time frame, given the constraints on \( N \) and the efficiency of the sorting and mathematical operations. The result is computed modulo a predefined constant.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct {
+    int key;
+    int identifier;
+} DataPair;
+
+// Comparator function for sorting DataPair by key
+int compare(const void *a, const void *b) {
+    return ((DataPair *)a)->key - ((DataPair *)b)->key;
+}
+
+// Function to process the data pairs and compute the result
+long compute_result(DataPair *data_pairs, int N) {
+    long result = 0;
+    const long MODULO_CONSTANT = 1000000007; // Example modulo constant
+
+    // Sort the data pairs based on keys
+    qsort(data_pairs, N, sizeof(DataPair), compare);
+
+    // Grouping and processing identifiers based on sorted keys
+    for (int i = 0; i < N; i++) {
+        // If the current key is the same as the previous one, update the identifier
+        if (i > 0 && data_pairs[i].key == data_pairs[i - 1].key) {
+            data_pairs[i].identifier = data_pairs[i - 1].identifier;
+        }
+        // Accumulate the result based on the key and identifier
+        result = (result + (long)data_pairs[i].key * data_pairs[i].identifier) % MODULO_CONSTANT;
+    }
+
+    return result;
+}
+
+int main() {
+    int N;
+    // Read the number of data pairs
+    scanf("%d", &N);
+    
+    // Allocate memory for data pairs
+    DataPair *data_pairs = (DataPair *)malloc(N * sizeof(DataPair));
+    
+    // Read the data pairs
+    for (int i = 0; i < N; i++) {
+        scanf("%d %d", &data_pairs[i].key, &data_pairs[i].identifier);
+    }
+
+    // Compute the result
+    long result = compute_result(data_pairs, N);
+    
+    // Output the result
+    printf("%ld\n", result);
+    
+    // Free allocated memory
+    free(data_pairs);
+    
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p02956/p02956_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p02956/p02956_sample1_output.txt
+Input:
+3
+1 2
+3 4
+5 6
+Expected:
+13
+Actual:
+44
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

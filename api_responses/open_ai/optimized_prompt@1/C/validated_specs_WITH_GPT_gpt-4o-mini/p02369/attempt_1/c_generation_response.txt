@@ -1,0 +1,100 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Node {
+    int vertex;
+    struct Node* next;
+} Node;
+
+typedef struct Graph {
+    int numVertices;
+    Node** adjacencyList;
+} Graph;
+
+// Function to create a graph with a given number of vertices
+Graph* createGraph(int vertices) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    graph->numVertices = vertices;
+    graph->adjacencyList = (Node**)malloc(vertices * sizeof(Node*));
+    
+    for (int i = 0; i < vertices; i++) {
+        graph->adjacencyList[i] = NULL; // Initialize each adjacency list
+    }
+    
+    return graph;
+}
+
+// Function to add an edge to the graph
+void addEdge(Graph* graph, int src, int dest) {
+    // No bounds checking for src and dest as per specification; 
+    // this may lead to undefined behavior if out of bounds.
+    Node* newNode = (Node*)malloc(sizeof(Node));
+    newNode->vertex = dest;
+    newNode->next = graph->adjacencyList[src];
+    graph->adjacencyList[src] = newNode; // Add new edge to the adjacency list
+}
+
+// Helper function for cycle detection
+int detectCycleUtil(Graph* graph, int vertex, int* visited, int* recStack) {
+    if (recStack[vertex]) return 1; // Cycle found
+    if (visited[vertex]) return 0; // Already visited
+
+    visited[vertex] = 1; // Mark the current node as visited
+    recStack[vertex] = 1; // Add to recursion stack
+
+    Node* temp = graph->adjacencyList[vertex];
+    while (temp) {
+        if (detectCycleUtil(graph, temp->vertex, visited, recStack)) {
+            return 1; // Cycle found in recursion
+        }
+        temp = temp->next;
+    }
+
+    recStack[vertex] = 0; // Remove from recursion stack
+    return 0; // No cycle found
+}
+
+// Function to check for cycles in the graph
+int hasCycle(Graph* graph) {
+    int* visited = (int*)malloc(graph->numVertices * sizeof(int));
+    int* recStack = (int*)malloc(graph->numVertices * sizeof(int));
+
+    for (int i = 0; i < graph->numVertices; i++) {
+        visited[i] = 0; // Initialize visited array
+        recStack[i] = 0; // Initialize recursion stack
+    }
+
+    for (int i = 0; i < graph->numVertices; i++) {
+        if (detectCycleUtil(graph, i, visited, recStack)) {
+            free(visited);
+            free(recStack);
+            return 1; // Cycle detected
+        }
+    }
+
+    free(visited);
+    free(recStack);
+    return 0; // No cycle detected
+}
+
+// Main function to demonstrate graph creation and cycle detection
+int main() {
+    int vertices, edges;
+    scanf("%d %d", &vertices, &edges); // Read number of vertices and edges
+
+    Graph* graph = createGraph(vertices);
+
+    for (int i = 0; i < edges; i++) {
+        int src, dest;
+        scanf("%d %d", &src, &dest); // Read each edge
+        addEdge(graph, src, dest); // Add edge to the graph
+    }
+
+    int cycleExists = hasCycle(graph); // Check for cycles
+    printf("%d\n", cycleExists); // Output 1 if cycle exists, otherwise 0
+
+    // Free memory (not shown for brevity, but should be implemented)
+    return 0;
+}
+```

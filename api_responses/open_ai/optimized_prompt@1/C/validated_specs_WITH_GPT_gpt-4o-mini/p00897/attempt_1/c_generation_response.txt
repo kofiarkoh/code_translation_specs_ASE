@@ -1,0 +1,131 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+
+typedef struct Road {
+    int destination;
+    int distance;
+    struct Road* next;
+} Road;
+
+typedef struct City {
+    char* name;
+    Road* roads;
+} City;
+
+typedef struct Graph {
+    City* cities;
+    int cityCount;
+    int roadCount;
+    int fuelCapacity;
+} Graph;
+
+Graph* createGraph(int cityCount, int roadCount, int fuelCapacity) {
+    Graph* graph = (Graph*)malloc(sizeof(Graph));
+    if (!graph) return NULL; // Handle memory allocation failure
+    graph->cities = (City*)malloc(cityCount * sizeof(City));
+    if (!graph->cities) {
+        free(graph);
+        return NULL; // Handle memory allocation failure
+    }
+    graph->cityCount = cityCount;
+    graph->roadCount = roadCount;
+    graph->fuelCapacity = fuelCapacity;
+    for (int i = 0; i < cityCount; i++) {
+        graph->cities[i].name = NULL;
+        graph->cities[i].roads = NULL;
+    }
+    return graph;
+}
+
+void addCity(Graph* graph, int index, const char* name) {
+    graph->cities[index].name = strdup(name); // Duplicate city name
+}
+
+void addRoad(Graph* graph, int from, int to, int distance) {
+    Road* newRoad = (Road*)malloc(sizeof(Road));
+    newRoad->destination = to;
+    newRoad->distance = distance;
+    newRoad->next = graph->cities[from].roads;
+    graph->cities[from].roads = newRoad;
+}
+
+int minDistance(int dist[], int sptSet[], int cityCount) {
+    int min = INT_MAX, minIndex;
+    for (int v = 0; v < cityCount; v++) {
+        if (sptSet[v] == 0 && dist[v] <= min) {
+            min = dist[v];
+            minIndex = v;
+        }
+    }
+    return minIndex;
+}
+
+int dijkstra(Graph* graph, int start, int goal) {
+    int* dist = (int*)malloc(graph->cityCount * sizeof(int));
+    int* sptSet = (int*)malloc(graph->cityCount * sizeof(int));
+    for (int i = 0; i < graph->cityCount; i++) {
+        dist[i] = INT_MAX; // Initialize distances
+        sptSet[i] = 0; // Shortest path tree set
+    }
+    dist[start] = 0; // Distance to the source is 0
+
+    for (int count = 0; count < graph->cityCount - 1; count++) {
+        int u = minDistance(dist, sptSet, graph->cityCount);
+        sptSet[u] = 1; // Mark the picked vertex
+
+        Road* road = graph->cities[u].roads;
+        while (road) {
+            if (!sptSet[road->destination] && dist[u] != INT_MAX && dist[u] + road->distance < dist[road->destination]) {
+                dist[road->destination] = dist[u] + road->distance; // Update distance
+            }
+            road = road->next;
+        }
+    }
+
+    int result = dist[goal];
+    free(dist);
+    free(sptSet);
+    return (result == INT_MAX) ? -1 : result; // Return -1 if no path exists
+}
+
+void freeGraph(Graph* graph) {
+    for (int i = 0; i < graph->cityCount; i++) {
+        free(graph->cities[i].name);
+        Road* road = graph->cities[i].roads;
+        while (road) {
+            Road* temp = road;
+            road = road->next;
+            free(temp);
+        }
+    }
+    free(graph->cities);
+    free(graph);
+}
+
+int main() {
+    // Example usage
+    int cityCount = 3;
+    int roadCount = 3;
+    int fuelCapacity = 100;
+
+    Graph* graph = createGraph(cityCount, roadCount, fuelCapacity);
+    if (!graph) return -1; // Handle memory allocation failure
+
+    addCity(graph, 0, "CityA");
+    addCity(graph, 1, "CityB");
+    addCity(graph, 2, "CityC");
+
+    addRoad(graph, 0, 1, 50);
+    addRoad(graph, 1, 2, 30);
+    addRoad(graph, 0, 2, 100);
+
+    int minDistance = dijkstra(graph, 0, 2);
+    printf("Minimum distance from CityA to CityC: %d\n", minDistance);
+
+    freeGraph(graph);
+    return 0;
+}
+```

@@ -1,0 +1,17 @@
+#include <stdio.h>
+
+int main() {
+    int a, b, c;
+
+    // Read input values for a, b, and c
+    scanf("%d %d %d", &a, &b, &c);
+
+    // Check if c is within the inclusive range defined by a and b
+    if (c >= a && c <= b) {
+        printf("Yes\n"); // Output "Yes" if c is within the range
+    } else {
+        printf("No\n");  // Output "No" if c is outside the range
+    }
+
+    return 0; // Return 0 to indicate successful execution
+}

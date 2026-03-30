@@ -1,0 +1,86 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define BASE_YEAR 2001
+
+// Function to check if a year is a leap year
+int isLeapYear(int year) {
+    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
+}
+
+// Function to calculate the total number of days from a reference date
+int calculateDays(int year, int month, int day) {
+    int days = 0;
+    // Days in each month
+    int monthDays[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    // Adjust for leap years
+    if (isLeapYear(year)) {
+        monthDays[2] = 29;
+    }
+
+    // Count days for complete years
+    for (int y = BASE_YEAR; y < year; y++) {
+        days += isLeapYear(y) ? 366 : 365;
+    }
+
+    // Count days for complete months in the current year
+    for (int m = 1; m < month; m++) {
+        days += monthDays[m];
+    }
+
+    // Add days in the current month
+    days += day;
+
+    return days;
+}
+
+// Function to convert string date to numerical format
+void stringToNumerical(const char *dateStr, int *year, int *month, int *day) {
+    sscanf(dateStr, "%d.%d.%d", year, month, day);
+}
+
+// Function to convert numerical date to string format
+void numericalToString(int year, int month, int day, char *output) {
+    sprintf(output, "%d.%d.%d", year, month, day);
+}
+
+// Main function to handle input and output
+int main() {
+    char input[20];
+    int year, month, day;
+    int totalDays;
+    char output[20];
+
+    // Read input
+    fgets(input, sizeof(input), stdin);
+    
+    // Check for termination condition
+    if (input[0] == '#') {
+        return 0; // Terminate without processing
+    }
+
+    // Check if input is in string format
+    if (strchr(input, '.')) {
+        // Process as string date format
+        stringToNumerical(input, &year, &month, &day);
+        totalDays = calculateDays(year, month, day);
+        // Output total days in the format A.B.C.D.E
+        sprintf(output, "%d.0.0.0.%d", totalDays, totalDays);
+    } else {
+        // Process as numerical format
+        sscanf(input, "%d.%d.%d.%d.%d", &year, &month, &day, &totalDays, &totalDays);
+        // Convert back to date format
+        year = BASE_YEAR + (totalDays / 365);
+        month = (totalDays % 365) / 30 + 1; // Simplified month calculation
+        day = (totalDays % 30) + 1; // Simplified day calculation
+        numericalToString(year, month, day, output);
+    }
+
+    // Print output
+    printf("%s\n", output);
+    return 0;
+}
+```

@@ -1,0 +1,62 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MODULO 1000000007
+
+long compute_result(int N, const char *S1, const char *S2) {
+    long result = 0; // Initialize result to 0
+
+    // Iterate through each character of the strings
+    for (int i = 0; i < N; i++) {
+        // Check if characters at the same position are equal
+        if (S1[i] == S2[i]) {
+            result++; // Increment result for matching characters
+        }
+        // Check if characters are adjacent in the ASCII table
+        else if (abs(S1[i] - S2[i]) == 1) {
+            result += 2; // Increment result for adjacent characters
+        }
+    }
+
+    // Return the result modulo the predefined constant
+    return result % MODULO;
+}
+
+int main() {
+    int N;
+    // Read the length of the strings
+    if (scanf("%d", &N) != 1 || N <= 0) {
+        // Undefined behavior for invalid input, no output guaranteed
+        return 1; // Exit with error code
+    }
+
+    // Allocate memory for the strings
+    char *S1 = (char *)malloc((N + 1) * sizeof(char));
+    char *S2 = (char *)malloc((N + 1) * sizeof(char));
+
+    // Read the two strings
+    scanf("%s %s", S1, S2);
+
+    // Ensure strings are of the correct length
+    if (strlen(S1) != N || strlen(S2) != N) {
+        // Undefined behavior for incorrect string lengths, no output guaranteed
+        free(S1);
+        free(S2);
+        return 1; // Exit with error code
+    }
+
+    // Compute the result based on the input strings
+    long result = compute_result(N, S1, S2);
+
+    // Print the result
+    printf("%ld\n", result);
+
+    // Free allocated memory
+    free(S1);
+    free(S2);
+
+    return 0; // Successful execution
+}
+```

@@ -1,0 +1,106 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Pool {
+    int area;
+    struct Pool* next;
+} Pool;
+
+typedef struct Stack {
+    int* positions;
+    int top;
+    int capacity;
+} Stack;
+
+// Function to create a stack
+Stack* createStack(int capacity) {
+    Stack* stack = (Stack*)malloc(sizeof(Stack));
+    stack->capacity = capacity;
+    stack->top = -1;
+    stack->positions = (int*)malloc(capacity * sizeof(int));
+    return stack;
+}
+
+// Function to push an element onto the stack
+void push(Stack* stack, int position) {
+    if (stack->top < stack->capacity - 1) {
+        stack->positions[++stack->top] = position;
+    }
+}
+
+// Function to pop an element from the stack
+int pop(Stack* stack) {
+    if (stack->top >= 0) {
+        return stack->positions[stack->top--];
+    }
+    return -1; // Indicate empty stack
+}
+
+// Function to free the stack
+void freeStack(Stack* stack) {
+    free(stack->positions);
+    free(stack);
+}
+
+// Function to add a pool to the linked list
+Pool* addPool(Pool* head, int area) {
+    Pool* newPool = (Pool*)malloc(sizeof(Pool));
+    newPool->area = area;
+    newPool->next = head;
+    return newPool;
+}
+
+// Function to free the pool linked list
+void freePools(Pool* head) {
+    Pool* temp;
+    while (head) {
+        temp = head;
+        head = head->next;
+        free(temp);
+    }
+}
+
+int main() {
+    char input[1000]; // Assuming input will not exceed 999 characters
+    fgets(input, sizeof(input), stdin); // Read input
+    Stack* stack = createStack(100); // Create stack with capacity of 100
+    Pool* pools = NULL;
+    int totalArea = 0;
+    int poolCount = 0;
+    int currentPosition = 0;
+
+    for (int i = 0; input[i] != '\0'; i++) {
+        if (input[i] == '\\') {
+            push(stack, currentPosition);
+            currentPosition = i; // Update current position to the backslash position
+        } else if (input[i] == '/') {
+            if (stack->top != -1) { // Check if stack is not empty
+                int startPosition = pop(stack);
+                int area = currentPosition - startPosition; // Calculate area
+                if (area > 0) { // Only consider positive areas
+                    pools = addPool(pools, area);
+                    totalArea += area;
+                    poolCount++;
+                }
+            }
+        }
+        // Ignore underscores
+        currentPosition++; // Move to the next character
+    }
+
+    // Output total area and count of pools
+    printf("Total Area: %d\n", totalArea);
+    printf("Pool Count: %d\n", poolCount);
+
+    // Output individual pool areas in reverse order
+    Pool* current = pools;
+    while (current) {
+        printf("Pool Area: %d\n", current->area);
+        current = current->next;
+    }
+
+    // Free allocated memory
+    freePools(pools);
+    freeStack(stack);
+    return 0;
+}

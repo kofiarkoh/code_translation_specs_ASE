@@ -1,0 +1,204 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#define _USE_MATH_DEFINES
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+#include <ctype.h>
+#include <limits.h>    
+#define inf 100000000
+#define INF 9223372036854775807
+#define EPS 1e-10
+#define sq(n) ((n)*(n))
+#define rep(i,n) for(i=0;i<n;i++)
+#define rev(i,n) for(i=n-1;i>=0;i--)
+#define sort(a,n) qsort(a,n,sizeof(TYPE),cmp)
+#define sort_r(a,n) qsort(a,n,sizeof(TYPE),cmp_r);
+#define chsort(s,n) qsort(s,n,sizeof(char),cmp)
+#define chsort_r(s,n) qsort(s,n,sizeof(char),char_cmp_r);
+#define TYPE int
+#define MEMSET(a) memset(a,0,sizeof(a))
+long long mod=(long long)1e09+7;
+
+int in(void){
+    int i;scanf("%d",&i);
+    return i;
+}
+long long llin(void){
+    long long i;scanf("%lld",&i);
+    return i;
+}
+double din(void){
+    double i;scanf("%lf",&i);
+    return i;
+}
+void chin(char s[]){
+    scanf("%s",s);
+}
+void print(int a){
+    printf("%d\n",a);
+}
+void llprint(long long a){
+    printf("%lld\n",a);
+}
+void dprint(double a){
+    printf("%.10f\n",a);
+}
+void print2(int a,int b){
+    printf("%d %d\n",a,b);
+}
+long long max(long long a,long long b){
+    return a>b?a:b;
+}
+long long min(long long a,long long b){
+    return a<b?a:b;
+}
+int cmp(const void *a,const void *b){
+    return *(TYPE *)a-*(TYPE *)b;
+}
+int cmp_r(const void *a,const void *b){
+    return *(TYPE *)b-*(TYPE *)a;
+}
+int char_cmp(const void *a,const void *b){
+    return strcmp((char *)a,(char *)b);
+}
+int char_cmp_r(const void *a,const void *b){
+    return strcmp((char *)b,(char *)a);
+}
+void swap(int *a,int *b){
+    int t=*a;
+    *a=*b;
+    *b=t;
+}
+long long gcd(long long x,long long y){
+    return x%y?gcd(y,x%y):y;
+}
+long long lcm(long long x,long long y){
+    return x/gcd(x,y)*y;
+}
+
+// write codes below this
+// when you use 'sort',
+// make sure TYPE macro is correct
+int main(void){
+    int n,p,i,j,w,c[50];
+    while(1){
+        n=in();
+        p=in();
+        if(!n)break;
+        i=0;
+        w=p;
+        MEMSET(c);
+        while(1){
+            if(w){
+                w--;
+                c[i%n]++;
+                if(!w){
+                    rep(j,n){
+                        if(j==i%n)continue;
+                        if(c[j])break;
+                    }
+                    if(j==n){
+                        print(i%n);
+                        break;
+                    }
+                }
+            }
+            else{
+                w+=c[i%n];
+                c[i%n]=0;
+            }
+            i++;
+        }
+    }
+    return 0;
+}
+
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code implements a simulation that repeatedly processes a series of inputs to determine a specific index based on a given number of iterations and a decrementing counter. It continues until a termination condition is met.
+
+# 2. Inputs
+- An integer `n` representing the number of elements.
+- An integer `p` representing the initial count to decrement.
+
+# 3. Outputs
+- An integer representing the index of the element that meets the specified condition when the process terminates.
+
+# 4. Preconditions
+- The input integers `n` and `p` must be non-negative.
+- The input `n` must be greater than zero for the process to execute.
+
+# 5. Postconditions
+- The output is the index of the element that is found when the decrementing counter reaches zero and all other elements have been checked.
+
+# 6. Invariants
+- The array used to track counts is initialized to zero at the start of each iteration.
+- The decrementing counter is adjusted based on the current state of the array.
+
+# 7. Error Handling / Exceptional Behavior
+- If `n` is zero, the process terminates without producing output.
+- The program does not handle invalid input formats or types; it assumes valid integers are provided.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through the modification of the decrementing counter and the count array based on the current index and conditions met during the iteration.
+
+# 9. Non-functional Constraints (if inferable)
+- The program operates in a loop until a termination condition is met, which may lead to unbounded execution if not properly controlled by input.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+Missing edge case or wrong transition rule.
+
+B. **What the current specification may be missing or misstating**  
+The specification does not adequately describe the behavior of the decrementing counter and how it interacts with the count array when the counter reaches zero. Specifically, it lacks clarity on what happens when the counter is decremented to zero and how the counts are reset or reused.
+
+C. **What general behavior should be clarified in the specification**  
+The specification should clarify the conditions under which the decrementing counter is reset and how the counts for each index are managed throughout the iterations. It should specify that when the counter reaches zero, the program checks all other indices to determine if they have been incremented, and if not, it should continue processing.
+
+D. **Why this clarification is supported by the source program**  
+The source program demonstrates that when the decrementing counter (`w`) reaches zero, it checks if any other indices have been incremented. If none have been incremented, it prints the current index. This behavior is not captured in the current specification, leading to a misunderstanding of the termination conditions and the expected output when multiple inputs are provided. The program's logic indicates that the output can depend on the state of the count array at various points, which is not reflected in the specification.
+
+```

@@ -1,0 +1,27 @@
+#include <stdio.h>
+
+#define MAX_CARS 100 // Define the maximum number of cars that can be stored
+
+int main() {
+    int storage[MAX_CARS]; // Array to hold the cars
+    int count = 0; // Current number of cars in storage
+    int input; // Variable to hold user input
+
+    // Process input until EOF
+    while (scanf("%d", &input) != EOF) {
+        if (input > 0) { // A positive integer indicates a car entering
+            if (count < MAX_CARS) { // Check if there is space in storage
+                storage[count++] = input; // Add car to storage
+            }
+            // If storage is full, we ignore the input (no output)
+        } else if (input == 0) { // A zero indicates a car exiting
+            if (count > 0) { // Check if there are cars to exit
+                // Output the last car that exits
+                printf("%d\n", storage[--count]); // Decrement count and output the last car
+            }
+            // If no cars are present, we do not output anything
+        }
+    }
+
+    return 0; // End of program
+}

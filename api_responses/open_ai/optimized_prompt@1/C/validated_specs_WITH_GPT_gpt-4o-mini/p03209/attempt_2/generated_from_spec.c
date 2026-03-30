@@ -1,0 +1,36 @@
+#include <stdio.h>
+
+// Recursive function to compute the specific value based on n and k
+int compute(int n, int k) {
+    // Base case: when n is 0, return 1 (2^0 - 1 = 0, but we return 1 as per the specification)
+    if (n == 0) {
+        return 1;
+    }
+
+    // Calculate 2^n - 1
+    int threshold = (1 << n) - 1; // Using bit shift to compute 2^n
+
+    // Recursive case: check the relationship between k and threshold
+    if (k <= threshold) {
+        // If k is less than or equal to 2^n - 1, recurse with n-1 and k
+        return compute(n - 1, k);
+    } else {
+        // If k is greater than 2^n - 1, recurse with n-1 and threshold
+        return compute(n - 1, threshold);
+    }
+}
+
+int main() {
+    int n, k;
+
+    // Example input
+    n = 3; // Non-negative integer for depth of recursion
+    k = 5; // Non-negative integer for threshold
+
+    // Compute the result based on n and k
+    int result = compute(n, k);
+
+    // Output the result
+    printf("Result: %d\n", result);
+    return 0;
+}

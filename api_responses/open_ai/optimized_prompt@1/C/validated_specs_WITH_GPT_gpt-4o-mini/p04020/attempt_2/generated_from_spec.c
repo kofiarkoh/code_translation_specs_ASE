@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+long long compute_total_count(int N, long long *sequence) {
+    long long total_count = 0;
+
+    for (int i = 0; i < N; i++) {
+        // Add half of the current integer to the total count
+        total_count += sequence[i] / 2;
+
+        // Check conditions for decrementing the next integer
+        if (i < N - 1 && sequence[i] % 2 == 1 && sequence[i + 1] > 1) {
+            sequence[i + 1]--; // Decrement the next integer
+        }
+    }
+
+    return total_count;
+}
+
+int main() {
+    int N;
+    scanf("%d", &N); // Read the number of elements
+
+    long long sequence[100000]; // Array to hold the sequence
+
+    // Read the sequence of long long integers
+    for (int i = 0; i < N; i++) {
+        scanf("%lld", &sequence[i]);
+    }
+
+    long long result = compute_total_count(N, sequence);
+    printf("%lld\n", result); // Output the total count
+
+    return 0;
+}

@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum sum of selected elements from an array, where the selection is constrained by a dynamic distance parameter. It iteratively evaluates pairs of elements from the start and end of the array, ensuring that the selected indices do not overlap and maintain a defined separation based on the distance. The selection process continues until specific conditions regarding the indices are met, specifically when the indices become invalid for further selection.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the array, where `n` must be greater than 2.
+- An array of `n` long long integers.
+
+## 3. Outputs
+- A single long long integer representing the maximum sum of selected elements based on the defined selection criteria.
+
+## 4. Preconditions
+- The input integer `n` must be greater than 2.
+- The array must contain exactly `n` long long integers.
+
+## 5. Postconditions
+- The output is the maximum sum of selected elements from the array, adhering to the selection constraints defined by the distance parameter.
+
+## 6. Invariants
+- The indices used for selection are always within the bounds of the array.
+- The selected indices maintain a minimum separation defined by the distance parameter, which is determined by the current iteration of the outer loop.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` is less than or equal to 2, the behavior is undefined as the selection criteria cannot be satisfied.
+
+## 8. State Transitions
+- The state transitions occur as the selection indices are updated based on the distance parameter. The start index (`s`) is incremented by the distance `d`, and the end index (`g`) is decremented by the distance `d` in each iteration. The process continues until the indices meet specific conditions that prevent further selection, including overlap or invalid index relationships, specifically when the next calculated indices would either overlap or fall out of valid bounds.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity that is dependent on the value of `n`, specifically iterating through potential distances and selections, which may affect performance for large input sizes. The number of iterations is influenced by the distance parameter and the arrangement of elements in the array. The outer loop iterates over possible values of `d`, which must satisfy the condition `d*2 < n-1` to ensure valid index selections.
+
+```

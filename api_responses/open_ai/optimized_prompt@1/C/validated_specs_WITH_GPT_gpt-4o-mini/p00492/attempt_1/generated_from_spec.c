@@ -1,0 +1,57 @@
+#include <stdio.h>
+
+#define MAX_WIDTH 100 // Assuming a maximum width for the grid
+#define MAX_HEIGHT 100 // Assuming a maximum height for the grid
+
+// Function to count cells adjacent to cells marked as "2"
+int count_adjacent_to_two(int grid[MAX_HEIGHT][2 * MAX_WIDTH + 4], int h, int w) {
+    int count = 0;
+    // Movement vectors for adjacent cells (up, down, left, right)
+    int directions[4][2] = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    
+    // Traverse the grid to find cells marked as "2"
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < 2 * w + 4; j++) {
+            if (grid[i][j] == 2) {
+                // For each "2" found, check adjacent cells
+                for (int d = 0; d < 4; d++) {
+                    int ni = i + directions[d][0]; // New row index
+                    int nj = j + directions[d][1]; // New column index
+                    
+                    // Check if the new indices are within bounds
+                    if (ni >= 0 && ni < h && nj >= 0 && nj < 2 * w + 4) {
+                        // If the adjacent cell is not already counted, increment count
+                        if (grid[ni][nj] != 2) {
+                            count++;
+                            // Mark the adjacent cell as "2" to avoid double counting
+                            grid[ni][nj] = 2; // This modifies the grid as per the specification
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return count; // Return the total count of adjacent cells
+}
+
+int main() {
+    int w, h;
+    // Read width and height
+    scanf("%d %d", &w, &h);
+    
+    // Declare the grid based on the specified dimensions
+    int grid[MAX_HEIGHT][2 * MAX_WIDTH + 4];
+    
+    // Read the grid values
+    for (int i = 0; i < h; i++) {
+        for (int j = 0; j < 2 * w + 4; j++) {
+            scanf("%d", &grid[i][j]);
+        }
+    }
+    
+    // Calculate and print the count of adjacent cells
+    int result = count_adjacent_to_two(grid, h, w);
+    printf("%d\n", result);
+    
+    return 0;
+}

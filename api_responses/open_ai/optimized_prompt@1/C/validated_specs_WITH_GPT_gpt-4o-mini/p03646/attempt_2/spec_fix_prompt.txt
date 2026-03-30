@@ -1,0 +1,131 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MOD 1000000007
+#define ll long long
+
+int main(){
+    ll k;
+    ll n;
+    scanf("%lld",&k);
+    if(k>=50){
+        n=50;
+        ll a[n];
+        ll rem=k/50;
+        ll x=49+rem;
+        ll t=k%50;
+        ll i,j;
+        for(i=0;i<50;i++) a[i]=x;
+        for(i=0;i<t;i++){
+            a[i]+=50;
+            for(j=0;j<50;j++) if(j!=i) a[j]--;
+        }
+        printf("50\n");
+        for(i=0;i<50;i++) printf("%lld ",a[i]);
+    } else if(k>=2){
+        n=k;
+        printf("%lld\n",n);
+        for(int i=0;i<n;i++) printf("%lld ",n);
+    } else if(k==0) printf("4\n3 3 3 3\n");
+    else printf("3\n1 0 3\n");
+    return 0;
+}
+
+```
+
+Current specification:
+```text
+# 1. Functional Description
+The code generates and outputs a sequence of integers based on the input value. It handles different ranges of input values to produce specific sequences, ensuring that the output adheres to defined constraints.
+
+# 2. Inputs
+- A single integer input representing a value \( k \).
+
+# 3. Outputs
+- A sequence of integers based on the value of \( k \):
+  - If \( k \geq 50 \): Outputs 50 integers.
+  - If \( 2 \leq k < 50 \): Outputs \( k \) integers.
+  - If \( k = 0 \): Outputs four integers.
+  - If \( k < 0 \): Outputs three integers.
+
+# 4. Preconditions
+- The input must be a valid integer.
+- The input can be any integer value.
+
+# 5. Postconditions
+- The output sequence is guaranteed to have a length based on the value of \( k \).
+- The integers in the output sequence are generated according to specific rules based on the value of \( k \).
+
+# 6. Invariants
+- The output sequence will always contain non-negative integers.
+- The total number of integers output will always match the expected count based on the input value.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative inputs explicitly beyond producing a fixed output.
+
+# 8. State Transitions (if applicable)
+- The program transitions between different output states based on the value of \( k \):
+  - From input to output of 50 integers if \( k \geq 50 \).
+  - From input to output of \( k \) integers if \( 2 \leq k < 50 \).
+  - From input to output of four integers if \( k = 0 \).
+  - From input to output of three integers if \( k < 0 \).
+
+# 9. Non-functional Constraints (if inferable)
+- The output must be produced in a timely manner, with no explicit performance constraints defined.
+
+```
+
+Mismatch analysis:
+```text
+A. **Likely mismatch category**  
+   - Wrong abstraction
+
+B. **What the current specification may be missing or misstating**  
+   - The specification does not accurately describe the output behavior for the case when \( k \geq 50 \). It fails to capture the specific distribution of values in the output array, particularly how the values are calculated and adjusted based on the input \( k \).
+
+C. **What general behavior should be clarified in the specification**  
+   - The specification should clarify how the output integers are generated when \( k \geq 50 \), specifically detailing the logic behind the distribution of values in the output array, including the adjustments made to ensure that the sum of the integers meets certain criteria.
+
+D. **Why this clarification is supported by the source program**  
+   - The source program implements a specific logic for generating the output when \( k \geq 50 \), where it calculates a base value and adjusts it based on the remainder of \( k \) divided by 50. This results in a specific distribution of values (e.g., some values being incremented while others are decremented) that is not captured in the current specification. The failing test case demonstrates that the generated output does not match the expected output, indicating that the abstraction of the output generation process is incorrect or incomplete.
+
+```

@@ -1,0 +1,56 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAX_STUDENTS 500
+
+// Function to perform Depth First Search to find all connected students
+void dfs(int student, int n, int connections[MAX_STUDENTS][MAX_STUDENTS], int visited[MAX_STUDENTS]) {
+    visited[student] = 1; // Mark the student as visited
+    for (int i = 1; i <= n; i++) {
+        if (connections[student][i] && !visited[i]) { // If there's a connection and not visited
+            dfs(i, n, connections, visited); // Recur for the connected student
+        }
+    }
+}
+
+int main() {
+    int n, m;
+
+    while (1) {
+        // Read number of students and connections
+        scanf("%d %d", &n, &m);
+        
+        // Termination condition
+        if (n == 0 && m == 0) {
+            break; // Exit the loop if both n and m are zero
+        }
+
+        // Initialize connection matrix and visited array
+        int connections[MAX_STUDENTS][MAX_STUDENTS] = {0}; // All connections initialized to zero
+        int visited[MAX_STUDENTS] = {0}; // Reset visited array for each dataset
+
+        // Read connections
+        for (int i = 0; i < m; i++) {
+            int a, b;
+            scanf("%d %d", &a, &b);
+            connections[a][b] = 1; // Mark connection from a to b
+            connections[b][a] = 1; // Mark connection from b to a (undirected)
+        }
+
+        // Count connected students starting from student 1
+        dfs(1, n, connections, visited); // Start DFS from the first student
+
+        // Count the number of unique connected students excluding the first student
+        int count = 0;
+        for (int i = 2; i <= n; i++) { // Start from 2 to exclude the first student
+            if (visited[i]) {
+                count++; // Increment count for each connected student
+            }
+        }
+
+        // Output the result for the current dataset
+        printf("%d\n", count);
+    }
+
+    return 0; // Successful termination
+}
