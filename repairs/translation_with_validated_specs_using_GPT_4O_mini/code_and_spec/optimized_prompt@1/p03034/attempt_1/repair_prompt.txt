@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum sum of selected elements from an array, where the selection is constrained by a dynamic distance parameter. It iteratively evaluates pairs of elements from the start and end of the array, ensuring that the selected indices do not overlap and maintain a defined separation based on the distance. The selection process continues until specific conditions regarding the indices are met, specifically when the indices become invalid for further selection.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the array, where `n` must be greater than 2.
+- An array of `n` long long integers.
+
+## 3. Outputs
+- A single long long integer representing the maximum sum of selected elements based on the defined selection criteria.
+
+## 4. Preconditions
+- The input integer `n` must be greater than 2.
+- The array must contain exactly `n` long long integers.
+
+## 5. Postconditions
+- The output is the maximum sum of selected elements from the array, adhering to the selection constraints defined by the distance parameter.
+
+## 6. Invariants
+- The indices used for selection are always within the bounds of the array.
+- The selected indices maintain a minimum separation defined by the distance parameter, which is determined by the current iteration of the outer loop.
+
+## 7. Error Handling / Exceptional Behavior
+- If `n` is less than or equal to 2, the behavior is undefined as the selection criteria cannot be satisfied.
+
+## 8. State Transitions
+- The state transitions occur as the selection indices are updated based on the distance parameter. The start index (`s`) is incremented by the distance `d`, and the end index (`g`) is decremented by the distance `d` in each iteration. The process continues until the indices meet specific conditions that prevent further selection, including overlap or invalid index relationships, specifically when the next calculated indices would either overlap or fall out of valid bounds.
+
+## 9. Non-functional Constraints
+- The algorithm operates with a time complexity that is dependent on the value of `n`, specifically iterating through potential distances and selections, which may affect performance for large input sizes. The number of iterations is influenced by the distance parameter and the arrangement of elements in the array. The outer loop iterates over possible values of `d`, which must satisfy the condition `d*2 < n-1` to ensure valid index selections.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define ll long long
+#define max(p,q)((p)>(q)?(p):(q))
+
+ll a[100010];
+int main(){
+	int n;
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%lld",a+i);
+	ll ans=0;
+	for(int d=1;d*2<n-1;d++){
+		int s=0,g=n-1;
+		ll crr=0;
+		while(1){
+			int ns=s+d;
+			int ng=g-d;
+			if(ng<=d||ns==ng||ns==g)break;
+			s=ns;
+			g=ng;
+			crr+=a[s]+a[g];
+			ans=max(ans,crr);
+		}
+	}
+	printf("%lld",ans);
+}
+=== C CODE END ===

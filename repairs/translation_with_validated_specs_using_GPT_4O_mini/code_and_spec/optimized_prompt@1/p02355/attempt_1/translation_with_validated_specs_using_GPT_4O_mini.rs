@@ -1,0 +1,77 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let n = nums.next().unwrap();
+    let k = nums.next().unwrap();
+
+    if n < k {
+        println!("0");
+        return;
+    }
+
+    let mut a = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        a.push(line.parse::<usize>().unwrap());
+    }
+
+    let mut f = vec![0; k + 1];
+    let mut s = 0; // Count of unique numbers from 1 to K
+    let mut i = 0;
+    let mut j = 0;
+    let mut ans = n + 1; // Start with a value larger than any possible subarray length
+
+    // Expand the window to find the first valid subarray
+    while s < k && j < n {
+        let t = a[j];
+        if t <= k {
+            if f[t] == 0 {
+                s += 1;
+            }
+            f[t] += 1;
+        }
+        j += 1;
+    }
+
+    // If we didn't find a valid subarray
+    if s < k {
+        println!("0");
+        return;
+    }
+
+    // Contract the window from the left
+    while (a[i] > k || f[a[i]] > 1) && i < j {
+        if a[i] <= k {
+            f[a[i]] -= 1;
+        }
+        i += 1;
+    }
+    ans = j - i;
+
+    // Continue to expand and contract the window
+    while j < n {
+        let t = a[j];
+        if t <= k {
+            f[t] += 1;
+        }
+        j += 1;
+
+        while (a[i] > k || f[a[i]] > 1) && i < j {
+            if a[i] <= k {
+                f[a[i]] -= 1;
+            }
+            i += 1;
+        }
+
+        if j - i < ans {
+            ans = j - i;
+        }
+    }
+
+    println!("{}", ans);
+}

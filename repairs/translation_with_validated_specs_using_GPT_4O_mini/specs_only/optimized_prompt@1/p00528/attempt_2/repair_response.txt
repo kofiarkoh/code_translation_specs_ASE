@@ -1,0 +1,144 @@
+```rust
+use std::collections::{HashMap, HashSet, BinaryHeap};
+use std::cmp::Ordering;
+
+#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+struct Point {
+    x: usize,
+    y: usize,
+}
+
+impl Point {
+    fn distance(&self, other: &Point) -> usize {
+        (self.x as isize - other.x as isize).abs() as usize + (self.y as isize - other.y as isize).abs() as usize
+    }
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: HashMap<Point, Vec<Point>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            edges: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, from: Point, to: Point) {
+        self.edges.entry(from).or_default().push(to);
+        self.edges.entry(to).or_default().push(from); // Assuming undirected graph
+    }
+}
+
+#[derive(Debug, Eq)]
+struct State {
+    point: Point,
+    cost: usize,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost && self.point == other.point
+    }
+}
+
+fn dijkstra(graph: &Graph, start: Point, goal: Point) -> isize {
+    let mut distances: HashMap<Point, usize> = HashMap::new();
+    let mut priority_queue = BinaryHeap::new();
+    let mut visited = HashSet::new();
+
+    distances.insert(start, 0);
+    priority_queue.push(State { point: start, cost: 0 });
+
+    while let Some(State { point, cost }) = priority_queue.pop() {
+        if visited.contains(&point) {
+            continue;
+        }
+        visited.insert(point);
+
+        if point == goal {
+            return cost as isize;
+        }
+
+        if let Some(neighbors) = graph.edges.get(&point) {
+            for &neighbor in neighbors {
+                let next_cost = cost + point.distance(&neighbor);
+                if !visited.contains(&neighbor) {
+                    let entry = distances.entry(neighbor).or_insert(usize::MAX);
+                    if next_cost < *entry {
+                        *entry = next_cost;
+                        priority_queue.push(State { point: neighbor, cost: next_cost });
+                    }
+                }
+            }
+        }
+    }
+    -1 // Return -1 if no path exists
+}
+
+fn find_shortest_path(m: usize, n: usize, _k: usize, special_points: Vec<(usize, usize)>) -> isize {
+    let mut graph = Graph::new();
+    let start = Point { x: 1, y: 1 };
+    let goal = Point { x: m, y: n };
+    let mut start_defined = false;
+    let mut goal_defined = false;
+
+    for (x, y) in &special_points {
+        let point = Point { x: *x, y: *y };
+        if point == start {
+            start_defined = true;
+        }
+        if point == goal {
+            goal_defined = true;
+        }
+        graph.edges.insert(point, Vec::new()); // Initialize the point in the graph
+    }
+
+    // If start point is not defined, add it to the graph
+    if !start_defined {
+        graph.edges.insert(start, Vec::new());
+    }
+
+    // If goal point is not defined, add it to the graph
+    if !goal_defined {
+        graph.edges.insert(goal, Vec::new());
+    }
+
+    // Connect special points (assuming direct adjacency)
+    for (i, (x1, y1)) in special_points.iter().enumerate() {
+        let point1 = Point { x: *x1, y: *y1 };
+        for (x2, y2) in special_points.iter().skip(i + 1) {
+            let point2 = Point { x: *x2, y: *y2 };
+            if (point1.x as isize - point2.x as isize).abs() + (point1.y as isize - point2.y as isize).abs() == 1 {
+                graph.add_edge(point1, point2);
+            }
+        }
+    }
+
+    dijkstra(&graph, start, goal)
+}
+
+fn main() {
+    // Example usage
+    let m = 5;
+    let n = 5;
+    let k = 3;
+    let special_points = vec![(1, 1), (2, 1), (5, 5)];
+    let result = find_shortest_path(m, n, k, special_points);
+    println!("Shortest path distance: {}", result);
+}
+```

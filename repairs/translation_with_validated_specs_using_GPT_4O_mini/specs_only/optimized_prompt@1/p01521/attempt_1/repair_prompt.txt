@@ -1,0 +1,56 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code reads a string input, counts the occurrences of specific characters ('o' and 'x'), and outputs either 'x' or 'o' based on which character appears more frequently.
+
+# 2. Inputs
+A single string input consisting of characters, which may include 'o', 'x', and other characters.
+
+# 3. Outputs
+A single character output, either 'x' or 'o', indicating which of the two characters appears more frequently in the input string.
+
+# 4. Preconditions
+The input string must be null-terminated and can contain up to 199 characters, excluding the null terminator.
+
+# 5. Postconditions
+The output character is 'x' if the count of 'x' is greater than the count of 'o'; otherwise, it is 'o'. If both counts are equal, 'o' is output.
+
+# 6. Invariants
+The counts of 'o' and 'x' are maintained throughout the processing of the input string, ensuring accurate comparison at the end.
+
+# 7. Error Handling / Exceptional Behavior
+If the input string is empty, the output will default to 'o' since the count of 'o' and 'x' will both be zero.
+
+# 8. State Transitions (if applicable)
+The state transitions occur as the input string is processed, updating the counts of 'o' and 'x' based on the characters encountered.
+
+# 9. Non-functional Constraints (if inferable)
+The implementation assumes that the input string is provided in a format that can be processed without leading or trailing whitespace affecting the counts. The maximum length of the input string is constrained to 199 characters.
+```

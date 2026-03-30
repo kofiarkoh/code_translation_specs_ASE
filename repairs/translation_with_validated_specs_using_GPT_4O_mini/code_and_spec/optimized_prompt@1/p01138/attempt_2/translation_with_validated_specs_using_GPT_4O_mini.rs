@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    loop {
+        let mut input = String::new();
+        reader.read_line(&mut input).unwrap();
+        let n: usize = input.trim().parse().unwrap();
+
+        if n == 0 {
+            break;
+        }
+
+        let mut time = vec![0; 24 * 3600]; // Array to track overlapping intervals
+
+        for _ in 0..n {
+            let mut depature_input = String::new();
+            reader.read_line(&mut depature_input).unwrap();
+            let (hour, min, sec) = parse_time(&depature_input);
+            let depature = hour * 3600 + min * 60 + sec;
+
+            let mut arrival_input = String::new();
+            reader.read_line(&mut arrival_input).unwrap();
+            let (hour, min, sec) = parse_time(&arrival_input);
+            let arrival = hour * 3600 + min * 60 + sec;
+
+            for j in depature..arrival {
+                time[j as usize] += 1; // Increment the count for each second in the interval
+            }
+        }
+
+        let max = time.iter().cloned().max().unwrap_or(0); // Find the maximum overlap
+        println!("{}", max); // Output the result
+    }
+}
+
+// Helper function to parse time from a string in "H:M:S" format
+fn parse_time(input: &str) -> (usize, usize, usize) {
+    let parts: Vec<usize> = input.trim()
+        .split(':')
+        .map(|s| s.parse().unwrap())
+        .collect();
+    (parts[0], parts[1], parts[2])
+}

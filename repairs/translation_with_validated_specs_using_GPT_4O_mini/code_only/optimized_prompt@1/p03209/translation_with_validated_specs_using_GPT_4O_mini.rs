@@ -1,0 +1,26 @@
+use std::io::{self, Write};
+
+type LL = i64;
+
+fn f(n: LL, x: LL) -> LL {
+    if n == 0 {
+        return if x <= 0 { 0 } else { 1 };
+    }
+    let p = (1i64 << n) - 1; // 1 << n is equivalent to 2^n
+    if x <= 2 * p {
+        f(n - 1, x - 1)
+    } else {
+        p + 1 + f(n - 1, x - 1 - 2 * p)
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    let n: LL = iter.next().unwrap().parse().expect("Failed to parse n");
+    let k: LL = iter.next().unwrap().parse().expect("Failed to parse k");
+    
+    let result = f(n, k);
+    println!("{}", result);
+}

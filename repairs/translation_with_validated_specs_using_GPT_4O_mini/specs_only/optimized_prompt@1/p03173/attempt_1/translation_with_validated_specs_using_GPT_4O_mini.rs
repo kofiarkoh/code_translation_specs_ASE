@@ -1,0 +1,53 @@
+struct PartitionCost {
+    sequence: Vec<i64>, // Using i64 to represent long long integer
+    memo: Vec<Vec<i64>>, // Memoization table
+    cumulative_sum: Vec<i64>, // Cumulative sum for efficient cost calculations
+}
+
+impl PartitionCost {
+    fn new(sequence: Vec<i64>) -> Self {
+        let n = sequence.len();
+        let mut cumulative_sum = vec![0; n + 1];
+        for i in 0..n {
+            cumulative_sum[i + 1] = cumulative_sum[i] + sequence[i];
+        }
+        let memo = vec![vec![-1; n]; n]; // Initialize memoization table with -1
+        Self {
+            sequence,
+            memo,
+            cumulative_sum,
+        }
+    }
+
+    fn min_cost(&mut self, l: usize, r: usize) -> i64 {
+        if l == r {
+            return 0; // No cost for a single element
+        }
+        if self.memo[l][r] != -1 {
+            return self.memo[l][r]; // Return cached result
+        }
+
+        let mut cost = i64::MAX; // Start with maximum possible cost
+        for k in l..r {
+            let left_cost = self.min_cost(l, k);
+            let right_cost = self.min_cost(k + 1, r);
+            let segment_sum = self.cumulative_sum[r + 1] - self.cumulative_sum[l];
+            cost = cost.min(left_cost + right_cost + segment_sum);
+        }
+
+        self.memo[l][r] = cost; // Store the computed cost in memoization table
+        cost
+    }
+
+    fn compute_min_cost(&mut self) -> i64 {
+        self.min_cost(0, self.sequence.len() - 1) // Compute cost for the entire sequence
+    }
+}
+
+fn main() {
+    let n = 5; // Example size
+    let sequence = vec![1, -2, 3, 4, -1]; // Example sequence
+    let mut partition_cost = PartitionCost::new(sequence);
+    let result = partition_cost.compute_min_cost();
+    println!("{}", result); // Output the minimum cost
+}

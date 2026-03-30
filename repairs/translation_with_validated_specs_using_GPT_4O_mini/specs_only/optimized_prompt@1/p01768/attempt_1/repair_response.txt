@@ -1,0 +1,71 @@
+```rust
+use std::collections::{HashMap, HashSet};
+
+struct Graph {
+    costs: HashMap<String, usize>, // Maps ingredient names to their costs
+    connections: HashMap<String, Vec<String>>, // Adjacency list for the graph
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            costs: HashMap::new(),
+            connections: HashMap::new(),
+        }
+    }
+
+    fn add_ingredient(&mut self, name: String, cost: usize) {
+        self.costs.insert(name.clone(), cost);
+        self.connections.entry(name).or_insert_with(Vec::new);
+    }
+
+    fn add_connection(&mut self, ingredient1: &str, ingredient2: &str) {
+        if self.costs.contains_key(ingredient1) && self.costs.contains_key(ingredient2) {
+            self.connections.entry(ingredient1.to_string()).or_insert_with(Vec::new).push(ingredient2.to_string());
+            self.connections.entry(ingredient2.to_string()).or_insert_with(Vec::new).push(ingredient1.to_string());
+        }
+        // Undefined behavior if ingredient names are not found, as per specification
+    }
+
+    fn dfs(&self, ingredient: &str, visited: &mut HashSet<String>) -> usize {
+        visited.insert(ingredient.to_string());
+        let mut min_cost = *self.costs.get(ingredient).unwrap(); // Start with the cost of the current ingredient
+
+        if let Some(neighbors) = self.connections.get(ingredient) {
+            for neighbor in neighbors {
+                if !visited.contains(neighbor) {
+                    min_cost = min_cost.min(self.dfs(neighbor, visited)); // Update min_cost based on connected ingredients
+                }
+            }
+        }
+        min_cost
+    }
+
+    fn total_min_cost(&self) -> usize {
+        let mut visited = HashSet::new();
+        let mut total_cost = 0;
+
+        for ingredient in self.costs.keys() {
+            if !visited.contains(ingredient) {
+                let min_cost = self.dfs(ingredient, &mut visited);
+                total_cost += min_cost; // Add the minimum cost of the connected component
+            }
+        }
+        total_cost
+    }
+}
+
+fn main() {
+    // Example usage
+    let mut graph = Graph::new();
+    graph.add_ingredient("flour".to_string(), 10);
+    graph.add_ingredient("sugar".to_string(), 5);
+    graph.add_ingredient("butter".to_string(), 15);
+    
+    graph.add_connection("flour", "sugar");
+    graph.add_connection("sugar", "butter");
+
+    let total_cost = graph.total_min_cost();
+    println!("Total minimum cost: {}", total_cost);
+}
+```

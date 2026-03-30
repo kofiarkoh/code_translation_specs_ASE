@@ -1,0 +1,35 @@
+fn generate_sequence(k: i32) -> Vec<i32> {
+    if k >= 50 {
+        let base_value = 49 + (k / 50);
+        let t = k % 50;
+        let mut result = Vec::with_capacity(50);
+        
+        // First t integers incremented by 50
+        for i in 0..t {
+            result.push(base_value + 50 + i);
+        }
+        
+        // Remaining 50 - t integers equal to base_value
+        for _ in t..50 {
+            result.push(base_value);
+        }
+        
+        result
+    } else if k >= 2 {
+        // Outputs k integers, all equal to k
+        vec![k; k as usize]
+    } else if k == 0 {
+        // Outputs four integers, each equal to 3
+        vec![3; 4]
+    } else {
+        // k < 0: Outputs three integers with values 1, 0, and 3
+        vec![1, 0, 3]
+    }
+}
+
+fn main() {
+    // Example usage of the generate_sequence function
+    let k = 52; // Change this value to test different inputs
+    let sequence = generate_sequence(k);
+    println!("{:?}", sequence);
+}

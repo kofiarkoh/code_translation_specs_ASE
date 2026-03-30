@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code identifies an outlier in a set of numerical values by calculating expected values based on the remaining values in the dataset. It reads a series of datasets, each containing a specified number of values, and determines which value deviates significantly from the expected trend derived from the other values.
+
+## 2. Inputs
+- A series of datasets, each starting with a positive integer indicating the number of values to follow.
+- Each dataset contains a sequence of floating-point numbers, with a minimum of four values.
+
+## 3. Outputs
+- For each dataset, the index of the outlier value is printed. If no outlier is found, the index of the last value is printed.
+
+## 4. Preconditions
+- The first input value must be a positive integer indicating the number of subsequent values.
+- Each dataset must contain at least four floating-point numbers.
+
+## 5. Postconditions
+- The output is the index of the outlier value for each dataset processed.
+- The output is guaranteed to be a valid index within the range of the dataset.
+
+## 6. Invariants
+- The number of values processed in each dataset is consistent with the initial integer input.
+- The calculations for identifying the outlier are based on a specific algorithm that uses Lagrange interpolation to compute expected values from the remaining values in the dataset.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer or insufficient values), the behavior is undefined.
+- The program terminates gracefully when a zero is encountered as the first input.
+
+## 8. State Transitions
+- The program transitions from reading input to processing datasets and finally to outputting results, maintaining the state of the current dataset being processed.
+
+## 9. Non-functional Constraints
+- The program operates within a fixed memory limit, as the number of values is capped at ten.
+- The performance is dependent on the number of datasets and the number of values within each dataset, with a complexity that increases with the size of the input.
+
+## 10. Outlier Detection Logic
+- An outlier is determined by calculating an expected value for each number in the dataset based on the remaining numbers using Lagrange interpolation. 
+- A value is considered an outlier if the absolute difference between the calculated expected value and the actual value exceeds a threshold of 0.1. 
+- The program checks each value against all others, and if a value is found to be an outlier, its index is recorded. If multiple values are found to be outliers, the program will report the index of the first value that exceeds the threshold. If no outlier is identified, the index of the last value is returned.
+```

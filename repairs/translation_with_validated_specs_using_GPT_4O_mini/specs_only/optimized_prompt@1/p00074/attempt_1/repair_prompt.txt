@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The program reads time inputs in hours, minutes, and seconds, calculates the remaining time until a specified duration, and outputs two time representations based on that calculation.
+
+# 2. Inputs
+- Three integers representing hours, minutes, and seconds.
+
+# 3. Outputs
+- Two formatted time strings representing:
+  1. The remaining time until a total of two hours from the input time.
+  2. Three times the remaining time calculated in the first output.
+
+# 4. Preconditions
+- The input must consist of three integers.
+- Each integer must represent a valid time component (hours, minutes, seconds).
+- The input values must not be all equal to -1.
+
+# 5. Postconditions
+- The first output is the remaining time until two hours from the input time.
+- The second output is three times the remaining time calculated in the first output.
+
+# 6. Invariants
+- The program continues to process inputs until the termination condition (all inputs equal to -1) is met.
+- The calculated remaining time is always non-negative as long as valid inputs are provided.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input does not consist of three integers, the program will not produce any output for that input.
+- If the input values are invalid (e.g., negative values other than -1), the program will not produce any output for that input.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state to an output state upon successful reading of valid time inputs.
+- The program remains in the input state until the termination condition is met.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must handle multiple sets of inputs in a single execution.
+- The output format must consistently represent time in a two-digit format for each component.
+```

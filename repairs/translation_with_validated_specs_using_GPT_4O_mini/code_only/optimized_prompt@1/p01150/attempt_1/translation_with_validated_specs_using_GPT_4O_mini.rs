@@ -1,0 +1,213 @@
+/*
+  AOJ 2025
+  Title: Eight Princes
+  @kankichi573
+*/
+
+use std::io::{self, BufRead};
+use std::mem;
+
+const FACT8: u64 = 40320;
+const N_OF_PRINCES: usize = 8;
+
+fn dump(result: &[u32], n: usize, f: usize) {
+    match f {
+        0 => {
+            for &val in &result[..n] {
+                print!("{}|", val);
+            }
+            println!();
+        }
+        1 => {
+            for &val in &result[..n - 1] {
+                print!("{}|", val);
+            }
+            println!("1:");
+        }
+        2 => {
+            for &val in &result[..n / 2 - 1] {
+                print!("{}|", val);
+            }
+            print!("1:");
+            for &val in &result[n / 2..n - 1] {
+                print!("{}|", val);
+            }
+            println!("0:");
+            for &val in &result[..n / 2 - 1] {
+                print!("{}|", val);
+            }
+            print!("0:");
+            for &val in &result[n / 2..n - 1] {
+                print!("{}|", val);
+            }
+            println!("1+");
+        }
+        3 => {
+            for &val in &result[..n / 2 - 1] {
+                print!("{}|", val);
+            }
+            print!("0:");
+            for &val in &result[n / 2..n - 1] {
+                print!("{}|", val);
+            }
+            println!("1;");
+        }
+        4 => {
+            for &val in &result[..n / 2 - 1] {
+                print!("{}|", val);
+            }
+            print!("1:");
+            for &val in &result[n / 2..n - 1] {
+                print!("{}|", val);
+            }
+            println!("0@");
+        }
+        _ => {}
+    }
+}
+
+static mut MEMO: [[[u32; 3]; 3]; 70] = [[[0; 3]; 3]; 70];
+
+fn calc_odd_1(pos: usize, princes: usize, sitdown: usize, zero_sitdown: usize, result: &mut [u32], n: usize) -> u32 {
+    unsafe {
+        if MEMO[pos][princes][sitdown][zero_sitdown] != 0 {
+            return MEMO[pos][princes][sitdown][zero_sitdown];
+        }
+    }
+
+    let ret;
+    if princes == 0 {
+        dump(result, n, 0);
+        return 1;
+    } else if pos == n - 1 && princes > 1 {
+        return 0;
+    } else if pos == n - 1 && princes == 1 {
+        if zero_sitdown == 0 && sitdown == 0 {
+            dump(result, n, 1);
+            return 1;
+        }
+        return 0;
+    } else {
+        if sitdown == 0 {
+            result[pos] = 1;
+            ret = calc_odd_1(pos + 1, princes - 1, 1, zero_sitdown, result, n);
+        } else {
+            ret = 0;
+        }
+
+        result[pos] = 0;
+        ret += calc_odd_1(pos + 1, princes, 0, zero_sitdown, result, n);
+    }
+
+    unsafe {
+        MEMO[pos][princes][sitdown][zero_sitdown] = ret;
+    }
+    ret
+}
+
+fn calc_odd(n: usize) -> u32 {
+    let mut result = [0; 70];
+    let mut ret = 0;
+
+    result[0] = 1;
+    ret += calc_odd_1(1, N_OF_PRINCES - 1, 1, 1, &mut result, n);
+    result[0] = 0;
+    ret += calc_odd_1(1, N_OF_PRINCES, 0, 0, &mut result, n);
+    ret
+}
+
+fn calc_even_1(pos: usize, princes: usize, sitdown: usize, zero_sitdown: usize, result: &mut [u32], n: usize) -> u32 {
+    unsafe {
+        if MEMO[pos][princes][sitdown][zero_sitdown] != 0 {
+            return MEMO[pos][princes][sitdown][zero_sitdown];
+        }
+    }
+
+    let ret;
+    if princes == 0 {
+        dump(result, n, 0);
+        return 1;
+    } else if pos == n / 2 - 1 && princes > 1 {
+        return 0;
+    } else if pos == n / 2 - 1 && princes == 1 {
+        if zero_sitdown == 0 && sitdown == 0 {
+            dump(result, n, 2);
+            return 2;
+        } else if (zero_sitdown == 2 || zero_sitdown == 0) && (sitdown == 1 || sitdown == 0) {
+            dump(result, n, 3);
+            return 1;
+        } else if (zero_sitdown == 1 || zero_sitdown == 0) && (sitdown == 2 || sitdown == 0) {
+            dump(result, n, 4);
+            return 1;
+        } else {
+            return 0;
+        }
+    } else {
+        ret = if sitdown == 0 || sitdown == 2 {
+            result[pos] = 1;
+            result[pos + n / 2] = 0;
+            calc_even_1(pos + 1, princes - 1, 1, zero_sitdown, result, n)
+        } else {
+            0
+        };
+
+        if sitdown == 0 || sitdown == 1 {
+            result[pos] = 0;
+            result[pos + n / 2] = 1;
+            ret += calc_even_1(pos + 1, princes - 1, 2, zero_sitdown, result, n);
+        }
+
+        result[pos] = 0;
+        result[pos + n / 2] = 0;
+        ret += calc_even_1(pos + 1, princes, 0, zero_sitdown, result, n);
+    }
+
+    unsafe {
+        MEMO[pos][princes][sitdown][zero_sitdown] = ret;
+    }
+    ret
+}
+
+fn calc_even(n: usize) -> u32 {
+    let mut result = [0; 70];
+    let mut ret = 0;
+
+    result[0] = 1;
+    result[n / 2] = 0;
+    ret += calc_even_1(1, N_OF_PRINCES - 1, 1, 1, &mut result, n); // zenhan
+    result[0] = 0;
+    result[n / 2] = 1;
+    ret += calc_even_1(1, N_OF_PRINCES - 1, 2, 2, &mut result, n); // kouhan
+    result[0] = 0;
+    result[n / 2] = 0;
+    ret += calc_even_1(1, N_OF_PRINCES, 0, 0, &mut result, n); // none
+    ret
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut input = String::new();
+
+    while handle.read_line(&mut input).unwrap() > 0 {
+        let n: usize = input.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        unsafe {
+            mem::zeroed(&mut MEMO);
+        }
+
+        let ret = if n <= 16 {
+            0
+        } else if n % 2 == 1 {
+            (FACT8 as u64) * (calc_odd(n) as u64)
+        } else {
+            (FACT8 as u64) * (calc_even(n) as u64)
+        };
+
+        println!("{}", ret);
+        input.clear();
+    }
+}

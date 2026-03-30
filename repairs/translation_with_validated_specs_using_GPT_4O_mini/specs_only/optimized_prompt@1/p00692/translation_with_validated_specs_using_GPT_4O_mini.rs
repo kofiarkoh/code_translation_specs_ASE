@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of test cases
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    for _ in 0..n {
+        if let Some(Ok(cards)) = lines.next() {
+            let remaining = remove_pairs(&cards);
+            println!("{}", remaining);
+        }
+    }
+}
+
+// Function to remove pairs of matching cards based on adjacency rules
+fn remove_pairs(cards: &str) -> usize {
+    let mut cards: Vec<char> = cards.chars().collect();
+    let mut changed = true;
+
+    // Continue removing pairs until no more can be removed
+    while changed {
+        changed = false;
+        let mut i = 0;
+
+        // Iterate through the card sequence
+        while i < cards.len() {
+            // Check for adjacent matching pairs
+            if i + 1 < cards.len() && cards[i] == cards[i + 1] {
+                // Remove the pair
+                cards.remove(i);
+                cards.remove(i);
+                changed = true; // Mark that a change has occurred
+                // Reset index to check from the start again
+                i = 0;
+            } else {
+                i += 1; // Move to the next card
+            }
+        }
+    }
+
+    // Return the number of remaining cards
+    cards.len()
+}

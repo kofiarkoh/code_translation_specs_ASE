@@ -1,0 +1,26 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read three integers from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+
+    // Split the input string into parts and parse them as integers
+    let mut numbers: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok()) // Only keep valid integers
+        .collect();
+
+    // Ensure we have exactly three integers; if not, we rely on the specification's undefined behavior
+    if numbers.len() != 3 {
+        // This is a no-op; undefined behavior may occur as per the specification
+        return;
+    }
+
+    // Sort the numbers in non-decreasing order
+    numbers.sort();
+
+    // Print the sorted integers
+    // The output will always reflect the three input integers sorted in non-decreasing order
+    println!("{} {} {}", numbers[0], numbers[1], numbers[2]);
+}

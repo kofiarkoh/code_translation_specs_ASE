@@ -1,0 +1,39 @@
+fn process_arrays(n: usize, arr1: &[i32], m: usize, arr2: &[i32], arr3: &[i64]) -> Vec<String> {
+    // Ensure arr1 is sorted as per the specification
+    let mut cumulative_sum = vec![0; n + 1];
+    
+    // Calculate cumulative sums
+    for i in 0..n {
+        cumulative_sum[i + 1] = cumulative_sum[i] + arr1[i] as i64; // Store as long integer
+    }
+
+    let mut results = Vec::with_capacity(m);
+    
+    for &key in arr2.iter() {
+        // Find the upper bound index using binary search
+        let upper_bound = arr1.binary_search(&key).unwrap_err(); // Returns the index of the first element greater than key
+        
+        // Compare cumulative sum with the corresponding long integer
+        if cumulative_sum[upper_bound] >= arr3[results.len()] {
+            results.push("Yes".to_string());
+        } else {
+            results.push("No".to_string());
+        }
+    }
+    
+    results
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let arr1 = [1, 2, 3, 4, 5];
+    let m = 3;
+    let arr2 = [3, 4, 6];
+    let arr3 = [10, 15, 20];
+
+    let results = process_arrays(n, &arr1, m, &arr2, &arr3);
+    for result in results {
+        println!("{}", result);
+    }
+}

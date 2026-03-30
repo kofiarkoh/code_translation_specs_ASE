@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code generates and outputs a sequence of integers based on the input value \( k \). It handles different ranges of input values to produce specific sequences, ensuring that the output adheres to defined constraints and reflects the distribution logic based on the input.
+
+## 2. Inputs
+- A single integer input representing a value \( k \).
+
+## 3. Outputs
+- A sequence of integers based on the value of \( k \):
+  - If \( k \geq 50 \): Outputs 50 integers, where:
+    - Each integer is derived from a base value calculated as \( 49 + \left\lfloor \frac{k}{50} \right\rfloor \).
+    - The first \( t \) integers (where \( t = k \mod 50 \)) are incremented by 50.
+    - The remaining \( 50 - t \) integers are equal to the base value, ensuring that the total count of integers is 50.
+  - If \( 2 \leq k < 50 \): Outputs \( k \) integers, all equal to \( k \).
+  - If \( k = 0 \): Outputs four integers, each equal to 3.
+  - If \( k < 0 \): Outputs three integers with values 1, 0, and 3.
+
+## 4. Preconditions
+- The input must be a valid integer.
+- The input can be any integer value.
+
+## 5. Postconditions
+- The output sequence is guaranteed to have a length based on the value of \( k \).
+- The integers in the output sequence are generated according to specific rules based on the value of \( k \).
+
+## 6. Invariants
+- The output sequence will always contain non-negative integers.
+- The total number of integers output will always match the expected count based on the input value.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative inputs explicitly beyond producing a fixed output.
+
+## 8. State Transitions (if applicable)
+- The program transitions between different output states based on the value of \( k \):
+  - From input to output of 50 integers if \( k \geq 50 \), with specific distribution logic applied.
+  - From input to output of \( k \) integers if \( 2 \leq k < 50 \).
+  - From input to output of four integers if \( k = 0 \).
+  - From input to output of three integers if \( k < 0 \).
+
+## 9. Non-functional Constraints (if inferable)
+- The output must be produced in a timely manner, with no explicit performance constraints defined.
+```

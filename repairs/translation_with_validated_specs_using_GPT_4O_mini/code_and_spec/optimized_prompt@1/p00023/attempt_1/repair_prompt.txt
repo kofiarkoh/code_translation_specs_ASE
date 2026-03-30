@@ -1,0 +1,109 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code determines the spatial relationship between two circles based on their centers and radii, outputting a specific integer value that represents their interaction.
+
+## 2. Inputs
+- An integer `n` indicating the number of circle pairs to process.
+- For each pair, six floating-point numbers representing the coordinates and radii of two circles: `a.x`, `a.y`, `a.r`, `b.x`, `b.y`, `b.r`.
+
+## 3. Outputs
+- An integer for each pair of circles, indicating their relationship:
+  - `0`: Circles do not intersect.
+  - `1`: Circles intersect at one or more points.
+  - `2`: Circle `a` is completely within circle `b`, with no points of intersection.
+  - `-2`: Circle `b` is completely within circle `a`, with no points of intersection.
+
+## 4. Preconditions
+- The input for `n` must be a non-negative integer.
+- The input values for circle parameters must be valid floating-point numbers.
+
+## 5. Postconditions
+- The output will consist of `n` integers, each corresponding to the relationship of the respective circle pair.
+
+## 6. Invariants
+- The relationship between the circles is consistently evaluated based on their geometric properties (centers and radii).
+- The output is guaranteed to be one of the specified integer values for each pair of circles.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or values. If the input does not conform to expected types, behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur with each iteration of the loop, processing a new pair of circles and producing an output based on their relationship.
+
+## 9. Non-functional Constraints
+- The program operates in a single-threaded manner and processes each pair of circles sequentially. Performance is dependent on the number of pairs `n`.
+
+## 10. Additional Clarifications
+- A circle is considered completely within another if the distance between their centers is less than the absolute difference of their radii. This includes cases where the circles are tangent at a single point, which does not count as intersection.
+- The distance between the centers is calculated using the squared differences of their coordinates to avoid unnecessary computation of square roots.
+- If the distance between the centers is equal to the sum of the radii, the circles are considered to be touching externally, which counts as intersection.
+- If the distance between the centers is equal to the absolute difference of the radii, the circles are considered to be touching internally, which does not count as intersection.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define SQ(x) ((x) * (x))
+ 
+typedef struct{
+    double x;
+    double y;
+    double r;
+} CIRCLE;
+ 
+int main(void)
+{
+    CIRCLE a, b;
+    int n;
+     
+    scanf("%d", &n);
+     
+    while (n-- != 0){
+        scanf("%lf%lf%lf%lf%lf%lf", &a.x, &a.y, &a.r, &b.x, &b.y, &b.r);
+         
+        if (SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r + b.r)){
+            printf("0\n");
+        }
+         
+        else if (SQ(a.r + b.r) > SQ(a.x - b.x) + SQ(a.y - b.y) && SQ(a.x - b.x) + SQ(a.y - b.y) > SQ(a.r - b.r)){
+            printf("1\n");
+        }
+         
+        else if (SQ(a.x - b.x) + SQ(a.y - b.y) < SQ(a.r - b.r)){
+            if (a.r > b.r){
+                printf("2\n");
+            }
+            else {
+                printf("-2\n");
+            }
+        }
+        else {
+            printf("1\n");
+        }
+    }
+     
+    return (0);
+}
+=== C CODE END ===

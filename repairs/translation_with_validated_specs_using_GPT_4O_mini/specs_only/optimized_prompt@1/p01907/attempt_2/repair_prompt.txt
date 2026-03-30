@@ -1,0 +1,123 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p01907/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::fmt`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p01907/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:2:5
+  |
+2 | use std::fmt;
+  |     ^^^^^^^^
+
+error[E0277]: the trait bound `TreeNode: Clone` is not satisfied
+    --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p01907/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:16:25
+     |
+  16 |             nodes: vec![TreeNode { edges: Vec::new() }; num_nodes],
+     |                    -----^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^------------
+     |                    |    |
+     |                    |    the trait `Clone` is not implemented for `TreeNode`
+     |                    required by a bound introduced by this call
+     |
+note: required by a bound in `from_elem`
+    --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/vec/mod.rs:3509:21
+     |
+3509 | pub fn from_elem<T: Clone>(elem: T, n: usize) -> Vec<T> {
+     |                     ^^^^^ required by this bound in `from_elem`
+help: consider annotating `TreeNode` with `#[derive(Clone)]`
+     |
+   5 + #[derive(Clone)]
+   6 | struct TreeNode {
+     |
+
+error: aborting due to 1 previous error; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::fmt;
+
+#[derive(Debug)]
+struct TreeNode {
+    edges: Vec<(usize, f64)>, // (connected_node_index, cost)
+}
+
+struct Tree {
+    nodes: Vec<TreeNode>,
+}
+
+impl Tree {
+    fn new(num_nodes: usize) -> Self {
+        Tree {
+            nodes: vec![TreeNode { edges: Vec::new() }; num_nodes],
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, cost: f64) {
+        self.nodes[from].edges.push((to, cost));
+        self.nodes[to].edges.push((from, cost)); // Assuming undirected edges
+    }
+
+    fn depth_first_search(&self, node_index: usize, depth: usize, visited: &mut Vec<bool>, depths: &mut Vec<usize>) {
+        visited[node_index] = true;
+        depths[node_index] = depth;
+
+        for &(neighbor_index, _) in &self.nodes[node_index].edges {
+            if !visited[neighbor_index] {
+                self.depth_first_search(neighbor_index, depth + 1, visited, depths);
+            }
+        }
+    }
+
+    fn compute_weighted_sum(&self, probability_factor: f64) -> f64 {
+        let num_nodes = self.nodes.len();
+        let mut visited = vec![false; num_nodes];
+        let mut depths = vec![0; num_nodes];
+
+        // Start DFS from the first node (index 0)
+        self.depth_first_search(0, 0, &mut visited, &mut depths);
+
+        // Calculate the weighted sum
+        let mut weighted_sum = 0.0;
+        for (i, &depth) in depths.iter().enumerate() {
+            let cost: f64 = self.nodes[i].edges.iter().map(|&(_, edge_cost)| edge_cost).sum();
+            weighted_sum += cost * probability_factor.powi(depth as i32);
+        }
+
+        weighted_sum
+    }
+}
+
+fn main() {
+    // Example usage
+    let probability_factor: f64 = 0.5; // Must be a valid positive value
+    let num_nodes: usize = 3; // Must be greater than zero
+
+    let mut tree = Tree::new(num_nodes);
+    tree.add_edge(0, 1, 10.0);
+    tree.add_edge(1, 2, 20.0);
+
+    let result = tree.compute_weighted_sum(probability_factor);
+    println!("{:.10}", result); // Output formatted to ten decimal places
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

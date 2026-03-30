@@ -1,0 +1,57 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        let n = nums[0];
+        if n == 0 {
+            break;
+        }
+
+        let mut numline = nums[1..(n as usize + 1)].to_vec();
+        let mut cnt = 0;
+
+        loop {
+            let mut num = [0; 101];
+            let mut tmpline = vec![0; n as usize];
+
+            // Count occurrences
+            for &value in &numline {
+                num[value as usize] += 1;
+            }
+
+            // Transform the sequence
+            for i in 0..n {
+                tmpline[i as usize] = num[numline[i as usize] as usize];
+            }
+
+            cnt += 1;
+
+            // Check for stability
+            if tmpline == numline {
+                break;
+            } else {
+                numline = tmpline;
+            }
+        }
+
+        // Output the results
+        println!("{}", cnt - 1);
+        for (i, &value) in numline.iter().enumerate() {
+            if i == (n as usize - 1) {
+                println!("{}", value);
+            } else {
+                print!("{} ", value);
+            }
+        }
+    }
+}
+```

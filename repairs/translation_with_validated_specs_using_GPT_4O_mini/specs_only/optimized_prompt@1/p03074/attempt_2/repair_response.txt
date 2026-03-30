@@ -1,0 +1,75 @@
+```rust
+const NUM_MAX: usize = 1000; // Define a maximum limit for num
+
+fn max_segment_sum(num: usize, changes: usize, binary_string: &str) -> i32 {
+    // Preconditions check
+    if num == 0 || binary_string.len() == 0 || num > NUM_MAX {
+        return 0; // Return immediately if preconditions are not met
+    }
+
+    let mut segments: Vec<(char, usize)> = Vec::new();
+    let mut current_char = binary_string.chars().next().unwrap();
+    let mut current_count = 1;
+
+    // Create segments of contiguous '1's and '0's
+    for c in binary_string.chars().skip(1) {
+        if c == current_char {
+            current_count += 1;
+        } else {
+            segments.push((current_char, current_count));
+            current_char = c;
+            current_count = 1;
+        }
+    }
+    segments.push((current_char, current_count)); // Push the last segment
+
+    let segment_count = segments.len();
+    if segment_count == 1 {
+        return segments[0].1 as i32; // Only one segment, return its count
+    }
+
+    // Calculate the maximum sum of segments after applying changes
+    let mut max_sum = 0;
+
+    // Iterate through possible segment combinations
+    for i in 0..segment_count {
+        let mut sum = segments[i].1; // Start with the current segment's count
+        let mut changes_left = changes;
+
+        // Combine segments to the left
+        for j in (0..i).rev() {
+            if changes_left > 0 {
+                sum += segments[j].1; // Add the previous segment's count
+                changes_left -= 1; // Use a change
+            } else {
+                break; // No more changes left
+            }
+        }
+
+        changes_left = changes; // Reset changes for right side
+
+        // Combine segments to the right
+        for j in (i + 1)..segment_count {
+            if changes_left > 0 {
+                sum += segments[j].1; // Add the next segment's count
+                changes_left -= 1; // Use a change
+            } else {
+                break; // No more changes left
+            }
+        }
+
+        max_sum = max_sum.max(sum as i32); // Update max_sum if current sum is greater
+    }
+
+    max_sum // Return the maximum sum found
+}
+
+fn main() {
+    // Example usage
+    let num = 10;
+    let changes = 1;
+    let binary_string = "1100011000";
+    let result = max_segment_sum(num, changes, binary_string);
+    println!("{}", result); // Output the result
+}
+```

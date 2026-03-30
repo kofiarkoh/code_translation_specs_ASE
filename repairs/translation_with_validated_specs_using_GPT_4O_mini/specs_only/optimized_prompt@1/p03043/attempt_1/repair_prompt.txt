@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes a mathematical expression based on two input integers, N and K. It generates an array of denominators using a specific calculation involving a multiplier that is adjusted based on the current index and the value of K. The program then calculates a cumulative value derived from the ratios of these denominators. The final result is output as a formatted floating-point number.
+
+## 2. Inputs
+- Two integers, N and K, where:
+  - N is a positive integer representing the size of an array.
+  - K is a positive integer that influences the computation of the denominators.
+
+## 3. Outputs
+- A single floating-point number, formatted to twelve decimal places, representing the result of a cumulative sum of ratios involving the generated denominators.
+
+## 4. Preconditions
+- The input integers N and K must be positive.
+- N must be less than or equal to the maximum allowable size for the array.
+
+## 5. Postconditions
+- The output is a floating-point number that results from the cumulative sum of the ratios of the first denominator to each of the other denominators, divided by the first denominator.
+
+## 6. Invariants
+- The array of denominators is initialized to zero before being populated.
+- The first denominator is computed based on a multiplier that is influenced by the values of K and the current index. The multiplier starts at 1 and is doubled until it exceeds \( K \times i \), where \( i \) is the current index.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input (e.g., non-integer values, negative integers).
+- Division by zero is not explicitly handled; if the first denominator is zero, the output will be undefined.
+
+## 8. State Transitions
+- The program transitions from an input state to a computation state, where it populates the denominators based on a multiplier that is doubled until it exceeds \( K \times i \). This value is then used to compute the corresponding denominator. After populating the denominators, the program transitions to a calculation state to compute the cumulative result, finally transitioning to an output state.
+
+## 9. Non-functional Constraints
+- The output precision is constrained to twelve decimal places.
+- The program's performance may be affected by the size of N, as it directly influences the number of computations performed.
+```

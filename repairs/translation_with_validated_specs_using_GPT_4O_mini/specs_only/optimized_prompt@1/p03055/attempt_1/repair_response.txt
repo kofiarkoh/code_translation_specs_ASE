@@ -1,0 +1,59 @@
+```rust
+use std::collections::HashMap;
+
+struct Tree {
+    edges: HashMap<usize, Vec<usize>>,
+}
+
+impl Tree {
+    fn new() -> Self {
+        Tree {
+            edges: HashMap::new(),
+        }
+    }
+
+    fn add_edge(&mut self, u: usize, v: usize) {
+        self.edges.entry(u).or_insert_with(Vec::new).push(v);
+        self.edges.entry(v).or_insert_with(Vec::new).push(u);
+    }
+
+    fn max_depth(&self, node: usize, parent: Option<usize>) -> usize {
+        let mut depth = 0;
+        if let Some(neighbors) = self.edges.get(&node) {
+            for &neighbor in neighbors {
+                if Some(neighbor) != parent {
+                    depth = depth.max(self.max_depth(neighbor, Some(node)));
+                }
+            }
+        }
+        depth + 1 // Count the current node
+    }
+}
+
+fn determine_winner(n: usize, edges: Vec<(usize, usize)>) -> String {
+    if n == 0 {
+        return "Second".to_string(); // Edge case: no nodes
+    }
+
+    let mut tree = Tree::new();
+    for (u, v) in edges {
+        tree.add_edge(u, v);
+    }
+
+    let depth = tree.max_depth(1, None); // Start from node 1 (assuming 1-based indexing)
+    
+    if depth % 2 == 1 {
+        "First".to_string()
+    } else {
+        "Second".to_string()
+    }
+}
+
+fn main() {
+    // Example usage:
+    let n = 5;
+    let edges = vec![(1, 2), (1, 3), (2, 4), (2, 5)];
+    let winner = determine_winner(n, edges);
+    println!("{}", winner);
+}
+```

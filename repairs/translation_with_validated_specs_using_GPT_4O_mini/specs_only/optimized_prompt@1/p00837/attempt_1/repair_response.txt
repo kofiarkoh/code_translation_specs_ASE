@@ -1,0 +1,118 @@
+```rust
+use std::collections::{HashMap, VecDeque};
+
+struct Library {
+    desks: Vec<Desk>,
+}
+
+struct Desk {
+    capacity: usize,
+    books: HashMap<i32, usize>, // Maps book ID to its last used timestamp
+    usage_order: VecDeque<i32>, // Tracks the order of book usage for LRU
+}
+
+impl Library {
+    fn new(m: usize, c: usize) -> Self {
+        let desks = vec![Desk::new(c); m];
+        Library { desks }
+    }
+
+    fn process_requests(&mut self, requests: Vec<Vec<i32>>) -> usize {
+        let mut total_assignments = 0;
+        for request in requests {
+            let n = request[0]; // Number of students
+            for i in 1..=n as usize {
+                let book_id = request[i];
+                total_assignments += self.assign_book(book_id);
+            }
+        }
+        total_assignments
+    }
+
+    fn assign_book(&mut self, book_id: i32) -> usize {
+        // Check if the book is already assigned
+        for desk in &mut self.desks {
+            if desk.books.contains_key(&book_id) {
+                // Update usage order
+                desk.update_usage(book_id);
+                return 0; // No new assignment
+            }
+        }
+
+        // Try to assign the book to a desk
+        for desk in &mut self.desks {
+            if desk.books.len() < desk.capacity {
+                desk.add_book(book_id);
+                return 1; // New assignment made
+            }
+        }
+
+        // All desks are full, need to replace a book
+        self.replace_book(book_id)
+    }
+
+    fn replace_book(&mut self, book_id: i32) -> usize {
+        // Find the least recently used desk
+        let (desk_index, _) = self.desks.iter_mut()
+            .enumerate()
+            .min_by_key(|(_, desk)| desk.last_used())
+            .unwrap();
+
+        self.desks[desk_index].replace_lru_book(book_id);
+        1 // New assignment made
+    }
+}
+
+impl Desk {
+    fn new(capacity: usize) -> Self {
+        Desk {
+            capacity,
+            books: HashMap::new(),
+            usage_order: VecDeque::new(),
+        }
+    }
+
+    fn add_book(&mut self, book_id: i32) {
+        self.books.insert(book_id, 0); // Initial timestamp
+        self.usage_order.push_back(book_id);
+        self.update_usage(book_id);
+    }
+
+    fn update_usage(&mut self, book_id: i32) {
+        if let Some(&mut timestamp) = self.books.get_mut(&book_id) {
+            timestamp += 1; // Increment timestamp for usage
+        }
+        // Move the book to the back of the usage order
+        if let Some(pos) = self.usage_order.iter().position(|&id| id == book_id) {
+            self.usage_order.remove(pos);
+            self.usage_order.push_back(book_id);
+        }
+    }
+
+    fn replace_lru_book(&mut self, new_book_id: i32) {
+        if let Some(lru_book) = self.usage_order.pop_front() {
+            self.books.remove(&lru_book); // Remove the LRU book
+        }
+        self.add_book(new_book_id); // Add the new book
+    }
+
+    fn last_used(&self) -> usize {
+        // Return the last used timestamp of the least recently used book
+        *self.usage_order.front().map_or(&0, |&id| self.books.get(&id).unwrap())
+    }
+}
+
+fn main() {
+    // Example usage
+    let m = 3; // Number of desks
+    let c = 2; // Capacity of each desk
+    let requests = vec![
+        vec![3, 1, 2, 3], // 3 students requesting books
+        vec![3, 2, 3, 4], // 3 students requesting books
+    ];
+
+    let mut library = Library::new(m, c);
+    let total_assignments = library.process_requests(requests);
+    println!("{}", total_assignments); // Output the total assignments
+}
+```

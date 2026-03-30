@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code computes a value based on two input integers, `n` and `m`, and outputs the result. The output value is derived from specific conditions related to the inputs.
+
+# 2. Inputs
+- Two integers, `n` and `m`, where both are expected to be long long integers.
+
+# 3. Outputs
+- A single long long integer representing the computed sum based on the input values.
+
+# 4. Preconditions
+- The inputs `n` and `m` must be valid long long integers.
+- The input `m` must be greater than or equal to 1.
+
+# 5. Postconditions
+- The output value is guaranteed to be a long long integer that satisfies the following conditions based on the values of `n` and `m`:
+  - If `m` equals 1, the output is 0.
+  - If `m/2` is less than `n`, the output is `m/2`.
+  - If `m/2` is greater than or equal to `n` but less than `n + 2`, the output is `n`.
+  - Otherwise, the output is `n + (m/2 - n) / 2`.
+
+# 6. Invariants
+- The output is always a non-negative long long integer.
+- The relationship between `n`, `m`, and the output is maintained according to the specified conditions.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios (e.g., non-integer input or overflow). It assumes that inputs are provided correctly as specified.
+
+# 8. State Transitions (if applicable)
+- The system transitions from an input state (receiving `n` and `m`) to an output state (producing the computed sum) based on the evaluation of conditions.
+
+# 9. Non-functional Constraints (if inferable)
+- The computation is performed in constant time, O(1), regardless of the input values.
+```

@@ -1,0 +1,25 @@
+fn can_transform_to_non_decreasing(n: usize, sequence: Vec<i32>) -> &'static str {
+    // We assume the input is valid as per the specification.
+    // The sequence must be processed to check if it can be made non-decreasing.
+    
+    // Start from the second element and check if we can maintain non-decreasing order
+    for i in 1..n {
+        // If the current element is greater than the previous one,
+        // we need to check if we can decrement it to make the order valid.
+        if sequence[i] > sequence[i - 1] {
+            // If we cannot decrement the current element to be less than or equal to the previous,
+            // then it's impossible to make the sequence non-decreasing.
+            return "No";
+        }
+    }
+    
+    // If we can traverse the entire sequence without issues, return "Yes".
+    "Yes"
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let sequence = vec![5, 4, 3, 2, 1];
+    println!("{}", can_transform_to_non_decreasing(n, sequence)); // Output: "Yes"
+}

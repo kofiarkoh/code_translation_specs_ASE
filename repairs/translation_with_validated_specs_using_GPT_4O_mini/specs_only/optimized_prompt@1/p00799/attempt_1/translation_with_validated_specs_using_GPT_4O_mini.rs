@@ -1,0 +1,86 @@
+use std::collections::VecDeque;
+
+struct Battery {
+    usage_times: Vec<u32>,
+    recharge_times: Vec<u32>,
+    active: bool,
+    current_usage_index: usize,
+    current_recharge_index: usize,
+}
+
+impl Battery {
+    fn new(usage_times: Vec<u32>, recharge_times: Vec<u32>) -> Self {
+        Self {
+            usage_times,
+            recharge_times,
+            active: true,
+            current_usage_index: 0,
+            current_recharge_index: 0,
+        }
+    }
+
+    fn use_battery(&mut self) -> bool {
+        if self.active && self.current_usage_index < self.usage_times.len() {
+            self.usage_times[self.current_usage_index] > 0
+        } else {
+            false
+        }
+    }
+
+    fn recharge_battery(&mut self) {
+        if self.current_recharge_index < self.recharge_times.len() {
+            self.active = true;
+            self.current_recharge_index += 1;
+        }
+    }
+
+    fn process_usage(&mut self) {
+        if self.active && self.current_usage_index < self.usage_times.len() {
+            self.usage_times[self.current_usage_index] -= 1;
+            if self.usage_times[self.current_usage_index] == 0 {
+                self.active = false;
+                self.current_usage_index += 1; // Move to next usage time
+            }
+        }
+    }
+}
+
+fn simulate_battery_management(num_batteries: usize, time_limit: usize, battery_data: Vec<(Vec<u32>, Vec<u32>)>) -> usize {
+    if num_batteries == 0 || time_limit == 0 {
+        return 0; // Graceful termination for invalid input
+    }
+
+    let mut batteries: Vec<Battery> = battery_data.into_iter()
+        .map(|(usage, recharge)| Battery::new(usage, recharge))
+        .collect();
+
+    let mut total_usages = 0;
+    let mut time_elapsed = 0;
+
+    while time_elapsed < time_limit {
+        for battery in &mut batteries {
+            if battery.use_battery() {
+                total_usages += 1; // Count usage
+                battery.process_usage(); // Process the usage
+            } else {
+                battery.recharge_battery(); // Recharge if inactive
+            }
+        }
+        time_elapsed += 1; // Increment time
+    }
+
+    total_usages
+}
+
+fn main() {
+    // Example usage
+    let num_batteries = 2;
+    let time_limit = 10;
+    let battery_data = vec![
+        (vec![3, 0, 2], vec![1, 1]), // Battery 1
+        (vec![2, 1], vec![1, 1]),     // Battery 2
+    ];
+
+    let total_usages = simulate_battery_management(num_batteries, time_limit, battery_data);
+    println!("Total battery usages: {}", total_usages);
+}

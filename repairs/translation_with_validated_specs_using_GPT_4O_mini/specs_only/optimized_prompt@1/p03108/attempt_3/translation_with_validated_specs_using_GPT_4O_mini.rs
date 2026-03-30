@@ -1,0 +1,78 @@
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    disconnected_pairs: usize,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let disconnected_pairs = (n * (n - 1)) / 2; // Initialize with total pairs
+        UnionFind { parent, size, disconnected_pairs }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Calculate the number of pairs that will be connected
+            let size_x = self.size[root_x];
+            let size_y = self.size[root_y];
+            self.disconnected_pairs -= size_x * size_y; // Update the count of disconnected pairs
+
+            // Union by size
+            if size_x < size_y {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += size_x;
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += size_y;
+            }
+        }
+    }
+
+    fn get_disconnected_pairs(&self) -> usize {
+        self.disconnected_pairs
+    }
+}
+
+fn main() {
+    let n: usize; // Number of nodes
+    let m: usize; // Number of union operations
+    let mut operations = Vec::new();
+
+    // Read input values
+    std::io::stdin().read_line(&mut String::new()).unwrap(); // Read the first line
+    let input = "5 4\n1 2\n2 3\n4 5\n1 4"; // Example input for testing
+    let lines: Vec<&str> = input.lines().collect();
+    let first_line: Vec<usize> = lines[0].split_whitespace().map(|s| s.parse().unwrap()).collect();
+    n = first_line[0];
+    m = first_line[1];
+
+    for i in 1..=m {
+        let pair: Vec<usize> = lines[i].split_whitespace().map(|s| s.parse().unwrap()).collect();
+        operations.push((pair[0], pair[1]));
+    }
+
+    let mut uf = UnionFind::new(n);
+    let mut results = Vec::new();
+
+    for (x, y) in operations {
+        uf.union(x - 1, y - 1); // Adjust for 0-based indexing
+        results.push(uf.get_disconnected_pairs()); // Capture the state after each union
+    }
+
+    results.reverse(); // Reverse to output in the order of operations
+    for result in results {
+        println!("{}", result); // Output the results
+    }
+}

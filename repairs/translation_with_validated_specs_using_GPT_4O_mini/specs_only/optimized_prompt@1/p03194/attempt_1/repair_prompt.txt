@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+```text
+1. **Functional Description**  
+   The code computes the largest integer that can be expressed as a product of prime factors of a given integer, raised to the power of their multiplicity, constrained by a specified factor count.
+
+2. **Inputs**  
+   Two integers: `n` (the number of factors) and `p` (the integer to be factorized).
+
+3. **Outputs**  
+   A single integer representing the largest product of prime factors of `p`, raised to the power of their multiplicity, limited by the count specified by `n`.
+
+4. **Preconditions**  
+   - `n` is a positive integer.
+   - `p` is a non-negative integer.
+
+5. **Postconditions**  
+   - The output is a non-negative integer that is the product of prime factors of `p`, each raised to the power of their multiplicity divided by `n`, rounded down. If the total multiplicity of prime factors is less than `n`, all available prime factors are included in the product. If the total multiplicity exceeds `n`, only the largest possible product that can be formed using up to `n` factors is included.
+
+6. **Invariants**  
+   - The value of `ans` remains a product of prime factors throughout the execution.
+   - The loop invariant ensures that for each prime factor considered, the multiplicity is accurately counted and applied to the product.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `n` is zero or negative, the behavior is undefined.
+   - If `p` is zero, the output will be zero, as there are no prime factors.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions occur as the integer `p` is factorized, reducing its value and updating the product `ans` based on the multiplicity of each prime factor. If the total count of prime factors exceeds `n`, the factors are selected based on their multiplicities to maximize the product while adhering to the limit set by `n`. If the total multiplicity is less than `n`, all counted prime factors are included in the product.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The algorithm operates within a time complexity that is dependent on the square root of `p`, making it efficient for reasonably sized inputs.
+```
+```

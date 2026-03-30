@@ -1,0 +1,185 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code implements a data structure that maintains two queues, referred to as the first half and the second half, to support operations for adding elements, deleting elements, and retrieving the minimum and maximum values from each half. The structure ensures that the minimum and maximum values are always accessible and dynamically updated as elements are added or removed. It also maintains a balance between the two halves, ensuring that the first half does not have fewer elements than the second half.
+
+## 2. Inputs
+- An integer `q` representing the number of operations to perform.
+- For each operation, an integer `op` indicating the type of operation:
+  - `0`: Add an integer to the structure.
+  - `1`: Delete an integer from the structure.
+  - `2`: Get the minimum value from the first half.
+  - `3`: Get the minimum value from the second half.
+  - `4`: Get the minimum value from the first half based on a specified index.
+  - `5`: Get the minimum value from the second half based on a specified index.
+  - `6`: Get the maximum value from the first half.
+  - `7`: Get the maximum value from the second half.
+  - `8`: Get the maximum value from the first half based on a specified index.
+  - `9`: Get the maximum value from the second half based on a specified index.
+
+## 3. Outputs
+- For operations that retrieve values (operations 2, 3, 4, 5, 6, 7, 8, 9), the output is the corresponding minimum or maximum value.
+- The output concludes with the string "end" after all operations are processed.
+
+## 4. Preconditions
+- The input values for `q` and `op` must be valid integers.
+- The operations must be executed in a valid sequence, ensuring that delete operations are not called on empty queues.
+
+## 5. Postconditions
+- After processing all operations, the structure maintains the integrity of the two queues, with the correct minimum and maximum values accessible for each half.
+- The output reflects the results of the retrieval operations as specified.
+
+## 6. Invariants
+- The first half and second half queues are maintained independently.
+- The minimum and maximum arrays for each half are updated correctly upon addition and deletion of elements.
+- The sizes of the queues and the corresponding minimum and maximum arrays are consistent.
+
+## 7. Error Handling / Exceptional Behavior
+- If a delete operation is attempted on an empty queue, the behavior is undefined; however, it is assumed that the input will not lead to such a scenario.
+- Retrieval operations that request an index greater than the current size of the respective half will lead to undefined behavior.
+
+## 8. State Transitions
+- The state transitions occur with each operation, modifying the contents of the queues and the associated minimum and maximum arrays based on the operation type. 
+- When adding an element, if the total number of elements in the first half is less than the second half, the element is added to the first half, and if necessary, an element is moved from the second half to the first half to maintain balance.
+- When deleting an element, if the total number of elements in the first half is less than the second half, an element may be moved from the second half to the first half to maintain balance. The minimum and maximum values are updated accordingly during these transfers.
+
+## 9. Non-functional Constraints
+- The implementation is expected to handle a maximum of 200,005 elements efficiently.
+- The performance of add, delete, and retrieval operations is optimized for quick access to minimum and maximum values. 
+
+## 10. Additional Clarifications
+- The minimum and maximum values for each half are updated dynamically during addition and deletion operations. When an element is added, it is compared against the current minimum and maximum values to ensure these arrays remain accurate.
+- When retrieving minimum or maximum values based on an index, if the index exceeds the current size of the respective half, the behavior is undefined, and it is the responsibility of the caller to ensure valid indices are used.
+- The balancing mechanism between the two halves is crucial for maintaining the integrity of the data structure, ensuring that the first half is never smaller than the second half after any operation.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+=== C CODE END ===

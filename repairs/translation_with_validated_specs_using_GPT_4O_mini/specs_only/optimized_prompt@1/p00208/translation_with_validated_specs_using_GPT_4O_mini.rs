@@ -1,0 +1,47 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        let input = line.expect("Failed to read line");
+        let number: i32 = input.trim().parse().expect("Input is not a valid integer");
+
+        if number == 0 {
+            break; // Terminate on sentinel value
+        }
+
+        let octal_representation = to_octal(number);
+        let transformed = transform_octal(octal_representation);
+        println!("{}", transformed);
+    }
+}
+
+// Converts a decimal integer to its octal representation as a Vec<u8>
+fn to_octal(mut number: i32) -> Vec<u8> {
+    let mut octal_digits = Vec::new();
+    while number > 0 {
+        octal_digits.push((number % 8) as u8);
+        number /= 8;
+    }
+    octal_digits.reverse(); // Reverse to get the correct order
+    octal_digits
+}
+
+// Transforms the octal digits according to the specified rules
+fn transform_octal(octal_digits: Vec<u8>) -> String {
+    let mut transformed_digits = Vec::new();
+    for &digit in octal_digits.iter() {
+        let mut transformed_digit = digit;
+        if transformed_digit > 3 {
+            transformed_digit += 1; // Increment if > 3
+        }
+        if transformed_digit > 5 {
+            transformed_digit += 1; // Increment again if > 5
+        }
+        transformed_digits.push(transformed_digit);
+    }
+    // Convert the transformed digits to a string
+    transformed_digits.iter().map(|&d| char::from_digit(d as u32, 10).unwrap()).collect()
+}

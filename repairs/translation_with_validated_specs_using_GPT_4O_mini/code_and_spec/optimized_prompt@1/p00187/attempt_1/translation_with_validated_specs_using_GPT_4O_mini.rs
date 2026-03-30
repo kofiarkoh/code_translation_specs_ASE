@@ -1,0 +1,88 @@
+use std::io::{self, BufRead};
+
+fn line_intersection(ax: i32, ay: i32, bx: i32, by: i32, cx: i32, cy: i32, dx: i32, dy: i32) -> Option<(f64, f64)> {
+    let acx = cx - ax;
+    let acy = cy - ay;
+    let bunbo = (bx - ax) * (dy - cy) - (by - ay) * (dx - cx);
+    
+    if bunbo != 0 {
+        let r = ((dy - cy) * acx - (dx - cx) * acy);
+        let s = ((by - ay) * acx - (bx - ax) * acy);
+        
+        let (r, s, bunbo) = if bunbo < 0 {
+            (-r, -s, -bunbo)
+        } else {
+            (r, s, bunbo)
+        };
+        
+        if r >= 0 && r <= bunbo && s >= 0 && s <= bunbo {
+            let x = ax as f64 + r as f64 / bunbo as f64 * (bx - ax) as f64;
+            let y = ay as f64 + r as f64 / bunbo as f64 * (by - ay) as f64;
+            return Some((x, y));
+        }
+    }
+    None
+}
+
+fn classify_area(area: f64) -> &'static str {
+    if area < 1e-6 {
+        "kyo"
+    } else if area < 100000.0 - 1e-6 {
+        "syo-kichi"
+    } else if area < 1000000.0 - 1e-6 {
+        "kichi"
+    } else if area < 1900000.0 - 1e-6 {
+        "chu-kichi"
+    } else {
+        "dai-kichi"
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut coordinates = vec![];
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let nums: Vec<i32> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+        
+        if nums.len() == 4 {
+            coordinates.push((nums[0], nums[1], nums[2], nums[3]));
+        }
+
+        if coordinates.len() == 3 {
+            let (x1, y1, x2, y2) = coordinates[0];
+            let (x3, y3, x4, y4) = coordinates[1];
+            let (x5, y5, x6, y6) = coordinates[2];
+
+            let mut intersections = vec![];
+
+            if let Some((x, y)) = line_intersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+                intersections.push((x, y));
+            }
+            if let Some((x, y)) = line_intersection(x3, y3, x4, y4, x5, y5, x6, y6) {
+                intersections.push((x, y));
+            }
+            if let Some((x, y)) = line_intersection(x5, y5, x6, y6, x1, y1, x2, y2) {
+                intersections.push((x, y));
+            }
+
+            if intersections.len() == 3 {
+                let area: f64 = (0..3).map(|i| {
+                    let (x1, y1) = intersections[i];
+                    let (x2, y2) = intersections[(i + 1) % 3];
+                    (x1 - x2) * (y1 + y2) / 2.0
+                }).sum::<f64>().abs();
+
+                println!("{}", classify_area(area));
+            } else {
+                println!("kyo");
+            }
+
+            coordinates.clear();
+        }
+    }
+}

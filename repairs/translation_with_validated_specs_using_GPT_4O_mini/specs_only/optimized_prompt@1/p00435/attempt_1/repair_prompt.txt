@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code transforms an input string by modifying each character based on its ASCII value. Uppercase letters are shifted backward by three positions, while all other characters are shifted forward by twenty-three positions. The transformed string is then output.
+
+# 2. Inputs
+- A single string of characters, which may include uppercase letters, lowercase letters, and other symbols, with a maximum length of 999 characters (excluding the null terminator).
+
+# 3. Outputs
+- A single transformed string, printed to the output, which reflects the modifications applied to the input string.
+
+# 4. Preconditions
+- The input string must be provided and must not exceed the maximum length of 999 characters.
+- The input string must be null-terminated.
+
+# 5. Postconditions
+- The output string is a modified version of the input string, where:
+  - Each uppercase letter is replaced by the letter three positions earlier in the ASCII table.
+  - Each non-uppercase character is replaced by the character twenty-three positions later in the ASCII table.
+
+# 6. Invariants
+- The length of the output string will be equal to the length of the input string.
+- The output string will always be null-terminated.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input exceeds the maximum length, the behavior is undefined, as the code does not handle such cases.
+- The code does not handle invalid input types or formats; it assumes valid character input.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as each character of the input string is processed, resulting in a corresponding character in the output string based on the defined transformation rules.
+
+# 9. Non-functional Constraints (if inferable)
+- The transformation process operates in linear time relative to the length of the input string.
+```

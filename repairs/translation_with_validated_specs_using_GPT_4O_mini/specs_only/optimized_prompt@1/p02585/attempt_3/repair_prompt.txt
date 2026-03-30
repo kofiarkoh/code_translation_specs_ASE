@@ -1,0 +1,78 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02585/p02585_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02585/p02585_sample1_output.txt
+Input:
+6 4
+2 3 4 5 6 1
+3 4 2 5 1 6
+Expected:
+15
+Actual:
+Maximum cumulative value: 120
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn max_cumulative_value(n: usize, k: usize, p: &[usize], c: &[i64]) -> i64 {
+    // Ensure that the input arrays are of the correct size
+    assert_eq!(p.len(), n);
+    assert_eq!(c.len(), n);
+
+    let mut max_value = 0; // To track the maximum cumulative value
+
+    // Iterate through each starting index
+    for start in 0..n {
+        let mut current_value = 0; // Cumulative value for the current path
+        let mut steps = 0; // Steps taken in the current path
+        let mut visited = vec![false; n]; // Track visited indices to detect cycles
+        let mut current_index = start; // Start from the current index
+
+        // Follow the mapping defined by P while respecting the step limit K
+        while steps < k {
+            if visited[current_index] {
+                // Cycle detected, break to handle periodic updates
+                break;
+            }
+            visited[current_index] = true; // Mark the current index as visited
+            current_value += c[current_index]; // Update cumulative value
+            max_value = max_value.max(current_value); // Update max value if needed
+            current_index = p[current_index] - 1; // Move to the next index (1-based to 0-based)
+            steps += 1; // Increment the step count
+        }
+    }
+
+    max_value // Return the maximum cumulative value found
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let k = 3;
+    let p = vec![2, 3, 4, 5, 1]; // Example mapping
+    let c = vec![10, 20, 30, 40, 50]; // Example cumulative values
+
+    let result = max_cumulative_value(n, k, &p, &c);
+    println!("Maximum cumulative value: {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,67 @@
+fn process_string(target: usize, input: &str) -> Result<(usize, Vec<usize>), String> {
+    // Extract numbers from the input string
+    let numbers: Vec<usize> = input
+        .split(|c: char| !c.is_digit(10)) // Split by non-numeric characters
+        .filter_map(|s| s.parse().ok()) // Parse valid numbers
+        .collect();
+
+    // Check for valid numbers
+    if numbers.is_empty() {
+        return Err("error".to_string());
+    }
+
+    let n = numbers.len();
+    let mut best_sum = 0;
+    let mut best_combination = Vec::new();
+    let mut found_multiple = false;
+
+    // Iterate through all combinations using bitmasking
+    for mask in 0..(1 << n) {
+        let mut current_sum = 0;
+        let mut current_combination = Vec::new();
+
+        for i in 0..n {
+            if mask & (1 << i) != 0 {
+                current_sum += numbers[i];
+                current_combination.push(numbers[i]);
+            }
+        }
+
+        // Check if the current sum is valid
+        if current_sum <= target {
+            if current_sum > best_sum {
+                best_sum = current_sum;
+                best_combination = current_combination.clone();
+                found_multiple = false; // Reset if we found a new best
+            } else if current_sum == best_sum {
+                found_multiple = true; // Found another combination with the same sum
+            }
+        }
+    }
+
+    // Determine the output based on the findings
+    if found_multiple {
+        return Err("rejected".to_string());
+    }
+
+    if best_sum == 0 {
+        return Err("error".to_string());
+    }
+
+    Ok((best_sum, best_combination))
+}
+
+fn main() {
+    let target = 50; // Example target
+    let input = "1234 30 2222 70 13579"; // Example input
+
+    match process_string(target, input) {
+        Ok((sum, numbers)) => {
+            println!("Max sum: {}", sum);
+            println!("Selected numbers: {:?}", numbers);
+        }
+        Err(message) => {
+            println!("{}", message);
+        }
+    }
+}

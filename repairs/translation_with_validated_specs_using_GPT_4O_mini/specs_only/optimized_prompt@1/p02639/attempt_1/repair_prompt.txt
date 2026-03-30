@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The program reads five integer inputs and outputs a specific integer based on the first occurrence of a zero among the inputs. If no zeros are present, no output is generated.
+
+# 2. Inputs
+Five integers are provided as input.
+
+# 3. Outputs
+The program outputs one of the integers: 1, 2, 3, 4, or 5, corresponding to the first input that is zero. If none of the inputs are zero, there is no output.
+
+# 4. Preconditions
+The input must consist of exactly five integers.
+
+# 5. Postconditions
+- If the first input is zero, the output is 1.
+- If the second input is zero, the output is 2.
+- If the third input is zero, the output is 3.
+- If the fourth input is zero, the output is 4.
+- If the fifth input is zero, the output is 5.
+- If none of the inputs are zero, there is no output.
+
+# 6. Invariants
+The program maintains the integrity of the input values throughout its execution, ensuring that they are read and evaluated in the order they are provided.
+
+# 7. Error Handling / Exceptional Behavior
+The program does not handle invalid input formats or errors during input reading. It assumes that valid integers are always provided.
+
+# 8. State Transitions (if applicable)
+The program transitions from an input state to an output state based on the evaluation of the input integers.
+
+# 9. Non-functional Constraints (if inferable)
+The program operates in constant time relative to the number of inputs, as it evaluates a fixed number of conditions.
+```

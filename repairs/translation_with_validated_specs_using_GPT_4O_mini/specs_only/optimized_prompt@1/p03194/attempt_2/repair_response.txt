@@ -1,0 +1,57 @@
+```rust
+fn largest_prime_product(n: usize, p: usize) -> usize {
+    // Preconditions check
+    if n == 0 {
+        panic!("n must be a positive integer");
+    }
+    if p == 0 {
+        return 0; // If p is zero, the output is zero
+    }
+
+    let mut product = 1; // This will hold the final product of prime factors
+    let mut factor_count = 0; // To count the total multiplicity of prime factors
+    let mut current = p; // A mutable copy of p for factorization
+
+    // Factorization loop
+    let mut factor = 2; // Start with the smallest prime
+    while factor * factor <= current {
+        let mut count = 0; // Count multiplicity of the current factor
+        while current % factor == 0 {
+            current /= factor;
+            count += 1;
+        }
+        if count > 0 {
+            // If the factor was found, update the product and count
+            factor_count += count;
+            // We can only use up to `n` factors, so we take the minimum
+            let use_count = count.min(n - factor_count + count);
+            for _ in 0..use_count {
+                product *= factor; // Multiply the product by the factor
+            }
+        }
+        factor += 1; // Move to the next potential prime factor
+    }
+
+    // If there's any prime factor left greater than sqrt(p), it can only be `current`
+    if current > 1 {
+        factor_count += 1; // This is a prime factor
+        product *= current; // Include this prime factor in the product
+    }
+
+    // If total multiplicity exceeds n, we need to adjust the product
+    if factor_count > n {
+        // This is handled by the way we counted and multiplied above
+        // The product already respects the limit of n due to the use_count logic
+    }
+
+    product // Return the computed product
+}
+
+fn main() {
+    // Example usage
+    let n = 3; // Number of factors
+    let p = 60; // Integer to be factorized
+    let result = largest_prime_product(n, p);
+    println!("Largest prime product: {}", result);
+}
+```

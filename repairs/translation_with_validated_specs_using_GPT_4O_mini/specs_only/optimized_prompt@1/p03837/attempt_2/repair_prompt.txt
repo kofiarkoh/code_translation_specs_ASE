@@ -1,0 +1,113 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (36602929) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p03837/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:37:33:
+index out of bounds: the len is 4 but the index is 4
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::cmp::min;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of nodes (N) and edges (M)
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize distance matrix
+    let inf = usize::MAX; // Represents unreachable nodes
+    let mut dist = vec![vec![inf; n]; n];
+
+    // Distance from a node to itself is zero
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Read edges and update the distance matrix
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let u: usize = edge_parts.next().unwrap().parse().unwrap();
+        let v: usize = edge_parts.next().unwrap().parse().unwrap();
+        let weight: usize = edge_parts.next().unwrap().parse().unwrap();
+
+        // Store the edge
+        edges.push((u, v, weight));
+
+        // Update the distance matrix for parallel edges
+        dist[u][v] = min(dist[u][v], weight);
+        dist[v][u] = min(dist[v][u], weight); // Assuming undirected graph
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] != inf && dist[k][j] != inf {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    // Count edges not part of any shortest path
+    let mut non_contributing_edges = 0;
+
+    for &(u, v, weight) in &edges {
+        let mut is_contributing = false;
+
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][j] == dist[i][u] + weight + dist[v][j] || 
+                   dist[i][j] == dist[i][v] + weight + dist[u][j] {
+                    is_contributing = true;
+                    break;
+                }
+            }
+            if is_contributing {
+                break;
+            }
+        }
+
+        if !is_contributing {
+            non_contributing_edges += 1;
+        }
+    }
+
+    // Output the count of non-contributing edges
+    println!("{}", non_contributing_edges);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

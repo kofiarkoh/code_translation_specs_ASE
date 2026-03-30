@@ -1,0 +1,78 @@
+use std::io::{self, BufRead};
+
+fn min(a: i32, b: i32) -> i32 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0; m];
+    let mut b = vec![0; m];
+    let mut c = vec![0; m];
+    let mut dist = vec![vec![i32::MAX; n]; n];
+
+    // Read edges
+    for i in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        a[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        b[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        c[i] = edge_parts.next().unwrap().parse::<i32>().unwrap();
+    }
+
+    // Initialize distance matrix
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Update distance matrix with edge weights
+    for i in 0..m {
+        dist[a[i]][b[i]] = min(dist[a[i]][b[i]], c[i]);
+        dist[b[i]][a[i]] = min(dist[b[i]][a[i]], c[i]);
+    }
+
+    // Floyd-Warshall algorithm
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] != i32::MAX && dist[k][j] != i32::MAX {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    let mut ans = m as i32;
+
+    // Count edges not part of any shortest path
+    for i in 0..m {
+        let mut is_part_of_shortest_path = false;
+        for j in 0..n {
+            if dist[j][a[i]] != i32::MAX && dist[j][b[i]] != i32::MAX {
+                if dist[j][a[i]] + c[i] == dist[j][b[i]] {
+                    is_part_of_shortest_path = true;
+                    break;
+                }
+            }
+        }
+        if is_part_of_shortest_path {
+            ans -= 1;
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}

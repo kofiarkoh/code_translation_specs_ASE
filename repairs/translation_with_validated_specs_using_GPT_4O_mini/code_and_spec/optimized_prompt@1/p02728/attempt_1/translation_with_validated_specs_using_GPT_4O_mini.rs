@@ -1,0 +1,148 @@
+use std::io::{self, BufRead};
+
+const M: i64 = 1_000_000_007;
+
+fn mbk(a: i64, n: i64, m: i64) -> i64 {
+    if n == 0 {
+        return 1;
+    }
+    let half = mbk((a * a) % m, n / 2, m);
+    if n % 2 == 0 {
+        half
+    } else {
+        (half * a) % m
+    }
+}
+
+fn inv(a: i64, m: i64) -> i64 {
+    mbk(a, m - 2, m)
+}
+
+fn fc(tans: &mut Vec<i64>, s: usize, t: usize) {
+    tans[s] = (tans[s] * tans[t]) % M;
+}
+
+fn ic(tans: &mut Vec<i64>, s: usize, t: usize) {
+    tans[s] = (tans[s] * inv(tans[t], M)) % M;
+}
+
+fn fp(tans: &mut Vec<i64>, tS: &mut Vec<i64>, s: usize) {
+    tans[s] = (tans[s] * inv(tS[s], M)) % M;
+}
+
+fn ip(tans: &mut Vec<i64>, tS: &Vec<i64>, s: usize) {
+    tans[s] = (tans[s] * tS[s]) % M;
+}
+
+fn tdp(
+    tans: &mut Vec<i64>,
+    tu: &mut Vec<i64>,
+    tS: &mut Vec<i64>,
+    ta: &Vec<usize>,
+    nt: &Vec<usize>,
+    to: &Vec<usize>,
+    s: usize,
+) {
+    tu[s] = 1;
+    let mut i = ta[s];
+    while i != usize::MAX {
+        if tu[to[i]] != 0 {
+            i = nt[i];
+            continue;
+        }
+        tdp(tans, tu, tS, ta, nt, to, to[i]);
+        fc(tans, s, to[i]);
+        tS[s] += tS[to[i]];
+        i = nt[i];
+    }
+    fp(tans, tS, s);
+}
+
+fn chrt(
+    tans: &mut Vec<i64>,
+    tS: &mut Vec<i64>,
+    s: usize,
+    t: usize,
+) {
+    ip(tans, tS, s);
+    ic(tans, s, t);
+    ip(tans, tS, t);
+    tS[s] -= tS[t];
+    tS[t] += tS[s];
+    fp(tans, tS, s);
+    fc(tans, t, s);
+    fp(tans, tS, t);
+}
+
+fn atdp(
+    tans: &mut Vec<i64>,
+    tu: &mut Vec<i64>,
+    ta: &Vec<usize>,
+    nt: &Vec<usize>,
+    to: &Vec<usize>,
+    s: usize,
+) {
+    tu[s] = 2;
+    let ans = tans[s];
+    let mut i = ta[s];
+    while i != usize::MAX {
+        if tu[to[i]] == 2 {
+            i = nt[i];
+            continue;
+        }
+        chrt(tans, &mut vec![0; ta.len()], s, to[i]);
+        atdp(tans, tu, ta, nt, to, to[i]);
+        chrt(tans, &mut vec![0; ta.len()], to[i], s);
+        i = nt[i];
+    }
+}
+
+fn at_dp(n: usize, a: &[usize], b: &[usize]) -> Vec<i64> {
+    let mut ta = vec![usize::MAX; n + 1];
+    let mut tS = vec![1; n + 1];
+    let mut tans = vec![1; n + 1];
+    let mut nt = vec![usize::MAX; 2 * (n - 1)];
+    let mut to = vec![0; 2 * (n - 1)];
+
+    for i in 0..(n - 1) {
+        nt[i] = ta[to[i + n - 1] = a[i]];
+        nt[i + n - 1] = ta[to[i] = b[i]];
+        ta[a[i]] = i;
+        ta[b[i]] = i + n - 1;
+    }
+
+    tdp(&mut tans, &mut vec![0; n + 1], &mut tS, &ta, &nt, &to, 1);
+    let mut ans = vec![0; n + 1];
+    atdp(&mut tans, &mut vec![0; n + 1], &ta, &nt, &to, 1);
+    ans[1..].copy_from_slice(&tans[1..]);
+    ans
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut a = vec![0; n - 1];
+    let mut b = vec![0; n - 1];
+
+    for i in 0..(n - 1) {
+        let line = lines.next().unwrap().unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .map(|x| x.parse().unwrap())
+            .collect();
+        a[i] = nums[0];
+        b[i] = nums[1];
+    }
+
+    let mut p = 1;
+    for i in 1..=n {
+        p = (p * i as i64) % M;
+    }
+
+    let ans = at_dp(n, &a, &b);
+    for i in 1..=n {
+        println!("{}", (ans[i] * p) % M);
+    }
+}

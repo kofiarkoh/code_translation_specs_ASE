@@ -1,0 +1,54 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut first_set = true;
+
+    loop {
+        let mut input = String::new();
+        stdin.lock().read_line(&mut input).unwrap();
+        let n: usize = input.trim().parse().unwrap();
+
+        // Termination condition
+        if n == 0 {
+            break;
+        }
+
+        // Ensure n is within the valid range
+        if n < 1 || n > 10 {
+            // Undefined behavior as per specification; we do nothing.
+            continue;
+        }
+
+        let mut teams = Vec::new();
+
+        for _ in 0..n {
+            let mut team_input = String::new();
+            stdin.lock().read_line(&mut team_input).unwrap();
+            let parts: Vec<&str> = team_input.trim().split_whitespace().collect();
+            let name = parts[0].to_string();
+            let wins: i32 = parts[1].parse().unwrap();
+            let losses: i32 = parts[2].parse().unwrap();
+            let draws: i32 = parts[3].parse().unwrap();
+
+            // Calculate score
+            let score = wins * 3 + draws;
+            teams.push((name, score));
+        }
+
+        // Sort teams by score in descending order
+        teams.sort_by(|a, b| b.1.cmp(&a.1));
+
+        // Output results
+        if !first_set {
+            println!(); // Print a blank line between outputs
+        }
+        first_set = false;
+
+        for (name, score) in teams {
+            println!("{},{}", name, score);
+        }
+    }
+}
+```

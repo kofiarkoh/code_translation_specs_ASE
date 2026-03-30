@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# 1. Functional Description
+The code reads a string input, counts the occurrences of specific characters ('o' and 'x'), and outputs either 'x' or 'o' based on which character appears more frequently.
+
+# 2. Inputs
+A single string input consisting of characters, which may include 'o', 'x', and other characters.
+
+# 3. Outputs
+A single character output, either 'x' or 'o', indicating which of the two characters appears more frequently in the input string.
+
+# 4. Preconditions
+The input string must be null-terminated and can contain up to 199 characters, excluding the null terminator.
+
+# 5. Postconditions
+The output character is 'x' if the count of 'x' is greater than the count of 'o'; otherwise, it is 'o'. If both counts are equal, 'o' is output.
+
+# 6. Invariants
+The counts of 'o' and 'x' are maintained throughout the processing of the input string, ensuring accurate comparison at the end.
+
+# 7. Error Handling / Exceptional Behavior
+If the input string is empty, the output will default to 'o' since the count of 'o' and 'x' will both be zero.
+
+# 8. State Transitions (if applicable)
+The state transitions occur as the input string is processed, updating the counts of 'o' and 'x' based on the characters encountered.
+
+# 9. Non-functional Constraints (if inferable)
+The implementation assumes that the input string is provided in a format that can be processed without leading or trailing whitespace affecting the counts. The maximum length of the input string is constrained to 199 characters.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<string.h>
+char B[200],c[256];
+int i;
+int main()
+{
+	gets(B);
+	for(;B[i];i++)
+		if(!i||B[i]!=B[i-1])c[B[i]]++;
+	i=!puts(c['o']<c['x']?"x":"o");
+}
+=== C CODE END ===

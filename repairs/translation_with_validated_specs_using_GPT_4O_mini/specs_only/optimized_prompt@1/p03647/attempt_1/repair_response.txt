@@ -1,0 +1,30 @@
+```rust
+fn evaluate_conditions(n: usize, pairs: &[(i32, i32)]) -> &'static str {
+    // Initialize a counter to track the number of conditions met
+    let mut count = n as i32;
+
+    // Iterate over each pair of integers (a, b)
+    for &(a, b) in pairs.iter() {
+        // If a is non-zero and b is not equal to the current count, we may change the state
+        if a != 0 && b != count {
+            count -= 1; // Decrement the count as per the evaluation logic
+        }
+        
+        // If the count reaches zero, we output "IMPOSSIBLE"
+        if count <= 0 {
+            return "IMPOSSIBLE";
+        }
+    }
+
+    // If we finish processing all pairs and count is still positive, output "POSSIBLE"
+    "POSSIBLE"
+}
+
+// Example usage
+fn main() {
+    let n = 3;
+    let pairs = [(1, 2), (0, 1), (1, 3)];
+    let result = evaluate_conditions(n, &pairs);
+    println!("{}", result); // Outputs "POSSIBLE" or "IMPOSSIBLE" based on the logic
+}
+```

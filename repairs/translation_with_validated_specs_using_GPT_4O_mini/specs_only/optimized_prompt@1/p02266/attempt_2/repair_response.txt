@@ -1,0 +1,82 @@
+```rust
+struct Pool {
+    area: usize,
+    x_coordinate: usize,
+}
+
+struct PoolList {
+    pools: Vec<Pool>,
+}
+
+impl PoolList {
+    fn new() -> Self {
+        PoolList { pools: Vec::new() }
+    }
+
+    fn add_pool(&mut self, area: usize, x_coordinate: usize) {
+        // If the last pool's x_coordinate is greater than the new one, combine areas
+        if let Some(last_pool) = self.pools.last_mut() {
+            if last_pool.x_coordinate > x_coordinate {
+                last_pool.area += area;
+                return;
+            }
+        }
+        self.pools.push(Pool { area, x_coordinate });
+    }
+
+    fn total_area(&self) -> usize {
+        self.pools.iter().map(|pool| pool.area).sum()
+    }
+
+    fn count(&self) -> usize {
+        self.pools.len()
+    }
+
+    fn print_reverse(&self) {
+        for pool in self.pools.iter().rev() {
+            println!("{}", pool.area);
+        }
+    }
+}
+
+fn process_input(input: &str) {
+    let mut stack: Vec<usize> = Vec::new();
+    let mut pools = PoolList::new();
+    let mut current_position = 0;
+
+    for ch in input.chars() {
+        match ch {
+            '\\' => {
+                // Push the current position onto the stack
+                stack.push(current_position);
+            }
+            '/' => {
+                // Attempt to form a pool using the last position from the stack
+                if let Some(start_position) = stack.pop() {
+                    let area = current_position - start_position;
+                    if area > 0 {
+                        pools.add_pool(area, start_position);
+                    }
+                }
+            }
+            '_' => {
+                // Ignore underscores
+            }
+            _ => {
+                // Increment current position for any other character
+                current_position += 1;
+            }
+        }
+    }
+
+    // Output results
+    println!("{}", pools.total_area());
+    println!("{}", pools.count());
+    pools.print_reverse();
+}
+
+fn main() {
+    let input = r"\\_/_\\_/_\\"; // Example input
+    process_input(input);
+}
+```

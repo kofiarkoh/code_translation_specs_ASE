@@ -1,0 +1,80 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `translation_with_validated_specs_using_GPT_4O_mini`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p02644/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:51:2
+   |
+51 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p02644/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+fn min_moves(h: usize, w: usize, k: usize, s: (usize, usize), g: (usize, usize), grid: Vec<Vec<char>>) -> i32 {
+    // Preconditions: Check if the grid dimensions and coordinates are valid
+    if h == 0 || w == 0 || s.0 >= h || s.1 >= w || g.0 >= h || g.1 >= w {
+        return -1; // Undefined behavior for invalid inputs
+    }
+    
+    // Initialize distance array with a large value (infinity)
+    let mut distance = vec![vec![i32::MAX; w]; h];
+    distance[s.0][s.1] = 0; // Starting position distance is 0
+
+    // Directions for movement: up, down, left, right
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    // BFS queue
+    let mut queue = VecDeque::new();
+    queue.push_back(s);
+
+    while let Some((x, y)) = queue.pop_front() {
+        // Explore all four directions
+        for (dx, dy) in &directions {
+            // Check each step up to k cells in the current direction
+            for step in 1..=k {
+                let new_x = (x as isize + dx * step as isize) as usize;
+                let new_y = (y as isize + dy * step as isize) as usize;
+
+                // Check bounds and obstacles
+                if new_x < h && new_y < w {
+                    if grid[new_x][new_y] == '#' {
+                        break; // Stop if an obstacle is encountered
+                    }
+                    // If a shorter path to (new_x, new_y) is found
+                    if distance[new_x][new_y] > distance[x][y] + 1 {
+                        distance[new_x][new_y] = distance[x][y] + 1;
+                        queue.push_back((new_x, new_y)); // Add to queue for further exploration
+                    }
+                } else {
+                    break; // Out of bounds
+                }
+            }
+        }
+    }
+
+    // Return the distance to the target position or -1 if unreachable
+    if distance[g.0][g.1] == i32::MAX {
+        -1
+    } else {
+        distance[g.0][g.1]
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

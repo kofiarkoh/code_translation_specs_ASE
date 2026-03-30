@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program calculates a value based on three input integers, A, B, and X. The output is derived from these inputs according to specific conditions that depend on the relationships between A, B, and X.
+
+## 2. Inputs
+- Three integers: A, B, and X, where:
+  - A and B represent thresholds for the calculation.
+  - X represents a quantity that influences the output.
+- A, B, and X must be non-negative integers.
+- At least one of A or B must be greater than zero.
+
+## 3. Outputs
+- A single integer representing the calculated result based on the inputs.
+
+## 4. Preconditions
+- A, B, and X must be non-negative integers.
+- At least one of A or B must be greater than zero.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative.
+- The output reflects the calculation based on the following conditions:
+  - If A is at least twice B, the output is calculated as \(((X - 1) / 500 + 1) \times B\).
+  - If A is less than twice B, the output is calculated based on the integer division of X by 1000, with additional adjustments based on the remainder of this division:
+    - The base output is \(X / 1000 \times A\).
+    - If there is a remainder \(c\) (where \(c = X \mod 1000\)):
+      - If \(c\) is greater than 0:
+        - If \(c\) is less than or equal to 500 and \(B\) is less than \(A\), then \(B\) is added to the base output.
+        - Otherwise, \(A\) is added to the base output.
+
+## 6. Invariants
+- The relationship between A and B determines the primary calculation path.
+- The value of X influences the output based on its range, specifically through integer division and modulus operations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly. It assumes that valid input is provided.
+
+## 8. State Transitions
+- The program evaluates conditions involving A, B, and X to determine the calculation path:
+  - If \(A \geq 2 \times B\), the output is computed using the formula involving B.
+  - If \(A < 2 \times B\), the output is computed based on the integer division of X by 1000, with further adjustments based on the remainder when X is divided by 1000.
+
+## 9. Non-functional Constraints
+- The computation is performed in constant time, regardless of the input values.
+```

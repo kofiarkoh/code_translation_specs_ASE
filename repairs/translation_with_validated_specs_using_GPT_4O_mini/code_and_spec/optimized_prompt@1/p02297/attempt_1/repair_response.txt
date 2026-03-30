@@ -1,0 +1,40 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of vertices
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Invalid input for number of vertices");
+
+    // Ensure n is a positive integer
+    if n == 0 {
+        panic!("The number of vertices must be a positive integer.");
+    }
+
+    // Store the vertices
+    let mut vertices = vec![(0, 0); n];
+
+    // Read the vertex coordinates
+    for i in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let coords: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().expect("Invalid input for vertex coordinates"))
+            .collect();
+        vertices[i] = (coords[0], coords[1]);
+    }
+
+    // Calculate the area using the shoelace formula
+    let mut area = 0.0;
+    for i in 0..n {
+        let (x_i, y_i) = vertices[i];
+        let (x_next, y_next) = vertices[(i + 1) % n];
+        area += (x_i - x_next) as f64 * (y_i + y_next) as f64;
+    }
+
+    // Output the area formatted to one decimal place
+    println!("{:.1}", area / 2.0);
+}
+```

@@ -1,0 +1,91 @@
+```rust
+use std::io::{self, Write};
+
+const TABAICHO_SIZE: usize = 8667;
+const TABAICHO_BLOCK: i32 = 1_000_000_000;
+
+struct Tabaicho {
+    main: [i32; TABAICHO_SIZE],
+}
+
+impl Tabaicho {
+    fn new() -> Self {
+        Tabaicho {
+            main: [0; TABAICHO_SIZE],
+        }
+    }
+
+    fn set(&mut self, num: i32) {
+        self.main[0] = num;
+        for i in 1..TABAICHO_SIZE {
+            self.main[i] = 0;
+        }
+    }
+
+    fn mul(&mut self, num: i32) {
+        let mut carry = 0;
+        for i in 0..TABAICHO_SIZE {
+            let calctemp = self.main[i] as i64 * num as i64 + carry as i64;
+            self.main[i] = (calctemp % TABAICHO_BLOCK as i64) as i32;
+            carry = (calctemp / TABAICHO_BLOCK as i64) as i32;
+        }
+    }
+
+    fn div(&mut self, num: i32) {
+        let mut remainder = 0i64;
+        for i in (0..TABAICHO_SIZE).rev() {
+            remainder = remainder * TABAICHO_BLOCK as i64 + self.main[i] as i64;
+            self.main[i] = (remainder / num as i64) as i32;
+            remainder %= num as i64;
+        }
+    }
+
+    fn print(&self) {
+        let mut i = TABAICHO_SIZE as isize - 1;
+        while i >= 0 && self.main[i as usize] == 0 {
+            i -= 1;
+        }
+        if i >= 0 {
+            print!("{}", self.main[i as usize]);
+            for j in (0..i).rev() {
+                print!("{:09}", self.main[j as usize]);
+            }
+        } else {
+            print!("0");
+        }
+        println!();
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut nums = input.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+    let n = nums.next().unwrap();
+    let m = nums.next().unwrap();
+    let mut r = nums.next().unwrap();
+    r -= n * m; // n=3 r=8 m=1 xoo|xoo|xo
+
+    if r < 0 {
+        println!("0");
+    } else if r == 0 {
+        println!("1");
+    } else {
+        let mut tabaicho = Tabaicho::new();
+        tabaicho.set(1);
+        let mut n2 = n - 1;
+        if (n + r - 1) - (n - 1) < n - 1 {
+            n2 = (n + r - 1) - (n - 1);
+        }
+        let mut j = n + r - 1;
+        for i in 0..n2 {
+            tabaicho.mul(j);
+            j -= 1;
+        }
+        for i in 1..=n2 {
+            tabaicho.div(i);
+        }
+        tabaicho.print();
+    }
+}
+```

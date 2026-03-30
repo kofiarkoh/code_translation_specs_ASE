@@ -1,0 +1,117 @@
+use std::io::{self, BufRead};
+
+const QMAX: usize = 102;
+
+struct Battery {
+    active: bool,
+    remaining_time: usize,
+    recharge_time: usize,
+    usage_times: Vec<usize>,
+    recharge_times: Vec<usize>,
+    current_index: usize,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let n: usize = match iter.next().unwrap().parse() {
+            Ok(num) if num > 0 => num,
+            _ => continue,
+        };
+        let lim: usize = match iter.next().unwrap().parse() {
+            Ok(num) if num > 0 => num,
+            _ => continue,
+        };
+
+        let mut batteries: Vec<Battery> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let mut usage_times = Vec::new();
+            let mut recharge_times = Vec::new();
+            let mut usage_input = String::new();
+            io::stdin().read_line(&mut usage_input).unwrap();
+            let mut usage_iter = usage_input.split_whitespace();
+
+            while let Some(u_str) = usage_iter.next() {
+                let u: usize = match u_str.parse() {
+                    Ok(num) if num > 0 => num,
+                    _ => break,
+                };
+                let c: usize = match usage_iter.next() {
+                    Some(c_str) => match c_str.parse() {
+                        Ok(num) if num > 0 => num,
+                        _ => break,
+                    },
+                    None => break,
+                };
+                usage_times.push(u);
+                recharge_times.push(c);
+            }
+
+            if !usage_times.is_empty() && !recharge_times.is_empty() {
+                batteries.push(Battery {
+                    active: true,
+                    remaining_time: usage_times[0],
+                    recharge_time: recharge_times[0],
+                    usage_times,
+                    recharge_times,
+                    current_index: 0,
+                });
+            }
+        }
+
+        let mut total_usages = 0;
+        let mut queue: Vec<usize> = Vec::new();
+        let mut queue_start = 0;
+        let mut queue_end = 0;
+
+        for t in 1..=lim {
+            for (i, battery) in batteries.iter_mut().enumerate() {
+                if battery.active {
+                    battery.remaining_time -= 1;
+                    if battery.remaining_time == 0 {
+                        battery.active = false;
+                        battery.remaining_time = battery.recharge_times[battery.current_index];
+                        queue.push(i);
+                        queue_end += 1;
+                    }
+                }
+            }
+
+            if queue_start == queue_end {
+                continue;
+            }
+
+            for (i, battery) in batteries.iter_mut().enumerate() {
+                if !battery.active {
+                    if i == queue[queue_start] {
+                        battery.remaining_time -= 1;
+                    } else {
+                        total_usages += 1;
+                    }
+                }
+            }
+
+            if queue_start < queue_end {
+                let idx = queue[queue_start];
+                let battery = &mut batteries[idx];
+                if battery.remaining_time == 0 {
+                    battery.active = true;
+                    battery.current_index += 1;
+                    if battery.current_index < battery.usage_times.len() {
+                        battery.remaining_time = battery.usage_times[battery.current_index];
+                    } else {
+                        battery.current_index = 0;
+                        battery.remaining_time = battery.usage_times[battery.current_index];
+                    }
+                    queue_start += 1;
+                }
+            }
+        }
+
+        println!("{}", total_usages);
+    }
+}

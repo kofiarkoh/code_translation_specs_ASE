@@ -1,0 +1,47 @@
+// AOJ 1621: Folding a Ribbon
+// 2017.12.30 bal4u@uu
+
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut ans = ['\0'; 62]; // Initialize an array for the answer
+    let mut low = [0; 62]; // Initialize an array for low bits
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut parts = line.split_whitespace();
+        let n: i32 = parts.next().unwrap().parse().unwrap();
+        let mut i: u64 = parts.next().unwrap().parse().unwrap();
+        let mut j: u64 = parts.next().unwrap().parse().unwrap();
+
+        if n <= 0 {
+            break; // Exit if n is not positive
+        }
+
+        i -= 1; // Decrement i
+        j -= 1; // Decrement j
+
+        for k in 1..=n {
+            low[(n - k) as usize] = ((i >> (n - k)) & 1) as u8; // Get the low bit
+            if low[(n - k) as usize] == 0 {
+                i = !i; // Bitwise NOT if low bit is 0
+            }
+        }
+
+        for k in 1..=n {
+            ans[k as usize] = if ((j >> (n - k)) & 1) == low[(k - 1) as usize] {
+                'L'
+            } else {
+                'R'
+            };
+            if low[(k - 1) as usize] == 0 {
+                j = !j; // Bitwise NOT if low bit is 0
+            }
+        }
+
+        ans[(n + 1) as usize] = '\0'; // Null-terminate the string
+        println!("{}", &ans[1..=n as usize].iter().collect::<String>()); // Print the result
+    }
+}

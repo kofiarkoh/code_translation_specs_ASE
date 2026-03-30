@@ -1,0 +1,65 @@
+use std::time::{Duration, Instant};
+use rand::Rng; // For random number generation
+
+fn optimize_schedule(d: usize, costs: &[i32], satisfaction: &[Vec<i32>]) -> Vec<usize> {
+    // Ensure the number of days is positive
+    assert!(d > 0, "Number of days must be positive.");
+
+    let type_count = costs.len();
+    let mut schedule = vec![0; d]; // Initialize the schedule with zeros
+    let mut rng = rand::thread_rng();
+    let start_time = Instant::now();
+
+    // Function to calculate the total satisfaction score
+    fn calculate_score(schedule: &[usize], satisfaction: &[Vec<i32>], costs: &[i32]) -> i32 {
+        let mut total_score = 0;
+        let mut last_occurrence = vec![-1; costs.len()]; // Track last occurrence of each type
+
+        for (day, &type_index) in schedule.iter().enumerate() {
+            total_score += satisfaction[day][type_index] - costs[type_index];
+            last_occurrence[type_index] = day as i32; // Update last occurrence
+        }
+
+        // Adjust score based on last occurrences
+        for (type_index, &last_day) in last_occurrence.iter().enumerate() {
+            if last_day >= 0 {
+                total_score += satisfaction[last_day as usize][type_index];
+            }
+        }
+
+        total_score
+    }
+
+    let mut best_score = calculate_score(&schedule, satisfaction, costs);
+
+    // Main loop for optimizing the schedule
+    while start_time.elapsed() < Duration::new(2, 0) {
+        // Randomly select a type for each day
+        let new_schedule: Vec<usize> = (0..d).map(|_| rng.gen_range(0..type_count)).collect();
+        let new_score = calculate_score(&new_schedule, satisfaction, costs);
+
+        // Update the schedule if the new score is better
+        if new_score > best_score {
+            schedule = new_schedule;
+            best_score = new_score;
+        }
+    }
+
+    schedule
+}
+
+fn main() {
+    // Example usage (you can replace this with actual input)
+    let d = 5; // Number of days
+    let costs = vec![1, 2, 3]; // Costs for each type
+    let satisfaction = vec![
+        vec![10, 20, 30],
+        vec![15, 25, 35],
+        vec![20, 30, 40],
+        vec![25, 35, 45],
+        vec![30, 40, 50],
+    ]; // Satisfaction scores
+
+    let optimal_schedule = optimize_schedule(d, &costs, &satisfaction);
+    println!("{:?}", optimal_schedule); // Output the optimal schedule
+}

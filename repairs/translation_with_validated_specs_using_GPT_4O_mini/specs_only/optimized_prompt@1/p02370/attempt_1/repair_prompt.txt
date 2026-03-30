@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a topological sorting algorithm for a directed acyclic graph (DAG). It processes a specified number of vertices and edges, producing a linear ordering of the vertices such that for every directed edge from vertex A to vertex B, vertex A appears before vertex B in the ordering. The algorithm may produce multiple valid topological orderings depending on the order of processing vertices with zero incoming edges.
+
+## 2. Inputs
+- An integer representing the number of vertices in the graph.
+- An integer representing the number of edges in the graph.
+- A sequence of pairs of integers, each representing a directed edge from one vertex to another.
+
+## 3. Outputs
+- A sequence of integers, each representing a vertex in the topologically sorted order. Each vertex is printed on a new line. The output may vary, as multiple valid topological orderings can exist for the same input graph.
+
+## 4. Preconditions
+- The input must represent a directed acyclic graph (DAG).
+- The number of vertices and edges must be non-negative integers.
+- The vertices referenced in the edges must be within the range defined by the number of vertices.
+
+## 5. Postconditions
+- The output sequence of vertices is a valid topological ordering of the input graph.
+- Each vertex appears exactly once in the output if it is part of the graph.
+
+## 6. Invariants
+- The count of incoming edges for each vertex is maintained accurately throughout the processing.
+- The queue used for processing vertices contains only those vertices with zero incoming edges at any point in time.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails, the program may exhibit undefined behavior or terminate unexpectedly.
+- If the input graph is not a DAG, the behavior is undefined, and the output may not represent a valid topological order.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as vertices are processed from the queue, updating the count of incoming edges for adjacent vertices and modifying the queue accordingly.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates with a time complexity of O(V + E), where V is the number of vertices and E is the number of edges.
+- The space complexity is O(V + E) due to the storage of adjacency lists and other data structures.
+```

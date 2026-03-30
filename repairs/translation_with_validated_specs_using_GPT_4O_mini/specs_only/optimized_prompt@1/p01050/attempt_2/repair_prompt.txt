@@ -1,0 +1,74 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `translation_with_validated_specs_using_GPT_4O_mini`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p01050/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:45:2
+   |
+45 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p01050/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs`
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0601`.
+```
+
+Latest Rust code:
+```rust
+fn count_unique_characters(input: &str) -> usize {
+    // Create a HashMap to track the frequency of each character
+    use std::collections::HashMap;
+
+    let mut char_count: HashMap<char, usize> = HashMap::new();
+    let mut unique_count = 0;
+
+    // Iterate through the input string, considering null-termination
+    let mut prev_char: Option<char> = None;
+    let mut consecutive_count = 0;
+
+    for c in input.chars() {
+        // Check for null terminator (not included in the count)
+        if c == '\0' {
+            break;
+        }
+
+        // Update the count of unique characters
+        if let Some(&count) = char_count.get(&c) {
+            char_count.insert(c, count + 1);
+        } else {
+            char_count.insert(c, 1);
+            unique_count += 1; // New unique character found
+        }
+
+        // Handle consecutive occurrences
+        if Some(c) == prev_char {
+            consecutive_count += 1;
+        } else {
+            consecutive_count = 1; // Reset for new character
+        }
+
+        // If consecutive occurrences exceed 3, adjust unique count
+        if consecutive_count > 3 {
+            unique_count -= 1; // Decrement for excess occurrences
+        }
+
+        prev_char = Some(c);
+    }
+
+    // Ensure the unique count is non-negative
+    unique_count = unique_count.max(0);
+
+    unique_count
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

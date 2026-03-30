@@ -1,0 +1,113 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The program computes the minimum difference between a modified value and its original value for a specified set of inputs. It ensures that the number of elements in a given array that exceed the modified value does not exceed a limit of 7.
+
+## 2. Inputs
+- An integer `n` representing the number of elements, where `1 ≤ n ≤ 110`.
+- An array `x` of size `n` containing integer values.
+- A 2D array `a` of size 3x`n`, where each row contains `n` integer values.
+
+## 3. Outputs
+- An integer representing the minimum difference found between a modified value and its original value. If no valid difference exists, the output will be the message "Saiko".
+
+## 4. Preconditions
+- The input integer `n` must be greater than 0 and less than or equal to 110.
+- The arrays `x` and `a` must be populated with integer values before processing.
+
+## 5. Postconditions
+- If a valid minimum difference is found, it is output as an integer.
+- If no valid difference is found, the message "Saiko" is printed.
+
+## 6. Invariants
+- The array `s` is reset to zero at the beginning of each iteration of the outer loop.
+- The function `f` computes a transformation for each element in the input array based on the number of elements that exceed the current element.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not meet the preconditions, the behavior is undefined; no explicit error handling is implemented.
+
+## 8. State Transitions
+- The state transitions occur through the modification of the first element of the array `a` and the computation of the array `s` based on the results of the function `f`. The function `f` counts how many elements in the current row of `a` exceed each element, and this count is used to update the array `t`, which influences the computation of `s`.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is manageable for the input size, ensuring efficient execution for the maximum constraints. The counting logic and transformations are designed to maintain performance within the specified limits.
+
+## 10. Modification Logic
+- The program modifies the first element of the array `a` based on the values of other elements in the same row. Specifically, for each element `a[k][i]`, the program considers two potential modifications: `a[k][i]` and `a[k][i] + 1`. The modified value is then evaluated to determine how many elements in the array exceed this value.
+
+## 11. Counting Logic
+- After modifying the first element of the array `a`, the program counts how many elements in the array `s` (which accumulates results from the function `f` applied to the other rows of `a`) exceed the value of `s[0] + t[0]`. This count is then checked against the limit of 7 to determine if the current modification is valid.
+
+## 12. Termination Behavior
+- The program terminates by either outputting the minimum difference found or the message "Saiko" if no valid modifications yield a difference that meets the specified conditions. The search for valid modifications continues until all elements in the array have been processed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#define min(p,q)((p)<(q)?(p):(q))
+
+//自分より真に大きいのが7人以下
+//取る点としては、nかn+1だけを考慮すればよい
+
+int n;
+int s[110],t[110];
+int a[3][110],x[110];
+
+void f(int*p){
+	for(int i=0;i<n;i++){
+		int cnt=0;
+		for(int j=0;j<n;j++)if(p[j]>p[i])cnt++;
+		t[i]=x[cnt];
+	}
+}
+
+int main(){
+	scanf("%d",&n);
+	for(int i=0;i<n;i++)scanf("%d",x+i);
+	for(int i=0;i<n;i++)scanf("%d%d%d",a[0]+i,a[1]+i,a[2]+i);
+	int ans=1000;
+	for(int k=0;k<3;k++){
+		for(int i=0;i<n;i++)s[i]=0;
+		for(int kk=0;kk<3;kk++)if(kk!=k){
+			f(a[kk]);
+			for(int i=0;i<n;i++)s[i]+=t[i];
+		}
+
+		int ori=a[k][0];
+		for(int i=1;i<n;i++){
+			for(int d=0;d<2;d++)if(a[k][i]+d>ori){
+				a[k][0]=a[k][i]+d;
+				f(a[k]);
+				int cnt=0;
+				for(int j=0;j<n;j++)if(s[j]+t[j]>s[0]+t[0])cnt++;
+				if(cnt<=7)ans=min(ans,a[k][0]-ori);
+			}
+		}
+		a[k][0]=ori;
+	}
+	if(ans==1000)puts("Saiko");
+	else printf("%d\n",ans);
+}
+=== C CODE END ===

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific integer value based on the prime factorization of integers from 2 to a given input number. It counts the occurrences of certain prime factors and combines these counts using a defined mathematical expression to produce a final result.
+
+## 2. Inputs
+- A single integer input representing the upper limit for factorization, denoted as `n`, where `n` is greater than or equal to 2.
+
+## 3. Outputs
+- A single integer output representing the computed result based on the counts of specific prime factors.
+
+## 4. Preconditions
+- The input integer `n` must be at least 2.
+- The input must be a valid integer that can be read from standard input.
+
+## 5. Postconditions
+- The output integer is the result of a specific calculation involving the counts of prime factors of integers from 2 to `n`. The calculation is defined as follows:
+  - Let `num(a)` be a function that returns the count of prime factors (from 2 to `n`) that occur at least `a-1` times.
+  - The final result is computed using the formula:
+    - `ans = num(75) + num(25) * (num(3) - 1) + num(15) * (num(5) - 1) + num(5) * (num(5) - 1) * (num(3) - 2) / 2`.
+
+## 6. Invariants
+- The array used to store counts of prime factors is initialized to zero before any calculations.
+- The counts of prime factors are updated correctly during the factorization process.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values or integers less than 2) and may exhibit undefined behavior in such cases.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur during the factorization process, where the counts of prime factors are updated based on the division of integers. The state is also influenced by the results of the `num` function calls, which reflect the current counts of prime factors.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is dependent on the value of `n`, specifically related to the number of integers processed and their factorization.
+```

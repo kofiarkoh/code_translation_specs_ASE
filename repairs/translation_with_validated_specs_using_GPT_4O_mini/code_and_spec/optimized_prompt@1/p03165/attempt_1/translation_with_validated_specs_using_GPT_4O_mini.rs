@@ -1,0 +1,60 @@
+use std::io::{self, BufRead};
+
+fn max(a: usize, b: usize) -> usize {
+    if a >= b { a } else { b }
+}
+
+fn main() {
+    // Read input strings
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().take(2).collect::<Result<Vec<_>, _>>().unwrap();
+    
+    let s1 = input[0].trim();
+    let s2 = input[1].trim();
+
+    // Check for input length constraints
+    if s1.len() > 2999 || s2.len() > 2999 {
+        std::process::exit(1);
+    }
+
+    let l_s1 = s1.len();
+    let l_s2 = s2.len();
+
+    // Create the dynamic programming table
+    let mut arr = vec![vec![0; l_s2 + 1]; l_s1 + 1];
+
+    // Fill the DP table
+    for i in 1..=l_s1 {
+        for j in 1..=l_s2 {
+            if s1.as_bytes()[i - 1] == s2.as_bytes()[j - 1] {
+                arr[i][j] = arr[i - 1][j - 1] + 1;
+            } else {
+                arr[i][j] = max(arr[i - 1][j], arr[i][j - 1]);
+            }
+        }
+    }
+
+    // Reconstruct the longest common subsequence
+    let len = arr[l_s1][l_s2];
+    let mut ans = vec![' '; len]; // Preallocate space for the answer
+    let mut ind = len - 1;
+    let mut r = l_s1;
+    let mut c = l_s2;
+
+    while r > 0 && c > 0 {
+        if s1.as_bytes()[r - 1] == s2.as_bytes()[c - 1] {
+            ans[ind] = s1.chars().nth(r - 1).unwrap();
+            r -= 1;
+            c -= 1;
+            ind -= 1;
+        } else if arr[r][c] == arr[r - 1][c] {
+            r -= 1;
+        } else {
+            c -= 1;
+        }
+    }
+
+    // Print the result
+    let result: String = ans.iter().collect();
+    println!("{}", result.trim()); // Trim to avoid trailing spaces
+}

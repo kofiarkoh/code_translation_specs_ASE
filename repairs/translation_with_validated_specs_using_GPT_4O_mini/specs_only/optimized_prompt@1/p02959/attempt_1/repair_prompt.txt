@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes a cumulative sum based on two input arrays, \( A \) and \( B \), by iterating through their elements and applying specific conditional adjustments. The final cumulative sum is derived from the minimum values of the elements in \( A \) and \( B \) at each step, while also modifying the elements of both arrays based on these comparisons. The program includes a `main` function, which serves as the entry point for execution.
+
+## 2. Inputs
+- An integer \( N \) representing the number of elements in the arrays \( A \) and \( B \).
+- An array \( A \) of size \( N+2 \) containing long long integers, indexed from 1 to \( N+1 \).
+- An array \( B \) of size \( N+2 \) containing long long integers, indexed from 1 to \( N \).
+
+## 3. Outputs
+- A single long long integer representing the cumulative sum calculated from the input arrays after processing.
+
+## 4. Preconditions
+- The input integer \( N \) must be a non-negative integer.
+- The arrays \( A \) and \( B \) must be populated with valid long long integer values.
+
+## 5. Postconditions
+- The output is the total cumulative sum derived from the elements of arrays \( A \) and \( B \) after processing.
+- The values in arrays \( A \) and \( B \) may be modified during processing.
+
+## 6. Invariants
+- The first element of array \( B \) is set to zero before processing begins.
+- The last element of array \( B \) is also set to zero before processing begins.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid data types.
+- If \( N \) exceeds the maximum size of the arrays, undefined behavior may occur.
+
+## 8. State Transitions
+- The state of arrays \( A \) and \( B \) changes as elements are adjusted based on comparisons during the processing loop. Specifically:
+  - For each index \( i \) from 1 to \( N+1 \):
+    - The cumulative sum \( S \) is incremented by the lesser of \( A[i] \) and \( B[i-1] \).
+    - The value of \( A[i] \) is adjusted by subtracting \( B[i-1] \) if \( A[i] \) exceeds \( B[i-1] \); otherwise, it is set to zero.
+    - The cumulative sum \( S \) is further incremented by the lesser of the updated \( A[i] \) and \( B[i] \).
+    - The value of \( B[i] \) is adjusted by subtracting the updated \( A[i] \) if \( A[i] \) exceeds \( B[i] \); otherwise, it is decremented by \( A[i] \).
+
+## 9. Non-functional Constraints
+- The algorithm operates in linear time relative to the size of the input, specifically \( O(N) \).
+```

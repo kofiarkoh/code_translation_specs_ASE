@@ -1,0 +1,103 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code generates and outputs a sequence of integers based on the input value \( k \). It handles different ranges of input values to produce specific sequences, ensuring that the output adheres to defined constraints and reflects the distribution logic based on the input.
+
+## 2. Inputs
+- A single integer input representing a value \( k \).
+
+## 3. Outputs
+- A sequence of integers based on the value of \( k \):
+  - If \( k \geq 50 \): Outputs 50 integers, where:
+    - Each integer is derived from a base value calculated as \( 49 + \left\lfloor \frac{k}{50} \right\rfloor \).
+    - The first \( t \) integers (where \( t = k \mod 50 \)) are incremented by 50.
+    - The remaining \( 50 - t \) integers are equal to the base value, ensuring that the total count of integers is 50.
+  - If \( 2 \leq k < 50 \): Outputs \( k \) integers, all equal to \( k \).
+  - If \( k = 0 \): Outputs four integers, each equal to 3.
+  - If \( k < 0 \): Outputs three integers with values 1, 0, and 3.
+
+## 4. Preconditions
+- The input must be a valid integer.
+- The input can be any integer value.
+
+## 5. Postconditions
+- The output sequence is guaranteed to have a length based on the value of \( k \).
+- The integers in the output sequence are generated according to specific rules based on the value of \( k \).
+
+## 6. Invariants
+- The output sequence will always contain non-negative integers.
+- The total number of integers output will always match the expected count based on the input value.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined.
+- The program does not handle negative inputs explicitly beyond producing a fixed output.
+
+## 8. State Transitions (if applicable)
+- The program transitions between different output states based on the value of \( k \):
+  - From input to output of 50 integers if \( k \geq 50 \), with specific distribution logic applied.
+  - From input to output of \( k \) integers if \( 2 \leq k < 50 \).
+  - From input to output of four integers if \( k = 0 \).
+  - From input to output of three integers if \( k < 0 \).
+
+## 9. Non-functional Constraints (if inferable)
+- The output must be produced in a timely manner, with no explicit performance constraints defined.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <ctype.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define MOD 1000000007
+#define ll long long
+
+int main(){
+    ll k;
+    ll n;
+    scanf("%lld",&k);
+    if(k>=50){
+        n=50;
+        ll a[n];
+        ll rem=k/50;
+        ll x=49+rem;
+        ll t=k%50;
+        ll i,j;
+        for(i=0;i<50;i++) a[i]=x;
+        for(i=0;i<t;i++){
+            a[i]+=50;
+            for(j=0;j<50;j++) if(j!=i) a[j]--;
+        }
+        printf("50\n");
+        for(i=0;i<50;i++) printf("%lld ",a[i]);
+    } else if(k>=2){
+        n=k;
+        printf("%lld\n",n);
+        for(int i=0;i<n;i++) printf("%lld ",n);
+    } else if(k==0) printf("4\n3 3 3 3\n");
+    else printf("3\n1 0 3\n");
+    return 0;
+}
+=== C CODE END ===

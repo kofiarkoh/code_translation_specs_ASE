@@ -1,0 +1,110 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the longest cyclic path in a railway network represented by a set of connections between stations. It identifies the sequence of stations that forms this longest cyclic path and outputs its length along with the stations in the order they are visited.
+
+## 2. Inputs
+- Two integers representing the number of stations and the number of connections.
+- A list of connections, each defined by two station identifiers and a distance.
+
+## 3. Outputs
+- The length of the longest cyclic path found in the railway network, calculated as the sum of the distances of all connections used in the cycle.
+- The sequence of station identifiers that constitute this longest cyclic path, which must include all stations in the cycle without revisiting any station except for the starting station at the end.
+
+## 4. Preconditions
+- The number of stations and connections must be positive integers.
+- Each connection must consist of valid station identifiers within the range of the total number of stations.
+
+## 5. Postconditions
+- The output length is the maximum distance of any cyclic path found between stations, reflecting the total distance of the connections used in the cycle.
+- The output sequence contains the identifiers of the stations in the order they are visited along the longest cyclic path.
+
+## 6. Invariants
+- The connections are undirected, meaning a connection between two stations can be traversed in both directions.
+- Each connection can only be used once in a single path computation.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format or contains invalid values, the behavior is undefined, and no output is guaranteed.
+- The program terminates gracefully when the number of stations is zero.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each connection and explores potential paths, updating the current path length and the sequence of stations as it finds longer cyclic paths. The exploration ensures that the cycle includes all stations without revisiting any station except for the starting station at the end.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm must efficiently explore all possible paths without exceeding memory limits, given the constraints on the number of stations and connections.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// Aizu 1108: A Long Ride on a Railway
+// 2017.9.16 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+typedef struct { int a, b, d, f; } T;
+T tbl[25]; int n, m;
+int ans[12], tmp[12], len, num;
+
+void combi(int k, int a, int w)
+{
+	int i, b;
+
+	for (b = 1; b <= n; b++) {
+		if (b == a) continue;
+		for (i = 0; i < m; i++) {
+			if ((tbl[i].a == a && tbl[i].b == b || tbl[i].a == b && tbl[i].b == a) && !tbl[i].f) {
+				tbl[i].f = 1, tmp[k] = b;
+				combi(k+1, b, w + tbl[i].d);
+				tbl[i].f = 0;
+			}
+		}
+	}
+	if (w > len) num = k, len = w, memcpy(ans, tmp, sizeof(int)*num);
+}
+
+int main()
+{
+	int i, a, b;
+
+	while (scanf("%d%d", &n, &m) && n) {
+		for (i = 0; i < m; i++) scanf("%d%d%d", &tbl[i].a, &tbl[i].b, &tbl[i].d), tbl[i].f = 0;
+		for (len = num = 0, a = 1; a <= n; a++) for (b = 1; b <= n; b++) {
+			if (b == a) continue;
+			for (i = 0; i < m; i++) {
+				if ((tbl[i].a == a && tbl[i].b == b || tbl[i].b == a && tbl[i].a == b) && !tbl[i].f) {
+					tbl[i].f = 1;
+					tmp[0] = a, tmp[1] = b, combi(2, b, tbl[i].d);
+					tbl[i].f = 0;
+				}
+			}
+		}
+		printf("%d\n", len);
+		printf("%d", ans[0]);
+		for (i = 1; i < num; i++) printf(" %d", ans[i]);
+		printf("\n");
+    }
+	return 0;
+}
+=== C CODE END ===

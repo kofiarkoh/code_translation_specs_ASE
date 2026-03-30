@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The program computes a specific integer value based on the relationship between two input integers, x and y, according to defined conditional logic.
+
+# 2. Inputs
+Two integers, x and y, provided via standard input.
+
+# 3. Outputs
+A single long long integer representing the computed result, output via standard output.
+
+# 4. Preconditions
+- The inputs must be valid integers.
+- The input values for x and y can be positive, negative, or zero.
+
+# 5. Postconditions
+- The output value is computed based on the following conditions:
+  - If x is non-negative:
+    - If y is greater than or equal to x, the output is y - x.
+    - If y is positive and less than x, the output is x - y + 2.
+    - If y is negative and greater than or equal to -x, the output is x + y + 1.
+    - If y is less than -x, the output is -y - x + 1.
+  - If x is negative:
+    - If y is greater than or equal to -x, the output is x + y + 1.
+    - If y is positive and less than or equal to 0, the output is -x - y + 1.
+    - If y is greater than or equal to x, the output is y - x.
+    - If y is less than x, the output is x - y + 2.
+
+# 6. Invariants
+- The output is always a long long integer.
+- The computation is deterministic based on the input values of x and y.
+
+# 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- No specific error messages or handling mechanisms are implemented for out-of-range values.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state (waiting for x and y) to a computation state (evaluating conditions) and finally to an output state (displaying the result).
+
+# 9. Non-functional Constraints (if inferable)
+- The program executes in constant time relative to the input size, as it performs a fixed number of operations regardless of the specific values of x and y.
+```

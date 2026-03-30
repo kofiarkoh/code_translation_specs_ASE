@@ -1,0 +1,121 @@
+use std::collections::BinaryHeap;
+use std::cmp::Ordering;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Terrain {
+    Start,
+    Goal,
+    Bomb,
+    Traversable(u64),
+}
+
+#[derive(Debug)]
+struct Cell {
+    cost: u64,
+    position: (usize, usize),
+}
+
+impl Ord for Cell {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.cost.cmp(&self.cost) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for Cell {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn dijkstra(
+    height: usize,
+    width: usize,
+    cost_a: u64,
+    cost_b: u64,
+    grid: Vec<Vec<Terrain>>,
+) -> Result<u64, &'static str> {
+    let mut min_costs = vec![vec![u64::MAX; width]; height];
+    let mut heap = BinaryHeap::new();
+    let mut start = None;
+    let mut goal = None;
+
+    // Locate start and goal positions
+    for i in 0..height {
+        for j in 0..width {
+            match grid[i][j] {
+                Terrain::Start => start = Some((i, j)),
+                Terrain::Goal => goal = Some((i, j)),
+                _ => {}
+            }
+        }
+    }
+
+    // Check for valid start and goal positions
+    let (start_i, start_j) = start.ok_or("INF")?;
+    let (goal_i, goal_j) = goal.ok_or("INF")?;
+
+    min_costs[start_i][start_j] = 0;
+    heap.push(Cell { cost: 0, position: (start_i, start_j) });
+
+    let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+
+    while let Some(Cell { cost, position }) = heap.pop() {
+        let (x, y) = position;
+
+        if position == (goal_i, goal_j) {
+            return Ok(cost);
+        }
+
+        if cost > min_costs[x][y] {
+            continue;
+        }
+
+        for (dx, dy) in &directions {
+            let (nx, ny) = (x as isize + dx, y as isize + dy);
+            if nx < 0 || nx >= height as isize || ny < 0 || ny >= width as isize {
+                continue; // Out of bounds
+            }
+
+            let (nx, ny) = (nx as usize, ny as usize);
+            let mut new_cost = cost;
+
+            match grid[nx][ny] {
+                Terrain::Bomb => new_cost += cost_b,
+                Terrain::Traversable(c) => new_cost += c,
+                _ => continue, // Skip start and goal
+            }
+
+            // Check adjacent bomb cells
+            if grid[x][y] == Terrain::Bomb {
+                new_cost += cost_b; // Additional cost for moving into a bomb cell
+            }
+
+            if new_cost < min_costs[nx][ny] {
+                min_costs[nx][ny] = new_cost;
+                heap.push(Cell { cost: new_cost, position: (nx, ny) });
+            }
+        }
+    }
+
+    Err("INF") // If goal is unreachable
+}
+
+fn main() {
+    // Example usage
+    let height = 5;
+    let width = 5;
+    let cost_a = 1;
+    let cost_b = 2;
+    let grid = vec![
+        vec![Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Bomb, Terrain::Traversable(1), Terrain::Traversable(1)],
+        vec![Terrain::Traversable(1), Terrain::Start, Terrain::Traversable(1), Terrain::Bomb, Terrain::Traversable(1)],
+        vec![Terrain::Traversable(1), Terrain::Bomb, Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Traversable(1)],
+        vec![Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Bomb, Terrain::Goal],
+        vec![Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Traversable(1), Terrain::Traversable(1)],
+    ];
+
+    match dijkstra(height, width, cost_a, cost_b, grid) {
+        Ok(cost) => println!("Minimum cost: {}", cost),
+        Err(msg) => println!("{}", msg),
+    }
+}

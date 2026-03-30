@@ -1,0 +1,151 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# 1. Functional Description
+The code processes a grid of characters to identify and count distinct connected components of identical characters. It uses a depth-first search algorithm to traverse the grid and mark connected areas.
+
+# 2. Inputs
+- Two integers representing the height (H) and width (W) of the grid.
+- A grid of characters with dimensions H x W.
+
+# 3. Outputs
+- An integer representing the count of distinct connected components of identical characters in the grid.
+
+# 4. Preconditions
+- The input dimensions H and W must be non-negative integers.
+- The grid must be filled with characters before processing.
+- The input must terminate with a pair of zeros (0, 0).
+
+# 5. Postconditions
+- The output integer reflects the total number of distinct connected components of identical characters in the provided grid.
+
+# 6. Invariants
+- Each cell in the grid is initialized to its own unique identifier before any processing.
+- The area_id array maintains the identifiers of connected components throughout the traversal.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when the input dimensions are both zero.
+- No explicit error handling for invalid input formats is implemented; behavior is undefined for such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the DFS function modifies the area_id array, marking cells as part of the same connected component based on character equality.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a fixed memory limit defined by the dimensions of the grid (maximum 128 x 128).
+- The performance is dependent on the size of the grid and the number of connected components, with a worst-case time complexity proportional to the number of cells in the grid.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+char str[128][128];
+int area_id[128][128];
+
+void DFS(int i, int j, int H, int W){
+	if (i + 1 < H){
+		if (str[i][j] == str[i+1][j] && area_id[i+1][j] == (i + 1) * W + j){
+			area_id[i+1][j] = area_id[i][j];
+			DFS(i + 1, j, H, W);
+		}
+	}
+	
+	if (i - 1 >= 0){
+		if (str[i][j] == str[i-1][j] && area_id[i-1][j] == (i - 1) * W + j){
+			area_id[i-1][j] = area_id[i][j];
+			DFS(i - 1, j, H, W);
+		}
+	}
+	
+	if (j + 1 < W){
+		if (str[i][j] == str[i][j+1] && area_id[i][j+1] == i * W + (j + 1)){
+			area_id[i][j+1] = area_id[i][j];
+			DFS(i, j + 1, H, W);
+		}
+	}
+	
+	if (j - 1 >= 0){
+		if (str[i][j] == str[i][j-1] && area_id[i][j-1] == i * W + (j - 1)){
+			area_id[i][j-1] = area_id[i][j];
+			DFS(i, j - 1, H, W);
+		}
+	}
+}
+	
+
+int main(void)
+{
+	int H, W, i, j, cnt;
+	char area_num[128 * 128];
+	
+	while (1){
+		scanf("%d %d", &H, &W);
+		
+		if (H == 0 && W == 0){
+			break;
+		}
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_id[i][j] = i * W + j;
+			}
+		}
+				
+		for (i = 0; i < 128 * 128; i++){
+			area_num[i] = 0;
+		}
+		
+		cnt = 0;
+		
+		//
+		
+		for (i = 0; i < H; i++){
+			scanf("%s", str[i]);
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				DFS(i, j, H, W);
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				area_num[area_id[i][j]] = 1;
+			}
+		}
+		
+		for (i = 0; i < H; i++){
+			for (j = 0; j < W; j++){
+				if (area_num[i * W + j] == 1){
+					cnt++;
+				}
+			}
+		}
+		
+		printf("%d\n", cnt);
+	}
+	
+	return (0);
+}
+=== C CODE END ===

@@ -1,0 +1,67 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes a weighted sum based on two sets of integer inputs, where each set represents counts of integers in a specified range. The output is the total sum of the maximum counts for each integer from both sets, multiplied by the integer value.
+
+## 2. Inputs
+- A series of pairs of integers, where each pair consists of:
+  - An integer representing the number of elements in the first set.
+  - An integer representing the number of elements in the second set.
+- Followed by two sequences of integers:
+  - The first sequence contains integers corresponding to the first set.
+  - The second sequence contains integers corresponding to the second set.
+
+## 3. Outputs
+- A single integer output for each pair of input integers, representing the computed weighted sum.
+
+## 4. Preconditions
+- The first integer of each pair must be non-negative.
+- The second integer of each pair must be non-negative.
+- Each integer in the sequences must be within the range of 1 to 20.
+
+## 5. Postconditions
+- The output integer is the sum of the maximum counts of each integer from 1 to 20, where each count is multiplied by its respective integer value.
+
+## 6. Invariants
+- The counts for each integer from 1 to 20 are maintained in two separate arrays throughout the computation.
+- The total sum is updated incrementally as each integer from 1 to 20 is processed.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range integers explicitly; it assumes valid input as per the preconditions.
+
+## 8. State Transitions
+- The program transitions between states based on the input pairs, resetting the count arrays for each new pair of inputs and accumulating the result for each processed pair.
+- The program terminates input processing when the first integer of the input pair is zero, which serves as a termination signal for the input loop.
+
+## 9. Non-functional Constraints
+- The program operates in a linear time complexity relative to the number of integers processed, with a fixed space complexity for the count arrays.
+```

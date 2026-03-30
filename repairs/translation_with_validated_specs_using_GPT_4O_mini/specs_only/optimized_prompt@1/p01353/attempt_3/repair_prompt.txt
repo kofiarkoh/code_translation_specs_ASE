@@ -1,0 +1,89 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01353/p01353_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01353/p01353_sample1_output.txt
+Input:
+3
+100 30 10 5
+80 20 5 4
+90 25 8 6
+85 22 7 3
+Expected:
+-1
+Actual:
+Error: -1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn calculate_score(n: usize, h: &[u32], a: &[u32], d: &[u32], s: &[u32]) -> Result<u64, &'static str> {
+    // Check preconditions
+    if n == 0 || n > 40000 {
+        return Err("-1");
+    }
+    
+    // Check if all input values are non-negative
+    for &value in h.iter().chain(a.iter()).chain(d.iter()).chain(s.iter()) {
+        if value < 0 {
+            return Err("-1");
+        }
+    }
+
+    // Check the attack value of the first entity against the defense values of others
+    if a[0] <= d[1..=n].iter().copied().max().unwrap_or(0) {
+        return Err("-1");
+    }
+
+    let mut score: u64 = 0;
+
+    // Iterate through each entity
+    for i in 1..=n {
+        // Update score only if attack exceeds the first entity's defense
+        if a[i] > d[0] {
+            let turns = (a[i] - d[0]) as u64; // Calculate turns
+            score += turns * s[i] as u64; // Update score based on turns and entity score
+        }
+    }
+
+    // Check if the health of the first entity is less than or equal to the computed score
+    if h[0] <= score as u32 {
+        return Err("-1");
+    }
+
+    Ok(score) // Return the computed score
+}
+
+fn main() {
+    // Example usage of the calculate_score function
+    let n = 3;
+    let h = [100, 20, 30, 40];
+    let a = [10, 25, 15, 5];
+    let d = [5, 10, 5, 5];
+    let s = [0, 1, 2, 3];
+
+    match calculate_score(n, &h, &a, &d, &s) {
+        Ok(score) => println!("Calculated score: {}", score),
+        Err(err) => println!("Error: {}", err),
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

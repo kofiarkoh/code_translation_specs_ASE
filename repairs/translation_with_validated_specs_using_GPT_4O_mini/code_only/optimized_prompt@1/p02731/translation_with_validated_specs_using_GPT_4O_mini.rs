@@ -1,0 +1,17 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as an integer
+    let l: i32 = input.trim().parse().expect("Failed to parse input as integer");
+    
+    // Perform the division and cube calculation
+    let y = l as f64 / 3.0; // Ensure floating-point division
+    let x = y * y * y; // Cube the result
+    
+    // Print the result with 12 decimal places
+    println!("{:.12}", x);
+}

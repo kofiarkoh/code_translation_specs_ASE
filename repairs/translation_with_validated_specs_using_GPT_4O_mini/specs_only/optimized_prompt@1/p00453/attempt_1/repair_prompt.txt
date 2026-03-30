@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the minimum cost to traverse a series of points defined by their coordinates and associated weights, based on a specified number of segments. It processes input repeatedly until a termination condition is met, outputting the minimum traversal cost for each set of inputs.
+
+## 2. Inputs
+- Two integers, `n` and `m`, representing the number of points and the maximum number of segments, respectively.
+- For each point, an integer indicating the number of coordinates, followed by pairs of integers representing the coordinates and their associated weights.
+
+## 3. Outputs
+- An integer representing the minimum traversal cost for the given points and segments.
+
+## 4. Preconditions
+- The input values for `n` and `m` must be non-negative integers.
+- The input must contain valid pairs of coordinates and weights for each point as specified by the preceding integer.
+
+## 5. Postconditions
+- The output is the minimum cost calculated based on the provided points and weights, or the program terminates if both `n` and `m` are zero.
+
+## 6. Invariants
+- The cost matrix is initialized to a high value, ensuring that any valid cost computed will be less than this initial value.
+- The minimum cost is updated only if a lower cost is found during the traversal calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid input formats or values outside the expected range. It assumes that the input is well-formed as per the specifications.
+
+## 8. State Transitions
+- The program transitions between states based on the input values of `n` and `m`, processing each set of points and recalculating costs until termination conditions are met. The cost is calculated based on the absolute differences in coordinates and the associated weights of the points being traversed.
+
+## 9. Cost Calculation
+- The cost of traversing between two points is calculated using the formula: 
+  \[
+  d = (weight_1 + weight_2) \times |coordinate_1 - coordinate_2|
+  \]
+  where `weight_1` and `weight_2` are the weights associated with the respective points, and `coordinate_1` and `coordinate_2` are their coordinates. 
+- The program considers both direct transitions between consecutive points and transitions that skip one point, updating the cost matrix accordingly.
+
+## 10. Non-functional Constraints
+- The program is expected to operate within reasonable time limits for typical input sizes, though no specific performance metrics are defined.
+```

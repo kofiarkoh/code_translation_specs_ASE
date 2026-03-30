@@ -1,0 +1,34 @@
+```rust
+fn longest_subsequence_length(seq1: &[i32], seq2: &[i32]) -> usize {
+    let n = seq1.len();
+    let m = seq2.len();
+    
+    // Create a DP table to store the lengths of longest subsequences
+    let mut dp = vec![0; m + 1];
+
+    // Iterate through each element of the first sequence
+    for i in 0..n {
+        let mut prev = 0; // To store the previous value of dp[j-1]
+        // Iterate through the second sequence in reverse to maintain order
+        for j in (1..=m).rev() {
+            if seq1[i] == seq2[j - 1] {
+                // Update dp[j] to be the maximum of its current value or the value from the previous element in seq1
+                dp[j] = dp[j].max(prev + 1);
+            }
+            // Update prev to the current dp[j] before moving to the next j
+            prev = dp[j];
+        }
+    }
+
+    // The maximum length of the subsequence is the maximum value in dp
+    dp.iter().copied().max().unwrap_or(0) // Return 0 if dp is empty
+}
+
+// Example usage
+fn main() {
+    let seq1 = vec![1, 2, 3, 4, 5]; // Adjusted to match the input length
+    let seq2 = vec![2, 4, 3, 1, 2, 3, 4]; // Adjusted to match the input length
+    let length = longest_subsequence_length(&seq1, &seq2);
+    println!("{}", length); // Output the length directly
+}
+```

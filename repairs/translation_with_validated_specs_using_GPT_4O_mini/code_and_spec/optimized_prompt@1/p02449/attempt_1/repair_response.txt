@@ -1,0 +1,111 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    // Preconditions check
+    if n < 1 || n > 9 {
+        return; // Undefined behavior as per specification
+    }
+
+    let mut A = vec![0; n];
+    let mut next_A = vec![0; n];
+    let mut prev_A = vec![0; n];
+
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    let nums: Vec<i32> = input
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    for i in 0..n {
+        A[i] = nums[i];
+        next_A[i] = A[i];
+        prev_A[i] = A[i];
+    }
+
+    if n == 1 {
+        println!("1");
+    } else {
+        // Search for previous permutation
+        let mut flag = false;
+        let mut i = n - 2;
+        while i >= 0 {
+            if prev_A[i] > prev_A[i + 1] {
+                flag = true;
+                break;
+            }
+            if i == 0 { break; } // Prevent underflow
+            i -= 1;
+        }
+
+        if flag {
+            let i = i as usize;
+            let mut j = n - 1;
+            while j > i {
+                if prev_A[j] < prev_A[i] {
+                    prev_A.swap(j, i);
+                    break;
+                }
+                j -= 1;
+            }
+            let mid = (n - i - 1) / 2;
+            for k in 1..=mid {
+                prev_A.swap(i + k, n - k);
+            }
+            // Print the previous permutation
+            print!("{}", prev_A[0]);
+            for i in 1..n {
+                print!(" {}", prev_A[i]);
+            }
+            println!();
+        }
+
+        // Print the original sequence
+        print!("{}", A[0]);
+        for i in 1..n {
+            print!(" {}", A[i]);
+        }
+        println!();
+
+        // Search for next permutation
+        flag = false;
+        let mut i = n - 2;
+        while i >= 0 {
+            if next_A[i] < next_A[i + 1] {
+                flag = true;
+                break;
+            }
+            if i == 0 { break; } // Prevent underflow
+            i -= 1;
+        }
+
+        if flag {
+            let i = i as usize;
+            let mut j = n - 1;
+            while j > i {
+                if next_A[j] > next_A[i] {
+                    next_A.swap(j, i);
+                    break;
+                }
+                j -= 1;
+            }
+            let mid = (n - i - 1) / 2;
+            for k in 1..=mid {
+                next_A.swap(i + k, n - k);
+            }
+            // Print the next permutation
+            print!("{}", next_A[0]);
+            for i in 1..n {
+                print!(" {}", next_A[i]);
+            }
+            println!();
+        }
+    }
+}
+```

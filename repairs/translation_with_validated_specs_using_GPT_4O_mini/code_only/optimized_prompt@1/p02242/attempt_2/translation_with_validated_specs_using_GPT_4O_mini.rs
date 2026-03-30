@@ -1,0 +1,105 @@
+use std::io::{self, Read, Write};
+
+fn get_uint() -> i32 {
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    let mut n = 0;
+    let mut c = handle.bytes().next().unwrap().unwrap() as i32;
+
+    if c < 48 || c > 57 {
+        return c; // Return the character if it's not a digit
+    }
+
+    while c >= 48 && c <= 57 {
+        n = 10 * n + (c & 0xf);
+        c = handle.bytes().next().unwrap().unwrap() as i32;
+    }
+    n
+}
+
+fn put_uint(mut n: i32) {
+    if n == 0 {
+        print!("0");
+        return;
+    }
+    let mut buf = [0u8; 11]; // Enough to hold 10 digits + null terminator
+    let mut i = 0;
+    while n > 0 {
+        buf[i] = (n % 10 + '0' as i32 as u8) as u8;
+        n /= 10;
+        i += 1;
+    }
+    while i > 0 {
+        i -= 1;
+        print!("{}", buf[i] as char);
+    }
+}
+
+#[derive(Default, Clone)]
+struct Node {
+    edge_to: [i32; 100],
+    edge_cost: [i32; 100],
+    edge_size: i32,
+    cost: i32,
+    visited: i32,
+}
+
+fn dijkstra_noheap(nodes: &mut [Node], n: usize) {
+    for i in 0..n {
+        nodes[i].cost = -1;
+        nodes[i].visited = 0;
+    }
+    nodes[0].cost = 0;
+
+    loop {
+        let mut next: Option<&mut Node> = None;
+        for node in nodes.iter_mut() {
+            if node.visited != 0 || node.cost < 0 {
+                continue;
+            }
+            if next.is_none() || node.cost < next.as_ref().unwrap().cost {
+                next = Some(node);
+            }
+        }
+        if next.is_none() {
+            break;
+        }
+        let next_node = next.unwrap();
+        next_node.visited = 1;
+        let u = next_node.clone(); // Clone to avoid moving out of the mutable reference
+
+        for i in 0..u.edge_size {
+            let to = u.edge_to[i as usize];
+            let cost = u.cost + u.edge_cost[i as usize];
+            if nodes[to as usize].cost < 0 || cost < nodes[to as usize].cost {
+                nodes[to as usize].cost = cost;
+            }
+        }
+    }
+}
+
+fn main() {
+    let n = get_uint() as usize;
+    let mut nodes = vec![Node::default(); n];
+
+    for _ in 0..n {
+        let u = get_uint();
+        let k = {
+            let size = get_uint();
+            nodes[u as usize].edge_size = size;
+            size
+        };
+        for j in 0..k {
+            nodes[u as usize].edge_to[j as usize] = get_uint();
+            nodes[u as usize].edge_cost[j as usize] = get_uint();
+        }
+    }
+
+    dijkstra_noheap(&mut nodes, n);
+    for i in 0..n {
+        put_uint(i as i32);
+        print!(" ");
+        put_uint(nodes[i].cost);
+        println!();
+    }
+}

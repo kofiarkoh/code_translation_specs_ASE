@@ -1,0 +1,100 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error: in expressions, `_` can only be used on the left-hand side of an assignment
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p03722/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:61:20
+   |
+61 |                 if _ == n { // If we can still relax in the nth iteration
+   |                    ^ `_` not allowed here
+
+error: aborting due to 1 previous error
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+const SUP: i64 = 1 << 60;
+
+#[derive(Debug)]
+struct Edge {
+    t: usize,
+    h: usize,
+    cost: i64,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut edges = Vec::with_capacity(m);
+    
+    // Read edges
+    for _ in 0..m {
+        let line = lines.next().unwrap().unwrap();
+        let mut parts = line.split_whitespace();
+        let u: usize = parts.next().unwrap().parse().unwrap();
+        let w: usize = parts.next().unwrap().parse().unwrap();
+        let c: i64 = parts.next().unwrap().parse().unwrap();
+        edges.push(Edge { t: u, h: w, cost: -c });
+    }
+
+    let mut min = vec![SUP; n + 1];
+    min[1] = 0; // Initial cost to reach the source node (1)
+
+    // Bellman-Ford algorithm
+    for _ in 1..n {
+        for edge in &edges {
+            let u = edge.t;
+            let w = edge.h;
+            let c = edge.cost;
+            if min[u] < SUP && min[w] > min[u] + c {
+                min[w] = min[u] + c;
+            }
+        }
+    }
+
+    let ans = min[n];
+
+    // Check for negative weight cycles
+    let mut has_negative_cycle = false;
+    for _ in 1..=n {
+        for edge in &edges {
+            let u = edge.t;
+            let w = edge.h;
+            let c = edge.cost;
+            if min[u] < SUP && min[w] > min[u] + c {
+                min[w] = min[u] + c;
+                if _ == n { // If we can still relax in the nth iteration
+                    has_negative_cycle = true;
+                }
+            }
+        }
+    }
+
+    if has_negative_cycle || ans == SUP {
+        println!("inf");
+    } else {
+        println!("{}", -ans);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

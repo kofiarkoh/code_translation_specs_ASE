@@ -1,0 +1,9 @@
+fn count_divisible_in_range(l: i32, r: i32, d: i32) -> i32 {
+    // Preconditions: l <= r and d > 0 are assumed to be satisfied.
+    
+    // Calculate the count of integers divisible by d in the range [l, r]
+    let count = (r / d) - ((l - 1) / d);
+    
+    // The result is guaranteed to be non-negative due to the preconditions
+    count
+}

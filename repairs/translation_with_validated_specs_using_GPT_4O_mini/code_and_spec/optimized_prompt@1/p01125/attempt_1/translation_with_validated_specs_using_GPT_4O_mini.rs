@@ -1,0 +1,61 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    while let Some(line) = lines.next() {
+        let n: usize = line.unwrap().trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut grid = [[0; 25]; 25];
+        for _ in 0..n {
+            let coords: Vec<usize> = lines.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            let (x, y) = (coords[0], coords[1]);
+            grid[x][y] = 1;
+        }
+
+        let m: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        let (mut px, mut py) = (10, 10);
+
+        // Mark the initial position as unoccupied if it is occupied
+        if grid[px][py] == 1 {
+            grid[px][py] = 0;
+        }
+
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]; // N, E, S, W
+
+        for _ in 0..m {
+            let command: Vec<&str> = lines.next().unwrap().unwrap().split_whitespace().collect();
+            let dir = command[0];
+            let steps: usize = command[1].parse().unwrap();
+
+            let d = match dir {
+                "N" => 0,
+                "E" => 1,
+                "S" => 2,
+                "W" => 3,
+                _ => unreachable!(), // Assuming valid input as per spec
+            };
+
+            for _ in 0..steps {
+                px = (px as isize + directions[d].0) as usize;
+                py = (py as isize + directions[d].1) as usize;
+
+                // Check bounds (not explicitly required by the spec, but safe)
+                if px < 25 && py < 25 && grid[px][py] == 1 {
+                    grid[px][py] = 0; // Mark as unoccupied
+                }
+            }
+        }
+
+        // Check if all occupied cells have been visited
+        let all_unoccupied = grid.iter().flat_map(|row| row.iter()).all(|&cell| cell == 0);
+        println!("{}", if all_unoccupied { "Yes" } else { "No" });
+    }
+}

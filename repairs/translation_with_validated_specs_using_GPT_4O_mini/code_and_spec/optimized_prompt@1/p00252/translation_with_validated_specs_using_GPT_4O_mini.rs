@@ -1,0 +1,34 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read input from stdin
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input into three integers
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    // Ensure we have exactly three inputs
+    if nums.len() != 3 {
+        // If not, we could handle the error, but per spec, we assume valid input
+        return;
+    }
+
+    let (a, b, c) = (nums[0], nums[1], nums[2]);
+
+    // Determine the output based on the specified conditions
+    let output = match (a, b, c) {
+        (1, 0, 0) => "Close",
+        (0, 1, 0) => "Close",
+        (1, 1, 0) => "Open",
+        (0, 0, 1) => "Open",
+        (0, 0, 0) => "Close",
+        _ => "Close", // Default case for unspecified combinations
+    };
+
+    // Print the output followed by a newline
+    println!("{}", output);
+}

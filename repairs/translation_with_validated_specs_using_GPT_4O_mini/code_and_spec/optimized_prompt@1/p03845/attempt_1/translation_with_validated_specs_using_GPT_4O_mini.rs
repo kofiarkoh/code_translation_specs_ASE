@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the number of elements in the list
+    let mut lines = reader.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Read the list of integers
+    let mut t: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        t.push(value);
+    }
+
+    // Read the number of modifications
+    let m: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    // Read the modification pairs
+    let mut p: Vec<usize> = Vec::with_capacity(m);
+    let mut x: Vec<i32> = Vec::with_capacity(m);
+    for _ in 0..m {
+        let pair: Vec<i32> = lines.next().unwrap().unwrap().split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        p.push(pair[0] as usize); // 1-based index
+        x.push(pair[1]);
+    }
+
+    // Calculate the initial sum
+    let sum: i32 = t.iter().sum();
+
+    // Process each modification and print the modified sum
+    for i in 0..m {
+        // Adjust the index from 1-based to 0-based
+        let index = p[i] - 1;
+        // Output the modified sum
+        println!("{}", sum - t[index] + x[i]);
+    }
+}

@@ -1,0 +1,120 @@
+use std::cmp::Ordering;
+use std::collections::BinaryHeap;
+
+const INFINITY: i64 = i64::MAX; // Represents infinite cost
+
+#[derive(Debug)]
+struct Edge {
+    to: usize,
+    capacity: i64,
+    cost: i64,
+}
+
+struct FlowNetwork {
+    nodes: usize,
+    edges: Vec<Vec<Edge>>,
+    flow: Vec<Vec<i64>>,
+}
+
+impl FlowNetwork {
+    fn new(nodes: usize, capacity: i64) -> Self {
+        let edges = vec![vec![]; nodes];
+        let flow = vec![vec![0; nodes]; nodes];
+        FlowNetwork { nodes, edges, flow }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: i64, cost: i64) {
+        self.edges[from].push(Edge { to, capacity, cost });
+    }
+
+    fn compute_max_flow(&mut self) -> (i64, Vec<Vec<i64>>) {
+        let mut total_cost = 0;
+        let mut flow_config = vec![vec![0; self.nodes]; self.nodes];
+
+        loop {
+            let (path_flow, path_cost) = self.shortest_path();
+            if path_flow == 0 {
+                break; // No more augmenting path
+            }
+            total_cost += path_cost;
+            self.update_flows(path_flow);
+        }
+
+        (total_cost, self.flow.clone())
+    }
+
+    fn shortest_path(&self) -> (i64, i64) {
+        let mut dist = vec![INFINITY; self.nodes];
+        let mut parent = vec![None; self.nodes];
+        let mut heap = BinaryHeap::new();
+        dist[0] = 0; // Assuming source is node 0
+        heap.push((0, 0)); // (cost, node)
+
+        while let Some((cost, u)) = heap.pop() {
+            if cost > dist[u] {
+                continue; // Skip if we found a better path
+            }
+
+            for edge in &self.edges[u] {
+                let new_cost = cost + edge.cost;
+                if edge.capacity > self.flow[u][edge.to] && new_cost < dist[edge.to] {
+                    dist[edge.to] = new_cost;
+                    parent[edge.to] = Some((u, edge.capacity - self.flow[u][edge.to]));
+                    heap.push((new_cost, edge.to));
+                }
+            }
+        }
+
+        // Determine the flow and cost
+        let mut path_flow = INFINITY;
+        let mut v = self.nodes - 1; // Assuming sink is the last node
+        while let Some((u, capacity)) = parent[v] {
+            path_flow = path_flow.min(capacity);
+            v = u;
+        }
+
+        if path_flow == INFINITY {
+            return (0, 0); // No augmenting path found
+        }
+
+        // Calculate total cost of the path
+        let total_cost = dist[self.nodes - 1];
+        (path_flow, total_cost)
+    }
+
+    fn update_flows(&mut self, path_flow: i64) {
+        let mut v = self.nodes - 1; // Assuming sink is the last node
+        while let Some((u, _)) = self.parent[v] {
+            self.flow[u][v] += path_flow;
+            self.flow[v][u] -= path_flow; // Reverse flow for residual graph
+            v = u;
+        }
+    }
+}
+
+fn main() {
+    let n = 4; // Example number of nodes
+    let k = 10; // Example capacity
+    let mut network = FlowNetwork::new(n, k);
+
+    // Example costs matrix
+    let costs = vec![
+        vec![0, 1, 2, 0],
+        vec![0, 0, 0, 3],
+        vec![0, 0, 0, 1],
+        vec![0, 0, 0, 0],
+    ];
+
+    // Adding edges based on costs
+    for i in 0..n {
+        for j in 0..n {
+            if costs[i][j] > 0 {
+                network.add_edge(i, j, k, costs[i][j]);
+            }
+        }
+    }
+
+    let (max_flow_cost, flow_config) = network.compute_max_flow();
+    println!("Max Flow Cost: {}", max_flow_cost);
+    println!("Flow Configuration: {:?}", flow_config);
+}

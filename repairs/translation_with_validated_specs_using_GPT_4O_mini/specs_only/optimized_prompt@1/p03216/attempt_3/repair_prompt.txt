@@ -1,0 +1,115 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03216/p03216_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03216/p03216_sample1_output.txt
+Input:
+10
+DMDMCDMCDC
+2
+3
+5
+Expected:
+2
+5
+Actual:
+2
+2
+2
+2
+2
+2
+2
+2
+2
+3
+3
+2
+4
+4
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn compute_scores(n: usize, sequence: &str, q: usize, window_sizes: &[usize]) -> Vec<u64> {
+    // Ensure the input sequence is valid
+    assert!(n > 0 && n == sequence.len());
+    assert!(q >= 0);
+    for &k in window_sizes {
+        assert!(k > 0 && k <= n);
+    }
+
+    let mut results = Vec::with_capacity(q);
+    
+    for &k in window_sizes {
+        let mut score = 0u64;
+        let mut count_d = 0u64;
+
+        // Initialize the first window
+        for i in 0..k {
+            match sequence.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => score += count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+        }
+        results.push(score);
+
+        // Slide the window across the sequence
+        for i in k..n {
+            // Remove the character going out of the window
+            match sequence.chars().nth(i - k).unwrap() {
+                'D' => count_d -= 1,
+                'M' => score -= count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+
+            // Add the new character coming into the window
+            match sequence.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => score += count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+
+            results.push(score);
+        }
+    }
+
+    results
+}
+
+fn main() {
+    // Example usage
+    let n = 10;
+    let sequence = "DDMCCMDDMC";
+    let q = 2;
+    let window_sizes = vec![3, 5];
+    
+    let scores = compute_scores(n, sequence, q, &window_sizes);
+    for score in scores {
+        println!("{}", score);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

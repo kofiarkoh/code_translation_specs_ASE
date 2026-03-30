@@ -1,0 +1,29 @@
+fn compute_result(n: usize, sequence: &[i32]) -> i32 {
+    const P: i32 = 1_000_000_007; // Modular constant
+    let mut cumulative_xor = 0; // To hold the cumulative XOR
+    let mut zero_count = 0; // To count occurrences of zero in cumulative XOR results
+    let mut dp = vec![0; 1 << 30]; // Dynamic programming array for XOR results
+
+    for &num in sequence.iter() {
+        cumulative_xor ^= num; // Update cumulative XOR
+        if cumulative_xor == 0 {
+            zero_count += 1; // Increment zero count if cumulative XOR is zero
+        }
+        dp[cumulative_xor as usize] += 1; // Update DP array for the current XOR value
+    }
+
+    // Calculate the final result based on the cumulative XOR
+    if cumulative_xor == 0 {
+        // If cumulative XOR is zero, compute result based on zero occurrences
+        // Using power(2, zero_count - 1) % P
+        let result = if zero_count > 0 {
+            (1 << (zero_count - 1)) % P // Efficient power of 2 calculation
+        } else {
+            0 // If no zeros, result is zero
+        };
+        result
+    } else {
+        // If cumulative XOR is non-zero, return the last computed state
+        dp[cumulative_xor as usize] % P
+    }
+}

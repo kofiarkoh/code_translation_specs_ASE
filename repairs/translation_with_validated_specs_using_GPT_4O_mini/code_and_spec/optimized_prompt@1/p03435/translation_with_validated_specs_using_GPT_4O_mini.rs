@@ -1,0 +1,43 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().take(3).collect::<Result<Vec<_>, _>>().unwrap();
+
+    // Initialize a 3x3 matrix
+    let mut matrix = [[0; 3]; 3];
+    let mut min = [0; 3];
+
+    // Parse input into the matrix
+    for (i, line) in input.iter().enumerate() {
+        let numbers: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        for j in 0..3 {
+            matrix[i][j] = numbers[j];
+        }
+
+        // Find the minimum value in the row
+        min[i] = *matrix[i].iter().min().unwrap();
+    }
+
+    // Normalize the matrix by subtracting the row minimums
+    for i in 0..3 {
+        for j in 0..3 {
+            matrix[i][j] -= min[i];
+        }
+    }
+
+    // Check if all columns are identical
+    for j in 0..3 {
+        if matrix[0][j] != matrix[1][j] || matrix[0][j] != matrix[2][j] {
+            // Output "No" and exit if columns are not identical
+            println!("No");
+            return;
+        }
+    }
+
+    // Output "Yes" if all columns are identical
+    println!("Yes");
+}

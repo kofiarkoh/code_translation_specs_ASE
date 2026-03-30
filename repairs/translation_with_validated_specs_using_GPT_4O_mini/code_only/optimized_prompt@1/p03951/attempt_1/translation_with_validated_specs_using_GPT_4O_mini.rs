@@ -1,0 +1,40 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    let mut s = String::new();
+    let mut t = String::new();
+
+    io::stdin().read_line(&mut s).unwrap();
+    io::stdin().read_line(&mut t).unwrap();
+
+    let mut ans = 0;
+    let mut i = n as isize - 1;
+    let mut j;
+
+    while i >= 0 {
+        j = i; // Reset j to i for each outer loop iteration
+        while j >= 0 && s.as_bytes()[i as usize] != t.as_bytes()[j as usize] {
+            j -= 1;
+        }
+        if j >= 0 {
+            while j >= 0 && s.as_bytes()[i as usize] == t.as_bytes()[j as usize] {
+                i -= 1;
+                j -= 1;
+            }
+            if j < 0 {
+                ans = 2 * n - (n - i - 1) as i32;
+                break;
+            }
+        } else {
+            ans = 2 * n - (n - i - 1) as i32;
+            break;
+        }
+        i -= 1; // Decrement i for the next iteration of the outer loop
+    }
+
+    print!("{}", ans);
+}

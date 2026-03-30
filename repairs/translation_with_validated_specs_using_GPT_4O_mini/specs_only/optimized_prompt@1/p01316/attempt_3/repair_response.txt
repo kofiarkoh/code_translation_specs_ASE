@@ -1,0 +1,54 @@
+```rust
+fn min_cumulative_transformation_cost(n: usize, m: usize, adjustments: &[i32], values: &[i32]) -> i32 {
+    // Preconditions: n and m must be positive integers
+    if n == 0 || m == 0 {
+        return i32::MAX; // Indicate infinite cost if preconditions are not met
+    }
+
+    // Initialize a cost array to store the minimum costs for each adjustment
+    let mut cost = vec![0; m];
+
+    // Process each input value
+    for &value in values {
+        let mut new_cost = vec![i32::MAX; m]; // New cost array for the current value
+
+        // Calculate the cost for each adjustment
+        for j in 0..m {
+            // Ensure adjusted values are within the range of 0 to 255
+            let adjusted_value = adjustments[j].clamp(0, 255);
+            let transformation_cost = (value - adjusted_value).pow(2); // Quadratic cost
+
+            // Update the new cost array with the minimum cumulative cost
+            for k in 0..m {
+                if cost[k] != i32::MAX {
+                    new_cost[j] = new_cost[j].min(cost[k] + transformation_cost);
+                }
+            }
+        }
+
+        // Update the cost array for the next iteration
+        cost = new_cost;
+    }
+
+    // Find the minimum cumulative cost from the last processed costs
+    let min_cost = cost.into_iter().min().unwrap_or(i32::MAX);
+    
+    // If no valid transformation exists, return infinite cost
+    if min_cost == i32::MAX {
+        return i32::MAX; // Indicate infinite cost
+    }
+
+    min_cost
+}
+
+fn main() {
+    // Read input values
+    let n = 3; // Number of values
+    let m = 2; // Number of adjustments
+    let adjustments = vec![-10, 10]; // Adjustment values
+    let values = vec![100, 200, 300]; // Values to transform
+
+    let result = min_cumulative_transformation_cost(n, m, &adjustments, &values);
+    println!("{}", result); // Output the minimum cumulative transformation cost
+}
+```

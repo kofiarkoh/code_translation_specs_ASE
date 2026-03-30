@@ -1,0 +1,39 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the number of vertices
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap(); // Assumes valid input as per specification
+
+    // Initialize vectors to store the coordinates
+    let mut x_coords = Vec::with_capacity(n);
+    let mut y_coords = Vec::with_capacity(n);
+
+    // Read the coordinates of the vertices
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        let coords: Vec<i32> = input
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap()) // Assumes valid integer input
+            .collect();
+        x_coords.push(coords[0]);
+        y_coords.push(coords[1]);
+    }
+
+    // Calculate the area using the shoelace formula
+    let mut area = 0;
+    for i in 0..n {
+        let j = (i + 1) % n; // Wrap around to the first vertex
+        area += x_coords[i] * y_coords[j] - y_coords[i] * x_coords[j];
+    }
+    area = area.abs(); // Ensure area is non-negative
+
+    // Output the area formatted to one decimal place
+    let area_result = (area as f64) / 2.0; // Convert to f64 for division
+    println!("{:.1}", area_result);
+}
+```

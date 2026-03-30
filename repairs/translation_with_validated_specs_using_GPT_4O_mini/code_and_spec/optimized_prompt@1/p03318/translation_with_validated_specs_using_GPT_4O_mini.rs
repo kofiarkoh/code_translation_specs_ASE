@@ -1,0 +1,41 @@
+use std::io::{self, Write};
+
+fn digit_sum(mut x: u64) -> u64 {
+    let mut r = 0;
+    while x > 0 {
+        r += x % 10;
+        x /= 10;
+    }
+    r
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as a non-negative integer
+    let n: u64 = match input.trim().parse() {
+        Ok(num) if num >= 0 => num,
+        _ => return, // If input is invalid or negative, do nothing
+    };
+
+    let mut x = 1;
+
+    for _ in 0..n {
+        println!("{}", x);
+        let mut r = x + 1;
+        let mut m = (x as f64) / (digit_sum(x) as f64);
+
+        for j in 0..15 {
+            let s = 10u64.pow(j);
+            let y = s * (x / s + 1) - 1;
+            let o = (y as f64) / (digit_sum(y) as f64);
+
+            if o < m {
+                m = o;
+                r = y;
+            }
+        }
+        x = r;
+    }
+}

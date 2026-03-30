@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes and prints the binomial coefficient \((n+r-1)C(n-1)\) based on the input values \(n\), \(m\), and \(r\). It utilizes an array representation to handle large integers that exceed standard data type limits, ensuring accurate arithmetic operations for very large values.
+
+## 2. Inputs
+- Three non-negative integers: \(n\), \(m\), and \(r\).
+
+## 3. Outputs
+- A single integer representing the binomial coefficient, printed in a standard numerical format. If the computed result is zero, it prints "0"; if the result is one, it prints "1".
+
+## 4. Preconditions
+- The input integers \(n\), \(m\), and \(r\) must be non-negative.
+- The computation assumes that \(r - n \times m\) is non-negative to proceed with the calculation of the binomial coefficient.
+
+## 5. Postconditions
+- If \(r < 0\), the output is "0".
+- If \(r = 0\), the output is "1".
+- For \(r > 0\), the output is the computed binomial coefficient \((n+r-1)C(n-1)\), calculated as the product of integers from \(n+r-1\) down to \(r\) divided by the factorial of \(n-1\).
+
+## 6. Invariants
+- The internal representation of the large integer result is maintained in an array, ensuring that each element correctly represents a segment of the overall value.
+- The array is initialized to zero except for the first element, which is set to one before any multiplication operations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- It does not account for overflow in the input values, assuming they are within reasonable bounds for computation.
+
+## 8. State Transitions
+- The state transitions occur through the manipulation of the internal array during multiplication and division operations. 
+  - Initially, the array is set to represent the value 1.
+  - The multiplication process iteratively updates the array to reflect the product of the current value and the next integer in the sequence, managing carry-over values appropriately.
+  - The division process subsequently reduces the intermediate results by dividing by integers from 1 to \(n2\), ensuring the final result is correctly computed.
+
+## 9. Non-functional Constraints
+- The implementation is designed to handle very large integers, specifically up to the factorial of 20000, which requires efficient memory management and arithmetic operations. The performance is influenced by the size of \(n\) and \(r\), particularly in the number of multiplication and division operations performed.
+```

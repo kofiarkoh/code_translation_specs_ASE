@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific integer value based on the comparison of two input strings of equal length. It determines how many characters from the second string can be matched with the first string in reverse order. The result is calculated based on the positions of the last matched characters, specifically considering the total length of the strings and the index of the last match.
+
+## 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- A string \( S \) of length \( N \).
+- A string \( T \) of length \( N \).
+
+## 3. Outputs
+- An integer value representing the computed result based on the matching of characters between the two strings. The result is derived from the positions of the last matched characters and the total length of the strings.
+
+## 4. Preconditions
+- The input integer \( N \) must be a non-negative integer.
+- The strings \( S \) and \( T \) must be properly formatted and contain exactly \( N \) characters each.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative and reflects the result of the matching process between the two strings. The result is calculated as \( 2N - (N - i - 1) \) when a match is found, where \( i \) is the index of the last matched character in string \( S \). If no matches are found, the output will still be computed based on the last position checked.
+
+## 6. Invariants
+- The lengths of strings \( S \) and \( T \) remain constant at \( N \) throughout the execution.
+- The matching process only considers characters from the end of the strings moving towards the beginning.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input format is incorrect (e.g., non-integer for \( N \) or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the indices of the strings are manipulated during the matching process. The overall state is defined by the current values of \( i \), \( j \), and \( ans \), where \( i \) tracks the position in string \( S \) and \( j \) tracks the position in string \( T \). The program continues to search for matches even after encountering mismatches, adjusting the indices accordingly.
+
+## 9. Non-functional Constraints (if inferable)
+- The execution time is dependent on the length of the strings, with a worst-case time complexity proportional to \( N^2 \) due to nested iterations. The program may perform additional checks for matches even after initial mismatches, which can affect performance.
+```

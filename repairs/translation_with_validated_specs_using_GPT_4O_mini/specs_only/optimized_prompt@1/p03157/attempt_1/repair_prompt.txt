@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a grid of characters to count the number of distinct groups formed by adjacent cells containing different characters. It calculates the total product of the counts of two specific character types (denoted as '.' and any other character) within each group and outputs the cumulative sum of these products.
+
+# 2. Inputs
+- Two integers representing the height (H) and width (W) of a grid.
+- A grid of characters with dimensions H x W, where each cell contains a single character.
+
+# 3. Outputs
+- A single unsigned 64-bit integer representing the cumulative sum of products of counts of two character types across all distinct groups.
+
+# 4. Preconditions
+- The input dimensions H and W must be positive integers.
+- The grid must be filled with valid characters, and each row must contain exactly W characters.
+
+# 5. Postconditions
+- The output is the total sum of products of counts of the two character types for all distinct groups identified in the grid.
+
+# 6. Invariants
+- Each cell in the grid is either part of a group or marked as processed.
+- The grouping is consistent throughout the execution, ensuring that all adjacent cells with different characters are correctly identified.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates with an error code if the input format is incorrect or if the expected number of characters is not read.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the depth-first search explores the grid, marking cells as part of a group and updating counts based on character types.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within the constraints of a maximum grid size of 512 x 512.
+- The execution time is dependent on the number of cells and their connectivity, with a worst-case scenario of visiting each cell once.
+```

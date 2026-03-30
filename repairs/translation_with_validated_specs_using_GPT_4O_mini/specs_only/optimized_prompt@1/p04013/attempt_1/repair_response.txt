@@ -1,0 +1,48 @@
+```rust
+fn count_valid_subsets(n: usize, a: i32, set: &[i32]) -> i32 {
+    // Preconditions check
+    if n == 0 || a <= 0 || set.len() != n {
+        // Undefined behavior as per specification; no output guaranteed
+        return 0; // Returning 0 as a safe fallback
+    }
+
+    // Calculate the total sum of the set
+    let total_sum: i32 = set.iter().sum();
+
+    // Determine the maximum k based on the total sum and A
+    let max_k = total_sum / a;
+    let max_k = max_k.min(n as i32); // k cannot exceed N
+
+    // Dynamic programming table
+    let mut dp = vec![vec![0; (total_sum + 1) as usize]; (n + 1)];
+
+    // Base case: one way to make sum 0 (selecting no elements)
+    for i in 0..=n {
+        dp[i][0] = 1;
+    }
+
+    // Fill the dynamic programming table
+    for i in 1..=n {
+        for sum in 0..=total_sum {
+            // Exclude the current element
+            dp[i][sum as usize] = dp[i - 1][sum as usize];
+
+            // Include the current element if it does not exceed the current sum
+            if sum >= set[i - 1] {
+                dp[i][sum as usize] += dp[i - 1][(sum - set[i - 1]) as usize];
+            }
+        }
+    }
+
+    // Count valid subsets whose sum equals k * A for k = 1 to max_k
+    let mut count = 0;
+    for k in 1..=max_k {
+        let target_sum = k * a;
+        if target_sum <= total_sum {
+            count += dp[n][target_sum as usize];
+        }
+    }
+
+    count
+}
+```

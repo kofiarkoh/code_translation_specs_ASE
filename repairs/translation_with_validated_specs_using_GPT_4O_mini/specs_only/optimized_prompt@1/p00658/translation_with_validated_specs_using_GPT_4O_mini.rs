@@ -1,0 +1,150 @@
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Cell {
+    Player,
+    Block,
+    Goal,
+    Obstacle,
+    Empty,
+}
+
+#[derive(Debug)]
+struct Game {
+    width: usize,
+    height: usize,
+    grid: Vec<Vec<Cell>>,
+    player_pos: (usize, usize),
+    game_over: bool,
+    status_message: String,
+}
+
+impl Game {
+    fn new(width: usize, height: usize, grid: Vec<Vec<Cell>>, player_start: (usize, usize)) -> Self {
+        if width == 0 || height == 0 {
+            // Terminate gracefully if dimensions are zero
+            panic!("Game cannot be initialized with zero dimensions.");
+        }
+        Game {
+            width,
+            height,
+            grid,
+            player_pos: player_start,
+            game_over: false,
+            status_message: String::new(),
+        }
+    }
+
+    fn move_player(&mut self, dx: isize, dy: isize) {
+        if self.game_over {
+            return; // Ignore commands if the game is over
+        }
+
+        let (x, y) = self.player_pos;
+        let new_x = (x as isize + dx).clamp(0, (self.width as isize) - 1) as usize;
+        let new_y = (y as isize + dy).clamp(0, (self.height as isize) - 1) as usize;
+
+        // Check for valid move
+        match self.grid[new_y][new_x] {
+            Cell::Empty => {
+                self.grid[y][x] = Cell::Empty; // Leave old position empty
+                self.grid[new_y][new_x] = Cell::Player; // Move player
+                self.player_pos = (new_x, new_y);
+            }
+            Cell::Goal => {
+                self.status_message = "Game cleared!".to_string();
+                self.game_over = true;
+            }
+            Cell::Obstacle => {
+                // Ignore move
+            }
+            _ => {}
+        }
+    }
+
+    fn push_block(&mut self, dx: isize, dy: isize) {
+        if self.game_over {
+            return; // Ignore commands if the game is over
+        }
+
+        let (x, y) = self.player_pos;
+        let block_x = (x as isize + dx) as usize;
+        let block_y = (y as isize + dy) as usize;
+
+        // Check if there's a block to push
+        if let Cell::Block = self.grid[block_y][block_x] {
+            let new_block_x = (block_x as isize + dx) as usize;
+            let new_block_y = (block_y as isize + dy) as usize;
+
+            // Check if the block can be pushed
+            if self.grid[new_block_y][new_block_x] == Cell::Empty {
+                self.grid[new_block_y][new_block_x] = Cell::Block; // Move block
+                self.grid[block_y][block_x] = Cell::Empty; // Leave old block position empty
+            }
+        }
+    }
+
+    fn pull_block(&mut self, dx: isize, dy: isize) {
+        if self.game_over {
+            return; // Ignore commands if the game is over
+        }
+
+        let (x, y) = self.player_pos;
+        let block_x = (x as isize - dx) as usize;
+        let block_y = (y as isize - dy) as usize;
+
+        // Check if there's a block to pull
+        if let Cell::Block = self.grid[block_y][block_x] {
+            let new_block_x = (block_x as isize - dx) as usize;
+            let new_block_y = (block_y as isize - dy) as usize;
+
+            // Check if the block can be pulled
+            if self.grid[new_block_y][new_block_x] == Cell::Empty {
+                self.grid[new_block_y][new_block_x] = Cell::Block; // Move block
+                self.grid[block_y][block_x] = Cell::Empty; // Leave old block position empty
+            }
+        }
+    }
+
+    fn check_game_over(&mut self) {
+        // Check for game-over conditions
+        if self.status_message.is_empty() {
+            self.status_message = "Gave Up".to_string();
+            self.game_over = true;
+        }
+    }
+
+    fn execute_commands(&mut self, commands: Vec<&str>) {
+        for command in commands {
+            match command {
+                "MOVETO 3" => self.move_player(1, 0), // Example move right
+                "PUSH L" => self.push_block(-1, 0), // Example push left
+                "GETDOWN R" => self.move_player(0, 1), // Example move down
+                "CLIMB R" => self.move_player(0, -1), // Example move up
+                _ => {}
+            }
+            if self.game_over {
+                break; // Stop processing if the game is over
+            }
+        }
+    }
+}
+
+fn main() {
+    // Example usage of the Game struct
+    let width = 5;
+    let height = 5;
+    let grid = vec![
+        vec![Cell::Obstacle; width],
+        vec![Cell::Obstacle, Cell::Player, Cell::Empty, Cell::Empty, Cell::Obstacle],
+        vec![Cell::Empty; width],
+        vec![Cell::Empty, Cell::Empty, Cell::Empty, Cell::Goal, Cell::Obstacle],
+        vec![Cell::Obstacle; width],
+    ];
+    let player_start = (1, 1);
+    let mut game = Game::new(width, height, grid, player_start);
+
+    // Example commands
+    let commands = vec!["MOVETO 3", "PUSH L", "MOVETO 4", "GETDOWN R", "CLIMB R"];
+    game.execute_commands(commands);
+    game.check_game_over(); // Check for game over
+    println!("Game Over : {}", game.status_message);
+}

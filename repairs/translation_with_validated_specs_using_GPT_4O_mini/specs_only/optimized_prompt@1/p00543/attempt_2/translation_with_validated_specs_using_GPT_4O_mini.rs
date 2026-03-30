@@ -1,0 +1,28 @@
+fn sort_by_modulo(n: usize, m: usize, arr: &mut Vec<i32>) {
+    // Preconditions: n and m must be positive integers
+    assert!(n > 0, "n must be positive");
+    assert!(m > 0, "m must be positive");
+    assert!(arr.len() == n, "Array length must match n");
+
+    // Perform stable sorting based on modulo results for each divisor from 1 to m
+    for k in 1..=m {
+        // Sort using a stable sort (e.g., sort_by) based on the modulo operation
+        arr.sort_by(|&a, &b| {
+            let mod_a = a % k as i32; // Cast k to i32 for modulo operation
+            let mod_b = b % k as i32; // Cast k to i32 for modulo operation
+            mod_a.cmp(&mod_b)
+        });
+    }
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let m = 3;
+    let mut arr = vec![5, 3, 8, 6, 2];
+    
+    sort_by_modulo(n, m, &mut arr);
+    
+    // Output the sorted array
+    println!("{:?}", arr);
+}

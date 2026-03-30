@@ -1,0 +1,32 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    // Read three long integers from standard input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let values: Vec<long> = input
+        .split_whitespace()
+        .map(|s| s.parse().expect("Invalid input"))
+        .collect();
+
+    // Check if any value is even
+    if values.iter().any(|&x| x % 2 == 0) {
+        println!("0");
+    } else {
+        // All values are odd, find the maximum
+        let mut max_index = 0;
+        for i in 1..3 {
+            if values[i] > values[max_index] {
+                max_index = i;
+            }
+        }
+
+        // Create a mutable copy of the values to modify the maximum
+        let mut modified_values = values.clone();
+        modified_values[max_index] = 1;
+
+        // Calculate the product of the modified values
+        let product: long = modified_values.iter().product();
+        println!("{}", product);
+    }
+}

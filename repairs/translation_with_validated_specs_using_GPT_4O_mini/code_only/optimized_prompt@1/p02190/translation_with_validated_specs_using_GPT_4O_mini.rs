@@ -1,0 +1,37 @@
+use std::io::{self, BufRead};
+
+fn comp(a: &i32, b: &i32) -> std::cmp::Ordering {
+    a.cmp(b)
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the first line for n
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut a = Vec::with_capacity(n);
+
+    // Read the next n lines for the array a
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        a.push(value);
+    }
+
+    // Sort the array using the custom comparator
+    a.sort_by(comp);
+
+    let mut prev = a[0];
+    let mut ret = 1;
+
+    for i in 1..n {
+        if a[i] != prev {
+            ret += 1;
+        }
+        prev = a[i];
+    }
+
+    // Print the result
+    println!("{}", ret);
+}

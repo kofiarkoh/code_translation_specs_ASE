@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific integer value based on the comparison of two input strings of equal length. It determines how many characters from the second string can be matched with the first string in reverse order. The result is calculated based on the positions of the last matched characters, specifically considering the total length of the strings and the index of the last match.
+
+## 2. Inputs
+- An integer \( N \) representing the length of two strings.
+- A string \( S \) of length \( N \).
+- A string \( T \) of length \( N \).
+
+## 3. Outputs
+- An integer value representing the computed result based on the matching of characters between the two strings. The result is derived from the positions of the last matched characters and the total length of the strings.
+
+## 4. Preconditions
+- The input integer \( N \) must be a non-negative integer.
+- The strings \( S \) and \( T \) must be properly formatted and contain exactly \( N \) characters each.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative and reflects the result of the matching process between the two strings. The result is calculated as \( 2N - (N - i - 1) \) when a match is found, where \( i \) is the index of the last matched character in string \( S \). If no matches are found, the output will still be computed based on the last position checked.
+
+## 6. Invariants
+- The lengths of strings \( S \) and \( T \) remain constant at \( N \) throughout the execution.
+- The matching process only considers characters from the end of the strings moving towards the beginning.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input format is incorrect (e.g., non-integer for \( N \) or strings of incorrect length), the behavior is undefined, and no output is guaranteed.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the indices of the strings are manipulated during the matching process. The overall state is defined by the current values of \( i \), \( j \), and \( ans \), where \( i \) tracks the position in string \( S \) and \( j \) tracks the position in string \( T \). The program continues to search for matches even after encountering mismatches, adjusting the indices accordingly.
+
+## 9. Non-functional Constraints (if inferable)
+- The execution time is dependent on the length of the strings, with a worst-case time complexity proportional to \( N^2 \) due to nested iterations. The program may perform additional checks for matches even after initial mismatches, which can affect performance.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int main(){
+  int N,ans=0;
+  scanf("%d",&N);
+  char S[N+1];
+  char T[N+1];
+  scanf("%s",S);
+  scanf("%s",T);
+
+  int i=N-1;
+  int j=i;
+  while (i>=0)
+  {
+    int i=N-1;
+    while (j>=0&&S[i]!=T[j])
+    {
+      j--;
+    }
+    if(j>=0){
+      while (j>=0&&S[i]==T[j]){ i--; j--; }
+      if (j<0){
+        ans=2*N-(N-i-1);
+        break;
+      }
+    }else
+    {
+      ans=2*N-(N-i-1);
+      break;
+    }
+  }
+
+  printf("%d",ans);
+
+  return 0;
+}
+=== C CODE END ===

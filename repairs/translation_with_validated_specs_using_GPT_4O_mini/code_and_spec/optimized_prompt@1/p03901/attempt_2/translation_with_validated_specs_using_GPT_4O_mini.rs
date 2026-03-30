@@ -1,0 +1,52 @@
+use std::io::{self, BufRead};
+
+static mut SD_RATE: f64 = 0.0; // Global variable for probability rate
+
+// Function to output a line
+fn output_line(line: &str) {
+    print!("{}", line);
+}
+
+// Recursive function to calculate expected value
+fn get_val(pos: i32) -> f64 {
+    // Even position
+    if pos % 2 == 0 {
+        return (pos as f64 / 2.0) / unsafe { SD_RATE };
+    }
+
+    // Odd position
+    let mut val = 1.0;
+    val += get_val(pos - 1) * unsafe { SD_RATE };
+    val += get_val(pos + 1) * (1.0 - unsafe { SD_RATE });
+
+    val
+}
+
+// Main execution function
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read position
+    let li_pos: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    // Read probability rate
+    let rate_line: String = lines.next().unwrap().unwrap();
+    let rate: f64 = rate_line.trim().parse().unwrap();
+    unsafe {
+        SD_RATE = rate / 100.0; // Convert percentage to decimal
+    }
+
+    // Calculate expected value
+    let ld_val = get_val(li_pos);
+
+    // Output result formatted to seven decimal places
+    let output = format!("{:.7}\n", ld_val);
+    output_line(&output);
+}
+``` 
+
+### Changes Made:
+- Removed extraneous comments and notes that were not part of the Rust code.
+- Ensured the code is clean and adheres to Rust's idiomatic practices while maintaining the original logic and structure from the C code.

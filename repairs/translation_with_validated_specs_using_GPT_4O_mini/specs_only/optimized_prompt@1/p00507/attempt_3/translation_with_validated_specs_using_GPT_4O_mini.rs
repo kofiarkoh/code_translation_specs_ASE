@@ -1,0 +1,38 @@
+fn smallest_unique_concatenation(n: usize, numbers: Vec<i32>) -> i32 {
+    // Precondition: N must be a positive integer and the list must contain at least two distinct integers.
+    // The maximum possible integer value for i32.
+    const MAX_INT: i32 = i32::MAX;
+
+    // Initialize the smallest concatenated value to the maximum possible integer.
+    let mut smallest_concat = MAX_INT;
+
+    // Iterate through all pairs of distinct integers.
+    for i in 0..n {
+        for j in 0..n {
+            if i != j {
+                // Concatenate the two integers as strings.
+                let concat1 = format!("{}{}", numbers[i], numbers[j]);
+                let concat2 = format!("{}{}", numbers[j], numbers[i]);
+
+                // Convert the concatenated strings back to integers.
+                // We use `parse` and handle potential overflow by ignoring invalid values.
+                if let Ok(value1) = concat1.parse::<i32>() {
+                    smallest_concat = smallest_concat.min(value1);
+                }
+                if let Ok(value2) = concat2.parse::<i32>() {
+                    smallest_concat = smallest_concat.min(value2);
+                }
+            }
+        }
+    }
+
+    // Return the smallest concatenated value found, or the maximum integer if none was valid.
+    smallest_concat
+}
+
+fn main() {
+    // Example usage of the function
+    let numbers = vec![12, 34, 56, 78, 90];
+    let result = smallest_unique_concatenation(numbers.len(), numbers);
+    println!("{}", result); // This should print the expected smallest unique concatenation
+}

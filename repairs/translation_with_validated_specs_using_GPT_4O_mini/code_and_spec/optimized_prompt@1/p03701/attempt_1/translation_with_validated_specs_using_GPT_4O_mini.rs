@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read the number of integers
+    let mut lines = handle.lines();
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    let mut sum = 0;
+    let mut min_value = 101; // Initialize to a value greater than any valid input
+    let mut has_non_multiple_of_10 = false;
+
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().parse().unwrap();
+        sum += value;
+
+        // Check if the value is a multiple of 10
+        if value % 10 != 0 {
+            has_non_multiple_of_10 = true;
+            if value < min_value {
+                min_value = value; // Update min_value if it's a non-multiple of 10
+            }
+        }
+    }
+
+    let mut result = sum;
+
+    // Adjust the result based on the specified conditions
+    if sum % 10 == 0 {
+        if min_value == 101 {
+            result = 0; // All values were multiples of 10
+        } else {
+            result -= min_value; // Subtract the smallest non-multiple of 10
+        }
+    }
+
+    // Output the result
+    println!("{}", result);
+}

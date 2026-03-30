@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code computes and outputs a value based on two input integers, N and K. The output is determined by the parity of K and involves calculating the cube of the quotient of N divided by K, and potentially adding the cube of a modified quotient based on K.
+
+# 2. Inputs
+- Two integers, N and K, where:
+  - N is a non-negative integer.
+  - K is a non-negative integer.
+
+# 3. Outputs
+- A single integer representing the computed value based on the inputs.
+
+# 4. Preconditions
+- The input values for N and K must be provided in a valid format.
+- K must not be zero to avoid division by zero.
+
+# 5. Postconditions
+- If K is odd, the output is the cube of the integer division of N by K.
+- If K is even, the output is the sum of the cube of the integer division of N by K and the cube of the integer division of (N + K/2) by K.
+
+# 6. Invariants
+- The output is always a non-negative integer, as it is derived from non-negative inputs and involves integer arithmetic.
+
+# 7. Error Handling / Exceptional Behavior
+- If K is zero, the behavior is undefined due to division by zero. The program does not handle this case explicitly.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state (waiting for N and K) to an output state (displaying the computed result) based on the evaluation of K's parity.
+
+# 9. Non-functional Constraints (if inferable)
+- The program must complete execution in a finite time, dependent on the input size, and must produce output without excessive delay.
+```

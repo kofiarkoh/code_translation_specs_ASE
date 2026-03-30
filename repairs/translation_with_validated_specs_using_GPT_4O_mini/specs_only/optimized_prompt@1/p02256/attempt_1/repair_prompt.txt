@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code calculates the greatest common divisor (GCD) of two natural numbers provided as input. It ensures that the inputs are within a specified range and returns a success or failure status.
+
+# 2. Inputs
+Two natural numbers, each represented as unsigned integers, are read from the input. The valid range for each input is from 1 to 1,000,000,000.
+
+# 3. Outputs
+The GCD of the two input numbers is printed to the output. The function returns a status code: 0 for successful execution and 1 for failure due to invalid input.
+
+# 4. Preconditions
+The inputs must be natural numbers (greater than or equal to 1). The inputs must be within the range of 1 to 1,000,000,000.
+
+# 5. Postconditions
+If the inputs are valid, the GCD of the two numbers is printed. If the inputs are invalid, the function returns a failure status without printing the GCD.
+
+# 6. Invariants
+The GCD calculation maintains the property that the GCD of two numbers remains unchanged through the iterative process of replacing the larger number with the smaller number and the smaller number with the remainder until the remainder is zero.
+
+# 7. Error Handling / Exceptional Behavior
+If either input is outside the valid range, the function sets the return value to indicate failure (1) and does not perform the GCD calculation or output.
+
+# 8. State Transitions (if applicable)
+- Initial state: Awaiting input.
+- Input state: Two numbers are read.
+- Validation state: Check if inputs are within the valid range.
+  - If valid: Transition to GCD calculation state.
+  - If invalid: Transition to error state.
+- GCD calculation state: Compute the GCD and print the result.
+- Final state: Return success or failure status.
+
+# 9. Non-functional Constraints (if inferable)
+The program must execute within a reasonable time frame for valid inputs, and it should handle inputs efficiently without excessive resource consumption.
+```

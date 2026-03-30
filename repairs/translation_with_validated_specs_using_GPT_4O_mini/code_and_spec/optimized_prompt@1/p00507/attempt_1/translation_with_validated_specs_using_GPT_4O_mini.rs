@@ -1,0 +1,42 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read the number of elements
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    
+    // Preconditions: N must be a positive integer and at least 2 distinct integers
+    assert!(n >= 2, "N must be at least 2");
+
+    // Read the list of integers
+    let mut a: Vec<i64> = Vec::new();
+    for _ in 0..n {
+        let num: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        a.push(num);
+    }
+
+    // Initialize the result with a large value
+    let mut result = i64::MAX;
+
+    // Iterate through pairs of distinct integers
+    for i in 0..n {
+        for j in 0..n {
+            if i != j {
+                // Calculate the concatenated value
+                let k = 10i64.pow((a[j].to_string().len() as u32));
+                let concatenated_value = a[i] * k + a[j];
+
+                // Update the result if the new value is smaller
+                if concatenated_value < result {
+                    result = concatenated_value;
+                }
+            }
+        }
+    }
+
+    // Postcondition: Output the smallest concatenated value
+    println!("{}", result);
+}

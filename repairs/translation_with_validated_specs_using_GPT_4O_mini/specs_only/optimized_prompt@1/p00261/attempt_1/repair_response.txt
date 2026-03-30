@@ -1,0 +1,46 @@
+```rust
+fn main() {
+    let state_map: [[Option<usize>; 2]; 6] = [
+        [Some(1), Some(2)], // From state A: '0' -> X (1), '1' -> Y (2)
+        [None, Some(3)],    // From state X: '0' -> NA (invalid), '1' -> Z (3)
+        [Some(1), None],    // From state Y: '0' -> X (1), '1' -> NA (invalid)
+        [Some(4), Some(5)], // From state Z: '0' -> W (4), '1' -> B (5)
+        [Some(5), Some(2)], // From state W: '0' -> B (5), '1' -> Y (2)
+        [Some(2), Some(1)], // From state B: '0' -> Y (2), '1' -> X (1)
+    ];
+
+    let input = "012#"; // Example input, replace with actual input handling
+    let mut current_state = 0; // Start at state A
+
+    for c in input.chars() {
+        if c == '#' {
+            break; // End of input
+        }
+
+        let index = c.to_digit(10).map(|d| d as usize);
+        match index {
+            Some(i) if i < 6 => {
+                // Transition to the next state based on the current state and input character
+                match state_map[current_state][i] {
+                    Some(next_state) => current_state = next_state,
+                    None => {
+                        println!("No"); // Invalid transition
+                        return;
+                    }
+                }
+            }
+            _ => {
+                println!("No"); // Invalid character
+                return;
+            }
+        }
+    }
+
+    // Check if the final state is state B (5)
+    if current_state == 5 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```

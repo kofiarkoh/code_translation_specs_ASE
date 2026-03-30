@@ -1,0 +1,40 @@
+```rust
+fn circle_relationship(x1: i32, y1: i32, r1: i32, x2: i32, y2: i32, r2: i32) -> i32 {
+    // Calculate the squared distance between the centers of the circles
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let dist_sq = (dx * dx + dy * dy) as u32; // Use u32 to avoid negative values
+
+    // Calculate the squared radii
+    let r1_sq = (r1 as u32).pow(2);
+    let r2_sq = (r2 as u32).pow(2);
+    
+    // Calculate the squared sum and difference of the radii
+    let r_sum_sq = (r1 + r2) as u32;
+    let r_diff_sq = (r1 - r2).abs() as u32;
+
+    // Determine the relationship based on the distances and radii
+    if dist_sq > r_sum_sq.pow(2) {
+        // Case 4: The circles are separate
+        4
+    } else if dist_sq == r_sum_sq.pow(2) {
+        // Case 3: The circles are tangent externally
+        3
+    } else if dist_sq < r_diff_sq.pow(2) {
+        // Case 0: One circle is completely within the other without touching
+        0
+    } else if dist_sq == r_diff_sq.pow(2) {
+        // Case 1: The circles are tangent internally
+        1
+    } else {
+        // Case 2: The circles intersect
+        2
+    }
+}
+
+// Example usage (uncomment to test):
+// fn main() {
+//     let result = circle_relationship(0, 0, 5, 10, 0, 5);
+//     println!("{}", result); // Output will depend on the input values
+// }
+```

@@ -1,0 +1,33 @@
+```rust
+fn count_interleavings(n: usize, m: usize, s: &[i32], t: &[i32], modulo: i32) -> i32 {
+    // Create a 2D vector for dynamic programming
+    let mut dp = vec![vec![0; m + 1]; n + 1];
+
+    // Base case: there's one way to interleave two empty sequences
+    dp[0][0] = 1;
+
+    // Fill the dp table
+    for i in 0..=n {
+        for j in 0..=m {
+            if i > 0 {
+                dp[i][j] += dp[i - 1][j]; // Take from s
+                dp[i][j] %= modulo; // Ensure we stay within modulo
+            }
+            if j > 0 {
+                dp[i][j] += dp[i][j - 1]; // Take from t
+                dp[i][j] %= modulo; // Ensure we stay within modulo
+            }
+            // Adjust for overcounting if the last elements are equal
+            if i > 0 && j > 0 && s[i - 1] == t[j - 1] {
+                dp[i][j] -= dp[i - 1][j - 1]; // Remove overcount
+                if dp[i][j] < 0 {
+                    dp[i][j] += modulo; // Ensure non-negative result
+                }
+            }
+        }
+    }
+
+    // The result is the number of interleavings of the full sequences
+    dp[n][m]
+}
+```

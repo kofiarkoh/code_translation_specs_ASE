@@ -1,0 +1,74 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the product of two derived values based on two sequences of integers. Each derived value is calculated using a specific formula that incorporates both the indices (1-based) and the values of the sequences. The final result is the product of these two derived values, reduced modulo \(10^9 + 7\).
+
+## 2. Inputs
+- Two integers, `n` and `m`, representing the number of elements in two sequences.
+- A sequence of `n` integers, denoted as `x[1]` to `x[n]`, where indexing starts at 1.
+- A sequence of `m` integers, denoted as `y[1]` to `y[m]`, where indexing also starts at 1.
+
+## 3. Outputs
+- A single integer representing the product of the two derived values, reduced modulo \(10^9 + 7\).
+
+## 4. Preconditions
+- The input integers `n` and `m` must be non-negative.
+- The sequences must contain exactly `n` integers for the first sequence and `m` integers for the second sequence.
+
+## 5. Postconditions
+- The output is a non-negative integer that represents the product of the two derived values, reduced modulo \(10^9 + 7\).
+
+## 6. Invariants
+- The derived values are computed based on the sequences provided, ensuring that the calculations are consistent with the input data throughout the execution.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format or if the sequences are not of the specified lengths, the behavior is undefined. No explicit error handling is implemented.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve reading input values, computing intermediate results based on the sequences, and producing the final output.
+
+## 9. Derived Value Calculations
+- The first derived value, `t`, is calculated using the formula:
+  \[
+  t = \sum_{i=1}^{n} \left( (i-1) \cdot x[i] - (n-i) \cdot x[i] \right) \mod 1000000007
+  \]
+  This calculation accounts for the 1-based indexing of the sequence `x`.
+
+- The second derived value, `k`, is calculated using the formula:
+  \[
+  k = \sum_{j=1}^{m} \left( (j-1) \cdot y[j] - (m-j) \cdot y[j] \right) \mod 1000000007
+  \]
+  This calculation also accounts for the 1-based indexing of the sequence `y`.
+
+## 10. Non-functional Constraints (if inferable)
+- The computation must be performed efficiently, with a focus on handling potentially large integers, as indicated by the use of a modulo operation to prevent overflow. The modulo operation ensures that the results remain within the bounds of typical integer representations.
+```

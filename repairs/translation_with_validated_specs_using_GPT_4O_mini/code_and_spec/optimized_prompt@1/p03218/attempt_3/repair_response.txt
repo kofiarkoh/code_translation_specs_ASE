@@ -1,0 +1,45 @@
+```rust
+use std::io::{self, BufRead};
+
+const P: i64 = 998244353;
+
+fn gcd(a: i64, b: i64) -> i64 {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N
+    let n: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse N as a positive integer.");
+    assert!(n > 0, "N must be a positive integer.");
+
+    // Read the sequence
+    let mut a: Vec<i64> = Vec::with_capacity(n as usize);
+    for _ in 0..n {
+        let value: i64 = lines.next().unwrap().unwrap().trim().parse().expect("Failed to parse sequence value as a non-negative integer.");
+        if value < 0 {
+            panic!("Sequence must contain non-negative integers.");
+        }
+        a.push(value);
+    }
+
+    // Sort the sequence
+    a.sort();
+
+    // Compute the product of GCDs
+    let mut ans = 1;
+    for (i, &value) in a.iter().enumerate() {
+        ans = (ans * gcd(value, i as i64)) % P;
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

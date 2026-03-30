@@ -1,0 +1,46 @@
+use std::collections::VecDeque;
+
+const INF: usize = usize::MAX; // Define a constant for maximum distance
+
+fn max_distance(height: usize, width: usize, grid: Vec<Vec<char>>) -> usize {
+    let mut distances = vec![vec![INF; width]; height]; // Initialize distances with INF
+    let mut queue = VecDeque::new(); // Queue for BFS
+
+    // Initialize distances for specific characters and enqueue their positions
+    for i in 0..height {
+        for j in 0..width {
+            if grid[i][j] == '#' {
+                distances[i][j] = 0; // Distance to itself is zero
+                queue.push_back((i, j)); // Enqueue the position
+            }
+        }
+    }
+
+    // Directions for moving in the grid (up, down, left, right)
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    // Perform BFS
+    while let Some((x, y)) = queue.pop_front() {
+        for &(dx, dy) in &directions {
+            let new_x = (x as isize + dx) as usize;
+            let new_y = (y as isize + dy) as usize;
+
+            // Check bounds and if the new cell is a placeholder
+            if new_x < height && new_y < width && grid[new_x][new_y] == '.' {
+                // Update distance if a shorter path is found
+                if distances[new_x][new_y] > distances[x][y] + 1 {
+                    distances[new_x][new_y] = distances[x][y] + 1;
+                    queue.push_back((new_x, new_y)); // Enqueue the new position
+                }
+            }
+        }
+    }
+
+    // Find the maximum distance from any placeholder cell
+    distances.iter()
+        .flat_map(|row| row.iter())
+        .filter(|&&d| d != INF) // Exclude unreachable cells
+        .copied()
+        .max()
+        .unwrap_or(0) // Return 0 if no placeholders are reachable (should not happen per spec)
+}

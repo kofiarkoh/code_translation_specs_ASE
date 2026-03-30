@@ -1,0 +1,83 @@
+use std::collections::BinaryHeap;
+
+#[derive(Debug)]
+struct Graph {
+    edges: Vec<Vec<(usize, i32)>>, // adjacency list: (destination, weight)
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            edges: vec![Vec::new(); n],
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, weight: i32) {
+        self.edges[from].push((to, weight));
+    }
+
+    fn dijkstra(&self, source: usize) -> Vec<i32> {
+        let n = self.edges.len();
+        let mut dist = vec![i32::MAX; n];
+        let mut heap = BinaryHeap::new();
+
+        dist[source] = 0;
+        heap.push((0, source)); // (distance, vertex)
+
+        while let Some((d, u)) = heap.pop() {
+            let d = -d; // negate to get the actual distance
+
+            if d > dist[u] {
+                continue; // already found a better path
+            }
+
+            for &(v, weight) in &self.edges[u] {
+                let new_dist = d + weight;
+                if new_dist < dist[v] {
+                    dist[v] = new_dist;
+                    heap.push((-new_dist, v)); // push negated distance for min-heap
+                }
+            }
+        }
+
+        dist
+    }
+}
+
+fn compute_max_values(n: usize, m: usize, k: usize, vertex_weights: &[i32], edges: &[(usize, usize, i32)]) -> Vec<i32> {
+    let mut graph = Graph::new(n);
+
+    for &(from, to, weight) in edges {
+        graph.add_edge(from, to, weight);
+    }
+
+    let shortest_paths = graph.dijkstra(0);
+    let mut max_values: Vec<i32> = vertex_weights.iter()
+        .enumerate()
+        .map(|(i, &weight)| weight - shortest_paths[i])
+        .collect();
+
+    max_values.sort_unstable_by(|a, b| b.cmp(a)); // sort in descending order
+    max_values.truncate(k); // keep only the top k values
+
+    max_values
+}
+
+fn main() {
+    let n = 3; // number of vertices
+    let m = 3; // number of edges
+    let k = 2; // number of maximum values to output
+    let vertex_weights = vec![10, 20, 30]; // vertex weights
+    let edges = vec![
+        (1, 2, 1),
+        (5, 10, 15),
+        (1, 2, 5),
+        (2, 3, 10),
+        (1, 3, 20),
+    ]; // edges defined by (from, to, weight)
+
+    let max_values = compute_max_values(n, m, k, &vertex_weights, &edges);
+    for value in max_values {
+        println!("{}", value); // Output the maximum values
+    }
+}

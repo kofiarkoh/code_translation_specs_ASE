@@ -1,0 +1,92 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+}
+
+struct Point {
+    position: (i32, i32),
+    direction: Direction,
+}
+
+impl Point {
+    fn new() -> Self {
+        Point {
+            position: (50, 0),
+            direction: Direction::Right,
+        }
+    }
+
+    fn move_point(&mut self, mirrors: &HashMap<(i32, i32), char>) {
+        loop {
+            match self.direction {
+                Direction::Up => self.position.1 += 1,
+                Direction::Down => self.position.1 -= 1,
+                Direction::Left => self.position.0 -= 1,
+                Direction::Right => self.position.0 += 1,
+            }
+
+            // Check for boundary conditions
+            if self.position.0 < 0 || self.position.0 > 800 || self.position.1 < 0 || self.position.1 > 800 {
+                break; // Stop if out of bounds
+            }
+
+            // Check for mirror interaction
+            if let Some(&orientation) = mirrors.get(&self.position) {
+                self.direction = match (self.direction, orientation) {
+                    (Direction::Right, 'x') => Direction::Left,
+                    (Direction::Left, 'x') => Direction::Right,
+                    (Direction::Up, 'y') => Direction::Down,
+                    (Direction::Down, 'y') => Direction::Up,
+                    _ => self.direction, // No change if not aligned
+                };
+            }
+
+            // Check for exit condition
+            if self.position == (100, 50) && self.direction == Direction::Right {
+                break; // Exit condition met
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: i32 = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(-1),
+        _ => -1,
+    };
+
+    if n < 0 {
+        println!("250 0"); // Graceful termination on negative input
+        return;
+    }
+
+    let mut mirrors = HashMap::new();
+    for _ in 0..n {
+        if let Some(Ok(line)) = lines.next() {
+            let parts: Vec<&str> = line.trim().split_whitespace().collect();
+            if parts.len() == 3 {
+                let orientation = parts[0].chars().next().unwrap();
+                let x: i32 = parts[1].parse().unwrap();
+                let y: i32 = parts[2].parse().unwrap();
+                mirrors.insert((x, y), orientation);
+            }
+        }
+    }
+
+    let mut point = Point::new();
+    point.move_point(&mirrors);
+
+    println!("{:?}", point.position); // Output final coordinates
+}
+```

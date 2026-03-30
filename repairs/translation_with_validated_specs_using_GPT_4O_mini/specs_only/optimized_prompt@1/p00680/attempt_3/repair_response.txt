@@ -1,0 +1,92 @@
+```rust
+#[derive(Debug, Clone)] // Implement Clone for Edge
+struct Edge {
+    to: usize,
+    capacity: f64,
+}
+
+#[derive(Debug)]
+struct Graph {
+    edges: Vec<Vec<Edge>>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            edges: vec![Vec::new(); n], // Create a vector of empty vectors
+        }
+    }
+
+    fn add_edge(&mut self, from: usize, to: usize, capacity: f64) {
+        self.edges[from].push(Edge { to, capacity });
+    }
+}
+
+#[derive(Debug)]
+struct TestCase {
+    n: usize,
+    s: usize,
+    t: usize,
+    flow: f64,
+    a: Vec<Vec<f64>>,
+    c: Vec<f64>,
+}
+
+impl TestCase {
+    fn new(n: usize, s: usize, t: usize, flow: f64, a: Vec<Vec<f64>>, c: Vec<f64>) -> Self {
+        TestCase { n, s, t, flow, a, c }
+    }
+}
+
+#[derive(Debug)]
+struct MinCostFlow {
+    graph: Graph,
+}
+
+impl MinCostFlow {
+    fn new(n: usize) -> Self {
+        MinCostFlow {
+            graph: Graph::new(n),
+        }
+    }
+
+    fn calculate_min_cost(&self, test_case: &TestCase) -> Result<f64, &'static str> {
+        // Placeholder for the actual min-cost flow algorithm
+        // This should implement the logic to calculate the minimum cost
+        // using the provided graph and test case data.
+
+        // For now, we will return "impossible" if flow is greater than some threshold
+        if test_case.flow > 100.0 { // Example condition
+            return Err("impossible");
+        }
+
+        // Simulate a successful calculation
+        Ok(42.0) // Placeholder for the actual cost
+    }
+}
+
+fn main() {
+    let t: usize = read_input(); // Read number of test cases
+    for _ in 0..t {
+        let (n, s, t, flow, a, c) = read_test_case(); // Read each test case
+        let test_case = TestCase::new(n, s, t, flow, a, c);
+        let min_cost_flow = MinCostFlow::new(n);
+
+        match min_cost_flow.calculate_min_cost(&test_case) {
+            Ok(cost) => println!("{:.10}", cost),
+            Err(_) => println!("impossible"),
+        }
+    }
+}
+
+// Placeholder functions for reading input
+fn read_input() -> usize {
+    // Implement input reading logic
+    1 // Example return
+}
+
+fn read_test_case() -> (usize, usize, usize, f64, Vec<Vec<f64>>, Vec<f64>) {
+    // Implement input reading logic
+    (3, 0, 2, 10.0, vec![vec![1.0, 2.0], vec![3.0, 4.0], vec![5.0, 6.0]], vec![1.0, 2.0, 3.0]) // Example return
+}
+```

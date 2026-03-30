@@ -1,0 +1,80 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: RUNTIME_ERROR
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03701/p03701_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03701/p03701_sample1_output.txt
+Exit code: 101
+stderr:
+
+thread 'main' (36599547) panicked at /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p03701/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:17:47:
+Input must be a valid integer: ParseIntError { kind: InvalidDigit }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+```
+
+Latest Rust code:
+```rust
+use std::io;
+
+fn main() {
+    // Read the number of integers
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a positive integer");
+
+    // Initialize sum and minimum tracking
+    let mut sum = 0;
+    let mut min_non_multiple_of_10: Option<i32> = None;
+
+    // Read the sequence of integers
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let value: i32 = input.trim().parse().expect("Input must be a valid integer");
+
+        // Update sum
+        sum += value;
+
+        // Track the minimum non-multiple of 10
+        if value % 10 != 0 {
+            if let Some(min) = min_non_multiple_of_10 {
+                min_non_multiple_of_10 = Some(min.min(value));
+            } else {
+                min_non_multiple_of_10 = Some(value);
+            }
+        }
+    }
+
+    // Determine the output based on the specified conditions
+    let output = if sum % 10 == 0 {
+        if min_non_multiple_of_10.is_none() {
+            0 // All integers are multiples of 10
+        } else {
+            sum - min_non_multiple_of_10.unwrap() // Subtract the smallest non-multiple of 10
+        }
+    } else {
+        sum // Output the sum as is
+    };
+
+    // Print the final computed value
+    println!("{}", output);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

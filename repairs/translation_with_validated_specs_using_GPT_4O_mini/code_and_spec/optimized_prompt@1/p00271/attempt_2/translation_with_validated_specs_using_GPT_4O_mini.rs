@@ -1,0 +1,30 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // We expect exactly 7 pairs of integers
+    for _ in 0..7 {
+        if let Some(Ok(line)) = lines.next() {
+            let nums: Vec<i32> = line
+                .split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+
+            // Ensure we have exactly 2 integers
+            if nums.len() == 2 {
+                let (a, b) = (nums[0], nums[1]);
+                println!("{}", a - b);
+            }
+        }
+    }
+}
+``` 
+
+### Notes:
+- The Rust code reads from standard input and processes exactly seven pairs of integers, as specified.
+- It uses `BufRead` for efficient reading of input lines.
+- The code does not handle invalid input or errors during input reading, adhering to the specification's requirements.
+- The output format matches the C code, ensuring each difference is printed on a new line.

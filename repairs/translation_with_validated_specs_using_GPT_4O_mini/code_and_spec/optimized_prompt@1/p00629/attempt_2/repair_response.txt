@@ -1,0 +1,78 @@
+```rust
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Record {
+    I: i32,
+    U: i32,
+    A: i32,
+    P: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let n: i32 = line.unwrap().trim().parse().expect("Invalid input");
+        if n == 0 {
+            break;
+        }
+
+        let mut records: Vec<Record> = Vec::new();
+        let mut frequency: [i32; 1001] = [0; 1001];
+
+        for _ in 0..n {
+            let line = reader.lines().next().unwrap().unwrap();
+            let parts: Vec<i32> = line.split_whitespace()
+                .map(|s| s.parse().expect("Invalid input"))
+                .collect();
+            records.push(Record {
+                I: parts[0],
+                U: parts[1],
+                A: parts[2],
+                P: parts[3],
+            });
+        }
+
+        // Sort records based on the specified criteria
+        records.sort_by(|a, b| {
+            let a_a = a.A;
+            let b_a = b.A;
+            let a_p = a.P;
+            let b_p = b.P;
+            let a_i = a.I;
+            let b_i = b.I;
+
+            // Sort by A descending, P ascending, I ascending
+            if a_a != b_a {
+                b_a.cmp(&a_a) // Descending order for A
+            } else if a_p != b_p {
+                a_p.cmp(&b_p) // Ascending order for P
+            } else {
+                a_i.cmp(&b_i) // Ascending order for I
+            }
+        });
+
+        let mut selected_ids: Vec<i32> = Vec::new();
+
+        for record in records {
+            frequency[record.U as usize] += 1;
+
+            if selected_ids.len() < 25 {
+                if frequency[record.U as usize] <= 3 && selected_ids.len() < 10 {
+                    selected_ids.push(record.I);
+                } else if frequency[record.U as usize] <= 2 && selected_ids.len() < 20 {
+                    selected_ids.push(record.I);
+                } else if frequency[record.U as usize] <= 1 && selected_ids.len() < 25 {
+                    selected_ids.push(record.I);
+                }
+            }
+        }
+
+        for id in selected_ids {
+            println!("{}", id);
+        }
+    }
+}
+```

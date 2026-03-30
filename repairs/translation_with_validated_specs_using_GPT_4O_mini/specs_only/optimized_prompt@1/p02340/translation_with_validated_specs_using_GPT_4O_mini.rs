@@ -1,0 +1,52 @@
+const MOD: i32 = 1_000_000_007;
+const MAX_PARTITIONS: usize = 1000;
+
+fn partition_balls(n: usize, k: usize) -> Result<i32, i32> {
+    // Check for non-negative inputs
+    if k > MAX_PARTITIONS {
+        return Err(-1); // Return error code if inputs are invalid
+    }
+
+    // Create a DP table to store the number of ways to partition
+    let mut dp = vec![vec![0; k + 1]; n + 1];
+
+    // Base case: 1 way to partition 0 balls into any number of partitions
+    for j in 0..=k {
+        dp[0][j] = 1;
+    }
+
+    // Fill the DP table
+    for i in 1..=n {
+        for j in 1..=k {
+            // The number of ways to partition i balls into j partitions
+            dp[i][j] = (dp[i][j - 1] + dp[i - 1][j]) % MOD;
+        }
+    }
+
+    // The result is the number of ways to partition n balls into k partitions
+    Ok(dp[n][k])
+}
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<usize> = input
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().expect("Parse error"))
+        .collect();
+
+    if parts.len() != 2 {
+        println!("Error: Expected two inputs");
+        return;
+    }
+
+    let n = parts[0]; // Total number of balls
+    let k = parts[1]; // Number of partitions
+
+    match partition_balls(n, k) {
+        Ok(result) => println!("{}", result),
+        Err(err) => println!("Error: {}", err),
+    }
+}

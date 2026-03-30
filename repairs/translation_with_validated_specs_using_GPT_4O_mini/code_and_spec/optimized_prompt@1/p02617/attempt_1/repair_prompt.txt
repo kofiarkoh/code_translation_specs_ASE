@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The program calculates a specific numerical result based on an input integer and a series of pairs of integers. It first computes an initial cumulative value based on the input integer \( N \) using a defined formula. This value is then adjusted based on the provided pairs of integers, ensuring that the first integer of each pair is less than or equal to the second.
+
+## 2. Inputs
+- An integer \( N \) representing the number of iterations, which must be a positive integer.
+- \( N-1 \) pairs of integers \( (u, w) \), where each pair is provided in sequence after \( N \).
+
+## 3. Outputs
+- A single long long integer representing the final computed result, which reflects the initial cumulative value adjusted by the pairs of integers.
+
+## 4. Preconditions
+- The input integer \( N \) must be a positive integer.
+- Each pair of integers \( (u, w) \) must be provided in sequence after \( N \).
+
+## 5. Postconditions
+- The output is the computed long long integer, which is derived from an initial cumulative value calculated as the sum of a specific formula involving \( N \), followed by adjustments based on the pairs of integers.
+
+## 6. Invariants
+- The cumulative value is always non-negative throughout the computation.
+- The first integer of each pair is always less than or equal to the second after potential adjustment.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly; behavior is undefined for such cases.
+
+## 8. State Transitions
+- The state transitions occur through the accumulation of the initial cumulative value, calculated using the formula \((N - i + 2) * (N - i + 1) / 2\) for \( i \) from 1 to \( N \), followed by adjustments based on the input pairs, where the cumulative value is decreased by \((long long)u * (N - w + 1)\) for each pair.
+
+## 9. Non-functional Constraints
+- The program must complete execution in a time frame proportional to \( O(N) \), where \( N \) is the input integer.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main()
+{
+	int i, N, u, w;
+	long long ans = 0, tmp;
+	scanf("%d", &N);
+	for (i = 1; i <= N; i++) ans += (long long)(N - i + 2) * (N - i + 1) / 2;
+	for (i = 1; i <= N - 1; i++) {
+		scanf("%d %d", &u, &w);
+		if (u > w) {
+			u ^= w;
+			w ^= u;
+			u ^= w;
+		}
+		ans -= (long long)u * (N - w + 1);
+	}
+	printf("%lld\n", ans);
+	fflush(stdout);
+	return 0;
+}
+=== C CODE END ===

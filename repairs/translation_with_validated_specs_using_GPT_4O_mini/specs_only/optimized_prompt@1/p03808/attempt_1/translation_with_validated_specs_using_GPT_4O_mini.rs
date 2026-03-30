@@ -1,0 +1,24 @@
+fn process_integers(n: usize, integers: Vec<i32>) -> String {
+    // Preconditions: N must be a positive integer and the sequence must contain exactly N integers.
+    if n == 0 || integers.len() != n {
+        return "NO".to_string(); // Handling invalid input case
+    }
+
+    let sum: i32 = integers.iter().sum(); // Calculate the sum of the integers
+
+    // Check if the sum meets the divisibility condition (assumed to be non-zero for this example)
+    if sum % 2 != 0 { // Example condition: sum must be even
+        return "NO".to_string();
+    }
+
+    // Calculate differences and check for negative or excessive values
+    for i in 1..n {
+        let difference = integers[i] - integers[i - 1];
+        if difference < 0 || difference > 100 { // Example threshold for differences
+            return "NO".to_string();
+        }
+    }
+
+    // If all conditions are satisfied, return "YES"
+    "YES".to_string()
+}

@@ -1,0 +1,27 @@
+fn count_peaks_and_valleys(n: usize, sequence: &[i32]) -> i32 {
+    // Preconditions check: n must be >= 3
+    if n < 3 {
+        panic!("Input must have at least 3 elements.");
+    }
+
+    let mut count = 0;
+    let mut last_feature = None; // To track the last counted feature
+
+    for i in 1..(n - 1) {
+        if sequence[i] > sequence[i - 1] && sequence[i] > sequence[i + 1] {
+            // Found a peak
+            if last_feature != Some("peak") {
+                count += 1;
+                last_feature = Some("peak");
+            }
+        } else if sequence[i] < sequence[i - 1] && sequence[i] < sequence[i + 1] {
+            // Found a valley
+            if last_feature != Some("valley") {
+                count += 1;
+                last_feature = Some("valley");
+            }
+        }
+    }
+
+    count
+}

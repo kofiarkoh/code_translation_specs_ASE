@@ -1,0 +1,36 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the first string
+    let mut first_string = String::new();
+    print!("Enter the first string (up to 100 characters): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut first_string).unwrap();
+    let first_string = first_string.trim(); // Remove any trailing newline
+
+    // Read the second string
+    let mut second_string = String::new();
+    print!("Enter the second string (up to 100 characters): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut second_string).unwrap();
+    let second_string = second_string.trim(); // Remove any trailing newline
+
+    // Preconditions: both strings must be non-empty and not exceed 100 characters
+    if first_string.is_empty() || second_string.is_empty() || 
+       first_string.len() > 100 || second_string.len() > 100 {
+        // According to the specification, we assume valid input, so we do not handle errors here.
+        return;
+    }
+
+    // Concatenate the first string with itself
+    let concatenated = format!("{}{}", first_string, first_string);
+
+    // Check if the second string is a substring of the concatenated result
+    if concatenated.contains(second_string) {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```

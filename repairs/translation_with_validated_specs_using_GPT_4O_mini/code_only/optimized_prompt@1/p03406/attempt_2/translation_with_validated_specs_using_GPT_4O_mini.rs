@@ -1,0 +1,98 @@
+use std::io::{self, BufRead};
+
+const N: usize = 16;
+const M: usize = 16;
+const N_: usize = 1 << N;
+const MD: i64 = 1_000_000_007;
+
+static mut VV: [i64; N_] = [0; N_];
+static mut FF: [i64; N_] = [0; N_];
+static mut GG: [i64; N_] = [0; N_];
+
+fn init() {
+    unsafe {
+        FF[0] = 1;
+        GG[0] = 1;
+        for i in 1..N_ {
+            VV[i] = if i == 1 {
+                1
+            } else {
+                (VV[i - (MD as usize % i)] * (MD / i as i64 + 1)) % MD
+            };
+            FF[i] = (FF[i - 1] * i as i64) % MD;
+            GG[i] = (GG[i - 1] * VV[i]) % MD;
+        }
+    }
+}
+
+fn choose(n: usize, k: usize) -> i64 {
+    if k > n {
+        return 0;
+    }
+    unsafe {
+        (FF[n] * GG[k] % MD * GG[n - k] % MD) % MD
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+    
+    let first_line = input.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>().unwrap());
+    let n = nums.next().unwrap();
+    let m = nums.next().unwrap();
+
+    let mut aa = [0; M];
+    for h in 0..m {
+        let line = input.next().unwrap().unwrap();
+        aa[h as usize] = (1 << n) - line.parse::<i32>().unwrap();
+    }
+
+    let mut dp = [0; N_];
+    dp[0] = 1;
+
+    unsafe {
+        for h in (0..m).rev() {
+            for b in (0..(1 << n)).rev() {
+                let x = dp[b as usize];
+
+                if x == 0 {
+                    continue;
+                }
+                for i in 0..n {
+                    if (b & (1 << i)) == 0 {
+                        dp[(b | (1 << i)) as usize] = (dp[(b | (1 << i)) as usize] + x * choose(aa[h as usize] as usize - b, (1 << i) - 1) % MD) % MD;
+                    }
+                }
+            }
+        }
+    }
+
+    let mut ans = 0;
+    for b in 0..(1 << n) {
+        let mut x = dp[b as usize];
+        if x == 0 {
+            continue;
+        }
+        let mut n_ = (1 << n) - 1 - b;
+        let mut cnt = n;
+
+        for i in 0..n {
+            if (b & (1 << i)) == 0 {
+                x = x * choose(n_, 1 << i) % MD;
+                n_ -= 1 << i;
+                cnt += 1;
+            }
+        }
+        ans = (ans + if cnt % 2 == 0 { x } else { -x }) % MD;
+    }
+
+    for i in 0..n {
+        ans = (ans * FF[1 << i] % MD * 2) % MD;
+    }
+    if ans < 0 {
+        ans += MD;
+    }
+    println!("{}", ans);
+}

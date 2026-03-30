@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a series of integer sequences, transforming each sequence by replacing each integer with the count of its occurrences in the sequence. This transformation is repeated iteratively until the sequence reaches a stable state, where further transformations do not change the sequence. The program counts the number of transformations required to reach this stable state and outputs the final transformed sequence.
+
+## 2. Inputs
+- A series of integer sequences, where each sequence begins with an integer `n` (the number of elements in the sequence), followed by `n` integers. The input terminates when `n` is zero.
+- Each integer in the sequence must be non-negative and less than or equal to 100.
+
+## 3. Outputs
+- The number of transformations performed to reach a stable state for each sequence.
+- The final transformed sequence of integers, where each integer represents the count of occurrences of the corresponding integer from the original sequence.
+
+## 4. Preconditions
+- The input must consist of valid integers.
+- The first integer of each sequence must be non-negative and less than or equal to 100.
+
+## 5. Postconditions
+- The output includes the number of transformations and the final transformed sequence for each input sequence.
+- The final transformed sequence is stable, meaning further transformations will not change it.
+
+## 6. Invariants
+- The transformation process maintains the integrity of the input sequence, ensuring that the output sequence is derived solely from the input values.
+- The count of transformations is incremented each time a transformation occurs, regardless of whether the output matches a previous state.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly; it assumes all input adheres to the specified constraints.
+
+## 8. State Transitions
+- The state transitions occur between the input sequence and its transformed state, with each transformation being a step towards stabilization. The process continues until the transformed sequence no longer changes at all, indicating that all elements have reached a stable count.
+
+## 9. Non-functional Constraints
+- The program operates within a fixed memory limit, defined by the maximum size of the input sequences and the range of integers processed. The performance is dependent on the number of transformations and the size of the input sequences.
+```

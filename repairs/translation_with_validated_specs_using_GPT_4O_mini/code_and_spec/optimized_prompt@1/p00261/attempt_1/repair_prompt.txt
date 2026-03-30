@@ -1,0 +1,113 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The system processes a sequence of character inputs representing paths through a predefined state map. It determines if the final state after processing the input path corresponds to a specific target state, designated as state B.
+
+## 2. Inputs
+- A sequence of character strings, each representing a path, terminated by a string starting with the character '#', which indicates the end of input.
+
+## 3. Outputs
+- For each input path, the system outputs either "Yes" or "No" based on whether the final state corresponds to the designated target state (state B).
+
+## 4. Preconditions
+- Input paths consist of characters representing valid indices within the range of the state map (0 to 5).
+- The input must be terminated by a string starting with the character '#'.
+
+## 5. Postconditions
+- The output reflects whether the final state after processing the input path is the designated target state (state B).
+
+## 6. Invariants
+- The state transitions are governed by a fixed mapping defined in a 2D array, which does not change during execution.
+- The input path is processed sequentially until either the end of the path is reached or an invalid transition occurs.
+
+## 7. Error Handling / Exceptional Behavior
+- If an invalid character is encountered that does not correspond to a valid index (0 to 5), the processing of the current path is halted immediately, and the output will be "No".
+- The system does not enter an infinite loop; it will terminate the processing of the current path upon encountering an invalid transition.
+
+## 8. State Transitions
+- The system transitions between states based on the input characters, following a predefined mapping. The mapping specifies the next state based on the current state and the input character:
+  - From state A, input '0' leads to state X and input '1' leads to state Y.
+  - From state X, input '0' leads to state NA (invalid transition) and input '1' leads to state Z.
+  - From state Y, input '0' leads to state X and input '1' leads to state NA (invalid transition).
+  - From state Z, input '0' leads to state W and input '1' leads to state B.
+  - From state W, input '0' leads to state B and input '1' leads to state Y.
+  - From state B, input '0' leads to state Y and input '1' leads to state X.
+- If an invalid transition occurs (i.e., the next state is NA), the current path processing is halted.
+
+## 9. Non-functional Constraints
+- The system is expected to handle input paths of varying lengths efficiently, with a maximum length of 109 characters, as the input buffer is defined to hold up to 110 characters (including the null terminator).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+#define A 0
+#define X 1
+#define Y 2
+#define Z 3
+#define W 4
+#define B 5
+#define NA 6
+
+int map[6][2] = {
+    {X, Y},
+    {NA, Z},
+    {X, NA},
+    {W, B},
+    {B, Y},
+    {Y, X}
+};
+
+int main(void)
+{
+    char path[110];
+    int i;
+    int city;
+    
+    while (1){
+        scanf("%s", path);
+        if (path[0] == '#'){
+            break;
+        }
+        
+        city = A;
+        i = 0;
+        while (path[i] != '\0'){
+            if (map[city][path[i] - '0'] == NA){
+                break;
+            }
+            city = map[city][path[i] - '0'];
+            i++;
+        }
+        if (city == B){
+            printf("Yes\n");
+        }
+        else {
+            printf("No\n");
+        }
+    }
+    return (0);
+}
+=== C CODE END ===

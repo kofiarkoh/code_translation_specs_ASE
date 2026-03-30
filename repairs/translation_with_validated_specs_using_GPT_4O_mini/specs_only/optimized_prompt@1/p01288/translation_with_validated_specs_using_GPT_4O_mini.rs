@@ -1,0 +1,72 @@
+use std::collections::VecDeque;
+
+struct QueryProcessor {
+    elements: Vec<usize>, // Mapping of elements
+    modification_counts: Vec<usize>, // Count of modifications for each element
+}
+
+impl QueryProcessor {
+    fn new(n: usize, mappings: Vec<usize>) -> Self {
+        // Initialize the processor with the given mappings and zero modification counts
+        QueryProcessor {
+            elements: mappings,
+            modification_counts: vec![0; n],
+        }
+    }
+
+    fn process_queries(&mut self, queries: Vec<(char, usize)>) -> usize {
+        let mut cumulative_result = 0;
+
+        for (operation, value) in queries {
+            match operation {
+                'M' => {
+                    // Increment the modification count for the specified element
+                    if value > 0 && value <= self.modification_counts.len() {
+                        self.modification_counts[value - 1] += 1;
+                    }
+                }
+                _ => {
+                    // Handle retrieval operation
+                    let mut current_index = value;
+                    let mut visited = vec![false; self.elements.len()]; // Track visited indices to prevent infinite loops
+
+                    while current_index > 0 && current_index <= self.elements.len() {
+                        if visited[current_index - 1] {
+                            // If we revisit an index, we have a cycle, which leads to undefined behavior
+                            break; // This will prevent infinite loops
+                        }
+                        visited[current_index - 1] = true;
+
+                        // Check the modification count
+                        if self.modification_counts[current_index - 1] > 0 {
+                            cumulative_result += self.modification_counts[current_index - 1];
+                            break; // Found a valid element with modifications
+                        }
+
+                        // Move to the next index based on the mapping
+                        current_index = self.elements[current_index - 1];
+                    }
+                }
+            }
+        }
+
+        cumulative_result
+    }
+}
+
+fn main() {
+    // Example usage
+    let n = 5; // Number of elements
+    let mappings = vec![2, 3, 4, 5, 1]; // Example mappings
+    let mut processor = QueryProcessor::new(n, mappings);
+
+    let queries = vec![
+        ('M', 1), // Modify element 1
+        ('M', 2), // Modify element 2
+        ('R', 1), // Retrieve from element 1
+        ('R', 3), // Retrieve from element 3
+    ];
+
+    let result = processor.process_queries(queries);
+    println!("{}", result); // Output the cumulative result
+}

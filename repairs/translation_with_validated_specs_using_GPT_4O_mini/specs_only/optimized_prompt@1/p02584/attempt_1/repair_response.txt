@@ -1,0 +1,29 @@
+```rust
+fn modified_absolute_value(initial: i64, max_decrements: i64, decrement: i64) -> i64 {
+    // Preconditions check: decrement must be greater than zero
+    assert!(decrement > 0, "Decrement value must be greater than zero");
+
+    // Take the absolute value of the initial input
+    let mut value = initial.abs();
+
+    // Calculate the maximum possible decrement
+    let total_decrement = max_decrements * decrement;
+
+    // Apply full decrements
+    if value > total_decrement {
+        value -= total_decrement;
+    } else {
+        value = 0; // If the total decrement exceeds the value, it becomes zero
+    }
+
+    // Calculate remaining decrements
+    let remaining_decrements = max_decrements - (initial.abs() - value) / decrement;
+
+    // If there are remaining decrements, check their parity
+    if remaining_decrements > 0 && remaining_decrements % 2 == 1 {
+        value = (value - decrement).max(0); // Apply an additional decrement if odd
+    }
+
+    value // Return the modified absolute value
+}
+```

@@ -1,0 +1,87 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01050/p01050_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p01050/p01050_sample1_output.txt
+Input:
+hello
+Expected:
+5
+Actual:
+Unique character count: 1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn count_unique_characters(input: &str) -> usize {
+    // Create a HashMap to track the frequency of each character
+    use std::collections::HashMap;
+
+    let mut char_count: HashMap<char, usize> = HashMap::new();
+    let mut unique_count = 0;
+
+    // Iterate through the input string, considering null-termination
+    let mut prev_char: Option<char> = None;
+    let mut consecutive_count = 0;
+
+    for c in input.chars() {
+        // Check for null terminator (not included in the count)
+        if c == '\0' {
+            break;
+        }
+
+        // Update the count of unique characters
+        if let Some(&count) = char_count.get(&c) {
+            char_count.insert(c, count + 1);
+        } else {
+            char_count.insert(c, 1);
+            unique_count += 1; // New unique character found
+        }
+
+        // Handle consecutive occurrences
+        if Some(c) == prev_char {
+            consecutive_count += 1;
+        } else {
+            consecutive_count = 1; // Reset for new character
+        }
+
+        // If consecutive occurrences exceed 3, adjust unique count
+        if consecutive_count > 3 {
+            unique_count -= 1; // Decrement for excess occurrences
+        }
+
+        prev_char = Some(c);
+    }
+
+    // Ensure the unique count is non-negative
+    unique_count = unique_count.max(0);
+
+    unique_count
+}
+
+fn main() {
+    // Example usage of the function
+    let input = "aaabbbccccddddd\0"; // Example input with null terminator
+    let result = count_unique_characters(input);
+    println!("Unique character count: {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

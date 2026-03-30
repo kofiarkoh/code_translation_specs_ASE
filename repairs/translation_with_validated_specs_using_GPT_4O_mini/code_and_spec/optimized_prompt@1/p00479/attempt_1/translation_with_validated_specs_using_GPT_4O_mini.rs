@@ -1,0 +1,44 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the first input: n
+    let n: usize = lines.next().unwrap().unwrap().parse().expect("Invalid input for n");
+    // Preconditions: n must be a positive integer
+    assert!(n > 0, "n must be a positive integer");
+
+    // Read the second input: k
+    let k: usize = lines.next().unwrap().unwrap().parse().expect("Invalid input for k");
+    // Preconditions: k must be a non-negative integer
+    assert!(k >= 0, "k must be a non-negative integer");
+
+    for _ in 0..k {
+        // Read each pair of integers ai and bi
+        let pair: Vec<usize> = lines.next().unwrap().unwrap()
+            .split_whitespace()
+            .map(|s| s.parse().expect("Invalid input for ai or bi"))
+            .collect();
+
+        let (mut ai, mut bi) = (pair[0], pair[1]);
+
+        // Adjust ai and bi based on the specified rules
+        if n + 1 - ai < ai {
+            ai = n + 1 - ai;
+        }
+        if n + 1 - bi < bi {
+            bi = n + 1 - bi;
+        }
+
+        // Compute the output based on the adjusted values
+        let c = if ai > bi {
+            (bi - 1) % 3 + 1
+        } else {
+            (ai - 1) % 3 + 1
+        };
+
+        // Output the result
+        println!("{}", c);
+    }
+}

@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a system to find the shortest path in a graph representing cities and roads, while considering fuel capacity constraints. It allows for the addition of cities and roads, and determines if a route exists from a starting city to a goal city, returning the minimum distance required to travel, factoring in fuel limitations.
+
+## 2. Inputs
+- A series of integers representing:
+  - The number of cities.
+  - The number of roads.
+  - The fuel capacity, which must be a positive integer.
+- Strings representing unique city names.
+- Triplet inputs for each road, consisting of:
+  - Two city identifiers (indices of the cities).
+  - The distance between the two cities.
+- A list of city names that have LPG stations, which allow for refueling.
+
+## 3. Outputs
+- An integer representing the minimum distance from the starting city to the goal city, or -1 if no valid route exists given the fuel constraints.
+
+## 4. Preconditions
+- The input must include at least two cities and one road.
+- City names must be unique.
+- The fuel capacity must be a positive integer.
+
+## 5. Postconditions
+- If a valid path exists, the output will be the minimum distance required to travel from the starting city to the goal city, considering fuel consumption.
+- If no valid path exists due to insufficient fuel capacity or other constraints, the output will be -1.
+
+## 6. Invariants
+- The graph structure remains consistent throughout execution, with cities and roads correctly represented.
+- The priority queue used for pathfinding maintains the correct order based on distance, ensuring that the shortest paths are evaluated first.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during the creation of adjacency lists, the program may exhibit undefined behavior.
+- If invalid input is provided (e.g., non-integer values for city or road counts), the behavior is unspecified.
+
+## 8. State Transitions
+- State transitions occur as cities and roads are added, and as the shortest path algorithm processes nodes in the graph. The algorithm updates distances and fuel capacities based on the roads traversed and the fuel consumed.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate efficiently within the constraints of the input sizes, with a focus on minimizing time complexity for pathfinding. Memory usage is also a consideration due to dynamic allocations for adjacency lists.
+
+## 10. Fuel Capacity Interaction
+- The algorithm checks the fuel capacity before traversing a road. If the remaining fuel capacity is insufficient to cover the distance of a road (i.e., if the fuel capacity after accounting for the distance becomes negative), that road is skipped in the pathfinding process. This ensures that only valid paths that can be traversed with the available fuel are considered.
+- When multiple roads exist between two cities, the algorithm evaluates each road based on the distance and the fuel consumption required. It prioritizes paths that allow for reaching the goal city while ensuring that the fuel capacity is not exceeded. The algorithm does not explicitly prioritize based on fuel efficiency but rather evaluates the total distance and remaining fuel for each potential path.
+```

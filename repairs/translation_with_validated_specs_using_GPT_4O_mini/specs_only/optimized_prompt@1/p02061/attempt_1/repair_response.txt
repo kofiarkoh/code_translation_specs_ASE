@@ -1,0 +1,53 @@
+```rust
+use std::error::Error;
+
+fn prime_factors_product(n: usize) -> usize {
+    let mut product = 1;
+    let mut num = n;
+
+    for i in 2..=num {
+        while num % i == 0 {
+            product *= i; // Multiply by the prime factor
+            num /= i; // Reduce the number
+        }
+        if num == 1 {
+            break; // No more factors
+        }
+    }
+    product
+}
+
+fn compute_counts(q: usize, values: &[usize]) -> Result<Vec<usize>, Box<dyn Error>> {
+    if q == 0 || values.is_empty() {
+        return Err("Q must be a positive integer and values must not be empty.".into());
+    }
+
+    let max_value = *values.iter().max().ok_or("Values array is empty.")?;
+    let mut counts = vec![0; q];
+
+    for i in 0..q {
+        let value = values[i];
+        let mut count = 0;
+
+        for j in 2..=value {
+            let product = prime_factors_product(j);
+            if product >= 2 * j {
+                count += 1; // Increment count if condition is met
+            }
+        }
+        counts[i] = count; // Store the count for the current value
+    }
+
+    Ok(counts)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let q = 3; // Example input for Q
+    let values = vec![10, 20, 30]; // Example input values
+
+    let counts = compute_counts(q, &values)?;
+    println!("{:?}", counts); // Output the counts
+
+    Ok(())
+}
+```

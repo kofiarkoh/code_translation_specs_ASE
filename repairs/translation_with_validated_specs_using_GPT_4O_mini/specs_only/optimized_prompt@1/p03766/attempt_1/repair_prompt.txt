@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific value based on the input integer `n`, utilizing a binary indexed tree (BIT) for efficient cumulative frequency calculations. The output is derived from a series of arithmetic operations involving cumulative sums and specific index manipulations, ensuring results are within a defined modulus.
+
+## 2. Inputs
+- An integer `n`, representing the size of the problem, which must be a positive integer.
+
+## 3. Outputs
+- An integer result, which is the computed value based on the input `n`, specifically derived from a sequence of arithmetic operations and cumulative sums.
+
+## 4. Preconditions
+- The input integer `n` must be a positive integer (i.e., `n >= 1`).
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative and less than the modulus value (1000000007).
+
+## 6. Invariants
+- The BIT array maintains cumulative sums that are updated correctly with each addition operation.
+- The computed values are consistent with the defined arithmetic operations throughout the execution, particularly reflecting the contributions from previous indices in the BIT.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid positive integer, the behavior is undefined. The code does not handle invalid inputs explicitly.
+
+## 8. State Transitions
+- The state transitions occur through updates to the BIT array and the cumulative sum calculations. Specifically:
+  - The BIT is updated at each index `i` with the computed value `tmp`.
+  - The value of `tmp` is recalculated in each iteration based on the cumulative sums retrieved from the BIT and additional arithmetic involving the current index and the input `n`.
+
+## 9. Non-functional Constraints
+- The operations are performed in a time-efficient manner, leveraging logarithmic complexity for updates and queries on the BIT structure. The results are computed under a modulus to prevent overflow and ensure manageable output sizes.
+
+## 10. Detailed Behavior
+- The program initializes the BIT array and sets the first two values based on specific calculations involving `n`.
+- For each index `i` from 3 to `n`, the program computes a new value for `tmp` by adding:
+  - The cumulative sum from the BIT for the index `i - 3`, which reflects contributions from previous computations.
+  - An additional term calculated as `(i - 3) * (n - 1)`, which accounts for a linear relationship based on the current index and `n`.
+  - Another term calculated as `(n - i + 2) * n`, which adjusts the contribution based on the remaining indices.
+- The final output is the value of `tmp` after all iterations, reflecting the cumulative contributions from the BIT and the arithmetic operations performed. The computation ensures that all intermediate results are taken modulo 1000000007 to maintain the integrity of the output.
+```

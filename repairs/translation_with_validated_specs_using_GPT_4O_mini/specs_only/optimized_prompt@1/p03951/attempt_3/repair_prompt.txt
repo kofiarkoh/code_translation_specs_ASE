@@ -1,0 +1,68 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03951/p03951_sample1_output.txt
+Input:
+5
+abcde
+fbcde
+Expected:
+10
+Actual:
+Result: 8
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn compute_matching_value(n: usize, s: &str, t: &str) -> usize {
+    // Preconditions: n must be non-negative and s, t must be of length n
+    assert!(n >= 0);
+    assert_eq!(s.len(), n);
+    assert_eq!(t.len(), n);
+
+    let mut last_match_index = None;
+
+    // Iterate from the end of the strings towards the beginning
+    for i in (0..n).rev() {
+        if s.as_bytes()[i] == t.as_bytes()[i] {
+            last_match_index = Some(i);
+            break; // Stop at the first match found
+        }
+    }
+
+    // If a match was found, calculate the result based on the last match index
+    match last_match_index {
+        Some(i) => 2 * n - (n - i - 1),
+        None => 0, // If no matches found, return 0 as per the specification
+    }
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let s = "abcde";
+    let t = "edcba";
+    let result = compute_matching_value(n, s, t);
+    println!("Result: {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

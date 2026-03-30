@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# 1. Functional Description
+The program computes the cube of one-third of an integer input and outputs the result with a precision of twelve decimal places.
+
+# 2. Inputs
+- An integer value representing a length.
+
+# 3. Outputs
+- A double value representing the cube of one-third of the input integer, formatted to twelve decimal places.
+
+# 4. Preconditions
+- The input must be a valid integer.
+
+# 5. Postconditions
+- The output is the cube of the input integer divided by three, represented as a double with twelve decimal places.
+
+# 6. Invariants
+- The output value is always non-negative if the input is non-negative.
+- The output value is always zero if the input is zero.
+
+# 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined; no error handling is implemented.
+
+# 8. State Transitions (if applicable)
+- The program transitions from an input state (waiting for user input) to an output state (displaying the computed result).
+
+# 9. Non-functional Constraints (if inferable)
+- The output must maintain a precision of twelve decimal places.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main ()
+{
+    double x,y;
+    int l;
+    scanf("%d", &l);
+    y=l/3.0;
+    x=y*y*y;
+    printf("%.12lf\n", x);
+}
+=== C CODE END ===

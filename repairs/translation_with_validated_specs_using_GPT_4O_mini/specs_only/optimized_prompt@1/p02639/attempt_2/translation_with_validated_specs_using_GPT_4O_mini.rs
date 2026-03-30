@@ -1,0 +1,26 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read five integers from standard input
+    let stdin = io::stdin();
+    let inputs: Vec<i32> = stdin.lock().lines()
+        .filter_map(|line| line.ok()?.split_whitespace().filter_map(|s| s.parse().ok()).collect::<Vec<i32>>())
+        .flat_map(|v| v.into_iter())
+        .take(5) // Ensure we only read exactly five integers
+        .collect();
+
+    // Check if we have exactly five integers
+    if inputs.len() != 5 {
+        return; // No output if the input is not exactly five integers
+    }
+
+    // Determine the output based on the first occurrence of zero
+    for (index, &value) in inputs.iter().enumerate() {
+        if value == 0 {
+            // Output the position (1-based index) of the first zero found
+            println!("{}", index + 1);
+            return; // Exit after the first zero is found
+        }
+    }
+    // If no zero is found, there is no output as per the specification
+}

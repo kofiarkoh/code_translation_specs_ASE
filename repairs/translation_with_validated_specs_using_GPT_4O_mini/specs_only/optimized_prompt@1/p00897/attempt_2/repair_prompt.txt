@@ -1,0 +1,151 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00897/p00897_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00897/p00897_sample1_output.txt
+Input:
+3
+2 5
+A
+B
+A
+B
+10
+B
+C
+20
+C
+A
+15
+1
+C
+0
+Expected:
+10
+Actual:
+Minimum distance: 10
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::{HashMap, HashSet, BinaryHeap};
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct City {
+    name: String,
+    lpg_station: bool,
+}
+
+#[derive(Debug)]
+struct Road {
+    destination: usize,
+    distance: i32,
+}
+
+#[derive(Debug)]
+struct Graph {
+    cities: Vec<City>,
+    roads: Vec<Vec<Road>>,
+}
+
+impl Graph {
+    fn new() -> Self {
+        Graph {
+            cities: Vec::new(),
+            roads: Vec::new(),
+        }
+    }
+
+    fn add_city(&mut self, name: String, has_lpg: bool) {
+        self.cities.push(City { name, lpg_station: has_lpg });
+        self.roads.push(Vec::new());
+    }
+
+    fn add_road(&mut self, from: usize, to: usize, distance: i32) {
+        self.roads[from].push(Road { destination: to, distance });
+        self.roads[to].push(Road { destination: from, distance }); // Assuming undirected roads
+    }
+
+    fn shortest_path(&self, start: usize, goal: usize, fuel_capacity: i32) -> i32 {
+        let mut distances = vec![i32::MAX; self.cities.len()];
+        let mut fuel_remaining = vec![0; self.cities.len()];
+        let mut priority_queue = BinaryHeap::new();
+
+        distances[start] = 0;
+        fuel_remaining[start] = fuel_capacity;
+        priority_queue.push(State { city: start, distance: 0 });
+
+        while let Some(State { city, distance }) = priority_queue.pop() {
+            if city == goal {
+                return distance;
+            }
+
+            if distance > distances[city] {
+                continue; // Skip if we found a better path
+            }
+
+            for road in &self.roads[city] {
+                let new_distance = distance + road.distance;
+                let new_fuel = fuel_remaining[city] - road.distance;
+
+                if new_fuel >= 0 && new_distance < distances[road.destination] {
+                    distances[road.destination] = new_distance;
+                    fuel_remaining[road.destination] = new_fuel;
+                    priority_queue.push(State { city: road.destination, distance: new_distance });
+                }
+            }
+        }
+
+        -1 // Return -1 if no valid path exists
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct State {
+    city: usize,
+    distance: i32,
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> Ordering {
+        other.distance.cmp(&self.distance) // Reverse order for min-heap
+    }
+}
+
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn main() {
+    // Example usage
+    let mut graph = Graph::new();
+    graph.add_city("CityA".to_string(), true);
+    graph.add_city("CityB".to_string(), false);
+    graph.add_road(0, 1, 10);
+
+    let min_distance = graph.shortest_path(0, 1, 15);
+    println!("Minimum distance: {}", min_distance);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

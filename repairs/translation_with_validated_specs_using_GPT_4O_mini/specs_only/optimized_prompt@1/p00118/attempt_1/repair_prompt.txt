@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a grid of characters to identify and count distinct connected components of identical characters. It uses a depth-first search algorithm to traverse the grid and mark connected areas.
+
+# 2. Inputs
+- Two integers representing the height (H) and width (W) of the grid.
+- A grid of characters with dimensions H x W.
+
+# 3. Outputs
+- An integer representing the count of distinct connected components of identical characters in the grid.
+
+# 4. Preconditions
+- The input dimensions H and W must be non-negative integers.
+- The grid must be filled with characters before processing.
+- The input must terminate with a pair of zeros (0, 0).
+
+# 5. Postconditions
+- The output integer reflects the total number of distinct connected components of identical characters in the provided grid.
+
+# 6. Invariants
+- Each cell in the grid is initialized to its own unique identifier before any processing.
+- The area_id array maintains the identifiers of connected components throughout the traversal.
+
+# 7. Error Handling / Exceptional Behavior
+- The program terminates gracefully when the input dimensions are both zero.
+- No explicit error handling for invalid input formats is implemented; behavior is undefined for such cases.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the DFS function modifies the area_id array, marking cells as part of the same connected component based on character equality.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a fixed memory limit defined by the dimensions of the grid (maximum 128 x 128).
+- The performance is dependent on the size of the grid and the number of connected components, with a worst-case time complexity proportional to the number of cells in the grid.
+```

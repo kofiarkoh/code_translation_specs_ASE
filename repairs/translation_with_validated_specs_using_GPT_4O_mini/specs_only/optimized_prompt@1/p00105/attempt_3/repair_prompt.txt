@@ -1,0 +1,59 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+const MAX_ENTRIES: usize = 100; // Define a maximum limit for unique strings
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut collection: HashMap<String, Vec<u32>> = HashMap::new();
+
+    // Read input until EOF
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        
+        // Expecting pairs of (string, integer)
+        if parts.len() < 2 {
+            continue; // Skip malformed input
+        }
+
+        let word = parts[0].to_string();
+        if let Ok(page_number) = parts[1].parse::<u32>() {
+            // Check if we exceed the maximum entries
+            if collection.len() < MAX_ENTRIES {
+                // Insert the page number into the collection
+                collection.entry(word).or_insert_with(Vec::new).push(page_number);
+            }
+        }
+    }
+
+    // Sort the unique strings
+    let mut unique_strings: Vec<String> = collection.keys().cloned().collect();
+    unique_strings.sort();
+
+    // Output the sorted strings and their associated page numbers
+    for string in unique_strings {
+        if let Some(pages) = collection.get(&string) {
+            for page in pages {
+                println!("{} {}", string, page);
+            }
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

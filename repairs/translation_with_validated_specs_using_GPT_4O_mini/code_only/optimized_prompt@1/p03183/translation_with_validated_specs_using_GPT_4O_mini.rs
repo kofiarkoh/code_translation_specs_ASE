@@ -1,0 +1,53 @@
+use std::cmp::max;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Node {
+    w: i32,
+    s: i32,
+    v: i32,
+}
+
+fn cmp(a: &Node, b: &Node) -> std::cmp::Ordering {
+    (a.s + a.w).cmp(&(b.s + b.w))
+}
+
+fn run() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+    let mut p: Vec<Node> = Vec::with_capacity(n);
+
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        let mut iter = line.split_whitespace();
+        let w: i32 = iter.next().unwrap().parse().unwrap();
+        let s: i32 = iter.next().unwrap().parse().unwrap();
+        let v: i32 = iter.next().unwrap().parse().unwrap();
+        p.push(Node { w, s, v });
+    }
+
+    // Sort nodes based on the custom comparator
+    p.sort_by(cmp);
+
+    const M: usize = 20000;
+    let mut dp: Vec<i64> = vec![0; M + 1];
+
+    for i in 0..n {
+        for j in (0..=p[i].s).rev() {
+            let k = j + p[i].w as i32; // Keep `k` as i32 for addition
+            if k >= 0 && (k as usize) <= M { // Ensure k is non-negative and within bounds
+                dp[k as usize] = max(dp[k as usize], dp[j as usize] + p[i].v as i64); // Cast `j` to usize for indexing
+            }
+        }
+    }
+
+    let ans = dp.iter().cloned().max().unwrap_or(0);
+    println!("{}", ans);
+}
+
+fn main() {
+    run();
+}

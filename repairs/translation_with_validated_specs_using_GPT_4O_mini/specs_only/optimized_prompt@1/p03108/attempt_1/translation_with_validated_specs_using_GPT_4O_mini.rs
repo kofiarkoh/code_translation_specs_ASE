@@ -1,0 +1,65 @@
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    disconnected_pairs: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let disconnected_pairs = vec![(n * (n - 1)) / 2; n]; // Initialize with total pairs
+        UnionFind { parent, size, disconnected_pairs }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Calculate the number of pairs that will be connected
+            let size_x = self.size[root_x];
+            let size_y = self.size[root_y];
+            self.disconnected_pairs.push(self.disconnected_pairs.last().unwrap() - size_x * size_y);
+
+            // Union by size
+            if size_x < size_y {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += size_x;
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += size_y;
+            }
+        } else {
+            // If already connected, the count of disconnected pairs remains unchanged
+            self.disconnected_pairs.push(*self.disconnected_pairs.last().unwrap());
+        }
+    }
+
+    fn get_disconnected_pairs(&self) -> Vec<usize> {
+        self.disconnected_pairs.iter().rev().cloned().collect() // Reverse the output
+    }
+}
+
+fn main() {
+    let n = 5; // Example number of nodes
+    let m = 3; // Example number of union operations
+    let operations = vec![(0, 1), (1, 2), (3, 4)]; // Example union operations
+
+    let mut uf = UnionFind::new(n);
+    for (x, y) in operations {
+        uf.union(x, y);
+    }
+
+    let results = uf.get_disconnected_pairs();
+    for result in results {
+        println!("{}", result); // Output the results
+    }
+}

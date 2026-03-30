@@ -1,0 +1,94 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The program calculates a value based on three input integers, A, B, and X. The output is derived from these inputs according to specific conditions that depend on the relationships between A, B, and X.
+
+## 2. Inputs
+- Three integers: A, B, and X, where:
+  - A and B represent thresholds for the calculation.
+  - X represents a quantity that influences the output.
+- A, B, and X must be non-negative integers.
+- At least one of A or B must be greater than zero.
+
+## 3. Outputs
+- A single integer representing the calculated result based on the inputs.
+
+## 4. Preconditions
+- A, B, and X must be non-negative integers.
+- At least one of A or B must be greater than zero.
+
+## 5. Postconditions
+- The output integer is guaranteed to be non-negative.
+- The output reflects the calculation based on the following conditions:
+  - If A is at least twice B, the output is calculated as \(((X - 1) / 500 + 1) \times B\).
+  - If A is less than twice B, the output is calculated based on the integer division of X by 1000, with additional adjustments based on the remainder of this division:
+    - The base output is \(X / 1000 \times A\).
+    - If there is a remainder \(c\) (where \(c = X \mod 1000\)):
+      - If \(c\) is greater than 0:
+        - If \(c\) is less than or equal to 500 and \(B\) is less than \(A\), then \(B\) is added to the base output.
+        - Otherwise, \(A\) is added to the base output.
+
+## 6. Invariants
+- The relationship between A and B determines the primary calculation path.
+- The value of X influences the output based on its range, specifically through integer division and modulus operations.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range values explicitly. It assumes that valid input is provided.
+
+## 8. State Transitions
+- The program evaluates conditions involving A, B, and X to determine the calculation path:
+  - If \(A \geq 2 \times B\), the output is computed using the formula involving B.
+  - If \(A < 2 \times B\), the output is computed based on the integer division of X by 1000, with further adjustments based on the remainder when X is divided by 1000.
+
+## 9. Non-functional Constraints
+- The computation is performed in constant time, regardless of the input values.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ Vol3-0383 Heat Strokes
+// 2018.12.22
+
+//#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+
+int main()
+{
+	int A, B, X;
+	int c, ans;
+
+	scanf("%d%d%d", &A, &B, &X);
+	if (A >= 2 * B) ans = ((X - 1) / 500 + 1) * B;
+	else {
+		ans = X / 1000 * A;
+		c = X % 1000;
+		if (c) {
+			if (c <= 500 && B < A) ans += B;
+			else ans += A;
+		}
+	}
+	printf("%d\n", ans);
+	return 0;
+}
+=== C CODE END ===

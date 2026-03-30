@@ -1,0 +1,35 @@
+fn gcd(a: usize, b: usize) -> usize {
+    // Compute the GCD using the Euclidean algorithm
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
+}
+
+fn compute_gcd_product(n: usize, sequence: Vec<usize>, prime: usize) -> usize {
+    // Preconditions: N must be positive and sequence must contain N non-negative integers
+    assert!(n > 0, "N must be a positive integer.");
+    assert!(sequence.len() == n, "Sequence length must match N.");
+    
+    // Initialize product
+    let mut product = 1;
+
+    // Compute the product of GCDs
+    for (index, &value) in sequence.iter().enumerate() {
+        // GCD of the element and its index
+        let current_gcd = gcd(value, index);
+        product = (product * current_gcd) % prime; // Modulo operation
+    }
+
+    product // Return the final product
+}
+
+// Example usage (uncomment to test):
+// fn main() {
+//     let n = 5;
+//     let sequence = vec![10, 20, 30, 40, 50];
+//     let prime = 7;
+//     let result = compute_gcd_product(n, sequence, prime);
+//     println!("Result: {}", result); // Output the result
+// }

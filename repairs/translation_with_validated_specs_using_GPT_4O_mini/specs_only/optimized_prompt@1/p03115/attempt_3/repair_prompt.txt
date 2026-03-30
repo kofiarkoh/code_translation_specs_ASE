@@ -1,0 +1,71 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03115/p03115_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03115/p03115_sample1_output.txt
+Input:
+3
+1 2
+3 4
+5 6
+Expected:
+199999999999999995
+Actual:
+Computed value: 3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn compute_value(n: usize, x: &[u64], y: &[u64]) -> u64 {
+    // Check for invalid input conditions
+    if n == 0 || n != x.len() || n != y.len() || x.iter().any(|&val| val < 0) || y.iter().any(|&val| val < 0) {
+        return 0; // Return 0 for invalid input
+    }
+
+    let mut r: u64 = 0; // Initialize the accumulated value
+
+    for i in 0..n {
+        let a = x[i];
+        let b = y[i];
+
+        // Apply combinatorial logic based on Lucas's Theorem
+        // Here we assume some combinatorial checks are performed
+        // For demonstration, we will use a simple condition
+        if a >= b {
+            r += 1; // Increment r if the condition is satisfied
+        } else {
+            r <<= 1; // Bitwise left shift if the condition is not satisfied
+        }
+    }
+
+    r // Return the accumulated value
+}
+
+fn main() {
+    // Example usage of compute_value function
+    let n = 3;
+    let x = vec![1, 2, 3];
+    let y = vec![1, 1, 2];
+    let result = compute_value(n, &x, &y);
+    println!("Computed value: {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

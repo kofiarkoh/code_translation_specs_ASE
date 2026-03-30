@@ -1,0 +1,29 @@
+fn smallest_multiple(first: i32, second: i32) -> Option<i32> {
+    // Preconditions: first must be non-zero, second must be positive
+    if first == 0 || second <= 0 {
+        // Undefined behavior as per specification; no output guaranteed
+        return None;
+    }
+
+    // Start iterating over multiples of `first`
+    let mut multiple = first;
+    while multiple >= 0 { // Ensure we don't overflow and go negative
+        if multiple % second == 0 {
+            return Some(multiple); // Found the smallest multiple
+        }
+        multiple += first; // Move to the next multiple
+    }
+
+    // If we exit the loop without finding a valid output, return None
+    None
+}
+
+// Example usage
+fn main() {
+    let first = 5;
+    let second = 3;
+    match smallest_multiple(first, second) {
+        Some(result) => println!("Smallest multiple: {}", result),
+        None => println!("No valid multiple found."),
+    }
+}

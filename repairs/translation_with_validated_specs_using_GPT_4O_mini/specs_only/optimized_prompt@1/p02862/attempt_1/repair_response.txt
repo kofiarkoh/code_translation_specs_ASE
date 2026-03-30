@@ -1,0 +1,95 @@
+```rust
+const MOD: i64 = 1_000_000_007;
+const MAX: usize = 1_000_000;
+
+struct Combinatorics {
+    factorial: Vec<i64>,
+    inverse_factorial: Vec<i64>,
+}
+
+impl Combinatorics {
+    fn new() -> Self {
+        let mut factorial = vec![1; MAX + 1];
+        let mut inverse_factorial = vec![1; MAX + 1];
+
+        for i in 2..=MAX {
+            factorial[i] = factorial[i - 1] * i as i64 % MOD;
+        }
+
+        inverse_factorial[MAX] = mod_inverse(factorial[MAX]);
+        for i in (1..MAX).rev() {
+            inverse_factorial[i] = inverse_factorial[i + 1] * (i + 1) as i64 % MOD;
+        }
+
+        Combinatorics {
+            factorial,
+            inverse_factorial,
+        }
+    }
+
+    fn binomial_coefficient(&self, n: usize, k: usize) -> i64 {
+        if k > n {
+            return 0;
+        }
+        self.factorial[n] * self.inverse_factorial[k] % MOD * self.inverse_factorial[n - k] % MOD
+    }
+}
+
+fn mod_inverse(a: i64) -> i64 {
+    let mut m0 = MOD;
+    let mut y = 0;
+    let mut x = 1;
+    let mut a = a % MOD;
+
+    if a == 0 {
+        return 0; // Inverse doesn't exist
+    }
+
+    while a > 1 {
+        let q = a / m0;
+        let t = m0;
+
+        m0 = a % m0;
+        a = t;
+        t = y;
+
+        y = x - q * y;
+        x = t;
+    }
+
+    if x < 0 {
+        x += MOD;
+    }
+
+    x
+}
+
+fn distinct_paths(x: i64, y: i64) -> i64 {
+    if x < 0 || y < 0 {
+        return 0; // Invalid input
+    }
+
+    let sum = x + y;
+    if sum % 3 != 0 {
+        return 0; // Not divisible by 3
+    }
+
+    let n = sum / 3;
+    let x_prime = x - n;
+    let y_prime = y - n;
+
+    if x_prime < 0 || y_prime < 0 {
+        return 0; // Adjusted coordinates are negative
+    }
+
+    let comb = Combinatorics::new();
+    comb.binomial_coefficient((x_prime + y_prime) as usize, x_prime as usize)
+}
+
+fn main() {
+    let x = 6; // Example input
+    let y = 3; // Example input
+    let result = distinct_paths(x, y);
+    println!("{}", result); // Output the result
+}
+```

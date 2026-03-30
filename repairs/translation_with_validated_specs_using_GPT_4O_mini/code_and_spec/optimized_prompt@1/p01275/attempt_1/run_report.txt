@@ -1,0 +1,35 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0716]: temporary value dropped while borrowed
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p01275/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:49:20
+   |
+49 |         let init = lines.next().unwrap().unwrap().trim().as_bytes();
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                  - temporary value is freed at the end of this statement
+   |                    |
+   |                    creates a temporary value which is freed while still in use
+...
+52 |         if init == unlock {
+   |            ---- borrow later used here
+   |
+   = note: consider using a `let` binding to create a longer lived value
+
+error[E0716]: temporary value dropped while borrowed
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p01275/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:50:22
+   |
+50 |         let unlock = lines.next().unwrap().unwrap().trim().as_bytes();
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                  - temporary value is freed at the end of this statement
+   |                      |
+   |                      creates a temporary value which is freed while still in use
+51 |
+52 |         if init == unlock {
+   |                    ------ borrow later used here
+   |
+   = note: consider using a `let` binding to create a longer lived value
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0716`.

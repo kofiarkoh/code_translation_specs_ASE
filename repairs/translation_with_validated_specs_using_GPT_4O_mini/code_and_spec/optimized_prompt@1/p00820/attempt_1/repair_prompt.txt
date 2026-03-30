@@ -1,0 +1,88 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of distinct representations of a given positive integer as the sum of four square integers, in accordance with Lagrange's Four-Square Theorem.
+
+## 2. Inputs
+- A positive integer `n` is provided by the user through standard input. The input process continues until a zero is entered, which serves as a termination signal for the program.
+
+## 3. Outputs
+- The output is the count of distinct representations of `n` as the sum of four square integers, printed to standard output for each positive integer input.
+
+## 4. Preconditions
+- The input must be a positive integer. The program does not handle invalid inputs (e.g., negative integers or non-integer values) and assumes that the input will be a valid positive integer or zero to terminate.
+
+## 5. Postconditions
+- For each positive integer input, the output will be a non-negative integer representing the number of distinct representations of that integer as the sum of four squares. If the input is zero, the program terminates without producing output.
+
+## 6. Invariants
+- The function maintains that the count of representations is incremented correctly based on the conditions defined by the theorem, ensuring that all combinations are considered without exceeding four squares.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid inputs and may encounter runtime errors if non-integer or negative values are provided. It is expected that the user will provide valid input.
+
+## 8. State Transitions
+- The program transitions from reading input to processing the input through recursive calls. It continues to return to the main loop for further input until a zero is entered, at which point the program terminates.
+
+## 9. Non-functional Constraints
+- The performance of the solution may be affected by the size of the input integer, as the recursive approach may lead to increased computation time for larger values of `n`.
+
+## 10. Dependencies
+- The implementation requires the inclusion of standard library headers, specifically `<stdio.h>` for input/output operations and `<math.h>` for mathematical functions such as `sqrt`, which is necessary for calculating the maximum square that can be used in the representation of `n`.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 1241
+  Title:Lagrange's Four-Square Theorem
+  @kankichi573
+*/
+#include <stdio.h>
+
+
+int solve(int n,int c,int low)
+{
+  int i,ret;
+  ret=0;
+  for(i=low;i*i<=n;i++)
+    {
+      if(n==i*i)
+	ret++;
+      else if(c<4)
+	ret+=solve(n-i*i,c+1,i);
+    }
+  return(ret);
+}
+main()
+{
+  int n,ret;
+  while(scanf("%d",&n) && n)
+    {
+      ret=solve(n,1,1);
+      printf("%d\n",ret);
+    }
+  return(0);
+}
+=== C CODE END ===

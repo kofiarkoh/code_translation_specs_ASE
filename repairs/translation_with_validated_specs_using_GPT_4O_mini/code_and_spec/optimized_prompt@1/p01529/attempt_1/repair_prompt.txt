@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost of combining a sequence of weights, where the cost is determined by the sum of the weights involved in each combination. The result is the minimum cost to combine all weights into a single entity, calculated using a dynamic programming approach.
+
+## 2. Inputs
+- An integer `n` representing the number of weights.
+- A sequence of `n` non-negative integers representing the weights.
+
+## 3. Outputs
+- A single non-negative integer representing the minimum cost to combine all weights.
+
+## 4. Preconditions
+- The input must contain a valid integer `n` (1 ≤ n ≤ 4000).
+- The sequence of weights must contain exactly `n` non-negative integers.
+
+## 5. Postconditions
+- The output is the minimum cost calculated based on the provided weights.
+- The output is guaranteed to be non-negative.
+
+## 6. Invariants
+- The array of weights is non-decreasing as it accumulates the sum of previous weights.
+- The dynamic programming table is initialized to represent maximum possible costs, except for the diagonal elements which represent zero cost for single weights.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format (e.g., non-integer values or insufficient data), the behavior is undefined.
+- The program does not handle negative weights or invalid input sizes.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iteratively updates the dynamic programming table based on previously computed costs and weight combinations. Specifically, for each subproblem defined by a range of weights, the algorithm evaluates potential combinations by summing the weights at the endpoints of the range and adjusting for previously combined weights.
+
+## 9. Cost Calculation
+- The cost of combining weights from index `i` to `j` is calculated as the sum of the weights from the start of the range to the end of the range, minus the weight of the last weight combined before the current range, if applicable. The algorithm seeks to minimize this cost by exploring all possible combinations of weights within the defined range.
+
+## 10. Non-functional Constraints
+- The algorithm operates within a time complexity of O(n^3), which is suitable for the input size limit of n up to 4000.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 2415: Sashimi
+// 2017.12.8 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef long long ll;
+
+ll w[4001];
+char buf[48002], *p;
+ll dp[4001][4001];
+int k[4001][4001];
+
+ll getlong()
+{
+	ll n = 0;
+	while (*p >= '0') n = (n<<3) + (n<<1) + (*p++ & 0xf);
+	p++;
+	return n;
+}
+
+int main()
+{
+	int n, i, j, a, b;
+	ll c;
+
+	fgets(buf, 10, stdin), n = atoi(buf);
+	fgets(p=buf, sizeof(buf), stdin);
+	w[0] = getlong();
+	for (i = 1; i < n; i++) w[i] = w[i-1] + getlong();
+
+	memset(dp, 0x33, sizeof(dp));
+	for (i = 0; i < n; i++) dp[i][i] = 0, k[i][i] = i;
+
+	for (a = 1; a <= n; a++) for (i = 0, j = a; j < n; i++, j++) {
+		for (b = k[i][j-1]; b <= k[i+1][j]; b++) {
+			c = dp[i][b] + dp[b+1][j] + w[j];
+			if (i > 0) c -= w[i-1];
+			if (dp[i][j] > c) dp[i][j] = c, k[i][j] = b;
+		}
+	}
+	printf("%lld\n", dp[0][n-1]);
+	return 0;
+}
+=== C CODE END ===

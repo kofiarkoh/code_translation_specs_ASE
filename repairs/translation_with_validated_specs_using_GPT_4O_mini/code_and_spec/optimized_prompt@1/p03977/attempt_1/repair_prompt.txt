@@ -1,0 +1,98 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code reads a sequence of non-negative integers from input, processes each pair of integers to compute a result based on their parity, and outputs the results as a sequence of strings, each followed by a newline. The computation involves specific arithmetic operations that depend on whether the first integer in the pair is odd or even.
+
+## 2. Inputs
+- A sequence of characters representing non-negative integers, read from standard input.
+- Each integer must be represented in decimal format and can be separated by any non-digit character.
+- The program will continue to extract integers until no more valid pairs can be formed.
+
+## 3. Outputs
+- A sequence of strings, each representing the computed result for a pair of integers, followed by a newline character.
+
+## 4. Preconditions
+- The input must contain at least one valid non-negative integer.
+- The input must not exceed the buffer size limits (10,000 characters).
+
+## 5. Postconditions
+- The output will contain one line for each processed pair of integers, formatted as strings.
+- Each line will represent the computed result based on the arithmetic operations defined by the parity of the first integer in the pair.
+
+## 6. Invariants
+- The output buffer will not exceed its maximum size of 20,000 characters.
+- The input buffer will always be read completely before processing begins.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input contains invalid characters (non-digit characters) before a valid integer, the processing will skip those characters and continue searching for valid integers.
+- The program does not handle cases where the input is malformed or does not contain valid integers.
+
+## 8. State Transitions
+- The state transitions occur as the program reads input, processes integers, and updates the output buffer. Each successful read and computation results in a transition to the next integer pair.
+
+## 9. Non-functional Constraints
+- The program must complete execution within a reasonable time frame, given the constraints of input size and processing logic.
+
+## 10. Arithmetic Operations
+- For each pair of integers, the first integer \( N \) is evaluated for parity:
+  - If \( N \) is odd, the result is computed as \( 127 \times (N - 1) + D \).
+  - If \( N \) is even, the result is computed as \( 127 \times N - D \).
+- The computed result is then formatted as a string and added to the output.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+char buf[10000],out[20000];
+char r[10];
+sz;outsz;
+main()
+{
+	read(0,buf,10000);
+	while(buf[sz++]>='0');
+	while(buf[sz]>='0')
+	{
+		int N=0,D=0;
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			N=N*10+k-'0';
+		}
+		for(;;)
+		{
+			char k=buf[sz++];
+			if(k<'0')break;
+			D=D*10+k-'0';
+		}
+		int ans=N&1?127*--N+D:127*N-D;
+		int ri=10;
+		do{
+			r[--ri]=ans%10+'0';
+		}while(ans/=10);
+		while(ri<10)out[outsz++]=r[ri++];
+		out[outsz++]='\n';
+	}
+	write(1,out,outsz);
+}
+=== C CODE END ===

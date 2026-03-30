@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+```text
+1. **Functional Description**  
+   The code calculates and outputs the minimum number of groups required to partition a sequence of integers, given a specific group size constraint. The first group can contain up to `k` elements, while subsequent groups can contain up to `k-1` elements. The calculation accounts for the distribution of elements across those groups.
+
+2. **Inputs**  
+   - Two integers: `n` (the total number of integers) and `k` (the maximum size of the first group).
+   - A sequence of `n` integers.
+
+3. **Outputs**  
+   - A single integer representing the minimum number of groups needed to partition the sequence under the specified constraints.
+
+4. **Preconditions**  
+   - `n` and `k` are positive integers.
+   - The value of `k` must be greater than 1.
+   - The sequence of integers must be provided in a valid format.
+
+5. **Postconditions**  
+   - The output integer is greater than or equal to 1.
+   - The output integer reflects the minimum number of groups that can be formed based on the input values, considering both the maximum group size and the total number of elements.
+
+6. **Invariants**  
+   - The total number of integers processed is equal to `n`.
+   - The maximum size of the first group does not exceed `k`, and the maximum size of any subsequent group does not exceed `k-1`.
+
+7. **Error Handling / Exceptional Behavior**  
+   - If `k` is less than or equal to 1, the behavior is undefined.
+   - If the input format is invalid, the program may not produce a valid output.
+
+8. **State Transitions (if applicable)**  
+   - The state transitions from reading input values to computing the number of groups based on the relationship between `n` and `k`, and finally to outputting the result.
+
+9. **Non-functional Constraints (if inferable)**  
+   - The computation must complete in a time complexity that is linear with respect to `n`.
+
+10. **Counting Logic**  
+    - The number of groups is calculated by first determining how many full groups of size `k-1` can be formed from the remaining elements after accounting for the first group, which can contain up to `k` elements. If there are remaining elements that do not fit into the calculated groups, an additional group is added to accommodate them. The formula used for this calculation is `t = ((n-k)/(k-1)) + 1`, with an adjustment to `t` if necessary to account for any leftover elements.
+```
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int main()
+{
+    long long int n,k,i,x,t;
+    scanf("%lld%lld",&n,&k);
+    long long int a[n];
+    for(i=0;i<n;i++){
+        scanf("%lld",&a[i]);
+    }
+    t=((n-k)/(k-1))+1;
+   if(k+((t-1)*(k-1))<n)t++;
+   printf("%lld\n",t);
+}
+=== C CODE END ===

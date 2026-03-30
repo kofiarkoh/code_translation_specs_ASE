@@ -1,0 +1,194 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code implements a lazy segment tree that supports range updates and range queries. It allows for efficient updates to a range of elements and calculates the maximum value in a specified range after applying the updates. The lazy propagation mechanism is utilized to defer updates, ensuring that changes are applied only when necessary, and it combines the effects of both current values and pending updates.
+
+## 2. Inputs
+- An integer `n` representing the number of elements.
+- An integer `q` representing the number of queries.
+- A sequence of `n` integers to initialize the segment tree.
+- For each query, two integers `i` and `t` representing the index to update and the new value.
+
+## 3. Outputs
+- The maximum value in the range from index `0` to `n+1` after initialization and after each query.
+
+## 4. Preconditions
+- The input integers `n` and `q` must be non-negative.
+- The sequence of integers must have a length equal to `n`.
+- The index `i` in each query must be within the bounds of the segment tree.
+
+## 5. Postconditions
+- After initialization, the segment tree reflects the cumulative sums of the input sequence.
+- After each query, the segment tree is updated, and the maximum value in the specified range is recalculated and output.
+
+## 6. Invariants
+- The segment tree maintains the correct values for each node, reflecting the maximum values and the necessary updates.
+- The lazy propagation mechanism ensures that updates are applied correctly without immediate recalculation of all affected nodes. Specifically, updates are accumulated in a lazy manner, and the actual values are computed only when queried.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails during the creation of the segment tree, the program may terminate unexpectedly.
+- If the input values for `i` in queries are out of bounds, the behavior is undefined, and the program may produce incorrect results.
+
+## 8. State Transitions
+- The state transitions occur during the initialization of the segment tree and during each update operation. The internal state of the segment tree nodes is modified based on the updates and queries, with lazy values being propagated down the tree as necessary. Updates to the segment tree are computed by adjusting the current values based on the lazy values, ensuring that the maximum values are accurately represented.
+
+## 9. Non-functional Constraints
+- The implementation is expected to handle updates and queries in logarithmic time relative to the number of elements, ensuring efficiency for large inputs. The lazy propagation mechanism contributes to this efficiency by minimizing the number of immediate updates required. The segment tree is designed to efficiently manage both the updates and the retrieval of maximum values, even in the presence of multiple overlapping updates.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+#define max(p,q)((p)>(q)?(p):(q))
+#define min(p,q)((p)<(q)?(p):(q))
+#define INF ((1LL<<62)-(1LL<<31))
+
+//*
+//遅延セグ木ここから
+//↓ここを変える
+typedef struct sayouso{ll k;}sayouso;
+typedef struct atai{ll m,M,x;}atai;
+//↑ここを変える
+
+typedef struct node{sayouso T;atai x;}node;
+node *lsegN,*lseg;
+ll lsegNUM;
+
+//↓ここから変える
+sayouso sid={0};
+atai aid={INF,-INF,0};
+atai xx(atai x,atai y){
+	atai ret;
+	ret.m=min(x.m,y.m);
+	ret.M=max(x.M,y.M);
+	ret.x=max(y.M-x.m,max(x.x,y.x));
+	return ret;
+}
+atai Tx(sayouso T,atai x){
+	atai ret;
+	ret.m=x.m+T.k;
+	ret.M=x.M+T.k;
+	ret.x=x.x;
+	return ret;
+}
+sayouso TT(sayouso S,sayouso T){
+	sayouso ret;
+	ret.k=S.k+T.k;
+	return ret;
+}
+//↑ここまで変える
+
+//要素数(2ベキ)でこれを呼ぶ
+void lseguse(ll n){
+	lsegN=(node*)calloc(2*n,sizeof(node));
+	lsegNUM=n;
+	lseg=lsegN+lsegNUM;
+	rep(i,0,lsegNUM){
+		lseg[i].x=aid;
+		lseg[i].T=sid;
+	}
+	for(int i=lsegNUM-1;i>0;i--){
+		lsegN[i].x=xx(lsegN[2*i].x,lsegN[2*i+1].x);
+		lsegN[i].T=sid;
+	}
+}
+//lseg[i].xに値を与えてから初期化
+void lseginit(){
+	for(int i=lsegNUM-1;i>0;i--)lsegN[i].x=xx(lsegN[2*i].x,lsegN[2*i+1].x);
+}
+void lsegupdatesub(ll l,ll r,sayouso T,ll i,ll cl,ll cr){
+	if(l>=r)return;
+	//disjointなとき
+	if(cr<=l||r<=cl)return;
+	//完全に含むとき
+	if(l<=cl&&cr<=r){
+		lsegN[i].T=TT(T,lsegN[i].T);
+		return;
+	}
+	//どちらでもないとき
+	//遅延伝播
+	lsegN[2*i  ].T=TT(lsegN[i].T,lsegN[2*i  ].T);
+	lsegN[2*i+1].T=TT(lsegN[i].T,lsegN[2*i+1].T);
+	//再帰的に更新
+	ll cm=(cl+cr)/2;
+	lsegupdatesub(l,r,T,2*i  ,cl,cm);
+	lsegupdatesub(l,r,T,2*i+1,cm,cr);
+	//自身のnodeを更新
+	lsegN[i].x=xx(Tx(lsegN[2*i].T,lsegN[2*i].x),Tx(lsegN[2*i+1].T,lsegN[2*i+1].x));
+	lsegN[i].T=sid;
+}
+void lsegupdate(ll l,ll r,sayouso T){lsegupdatesub(l,r,T,1,0,lsegNUM);}
+atai lsegcalcsub(ll l,ll r,ll i,ll cl,ll cr){
+	if(l>=r)return aid;
+	//完全に含むとき
+	if(l<=cl&&cr<=r)return Tx(lsegN[i].T,lsegN[i].x);
+
+	ll cm=(cl+cr)/2;
+	//遅延伝播(変更はないので配るだけで良い)
+	lsegN[2*i  ].T=TT(lsegN[i].T,lsegN[2*i  ].T);
+	lsegN[2*i+1].T=TT(lsegN[i].T,lsegN[2*i+1].T);
+	lsegN[i].x=Tx(lsegN[i].T,lsegN[i].x);
+	lsegN[i].T=sid;
+
+	//左側だけ
+	if(r<=cm)return lsegcalcsub(l,r,2*i  ,cl,cm);
+	//右側だけ
+	if(cm<=l)return lsegcalcsub(l,r,2*i+1,cm,cr);
+	//両方
+	return xx(lsegcalcsub(l,r,2*i,cl,cm),lsegcalcsub(l,r,2*i+1,cm,cr));
+}
+atai lsegcalc(ll l,ll r){return lsegcalcsub(l,r,1,0,lsegNUM);}
+//遅延セグ木ここまで
+//*/
+
+int main(){
+	int n,q;
+	scanf("%d%d",&n,&q);
+	lseguse(1<<17);
+	{
+		atai x={0,0,0};
+		lseg[0].x=x;
+	}
+	ll s=0;
+	rep(i,0,n){
+		ll t;
+		scanf("%lld",&t);
+		s+=t;
+		atai x={s,s,0};
+		lseg[i+1].x=x;
+	}
+	lseginit();
+	printf("%lld\n",lsegcalc(0,n+1).x);
+	while(q--){
+		ll i,t;
+		scanf("%lld%lld",&i,&t);
+		sayouso T={t-lsegcalc(i,i+1).m+lsegcalc(i-1,i).m};
+		lsegupdate(i,n+1,T);
+		printf("%lld\n",lsegcalc(0,n+1).x);
+	}
+}
+=== C CODE END ===

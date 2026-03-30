@@ -1,0 +1,57 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. **Functional Description**  
+   The system simulates a railroad car management system, allowing cars to enter and exit a storage array. It maintains a record of the cars currently in storage and outputs the last car that exits.
+
+2. **Inputs**  
+   The system accepts a sequence of integer values representing railroad cars. A value of zero indicates a car exiting the storage, while any positive integer indicates a car entering the storage.
+
+3. **Outputs**  
+   The system outputs the integer value of the last car that exits the storage when a zero is input.
+
+4. **Preconditions**  
+   The input must consist of integers, with at least one integer provided before the end of input. The maximum number of cars that can be stored is limited to the size of the storage array.
+
+5. **Postconditions**  
+   After processing the input, the system will have either outputted the last car that exited or no output if no cars have exited. The state of the storage will reflect the current cars remaining after all inputs have been processed.
+
+6. **Invariants**  
+   The storage array will only contain positive integers representing cars that have entered, and the index tracking the number of cars will always be non-negative and cannot exceed the storage capacity.
+
+7. **Error Handling / Exceptional Behavior**  
+   If an attempt is made to exit a car when none are present in storage, the system will not output any value. The system does not handle invalid input types or values outside the defined range.
+
+8. **State Transitions (if applicable)**  
+   - On receiving a positive integer, the state transitions to include that car in storage.
+   - On receiving a zero, the state transitions to remove the last car from storage and output its value, if any cars are present.
+
+9. **Non-functional Constraints (if inferable)**  
+   The system operates within a fixed memory limit defined by the size of the storage array, and it processes input in a sequential manner until the end of input is reached.
+```

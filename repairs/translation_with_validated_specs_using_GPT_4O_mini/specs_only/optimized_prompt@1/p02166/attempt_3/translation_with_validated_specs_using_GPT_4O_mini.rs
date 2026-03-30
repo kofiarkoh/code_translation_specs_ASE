@@ -1,0 +1,34 @@
+fn evaluate_condition(n: usize, k: usize, arr: &mut [i32]) -> &'static str {
+    // Preconditions check
+    assert!(n >= 1 && n <= 100_010, "n must be between 1 and 100,010");
+    assert!(k >= 0, "k must be a non-negative integer");
+
+    if n == k {
+        // Check if all elements satisfy the modular condition
+        for &value in arr.iter() {
+            if value % k as i32 != 0 { // Cast k to i32 for the modular condition
+                return "No";
+            }
+        }
+        return "Yes";
+    } else {
+        // Count processed elements (marked as -1)
+        let cnt = arr.iter().filter(|&&x| x == -1).count();
+        let processed_count = cnt;
+        let unprocessed_count = n - processed_count;
+
+        // Check the conditions for output
+        if unprocessed_count % 2 == 0 || (unprocessed_count % 2 == 0 && k % 2 == 0) {
+            return "Yes";
+        } else {
+            return "No";
+        }
+    }
+}
+
+// Example usage
+fn main() {
+    let mut arr = vec![2, 3, 4, 5, 1]; // Example input
+    let result = evaluate_condition(arr.len(), 3, &mut arr);
+    println!("{}", result); // Output based on the conditions
+}

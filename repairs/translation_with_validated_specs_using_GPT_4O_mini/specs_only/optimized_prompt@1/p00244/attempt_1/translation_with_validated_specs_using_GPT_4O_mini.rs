@@ -1,0 +1,85 @@
+use std::collections::{BinaryHeap, HashMap};
+use std::cmp::Ordering;
+
+#[derive(Debug)]
+struct Edge {
+    target: usize,
+    cost: i32,
+}
+
+#[derive(Debug)]
+struct Node {
+    index: usize,
+    cost: i32,
+}
+
+impl Ord for Node {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // We want a min-heap, so we reverse the ordering
+        other.cost.cmp(&self.cost)
+    }
+}
+
+impl PartialOrd for Node {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.cost == other.cost
+    }
+}
+
+impl Eq for Node {}
+
+fn dijkstra_min_cost(num_nodes: usize, edges: Vec<(usize, usize, i32)>, start: usize, goal: usize) -> i32 {
+    let mut graph: HashMap<usize, Vec<Edge>> = HashMap::new();
+    
+    // Build the graph from edges
+    for (u, v, cost) in edges {
+        graph.entry(u).or_insert_with(Vec::new).push(Edge { target: v, cost });
+        graph.entry(v).or_insert_with(Vec::new).push(Edge { target: u, cost }); // Assuming undirected graph
+    }
+
+    let mut min_costs = vec![i32::MAX; num_nodes];
+    min_costs[start] = 0;
+
+    let mut priority_queue = BinaryHeap::new();
+    priority_queue.push(Node { index: start, cost: 0 });
+
+    while let Some(Node { index, cost }) = priority_queue.pop() {
+        if index == goal {
+            return cost; // Return the cost when we reach the goal
+        }
+
+        if cost > min_costs[index] {
+            continue; // Skip if we found a better path already
+        }
+
+        if let Some(edges) = graph.get(&index) {
+            for edge in edges {
+                let next_cost = cost + edge.cost;
+                if next_cost < min_costs[edge.target] {
+                    min_costs[edge.target] = next_cost;
+                    priority_queue.push(Node { index: edge.target, cost: next_cost });
+                }
+            }
+        }
+    }
+
+    // If the goal node is unreachable, return a specific value (e.g., -1)
+    -1
+}
+
+fn main() {
+    // Example usage
+    let num_nodes = 5; // Must be greater than zero
+    let edges = vec![(0, 1, 10), (1, 2, 5), (0, 2, 15), (2, 3, 10), (3, 4, 5)];
+    let start = 0;
+    let goal = 4;
+
+    let min_cost = dijkstra_min_cost(num_nodes, edges, start, goal);
+    println!("Minimum cost from node {} to node {}: {}", start, goal, min_cost);
+}

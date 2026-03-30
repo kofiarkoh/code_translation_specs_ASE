@@ -1,0 +1,79 @@
+const MOD: usize = 1_000_000_007; // Predefined constant for modulo operations
+
+fn factorial(n: usize) -> Vec<usize> {
+    let mut fact = vec![1; n + 1];
+    for i in 2..=n {
+        fact[i] = fact[i - 1] * i % MOD; // Compute factorial modulo MOD
+    }
+    fact
+}
+
+fn mod_inverse(a: usize) -> usize {
+    // Using Fermat's Little Theorem for modular inverse
+    let mut m = MOD;
+    let mut x0 = 0;
+    let mut x1 = 1;
+    let mut a = a % MOD;
+    
+    if a == 0 {
+        return 0; // Inverse of 0 is not defined
+    }
+
+    while a > 1 {
+        let q = a / m;
+        let t = m;
+        m = a % m;
+        a = t;
+        let t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+    }
+    
+    if x1 < 0 {
+        x1 += MOD; // Ensure the result is positive
+    }
+    
+    x1
+}
+
+fn precompute_inverses(n: usize, fact: &[usize]) -> Vec<usize> {
+    let mut inv_fact = vec![1; n + 1];
+    for i in 1..=n {
+        inv_fact[i] = mod_inverse(fact[i]); // Compute inverse factorials
+    }
+    inv_fact
+}
+
+fn choose(n: usize, r: usize, fact: &[usize], inv_fact: &[usize]) -> usize {
+    if r > n || r < 0 {
+        return 0; // Return 0 for out-of-bounds r
+    }
+    fact[n] * inv_fact[r] % MOD * inv_fact[n - r] % MOD // C(n, r) = n! / (r! * (n - r)!)
+}
+
+fn compute_combinatorial_value(n: usize) -> usize {
+    if n == 0 {
+        return 0; // Handle edge case for n = 0
+    }
+
+    let fact = factorial(n);
+    let inv_fact = precompute_inverses(n, &fact);
+    let mut temp = vec![0; n];
+
+    for k in 0..n {
+        temp[k] = choose(k.saturating_sub(1), n.saturating_sub(1).saturating_sub(k), &fact, &inv_fact) * fact[k] % MOD * fact[n.saturating_sub(1).saturating_sub(k)] % MOD; // Populate temp array
+    }
+
+    let mut result = 0;
+    for k in 1..n {
+        result = (result + (temp[k] + MOD - temp[k - 1]) % MOD * k % MOD) % MOD; // Compute final result
+    }
+
+    result // Return the computed result
+}
+
+fn main() {
+    let n: usize = 10; // Example input
+    let result = compute_combinatorial_value(n);
+    println!("{}", result); // Output the result
+}

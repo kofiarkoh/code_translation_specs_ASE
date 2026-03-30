@@ -1,0 +1,91 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code counts the number of combinations of three non-negative integers that, when multiplied by specified weights, sum exactly to a given target value.
+
+## 2. Inputs
+- Four integers: A, B, C, and X.
+  - A: Maximum multiplier for the first weight (500).
+  - B: Maximum multiplier for the second weight (100).
+  - C: Maximum multiplier for the third weight (50).
+  - X: Target sum to be achieved.
+
+## 3. Outputs
+- A single integer representing the count of valid combinations of the three integers that satisfy the equation \(500 \times i + 100 \times j + 50 \times k = X\).
+
+## 4. Preconditions
+- A, B, C, and X must be non-negative integers.
+- The input values must be provided in the correct order.
+
+## 5. Postconditions
+- The output integer is the total number of combinations of non-negative integers \(i\), \(j\), and \(k\) such that \(0 \leq i \leq A\), \(0 \leq j \leq B\), \(0 \leq k \leq C\), and the weighted sum equals \(X\).
+- Combinations that result in a weighted sum greater than \(X\) are not counted.
+
+## 6. Invariants
+- The count variable is initialized to zero and is incremented only when a valid combination is found that satisfies the equation.
+- The loops iterate through all possible values of \(i\), \(j\), and \(k\) within their respective bounds.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input types or out-of-range values. It assumes that inputs are valid as per the preconditions.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur through the nested loops, where the indices \(i\), \(j\), and \(k\) iterate through their respective ranges, affecting the count based on the evaluation of the weighted sum.
+
+## 9. Non-functional Constraints (if inferable)
+- The performance of the code is dependent on the values of A, B, and C, leading to a time complexity of \(O(A \times B \times C)\).
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main (void){
+  
+  int A, B, C, X;
+  
+  scanf("%d", &A);
+  scanf("%d", &B);
+  scanf("%d", &C);
+  scanf("%d", &X);
+  
+  int i, j, k;
+  
+  int count=0;
+  
+  for (i=0; i<=A; i++){
+   for (j=0; j<=B; j++){
+     for (k=0; k<=C; k++){
+       
+      if ( 500*i + 100*j + 50*k == X)
+      { count = count + 1;}
+       
+     }
+   }
+  }
+  
+  printf("%d", count);
+  
+  return 0;
+}
+=== C CODE END ===

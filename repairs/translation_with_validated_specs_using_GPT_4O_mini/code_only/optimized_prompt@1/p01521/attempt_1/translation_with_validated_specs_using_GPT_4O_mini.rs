@@ -1,0 +1,33 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut b = String::new();
+    let mut c = [0; 256]; // Array to count occurrences of characters
+    let mut i = 0;
+
+    // Read a line of input
+    io::stdin().read_line(&mut b).expect("Failed to read line");
+    let b = b.trim(); // Remove trailing newline
+
+    // Count occurrences of characters in b
+    for ch in b.chars() {
+        if ch as usize >= c.len() {
+            continue; // Ignore characters outside the range
+        }
+        if i == 0 || ch != b.chars().nth(i - 1).unwrap() {
+            c[ch as usize] += 1;
+        }
+        i += 1;
+    }
+
+    // Compare counts of 'o' and 'x' and print the result
+    let result = if c['o' as usize] < c['x' as usize] {
+        "x"
+    } else {
+        "o"
+    };
+
+    // Print the result and flush the output
+    print!("{}", result);
+    io::stdout().flush().unwrap(); // Ensure the output is printed immediately
+}

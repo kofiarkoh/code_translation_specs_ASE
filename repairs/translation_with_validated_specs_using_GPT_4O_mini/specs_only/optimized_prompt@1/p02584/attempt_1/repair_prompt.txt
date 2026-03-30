@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a modified absolute value based on an initial integer input, a decrement value, and a maximum number of decrements. It adjusts the initial value by subtracting multiples of the decrement value, depending on the relationship between the initial value and the product of the decrement value and the maximum number of decrements. If there are remaining decrements after the initial adjustments, the final output may be further decremented based on the parity of the remaining decrements.
+
+## 2. Inputs
+- A long long integer representing the initial value.
+- A long long integer representing the maximum number of decrements.
+- A long long integer representing the decrement value, which must be greater than zero.
+
+## 3. Outputs
+- A long long integer representing the modified absolute value after applying the decrements.
+
+## 4. Preconditions
+- The initial value, maximum number of decrements, and decrement value must be valid long long integers.
+- The decrement value must be greater than zero to ensure meaningful decrements.
+
+## 5. Postconditions
+- The output is the absolute value of the initial value after applying the decrements, which may be zero or positive.
+- The output is guaranteed to be less than or equal to the initial value.
+
+## 6. Invariants
+- The initial value is transformed to a non-negative value after taking its absolute value.
+- The maximum number of decrements is non-negative.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values are not valid long long integers, the behavior is undefined.
+- If the decrement value is zero, the behavior is undefined.
+
+## 8. State Transitions
+- The state transitions involve changing the value of the initial integer based on the decrements applied. The final state is determined by the initial value, the number of full decrements applied, and any additional decrement based on the remaining decrements. If the total decrements applied do not completely reduce the absolute value to zero, the remaining decrements are assessed; if there is an odd number of remaining decrements, an additional decrement equal to the decrement value is applied.
+
+## 9. Non-functional Constraints
+- The computation must complete in a time complexity that is constant with respect to the number of decrements, ensuring efficiency for large inputs.
+```

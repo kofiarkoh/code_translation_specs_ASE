@@ -1,0 +1,59 @@
+use std::cmp;
+use std::collections::HashMap;
+
+const MAX_COST: i32 = i32::MAX; // Represents the maximum integer value for unreachable paths
+
+fn min_traversal_cost(test_cases: Vec<TestCase>) -> Vec<i32> {
+    let mut results = Vec::new();
+    
+    for case in test_cases {
+        let (n, m, edges, r, sequence) = case;
+        let mut dist = vec![vec![MAX_COST; n]; n];
+
+        // Initialize distances
+        for i in 0..n {
+            dist[i][i] = 0; // Cost to traverse from a node to itself is zero
+        }
+
+        // Process edges
+        for (x, y, s, t) in edges {
+            dist[x][y] = cmp::min(dist[x][y], s);
+            dist[y][x] = cmp::min(dist[y][x], s); // Assuming undirected edges
+        }
+
+        // Floyd-Warshall algorithm to compute shortest paths
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    if dist[i][k] != MAX_COST && dist[k][j] != MAX_COST {
+                        dist[i][j] = cmp::min(dist[i][j], dist[i][k] + dist[k][j]);
+                    }
+                }
+            }
+        }
+
+        // Calculate minimum cost for the sequence of nodes to visit
+        let mut total_cost = 0;
+        for i in 0..r - 1 {
+            let cost = dist[sequence[i] as usize][sequence[i + 1] as usize];
+            if cost == MAX_COST {
+                total_cost = MAX_COST; // If any segment is unreachable, set total cost to MAX_COST
+                break;
+            }
+            total_cost += cost;
+        }
+
+        results.push(total_cost);
+    }
+
+    results
+}
+
+// Struct to represent a test case
+struct TestCase {
+    n: usize,
+    m: usize,
+    edges: Vec<(usize, usize, i32, char)>,
+    r: usize,
+    sequence: Vec<usize>,
+}

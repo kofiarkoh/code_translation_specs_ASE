@@ -1,0 +1,45 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read input from stdin
+    if io::stdin().read_line(&mut input).is_err() {
+        return; // Terminate if input fails
+    }
+
+    // Split the input into parts and parse them as integers
+    let numbers: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    // Check if we have exactly four integers
+    if numbers.len() != 4 {
+        return; // Terminate if the number of integers is not four
+    }
+
+    let (t1, t2, r1, r2) = (numbers[0], numbers[1], numbers[2], numbers[3]);
+    
+    // Determine the output based on the specification
+    let output = if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            "Alice"
+        } else if t1 > t2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    } else {
+        if r1 < r2 {
+            "Alice"
+        } else if r1 > r2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    };
+
+    // Print the result
+    println!("{}", output);
+}

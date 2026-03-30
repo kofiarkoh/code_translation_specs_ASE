@@ -1,0 +1,68 @@
+use std::io::{self, BufRead};
+
+fn is_prime(n: usize) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as usize) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn generate_primes(limit: usize) -> Vec<usize> {
+    (2..=limit).filter(|&n| is_prime(n)).collect()
+}
+
+fn main() {
+    let primes = generate_primes(100_000);
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let nums: Vec<usize> = line.split_whitespace()
+            .filter_map(|s| s.parse().ok())
+            .collect();
+
+        // Check if we have exactly three integers
+        if nums.len() != 3 {
+            continue; // Invalid input, skip to the next line
+        }
+
+        let (m, a, b) = (nums[0], nums[1], nums[2]);
+
+        // Check the precondition a <= b
+        if a > b {
+            continue; // Invalid input, skip to the next line
+        }
+
+        let mut largest_pair = (0, 0);
+        let mut largest_product = 0;
+
+        // Find pairs of primes
+        for i in 0..primes.len() {
+            for j in i..primes.len() {
+                let product = primes[i] * primes[j];
+                if product > m {
+                    break; // No need to check further, products will only increase
+                }
+                if product >= a && product <= b {
+                    if product > largest_product {
+                        largest_product = product;
+                        largest_pair = (primes[i], primes[j]);
+                    }
+                }
+            }
+        }
+
+        // Output the largest pair if found, or output "0 0" if no valid pairs were found
+        if largest_product > 0 {
+            println!("{} {}", largest_pair.0, largest_pair.1);
+        } else {
+            println!("0 0");
+        }
+    }
+}

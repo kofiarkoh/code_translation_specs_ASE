@@ -1,0 +1,46 @@
+```rust
+fn is_prime(n: u32) -> bool {
+    if n < 2 {
+        return false;
+    }
+    for i in 2..=((n as f64).sqrt() as u32) {
+        if n % i == 0 {
+            return false;
+        }
+    }
+    true
+}
+
+fn count_primes_in_range(lower: u32, upper: u32) -> i32 {
+    let mut adjusted_lower = lower;
+    let mut adjusted_upper = upper;
+
+    // Decrement lower bound until a prime is found
+    while adjusted_lower > 0 && !is_prime(adjusted_lower) {
+        adjusted_lower -= 1;
+    }
+
+    // Increment upper bound until a prime is found
+    while !is_prime(adjusted_upper) {
+        adjusted_upper += 1;
+    }
+
+    // Count primes strictly between adjusted_lower and adjusted_upper
+    let mut count = 0;
+    for num in (adjusted_lower + 1)..adjusted_upper {
+        if is_prime(num) {
+            count += 1;
+        }
+    }
+
+    count
+}
+
+// Main function to read input and output the result
+fn main() {
+    let lower: u32 = 20; // Example input
+    let upper: u32 = 25; // Example input
+    let prime_count = count_primes_in_range(lower, upper);
+    println!("{}", prime_count); // Output the count directly
+}
+```

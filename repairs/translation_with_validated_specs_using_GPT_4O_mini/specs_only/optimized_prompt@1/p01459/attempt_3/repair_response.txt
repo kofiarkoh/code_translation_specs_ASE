@@ -1,0 +1,133 @@
+```rust
+use std::collections::VecDeque;
+
+const MAX_MOVES: usize = 20;
+
+#[derive(Clone, Copy, PartialEq)]
+enum Cell {
+    Start,
+    Goal,
+    Obstacle,
+    Empty,
+}
+
+struct Grid {
+    cells: Vec<Vec<Cell>>,
+    height: usize,
+    width: usize,
+}
+
+impl Grid {
+    fn new(grid: Vec<Vec<char>>) -> Self {
+        let height = grid.len();
+        let width = grid[0].len();
+        let mut cells = vec![vec![Cell::Empty; width]; height];
+
+        for i in 0..height {
+            for j in 0..width {
+                cells[i][j] = match grid[i][j] {
+                    'S' => Cell::Start,
+                    'G' => Cell::Goal,
+                    '#' => Cell::Obstacle,
+                    _ => Cell::Empty,
+                };
+            }
+        }
+
+        Grid { cells, height, width }
+    }
+
+    fn find_start_and_goal(&self) -> (Option<(usize, usize)>, Option<(usize, usize)>) {
+        let mut start = None;
+        let mut goal = None;
+
+        for i in 0..self.height {
+            for j in 0..self.width {
+                match self.cells[i][j] {
+                    Cell::Start => start = Some((i, j)),
+                    Cell::Goal => goal = Some((i, j)),
+                    _ => {}
+                }
+            }
+        }
+
+        (start, goal)
+    }
+
+    fn is_valid(&self, x: isize, y: isize) -> bool {
+        x >= 0 && x < self.height as isize && y >= 0 && y < self.width as isize
+            && self.cells[x as usize][y as usize] != Cell::Obstacle
+    }
+
+    fn bfs(&self, max_a: usize, max_b: usize) -> i32 {
+        let (start, goal) = self.find_start_and_goal();
+        if start.is_none() || goal.is_none() {
+            return -1;
+        }
+
+        let (start_x, start_y) = start.unwrap();
+        let (goal_x, goal_y) = goal.unwrap();
+
+        // Check preconditions for immediate failure
+        if start_x == self.height - 1 || 
+           (start_x + 1 < self.height && self.cells[start_x + 1][start_y] == Cell::Obstacle) {
+            return -1;
+        }
+
+        let mut queue = VecDeque::new();
+        let mut visited = vec![vec![false; self.width]; self.height];
+        queue.push_back((start_x, start_y, 0, 0)); // (x, y, moves_a, moves_b)
+        visited[start_x][start_y] = true;
+
+        while let Some((x, y, moves_a, moves_b)) = queue.pop_front() {
+            if (x, y) == (goal_x, goal_y) {
+                let total_moves = moves_a + moves_b;
+                return if total_moves > MAX_MOVES { -1 } else { total_moves as i32 };
+            }
+
+            // Explore neighbors
+            for (dx, dy) in &[(0, 1), (1, 0), (0, -1), (-1, 0)] {
+                let new_x = x as isize + *dx;
+                let new_y = y as isize + *dy;
+
+                if self.is_valid(new_x, new_y) {
+                    let new_x = new_x as usize;
+                    let new_y = new_y as usize;
+
+                    // Check move limits
+                    if moves_a < max_a && !visited[new_x][new_y] {
+                        visited[new_x][new_y] = true;
+                        queue.push_back((new_x, new_y, moves_a + 1, moves_b));
+                    }
+                    if moves_b < max_b && !visited[new_x][new_y] {
+                        visited[new_x][new_y] = true;
+                        queue.push_back((new_x, new_y, moves_a, moves_b + 1));
+                    }
+                }
+            }
+        }
+
+        -1 // If no path found
+    }
+}
+
+fn pathfinding_algorithm(grid: Vec<Vec<char>>, max_a: usize, max_b: usize) -> i32 {
+    let grid = Grid::new(grid);
+    grid.bfs(max_a, max_b)
+}
+
+fn main() {
+    // Example usage
+    let grid = vec![
+        vec!['.', '.', '.', '.', '.'],
+        vec!['.', 'S', '.', '.', '.'],
+        vec!['.', '.', '.', '#', '.'],
+        vec!['.', '.', '.', '.', 'G'],
+        vec!['.', '.', '.', '.', '.'],
+    ];
+    let max_a = 2;
+    let max_b = 2;
+    let result = pathfinding_algorithm(grid, max_a, max_b);
+    println!("{}", result); // Output the result directly
+}
+```

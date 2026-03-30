@@ -1,0 +1,38 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut n = String::new();
+    let mut string = String::new();
+
+    // Read the length of the string
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+    io::stdin().read_line(&mut n).expect("Failed to read line");
+    let n: usize = n.trim().parse().expect("Invalid input for length");
+
+    // Read the string
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed before input
+    io::stdin().read_line(&mut string).expect("Failed to read line");
+    
+    // Ensure the string is null-terminated and does not exceed 50 characters
+    let string = string.trim(); // Remove any trailing newline
+    assert!(string.len() <= 50, "Input string exceeds maximum length of 50 characters");
+
+    // Preconditions check
+    if n < 3 {
+        panic!("Input length must be at least 3");
+    }
+    assert!(string.len() >= n, "Input string must contain at least n characters");
+
+    let mut count = 0;
+
+    // Count occurrences of "ABC"
+    for i in 0..=n - 3 {
+        if &string[i..i + 3] == "ABC" {
+            count += 1;
+            // Incrementing i by 1 to allow for overlapping occurrences
+        }
+    }
+
+    // Output the count
+    println!("{}", count);
+}

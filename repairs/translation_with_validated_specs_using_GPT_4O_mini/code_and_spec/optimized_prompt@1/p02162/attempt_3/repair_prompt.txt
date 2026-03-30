@@ -1,0 +1,80 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02162/p02162_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02162/p02162_sample1_output.txt
+Input:
+5 10 7 3
+Expected:
+Alice
+Actual:
+Bob
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read input from stdin
+    if io::stdin().read_line(&mut input).is_err() {
+        return; // Terminate if input fails
+    }
+
+    // Split the input into parts and parse them as integers
+    let numbers: Vec<i32> = input
+        .split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    // Check if we have exactly four integers
+    if numbers.len() != 4 {
+        return; // Terminate if the number of integers is not four
+    }
+
+    let (t1, t2, r1, r2) = (numbers[0], numbers[1], numbers[2], numbers[3]);
+    
+    // Determine the output based on the specification
+    let output = if r1 < 0 || r2 < 0 {
+        if t1 < t2 {
+            "Alice"
+        } else if t1 > t2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    } else {
+        if r1 < r2 {
+            "Alice"
+        } else if r1 > r2 {
+            "Bob"
+        } else {
+            "Draw"
+        }
+    };
+
+    // Print the result
+    println!("{}", output);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

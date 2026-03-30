@@ -1,0 +1,36 @@
+use std::io;
+
+fn count_four_squares(n: i32) -> i32 {
+    let mut count = 0;
+    let limit = (n as f64).sqrt() as i32;
+
+    for a in 0..=limit {
+        for b in a..=limit {
+            for c in b..=limit {
+                for d in c..=limit {
+                    if a * a + b * b + c * c + d * d == n {
+                        count += 1;
+                    }
+                }
+            }
+        }
+    }
+    count
+}
+
+fn main() {
+    let mut input = String::new();
+
+    loop {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let n: i32 = match input.trim().parse() {
+            Ok(num) if num > 0 => num,
+            Ok(0) => break, // Terminate on zero input
+            _ => continue, // Ignore invalid inputs
+        };
+
+        let result = count_four_squares(n);
+        println!("{}", result);
+    }
+}

@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a sequence of characters to compute a cumulative score based on specific character occurrences ('D', 'M', and 'C') over multiple queries. Each query specifies a window size, and the score is calculated for each window of that size in the character sequence. The cumulative score is influenced by the counts of 'D' and 'M', where each occurrence of 'M' contributes to the score based on the number of 'D's that have been encountered prior to it within the current window. The contribution of each 'M' to the score is cumulative, meaning that each 'M' in the window adds to the score based on the total count of 'D's encountered before it.
+
+## 2. Inputs
+- An integer representing the length of a character sequence, denoted as `n`.
+- A character sequence consisting of the characters 'D', 'M', and 'C'.
+- An integer representing the number of queries, denoted as `q`.
+- An array of integers, each representing a window size for the queries, where each window size is denoted as `k[j]`.
+
+## 3. Outputs
+- For each query, a long long integer representing the cumulative score calculated for the specified window size.
+
+## 4. Preconditions
+- The length of the character sequence (`n`) is a positive integer.
+- The character sequence contains only the characters 'D', 'M', and 'C'.
+- The number of queries (`q`) is a non-negative integer.
+- Each window size specified in the queries (`k[j]`) is a positive integer and does not exceed the length of the character sequence.
+
+## 5. Postconditions
+- The output for each query is a non-negative long long integer representing the cumulative score based on the occurrences of 'D', 'M', and 'C' within the specified window. The score is calculated such that each 'M' contributes to the score based on the number of 'D's encountered before it in the current window, with contributions from multiple 'M's being cumulative.
+
+## 6. Invariants
+- The cumulative score is updated correctly based on the counts of 'D' and 'M' as the window slides over the character sequence.
+- The counts of 'D' and 'M' are maintained accurately throughout the processing of each query, ensuring that the contribution of each 'M' to the score reflects the total number of preceding 'D's in the current window.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the specified preconditions (e.g., invalid characters, negative sizes), the behavior is undefined, and no output is guaranteed.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the window slides over the character sequence, updating the counts of 'D', 'M', and the cumulative score based on the characters entering and exiting the window. Specifically, when a character exits the window, its contribution to the counts is removed, and when a character enters the window, its contribution is added. The score is recalculated for each position in the window based on the updated counts.
+
+## 9. Non-functional Constraints (if inferable)
+- The implementation is expected to handle large input sizes efficiently, given the constraints on the character sequence length and the number of queries.
+```

@@ -1,0 +1,118 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Request {
+    stu: usize,
+    seq: usize,
+    id: usize,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock().lines();
+    
+    while let Some(line) = input.next() {
+        let line = line.unwrap();
+        let mut params = line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+        let m = params.next().unwrap();
+        let c = params.next().unwrap();
+        let n = params.next().unwrap();
+
+        if m == 0 {
+            break; // Terminate on non-positive number of desks
+        }
+
+        let mut req: Vec<Request> = Vec::new();
+        let mut desk: Vec<Vec<usize>> = vec![Vec::new(); m + 1];
+        let mut hi: Vec<usize> = vec![0; m + 1];
+        let mut book: HashMap<usize, (usize, usize)> = HashMap::new(); // book_id -> (desk_index, position)
+
+        for i in 0..n {
+            let line = input.next().unwrap().unwrap();
+            let t: usize = line.trim().parse().unwrap();
+            let ids: Vec<usize> = input.next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse::<usize>().unwrap())
+                .collect();
+
+            for j in 0..t {
+                let id = ids[j];
+                req.push(Request { stu: i, seq: j, id });
+
+                if !book.contains_key(&id) {
+                    let desk_index = m + 1; // Temporary value to indicate unassigned
+                    book.insert(id, (desk_index, hi[desk_index]));
+                    desk[desk_index].push(id);
+                    hi[desk_index] += 1;
+                }
+            }
+        }
+
+        req.sort_by(|a, b| {
+            if a.seq != b.seq {
+                a.seq.cmp(&b.seq)
+            } else {
+                a.stu.cmp(&b.stu)
+            }
+        });
+
+        let mut ans = 0;
+
+        for request in req {
+            let id = request.id;
+            let (from, pos) = book[&id];
+
+            // Shift books in the desk
+            for j in (pos + 1)..hi[from] {
+                let t = desk[from][j];
+                let (_, p) = book[&t];
+                book.insert(t, (from, p - 1));
+                desk[from][j - 1] = desk[from][j];
+            }
+            hi[from] -= 1;
+            ans += from;
+
+            if hi[1] == c {
+                let mut tmp = 2;
+                while tmp <= m && hi[tmp] == c {
+                    tmp += 1;
+                }
+                desk[tmp].push(id);
+                hi[tmp] += 1;
+                ans += tmp;
+
+                let id2 = desk[1][0];
+                for j in 1..hi[1] {
+                    let t = desk[1][j];
+                    let (_, p) = book[&t];
+                    book.insert(t, (1, p - 1));
+                    desk[1][j - 1] = desk[1][j];
+                }
+                hi[1] -= 1;
+                ans += 1;
+
+                let mut j = 2;
+                while j <= m && hi[j] == c {
+                    j += 1;
+                }
+                let pos = hi[j];
+                if j == tmp {
+                    pos -= 1;
+                }
+                desk[j].insert(pos, id2);
+                hi[j] += 1;
+                book.insert(id2, (j, pos));
+                ans += j + tmp;
+                hi[tmp] -= 1;
+            }
+
+            book.insert(id, (1, hi[1]));
+            desk[1].push(id);
+            hi[1] += 1;
+            ans += 1;
+        }
+
+        println!("{}", ans);
+    }
+}

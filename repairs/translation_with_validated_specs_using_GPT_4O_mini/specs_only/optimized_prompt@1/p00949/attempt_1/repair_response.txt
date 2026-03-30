@@ -1,0 +1,60 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input strings from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().filter_map(Result::ok).collect::<Vec<String>>();
+    
+    // Ensure we have exactly two input strings
+    if input.len() != 2 {
+        return; // Undefined behavior for malformed input
+    }
+    
+    let s1 = &input[0];
+    let s2 = &input[1];
+    
+    // Call the function to find the length of the longest anagram substring
+    let result = longest_anagram_substring(s1, s2);
+    
+    // Output the result
+    println!("{}", result);
+}
+
+fn longest_anagram_substring(s1: &str, s2: &str) -> usize {
+    let mut max_length = 0;
+
+    // Create frequency maps for substrings of s1
+    let mut freq_map_s1 = HashMap::new();
+    
+    // Populate frequency map for all substrings of s1
+    for len in 1..=s1.len() {
+        for start in 0..=s1.len() - len {
+            let substring = &s1[start..start + len];
+            let mut freq = [0; 26]; // Frequency array for 'a' to 'z'
+            for c in substring.chars() {
+                freq[(c as usize - 'a' as usize)] += 1;
+            }
+            *freq_map_s1.entry(freq).or_insert(0) += 1;
+        }
+    }
+
+    // Check substrings of s2 against the frequency map of s1
+    for len in 1..=s2.len() {
+        for start in 0..=s2.len() - len {
+            let substring = &s2[start..start + len];
+            let mut freq = [0; 26]; // Frequency array for 'a' to 'z'
+            for c in substring.chars() {
+                freq[(c as usize - 'a' as usize)] += 1;
+            }
+            // If the frequency exists in the map, update max_length
+            if let Some(&count) = freq_map_s1.get(&freq) {
+                max_length = max_length.max(len);
+            }
+        }
+    }
+
+    max_length // Return the maximum length found
+}
+```

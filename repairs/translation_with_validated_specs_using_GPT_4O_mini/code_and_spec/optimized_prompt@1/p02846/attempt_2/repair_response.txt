@@ -1,0 +1,54 @@
+```rust
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let t1: i64 = iter.next().unwrap().parse().unwrap();
+    let t2: i64 = iter.next().unwrap().parse().unwrap();
+
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let mut a1: i64 = iter.next().unwrap().parse().unwrap();
+    let mut a2: i64 = iter.next().unwrap().parse().unwrap();
+
+    input.clear();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let mut b1: i64 = iter.next().unwrap().parse().unwrap();
+    let mut b2: i64 = iter.next().unwrap().parse().unwrap();
+
+    if a1 * t1 + a2 * t2 == b1 * t1 + b2 * t2 {
+        println!("infinity");
+        return;
+    }
+
+    if a1 > b1 {
+        a1 += b1;
+        b1 = a1 - b1;
+        a1 -= b1;
+        a2 += b2;
+        b2 = a2 - b2;
+        a2 -= b2;
+    }
+
+    let diff_a_b = b1 - a1;
+    let diff_a2_b2 = a2 - b2;
+
+    if diff_a_b * t1 > diff_a2_b2 * t2 {
+        println!("0");
+    } else {
+        let denominator = diff_a2_b2 * t2 - diff_a_b * t1;
+        if denominator == 0 {
+            // This case should not happen due to the spec, but we handle it gracefully.
+            println!("0");
+        } else if diff_a_b * t1 % denominator == 0 {
+            println!("{}", (diff_a_b * t1 / denominator) * 2);
+        } else {
+            println!("{}", (diff_a_b * t1 / denominator) * 2 + 1);
+        }
+    }
+}
+```

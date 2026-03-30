@@ -1,0 +1,56 @@
+use std::io::{self, BufRead};
+use std::cmp::Ordering;
+
+fn cmp(a: &i32, b: &i32) -> Ordering {
+    b.cmp(a) // Reverse order for sorting
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = stdin.lock();
+    let mut a = vec![0; 1_000_001]; // Allocate space for 1,000,001 integers
+
+    loop {
+        let mut n = String::new();
+        input.read_line(&mut n).unwrap();
+        let n: i32 = n.trim().parse().unwrap();
+        if n == 0 {
+            break; // Exit loop if n is 0
+        }
+
+        let mut m = 0;
+        let mut k = 0;
+
+        for i in 0..n {
+            let mut num = String::new();
+            input.read_line(&mut num).unwrap();
+            a[i as usize] = num.trim().parse().unwrap();
+        }
+
+        // Sort the array using the custom comparator
+        a[0..n as usize].sort_by(cmp);
+
+        let mut i = 0;
+        while i < n {
+            let mut j = i + 1;
+            while j <= n {
+                if j == n || a[i as usize] != a[j as usize] {
+                    if m < j - i {
+                        m = j - i;
+                        k = a[i as usize];
+                    }
+                    i = j - 1; // Move i to the last position of the current group
+                    break;
+                }
+                j += 1;
+            }
+            i += 1; // Increment i to continue checking
+        }
+
+        if n / 2 < m {
+            println!("{}", k);
+        } else {
+            println!("NO COLOR");
+        }
+    }
+}

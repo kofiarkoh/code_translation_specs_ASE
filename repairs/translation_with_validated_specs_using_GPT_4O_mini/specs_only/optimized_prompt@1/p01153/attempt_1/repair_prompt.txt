@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum possible value derived from a specific calculation involving an array of integers across multiple test cases. For each test case, it processes an array to determine the optimal value based on the differences between elements and their positions in a circular manner, utilizing a dynamic programming approach.
+
+## 2. Inputs
+- A positive integer representing the number of test cases.
+- For each test case:
+  - A positive integer representing the number of elements in the array.
+  - An array of integers, where the number of elements corresponds to the previously mentioned integer.
+
+## 3. Outputs
+- For each test case, a single integer representing the maximum computed value based on the input array, derived from the defined relationships between its elements.
+
+## 4. Preconditions
+- The number of test cases is a positive integer.
+- Each test case contains a positive integer indicating the number of elements in the array, which must be at least 1.
+- The array contains integers, which may be positive, negative, or zero.
+
+## 5. Postconditions
+- The output for each test case is the maximum computed value derived from the input array, based on the specific calculations involving the differences between elements and their indices.
+
+## 6. Invariants
+- The array remains unchanged throughout the processing of each test case.
+- The computed values are non-negative integers, as they are derived from absolute differences and previously computed values.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid inputs or errors. It assumes that all inputs conform to the specified preconditions.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iterates through the array and updates the computed values in a dynamic programming table. The transitions depend on the relationships defined by the differences between elements at specific indices and the previously computed values.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial with respect to the number of elements in the array, specifically O(n^3) for each test case.
+```

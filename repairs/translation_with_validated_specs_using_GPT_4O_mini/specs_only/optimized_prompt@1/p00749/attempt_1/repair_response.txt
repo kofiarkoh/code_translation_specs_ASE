@@ -1,0 +1,76 @@
+```rust
+use std::collections::HashSet;
+
+fn main() {
+    // Example usage
+    let grid = vec![
+        vec!['#', '#', ' '],
+        vec![' ', '#', ' '],
+        vec!['#', '#', '#'],
+    ];
+    let stability = evaluate_stability(&grid);
+    println!("{}", stability);
+}
+
+fn evaluate_stability(grid: &[Vec<char>]) -> String {
+    let (width, height) = (grid[0].len(), grid.len());
+    
+    // Check for non-positive dimensions
+    if width <= 0 || height <= 0 {
+        return String::from("UNSTABLE"); // Terminate without processing
+    }
+
+    let mut visited = HashSet::new();
+    let mut components = Vec::new();
+
+    for y in 0..height {
+        for x in 0..width {
+            if grid[y][x] != ' ' && !visited.contains(&(x, y)) {
+                let component = explore_component(grid, x, y, &mut visited);
+                components.push(component);
+            }
+        }
+    }
+
+    // Evaluate stability of each component
+    for (size, total_x, min_x, max_x) in components {
+        let center_of_mass = 0.5 + (total_x as f64 / size as f64);
+        if center_of_mass < min_x as f64 || center_of_mass > max_x as f64 {
+            return String::from("UNSTABLE");
+        }
+    }
+
+    String::from("STABLE")
+}
+
+fn explore_component(grid: &[Vec<char>], start_x: usize, start_y: usize, visited: &mut HashSet<(usize, usize)>) -> (usize, usize, usize, usize) {
+    let mut stack = vec![(start_x, start_y)];
+    let mut size = 0;
+    let mut total_x = 0;
+    let mut min_x = start_x;
+    let mut max_x = start_x;
+
+    while let Some((x, y)) = stack.pop() {
+        if visited.insert((x, y)) {
+            size += 1;
+            total_x += x;
+
+            if x < min_x {
+                min_x = x;
+            }
+            if x > max_x {
+                max_x = x;
+            }
+
+            // Check neighbors (up, down, left, right)
+            for (nx, ny) in [(x.wrapping_sub(1), y), (x + 1, y), (x, y.wrapping_sub(1)), (x, y + 1)] {
+                if nx < grid[0].len() && ny < grid.len() && grid[ny][nx] != ' ' && !visited.contains(&(nx, ny)) {
+                    stack.push((nx, ny));
+                }
+            }
+        }
+    }
+
+    (size, total_x, min_x, max_x)
+}
+```

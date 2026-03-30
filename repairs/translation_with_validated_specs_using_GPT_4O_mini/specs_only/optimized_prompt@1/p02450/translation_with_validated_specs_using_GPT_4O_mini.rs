@@ -1,0 +1,47 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read input from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the input as an integer
+    let n: i32 = match input.trim().parse() {
+        Ok(num) if num >= 0 => num,
+        _ => return, // Undefined behavior for invalid input or negative n
+    };
+
+    // Generate and print permutations
+    let mut nums: Vec<i32> = (1..=n).collect();
+    let mut used = vec![false; n as usize];
+    let mut current_permutation = Vec::new();
+    
+    generate_permutations(&nums, &mut used, &mut current_permutation);
+}
+
+// Recursive function to generate permutations
+fn generate_permutations(nums: &[i32], used: &mut Vec<bool>, current_permutation: &mut Vec<i32>) {
+    if current_permutation.len() == nums.len() {
+        // Print the current permutation
+        let output: String = current_permutation.iter()
+            .map(|&num| num.to_string())
+            .collect::<Vec<String>>()
+            .join(" ");
+        println!("{}", output);
+        return;
+    }
+
+    for i in 0..nums.len() {
+        if !used[i] {
+            used[i] = true; // Mark this number as used
+            current_permutation.push(nums[i]); // Add to current permutation
+            
+            // Recur to generate further permutations
+            generate_permutations(nums, used, current_permutation);
+            
+            // Backtrack
+            used[i] = false; // Unmark this number
+            current_permutation.pop(); // Remove from current permutation
+        }
+    }
+}

@@ -1,0 +1,91 @@
+use std::vec::Vec;
+
+struct DynamicArray {
+    elements: Vec<i32>,
+    count: usize,
+    capacity: usize,
+}
+
+impl DynamicArray {
+    fn new(size: usize) -> Self {
+        DynamicArray {
+            elements: Vec::with_capacity(size),
+            count: 0,
+            capacity: size,
+        }
+    }
+
+    fn insert(&mut self, x: i32) -> usize {
+        // Check for duplicates and capacity
+        if self.count < self.capacity && !self.elements.contains(&x) {
+            // Find the position to insert while maintaining sorted order
+            let pos = self.elements.binary_search(&x).err().unwrap();
+            self.elements.insert(pos, x);
+            self.count += 1;
+        }
+        self.count
+    }
+
+    fn find(&self, x: i32) -> i32 {
+        if self.elements.binary_search(&x).is_ok() {
+            1 // Element exists
+        } else {
+            0 // Element does not exist
+        }
+    }
+
+    fn delete(&mut self, x: i32) -> i32 {
+        if let Ok(pos) = self.elements.binary_search(&x) {
+            self.elements.remove(pos);
+            self.count -= 1;
+            1 // Deletion successful
+        } else {
+            -1 // Element not found
+        }
+    }
+
+    fn dump(&self, x: i32, y: i32) {
+        for &element in &self.elements {
+            if element >= x && element <= y {
+                println!("{}", element);
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut dynamic_array = DynamicArray::new(10);
+    let operations = vec![
+        (0, 5),
+        (0, 3),
+        (0, 8),
+        (1, 5),
+        (1, 10),
+        (2, 3),
+        (1, 3),
+        (3, 3, 8), // This operation is valid
+        (0, 7),
+        (1, 7),
+    ];
+
+    for operation in operations {
+        match operation {
+            (0, x) => {
+                let count = dynamic_array.insert(x);
+                println!("{}", count);
+            }
+            (1, x) => {
+                let result = dynamic_array.find(x);
+                println!("{}", result);
+            }
+            (2, x) => {
+                let result = dynamic_array.delete(x);
+                println!("{}", result);
+            }
+            (3, x, y) => {
+                dynamic_array.dump(x, y);
+            }
+            _ => {}
+        }
+    }
+}

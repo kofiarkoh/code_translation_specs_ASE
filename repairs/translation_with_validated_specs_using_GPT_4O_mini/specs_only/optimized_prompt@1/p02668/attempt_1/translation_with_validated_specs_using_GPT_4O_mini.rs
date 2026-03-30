@@ -1,0 +1,87 @@
+use std::io::{self, BufRead};
+
+const N_MAX: usize = 100; // Define a maximum limit for n + m
+const MOD: usize = 1_000_000_007; // Define a modulus for arithmetic operations
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let nums: Vec<usize> = input.split_whitespace()
+        .filter_map(|s| s.parse().ok())
+        .collect();
+
+    if nums.len() != 2 {
+        println!("-1");
+        return;
+    }
+
+    let n = nums[0];
+    let m = nums[1];
+
+    // Check preconditions
+    if n + m > N_MAX || n < 0 || m < 0 {
+        println!("-1");
+        return;
+    }
+
+    // Initialize dynamic programming arrays
+    let mut dp = vec![vec![0; m + 1]; n + 1];
+    let mut dq = vec![vec![0; m + 1]; n + 1];
+    let mut pow2 = vec![1; m + 1];
+    let mut inv2 = vec![1; m + 1];
+
+    // Precompute powers of 2 and their modular inverses
+    for i in 1..=m {
+        pow2[i] = (pow2[i - 1] * 2) % MOD;
+        inv2[i] = mod_inv(pow2[i], MOD);
+    }
+
+    // Dynamic programming computation
+    for i in 0..=n {
+        for j in 0..=m {
+            if i == 0 {
+                dp[i][j] = 1; // Base case
+            } else {
+                if j > 0 {
+                    dp[i][j] = (dp[i - 1][j] * (j + 1) % MOD + dq[i - 1][j - 1] * pow2[j - 1] % MOD) % MOD;
+                }
+            }
+            if j > 0 {
+                dq[i][j] = (dq[i][j - 1] + (dp[i][j] * j % MOD) * inv2[j] % MOD) % MOD;
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", dp[n][m]);
+}
+
+// Function to compute modular inverse using Fermat's Little Theorem
+fn mod_inv(a: usize, m: usize) -> usize {
+    let mut x = 1;
+    let mut y = 0;
+    let mut m0 = m;
+    let mut a0 = a;
+
+    if m == 1 {
+        return 0;
+    }
+
+    while a0 > 1 {
+        let q = a0 / m0;
+        let t = m0;
+
+        m0 = a0 % m0;
+        a0 = t;
+        let t = x;
+
+        x = y - q * x;
+        y = t;
+    }
+
+    if y < 0 {
+        y += m;
+    }
+
+    y
+}

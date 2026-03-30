@@ -1,0 +1,144 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03414/p03414_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03414/p03414_sample1_output.txt
+Input:
+5 6
+1 2
+2 3
+3 4
+4 2
+4 5
+5 3
+Expected:
+same
+diff
+diff
+diff
+diff
+diff
+Actual:
+diff
+diff
+diff
+diff
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::{HashMap, HashSet};
+
+struct Graph {
+    edges: Vec<(usize, usize)>,
+    num_nodes: usize,
+}
+
+impl Graph {
+    fn new(num_nodes: usize, edges: Vec<(usize, usize)>) -> Self {
+        Graph { edges, num_nodes }
+    }
+
+    fn classify_edges(&self) -> Vec<String> {
+        if self.edges.is_empty() {
+            return vec!["same".to_string(); self.edges.len()];
+        }
+
+        let mut visited = vec![false; self.num_nodes];
+        let mut low_link = vec![0; self.num_nodes];
+        let mut ids = vec![0; self.num_nodes];
+        let mut on_stack = vec![false; self.num_nodes];
+        let mut stack = Vec::new();
+        let mut sccs = Vec::new();
+        let mut id = 0;
+
+        for i in 0..self.num_nodes {
+            if !visited[i] {
+                self.dfs(i, &mut id, &mut visited, &mut low_link, &mut ids, &mut stack, &mut on_stack, &mut sccs);
+            }
+        }
+
+        let mut edge_classification = vec!["diff".to_string(); self.edges.len()];
+        let component_map: HashMap<usize, usize> = sccs.iter().enumerate().map(|(i, &comp)| (comp, i)).collect();
+
+        for (index, &(from, to)) in self.edges.iter().enumerate() {
+            if component_map[&from] == component_map[&to] {
+                edge_classification[index] = "same".to_string();
+            }
+        }
+
+        edge_classification
+    }
+
+    fn dfs(
+        &self,
+        at: usize,
+        id: &mut usize,
+        visited: &mut Vec<bool>,
+        low_link: &mut Vec<usize>,
+        ids: &mut Vec<usize>,
+        stack: &mut Vec<usize>,
+        on_stack: &mut Vec<bool>,
+        sccs: &mut Vec<usize>,
+    ) {
+        visited[at] = true;
+        *id += 1;
+        ids[at] = *id;
+        low_link[at] = *id;
+        stack.push(at);
+        on_stack[at] = true;
+
+        for &(from, to) in &self.edges {
+            if from == at {
+                if !visited[to] {
+                    self.dfs(to, id, visited, low_link, ids, stack, on_stack, sccs);
+                    low_link[at] = low_link[at].min(low_link[to]);
+                } else if on_stack[to] {
+                    low_link[at] = low_link[at].min(ids[to]);
+                }
+            }
+        }
+
+        if low_link[at] == ids[at] {
+            while let Some(node) = stack.pop() {
+                on_stack[node] = false;
+                low_link[node] = ids[at]; // Assign the root id to all nodes in the component
+                sccs.push(node);
+                if node == at {
+                    break;
+                }
+            }
+        }
+    }
+}
+
+fn main() {
+    let num_nodes = 5;
+    let edges = vec![(0, 1), (1, 2), (2, 0), (3, 4)];
+    let graph = Graph::new(num_nodes, edges);
+    let classifications = graph.classify_edges();
+    
+    for classification in classifications {
+        println!("{}", classification);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

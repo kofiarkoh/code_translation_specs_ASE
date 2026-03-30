@@ -1,0 +1,180 @@
+use std::io::{self, BufRead};
+use std::collections::HashMap;
+
+const LLINF: i64 = 4154118101919364364;
+const THRESHOLD: i64 = 10_000_000_000;
+
+#[derive(Debug)]
+struct Sd {
+    val: i64,
+    node: i64,
+}
+
+fn make_primes() -> (Vec<i64>, Vec<i64>, Vec<i64>) {
+    let mut fl = vec![false; 2222];
+    let mut primes = Vec::new();
+    let mut squares = Vec::new();
+    let mut cubes = Vec::new();
+
+    for i in 2..2222 {
+        if fl[i] {
+            continue;
+        }
+        primes.push(i);
+        squares.push(i * i);
+        cubes.push(i * i * i);
+        for j in (2 * i..2222).step_by(i) {
+            fl[j] = true;
+        }
+    }
+    (primes, squares, cubes)
+}
+
+fn ll_sqr(x: i64) -> i64 {
+    let (mut st, mut fi) = (1, 1_000_000_000);
+    while st <= fi {
+        let te = (st + fi) / 2;
+        if te * te < x {
+            st = te + 1;
+        } else {
+            fi = te - 1;
+        }
+    }
+    st
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    let (primes, squares, cubes) = make_primes();
+    let mut a = Vec::new();
+    let mut r = 0;
+
+    for _ in 0..n {
+        let t: i64 = lines.next().unwrap().unwrap().parse().unwrap();
+        let mut w = t;
+        let mut t_copy = t;
+
+        for &p in &primes {
+            while t_copy % p == 0 {
+                t_copy /= p;
+            }
+            while w % p.pow(3) == 0 {
+                w /= p.pow(3);
+            }
+        }
+
+        if t_copy > 100_000 {
+            let l = ll_sqr(t_copy);
+            if l * l != t_copy {
+                r += 1;
+                continue;
+            }
+        }
+        a.push(w);
+    }
+
+    if a.is_empty() {
+        println!("{}", r);
+        return;
+    }
+
+    a.sort();
+    let mut dat: Vec<Sd> = Vec::new();
+    let mut count_map: HashMap<i64, i64> = HashMap::new();
+
+    let mut w = 1;
+    let mut last_val = a[0];
+    for &val in &a {
+        if val != last_val {
+            dat.push(Sd { val: last_val, node: w });
+            count_map.insert(last_val, w);
+            w = 1;
+            last_val = val;
+        } else {
+            w += 1;
+        }
+    }
+    dat.push(Sd { val: last_val, node: w });
+    count_map.insert(last_val, w);
+
+    for i in 0..dat.len() {
+        let mut h = dat[i].val;
+        if h == 1 {
+            r += 1;
+            continue;
+        }
+
+        let mut w = 1;
+        for &p in &primes {
+            while h % p == 0 {
+                h /= p;
+            }
+            if dat[i].val % p == 0 {
+                if dat[i].val % (p * p) == 0 {
+                    w *= p;
+                    if w > THRESHOLD {
+                        w = -1;
+                        break;
+                    }
+                } else {
+                    w *= p;
+                    if w > THRESHOLD {
+                        w = -1;
+                        break;
+                    }
+                    w *= p;
+                    if w > THRESHOLD {
+                        w = -1;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if w == -1 {
+            r += count_map[&dat[i].val];
+            continue;
+        }
+
+        if h > 100_000 {
+            let l = ll_sqr(h);
+            w *= l;
+            if w > THRESHOLD {
+                w = -1;
+            }
+        } else {
+            w *= h;
+            if w > THRESHOLD {
+                w = -1;
+            }
+            w *= h;
+            if w > THRESHOLD {
+                w = -1;
+            }
+        }
+
+        if w == -1 {
+            r += count_map[&dat[i].val];
+            continue;
+        }
+
+        let pos = dat.binary_search_by_key(&w, |d| d.val).unwrap_or_else(|x| x);
+        if pos >= dat.len() || dat[pos].val != w {
+            r += count_map[&dat[i].val];
+            continue;
+        }
+
+        r += std::cmp::max(count_map[&dat[i].val], count_map[&dat[pos].val]);
+    }
+
+    println!("{}", r);
+}

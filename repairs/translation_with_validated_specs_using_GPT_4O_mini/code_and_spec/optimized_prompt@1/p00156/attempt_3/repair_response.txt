@@ -1,0 +1,84 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    while let Some(line) = lines.next() {
+        let line = line.unwrap();
+        let mut dimensions = line.split_whitespace();
+        let w: usize = dimensions.next().unwrap().parse().unwrap();
+        let h: usize = dimensions.next().unwrap().parse().unwrap();
+
+        if w == 0 && h == 0 {
+            break;
+        }
+
+        let mut grid = vec![vec![' '; w]; h];
+        let mut transition_count = vec![vec![usize::MAX; w]; h]; // Use usize::MAX for unvisited cells
+        let mut start_positions = Vec::new();
+
+        for i in 0..h {
+            let line = lines.next().unwrap().unwrap();
+            for j in 0..w {
+                grid[i][j] = line.chars().nth(j).unwrap();
+                if grid[i][j] == '&' {
+                    grid[i][j] = '.'; // Mark the starting position
+                    start_positions.push((i, j));
+                    transition_count[i][j] = 0; // Starting position has 0 transitions
+                }
+            }
+        }
+
+        let directions = [(0, 1), (1, 0), (0, -1), (-1, 0)];
+        let mut r = start_positions.len();
+
+        for t in 0..r {
+            let (y_t, x_t) = start_positions[t];
+            for &(dy, dx) in &directions {
+                let ny = y_t as isize + dy;
+                let nx = x_t as isize + dx;
+
+                if ny < 0 || ny >= h as isize || nx < 0 || nx >= w as isize {
+                    continue; // Out of bounds
+                }
+
+                let ny = ny as usize;
+                let nx = nx as usize;
+
+                let current_transitions = transition_count[y_t][x_t];
+                if grid[y_t][x_t] == grid[ny][nx] {
+                    if current_transitions < transition_count[ny][nx] {
+                        transition_count[ny][nx] = current_transitions;
+                        start_positions.push((ny, nx));
+                    }
+                } else {
+                    if current_transitions + 1 < transition_count[ny][nx] {
+                        transition_count[ny][nx] = current_transitions + 1;
+                        start_positions.push((ny, nx));
+                    }
+                }
+            }
+        }
+
+        let mut min_transitions = usize::MAX; // Initialize with maximum possible transitions
+
+        for i in 0..w {
+            min_transitions = min_transitions.min(transition_count[0][i]);
+            min_transitions = min_transitions.min(transition_count[h - 1][i]);
+        }
+        for i in 0..h {
+            min_transitions = min_transitions.min(transition_count[i][0]);
+            min_transitions = min_transitions.min(transition_count[i][w - 1]);
+        }
+
+        // Divide by 2 as per specification
+        if min_transitions != usize::MAX {
+            println!("{}", min_transitions / 2);
+        } else {
+            println!("0"); // If no valid transitions found
+        }
+    }
+}
+```

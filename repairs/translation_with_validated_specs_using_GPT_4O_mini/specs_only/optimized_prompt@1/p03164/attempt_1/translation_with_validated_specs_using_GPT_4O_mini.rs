@@ -1,0 +1,69 @@
+use std::io::{self, Write};
+
+fn main() {
+    // Read the number of items (N) and the maximum weight capacity (W)
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    
+    let n: usize = iter.next().unwrap().parse().expect("Invalid number of items");
+    let w: usize = iter.next().unwrap().parse().expect("Invalid weight capacity");
+
+    // Handle edge case where no items are provided
+    if n == 0 {
+        println!("0");
+        return;
+    }
+
+    // Initialize weights and values vectors
+    let mut weights = Vec::with_capacity(n);
+    let mut values = Vec::with_capacity(n);
+
+    // Read item weights and values
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let mut item_iter = input.split_whitespace();
+        
+        let weight: usize = item_iter.next().unwrap().parse().expect("Invalid weight");
+        let value: usize = item_iter.next().unwrap().parse().expect("Invalid value");
+        
+        weights.push(weight);
+        values.push(value);
+    }
+
+    // Initialize the tracking array for the minimum weights
+    let mut dp = vec![usize::MAX; w + 1];
+    dp[0] = 0; // Base case: 0 weight for 0 value
+
+    // Process each item
+    for i in 0..n {
+        let weight = weights[i];
+        let value = values[i];
+        
+        // Update the dp array in reverse to avoid overwriting results from the same item
+        for j in (weight..=w).rev() {
+            if dp[j - weight] != usize::MAX {
+                dp[j] = dp[j].min(dp[j - weight] + weight);
+            }
+        }
+    }
+
+    // Find the maximum value that can be achieved without exceeding the weight limit
+    let mut max_value = 0;
+    for j in 0..=w {
+        if dp[j] != usize::MAX {
+            max_value = max_value.max(values.iter().enumerate()
+                .filter(|&(index, _)| weights[index] <= j)
+                .map(|(_, &v)| v)
+                .sum());
+        }
+    }
+
+    // Output the result
+    if max_value > 0 {
+        println!("{}", max_value);
+    } else {
+        println!("No valid configuration exists");
+    }
+}

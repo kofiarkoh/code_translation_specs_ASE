@@ -1,0 +1,97 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code generates and prints all possible permutations of a sequence of integers from 1 to n, where n is provided as input. Each permutation is printed on a new line. The order of the permutations is determined by the order in which they are generated, which may not be lexicographical.
+
+## 2. Inputs
+- An integer n, representing the number of elements in the sequence.
+- An implicit sequence of integers from 1 to n, generated based on the input n.
+
+## 3. Outputs
+- A series of lines, each containing a unique permutation of the integers from 1 to n, printed in the order they are generated.
+
+## 4. Preconditions
+- The input integer n must be a non-negative integer.
+- The input must be provided in a format that allows for successful reading as an integer.
+
+## 5. Postconditions
+- All permutations of the integers from 1 to n are printed, with each permutation appearing on a separate line.
+- Each integer in the permutations is separated by a space.
+
+## 6. Invariants
+- The integers in each permutation are distinct and range from 1 to n.
+- The total number of printed permutations is equal to n factorial (n!).
+
+## 7. Error Handling / Exceptional Behavior
+- If the input is not a valid integer, the behavior is undefined, and no output is guaranteed.
+- If n is negative, the function does not handle this case explicitly, leading to undefined behavior.
+
+## 8. State Transitions (if applicable)
+- The state transitions involve moving from one depth of recursion to another, where each state represents a partial permutation being constructed.
+
+## 9. Non-functional Constraints (if inferable)
+- The time complexity is O(n!) due to the generation of all permutations.
+- The space complexity is O(n) for storing the current permutation and the used integers.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+void enumeration(int result[],int used[],int n,int d){
+    int i;
+    if(d>=n){
+        for(i=0;i<n;i++){
+            if(i==0)printf("%d",result[i]);
+            else printf(" %d",result[i]);
+        }
+        printf("\n");
+        return;
+    }
+    
+    int used2[n-d-1];
+    int j,k;
+    for(i=0;i<n-d;i++){
+        result[d]=used[i];
+        for(j=0,k=0;j<n-d;j++)if(j!=i)used2[k++]=used[j];
+        enumeration(result,used2,n,d+1);
+    }
+    
+    return;
+}
+int main(void){
+    int i;
+    
+    int n;
+    scanf("%d\n",&n);
+    
+    int used[n];
+    for(i=0;i<n;i++)used[i]=i+1;
+    
+    int result[n];
+    
+    enumeration(result,used,n,0);
+    
+    return 0;
+}
+=== C CODE END ===

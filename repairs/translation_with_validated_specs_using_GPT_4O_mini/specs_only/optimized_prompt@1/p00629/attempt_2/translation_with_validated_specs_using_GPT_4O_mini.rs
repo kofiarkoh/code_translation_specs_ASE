@@ -1,0 +1,84 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Record {
+    i: i32,
+    u: i32,
+    a: i32,
+    p: i32,
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: usize = line.trim().parse().unwrap();
+
+        // Terminate if n is 0
+        if n == 0 {
+            break;
+        }
+
+        let mut records: Vec<Record> = Vec::new();
+
+        for _ in 0..n {
+            let line = reader.lines().next().unwrap().unwrap();
+            let attributes: Vec<i32> = line
+                .trim()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            records.push(Record {
+                i: attributes[0],
+                u: attributes[1],
+                a: attributes[2],
+                p: attributes[3],
+            });
+        }
+
+        // Sort records based on the specified criteria
+        records.sort_by(|r1, r2| {
+            let a_cmp = r2.a.cmp(&r1.a); // Descending order for A
+            if a_cmp != std::cmp::Ordering::Equal {
+                return a_cmp;
+            }
+            let p_cmp = r1.p.cmp(&r2.p); // Ascending order for P
+            if p_cmp != std::cmp::Ordering::Equal {
+                return p_cmp;
+            }
+            r1.i.cmp(&r2.i) // Ascending order for I
+        });
+
+        // Frequency map for U
+        let mut frequency: HashMap<i32, Vec<i32>> = HashMap::new();
+        for record in &records {
+            frequency.entry(record.u).or_default().push(record.i);
+        }
+
+        let mut output: Vec<i32> = Vec::new();
+
+        // Select identifiers based on frequency criteria
+        for (_u, ids) in frequency {
+            let limit = match ids.len() {
+                1 => 1,
+                2 => 2,
+                3 => 3,
+                _ => 3, // More than 3, still take 3
+            };
+
+            // Take the first `limit` identifiers
+            output.extend(ids.into_iter().take(limit));
+            if output.len() >= 25 {
+                break; // Stop if we reach the output limit
+            }
+        }
+
+        // Print the output identifiers
+        for id in output.into_iter().take(25) {
+            println!("{}", id);
+        }
+    }
+}

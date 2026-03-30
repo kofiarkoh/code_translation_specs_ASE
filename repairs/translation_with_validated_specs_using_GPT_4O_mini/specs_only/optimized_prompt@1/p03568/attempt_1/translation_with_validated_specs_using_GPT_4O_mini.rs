@@ -1,0 +1,30 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the first line for the number of integers N
+    let stdin = io::stdin();
+    let first_line = stdin.lock().lines().next().unwrap().unwrap();
+    let n: usize = first_line.trim().parse().expect("Input must be a non-negative integer");
+
+    // Initialize the count of even integers
+    let mut even_count = 0;
+
+    // Read the next N integers and count the even ones
+    for _ in 0..n {
+        let line = stdin.lock().lines().next().unwrap().unwrap();
+        let value: i32 = line.trim().parse().expect("Input must be a valid integer");
+        if value % 2 == 0 {
+            even_count += 1;
+        }
+    }
+
+    // Calculate 3^N and 2^even_count
+    let power_of_three = 3_i64.pow(n as u32); // 3 raised to the power of N
+    let power_of_two = 2_i64.pow(even_count as u32); // 2 raised to the count of even integers
+
+    // Compute the result
+    let result = power_of_three - power_of_two;
+
+    // Output the result
+    println!("{}", result);
+}

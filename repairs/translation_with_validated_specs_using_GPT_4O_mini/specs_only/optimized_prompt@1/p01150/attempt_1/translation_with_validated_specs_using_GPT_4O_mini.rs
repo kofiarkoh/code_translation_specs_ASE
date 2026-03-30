@@ -1,0 +1,56 @@
+use std::collections::HashMap;
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    while io::stdin().read_line(&mut input).unwrap() > 0 {
+        let n: usize = input.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+        let result = calculate_arrangements(n);
+        println!("{}", result);
+        input.clear();
+    }
+}
+
+fn calculate_arrangements(n: usize) -> u64 {
+    // Memoization maps for odd and even calculations
+    let mut memo_odd = HashMap::new();
+    let mut memo_even = HashMap::new();
+
+    if n <= 16 && n % 2 == 1 {
+        // For odd N <= 16, the output is guaranteed to be zero
+        return 0;
+    } else if n <= 16 {
+        // For even N <= 16, calculate using the even logic
+        return calc_even(n, &mut memo_even);
+    } else {
+        // For N > 16, we can still use the even logic as per the specification
+        return calc_even(n, &mut memo_even);
+    }
+}
+
+fn calc_even(n: usize, memo: &mut HashMap<usize, u64>) -> u64 {
+    // Check if the result is already computed
+    if let Some(&result) = memo.get(&n) {
+        return result;
+    }
+
+    // Base cases for even N
+    if n == 2 {
+        return 1; // Only one arrangement for 2 princes
+    } else if n == 4 {
+        return 2; // Two arrangements for 4 princes
+    }
+
+    // Recursive calculation for even N
+    let mut total = 0;
+    for i in (2..=n).step_by(2) {
+        total += calc_even(n - i, memo);
+    }
+
+    // Store the computed result in the memoization map
+    memo.insert(n, total);
+    total
+}

@@ -1,0 +1,119 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0601]: `main` function not found in crate `translation_with_validated_specs_using_GPT_4O_mini`
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p02762/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:68:2
+   |
+68 | }
+   |  ^ consider adding a `main` function to `/Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p02762/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs`
+
+error[E0596]: cannot borrow `*self` as mutable, as it is behind a `&` reference
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p02762/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:60:24
+   |
+60 |             let root = self.find(i);
+   |                        ^^^^ `self` is a `&` reference, so it cannot be borrowed as mutable
+   |
+help: consider changing this to be a mutable reference
+   |
+57 |     fn adjusted_sizes(&mut self) -> Vec<isize> {
+   |                        +++
+
+error: aborting due to 2 previous errors
+
+Some errors have detailed explanations: E0596, E0601.
+For more information about an error, try `rustc --explain E0596`.
+```
+
+Latest Rust code:
+```rust
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<isize>, // Negative size to represent the size of the set
+    removals: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        UnionFind {
+            parent: (0..n).collect(),
+            size: vec![-1; n], // Initialize sizes to -1
+            removals: vec![0; n],
+        }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Increment removals for both elements
+            self.removals[root_x] += 1;
+            self.removals[root_y] += 1;
+
+            // Union by size
+            if self.size[root_x] < self.size[root_y] {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += self.size[root_x];
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += self.size[root_y];
+            }
+        }
+    }
+
+    fn query(&mut self, x: usize, y: usize) -> isize {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x == root_y {
+            // Increment removals for both elements
+            self.removals[root_x] += 1;
+            // Return adjusted size
+            return self.size[root_x] - self.removals[root_x] as isize;
+        }
+        // If not connected, return 0
+        0
+    }
+
+    fn adjusted_sizes(&self) -> Vec<isize> {
+        let mut sizes = vec![0; self.parent.len()];
+        for i in 0..self.parent.len() {
+            let root = self.find(i);
+            sizes[root] += 1; // Count total elements in each set
+        }
+        sizes.iter()
+            .enumerate()
+            .map(|(i, &count)| count - self.removals[i] as isize) // Adjust sizes by removals
+            .collect()
+    }
+}
+
+// Example usage (not part of the specification):
+// fn main() {
+//     let mut uf = UnionFind::new(5);
+//     uf.union(0, 1);
+//     uf.union(1, 2);
+//     uf.query(0, 2);
+//     let sizes = uf.adjusted_sizes();
+//     println!("{:?}", sizes); // Outputs adjusted sizes
+// }
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

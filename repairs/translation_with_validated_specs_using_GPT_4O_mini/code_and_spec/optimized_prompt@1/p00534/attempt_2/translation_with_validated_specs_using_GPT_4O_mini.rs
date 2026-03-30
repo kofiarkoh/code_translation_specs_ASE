@@ -1,0 +1,48 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    
+    // Read n and m
+    let n: usize = iter.next().unwrap().parse().expect("Invalid input for n");
+    let m: usize = iter.next().unwrap().parse().expect("Invalid input for m");
+
+    // Read weights k
+    let mut k = vec![0; n + 1]; // 1-based indexing
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    for (i, value) in input.split_whitespace().enumerate().take(n) {
+        k[i + 1] = value.parse().expect("Invalid input for k");
+    }
+
+    // Read costs t
+    let mut t = vec![0; m + 1]; // 1-based indexing
+    input.clear();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    for (i, value) in input.split_whitespace().enumerate().take(m) {
+        t[i + 1] = value.parse().expect("Invalid input for t");
+    }
+
+    // Initialize the matrix with a high constant value
+    let mut hi = vec![vec![1_000_000_000; n + 1]; m + 1];
+
+    // Set the first column to zero
+    for i in 0..=m {
+        hi[i][0] = 0;
+    }
+
+    // Compute the minimum cost
+    for i in 1..=m {
+        for j in 1..=n {
+            hi[i][j] = k[j] * t[i] + hi[i - 1][j - 1];
+            if hi[i][j] > hi[i - 1][j] {
+                hi[i][j] = hi[i - 1][j];
+            }
+        }
+    }
+
+    // Output the minimum cost
+    println!("{}", hi[m][n]);
+}

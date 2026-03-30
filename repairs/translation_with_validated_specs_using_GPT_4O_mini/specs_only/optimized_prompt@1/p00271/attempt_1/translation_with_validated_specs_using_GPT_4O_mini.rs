@@ -1,0 +1,36 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Create a vector to store the differences
+    let mut differences = Vec::new();
+
+    // Read input from standard input
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    // Read exactly seven pairs of integers
+    for _ in 0..7 {
+        let mut input = String::new();
+        // Read a line of input
+        handle.read_line(&mut input).expect("Failed to read line");
+
+        // Split the input line into two parts and parse them as integers
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 2 {
+            // If the input does not contain exactly two integers, behavior is undefined
+            panic!("Invalid input: expected two integers");
+        }
+
+        // Parse the integers
+        let a: i32 = parts[0].parse().expect("Failed to parse first integer");
+        let b: i32 = parts[1].parse().expect("Failed to parse second integer");
+
+        // Calculate the difference and store it
+        differences.push(a - b);
+    }
+
+    // Output the differences
+    for diff in differences {
+        println!("{}", diff);
+    }
+}

@@ -1,0 +1,73 @@
+use std::io::{self, Read};
+
+const NUM_MAX: usize = 100_000;
+const BUF_SIZE: usize = NUM_MAX + 50;
+
+fn main() {
+    let (num, changes) = read_input();
+    
+    if num == 0 {
+        println!("0");
+        return;
+    }
+
+    let mut str = vec![0u8; BUF_SIZE]; // Use u8 to store binary digits
+    read_str(&mut str, num);
+
+    // Convert '1' to true (1) and '0' to false (0)
+    let mut bool_str = vec![false; num + 1]; // Create a boolean vector
+    for i in 0..num {
+        bool_str[i] = str[i] == b'1';
+    }
+    bool_str[num] = !bool_str[num - 1]; // Append the opposite of the last character
+
+    let mut arr = vec![0; NUM_MAX * 4];
+    let mut aidx = 0;
+    let mut prev = true; // Start with true (1)
+    let mut cnt = 0;
+
+    for i in 0..=num {
+        if bool_str[i] == prev {
+            cnt += 1;
+            continue;
+        }
+        arr[aidx] = cnt;
+        aidx += 1;
+        prev = bool_str[i];
+        cnt = 1;
+    }
+
+    let mut cum = vec![0; NUM_MAX * 4];
+    for i in 1..NUM_MAX * 4 {
+        cum[i] = cum[i - 1] + arr[i - 1];
+    }
+
+    let mut ans = 0;
+    let ranges = 2 * changes + 1;
+    for i in (0..aidx).step_by(2) {
+        if i + ranges > aidx {
+            break;
+        }
+        ans = ans.max(cum[i + ranges] - cum[i]);
+    }
+
+    println!("{}", ans);
+}
+
+fn read_input() -> (usize, usize) {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let num = iter.next().unwrap().parse::<usize>().unwrap();
+    let changes = iter.next().unwrap().parse::<usize>().unwrap();
+    (num, changes)
+}
+
+fn read_str(str: &mut Vec<u8>, size: usize) {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let bytes = input.as_bytes();
+    for i in 0..size {
+        str[i] = bytes[i];
+    }
+}

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code processes a list of pairs of integers, where each pair consists of a long integer and a regular integer. It computes a maximum value based on the differences between the cumulative sums of the regular integers and the minimum long integer encountered during the processing of the pairs at each step.
+
+## 2. Inputs
+- An integer \( N \) representing the number of pairs.
+- \( N \) pairs of integers, where each pair consists of:
+  - A long integer.
+  - A regular integer.
+
+## 3. Outputs
+- A single long integer representing the maximum computed value based on the input pairs.
+
+## 4. Preconditions
+- \( N \) must be a positive integer.
+- Each long integer and regular integer in the pairs must be valid integers within the range of their respective types.
+
+## 5. Postconditions
+- The output is the maximum value derived from the differences between the cumulative sums of the regular integers and the minimum long integer encountered up to each point in the processing.
+
+## 6. Invariants
+- The cumulative sum of the regular integers is maintained throughout the processing.
+- The minimum value of the long integers is updated as new pairs are processed.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input or errors during input reading. It assumes that all inputs are well-formed and within valid ranges.
+
+## 8. State Transitions
+- The state transitions occur as each pair is processed, updating the cumulative sum of regular integers and the minimum long integer accordingly. The maximum value is recalculated at each step based on the current cumulative sum and the minimum long integer encountered up to that point.
+
+## 9. Non-functional Constraints
+- The algorithm's time complexity is influenced by the sorting step, which is \( O(N \log N) \). The overall space complexity is \( O(N) \) due to the storage of input pairs and cumulative sums.
+```

@@ -1,0 +1,49 @@
+fn compute_scores(n: usize, sequence: &str, q: usize, window_sizes: &[usize]) -> Vec<u64> {
+    // Ensure the input sequence is valid
+    assert!(n > 0 && n == sequence.len());
+    assert!(q >= 0);
+    for &k in window_sizes {
+        assert!(k > 0 && k <= n);
+    }
+
+    let mut results = Vec::with_capacity(q);
+    
+    for &k in window_sizes {
+        let mut score = 0u64;
+        let mut count_d = 0u64;
+
+        // Initialize the first window
+        for i in 0..k {
+            match sequence.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => score += count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+        }
+        results.push(score);
+
+        // Slide the window across the sequence
+        for i in k..n {
+            // Remove the character going out of the window
+            match sequence.chars().nth(i - k).unwrap() {
+                'D' => count_d -= 1,
+                'M' => score -= count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+
+            // Add the new character coming into the window
+            match sequence.chars().nth(i).unwrap() {
+                'D' => count_d += 1,
+                'M' => score += count_d,
+                'C' => {}
+                _ => unreachable!(), // Only 'D', 'M', and 'C' are valid
+            }
+
+            results.push(score);
+        }
+    }
+
+    results
+}

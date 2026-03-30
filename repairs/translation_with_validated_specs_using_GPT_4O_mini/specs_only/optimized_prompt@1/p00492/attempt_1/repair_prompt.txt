@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program reads a grid of integers representing a map and calculates the number of grid cells that are adjacent to at least one cell marked as "2" after performing a specific traversal based on predefined movement vectors. The traversal marks cells in the grid based on valid movements, and the counting of adjacent cells is performed afterward.
+
+## 2. Inputs
+- Two integers representing the width (`w`) and height (`h`) of the grid.
+- A grid of integers with dimensions `(h x (2*w + 4))`, where each cell can contain various integer values.
+
+## 3. Outputs
+- A single integer representing the count of grid cells that are adjacent to at least one cell marked as "2".
+
+## 4. Preconditions
+- The input dimensions `w` and `h` must be positive integers.
+- The grid must be populated with integers before the program processes it.
+
+## 5. Postconditions
+- The output integer reflects the total count of cells that are adjacent to cells marked as "2" after the traversal is complete. Cells are considered adjacent if they are directly next to a marked cell in any of the six defined movement directions (up, down, left, right, and the two diagonal directions).
+
+## 6. Invariants
+- The grid remains unchanged except for the cells that are marked as "2" during the traversal.
+- The traversal only marks cells that are within the bounds of the grid and not already marked.
+- Cells that are already counted as adjacent to a marked cell are not counted again.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds errors explicitly. It assumes valid input is provided.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program marks cells in the grid during the traversal based on the defined movement vectors. The marking of cells as "2" is a key part of the state transition, which influences the subsequent counting of adjacent cells.
+
+## 9. Non-functional Constraints (if inferable)
+- The program operates within the constraints of memory for a grid of size `(h x (2*w + 4))` and is expected to complete in a reasonable time for typical input sizes.
+
+## 10. Counting Logic Clarification
+- A cell is counted as adjacent to a marked cell if it is directly next to a cell marked as "2" in any of the six defined movement directions. The counting process occurs after the traversal and marking phase, ensuring that only cells adjacent to marked cells are considered. Cells that are out of bounds or already marked are excluded from the counting process.
+```

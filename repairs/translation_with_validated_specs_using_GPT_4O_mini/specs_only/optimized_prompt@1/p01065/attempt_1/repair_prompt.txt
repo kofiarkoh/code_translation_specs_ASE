@@ -1,0 +1,68 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a dynamic programming solution to optimize a barter system, determining the maximum value obtainable given a set of constraints related to resource costs and trade-offs associated with items available for barter.
+
+## 2. Inputs
+- An integer \( n \) representing the number of items available for barter, which must be a non-negative integer.
+- Two integers \( x \) and \( y \) representing the maximum resources available for two distinct categories, both of which must be non-negative integers.
+- For each item, four integers:
+  - \( a \): the resource cost in the first category (must be a non-negative integer).
+  - \( b \): the resource cost in the second category (must be a non-negative integer).
+  - \( c \): the value gained from the item (must be a non-negative integer).
+  - \( d \): the additional resource gained in the second category (must be a non-negative integer).
+
+## 3. Outputs
+- An integer representing the maximum value obtainable through optimal trading, given the constraints of the resources.
+
+## 4. Preconditions
+- The number of items \( n \) must be a non-negative integer.
+- The resource limits \( x \) and \( y \) must be non-negative integers.
+- Each item's resource costs \( a \) and \( b \), and values \( c \) and \( d \) must be non-negative integers.
+
+## 5. Postconditions
+- The output integer is the maximum value that can be achieved without exceeding the specified resource limits for the first category. The second category's resource limit may be temporarily exceeded due to additional resources gained from items, but the final state must respect the maximum limit when calculating the output.
+
+## 6. Invariants
+- The dynamic programming table maintains valid states throughout the computation, ensuring that each entry reflects the best possible value obtainable for the given resource constraints at each step.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid states. It assumes that inputs are well-formed and within the specified ranges.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iterates through each item, updating the dynamic programming table based on the current item's resource costs and values. Specifically, the algorithm considers:
+  - Maintaining the current state if the item is not selected.
+  - Transitioning to a new state by selecting the item, which involves deducting the resource costs \( a \) and \( b \) from the respective resource limits and adding the value \( c \) to the current value. The second resource may exceed its limit temporarily due to the additional resource \( d \) gained from the item, but must be capped at the maximum limit when calculating the final state.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial with respect to the number of items and the resource limits, ensuring reasonable performance for typical input sizes.
+```

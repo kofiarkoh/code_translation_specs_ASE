@@ -1,0 +1,146 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# 1. Functional Description
+The code sorts an array of integers and computes the difference between the sum of elements at even indices and the sum of elements at odd indices after sorting.
+
+# 2. Inputs
+- An integer \( N \) representing the number of elements in the array.
+- An array of \( N \) integers.
+
+# 3. Outputs
+- A single integer representing the difference between the sum of elements at even indices and the sum of elements at odd indices in the sorted array.
+
+# 4. Preconditions
+- \( N \) is a non-negative integer.
+- The input array contains \( N \) integers.
+
+# 5. Postconditions
+- The output is the computed difference based on the sorted order of the input array.
+
+# 6. Invariants
+- The array is sorted in non-decreasing order before the sums are computed.
+- The sums are calculated based on the sorted array's indices.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values or negative sizes).
+- Memory allocation failures for temporary arrays are not handled.
+
+# 8. State Transitions (if applicable)
+- The state transitions from an unsorted array to a sorted array, followed by the computation of sums based on the sorted array.
+
+# 9. Non-functional Constraints (if inferable)
+- The sorting operation has a time complexity of \( O(N \log N) \).
+- The overall space complexity is \( O(N) \) due to the temporary arrays used for merging.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <math.h>
+
+#define SENTINEL 1000000000000000000
+
+void merge(long long A[], long long left, long long mid, long long right){
+  long long n1, n2, i, j, k;
+  long long *L,*R;
+  
+  n1 = mid-left;
+  n2 = right-mid;
+  
+  L = (long long*)malloc(sizeof(long long) *(n1 + 1));
+  R = (long long*)malloc(sizeof(long long) *(n2 + 1));
+  
+  for(i = 0; i <= n1 - 1; i++){
+    L[i] = A[left + i];
+  }
+  for(j = 0; j <= n2 - 1; j++){
+    R[j] = A[mid + j];
+  }
+  
+  L[n1] = SENTINEL;
+  R[n2] = SENTINEL;
+  
+  i = 0;
+  j = 0;
+  
+  for(k = left; k <= right - 1; k++){
+   if(L[i] <= R[j]){
+      A[k] = L[i];
+      i++;
+    }
+    else{
+      A[k] = R[j];
+      j++;
+    }
+  }
+  free(L);
+  free(R);
+}
+
+void mergeSort(long long A[], long long left, long long right){
+  long long mid;
+  
+  if(left + 1 < right){
+    mid=(left + right)/2;
+    mergeSort(A, left, mid);
+    mergeSort(A, mid, right);
+    merge(A, left, mid, right);
+  }
+}
+
+int main(void){
+
+    int N;
+
+    scanf("%d", &N);
+
+    long long a[N];
+
+    for(int i = 0; i < N; i ++){
+        scanf("%lld", &a[i]);
+    }
+
+    mergeSort(a, 0, N);
+
+    long long A = 0, B = 0;
+
+    if(N % 2 == 0){
+        for(int i = N-1; i >= 0; i -= 2){
+            A += a[i];
+            B += a[i-1];
+        }
+        printf("%lld\n", A - B);
+    }else{
+        for(int i = N-1; i >= 1; i -= 2){
+            A += a[i];
+            B += a[i-1];
+        }
+        A += a[0];
+        printf("%lld\n", A - B);
+    }
+
+    return 0;
+}
+=== C CODE END ===

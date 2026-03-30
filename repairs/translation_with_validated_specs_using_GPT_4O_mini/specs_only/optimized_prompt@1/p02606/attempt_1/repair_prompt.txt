@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the count of integers within a specified inclusive range that are divisible by a given positive integer divisor.
+
+## 2. Inputs
+- Three integers: 
+  - A lower bound \( L \) (inclusive).
+  - An upper bound \( R \) (inclusive).
+  - A positive integer divisor \( d \).
+
+## 3. Outputs
+- An integer representing the count of integers within the specified range from \( L \) to \( R \) that are divisible by \( d \).
+
+## 4. Preconditions
+- The lower bound \( L \) must be less than or equal to the upper bound \( R \).
+- The divisor \( d \) must be a positive integer.
+
+## 5. Postconditions
+- The output integer is non-negative and accurately represents the total count of integers in the range from \( L \) to \( R \) that are divisible by \( d \).
+
+## 6. Invariants
+- The count of divisible integers is consistent with the mathematical definition of divisibility within the specified range, calculated using the formula \( \text{count} = \left\lfloor \frac{R}{d} \right\rfloor - \left\lfloor \frac{L-1}{d} \right\rfloor \). This formula ensures that both bounds \( L \) and \( R \) are included in the count if they are divisible by \( d \).
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input scenarios such as non-integer values or a zero divisor. It is assumed that inputs will adhere to the specified constraints.
+
+## 8. State Transitions (if applicable)
+- The system transitions from an input state, where the user provides the integers \( L \), \( R \), and \( d \), to an output state, where the program computes and displays the count of integers divisible by \( d \) within the specified range.
+
+## 9. Non-functional Constraints (if inferable)
+- The execution time is expected to be constant, as the operations performed are arithmetic and do not depend on the size of the input values.
+```

@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a grid-based game where a player can move, push, pull, climb, and descend blocks on a map. The game ends when specific conditions are met, such as reaching a goal, encountering obstacles, or when the player has no valid moves left.
+
+## 2. Inputs
+- Dimensions of the game map (height and width).
+- A grid representation of the game map, where each cell can contain different characters representing the player, blocks, goals, or obstacles.
+- A sequence of commands that dictate the player's actions (e.g., move, push, pull).
+
+## 3. Outputs
+- Game status messages indicating the outcome of the game (e.g., cleared, death by hole, death by block, death by walking goal, or gave up).
+
+## 4. Preconditions
+- The game map must be initialized with valid dimensions and a valid grid representation.
+- The player must start at a designated position marked by a specific character on the map.
+
+## 5. Postconditions
+- The game state is updated based on the player's actions.
+- The game ends with a status message when a game-over condition is met.
+
+## 6. Invariants
+- The player's position remains within the bounds of the map.
+- The game map is consistently updated to reflect the player's actions and the state of blocks.
+
+## 7. Error Handling / Exceptional Behavior
+- Invalid commands or out-of-bounds movements are ignored without altering the game state.
+- The game terminates gracefully when the input dimensions are zero.
+
+## 8. State Transitions
+- The game transitions between states based on player actions and game-over conditions, updating the player's position and the map accordingly.
+- The game can enter a "Gave Up" state when the player has no valid moves left. This occurs when the player cannot perform any actions that would change their position or the state of the blocks, particularly when surrounded by obstacles or when all possible moves are blocked.
+
+## 9. Non-functional Constraints
+- The game operates within a fixed maximum map size (51x51).
+- The game loop continues until a termination condition is met, ensuring responsiveness to player commands.
+```

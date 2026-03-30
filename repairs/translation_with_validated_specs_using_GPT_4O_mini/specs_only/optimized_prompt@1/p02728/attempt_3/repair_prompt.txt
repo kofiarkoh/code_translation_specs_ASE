@@ -1,0 +1,109 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02728/p02728_sample1_output.txt
+Input:
+5
+1 2
+1 3
+3 4
+3 5
+Expected:
+8
+2
+12
+3
+3
+Actual:
+[1, 1, 1, 1, 1]
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+const MODULO: i64 = 1_000_000_007; // Define the modulo constant
+
+fn compute_tree_values(n: usize, a: &[usize], b: &[usize]) -> Vec<i64> {
+    // Initialize the tans and tS arrays
+    let mut tans = vec![1; n]; // Each node's value initialized to 1
+    let mut tS = vec![0; n]; // Count of child nodes for each node
+
+    // Build the adjacency list for the tree
+    let mut tree = vec![Vec::new(); n];
+    for i in 0..(n - 1) {
+        tree[a[i]].push(b[i]);
+        tree[b[i]].push(a[i]);
+    }
+
+    // Perform a BFS to compute the values
+    let mut visited = vec![false; n];
+    let mut queue = VecDeque::new();
+    queue.push_back(0); // Start from the root node (assumed to be node 0)
+    visited[0] = true;
+
+    while let Some(node) = queue.pop_front() {
+        for &child in &tree[node] {
+            if !visited[child] {
+                visited[child] = true;
+                queue.push_back(child);
+                tS[node] += 1; // Increment child count for the parent node
+            }
+        }
+    }
+
+    // Post-order traversal to compute the values
+    let mut stack = vec![0];
+    let mut post_order = Vec::new();
+
+    while let Some(node) = stack.pop() {
+        post_order.push(node);
+        for &child in &tree[node] {
+            if visited[child] {
+                visited[child] = false; // Mark as processed
+                stack.push(child);
+            }
+        }
+    }
+
+    // Compute the values in reverse post-order
+    for &node in post_order.iter().rev() {
+        for &child in &tree[node] {
+            if !visited[child] { // Only process unvisited children
+                tans[node] = (tans[node] * tans[child]) % MODULO; // Update parent's value
+            }
+        }
+    }
+
+    tans
+}
+
+fn main() {
+    // Example usage
+    let n = 5;
+    let a = vec![0, 0, 1, 1];
+    let b = vec![1, 2, 3, 4];
+    let result = compute_tree_values(n, &a, &b);
+    println!("{:?}", result); // Output the computed values
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

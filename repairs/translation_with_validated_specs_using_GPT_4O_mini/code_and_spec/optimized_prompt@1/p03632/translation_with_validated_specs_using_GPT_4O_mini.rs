@@ -1,0 +1,44 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .map(|s| s.parse().expect("Invalid input"))
+        .collect();
+
+    let (a, b, c, d) = (nums[0], nums[1], nums[2], nums[3]);
+
+    // Preconditions check (assumed valid as per specification)
+    // A <= B and C <= D are guaranteed by the specification.
+
+    let mut a_presence = [0; 101];
+    let mut b_presence = [0; 101];
+    let mut overlap_count = 0;
+
+    // Mark presence in the first range [A, B]
+    for i in a..=b {
+        a_presence[i as usize] = 1;
+    }
+
+    // Mark presence in the second range [C, D]
+    for i in c..=d {
+        b_presence[i as usize] = 1;
+    }
+
+    // Count overlaps
+    for i in 0..=100 {
+        if a_presence[i] == 1 && b_presence[i] == 1 {
+            overlap_count += 1;
+        }
+    }
+
+    // Adjust the output based on the overlap count
+    if overlap_count > 0 {
+        println!("{}", overlap_count - 1);
+    } else {
+        println!("{}", overlap_count);
+    }
+}

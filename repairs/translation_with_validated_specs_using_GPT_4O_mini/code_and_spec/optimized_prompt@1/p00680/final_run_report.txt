@@ -1,0 +1,31 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0502]: cannot borrow `self.edges` as immutable because it is also borrowed as mutable
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00680/attempt_3/translation_with_validated_specs_using_GPT_4O_mini.rs:182:49
+    |
+182 |                     let ep = &mut self.edges[s][self.edges[prev][edge_index].rev];
+    |                                   ----------   -^^^^^^^^^^-----------------------
+    |                                   |            ||
+    |                                   |            |immutable borrow occurs here
+    |                                   |            mutable borrow later used here
+    |                                   mutable borrow occurs here
+    |
+    = help: use `.split_at_mut(position)` to obtain two mutable non-overlapping sub-slices
+help: try adding a local storing this...
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00680/attempt_3/translation_with_validated_specs_using_GPT_4O_mini.rs:182:59
+    |
+182 |                     let ep = &mut self.edges[s][self.edges[prev][edge_index].rev];
+    |                                                           ^^^^^^
+help: ...and then using that local here
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00680/attempt_3/translation_with_validated_specs_using_GPT_4O_mini.rs:182:48
+    |
+182 |                     let ep = &mut self.edges[s][self.edges[prev][edge_index].rev];
+    |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0502`.

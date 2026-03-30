@@ -1,0 +1,54 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_only/optimized_prompt@1/p03406/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:20:52
+   |
+20 |                 (VV[i - (MD as usize % i)] * (MD / i + 1)) % MD
+   |                                                    ^ expected `i64`, found `usize`
+
+error[E0277]: cannot divide `i64` by `usize`
+   --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_only/optimized_prompt@1/p03406/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:20:50
+    |
+ 20 |                 (VV[i - (MD as usize % i)] * (MD / i + 1)) % MD
+    |                                                  ^ no implementation for `i64 / usize`
+    |
+    = help: the trait `Div<usize>` is not implemented for `i64`
+help: the following other types implement trait `Div<Rhs>`
+   --> /Users/lithe/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/ops/arith.rs:504:1
+    |
+504 | / div_impl_integer! {
+505 | |     (usize u8 u16 u32 u64 u128) => "This operation will panic if `other == 0`.",
+506 | |     (isize i8 i16 i32 i64 i128) => "This operation will panic if `other == 0` or the division results in overflow."
+507 | | }
+    | | ^
+    | | |
+    | | `&i64` implements `Div<i64>`
+    | | `&i64` implements `Div`
+    | |_`i64` implements `Div<&i64>`
+    |   `i64` implements `Div`
+    = note: this error originates in the macro `forward_ref_binop` which comes from the expansion of the macro `div_impl_integer` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_only/optimized_prompt@1/p03406/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:92:22
+   |
+92 |         ans = (ans * FF[1 << i] % MD * 2) % MD;
+   |                      ^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+
+warning: unnecessary `unsafe` block
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_only/optimized_prompt@1/p03406/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:55:5
+   |
+55 |     unsafe {
+   |     ^^^^^^ unnecessary `unsafe` block
+   |
+   = note: `#[warn(unused_unsafe)]` (part of `#[warn(unused)]`) on by default
+
+error: aborting due to 3 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0133, E0277, E0308.
+For more information about an error, try `rustc --explain E0133`.

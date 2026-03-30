@@ -1,0 +1,86 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code processes a square grid of characters to count and report the number of distinct connected components of a specific target character, which is defined as 'x'. Each component is defined by directly adjacent occurrences of the target character, where adjacency is determined by horizontal or vertical connections. The algorithm excludes any occurrences of the blocking character, defined as 'o', from being part of the same component.
+
+## 2. Inputs
+- A single integer representing the size of the grid (n), where n is a positive integer.
+- A grid of characters of size n x n, where each character can be one of three types: the target character ('x'), the blocking character ('o'), or an empty character.
+
+## 3. Outputs
+- An integer representing the number of distinct connected components of the target character ('x'), divided by three. The output is the integer result of this division.
+
+## 4. Preconditions
+- The input integer n must be a positive integer.
+- The grid must be filled with valid characters before processing, specifically including the target character and the blocking character.
+
+## 5. Postconditions
+- The output integer is the count of distinct connected components of the target character ('x'), adjusted according to the specified formula. The count reflects only those components that are formed by directly connected 'x' characters, with no influence from blocking characters.
+
+## 6. Invariants
+- The grid remains unchanged except for the marking of processed characters, which are marked as part of a connected component.
+- The count of connected components is incremented only when a new component of the target character ('x') is identified, ensuring that only directly connected occurrences are counted.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid inputs or out-of-bounds access. It assumes that the input adheres to the specified format and constraints. The behavior in cases of invalid input is undefined.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the grid is processed, marking characters as part of a connected component and updating the count of components. The algorithm transitions from an unvisited state to a visited state for each 'x' character that is part of a newly identified component.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a time complexity that is linear with respect to the number of grid cells, assuming a constant time operation for each cell. The performance is influenced by the size of the grid and the distribution of the target and blocking characters.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+int X[]={1,0,-1,0};
+int Y[]={0,1,0,-1};
+int main(){
+  char d[300][300]={};
+  int n,i,j,k,c=0,t,r,x[100010],y[100010],ny,nx;
+  scanf("%d",&n);
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++)scanf(" %c",&d[i+1][j+1]);
+  }
+  for(i=0;i<n;i++){
+    for(j=0;j<n;j++){
+      if(d[i+1][j+1]=='x')continue;
+      d[y[t=0]=i+1][x[0]=j+1]='x';
+      c++;
+      for(r=1;r-t;t++){
+	for(k=0;k<4;k++){
+	  ny=y[t]+Y[k];
+	  nx=x[t]+X[k];
+	  if(d[ny][nx]-'o')continue;
+	  d[y[r]=ny][x[r]=nx]='x';
+	  r++;
+	}
+      }
+    }
+  }
+  printf("%d\n",(c-1)/3);
+  return 0;
+}
+=== C CODE END ===

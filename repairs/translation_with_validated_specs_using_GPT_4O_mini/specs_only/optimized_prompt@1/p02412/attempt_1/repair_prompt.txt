@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of unique combinations of three distinct integers, selected from the range 1 to a specified integer, that sum to a given target value. The process continues until a termination condition is met.
+
+## 2. Inputs
+- Two integers, `n` and `x`, where:
+  - `n` specifies the upper limit of the range (1 to `n`).
+  - `x` is the target sum for the combinations.
+
+## 3. Outputs
+- An integer representing the count of unique combinations of three distinct integers that sum to `x`, divided by six, printed to the output.
+
+## 4. Preconditions
+- The input integers `n` and `x` must be non-negative.
+- The input must be provided in pairs until both `n` and `x` are zero, which indicates termination.
+
+## 5. Postconditions
+- The output is the integer count of valid combinations of three distinct integers that sum to `x`, divided by six, for each valid input pair until termination.
+
+## 6. Invariants
+- The integers selected for combinations are always distinct and within the range from 1 to `n`.
+- The count of combinations is incremented only when a valid combination summing to `x` is found.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- If `n` is less than 3, the output will always be zero since at least three distinct integers are required for a valid combination.
+
+## 8. State Transitions
+- The program transitions from reading input to processing combinations and then to outputting results, repeating this cycle until the termination condition is met.
+
+## 9. Counting Logic
+- The program counts combinations of three distinct integers `(i, j, k)` such that `1 ≤ i, j, k ≤ n` and `i`, `j`, and `k` are all different. The counting occurs within nested loops iterating over the range from 1 to `n`.
+- The final count of valid combinations is divided by six after all combinations have been considered, reflecting the fact that each combination of three integers can be arranged in six different ways.
+
+## 10. Non-functional Constraints
+- The program operates in a loop until termination, which may lead to indefinite execution if not provided with a terminating input. The performance is dependent on the value of `n`, as the number of combinations grows cubically with `n`.
+
+## 11. Combination Counting Clarification
+- The program counts combinations of three distinct integers without regard to the order of selection. Each unique set of integers that satisfies the sum condition is counted once, regardless of the order in which they are selected. The division by six accounts for the permutations of the three integers.
+```

@@ -1,0 +1,63 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code calculates an optimal schedule based on satisfaction scores over a specified number of days, adjusting the schedule to maximize the overall satisfaction score while considering associated costs for each type. The program iteratively refines the schedule within a time constraint to enhance the overall score.
+
+## 2. Inputs
+- An integer \( D \) representing the number of days, which must be a positive integer.
+- An array \( c \) of integers representing the costs associated with each type, where the size of the array is \( type + 1 \).
+- A 2D array \( s \) representing satisfaction scores for each day and type, with dimensions \( (D + 1) \times (type + 1) \).
+
+## 3. Outputs
+- An array \( schedul \) of integers representing the optimal schedule, where each element corresponds to the type selected for each day, indexed from 1 to \( D \).
+
+## 4. Preconditions
+- The number of days \( D \) must be a positive integer.
+- The costs and satisfaction scores must be provided in the correct format and within the specified bounds, ensuring that all indices used for accessing the satisfaction scores and costs are valid.
+
+## 5. Postconditions
+- The output schedule is generated based on the input satisfaction scores and costs, aiming to maximize the overall satisfaction score. The schedule is updated only if a new configuration yields a higher satisfaction score, which is calculated by considering both the satisfaction scores and the costs associated with the types.
+
+## 6. Invariants
+- The satisfaction scores and costs remain unchanged throughout the execution.
+- The schedule is updated only if a new configuration yields a higher satisfaction score, which is influenced by the last occurrence of each type.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid data formats. It assumes valid input is provided.
+- If the random number generation results in selecting an out-of-bounds type index, the behavior of the schedule adjustment may lead to undefined behavior, including potential segmentation faults.
+
+## 8. State Transitions
+- The state transitions occur during the schedule adjustment process, where the current schedule may be swapped with a new configuration based on random selection and score evaluation. The selection of types is done randomly, and the program does not enforce bounds checking on these selections. The score is recalculated after each swap, taking into account the last occurrence of each type and the associated costs.
+
+## 9. Non-functional Constraints
+- The execution time for the schedule optimization process is constrained to be less than approximately 2 seconds. The program continuously evaluates and adjusts the schedule until this time limit is reached.
+```

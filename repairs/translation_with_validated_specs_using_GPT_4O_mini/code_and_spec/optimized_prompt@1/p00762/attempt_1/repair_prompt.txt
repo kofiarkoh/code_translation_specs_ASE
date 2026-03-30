@@ -1,0 +1,161 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code simulates the placement of blocks on a grid based on specified orientations. It maintains a height map to track the number of blocks at each grid position and a top map to record the orientation of the top block at each position. The program processes multiple sets of block placements and outputs the count of blocks for each orientation from 1 to 6, reflecting the actual placements and their respective conditions.
+
+## 2. Inputs
+- A series of integers where the first integer indicates the number of block placements, followed by pairs of integers representing the top and front orientations of each block. The orientations must be within the valid range of 1 to 6.
+
+## 3. Outputs
+- For each set of block placements, the program outputs the count of blocks for orientations 1 through 6, formatted as space-separated integers. The counts reflect the number of blocks placed with each orientation based on the defined placement rules.
+
+## 4. Preconditions
+- The input must start with a positive integer indicating the number of block placements, followed by pairs of integers representing the top and front orientations of each block. Each orientation must be an integer within the range of 1 to 6.
+
+## 5. Postconditions
+- After processing the input, the height map and top map are updated to reflect the placements of the blocks. The output reflects the count of blocks for each orientation from 1 to 6, determined by the actual placements and the conditions under which blocks can be placed.
+
+## 6. Invariants
+- The height map and top map are always maintained within the bounds defined by the maximum grid size.
+- The height at any grid position is non-negative and reflects the number of blocks placed there.
+- A block can only be placed if the height of the target position is less than the height of the current position and the orientation conditions are satisfied. Specifically, the block can only be placed if the front orientation of the block being placed is greater than 3, and the corresponding orientations of adjacent positions also meet the defined criteria.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not explicitly handle invalid input; it assumes that the input adheres to the specified format and constraints.
+- If the input is malformed or out of expected bounds, the behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur during the placement of blocks, where the current position and orientation are updated based on the height map and the defined rules for movement. The placement of a block is contingent upon the height of adjacent positions and the orientations of the blocks being placed. Specifically, the program checks the heights of the adjacent positions and the orientations of the blocks to determine if a block can be placed at the current position.
+
+## 9. Non-functional Constraints
+- The program operates within a fixed grid size, which limits the number of blocks that can be placed. The performance is expected to be efficient for the defined grid size, but scalability beyond this size is not guaranteed. The placement logic ensures that blocks are only placed in valid configurations, which may affect the overall count of orientations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define N_MAX 4
+
+/*                 front  1  2  3  4  5  6 */
+char right[7][7] = { { 0, 0, 0, 0, 0, 0, 0 },   /* top */
+                     { 0, 0, 3, 5, 2, 4, 0 },   /* 1   */
+                     { 0, 4, 0, 1, 6, 0, 3 },   /* 2   */
+                     { 0, 2, 6, 0, 0, 1, 5 },   /* 3   */
+                     { 0, 5, 1, 0, 0, 6, 2 },   /* 4   */
+                     { 0, 3, 0, 6, 1, 0, 4 },   /* 5   */
+                     { 0, 0, 4, 2, 5, 3, 0 } }; /* 6   */
+
+#define RIGHT(top, front)  (right[(int)(top)][(int)(front)])
+#define BOTTOM(top, front) (7 - top)
+#define BACK(top, front)   (7 - front)
+#define LEFT(top, front)   (7 - RIGHT(top, front))
+
+/* ------ */
+
+char height_map[N_MAX * 2 + 1][N_MAX * 2 + 1],
+    top_map[N_MAX * 2 + 1][N_MAX * 2 + 2];
+
+void init()
+{
+    int x, y;
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            height_map[y][x] = top_map[y][x] = 0;
+}
+
+void put(char top, char front)
+{
+    int x = N_MAX, y = N_MAX, newfront, newtop, newx, newy, max;
+
+    while(1)
+    {
+        max = 0;
+
+        /* front */
+        if(height_map[y - 1][x] < height_map[y][x] && front > 3 && front > max)
+            newfront = top, newtop = BACK(top, front),
+                newx = x, newy = y - 1, max = front;
+
+        if(height_map[y + 1][x] < height_map[y][x]
+           && BACK(top, front) > 3 && BACK(top, front) > max)
+            newfront = BOTTOM(top, front), newtop = front,
+                newx = x, newy = y + 1, max = BACK(top, front);
+
+        if(height_map[y][x - 1] < height_map[y][x]
+           && LEFT(top, front) > 3 && LEFT(top, front) > max)
+            newfront = front, newtop = RIGHT(top, front),
+                newx = x - 1, newy = y, max = LEFT(top, front);
+
+        if(height_map[y][x + 1] < height_map[y][x]
+           && RIGHT(top, front) > 3 && RIGHT(top, front) > max)
+            newfront = front, newtop = LEFT(top, front),
+                newx = x + 1, newy = y, max = RIGHT(top, front);
+
+        if(!max)
+            break;
+        else
+            front = newfront, top = newtop, x = newx, y = newy;
+    }
+
+    height_map[y][x]++, top_map[y][x] = top;
+}
+
+void count_and_print()
+{
+    int x, y, count[7];
+
+    for(x = 1; x <= 6; x++)
+        count[x] = 0;
+
+    for(y = 0; y < N_MAX * 2 + 1; y++)
+        for(x = 0; x < N_MAX * 2 + 1; x++)
+            count[(int)top_map[y][x]]++;
+
+    for(x = 1; x < 6; x++)
+        printf("%d ", count[x]);
+    printf("%d\n", count[x]);
+}
+
+int main(void)
+{
+    int n;
+
+    while(scanf("%d", &n), n)
+    {
+        int t, f;
+
+        init();
+
+        while(n--)
+        {
+            scanf("%d %d", &t, &f);
+            put(t, f);
+        }
+
+        count_and_print();
+    }
+
+    return 0;
+}
+=== C CODE END ===

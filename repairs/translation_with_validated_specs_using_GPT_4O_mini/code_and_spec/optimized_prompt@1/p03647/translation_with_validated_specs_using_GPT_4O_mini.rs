@@ -1,0 +1,53 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of conditions to evaluate
+    let n: usize = match lines.next() {
+        Some(Ok(line)) => line.trim().parse().unwrap_or(0),
+        _ => return, // Handle invalid input gracefully
+    };
+
+    let mut p = 0; // Counter for conditions met
+    let mut possible = true; // Flag to determine if the state is possible
+
+    for line in lines {
+        if let Ok(line) = line {
+            let nums: Vec<i32> = line.split_whitespace()
+                .filter_map(|s| s.parse().ok())
+                .collect();
+
+            if nums.len() != 2 {
+                possible = false; // Invalid input format
+                break;
+            }
+
+            let a = nums[0];
+            let b = nums[1];
+
+            // Evaluation logic based on the specification
+            if p > 0 && n > 0 {
+                if a != 0 && b != p as i32 {
+                    p = if a != 0 { b - n as i32 } else { a };
+                }
+            } else {
+                p += 1;
+            }
+
+            if p <= 0 {
+                possible = false; // If counter reaches zero, it's impossible
+                break;
+            }
+        }
+    }
+
+    // Output the result based on the evaluation
+    if possible {
+        println!("POSSIBLE");
+    } else {
+        println!("IMPOSSIBLE");
+    }
+}

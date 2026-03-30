@@ -1,0 +1,35 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read three long double values from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Split the input into parts and parse them as f64 (Rust's closest to long double)
+    let mut values = input.split_whitespace()
+        .map(|s| s.parse::<f64>())
+        .collect::<Result<Vec<f64>, _>>()
+        .expect("Invalid input format");
+
+    // Ensure we have exactly three inputs
+    if values.len() != 3 {
+        eprintln!("Expected exactly three inputs.");
+        return;
+    }
+
+    let a = values[0];
+    let b = values[1];
+    let c = values[2];
+
+    // Calculate d
+    let d = c - a - b;
+
+    // Check the conditions and print the result
+    if d * d > 4.0 * a * b && d > 0.0 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```

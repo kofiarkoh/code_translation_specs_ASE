@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The program computes a weighted sum based on two sets of integer inputs, where each set represents counts of integers in a specified range. The output is the total sum of the maximum counts for each integer from both sets, multiplied by the integer value.
+
+## 2. Inputs
+- A series of pairs of integers, where each pair consists of:
+  - An integer representing the number of elements in the first set.
+  - An integer representing the number of elements in the second set.
+- Followed by two sequences of integers:
+  - The first sequence contains integers corresponding to the first set.
+  - The second sequence contains integers corresponding to the second set.
+
+## 3. Outputs
+- A single integer output for each pair of input integers, representing the computed weighted sum.
+
+## 4. Preconditions
+- The first integer of each pair must be non-negative.
+- The second integer of each pair must be non-negative.
+- Each integer in the sequences must be within the range of 1 to 20.
+
+## 5. Postconditions
+- The output integer is the sum of the maximum counts of each integer from 1 to 20, where each count is multiplied by its respective integer value.
+
+## 6. Invariants
+- The counts for each integer from 1 to 20 are maintained in two separate arrays throughout the computation.
+- The total sum is updated incrementally as each integer from 1 to 20 is processed.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-range integers explicitly; it assumes valid input as per the preconditions.
+
+## 8. State Transitions
+- The program transitions between states based on the input pairs, resetting the count arrays for each new pair of inputs and accumulating the result for each processed pair.
+- The program terminates input processing when the first integer of the input pair is zero, which serves as a termination signal for the input loop.
+
+## 9. Non-functional Constraints
+- The program operates in a linear time complexity relative to the number of integers processed, with a fixed space complexity for the count arrays.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#define max(X, Y) ((X)>(Y)?(X):(Y))
+int main(void)
+{
+    int w, d;
+    while (scanf("%d%d", &w, &d), w) {
+        int i, a[21]={0}, b[21]={0}, res;
+        for(i=0;i<w;++i) { int t; scanf("%d", &t); a[t]++; }
+        for(i=0;i<d;++i) { int t; scanf("%d", &t); b[t]++; }
+        res=0;
+        for(i=1;i<=20;++i) res+=i*max(a[i], b[i]);
+        printf("%d\n", res);
+    }
+    return 0;
+}
+=== C CODE END ===

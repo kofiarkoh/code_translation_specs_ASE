@@ -1,0 +1,79 @@
+```rust
+use std::collections::HashMap;
+use std::vec::Vec;
+
+struct Graph {
+    adjacency_list: HashMap<usize, Vec<usize>>,
+}
+
+impl Graph {
+    // Create a new graph with a specified number of vertices
+    fn new(num_vertices: usize) -> Self {
+        let mut adjacency_list = HashMap::new();
+        for i in 0..num_vertices {
+            adjacency_list.insert(i, Vec::new());
+        }
+        Graph { adjacency_list }
+    }
+
+    // Add a directed edge from source to target
+    fn add_edge(&mut self, source: usize, target: usize) {
+        // Preconditions: source and target must be valid indices
+        if let Some(neighbors) = self.adjacency_list.get_mut(&source) {
+            neighbors.push(target);
+        }
+        // Note: Invalid indices are not handled, as per specification
+    }
+
+    // Check for cycles in the graph using Depth-First Search (DFS)
+    fn has_cycle(&self) -> i32 {
+        let mut visited = vec![false; self.adjacency_list.len()];
+        let mut rec_stack = vec![false; self.adjacency_list.len()];
+
+        for vertex in self.adjacency_list.keys() {
+            if !visited[*vertex] {
+                if self.dfs_cycle_check(*vertex, &mut visited, &mut rec_stack) {
+                    return 1; // Cycle detected
+                }
+            }
+        }
+        0 // No cycle detected
+    }
+
+    // Helper function for DFS cycle detection
+    fn dfs_cycle_check(
+        &self,
+        vertex: usize,
+        visited: &mut Vec<bool>,
+        rec_stack: &mut Vec<bool>,
+    ) -> bool {
+        visited[vertex] = true;
+        rec_stack[vertex] = true;
+
+        if let Some(neighbors) = self.adjacency_list.get(&vertex) {
+            for &neighbor in neighbors {
+                if !visited[neighbor] {
+                    if self.dfs_cycle_check(neighbor, visited, rec_stack) {
+                        return true;
+                    }
+                } else if rec_stack[neighbor] {
+                    return true; // Cycle found
+                }
+            }
+        }
+
+        rec_stack[vertex] = false; // Backtrack
+        false
+    }
+}
+
+// Example usage (not part of the specification):
+// fn main() {
+//     let mut graph = Graph::new(5);
+//     graph.add_edge(0, 1);
+//     graph.add_edge(1, 2);
+//     graph.add_edge(2, 0); // This creates a cycle
+//     let cycle_exists = graph.has_cycle();
+//     println!("{}", cycle_exists); // Outputs: 1
+// }
+```

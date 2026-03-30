@@ -1,0 +1,114 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03837/p03837_sample1_output.txt
+Input:
+4 5
+1 2 3
+1 3 10
+2 3 5
+2 4 7
+3 4 1
+Expected:
+2
+Actual:
+3
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn min(a: i32, b: i32) -> i32 {
+    if a < b {
+        a
+    } else {
+        b
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read N and M
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    let mut a = vec![0; m];
+    let mut b = vec![0; m];
+    let mut c = vec![0; m];
+    let mut dist = vec![vec![i32::MAX; n]; n];
+
+    // Read edges
+    for i in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        a[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        b[i] = edge_parts.next().unwrap().parse::<usize>().unwrap() - 1;
+        c[i] = edge_parts.next().unwrap().parse::<i32>().unwrap();
+    }
+
+    // Initialize distance matrix
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Update distance matrix with edge weights
+    for i in 0..m {
+        dist[a[i]][b[i]] = min(dist[a[i]][b[i]], c[i]);
+        dist[b[i]][a[i]] = min(dist[b[i]][a[i]], c[i]);
+    }
+
+    // Floyd-Warshall algorithm
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+            }
+        }
+    }
+
+    let mut ans = m as i32;
+
+    // Count edges not part of any shortest path
+    for i in 0..m {
+        let mut f = true;
+        for j in 0..n {
+            if dist[j][a[i]] + c[i] == dist[j][b[i]] {
+                f = false;
+                break;
+            }
+        }
+        if !f {
+            ans -= 1;
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

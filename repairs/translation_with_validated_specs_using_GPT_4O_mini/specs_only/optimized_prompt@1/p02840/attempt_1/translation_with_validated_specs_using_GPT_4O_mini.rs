@@ -1,0 +1,45 @@
+use std::collections::HashMap;
+
+fn compute_count(n: usize, x: i32, d: i32) -> i32 {
+    // Handle special cases based on the specification
+    if x == 0 && d == 0 {
+        return 1;
+    }
+    if d == 0 {
+        return (n as i32) + 1;
+    }
+    if x == 0 {
+        return (n as i32) * (n as i32 - 1) / 2 + 1;
+    }
+
+    // HashMap to store unique entries based on computed value V
+    let mut ranges: HashMap<i32, (i32, i32)> = HashMap::new();
+    let mut count = 0;
+
+    for i in 1..=n {
+        // Calculate L and R based on the formulas provided
+        let l = ((x * 2 + d * (i as i32 - 1)) * (i as i32)) / 2);
+        let r = (((x * 2 - d * (i as i32 - 1)) * (i as i32)) / 2) + d);
+
+        // Calculate V as L modulo D
+        let v = l % d;
+
+        // Check if V already exists in the hash map
+        if let Some(&(existing_l, existing_r)) = ranges.get(&v) {
+            // Merge overlapping ranges
+            let new_l = existing_l.min(l);
+            let new_r = existing_r.max(r);
+            ranges.insert(v, (new_l, new_r));
+        } else {
+            // Insert new range
+            ranges.insert(v, (l, r));
+        }
+    }
+
+    // Count the number of complete intervals represented by the ranges
+    for &(_, (l, r)) in &ranges {
+        count += (r - l) / d;
+    }
+
+    count
+}

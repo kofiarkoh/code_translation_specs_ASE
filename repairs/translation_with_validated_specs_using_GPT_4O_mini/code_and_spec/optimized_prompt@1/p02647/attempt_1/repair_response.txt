@@ -1,0 +1,71 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N and K
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let k: usize = parts.next().unwrap().parse().unwrap();
+
+    // Read the array A
+    let mut a = vec![0; n + 1]; // Using 1-based indexing
+    let second_line = lines.next().unwrap().unwrap();
+    let values: Vec<usize> = second_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    for i in 1..=n {
+        a[i] = values[i - 1];
+    }
+
+    let mut min_value = 0;
+    let mut b = vec![0; n + 2]; // Temporary array B
+
+    for _ in 1..=k {
+        if min_value >= n {
+            break; // Terminate if min_value is already >= n
+        }
+        min_value = n;
+
+        // Reset B
+        for i in 1..=n + 1 {
+            b[i] = 0;
+        }
+
+        // Update B based on A
+        for i in 1..=n {
+            if a[i] >= i {
+                b[1] += 1;
+            } else {
+                b[i - a[i]] += 1;
+            }
+            if a[i] >= n - i {
+                b[n + 1] -= 1;
+            } else {
+                b[i + a[i] + 1] -= 1;
+            }
+        }
+
+        // Accumulate values in B to update A
+        let mut tmp = 0;
+        for i in 1..=n {
+            tmp += b[i];
+            a[i] = tmp;
+            if a[i] < min_value {
+                min_value = a[i];
+            }
+        }
+    }
+
+    // Print the result
+    print!("{}", a[1]);
+    for i in 2..=n {
+        print!(" {}", a[i]);
+    }
+    println!();
+}
+```

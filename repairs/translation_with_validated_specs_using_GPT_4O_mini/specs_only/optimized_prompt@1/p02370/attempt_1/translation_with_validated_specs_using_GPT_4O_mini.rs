@@ -1,0 +1,74 @@
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::io::{self, BufRead};
+
+fn topological_sort(num_vertices: usize, edges: Vec<(usize, usize)>) -> Vec<usize> {
+    // Create an adjacency list and a vector to count incoming edges
+    let mut adj_list: HashMap<usize, Vec<usize>> = HashMap::new();
+    let mut in_degree: Vec<usize> = vec![0; num_vertices];
+
+    // Build the graph
+    for (u, v) in edges {
+        adj_list.entry(u).or_insert_with(Vec::new).push(v);
+        in_degree[v] += 1;
+    }
+
+    // Queue for vertices with zero incoming edges
+    let mut zero_in_degree_queue: VecDeque<usize> = VecDeque::new();
+    for (i, &degree) in in_degree.iter().enumerate() {
+        if degree == 0 {
+            zero_in_degree_queue.push_back(i);
+        }
+    }
+
+    let mut sorted_order: Vec<usize> = Vec::new();
+
+    // Process the vertices
+    while let Some(vertex) = zero_in_degree_queue.pop_front() {
+        sorted_order.push(vertex);
+
+        // Decrease the in-degree of adjacent vertices
+        if let Some(neighbors) = adj_list.get(&vertex) {
+            for &neighbor in neighbors {
+                in_degree[neighbor] -= 1;
+                if in_degree[neighbor] == 0 {
+                    zero_in_degree_queue.push_back(neighbor);
+                }
+            }
+        }
+    }
+
+    // Return the sorted order
+    sorted_order
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read number of vertices and edges
+    let mut lines = reader.lines();
+    let first_line = lines.next().unwrap().unwrap();
+    let parts: Vec<usize> = first_line.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+    let num_vertices = parts[0];
+    let num_edges = parts[1];
+
+    // Read edges
+    let mut edges = Vec::new();
+    for _ in 0..num_edges {
+        let line = lines.next().unwrap().unwrap();
+        let edge_parts: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        edges.push((edge_parts[0], edge_parts[1]));
+    }
+
+    // Perform topological sort
+    let sorted_order = topological_sort(num_vertices, edges);
+
+    // Print the sorted order
+    for vertex in sorted_order {
+        println!("{}", vertex);
+    }
+}

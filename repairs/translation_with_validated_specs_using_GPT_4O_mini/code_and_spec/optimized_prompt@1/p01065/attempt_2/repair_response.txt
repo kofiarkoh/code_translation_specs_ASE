@@ -1,0 +1,69 @@
+```rust
+use std::io::{self, BufRead};
+
+const BASE: usize = 300;
+const DBASE: usize = 600;
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let n: usize = read_usize(&mut lines);
+    let x: usize = read_usize(&mut lines);
+    let y: usize = read_usize(&mut lines);
+
+    // Use isize for dp to allow negative values
+    let mut dp = vec![vec![vec![-1isize; DBASE + 2]; BASE + 2]; n + 1];
+    dp[0][0][BASE] = 0;
+
+    for i in 0..n {
+        let a: usize = read_usize(&mut lines);
+        let b: usize = read_usize(&mut lines);
+        let c: usize = read_usize(&mut lines);
+        let d: usize = read_usize(&mut lines);
+
+        for j in 0..=BASE {
+            for k in 0..=DBASE {
+                if dp[i][j][k] < 0 {
+                    continue;
+                }
+                // Maintain current state
+                if dp[i + 1][j][k] < dp[i][j][k] {
+                    dp[i + 1][j][k] = dp[i][j][k];
+                }
+                // Select the item
+                if x >= j + a && dp[i + 1][j + a][k.saturating_sub(b)] < dp[i][j][k] {
+                    dp[i + 1][j + a][k.saturating_sub(b)] = dp[i][j][k];
+                }
+                if dp[i + 1][j][k + c] < dp[i][j][k] + d {
+                    dp[i + 1][j][k + c] = dp[i][j][k] + d;
+                }
+            }
+        }
+    }
+
+    let mut ans = 0;
+    for j in 0..=x {
+        for k in 0..=DBASE {
+            if ans < dp[n][j][k] && y + BASE >= k {
+                ans = dp[n][j][k];
+            }
+        }
+    }
+    println!("{}", ans);
+}
+
+fn read_usize<I>(lines: &mut I) -> usize
+where
+    I: Iterator<Item = io::Result<String>>,
+{
+    lines
+        .next()
+        .unwrap()
+        .unwrap()
+        .trim()
+        .parse::<usize>()
+        .unwrap()
+}
+```

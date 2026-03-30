@@ -1,0 +1,121 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes a count of integers based on their prime factorization and a specific multiplicative condition. For each integer up to the maximum input value, it determines whether the product of its prime factors, each raised to their respective powers, meets or exceeds twice the integer itself. The results are stored for later retrieval.
+
+## 2. Inputs
+- An integer Q representing the number of subsequent integers.
+- An array of Q integers, each representing a value for which the count will be computed.
+
+## 3. Outputs
+- An array of Q integers, each representing the computed count for the corresponding input integer.
+
+## 4. Preconditions
+- The input Q must be a positive integer.
+- Each integer in the input array must be a non-negative integer.
+
+## 5. Postconditions
+- The output array contains counts that reflect the number of integers up to each input value that satisfy the specified multiplicative condition. Specifically, this condition is defined as the product of all prime factors raised to their respective powers being greater than or equal to twice the integer itself, but only for integers that have prime factors contributing to the product.
+
+## 6. Invariants
+- The maximum integer processed is always greater than or equal to the largest integer in the input array.
+- The count for each integer is non-decreasing as the integer value increases.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input for Q or any integer in the input array cannot be read correctly, the program terminates with an error code.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each integer from 2 to the maximum input value, updating the count based on the results of the multiplicative condition derived from the prime factorization.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm must efficiently handle the factorization of integers up to the maximum input value, ensuring that performance remains acceptable for larger values of Q and N.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <inttypes.h>
+
+int Q;
+int N[114514];
+
+int count[114514];
+
+int mizukinana;
+int fukuennmisato[64][2];
+int64_t utiyamayumi;
+int64_t yosinagasayuri;
+
+void minaseinori(int idx, int64_t acc) {
+	if (idx >= mizukinana) {
+		if (acc != utiyamayumi) {
+			yosinagasayuri *= acc;
+			if (yosinagasayuri > utiyamayumi * 2) yosinagasayuri = utiyamayumi * 2;
+		}
+	} else {
+		int i;
+		for (i = 0; i <= fukuennmisato[idx][1]; i++) {
+			minaseinori(idx + 1, acc);
+			acc *= fukuennmisato[idx][0];
+		}
+	}
+}
+
+int main(void) {
+	int max = 0;
+	int i;
+	if (scanf("%d", &Q) != 1) return 1;
+	for (i = 0; i < Q; i++) {
+		if (scanf("%d", &N[i]) != 1) return 1;
+		if (max < N[i]) max = N[i];
+	}
+	for (i = 2; i <= max; i++) {
+		int tomatu, sumipe = i;
+		mizukinana = 0;
+		for (tomatu = 2; tomatu * tomatu <= sumipe; tomatu++) {
+			if (sumipe % tomatu == 0) {
+				int c = 0;
+				while (sumipe % tomatu == 0) {
+					sumipe /= tomatu;
+					c++;
+				}
+				fukuennmisato[mizukinana][0] = tomatu;
+				fukuennmisato[mizukinana][1] = c;
+				mizukinana++;
+			}
+		}
+		if (sumipe > 1) {
+			fukuennmisato[mizukinana][0] = sumipe;
+			fukuennmisato[mizukinana][1] = 1;
+			mizukinana++;
+		}
+		utiyamayumi = i;
+		yosinagasayuri = 1;
+		minaseinori(0, 1);
+		count[i] = count[i - 1] + (yosinagasayuri >= i * 2);
+	}
+	for (i = 0; i < Q; i++) printf("%d\n", count[N[i]]);
+	return 0;
+}
+=== C CODE END ===

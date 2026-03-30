@@ -1,0 +1,144 @@
+use std::io::{self, BufRead};
+
+const N_MAX: usize = 4;
+const GRID_SIZE: usize = N_MAX * 2 + 1;
+
+struct BlockSimulator {
+    height_map: [[u8; GRID_SIZE]; GRID_SIZE],
+    top_map: [[u8; GRID_SIZE + 1]; GRID_SIZE],
+}
+
+impl BlockSimulator {
+    fn new() -> Self {
+        BlockSimulator {
+            height_map: [[0; GRID_SIZE]; GRID_SIZE],
+            top_map: [[0; GRID_SIZE + 1]; GRID_SIZE],
+        }
+    }
+
+    fn right(top: u8, front: u8) -> u8 {
+        const RIGHT: [[u8; 7]; 7] = [
+            [0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 3, 5, 2, 4, 0],
+            [0, 4, 0, 1, 6, 0, 3],
+            [0, 2, 6, 0, 0, 1, 5],
+            [0, 5, 1, 0, 0, 6, 2],
+            [0, 3, 0, 6, 1, 0, 4],
+            [0, 0, 4, 2, 5, 3, 0],
+        ];
+        RIGHT[top as usize][front as usize]
+    }
+
+    fn bottom(top: u8) -> u8 {
+        7 - top
+    }
+
+    fn back(front: u8) -> u8 {
+        7 - front
+    }
+
+    fn left(top: u8, front: u8) -> u8 {
+        7 - Self::right(top, front)
+    }
+
+    fn put(&mut self, top: u8, front: u8) {
+        let (mut x, mut y) = (N_MAX, N_MAX);
+        let mut current_top = top;
+        let mut current_front = front;
+
+        loop {
+            let mut max = 0;
+            let (mut new_top, mut new_front, mut new_x, mut new_y) = (0, 0, x, y);
+
+            // Check front
+            if self.height_map[y - 1][x] < self.height_map[y][x] && front > 3 && front > max {
+                new_front = current_top;
+                new_top = Self::back(current_front);
+                new_x = x;
+                new_y = y - 1;
+                max = front;
+            }
+
+            // Check back
+            if self.height_map[y + 1][x] < self.height_map[y][x] && Self::back(current_top) > 3 && Self::back(current_top) > max {
+                new_front = Self::bottom(current_front);
+                new_top = current_front;
+                new_x = x;
+                new_y = y + 1;
+                max = Self::back(current_top);
+            }
+
+            // Check left
+            if self.height_map[y][x - 1] < self.height_map[y][x] && Self::left(current_top, current_front) > 3 && Self::left(current_top, current_front) > max {
+                new_front = current_front;
+                new_top = Self::right(current_top, current_front);
+                new_x = x - 1;
+                new_y = y;
+                max = Self::left(current_top, current_front);
+            }
+
+            // Check right
+            if self.height_map[y][x + 1] < self.height_map[y][x] && Self::right(current_top, current_front) > 3 && Self::right(current_top, current_front) > max {
+                new_front = current_front;
+                new_top = Self::left(current_top, current_front);
+                new_x = x + 1;
+                new_y = y;
+                max = Self::right(current_top, current_front);
+            }
+
+            if max == 0 {
+                break;
+            } else {
+                current_front = new_front;
+                current_top = new_top;
+                x = new_x;
+                y = new_y;
+            }
+        }
+
+        self.height_map[y][x] += 1;
+        self.top_map[y][x] = current_top;
+    }
+
+    fn count_and_print(&self) {
+        let mut count = [0; 7];
+
+        for y in 0..GRID_SIZE {
+            for x in 0..GRID_SIZE {
+                count[self.top_map[y][x] as usize] += 1;
+            }
+        }
+
+        for i in 1..6 {
+            print!("{} ", count[i]);
+        }
+        println!("{}", count[6]);
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: usize = line.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut simulator = BlockSimulator::new();
+
+        for _ in 0..n {
+            let mut input = String::new();
+            reader.read_line(&mut input).unwrap();
+            let parts: Vec<u8> = input.split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            let (t, f) = (parts[0], parts[1]);
+            simulator.put(t, f);
+        }
+
+        simulator.count_and_print();
+    }
+}

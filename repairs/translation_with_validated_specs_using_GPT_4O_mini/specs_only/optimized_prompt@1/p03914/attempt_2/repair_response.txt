@@ -1,0 +1,38 @@
+```rust
+const MODULO: i64 = 1_000_000_007; // Predefined constant for modulo operation
+
+fn compute_combinatorial_value(n: usize, m: usize) -> i64 {
+    // Preconditions: N must not exceed 302
+    assert!(n <= 302, "N must not exceed 302");
+    
+    // Initialize the dynamic programming table
+    let mut dp = vec![vec![0; 303]; 303];
+
+    // Base case: dp[0][0] = 1 (not explicitly stated but implied for combinatorial logic)
+    dp[0][0] = 1;
+
+    // Fill the dynamic programming table based on the combinatorial logic
+    for _k in 1..=m { // Prefixing with underscore to avoid unused variable warning
+        for i in 0..=n {
+            for j in 0..=n {
+                // Update dp[i][j] based on the specified combinatorial rules
+                let contribution1 = dp[i][j] * (n - i) as i64;
+                let contribution2 = dp[i][i] * j as i64;
+                let contribution3 = dp[i][j] * (i as i64 - j as i64);
+                
+                // Sum contributions and take modulo
+                dp[i][j] = ((contribution1 + contribution2 + contribution3) % MODULO + MODULO) % MODULO;
+            }
+        }
+    }
+
+    // Return the computed value at dp[n][n], which may be zero based on the conditions
+    dp[n][n]
+}
+
+fn main() {
+    // Example usage
+    let result = compute_combinatorial_value(5, 3);
+    println!("{}", result);
+}
+```

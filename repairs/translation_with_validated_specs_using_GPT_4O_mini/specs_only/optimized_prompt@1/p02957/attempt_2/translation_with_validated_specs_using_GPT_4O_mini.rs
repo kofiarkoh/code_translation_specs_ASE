@@ -1,0 +1,43 @@
+use std::io;
+
+fn main() {
+    // Read two long integers from user input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let numbers: Vec<&str> = input.trim().split_whitespace().collect();
+
+    // Parse the input into two long integers
+    if numbers.len() != 2 {
+        println!("IMPOSSIBLE"); // Handle unexpected input length
+        return;
+    }
+
+    let a: i64 = match numbers[0].parse() {
+        Ok(num) => num,
+        Err(_) => {
+            println!("IMPOSSIBLE"); // Handle invalid input
+            return;
+        }
+    };
+
+    let b: i64 = match numbers[1].parse() {
+        Ok(num) => num,
+        Err(_) => {
+            println!("IMPOSSIBLE"); // Handle invalid input
+            return;
+        }
+    };
+
+    // Calculate the sum of the two integers
+    let sum = a + b;
+
+    // Check if the sum is even or odd
+    if sum % 2 == 0 {
+        // If even, compute the average using integer division
+        let average = sum / 2;
+        println!("{}", average); // Output the average
+    } else {
+        // If odd, output "IMPOSSIBLE"
+        println!("IMPOSSIBLE");
+    }
+}

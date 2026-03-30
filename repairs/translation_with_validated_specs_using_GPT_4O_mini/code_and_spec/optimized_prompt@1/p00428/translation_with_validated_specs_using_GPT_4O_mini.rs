@@ -1,0 +1,50 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let dimensions: Vec<usize> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let (n, m) = (dimensions[0], dimensions[1]);
+        if n == 0 && m == 0 {
+            break; // Termination condition
+        }
+
+        let mut matrix = vec![vec![0; m]; n];
+
+        // Read the matrix
+        for i in 0..n {
+            let row: Vec<i32> = reader.lines().next().unwrap().unwrap()
+                .split_whitespace()
+                .map(|s| s.parse().unwrap())
+                .collect();
+            matrix[i].copy_from_slice(&row);
+        }
+
+        // Calculate column sums
+        let mut column_sums = vec![0; m];
+        for i in 0..n {
+            for j in 0..m {
+                column_sums[j] += matrix[i][j];
+            }
+        }
+
+        // Find indices of columns sorted by their sums
+        let mut indices: Vec<usize> = (0..m).collect();
+        indices.sort_by(|&a, &b| column_sums[b].cmp(&column_sums[a]));
+
+        // Output the indices in 1-based format
+        for (i, &index) in indices.iter().enumerate() {
+            if i > 0 {
+                print!(" ");
+            }
+            print!("{}", index + 1);
+        }
+        println!(); // Newline after each output
+    }
+}

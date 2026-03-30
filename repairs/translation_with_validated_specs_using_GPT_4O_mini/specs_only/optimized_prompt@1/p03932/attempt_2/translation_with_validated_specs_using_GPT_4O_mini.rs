@@ -1,0 +1,65 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Read the grid dimensions
+    let mut dimensions = String::new();
+    reader.read_line(&mut dimensions).unwrap();
+    let dims: Vec<usize> = dimensions.split_whitespace()
+        .map(|s| s.parse::<usize>().unwrap())
+        .collect();
+    
+    let height = dims[0];
+    let width = dims[1];
+
+    // Initialize the grid
+    let mut grid = vec![vec![0; width]; height];
+
+    // Read the grid values
+    for i in 0..height {
+        let mut line = String::new();
+        reader.read_line(&mut line).unwrap();
+        grid[i] = line.split_whitespace()
+            .map(|s| s.parse::<i32>().unwrap())
+            .collect();
+    }
+
+    // Call the function to compute the maximum sum
+    let max_sum = max_sum_two_entities(&grid);
+    println!("{}", max_sum);
+}
+
+// Function to compute the maximum sum of values collected by two entities
+fn max_sum_two_entities(grid: &[Vec<i32>]) -> i32 {
+    let height = grid.len();
+    let width = grid[0].len();
+    
+    // Create a DP table to store maximum sums
+    let mut dp = vec![vec![0; width]; height];
+
+    // Fill the DP table for the first entity
+    for i in 0..height {
+        for j in 0..width {
+            let from_top = if i > 0 { dp[i - 1][j] } else { 0 };
+            let from_left = if j > 0 { dp[i][j - 1] } else { 0 };
+            dp[i][j] = grid[i][j] + from_top.max(from_left);
+        }
+    }
+
+    // The maximum sum for the second entity can be calculated similarly
+    let mut max_sum = 0;
+    for i in 0..height {
+        for j in 0..width {
+            let first_entity_value = dp[i][j];
+            let second_entity_value = grid[i][j]; // Collect value from the same cell
+            let total_value = first_entity_value + second_entity_value;
+
+            // Update the maximum sum
+            max_sum = max_sum.max(total_value);
+        }
+    }
+
+    max_sum
+}

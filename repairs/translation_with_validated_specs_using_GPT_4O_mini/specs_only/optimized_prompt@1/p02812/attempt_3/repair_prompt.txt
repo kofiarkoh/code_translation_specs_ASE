@@ -1,0 +1,65 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02812/p02812_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02812/p02812_sample1_output.txt
+Input:
+15
+ABABABCABCABCAB
+Expected:
+3
+Actual:
+Count of 'ABC': 2
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn count_abc_occurrences(n: usize, input: &str) -> usize {
+    // Preconditions check
+    if n < 3 || input.len() < n || input.len() > 50 {
+        // Undefined behavior as per specification; returning 0 for safety
+        return 0;
+    }
+
+    let mut count = 0;
+    let target = "ABC";
+    let target_len = target.len();
+
+    // Iterate through the string while ensuring we do not exceed the bounds defined by n
+    for i in 0..=n - target_len {
+        // Check for the substring "ABC"
+        if &input[i..i + target_len] == target {
+            count += 1; // Increment count for each occurrence found
+        }
+    }
+
+    count // Return the total count of occurrences
+}
+
+fn main() {
+    // Example usage
+    let n = 6;
+    let input = "ABCABC";
+    let result = count_abc_occurrences(n, input);
+    println!("Count of 'ABC': {}", result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

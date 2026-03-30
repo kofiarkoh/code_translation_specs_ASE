@@ -1,0 +1,45 @@
+use std::io;
+
+fn main() {
+    // Read the number of integers
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: usize = input.trim().parse().expect("Input must be a positive integer");
+
+    // Initialize sum and minimum tracking
+    let mut sum = 0;
+    let mut min_non_multiple_of_10: Option<i32> = None;
+
+    // Read the sequence of integers
+    for _ in 0..n {
+        input.clear();
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+        let value: i32 = input.trim().parse().expect("Input must be a valid integer");
+
+        // Update sum
+        sum += value;
+
+        // Track the minimum non-multiple of 10
+        if value % 10 != 0 {
+            if let Some(min) = min_non_multiple_of_10 {
+                min_non_multiple_of_10 = Some(min.min(value));
+            } else {
+                min_non_multiple_of_10 = Some(value);
+            }
+        }
+    }
+
+    // Determine the output based on the specified conditions
+    let output = if sum % 10 == 0 {
+        if min_non_multiple_of_10.is_none() {
+            0 // All integers are multiples of 10
+        } else {
+            sum - min_non_multiple_of_10.unwrap() // Subtract the smallest non-multiple of 10
+        }
+    } else {
+        sum // Output the sum as is
+    };
+
+    // Print the final computed value
+    println!("{}", output);
+}

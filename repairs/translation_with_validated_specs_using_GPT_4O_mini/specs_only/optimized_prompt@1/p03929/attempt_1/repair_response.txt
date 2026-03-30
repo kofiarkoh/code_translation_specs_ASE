@@ -1,0 +1,45 @@
+```rust
+fn compute_count(n: i64, k: i64) -> i64 {
+    // Step 1: Transform n by multiplying by 7
+    let n_transformed = n * 7;
+
+    // Initialize the count
+    let mut count = 0;
+
+    // Step 2: Count for i from 1 to n % 693
+    let limit1 = n_transformed % 693;
+    for i in 1..=limit1 {
+        if i % 7 > 1 && (9 * i) % 11 == k {
+            count += 1;
+        }
+    }
+
+    // Step 3: Base count for i from 1 to 693
+    for i in 1..=693 {
+        if i % 7 > 1 && (9 * i) % 11 == k {
+            count += 1;
+        }
+    }
+
+    // Step 4: Decrement for i from 1 to 7
+    for i in 1..=7 {
+        if i % 7 > 1 && (9 * i) % 11 == k {
+            count -= 1;
+        }
+    }
+
+    // Step 5: Decrement for i from n - 6 to n
+    for i in (n_transformed - 6)..=n_transformed {
+        if i % 7 > 1 && (9 * i) % 11 == k {
+            count -= 1;
+        }
+    }
+
+    // Ensure count is non-negative as per the invariant
+    if count < 0 {
+        count = 0;
+    }
+
+    count
+}
+```

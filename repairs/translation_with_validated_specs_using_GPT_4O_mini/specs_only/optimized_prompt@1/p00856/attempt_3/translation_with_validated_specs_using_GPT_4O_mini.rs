@@ -1,0 +1,67 @@
+use std::f64;
+
+fn compute_probability(n: usize, t: usize, l: usize, b: usize, l_positions: &[usize], b_positions: &[usize]) -> f64 {
+    // Check for the special case where all inputs are zero
+    if n == 0 && t == 0 && l == 0 && b == 0 {
+        return 0.0; // Graceful termination
+    }
+
+    // Initialize memoization array with maximum double value
+    let mut memo = vec![vec![f64::MAX; n + 1]; t + 1];
+
+    // Recursive function to calculate probability
+    fn probability_helper(n: usize, t: usize, moves_left: usize, current_position: usize, memo: &mut Vec<Vec<f64>>, l_positions: &[usize], b_positions: &[usize]) -> f64 {
+        // Base cases
+        if moves_left == 0 {
+            return 1.0; // Success
+        }
+        if t == 0 {
+            return 0.0; // No turns left
+        }
+        if memo[t][current_position] != f64::MAX {
+            return memo[t][current_position]; // Return cached result
+        }
+
+        let mut total_probability = 0.0;
+        let possible_moves = 6;
+
+        // Evaluate each possible move
+        for move_distance in 1..=possible_moves {
+            let next_position = current_position + move_distance; // Calculate next position
+
+            // Check if the next position is valid
+            if next_position >= n {
+                continue; // Invalid position, skip
+            }
+
+            // Check if the next position is an obstacle or barrier
+            if l_positions.contains(&next_position) || b_positions.contains(&next_position) {
+                continue; // Skip if it's an obstacle or barrier
+            }
+
+            // Recursive call to evaluate the next state
+            total_probability += probability_helper(n, t - 1, moves_left - 1, next_position, memo, l_positions, b_positions);
+        }
+
+        // Average the probabilities over the possible moves
+        let result = total_probability / possible_moves as f64;
+        memo[t][current_position] = result; // Cache the result
+        result
+    }
+
+    // Start the recursive probability calculation
+    probability_helper(n, t, 0, 0, &mut memo, l_positions, b_positions)
+}
+
+fn main() {
+    // Example usage of compute_probability function
+    let n = 10;
+    let t = 5;
+    let l = 2;
+    let b = 1;
+    let l_positions = vec![3, 7];
+    let b_positions = vec![8];
+
+    let probability = compute_probability(n, t, l, b, &l_positions, &b_positions);
+    println!("{:.6}", probability); // Print with 6 decimal places
+}

@@ -1,0 +1,76 @@
+```rust
+use std::collections::{HashMap, HashSet};
+use std::f64;
+
+fn min_average_distance(n: usize, m: usize, edges: Vec<(usize, usize)>) -> f64 {
+    // Initialize distances to "infinity"
+    let mut distances = vec![f64::INFINITY; n + 1];
+    distances[0] = 0.0; // Distance to the starting node (index 0) is zero
+
+    // Build the graph as an adjacency list
+    let mut graph: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (u, v) in edges {
+        graph.entry(u).or_insert_with(Vec::new).push(v);
+    }
+
+    // Function to perform BFS and calculate distances
+    fn bfs(start: usize, graph: &HashMap<usize, Vec<usize>>, distances: &mut Vec<f64>) {
+        let mut queue = vec![start];
+        let mut visited = HashSet::new();
+        visited.insert(start);
+
+        while let Some(node) = queue.pop() {
+            if let Some(neighbors) = graph.get(&node) {
+                for &neighbor in neighbors {
+                    if !visited.contains(&neighbor) {
+                        visited.insert(neighbor);
+                        queue.push(neighbor);
+                        distances[neighbor] = distances[neighbor].min(distances[node] + 1.0);
+                    }
+                }
+            }
+        }
+    }
+
+    // Perform BFS from the starting node (1)
+    bfs(1, &graph, &mut distances);
+
+    // Calculate the average distance from the starting node to reachable nodes
+    let reachable_nodes: Vec<f64> = distances.iter().skip(1).filter(|&&d| d < f64::INFINITY).cloned().collect();
+    let mut min_avg_distance = if reachable_nodes.is_empty() {
+        f64::INFINITY
+    } else {
+        reachable_nodes.iter().sum::<f64>() / reachable_nodes.len() as f64
+    };
+
+    // Try removing each edge and recalculating the average distance
+    for (u, v) in edges {
+        // Temporarily remove the edge (u, v)
+        if let Some(neighbors) = graph.get_mut(&u) {
+            neighbors.retain(|&x| x != v);
+        }
+
+        // Reset distances and perform BFS again
+        let mut new_distances = vec![f64::INFINITY; n + 1];
+        new_distances[0] = 0.0;
+        bfs(1, &graph, &mut new_distances);
+
+        // Calculate the new average distance
+        let new_reachable_nodes: Vec<f64> = new_distances.iter().skip(1).filter(|&&d| d < f64::INFINITY).cloned().collect();
+        let new_avg_distance = if new_reachable_nodes.is_empty() {
+            f64::INFINITY
+        } else {
+            new_reachable_nodes.iter().sum::<f64>() / new_reachable_nodes.len() as f64
+        };
+
+        // Update the minimum average distance if the new one is lower
+        min_avg_distance = min_avg_distance.min(new_avg_distance);
+
+        // Restore the edge (u, v)
+        graph.entry(u).or_insert_with(Vec::new).push(v);
+    }
+
+    // Return the minimum average distance, formatted to 10 decimal places
+    format!("{:.10}", min_avg_distance).parse().unwrap()
+}
+```

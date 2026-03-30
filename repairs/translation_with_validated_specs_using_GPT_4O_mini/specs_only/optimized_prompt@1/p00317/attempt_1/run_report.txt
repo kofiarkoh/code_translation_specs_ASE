@@ -1,0 +1,60 @@
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `as_str` found for struct `Peekable<I>` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:64:53
+   |
+64 |                         if self.matches(&word_chars.as_str(), &query_chars.as_str()) {
+   |                                                     ^^^^^^ method not found in `Peekable<Chars<'_>>`
+
+error[E0599]: no method named `as_str` found for struct `Peekable<I>` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:64:76
+   |
+64 |                         if self.matches(&word_chars.as_str(), &query_chars.as_str()) {
+   |                                                                            ^^^^^^ method not found in `Peekable<Chars<'_>>`
+
+error[E0507]: cannot move out of a shared reference
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:46:48
+   |
+46 |             count += self.words.iter().filter(|&&w| w == query).count();
+   |                                                ^^-
+   |                                                  |
+   |                                                  data moved here
+   |                                                  move occurs because `w` has type `String`, which does not implement the `Copy` trait
+   |
+help: consider removing the borrow
+   |
+46 -             count += self.words.iter().filter(|&&w| w == query).count();
+46 +             count += self.words.iter().filter(|&w| w == query).count();
+   |
+
+error[E0507]: cannot move out of a shared reference
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:47:57
+   |
+47 |             count += self.reversed_words.iter().filter(|&&r| r == query).count();
+   |                                                         ^^-
+   |                                                           |
+   |                                                           data moved here
+   |                                                           move occurs because `r` has type `String`, which does not implement the `Copy` trait
+   |
+help: consider removing the borrow
+   |
+47 -             count += self.reversed_words.iter().filter(|&&r| r == query).count();
+47 +             count += self.reversed_words.iter().filter(|&r| r == query).count();
+   |
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0507, E0599.
+For more information about an error, try `rustc --explain E0507`.

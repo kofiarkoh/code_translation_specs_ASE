@@ -1,0 +1,165 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00655/p00655_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00655/p00655_sample1_output.txt
+Input:
+10
+0 5
+0 3
+0 8
+0 1
+0 6
+4 2
+5 1
+6 1
+7 1
+1
+0
+Expected:
+5
+1
+8
+8
+6
+end
+0
+end
+Actual:
+Some(5)
+None
+Some(3)
+Some(3)
+None
+end
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::collections::VecDeque;
+
+struct DualQueue {
+    first_half: VecDeque<i32>,
+    second_half: VecDeque<i32>,
+}
+
+impl DualQueue {
+    fn new() -> Self {
+        DualQueue {
+            first_half: VecDeque::new(),
+            second_half: VecDeque::new(),
+        }
+    }
+
+    fn add(&mut self, value: i32) {
+        // Add to the first half if it has fewer elements than the second half
+        if self.first_half.len() < self.second_half.len() {
+            self.first_half.push_back(value);
+        } else {
+            self.second_half.push_back(value);
+        }
+        self.balance();
+    }
+
+    fn delete(&mut self) {
+        // Remove from the first half if it has more or equal elements than the second half
+        if !self.first_half.is_empty() {
+            self.first_half.pop_back();
+        } else {
+            self.second_half.pop_back();
+        }
+        self.balance();
+    }
+
+    fn get_min_first(&self) -> Option<i32> {
+        self.first_half.iter().cloned().min()
+    }
+
+    fn get_min_second(&self) -> Option<i32> {
+        self.second_half.iter().cloned().min()
+    }
+
+    fn get_min_first_index(&self, index: usize) -> Option<i32> {
+        self.first_half.get(index).cloned()
+    }
+
+    fn get_min_second_index(&self, index: usize) -> Option<i32> {
+        self.second_half.get(index).cloned()
+    }
+
+    fn get_max_first(&self) -> Option<i32> {
+        self.first_half.iter().cloned().max()
+    }
+
+    fn get_max_second(&self) -> Option<i32> {
+        self.second_half.iter().cloned().max()
+    }
+
+    fn get_max_first_index(&self, index: usize) -> Option<i32> {
+        self.first_half.get(index).cloned()
+    }
+
+    fn get_max_second_index(&self, index: usize) -> Option<i32> {
+        self.second_half.get(index).cloned()
+    }
+
+    fn balance(&mut self) {
+        // Ensure the first half is never smaller than the second half
+        while self.first_half.len() < self.second_half.len() {
+            if let Some(value) = self.second_half.pop_front() {
+                self.first_half.push_back(value);
+            }
+        }
+    }
+}
+
+fn main() {
+    let mut dq = DualQueue::new();
+    let operations = vec![
+        (0, 5), // Add 5
+        (0, 3), // Add 3
+        (2, 0), // Get min from first half
+        (1, 0), // Delete from first half
+        (3, 0), // Get min from second half
+        (4, 0), // Get min from first half at index 0
+        (6, 0), // Get max from first half
+        (7, 0), // Get max from second half
+    ];
+
+    for (op, value) in operations {
+        match op {
+            0 => dq.add(value),
+            1 => dq.delete(),
+            2 => println!("{:?}", dq.get_min_first()),
+            3 => println!("{:?}", dq.get_min_second()),
+            4 => println!("{:?}", dq.get_min_first_index(value as usize)),
+            5 => println!("{:?}", dq.get_min_second_index(value as usize)),
+            6 => println!("{:?}", dq.get_max_first()),
+            7 => println!("{:?}", dq.get_max_second()),
+            8 => println!("{:?}", dq.get_max_first_index(value as usize)),
+            9 => println!("{:?}", dq.get_max_second_index(value as usize)),
+            _ => {}
+        }
+    }
+    println!("end");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,19 @@
+use std::io::{self, Read};
+
+fn main() {
+    let mut buf = [0u8; 114514]; // Buffer to hold input
+    let n = io::stdin().read(&mut buf).unwrap_or(0); // Read from stdin
+
+    // Decrement n to match the C code behavior
+    let n = n.saturating_sub(1); // Prevent underflow
+
+    // Check if the first and last character (before decrement) are equal
+    let first_equals_last = buf[0] == buf[n as usize];
+
+    // Determine which string to print based on the condition
+    if first_equals_last {
+        println!("First");
+    } else {
+        println!("Second");
+    }
+}

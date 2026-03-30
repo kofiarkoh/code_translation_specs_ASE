@@ -1,0 +1,29 @@
+```rust
+fn compute_min_cost(n: usize, m: usize, k: &[i32], t: &[i32]) -> i32 {
+    // Preconditions: n and m are positive integers, and sizes of k and t match n and m respectively.
+    // Initialize the matrix with a high constant value.
+    const HIGH_VALUE: i32 = 1_000_000_000;
+    let mut matrix = vec![vec![HIGH_VALUE; n + 1]; m + 1];
+
+    // Set the first column to zero, representing the base case.
+    for i in 0..=m {
+        matrix[i][0] = 0;
+    }
+
+    // Fill the matrix based on the relationship between tasks and weights.
+    for i in 1..=m {
+        for j in 1..=n {
+            // The cost is derived from the weights and costs.
+            // Here we assume the relationship is to take the minimum of the previous cost or the current weight + previous weight cost.
+            matrix[i][j] = matrix[i - 1][j]; // Not taking the current weight
+            if j > 0 {
+                matrix[i][j] = matrix[i][j].min(matrix[i][j - 1] + t[i - 1]); // Taking the current weight
+            }
+        }
+    }
+
+    // The minimum cost will be found in the last cell of the matrix.
+    // This assumes that the last cell contains the minimum cost for all tasks and weights.
+    matrix[m][n]
+}
+```

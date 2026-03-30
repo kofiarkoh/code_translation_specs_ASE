@@ -1,0 +1,54 @@
+use std::io;
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the upper limit N
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let n: i32 = input.trim().parse().expect("Please enter a valid integer for N");
+
+    input.clear();
+    
+    // Read the range A and B
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let parts: Vec<i32> = input
+        .trim()
+        .split_whitespace()
+        .map(|s| s.parse().expect("Please enter valid integers for A and B"))
+        .collect();
+    
+    // Ensure we have exactly two parts for A and B
+    if parts.len() != 2 {
+        eprintln!("Error: Please enter exactly two integers for A and B");
+        return; // Exit gracefully instead of panicking
+    }
+    
+    let a = parts[0];
+    let b = parts[1];
+
+    let mut count = 0;
+
+    // Iterate through each integer from 1 to N
+    for i in 1..=n {
+        // Calculate the digit sum
+        let sum = digit_sum(i);
+        
+        // Check if the digit sum is within the range [A, B]
+        if a <= sum && sum <= b {
+            count += i;
+        }
+    }
+
+    // Output the cumulative sum
+    println!("{}", count);
+}
+
+// Function to calculate the digit sum of a number
+fn digit_sum(mut num: i32) -> i32 {
+    let mut sum = 0;
+    while num > 0 {
+        sum += num % 10;
+        num /= 10;
+    }
+    sum
+}

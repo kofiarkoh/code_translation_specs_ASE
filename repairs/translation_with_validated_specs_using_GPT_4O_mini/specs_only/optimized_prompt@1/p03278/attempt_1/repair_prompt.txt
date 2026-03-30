@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a specific combinatorial value based on a tree structure defined by user input. It processes the tree to calculate values related to the sizes of subtrees and their configurations, ultimately returning a result that is a modular arithmetic expression involving these values. The computation involves dynamic programming to track different configurations of subtree sizes.
+
+## 2. Inputs
+- An integer `n` representing the number of nodes in the tree.
+- `n-1` pairs of integers representing edges between nodes, defining the tree structure.
+
+## 3. Outputs
+- A single long integer representing the computed result, which is the final value after processing the tree.
+
+## 4. Preconditions
+- The input integer `n` must be greater than or equal to 1.
+- The edges must form a valid tree structure (i.e., connected and acyclic).
+
+## 5. Postconditions
+- The output is a non-negative integer that is the result of a specific combinatorial calculation based on the tree structure, reflecting the configurations of subtrees.
+
+## 6. Invariants
+- The size of each subtree is correctly maintained throughout the depth-first search operations.
+- The dynamic programming table is consistently updated to reflect the current state of subtree configurations, specifically tracking two states for each node: configurations that include the node and those that do not.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle erroneous inputs (e.g., invalid edges or non-tree structures). It assumes valid input as per the preconditions.
+- The output is adjusted to be non-negative by applying a modular operation.
+- The program does not handle memory allocation failures, as it uses fixed-size arrays for managing edges and nodes, thus avoiding dynamic memory allocation issues.
+
+## 8. State Transitions
+- The state transitions occur during the depth-first search, where the state of each node's subtree size and dynamic programming values are updated based on its children.
+- The program initializes the subtree sizes and dynamic programming values for each node, ensuring that all nodes are accounted for, even if they have no children.
+- The dynamic programming values are updated based on the configurations of the current node and its children, considering both inclusion and exclusion of nodes in the configurations.
+
+## 9. Non-functional Constraints
+- The computations are performed under a modular arithmetic constraint to prevent overflow and ensure results fit within standard integer limits. The modulus used is `1000000007`.
+
+## 10. Counting Logic
+- The dynamic programming table maintains counts of configurations based on subtree sizes. For each node, the configurations are aggregated from its children, considering how the sizes of the subtrees contribute to the overall count of valid configurations.
+- The final result is computed by summing contributions from all subtree configurations, adjusted by the sizes of the subtrees and their respective states. 
+
+## 11. Edge Cases
+- The program correctly handles the case of a single-node tree, where the output is determined solely by the base case of the dynamic programming calculations.
+- The program assumes that the input edges do not create cycles or disconnected components, as it relies on the properties of a tree structure.
+```

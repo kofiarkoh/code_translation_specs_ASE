@@ -1,0 +1,53 @@
+fn min_segments(h: usize, w: usize, k: usize, grid: Vec<Vec<char>>) -> usize {
+    let mut segments = 0;
+    let mut start_row = 0;
+
+    while start_row < h {
+        let mut column_counts = vec![0; w];
+        let mut end_row = start_row;
+
+        // Extend the segment as far as possible without exceeding K
+        while end_row < h {
+            for col in 0..w {
+                if grid[end_row][col] == '1' {
+                    column_counts[col] += 1;
+                }
+            }
+
+            // Check if any column exceeds the limit K
+            if column_counts.iter().any(|&count| count > k) {
+                // If it exceeds, finalize the current segment
+                segments += 1;
+                // Start a new segment from the current row
+                start_row = end_row;
+                break;
+            }
+
+            // If we didn't exceed K, move to the next row
+            end_row += 1;
+        }
+
+        // If we reached the end without exceeding K, finalize the last segment
+        if end_row == h {
+            segments += 1;
+            break; // All rows processed
+        }
+    }
+
+    segments
+}
+
+// Example usage
+fn main() {
+    let h = 3;
+    let w = 5;
+    let k = 2;
+    let grid = vec![
+        vec!['0', '0', '1', '0', '0'],
+        vec!['1', '1', '1', '1', '0'],
+        vec!['1', '0', '0', '0', '1'],
+    ];
+    
+    let result = min_segments(h, w, k, grid);
+    println!("{}", result); // Output the result
+}

@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+1. **Functional Description**  
+   The program reads two strings, concatenates the first string with itself, and checks if the second string is a substring of the concatenated result. It outputs a confirmation of the presence or absence of the second string.
+
+2. **Inputs**  
+   Two strings: the first string (up to 100 characters) and the second string (up to 100 characters).
+
+3. **Outputs**  
+   A response indicating whether the second string is a substring of the concatenated first string: "Yes" if it is found, "No" if it is not.
+
+4. **Preconditions**  
+   The first and second strings must be non-empty and must not exceed 100 characters in length.
+
+5. **Postconditions**  
+   The output will be "Yes" if the second string is found within the concatenated first string; otherwise, it will be "No".
+
+6. **Invariants**  
+   The concatenated string is always formed by repeating the first string twice. The second string is always checked against this concatenated result.
+
+7. **Error Handling / Exceptional Behavior**  
+   The program does not handle input errors or cases where the input strings exceed the specified length. It assumes valid input as per the preconditions.
+
+8. **State Transitions (if applicable)**  
+   The program transitions from an input state (waiting for user input) to a processing state (concatenating and checking for substring) and finally to an output state (displaying the result).
+
+9. **Non-functional Constraints (if inferable)**  
+   The program operates within a fixed memory limit for string storage and assumes that the input will be provided in a timely manner. Performance is not explicitly constrained but is dependent on the length of the input strings.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+#include <string.h>
+int main() {
+	char str[300],str1[101], str2[101];
+	scanf("%s", str1);
+	scanf("%s", str2);
+	strcpy(str, str1);
+	strcat(str, str1);
+	if (strstr(str, str2)==NULL)
+		printf("No\n");
+	else
+		printf("Yes\n");
+}
+=== C CODE END ===

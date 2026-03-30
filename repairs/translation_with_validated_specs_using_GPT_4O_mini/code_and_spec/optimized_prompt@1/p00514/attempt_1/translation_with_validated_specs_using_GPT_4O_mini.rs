@@ -1,0 +1,91 @@
+use std::io::{self, Write};
+
+const TABAICHO_SIZE: usize = 8667;
+const TABAICHO_BLOCK: u64 = 1_000_000_000;
+
+struct Tabaicho {
+    main: [u64; TABAICHO_SIZE],
+}
+
+impl Tabaicho {
+    fn new() -> Self {
+        let mut main = [0; TABAICHO_SIZE];
+        main[0] = 1; // Initialize to represent the value 1
+        Tabaicho { main }
+    }
+
+    fn set(&mut self, num: u64) {
+        self.main[0] = num;
+        for i in 1..TABAICHO_SIZE {
+            self.main[i] = 0;
+        }
+    }
+
+    fn mul(&mut self, num: u64) {
+        let mut carry = 0;
+        for i in 0..TABAICHO_SIZE {
+            let temp = self.main[i] as u128 * num as u128 + carry as u128;
+            self.main[i] = (temp % TABAICHO_BLOCK as u128) as u64;
+            carry = (temp / TABAICHO_BLOCK as u128) as u64;
+        }
+    }
+
+    fn div(&mut self, num: u64) {
+        let mut remainder = 0u64;
+        for i in (0..TABAICHO_SIZE).rev() {
+            remainder = remainder * TABAICHO_BLOCK + self.main[i];
+            self.main[i] = remainder / num;
+            remainder %= num;
+        }
+    }
+
+    fn print(&self) {
+        let mut start = TABAICHO_SIZE;
+        for i in (0..TABAICHO_SIZE).rev() {
+            if self.main[i] > 0 {
+                start = i;
+                break;
+            }
+        }
+        print!("{}", self.main[start]);
+        for i in (start - 1..=0).rev() {
+            print!("{:09}", self.main[i]);
+        }
+        println!();
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let nums: Vec<u64> = input.split_whitespace()
+        .map(|s| s.parse().unwrap())
+        .collect();
+
+    let (n, m, r) = (nums[0], nums[1], nums[2]);
+    let mut r = r - n * m;
+
+    if r < 0 {
+        println!("0");
+    } else if r == 0 {
+        println!("1");
+    } else {
+        let mut tabaicho = Tabaicho::new();
+        let mut n2 = n - 1;
+        let max_j = n + r - 1;
+
+        if (max_j - (n - 1)) < n - 1 {
+            n2 = max_j - (n - 1);
+        }
+
+        for j in (max_j..=r + n - 1).rev().take(n2 as usize) {
+            tabaicho.mul(j);
+        }
+
+        for i in 1..=n2 {
+            tabaicho.div(i);
+        }
+
+        tabaicho.print();
+    }
+}

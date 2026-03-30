@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    
+    let n: i64 = iter.next().unwrap().parse().expect("Invalid input for n");
+    let mut p: i64 = iter.next().unwrap().parse().expect("Invalid input for p");
+
+    // Preconditions
+    if n <= 0 {
+        panic!("n must be a positive integer");
+    }
+    if p < 0 {
+        panic!("p must be a non-negative integer");
+    }
+
+    let mut ans = 1;
+    let mut factor_count = 0;
+
+    // Factorization loop
+    for i in 2..=((p as f64).sqrt() as i64) {
+        let mut cnt = 0;
+        while p % i == 0 {
+            cnt += 1;
+            p /= i;
+        }
+        if cnt > 0 {
+            factor_count += cnt;
+            // If the count of this prime factor is greater than or equal to n
+            if cnt >= n {
+                ans *= i.pow((cnt / n) as u32);
+            }
+        }
+    }
+
+    // If there's any prime factor greater than sqrt(p)
+    if p > 1 && n == 1 {
+        ans *= p;
+    }
+
+    // Output the result
+    println!("{}", ans);
+}
+```

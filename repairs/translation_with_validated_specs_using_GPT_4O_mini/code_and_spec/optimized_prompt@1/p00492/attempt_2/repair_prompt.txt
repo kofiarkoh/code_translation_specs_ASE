@@ -1,0 +1,154 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00492/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:30:26
+   |
+30 |     let y_moves = [1, 0, -1, -1, 0, 1];
+   |                          ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+30 |     let y_moves = [1, 0, -1isize, -1, 0, 1];
+   |                            +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00492/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:30:30
+   |
+30 |     let y_moves = [1, 0, -1, -1, 0, 1];
+   |                              ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+30 |     let y_moves = [1, 0, -1, -1isize, 0, 1];
+   |                                +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00492/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:29:29
+   |
+29 |     let x_moves = [1, 2, 1, -1, -2, -1];
+   |                             ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+29 |     let x_moves = [1, 2, 1, -1isize, -2, -1];
+   |                               +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00492/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:29:33
+   |
+29 |     let x_moves = [1, 2, 1, -1, -2, -1];
+   |                                 ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+29 |     let x_moves = [1, 2, 1, -1, -2isize, -1];
+   |                                   +++++
+
+error[E0277]: the trait bound `usize: Neg` is not satisfied
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/code_and_spec/optimized_prompt@1/p00492/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:29:37
+   |
+29 |     let x_moves = [1, 2, 1, -1, -2, -1];
+   |                                     ^^ the trait `Neg` is not implemented for `usize`
+   |
+help: consider specifying an integer type that can be negative
+   |
+29 |     let x_moves = [1, 2, 1, -1, -2, -1isize];
+   |                                       +++++
+
+error: aborting due to 5 previous errors
+
+For more information about this error, try `rustc --explain E0277`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read width and height
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace();
+    let w: usize = dimensions.next().unwrap().parse().unwrap();
+    let h: usize = dimensions.next().unwrap().parse().unwrap();
+
+    // Initialize the grid
+    let mut d = vec![vec![0; 2 * w + 4]; h + 2];
+
+    // Read the grid values
+    for i in 1..=h {
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        for j in 1..=w {
+            d[i][j * 2 + i % 2] = values[j - 1];
+        }
+    }
+
+    // Movement vectors
+    let x_moves = [1, 2, 1, -1, -2, -1];
+    let y_moves = [1, 0, -1, -1, 0, 1];
+
+    let mut x = vec![0; 10000];
+    let mut y = vec![0; 10000];
+    let mut r = 1;
+    let mut t = 0;
+    let mut s = 0;
+
+    // Mark cells based on traversal
+    while t < r {
+        for i in 0..6 {
+            let nx = x[t] + x_moves[i];
+            let ny = y[t] + y_moves[i];
+
+            // Check bounds
+            if nx < 0 || ny < 0 || ny > h + 1 || nx >= 2 * w + 4 {
+                continue;
+            }
+            if d[ny][nx] != 0 {
+                continue;
+            }
+
+            d[ny][nx] = 2;
+            x.push(nx);
+            y.push(ny);
+            r += 1;
+        }
+        t += 1;
+    }
+
+    // Count adjacent cells
+    for i in 1..=h {
+        for j in 1..=w {
+            if d[i][j * 2 + i % 2] != 1 {
+                continue;
+            }
+            for k in 0..6 {
+                if d[i + y_moves[k]][j * 2 + i % 2 + x_moves[k]] == 2 {
+                    s += 1;
+                }
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", s);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

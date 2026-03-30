@@ -1,0 +1,60 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program reads a series of floating-point values representing velocities, computes a derived integer value based on a specific formula involving physical constants, and outputs this integer value for each input.
+
+## 2. Inputs
+The input consists of a sequence of floating-point numbers, each representing a velocity. The input stream must be terminated by an end-of-file signal.
+
+## 3. Outputs
+The output is a sequence of integers, each corresponding to the computed value derived from the input velocities. Each output integer is calculated based on the formula described below.
+
+## 4. Preconditions
+The input must consist of valid floating-point numbers. The program does not handle invalid input formats or non-numeric values, and undefined behavior may occur if such inputs are encountered.
+
+## 5. Postconditions
+For each input velocity \( v \), an integer \( n \) is output, computed using the formula:
+\[ n = \left\lfloor \frac{(4.9 \cdot v^2)}{(9.8 \cdot 9.8)} + 5 \right\rfloor / 5 + 1 \]
+The output integer \( n \) is guaranteed to be greater than or equal to 1.
+
+## 6. Invariants
+The computation of the output integer is consistent for the same input velocity across multiple executions of the program, provided the input is valid.
+
+## 7. Error Handling / Exceptional Behavior
+The program does not handle invalid input formats or non-numeric values. If an invalid input is encountered, the behavior is undefined, and the program may terminate unexpectedly.
+
+## 8. State Transitions
+The program maintains a state of reading input until the end-of-file is reached. Each valid input results in a transition to the output state where the corresponding integer is printed immediately after computation.
+
+## 9. Non-functional Constraints
+The program operates in a continuous loop until the end-of-file is reached, processing inputs and producing outputs in real-time. Performance is dependent on the speed of input reading and output writing.
+```

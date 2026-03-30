@@ -1,0 +1,48 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Preconditions: n and m must be positive
+    if n == 0 || m == 0 {
+        return; // Undefined behavior as per specification
+    }
+
+    // Read the array
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        a.push(line.trim().parse().unwrap());
+    }
+
+    // Ensure we have exactly n elements
+    if a.len() != n {
+        return; // Undefined behavior as per specification
+    }
+
+    // Sorting based on modulo operation
+    for k in 1..=m {
+        for i in 0..n - 1 {
+            for j in i + 1..n {
+                // Use `k` as an `i32` to match the type of elements in `a`
+                if a[i] % k as i32 > a[j] % k as i32 {
+                    a.swap(i, j); // Swap elements to maintain order
+                }
+            }
+        }
+    }
+
+    // Output the sorted array
+    for &value in &a {
+        println!("{}", value);
+    }
+}
+```

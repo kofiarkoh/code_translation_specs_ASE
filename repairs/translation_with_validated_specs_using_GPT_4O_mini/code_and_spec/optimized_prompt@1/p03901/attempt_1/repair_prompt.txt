@@ -1,0 +1,214 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes and outputs the expected value based on a given position and a probability rate. It reads input values, processes them to calculate the expected value using a recursive approach, and outputs the result in a specified format.
+
+## 2. Inputs
+- An integer representing a position, which can be either even or odd.
+- A double representing a probability rate, provided as a percentage.
+
+## 3. Outputs
+- A formatted string representing the calculated expected value, with a precision of seven decimal places.
+
+## 4. Preconditions
+- The input must contain valid data: an integer followed by a double.
+- The probability rate must be in the range [0, 100].
+
+## 5. Postconditions
+- The output will reflect the expected value calculated from the input position and probability rate.
+- The output will be formatted to seven decimal places.
+
+## 6. Invariants
+- The probability rate is consistently divided by 100 to convert it from a percentage to a decimal.
+- The expected value calculation is based on recursive calls that depend on the input position, with specific handling for even and odd positions.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input cannot be read or parsed correctly, the behavior is undefined.
+- If the input files are not found in test mode, the program may not execute as intended.
+
+## 8. State Transitions
+- The program transitions from reading input to processing the input and finally to outputting the result. The expected value is computed recursively, with the following logic:
+  - For even positions, the expected value is calculated as the position divided by the probability rate.
+  - For odd positions, the expected value is computed using the values from adjacent positions (the even position before and the even position after), weighted by the probability rate and its complement. The base case for odd positions is defined by the recursive relationship, which incorporates the expected values of the adjacent even positions.
+
+## 9. Non-functional Constraints
+- The output must be produced efficiently, with a focus on maintaining precision in the expected value calculation. The recursive nature of the calculation may lead to increased computational complexity, particularly for larger position values.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <float.h>
+#include <limits.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// 内部変数
+static FILE *szpFpI;											// 入力
+static double sdRate;											// 近づく確率
+
+// 内部変数 - テスト用
+#ifdef D_TEST
+	static int siRes;
+	static FILE *szpFpA;
+	static int siTNo;
+#endif
+
+// １行出力
+int
+fOutLine(
+	char *pcpLine				// <I> １行
+)
+{
+	char lc1Buf[1024];
+
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, pcpLine)) {
+		siRes = -1;
+	}
+#else
+	printf("%s", pcpLine);
+#endif
+
+	return 0;
+}
+
+// 期待値 - 取得
+double
+fGetVal(
+	int piPos					// <I> 位置
+)
+{
+	// 偶数
+	if (piPos % 2 == 0) {
+		return (double)(piPos / 2) / sdRate;
+	}
+
+	// 奇数
+	double ldVal = 1.0;
+	ldVal += fGetVal(piPos - 1) * sdRate;
+	ldVal += fGetVal(piPos + 1) * (1.0 - sdRate);
+
+	return ldVal;
+}
+
+// 実行メイン
+int
+fMain(
+)
+{
+	char lc1Buf[1024];
+
+	// 座標 - 取得
+	int liPos;
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%d", &liPos);
+
+	// 近づく確率 - 取得
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpI);
+	sscanf(lc1Buf, "%lf", &sdRate);
+	sdRate /= 100.0;
+
+	// 期待値 - 取得
+	double ldVal = fGetVal(liPos);
+
+	// 出力
+	sprintf(lc1Buf, "%.7lf\n", ldVal);
+	fOutLine(lc1Buf);
+
+	return 0;
+}
+
+// １回実行
+int
+fOne(
+)
+{
+	int liRet;
+	char lc1Buf[1024];
+
+	// 入力 - セット
+#ifdef D_TEST
+	sprintf(lc1Buf, ".\\Test\\T%d.txt", siTNo);
+	szpFpI = fopen(lc1Buf, "r");
+	sprintf(lc1Buf, ".\\Test\\A%d.txt", siTNo);
+	szpFpA = fopen(lc1Buf, "r");
+	siRes = 0;
+#else
+	szpFpI = stdin;
+#endif
+
+	// 実行メイン
+	liRet = fMain();
+
+	// 残データ有無
+#ifdef D_TEST
+	lc1Buf[0] = '\0';
+	fgets(lc1Buf, sizeof(lc1Buf), szpFpA);
+	if (strcmp(lc1Buf, "")) {
+		siRes = -1;
+	}
+#endif
+
+	// テストファイルクローズ
+#ifdef D_TEST
+	fclose(szpFpI);
+	fclose(szpFpA);
+#endif
+
+	// テスト結果
+#ifdef D_TEST
+	if (siRes == 0) {
+		printf("OK %d\n", siTNo);
+	}
+	else {
+		printf("NG %d\n", siTNo);
+	}
+#endif
+
+	return 0;
+}
+
+// プログラム開始
+int
+main()
+{
+
+#ifdef D_TEST
+	int i;
+	for (i = D_TEST_SNO; i <= D_TEST_ENO; i++) {
+		siTNo = i;
+		fOne();
+	}
+#else
+	fOne();
+#endif
+
+	return 0;
+}
+=== C CODE END ===

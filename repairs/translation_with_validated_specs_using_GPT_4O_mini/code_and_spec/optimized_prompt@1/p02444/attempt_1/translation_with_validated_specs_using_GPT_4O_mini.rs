@@ -1,0 +1,54 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+
+    // Read the number of elements in the array
+    let n: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+    let mut a: Vec<i32> = Vec::with_capacity(n);
+
+    // Read the array elements
+    for _ in 0..n {
+        let value: i32 = lines.next().unwrap().unwrap().trim().parse().unwrap();
+        a.push(value);
+    }
+
+    // Read the number of rotation queries
+    let q: usize = lines.next().unwrap().unwrap().trim().parse().unwrap();
+
+    // Process each query
+    for _ in 0..q {
+        let query: Vec<usize> = lines.next().unwrap().unwrap()
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+        
+        let b = query[0];
+        let m = query[1];
+        let e = query[2];
+
+        // Calculate effective rotation
+        let segment_length = e - b;
+        let effective_m = m % segment_length;
+
+        // Create a temporary vector to hold the segment
+        let mut tmp: Vec<i32> = a[b..e].to_vec();
+
+        // Perform the rotation
+        for i in 0..segment_length {
+            a[b + i] = tmp[(i + effective_m) % segment_length];
+        }
+    }
+
+    // Print the modified array
+    for (i, &value) in a.iter().enumerate() {
+        if i == n - 1 {
+            print!("{}", value);
+        } else {
+            print!("{} ", value);
+        }
+    }
+    println!(); // Ensure a newline at the end
+}

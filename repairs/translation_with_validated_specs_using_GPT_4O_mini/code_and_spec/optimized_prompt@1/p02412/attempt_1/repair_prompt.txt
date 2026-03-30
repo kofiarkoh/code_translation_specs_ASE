@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the number of unique combinations of three distinct integers, selected from the range 1 to a specified integer, that sum to a given target value. The process continues until a termination condition is met.
+
+## 2. Inputs
+- Two integers, `n` and `x`, where:
+  - `n` specifies the upper limit of the range (1 to `n`).
+  - `x` is the target sum for the combinations.
+
+## 3. Outputs
+- An integer representing the count of unique combinations of three distinct integers that sum to `x`, divided by six, printed to the output.
+
+## 4. Preconditions
+- The input integers `n` and `x` must be non-negative.
+- The input must be provided in pairs until both `n` and `x` are zero, which indicates termination.
+
+## 5. Postconditions
+- The output is the integer count of valid combinations of three distinct integers that sum to `x`, divided by six, for each valid input pair until termination.
+
+## 6. Invariants
+- The integers selected for combinations are always distinct and within the range from 1 to `n`.
+- The count of combinations is incremented only when a valid combination summing to `x` is found.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or types; it assumes valid integer input.
+- If `n` is less than 3, the output will always be zero since at least three distinct integers are required for a valid combination.
+
+## 8. State Transitions
+- The program transitions from reading input to processing combinations and then to outputting results, repeating this cycle until the termination condition is met.
+
+## 9. Counting Logic
+- The program counts combinations of three distinct integers `(i, j, k)` such that `1 ≤ i, j, k ≤ n` and `i`, `j`, and `k` are all different. The counting occurs within nested loops iterating over the range from 1 to `n`.
+- The final count of valid combinations is divided by six after all combinations have been considered, reflecting the fact that each combination of three integers can be arranged in six different ways.
+
+## 10. Non-functional Constraints
+- The program operates in a loop until termination, which may lead to indefinite execution if not provided with a terminating input. The performance is dependent on the value of `n`, as the number of combinations grows cubically with `n`.
+
+## 11. Combination Counting Clarification
+- The program counts combinations of three distinct integers without regard to the order of selection. Each unique set of integers that satisfies the sum condition is counted once, regardless of the order in which they are selected. The division by six accounts for the permutations of the three integers.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h> 
+
+int main() {
+  int n,x;
+  int b,i,j,k,a;
+
+  while(1) {
+    scanf("%d %d",&n,&x);   
+    b = 0;
+    if( n == 0 && x == 0){
+      break;
+    }
+    for(k = 1; k <= n ; k++) {
+
+
+      for(j = 1; j <= n ; j++) {
+
+	for(i = 1; i <= n; i++) {
+	  
+	  if(i == j || j == k || i ==k) {
+	    
+	  }else{
+	    a = i + j + k;
+	    if(a == x) {
+	     
+	      b += 1;
+ 
+	    }
+	  }
+	  
+	}//i
+	
+      }//j
+
+    }//k
+    printf("%d\n",b/6);
+  }
+
+
+  return 0;
+}
+=== C CODE END ===

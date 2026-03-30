@@ -1,0 +1,48 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    
+    // Read the integer N
+    if io::stdin().read_line(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    
+    let n: usize = match input.trim().parse() {
+        Ok(num) if num <= 127 => num, // Ensure N does not exceed the maximum length
+        _ => {
+            std::process::exit(1);
+        }
+    };
+
+    // Read the string of characters
+    input.clear();
+    if io::stdin().read_line(&mut input).is_err() {
+        std::process::exit(1);
+    }
+    
+    let s = input.trim();
+    
+    // Ensure the string has at least N characters
+    if s.len() < n {
+        std::process::exit(1);
+    }
+
+    let mut kitaeri = 0;
+
+    // Count 'R' and other characters
+    for i in 0..n {
+        if s.chars().nth(i) == Some('R') {
+            kitaeri += 1;
+        } else {
+            kitaeri -= 1;
+        }
+    }
+
+    // Output the result
+    if kitaeri > 0 {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}

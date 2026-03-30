@@ -1,0 +1,83 @@
+```rust
+use std::io::{self, Write};
+
+fn func(s: &str, n: usize, m: usize) -> i32 {
+    let mut sum = 0;
+    let mut p = s;
+
+    for i in 0..n {
+        if m & (1 << i) != 0 {
+            let num_str = &p[..i + 1];
+            sum += num_str.parse::<i32>().unwrap_or(0);
+            p = &s[i + 1..]; // Move p to the next character after the current number
+        }
+    }
+    sum + p.parse::<i32>().unwrap_or(0) // Add the last number
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut buffer = String::new();
+
+    loop {
+        buffer.clear();
+        let mut target = String::new();
+        let mut paper = String::new();
+
+        // Read target and paper
+        if stdin.read_line(&mut target).is_err() {
+            break;
+        }
+        if stdin.read_line(&mut paper).is_err() {
+            break;
+        }
+
+        let target: i32 = match target.trim().parse() {
+            Ok(num) if num >= 0 => num,
+            _ => continue,
+        };
+
+        if target == 0 {
+            break;
+        }
+
+        let n = paper.len();
+        let mut res = 0;
+        let mut best = -1;
+        let mut cnt = 0;
+
+        for i in 1..(1 << n) {
+            let t = func(&paper, n, i);
+            if t <= target {
+                if best < t {
+                    best = t;
+                    res = i;
+                    cnt = 1;
+                } else if best == t {
+                    cnt += 1;
+                }
+            }
+        }
+
+        if cnt != 1 {
+            if cnt == 0 {
+                println!("error");
+            } else {
+                println!("rejected");
+            }
+        } else {
+            print!("{} ", best);
+            for i in 0..n {
+                print!("{}", paper.chars().nth(i).unwrap());
+                if res & (1 << i) != 0 {
+                    if i == n - 1 {
+                        println!();
+                    } else {
+                        print!(" ");
+                    }
+                }
+            }
+        }
+    }
+}
+```

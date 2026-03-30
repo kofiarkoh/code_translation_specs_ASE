@@ -1,0 +1,130 @@
+use std::io::{self, BufRead};
+
+const MAX: usize = 2002;
+const INF: i32 = 0x1010;
+
+struct TaskScheduler {
+    hi: [usize; MAX],
+    to: [[usize; MAX]; MAX],
+    seen: [bool; MAX],
+    match_: [i32; MAX],
+    dist: [[i32; 102]; 102],
+    p: [i32; 1002],
+    t: [i32; 1002],
+}
+
+impl TaskScheduler {
+    fn new() -> Self {
+        Self {
+            hi: [0; MAX],
+            to: [[0; MAX]; MAX],
+            seen: [false; MAX],
+            match_: [-1; MAX],
+            dist: [[INF; 102]; 102],
+            p: [0; 1002],
+            t: [0; 1002],
+        }
+    }
+
+    fn bpm(&mut self, u: usize) -> bool {
+        for i in 0..self.hi[u] {
+            let v = self.to[u][i];
+            if self.seen[v] {
+                continue;
+            }
+            self.seen[v] = true;
+            if self.match_[v] < 0 || self.bpm(self.match_[v] as usize) {
+                self.match_[u] = v as i32;
+                self.match_[v] = u as i32;
+                return true;
+            }
+        }
+        false
+    }
+
+    fn compute_distances(&mut self, n: usize, m: usize) {
+        for k in 0..n {
+            for u in 0..n {
+                if self.dist[u][k] != INF {
+                    for v in 0..n {
+                        if self.dist[k][v] != INF {
+                            let d = self.dist[u][k] + self.dist[k][v];
+                            if self.dist[u][v] > d {
+                                self.dist[u][v] = d;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn schedule_tasks(&mut self, l: usize) -> usize {
+        let mut k = l;
+        for u in 0..l {
+            self.seen.fill(false);
+            if self.bpm(u) {
+                k -= 1;
+            }
+        }
+        k
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines().filter_map(Result::ok);
+    
+    let mut scheduler = TaskScheduler::new();
+
+    while let Some(line) = lines.next() {
+        let n: usize = line.trim().parse().unwrap();
+        let m: usize = lines.next().unwrap().trim().parse().unwrap();
+        let l: usize = lines.next().unwrap().trim().parse().unwrap();
+
+        // Initialize distance matrix
+        for i in 0..n {
+            scheduler.dist[i][i] = 0;
+        }
+        for _ in 0..m {
+            let edge: Vec<usize> = lines.next().unwrap().trim().split_whitespace()
+                .map(|x| x.parse().unwrap()).collect();
+            let u = edge[0];
+            let v = edge[1];
+            let d = edge[2];
+            scheduler.dist[u][v] = d as i32;
+            scheduler.dist[v][u] = d as i32;
+        }
+
+        // Compute shortest paths
+        scheduler.compute_distances(n, m);
+
+        // Read tasks
+        for k in 0..l {
+            let task: Vec<i32> = lines.next().unwrap().trim().split_whitespace()
+                .map(|x| x.parse().unwrap()).collect();
+            scheduler.p[k] = task[0];
+            scheduler.t[k] = task[1];
+        }
+
+        // Build bipartite graph
+        for u in 0..l {
+            for v in 0..l {
+                if u != v {
+                    if scheduler.dist[scheduler.p[u] as usize][scheduler.p[v] as usize] <= scheduler.t[v] - scheduler.t[u] {
+                        scheduler.to[u][scheduler.hi[u]] = v + l;
+                        scheduler.hi[u] += 1;
+                    }
+                }
+            }
+        }
+
+        // Initialize matches
+        scheduler.match_.fill(-1);
+
+        // Schedule tasks and print result
+        let result = scheduler.schedule_tasks(l);
+        println!("{}", result);
+    }
+}

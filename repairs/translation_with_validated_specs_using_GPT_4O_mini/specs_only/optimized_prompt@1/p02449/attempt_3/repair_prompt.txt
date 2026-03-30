@@ -1,0 +1,116 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02449/p02449_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02449/p02449_sample1_output.txt
+Input:
+5
+3 2 1 4 5
+Expected:
+3 1 5 4 2
+3 2 1 4 5
+3 2 1 5 4
+Actual:
+[3, 1, 5, 4, 2]
+[3, 2, 1, 4, 5]
+[3, 2, 1, 5, 4]
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io;
+
+fn main() {
+    let n: usize = read_input(); // Read the number of elements
+    let mut sequence: Vec<i32> = read_sequence(n); // Read the sequence of integers
+
+    // Compute the previous permutation
+    if let Some(prev_perm) = previous_permutation(&mut sequence.clone()) {
+        println!("{:?}", prev_perm); // Print previous permutation
+    }
+    
+    println!("{:?}", sequence); // Print original sequence
+
+    // Compute the next permutation
+    if let Some(next_perm) = next_permutation(&mut sequence.clone()) {
+        println!("{:?}", next_perm); // Print next permutation
+    }
+}
+
+// Function to read the number of elements
+fn read_input() -> usize {
+    // For simplicity, we assume valid input as per the specification
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input.trim().parse().unwrap() // Convert to usize
+}
+
+// Function to read the sequence of integers
+fn read_sequence(n: usize) -> Vec<i32> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    input
+        .trim()
+        .split_whitespace()
+        .take(n) // Ensure we only take n elements
+        .map(|s| s.parse().unwrap()) // Convert to i32
+        .collect()
+}
+
+// Function to compute the previous permutation
+fn previous_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let mut i = seq.len() - 2;
+    while i >= 0 && seq[i] <= seq[i + 1] {
+        if i == 0 { // Prevent underflow
+            return None; // No previous permutation
+        }
+        i -= 1;
+    }
+
+    let mut j = seq.len() - 1;
+    while seq[j] >= seq[i] {
+        j -= 1;
+    }
+    seq.swap(i, j);
+    seq[i + 1..].reverse(); // Reverse the sequence after i
+    Some(seq.clone()) // Return the previous permutation
+}
+
+// Function to compute the next permutation
+fn next_permutation(seq: &mut Vec<i32>) -> Option<Vec<i32>> {
+    let mut i = seq.len() - 2;
+    while i >= 0 && seq[i] >= seq[i + 1] {
+        if i == 0 { // Prevent underflow
+            return None; // No next permutation
+        }
+        i -= 1;
+    }
+
+    let mut j = seq.len() - 1;
+    while seq[j] <= seq[i] {
+        j -= 1;
+    }
+    seq.swap(i, j);
+    seq[i + 1..].reverse(); // Reverse the sequence after i
+    Some(seq.clone()) // Return the next permutation
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

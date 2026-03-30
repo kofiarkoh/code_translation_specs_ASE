@@ -1,0 +1,31 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let mut railroad: [i32; 10] = [0; 10]; // Storage for up to 10 cars
+    let mut i = 0; // Index to track the number of cars in storage
+
+    // Read input from stdin
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        let car: i32 = match line {
+            Ok(line) => line.trim().parse().unwrap_or(0), // Parse input, default to 0 on error
+            Err(_) => continue, // Ignore any read errors
+        };
+
+        if car == 0 { // Car exiting
+            if i > 0 { // Check if there are cars to exit
+                i -= 1; // Decrement index
+                println!("{}", railroad[i]); // Output the last car that exited
+            }
+        } else { // Car entering
+            if i < railroad.len() { // Ensure we don't exceed storage capacity
+                railroad[i] = car; // Store the car
+                i += 1; // Increment index
+            }
+        }
+    }
+}
+```

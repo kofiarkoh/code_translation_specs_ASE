@@ -1,0 +1,41 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read the number of boolean values
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read N
+    let n_line = lines.next().expect("Failed to read N");
+    let n: usize = match n_line.unwrap().trim().parse() {
+        Ok(num) if num > 0 => num,
+        _ => {
+            eprintln!("Error: N must be a positive integer.");
+            std::process::exit(1);
+        }
+    };
+
+    // Read the sequence of characters
+    let mut result = true; // Start with true for logical AND operation
+    for _ in 0..n {
+        let char_line = lines.next().expect("Failed to read character");
+        let c = char_line.unwrap().trim().chars().next().expect("No character found");
+
+        // Validate input character
+        match c {
+            'T' => result = result && true, // 'T' is true
+            'F' => result = result && false, // 'F' is false
+            _ => {
+                eprintln!("Error: Invalid character. Only 'T' and 'F' are allowed.");
+                std::process::exit(1);
+            }
+        }
+    }
+
+    // Output the result
+    let output = if result { 'T' } else { 'F' };
+    println!("{}", output);
+}
+```

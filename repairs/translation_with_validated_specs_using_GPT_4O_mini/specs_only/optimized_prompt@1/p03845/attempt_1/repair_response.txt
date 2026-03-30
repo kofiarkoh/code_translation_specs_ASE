@@ -1,0 +1,22 @@
+```rust
+fn modified_sums(n: usize, list: &mut Vec<i32>, m: usize, modifications: &[(usize, i32)]) -> Vec<i32> {
+    // Calculate the initial sum of the list
+    let initial_sum: i32 = list.iter().sum();
+    let mut results = Vec::with_capacity(m);
+
+    for &(index, new_value) in modifications {
+        // Adjust the 1-based index to 0-based
+        let adjusted_index = index.checked_sub(1).expect("Index underflow");
+
+        // Replace the value at the adjusted index with the new value
+        // No bounds checking is done as per the specification; this is undefined behavior if out of bounds
+        list[adjusted_index] = new_value;
+
+        // Calculate the modified sum after the change
+        let modified_sum: i32 = list.iter().sum();
+        results.push(modified_sum);
+    }
+
+    results
+}
+```

@@ -1,0 +1,42 @@
+use std::io::{self, Write};
+
+fn gcd(mut a: u64, mut b: u64) -> u64 {
+    // The Euclidean algorithm for GCD
+    while b != 0 {
+        let temp = b;
+        b = a % b;
+        a = temp;
+    }
+    a
+}
+
+fn main() -> i32 {
+    // Read two natural numbers from input
+    let mut input = String::new();
+    io::stdout().flush().unwrap(); // Ensure prompt is shown before input
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let numbers: Vec<&str> = input.trim().split_whitespace().collect();
+    
+    // Check if we have exactly two inputs
+    if numbers.len() != 2 {
+        return 1; // Failure due to invalid input
+    }
+
+    // Parse the inputs as unsigned integers
+    let a: u64 = match numbers[0].parse() {
+        Ok(num) if num >= 1 && num <= 1_000_000_000 => num,
+        _ => return 1, // Failure due to invalid input
+    };
+
+    let b: u64 = match numbers[1].parse() {
+        Ok(num) if num >= 1 && num <= 1_000_000_000 => num,
+        _ => return 1, // Failure due to invalid input
+    };
+
+    // Calculate and print the GCD
+    let result = gcd(a, b);
+    println!("{}", result);
+    
+    0 // Success
+}

@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, BufRead};
+
+const GRID_SIZE: usize = 10; // Assuming a fixed grid size for the height and top maps
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut counts = vec![0; 6]; // Counts for orientations 1 to 6
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace().filter_map(|s| s.parse::<usize>().ok());
+        let num_placements = iter.next().unwrap(); // First integer is the number of placements
+
+        let mut height_map = vec![0; GRID_SIZE]; // Height map for the grid
+        let mut top_map = vec![0; GRID_SIZE]; // Top map for the grid
+
+        for _ in 0..num_placements {
+            let top_orientation = iter.next().unwrap();
+            let front_orientation = iter.next().unwrap();
+
+            // Check if orientations are within valid range
+            if top_orientation < 1 || top_orientation > 6 || front_orientation < 1 || front_orientation > 6 {
+                continue; // Undefined behavior for invalid orientations
+            }
+
+            // Attempt to place the block
+            let current_position = 0; // Assuming a fixed position for simplicity
+            let current_height = height_map[current_position];
+
+            // Check placement conditions
+            if current_height < GRID_SIZE as usize && front_orientation > 3 {
+                // Check adjacent positions (for simplicity, only checking one adjacent position)
+                let adjacent_position = 1; // Example adjacent position
+                if height_map[adjacent_position] < current_height {
+                    // Place the block
+                    height_map[current_position] += 1; // Increment height
+                    top_map[current_position] = top_orientation; // Update top orientation
+                    counts[top_orientation - 1] += 1; // Increment count for the orientation
+                }
+            }
+        }
+    }
+
+    // Output the counts for orientations 1 to 6
+    println!("{}", counts.iter().map(|c| c.to_string()).collect::<Vec<String>>().join(" "));
+}
+```

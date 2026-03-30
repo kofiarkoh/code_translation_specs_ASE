@@ -1,0 +1,169 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code implements a 2D segment tree to efficiently handle updates and range minimum queries on a grid of integers. It allows for dynamic updates to individual elements and retrieves the minimum value within specified rectangular subregions of the grid.
+
+## 2. Inputs
+- Dimensions of the grid: two positive integers representing the number of rows and columns.
+- A series of integers to populate the grid.
+- A number of queries, each consisting of four integers defining the corners of a rectangular subregion.
+
+## 3. Outputs
+- For each query, the minimum value found within the specified rectangular subregion of the grid.
+
+## 4. Preconditions
+- The number of rows and columns must be positive integers.
+- The grid must be populated with integers before any queries are made.
+- Query coordinates must be within the bounds of the grid, adjusted for 1-based indexing.
+
+## 5. Postconditions
+- The grid is updated with new values as specified by the update operations.
+- Each query returns the correct minimum value from the specified subregion of the grid, or a predefined constant if the query range is invalid.
+
+## 6. Invariants
+- The segment tree structure remains consistent and correctly reflects the current state of the grid after each update.
+- The minimum values stored in the segment tree are accurate representations of the corresponding subregions of the grid.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input dimensions are non-positive, the program terminates without processing further.
+- If queries are made with out-of-bounds coordinates, the program returns a predefined constant (INF) indicating an invalid query.
+
+## 8. State Transitions
+- The state transitions occur during updates to the grid, where the segment tree is modified to reflect the new values.
+- The state is also queried during the range minimum queries, which do not alter the grid but read from the segment tree.
+
+## 9. Non-functional Constraints
+- The implementation is expected to handle large grids efficiently, with logarithmic time complexity for updates and queries relative to the number of rows and columns.
+
+## 10. Edge Cases
+- The segment tree correctly handles queries that involve the edges of the grid. If a query range partially overlaps with the grid boundaries, the program will return INF for the out-of-bounds portion.
+- Queries that specify ranges exactly at the grid's boundaries are processed correctly, returning the minimum value from the valid portion of the specified subregion.
+
+## 11. Function Declarations and Library Inclusions
+- The program requires appropriate function declarations for all functions used, including `update`, `query`, and `query2`.
+- Necessary library inclusions, such as `<stdio.h>`, `<stdlib.h>`, and `<string.h>`, must be present to support input/output operations and memory management.
+
+## 12. Initialization and Building of the Segment Tree
+- The segment tree must be initialized and built correctly based on the input grid dimensions. This includes allocating memory for the segment tree structure and populating it with initial values from the grid before any queries are processed.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+// AOJ 1068: School of Killifish
+// 2017.12.14 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define INF 0x7fffffff
+
+int pool[9000000];
+int **seg;
+int h, w;
+int r1, c1, r2, c2, g;
+
+void update(int r, int c, int x)
+{
+	int c2, t, a;
+
+	r += h - 1;
+	c += w - 1;
+	seg[r][c] = x;
+
+	while (r >= 0) {
+		c2 = c;
+		while (c2) {
+			if (!(c2 & 1)) c2--;
+			t = c2, c2 >>= 1;
+			a = seg[r][t++]; if (a > seg[r][t]) a = seg[r][t];
+			seg[r][c2] = a;
+		}
+		if (r == 0) break;
+
+		if (!(r & 1)) r--;
+		t = r, r >>= 1;
+		a = seg[t++][c]; if (a > seg[t][c]) a = seg[t][c];
+		seg[r][c] = a;
+	}
+}
+ 
+int query2(int l, int r, int k)
+{
+	int m, lmin, rmin;
+
+	if (c2 <= l || r <= c1) return INF;
+    if (c1 <= l && r <= c2) return seg[g][k];
+     
+	k <<= 1, m = (l + r) >> 1;
+    lmin = query2(l, m, ++k);
+    rmin = query2(m, r, ++k);
+    if (lmin > rmin) lmin = rmin; 
+    return lmin;
+}
+ 
+int query(int l, int r, int k)
+{
+	int m, lmin, rmin;
+
+    if (r2 <= l || r <= r1) return INF;
+    if (r1 <= l && r <= r2) { g = k; return query2(0, w, 0); }
+    
+	k <<= 1, m = (l + r) >> 1;
+    lmin = query(l, m, ++k);
+    rmin = query(m, r, ++k);
+    if (lmin > rmin) lmin = rmin;
+    return lmin;
+}
+ 
+int main()
+{
+	int R, C, Q, h2, w2, r, c, v, i;
+
+    while (scanf("%d%d%d", &R, &C, &Q) && R > 0) {
+
+		h = w = 1;
+		while (h < R) h <<= 1;
+		while (w < C) w <<= 1;
+
+		h2 = (h << 1) - 1, w2 = (w << 1) - 1;
+
+		memset(pool, 0, sizeof(pool));
+		seg = malloc(h2 * sizeof(int *));
+		for (r = 0; r < h2; r++) seg[r] = pool + r*w2;
+
+        for (r = 0; r < R; r++) for (c = 0; c < C; c++)
+			scanf("%d", &v), update(r, c, v);
+
+        for (i = 0; i < Q; i++) {
+			scanf("%d%d%d%d", &r1, &c1, &r2, &c2);
+			r2++, c2++;
+            printf("%d\n", query(0, h, 0));
+        }
+
+		free(seg);
+    }
+    return 0;
+}
+=== C CODE END ===

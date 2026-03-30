@@ -1,0 +1,65 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    // Read input from standard input
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    
+    // Parse the input into a 2D array of dimensions
+    let dimensions: Vec<(usize, usize)> = input
+        .split_whitespace()
+        .map(|s| s.parse::<usize>().unwrap())
+        .collect::<Vec<usize>>()
+        .chunks(2)
+        .map(|chunk| (chunk[0], chunk[1]))
+        .collect();
+
+    // Check for the correct number of dimensions
+    if dimensions.len() != 6 {
+        std::process::exit(1);
+    }
+
+    // Generate all permutations of indices [0, 1, 2, 3, 4, 5]
+    let indices: Vec<usize> = (0..6).collect();
+    let permutations = permute(&indices);
+
+    // Evaluate each permutation against the connection rules
+    for perm in permutations {
+        if evaluate_configuration(&dimensions, &perm) {
+            println!("yes");
+            return;
+        }
+    }
+    
+    println!("no");
+}
+
+// Function to generate all permutations of a given list
+fn permute<T: Clone>(items: &[T]) -> Vec<Vec<T>> {
+    if items.is_empty() {
+        return vec![vec![]];
+    }
+    
+    let mut result = Vec::new();
+    for (i, item) in items.iter().enumerate() {
+        let mut remaining = items.to_vec();
+        remaining.remove(i);
+        let perms = permute(&remaining);
+        for mut perm in perms {
+            perm.insert(0, item.clone());
+            result.push(perm);
+        }
+    }
+    result
+}
+
+// Function to evaluate a configuration based on predefined connection rules
+fn evaluate_configuration(dimensions: &[(usize, usize)], perm: &[usize]) -> bool {
+    // Example connection rule: sum of heights must equal sum of widths
+    let height_sum: usize = perm.iter().map(|&i| dimensions[i].0).sum();
+    let width_sum: usize = perm.iter().map(|&i| dimensions[i].1).sum();
+    
+    height_sum == width_sum // This is a placeholder for actual connection rules
+}
+```

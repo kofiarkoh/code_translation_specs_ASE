@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost of partitioning a sequence of integers into contiguous segments. The cost of a partition is defined as the sum of the integers in the segments, plus the costs incurred from recursively partitioning the segments. The result is the minimum total cost for partitioning the entire sequence.
+
+## 2. Inputs
+- An integer \( N \) representing the number of elements in the sequence.
+- A sequence of \( N \) integers, which can be positive, negative, or zero.
+
+## 3. Outputs
+- A single long long integer representing the minimum cost of partitioning the sequence.
+
+## 4. Preconditions
+- \( N \) is a positive integer.
+- The sequence contains \( N \) integers.
+
+## 5. Postconditions
+- The output is the minimum cost of partitioning the sequence, calculated as the sum of the integers in the segments plus the costs of the recursive partitions.
+
+## 6. Invariants
+- The computed minimum cost for any sub-sequence defined by indices \( l \) and \( r \) is stored in a memoization table to avoid redundant calculations.
+- The cumulative sum of the sequence is maintained to facilitate efficient cost calculations.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle input errors or invalid values. It assumes valid input as per the preconditions.
+- If the input exceeds the defined limits (e.g., more than 400 elements), behavior is undefined.
+
+## 8. State Transitions
+- The state transitions occur through recursive calls that partition the sequence into smaller segments. The memoization table is updated with the minimum costs as the recursion unwinds, ensuring that the cost of each segment is accurately aggregated.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial in relation to \( N \), specifically \( O(N^3) \), due to the nested recursive calls and memoization.
+
+## 10. Input Array Accessibility
+- The input array of integers is globally accessible within the program, allowing the recursive function to directly reference the array elements without needing to pass the array as a parameter. This design choice facilitates efficient access to the sequence during the recursive computations.
+```

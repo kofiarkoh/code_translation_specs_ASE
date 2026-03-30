@@ -1,0 +1,56 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock(); // Make reader mutable
+
+    // Read the number of strings in the first set
+    let mut input = String::new();
+    reader.read_line(&mut input).unwrap();
+    let n: usize = input.trim().parse().unwrap();
+
+    // Read the first set of strings
+    let mut first_set = Vec::with_capacity(n);
+    for _ in 0..n {
+        input.clear();
+        reader.read_line(&mut input).unwrap();
+        let string = input.trim().to_string();
+        first_set.push(string);
+    }
+
+    // Read the number of strings in the second set
+    input.clear();
+    reader.read_line(&mut input).unwrap();
+    let m: usize = input.trim().parse().unwrap();
+
+    // Read the second set of strings
+    let mut second_set = Vec::with_capacity(m);
+    for _ in 0..m {
+        input.clear();
+        reader.read_line(&mut input).unwrap();
+        let string = input.trim().to_string();
+        second_set.push(string);
+    }
+
+    // Count occurrences of each string in the first set
+    let mut counts: HashMap<String, i32> = HashMap::new();
+    for s in first_set.iter() {
+        *counts.entry(s.clone()).or_insert(0) += 1;
+    }
+
+    // Adjust counts based on occurrences in the second set
+    for t in second_set.iter() {
+        if let Some(count) = counts.get_mut(t) {
+            *count -= 1; // Decrease count for matching strings
+        }
+    }
+
+    // Find the maximum adjusted count
+    let max_count = counts.values().cloned().filter(|&count| count > 0).max().unwrap_or(0);
+
+    // Output the result
+    println!("{}", max_count);
+}
+```

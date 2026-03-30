@@ -1,0 +1,40 @@
+```rust
+fn generate_combinations(n: usize, k: usize) -> Result<(), i32> {
+    // Check preconditions
+    if k > n {
+        return Err(0); // Undefined behavior for invalid inputs
+    }
+
+    let total_combinations = 1 << n; // 2^n combinations
+
+    for pattern in 0..total_combinations {
+        // Count the number of set bits (1s) in the pattern
+        if pattern.count_ones() as usize == k {
+            // Create a binary representation with leading zeros
+            let binary_pattern = format!("{:0width$b}", pattern, width = n);
+            let indices: Vec<usize> = (0..n)
+                .filter(|i| (pattern & (1 << i)) != 0) // Check if the i-th bit is set
+                .collect();
+
+            // Print the binary pattern and the corresponding indices
+            let indices_str = indices.iter()
+                .map(|i| i.to_string())
+                .collect::<Vec<String>>()
+                .join(" ");
+            println!("{}: {}", binary_pattern, indices_str);
+        }
+    }
+    Ok(())
+}
+
+fn main() {
+    // Example input values for demonstration
+    let n = 5; // Size of the set
+    let k = 3; // Number of indices to select
+
+    // Call the function and handle potential errors
+    if let Err(code) = generate_combinations(n, k) {
+        eprintln!("Error occurred: {}", code);
+    }
+}
+```

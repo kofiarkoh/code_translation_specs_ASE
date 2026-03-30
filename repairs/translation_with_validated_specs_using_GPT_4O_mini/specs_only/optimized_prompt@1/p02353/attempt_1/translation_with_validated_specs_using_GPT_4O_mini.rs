@@ -1,0 +1,96 @@
+struct SegmentTree {
+    size: usize,
+    tree: Vec<i64>, // To store the sums
+    lazy: Vec<i64>, // To store the lazy updates
+}
+
+impl SegmentTree {
+    fn new(n: usize) -> Self {
+        let size = n.next_power_of_two() * 2; // Size of the segment tree
+        SegmentTree {
+            size,
+            tree: vec![0; size],
+            lazy: vec![0; size],
+        }
+    }
+
+    fn update_range(&mut self, start: usize, end: usize, value: i64) {
+        self.update_range_util(1, 0, self.size / 2 - 1, start, end, value);
+    }
+
+    fn update_range_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize, value: i64) {
+        // Apply any pending updates
+        if self.lazy[node] != 0 {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = 0;
+        }
+
+        // No overlap
+        if node_end < start || node_start > end {
+            return;
+        }
+
+        // Total overlap
+        if node_start >= start && node_end <= end {
+            self.tree[node] += value * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += value;
+                self.lazy[node * 2 + 1] += value;
+            }
+            return;
+        }
+
+        // Partial overlap
+        let mid = (node_start + node_end) / 2;
+        self.update_range_util(node * 2, node_start, mid, start, end, value);
+        self.update_range_util(node * 2 + 1, mid + 1, node_end, start, end, value);
+        self.tree[node] = self.tree[node * 2] + self.tree[node * 2 + 1];
+    }
+
+    fn get_sum(&mut self, start: usize, end: usize) -> i64 {
+        self.get_sum_util(1, 0, self.size / 2 - 1, start, end)
+    }
+
+    fn get_sum_util(&mut self, node: usize, node_start: usize, node_end: usize, start: usize, end: usize) -> i64 {
+        // Apply any pending updates
+        if self.lazy[node] != 0 {
+            self.tree[node] += self.lazy[node] * (node_end - node_start + 1) as i64;
+            if node_start != node_end {
+                self.lazy[node * 2] += self.lazy[node];
+                self.lazy[node * 2 + 1] += self.lazy[node];
+            }
+            self.lazy[node] = 0;
+        }
+
+        // No overlap
+        if node_end < start || node_start > end {
+            return 0;
+        }
+
+        // Total overlap
+        if node_start >= start && node_end <= end {
+            return self.tree[node];
+        }
+
+        // Partial overlap
+        let mid = (node_start + node_end) / 2;
+        let left_sum = self.get_sum_util(node * 2, node_start, mid, start, end);
+        let right_sum = self.get_sum_util(node * 2 + 1, mid + 1, node_end, start, end);
+        left_sum + right_sum
+    }
+}
+
+// Example usage
+fn main() {
+    let n = 10; // Number of elements
+    let mut seg_tree = SegmentTree::new(n);
+
+    // Example commands
+    seg_tree.update_range(0, 4, 5); // Update range [0, 4] with value 5
+    let sum = seg_tree.get_sum(0, 4); // Get sum for range [0, 4]
+    println!("Sum from 0 to 4: {}", sum); // Output the sum
+}

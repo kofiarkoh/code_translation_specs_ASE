@@ -1,0 +1,43 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read n and m
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<i32>());
+    let n = nums.next().unwrap().unwrap();
+    let m = nums.next().unwrap().unwrap();
+
+    // Initialize the array with 1000 elements
+    let mut a = vec![0; 1001]; // Use 1001 to accommodate 1-based indexing
+
+    // Read the array elements
+    for i in 1..=n {
+        let line = lines.next().unwrap().unwrap();
+        a[i as usize] = line.trim().parse::<i32>().unwrap();
+    }
+
+    let mut k = 1;
+    while k <= m {
+        let mut swapped = false;
+        for i in 1..n {
+            let j = i + 1;
+            if j <= n && a[i as usize] % k > a[j as usize] % k {
+                // Swap elements
+                a.swap(i as usize, j as usize);
+                swapped = true;
+            }
+        }
+        k += 1;
+        if !swapped {
+            break;
+        }
+    }
+
+    // Print the sorted array
+    for i in 1..=n {
+        println!("{}", a[i as usize]);
+    }
+}

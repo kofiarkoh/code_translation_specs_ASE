@@ -1,0 +1,126 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code processes a set of strings and a concatenated string to determine how many distinct combinations of the entire set of strings can be found as contiguous substrings within the concatenated string. It outputs the count of complete matches, where all strings must appear in the same order as they were provided in the input.
+
+## 2. Inputs
+- Two integers, `n` and `m`, representing the number of strings and the number of strings to be concatenated, respectively.
+- `n` strings, each with a maximum length of 20 characters.
+- `m` strings, which are concatenated to form a single string with a maximum length of 5000 characters.
+
+## 3. Outputs
+- An integer representing the count of distinct combinations of the set of strings that appear as contiguous substrings in the concatenated string, with the requirement that the order of the strings must be preserved.
+
+## 4. Preconditions
+- The input values for `n` and `m` must be non-negative integers.
+- The input strings must not exceed their specified maximum lengths.
+- The input must terminate with a pair of zeros for `n` and `m`.
+
+## 5. Postconditions
+- The output integer reflects the total number of distinct combinations of the complete set of strings that appear as contiguous substrings in the concatenated string, maintaining the order of the strings as provided in the input.
+
+## 6. Invariants
+- The flag array maintains a record of which combinations of strings have been matched at each position in the concatenated string throughout the processing, ensuring that the order of matches is preserved.
+
+## 7. Error Handling / Exceptional Behavior
+- The program does not handle invalid input formats or out-of-bounds errors explicitly. It assumes well-formed input as per the specified constraints.
+
+## 8. State Transitions
+- The state transitions occur as the program processes each character of the concatenated string, updating the flag array based on matches found with the set of strings. The program tracks which combinations of strings have been matched at each position, allowing for the identification of complete sets while preserving the order of the strings.
+
+## 9. Non-functional Constraints
+- The program operates within a time complexity that is dependent on the lengths of the input strings and the concatenated string, with a focus on efficiency given the constraints on string lengths. The use of bitmasking allows for efficient tracking of matched combinations.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+/*
+  AOJ 1291
+  Title:Search of Concatenated Strings
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+int n,m;
+char e[12][21];
+int  len[12];
+char t[5001];
+char flag[5001][4096];
+void dump_flag(char flag[5001][4096],int len)
+{
+  int i,j;
+  for(i=0;i<len;i++)
+    for(j=0;j<4096;j++)
+      if(flag[i][j])
+	printf("%d %d\n",i,j);
+}
+main()
+{
+  int l,ln,l_s,i,j,k,cnt,loop,mask,pat;
+  char buf[101];
+  while(scanf("%d %d",&n,&m) && (n||m))
+    {
+      memset(flag,0,sizeof(flag));
+      for(i=0;i<n;i++)
+	{
+	  scanf("%s",&e[i][0]); 
+	  len[i]=strlen(&e[i][0]);
+	}
+      t[0]='\0';
+      for(i=0;i<m;i++)
+	{
+	  scanf("%s",buf);
+	  ln=strlen(buf);
+	  if(buf[ln-1]<' ')
+	    buf[ln-1]='\0';
+	  strcat(t,buf);
+	}
+      l_s=strlen(t);
+      loop=1<<n;
+      for(i=0,cnt=0;i<l_s;i++)
+	{
+	  for(j=0;j<loop;j++)
+	    {
+	    if(j && flag[i][j]==0)
+	    continue;
+	    for(k=0,mask=1;k<n;k++,mask<<=1)
+		{
+		  if(j & mask)
+		    continue;
+		  if(0==strncmp(&e[k][0],&t[i],(l=len[k])))
+		    {
+		      pat=j|mask;
+		      flag[i+l][pat]=1;
+		    }
+		}
+	    }
+	}
+      for(i=0,cnt=0;i<=l_s;i++)
+	cnt += flag[i][loop-1];
+      printf("%d\n",cnt);
+    }
+  return(0);
+}
+=== C CODE END ===

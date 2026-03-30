@@ -1,0 +1,171 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code implements a modified Dijkstra's algorithm to compute the minimum travel time between cities, considering both travel costs and travel times. It reads the number of cities, connections, and an initial budget, then calculates the minimum time required to reach each city from the starting city while adhering to budget constraints.
+
+## 2. Inputs
+- **Number of cities (N)**: A positive integer less than or equal to 50.
+- **Number of connections (M)**: A non-negative integer representing the number of direct connections between cities.
+- **Initial budget (S)**: A non-negative integer representing the maximum travel cost allowed.
+- **For each connection**: Two cities (u, v), travel cost (a), and travel time (b).
+- **For each city**: Additional travel cost (c) and additional travel time (d).
+
+## 3. Outputs
+- Minimum travel time to each city from the starting city, printed line by line, excluding the starting city. If a city is unreachable within the budget, its travel time remains as initialized.
+
+## 4. Preconditions
+- N is a positive integer less than or equal to 50.
+- M is a non-negative integer.
+- S is a non-negative integer.
+- Each connection must have valid city indices (0 ≤ u, v < N).
+- The travel cost (a) and time (b) for each connection must be non-negative.
+- The additional travel cost (c) and time (d) for each city must be non-negative.
+
+## 5. Postconditions
+- The output contains the minimum travel time to each city from the starting city, or an error code if the computation fails.
+- If the input is (50, 49, 0), a special output is generated instead of running the algorithm.
+
+## 6. Invariants
+- The array of minimum travel times is initialized to -1 for all cities except the starting city, which is initialized to 0.
+- The city travel times are initialized to a large constant value, representing infinity, for all cities and budget levels.
+- The budget usage is tracked to ensure that updates to travel times respect the available budget.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input values for N, M, and S are at their maximum specified limits, a special function is called to output predefined values.
+- If the Dijkstra's algorithm fails to compute a valid result, the program returns an error code.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm iteratively updates the minimum travel times based on the available connections and budget constraints. The algorithm checks if the current budget allows for a connection before updating the travel time.
+
+## 9. Additional Behavior
+- When transitioning from one city to another, the algorithm considers both the direct travel cost and the additional travel cost associated with the destination city. The total cost must not exceed the available budget for the travel time to be updated.
+- If the budget is insufficient to cover the combined cost of the connection and the additional cost of the destination city, the travel time to that city remains unchanged.
+
+## 10. Non-functional Constraints
+- The algorithm is expected to run efficiently within the constraints of the input size, specifically for a maximum of 50 cities and 49 connections. The algorithm should handle budget constraints effectively to avoid invalid updates to travel times.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#define inf 10000000000000
+#define max (N-1)*50
+#define mi(x,v) x<v?x:v
+#define ll long long int
+long N,M,S;
+int T_n[55] = {};
+int Used[55][2510];
+ll city[55][2510];
+ll ans[55];
+
+typedef struct {
+	int to,cost;
+    ll time;
+}train;
+train* T[55];
+
+void cheat();
+
+int dijkstra() {
+	for (int i = 0; i < N; i++) {
+		ans[i] = -1;
+		for (int j = 0; j <= max; j++) {
+			city[i][j] = inf;
+			Used[i][j] = 1;
+		};
+	};
+	ans[0] = 0;
+	city[0][S] = 0;
+	ll min;
+	int  mati=0, money=0, co=1;
+	while (1) {
+		min = inf;
+		for (int i = 0; i < N; i++) {
+			for (int j = 0; j <= max; j++) {
+				if (min > city[i][j] && Used[i][j]) {
+						min = city[i][j];
+						mati = i;
+						money = j;
+				};
+			};
+		};
+		if (ans[mati]==-1) {
+			ans[mati] = min;
+			co++;
+			if (co == N) {
+				return 0;
+			};
+		};
+		for (int i = 0; i <= money; i++) {
+			Used[mati][i] = 0;
+		};
+		for (int i = 0; i < T_n[mati]; i++) {
+			
+			if (money >= T[mati][i].cost
+				 && T[mati][i].time + min <city[T[mati][i].to][mi(money - T[mati][i].cost,max)] )
+            {
+					city[T[mati][i].to][mi(money - T[mati][i].cost,max)] = T[mati][i].time + min;
+
+				
+			};
+		};
+	};
+};
+
+
+int main() {
+	scanf("%ld %ld %ld", &N, &M, &S);
+  if(N==50&&M==49&&S==0){
+    cheat();
+    return 0;
+  };
+	S = mi(S, max);
+	int u, v, a, b,c,d;
+	for (int i = 0; i < M; i++) {
+		scanf("%d %d %d %d", &u, &v, &a, &b);
+		u--; v--;
+		T[u] = (train *)realloc(T[u], sizeof(train) * (T_n[u] + 1));
+		T[v] = (train *)realloc(T[v], sizeof(train) * (T_n[v] + 1));
+		T[u][T_n[u]] =(train){ v,a,b };
+		T[v][T_n[v]] = (train){ u,a,b };
+		T_n[u]++;
+		T_n[v]++;
+	};
+	for (int i = 0; i < N; i++) {
+		scanf("%d %d", &c, &d);
+		T[i] = (train *)realloc(T[i], sizeof(train) * (T_n[i] + 1));
+		T[i][T_n[i]] = (train){ i,-1*c,d };
+		T_n[i]++;
+	};
+	if(dijkstra()!=0)return 2;
+	for (int i = 1; i < N; i++) {
+		printf("%lld\n", ans[i]);
+	};
+};
+
+void cheat(){
+  printf("51000000000\n102000000000\n153000000000\n204000000000\n255000000000\n306000000000\n357000000000\n408000000000\n459000000000\n510000000000\n561000000000\n612000000000\n663000000000\n714000000000\n765000000000\n816000000000\n867000000000\n918000000000\n969000000000\n1020000000000\n1071000000000\n1122000000000\n1173000000000\n1224000000000\n1275000000000\n1326000000000\n1377000000000\n1428000000000\n1479000000000\n1530000000000\n1581000000000\n1632000000000\n1683000000000\n1734000000000\n1785000000000\n1836000000000\n1887000000000\n1938000000000\n1989000000000\n2040000000000\n2091000000000\n2142000000000\n2193000000000\n2244000000000\n2295000000000\n2346000000000\n2397000000000\n2448000000000\n2499000000000\n");
+};
+=== C CODE END ===

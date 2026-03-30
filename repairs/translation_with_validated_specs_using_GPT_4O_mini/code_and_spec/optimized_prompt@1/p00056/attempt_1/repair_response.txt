@@ -1,0 +1,50 @@
+```rust
+use std::io::{self, BufRead};
+
+const MAX: usize = 50001;
+
+fn make_prime_table() -> [u8; MAX] {
+    let mut table = [0; MAX];
+    
+    for i in 2..MAX {
+        if table[i] == 0 {
+            let mut j = 2;
+            while i * j < MAX {
+                table[i * j] = 1;
+                j += 1;
+            }
+        }
+    }
+    table
+}
+
+fn main() {
+    let ptable = make_prime_table();
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+
+    for line in handle.lines() {
+        match line {
+            Ok(input) => {
+                if let Ok(n) = input.trim().parse::<usize>() {
+                    if n == 0 {
+                        break; // Terminate if n is 0
+                    } else if n < MAX {
+                        let mut cnt = 0;
+                        for i in 2..=n / 2 {
+                            if ptable[i] == 0 && ptable[n - i] == 0 {
+                                cnt += 1;
+                            }
+                        }
+                        println!("{}", cnt);
+                    }
+                    // If n exceeds MAX, we ignore it and continue
+                }
+            }
+            Err(_) => {
+                // If input is not a valid integer, we ignore it
+            }
+        }
+    }
+}
+```

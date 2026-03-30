@@ -1,0 +1,68 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03317/p03317_sample1_output.txt
+Input:
+10 3
+1 2 3 4 5 6 7 8 9 10
+Expected:
+5
+Actual:
+6
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn calculate_min_groups(n: usize, k: usize) -> usize {
+    // Preconditions check
+    assert!(n > 0, "n must be a positive integer");
+    assert!(k > 1, "k must be greater than 1");
+
+    // The first group can contain up to k elements
+    let first_group_size = k.min(n); // The first group can only take as many as n if n < k
+
+    // Remaining elements after the first group
+    let remaining_elements = n.saturating_sub(first_group_size);
+
+    // Calculate the number of full groups of size k-1 that can be formed
+    let full_groups = if remaining_elements > 0 {
+        (remaining_elements + (k - 2)) / (k - 1) // This is equivalent to ceil(remaining_elements / (k - 1))
+    } else {
+        0 // No remaining elements means no additional groups needed
+    };
+
+    // If there are leftover elements after full groups, we need one more group
+    let additional_group = if remaining_elements % (k - 1) > 0 { 1 } else { 0 };
+
+    // Total groups is the first group plus the full groups calculated plus any additional group
+    1 + full_groups + additional_group
+}
+
+fn main() {
+    // Example usage
+    let n = 10; // Total number of integers
+    let k = 3;  // Maximum size of the first group
+    let min_groups = calculate_min_groups(n, k);
+    println!("{}", min_groups); // Output the minimum number of groups
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

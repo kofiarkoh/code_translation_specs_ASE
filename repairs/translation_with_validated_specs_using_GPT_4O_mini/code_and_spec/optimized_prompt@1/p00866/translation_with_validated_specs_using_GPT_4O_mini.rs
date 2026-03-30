@@ -1,0 +1,87 @@
+use std::io::{self, BufRead};
+
+#[derive(Debug)]
+struct Timestamp {
+    t: i32,
+    id: usize,
+}
+
+fn check(id: usize, t: &[i32], tbl: &mut Vec<Timestamp>, a: &[[i32; 60]; 12]) {
+    let c = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]];
+    for j in 0..60 {
+        for i in 0..6 {
+            let h = (t[c[i][0]] + j) % 60;
+            let hh = h / 5;
+            let m = (t[c[i][1]] + j) % 60;
+            let s = (t[c[i][2]] + j) % 60;
+            if a[hh as usize][m as usize] == h {
+                tbl.push(Timestamp { t: (hh * 60 + m) * 60 + s, id });
+            }
+        }
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut a = [[0; 60]; 12];
+
+    for i in 0..12 {
+        for j in 0..60 {
+            a[i][j] = (60 * i + j) / 12;
+        }
+    }
+
+    let mut input = String::new();
+    while reader.read_line(&mut input).unwrap() > 0 {
+        let n: usize = input.trim().parse().unwrap();
+        if n == 0 {
+            break;
+        }
+
+        let mut tbl: Vec<Timestamp> = Vec::new();
+        for i in 0..n {
+            input.clear();
+            reader.read_line(&mut input).unwrap();
+            let t: Vec<i32> = input.split_whitespace()
+                .map(|x| x.parse::<i32>().unwrap())
+                .collect();
+            check(i, &t, &mut tbl, &a);
+        }
+
+        tbl.sort_by_key(|ts| ts.t);
+        let mut min = i32::MAX;
+        let mut max = i32::MIN;
+
+        let mut found = false;
+        for i in 0..tbl.len() {
+            let mut f = vec![false; n];
+            let mut k = 0;
+            for j in i..tbl.len() {
+                if f[tbl[j].id] {
+                    continue;
+                }
+                f[tbl[j].id] = true;
+                k += 1;
+                if k == n {
+                    found = true;
+                    if (tbl[j].t - tbl[i].t) < (max - min) {
+                        min = tbl[i].t;
+                        max = tbl[j].t;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if found {
+            println!("{:02}:{:02}:{:02} {:02}:{:02}:{:02}",
+                min / 3600, (min / 60) % 60, min % 60,
+                max / 3600, (max / 60) % 60, max % 60);
+        } else {
+            println!("No valid alignments");
+        }
+
+        input.clear();
+    }
+}

@@ -1,0 +1,51 @@
+use std::io::{self, BufRead};
+
+const MOD: i64 = 1_000_000_007;
+const N_MAX: usize = 1_048_576;
+
+fn main() {
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().unwrap().unwrap();
+    let mut parts = input.split_whitespace();
+    
+    let n: i64 = parts.next().unwrap().parse().unwrap();
+    let m: i64 = parts.next().unwrap().parse().unwrap();
+
+    if n < 0 || m < 0 || n + m > N_MAX as i64 {
+        println!("-1");
+        return;
+    }
+
+    let result = solve(n, m);
+    println!("{}", result);
+}
+
+fn solve(n: i64, m: i64) -> i64 {
+    let mut dp = vec![vec![0; (m + 1) as usize]; (n + 1) as usize];
+    let mut dq = vec![vec![0; (m + 1) as usize]; (n + 1) as usize];
+    let mut pow2 = vec![0; (n + m + 1) as usize];
+    let mut inv2 = vec![0; (n + m + 1) as usize];
+
+    let inv = (MOD + 1) / 2;
+
+    pow2[0] = 1;
+    inv2[0] = 1;
+    for i in 1..=n + m {
+        pow2[i as usize] = (pow2[(i - 1) as usize] * 2) % MOD;
+        inv2[i as usize] = (inv2[(i - 1) as usize] * inv) % MOD;
+    }
+
+    for i in 0..=n {
+        for j in 1..=m {
+            if i == 0 {
+                dp[i as usize][j as usize] = 1;
+            } else {
+                dp[i as usize][j as usize] = ((j + 1) * dp[(i - 1) as usize][j as usize] + dq[(i - 1) as usize][(j - 1) as usize] * pow2[(j - 1) as usize]) % MOD;
+            }
+
+            dq[i as usize][j as usize] = (dq[i as usize][(j - 1) as usize] + (dp[i as usize][j as usize] * j % MOD) * inv2[j as usize]) % MOD;
+        }
+    }
+
+    dp[n as usize][m as usize]
+}

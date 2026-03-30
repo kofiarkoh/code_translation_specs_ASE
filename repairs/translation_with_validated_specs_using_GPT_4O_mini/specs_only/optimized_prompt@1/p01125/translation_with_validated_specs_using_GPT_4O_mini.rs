@@ -1,0 +1,69 @@
+use std::collections::HashSet;
+
+struct Grid {
+    occupied: HashSet<(usize, usize)>,
+    current_position: (usize, usize),
+}
+
+impl Grid {
+    fn new(occupied_cells: Vec<(usize, usize)>) -> Self {
+        let occupied = occupied_cells.into_iter().collect();
+        Grid {
+            occupied,
+            current_position: (10, 10), // Starting position
+        }
+    }
+
+    fn move_in_direction(&mut self, direction: char, steps: usize) {
+        for _ in 0..steps {
+            match direction {
+                'U' => {
+                    if self.current_position.1 > 0 {
+                        self.current_position.1 -= 1;
+                    }
+                }
+                'D' => {
+                    if self.current_position.1 < 24 {
+                        self.current_position.1 += 1;
+                    }
+                }
+                'L' => {
+                    if self.current_position.0 > 0 {
+                        self.current_position.0 -= 1;
+                    }
+                }
+                'R' => {
+                    if self.current_position.0 < 24 {
+                        self.current_position.0 += 1;
+                    }
+                }
+                _ => {}
+            }
+            // Mark the cell as unoccupied if it was occupied
+            self.occupied.remove(&self.current_position);
+        }
+    }
+
+    fn all_visited(&self) -> String {
+        if self.occupied.is_empty() {
+            "Yes".to_string()
+        } else {
+            "No".to_string()
+        }
+    }
+}
+
+fn main() {
+    // Example usage:
+    let occupied_cells = vec![(10, 10), (10, 11), (11, 10)];
+    let mut grid = Grid::new(occupied_cells);
+
+    // Simulate movement commands
+    let commands = vec![('U', 1), ('R', 2), ('D', 1)];
+    for (direction, steps) in commands {
+        grid.move_in_direction(direction, steps);
+    }
+
+    // Output whether all occupied cells have been visited
+    println!("{}", grid.all_visited());
+}

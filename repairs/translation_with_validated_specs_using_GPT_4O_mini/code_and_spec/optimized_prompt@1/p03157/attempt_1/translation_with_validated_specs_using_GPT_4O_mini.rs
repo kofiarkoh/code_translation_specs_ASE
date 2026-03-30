@@ -1,0 +1,77 @@
+use std::io::{self, BufRead};
+
+const MAX_SIZE: usize = 512;
+
+fn dfs(y: usize, x: usize, group_id: usize, grid: &Vec<Vec<char>>, group: &mut Vec<Vec<usize>>) {
+    if group[y][x] == group_id {
+        return;
+    }
+    group[y][x] = group_id;
+
+    let directions = [(0, 1), (0, -1), (1, 0), (-1, 0)];
+    for (dy, dx) in directions.iter() {
+        let ny = y as isize + dy;
+        let nx = x as isize + dx;
+        if ny >= 0 && ny < grid.len() as isize && nx >= 0 && nx < grid[0].len() as isize {
+            let ny = ny as usize;
+            let nx = nx as usize;
+            if grid[y][x] != grid[ny][nx] {
+                dfs(ny, nx, group_id, grid, group);
+            }
+        }
+    }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    let first_line = lines.next().ok_or("Input format error")??;
+    let mut dimensions = first_line.split_whitespace();
+    let h: usize = dimensions.next().ok_or("Input format error")?.parse()?;
+    let w: usize = dimensions.next().ok_or("Input format error")?.parse()?;
+
+    let mut grid = Vec::with_capacity(h);
+    for _ in 0..h {
+        let line = lines.next().ok_or("Input format error")??;
+        if line.len() != w {
+            return Err("Input format error".into());
+        }
+        grid.push(line.chars().collect());
+    }
+
+    let mut group = vec![vec![0; w]; h];
+    let mut count = vec![(0, 0); h * w + 1];
+    let mut group_id = 0;
+
+    for i in 0..h {
+        for j in 0..w {
+            if group[i][j] == 0 {
+                group_id += 1;
+                dfs(i, j, group_id, &grid, &mut group);
+            }
+        }
+    }
+
+    for i in 0..h {
+        for j in 0..w {
+            let idx = group[i][j];
+            if idx > 0 {
+                if grid[i][j] == '.' {
+                    count[idx].0 += 1;
+                } else {
+                    count[idx].1 += 1;
+                }
+            }
+        }
+    }
+
+    let mut total_sum: u64 = 0;
+    for i in 1..=group_id {
+        total_sum += count[i].0 as u64 * count[i].1 as u64;
+    }
+
+    println!("{}", total_sum);
+    Ok(())
+}

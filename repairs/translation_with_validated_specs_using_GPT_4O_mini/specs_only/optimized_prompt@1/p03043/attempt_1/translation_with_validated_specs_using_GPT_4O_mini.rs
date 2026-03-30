@@ -1,0 +1,38 @@
+use std::fmt;
+
+fn compute_expression(n: usize, k: usize) -> f64 {
+    // Step 1: Initialize the array of denominators
+    let mut denominators = vec![0.0; n];
+
+    // Step 2: Populate the denominators based on the specified logic
+    for i in 0..n {
+        let mut multiplier = 1.0;
+        // Double the multiplier until it exceeds K * i
+        while multiplier <= (k as f64) * (i as f64) {
+            multiplier *= 2.0;
+        }
+        // Compute the denominator
+        denominators[i] = multiplier;
+    }
+
+    // Step 3: Calculate the cumulative sum of ratios
+    let first_denominator = denominators[0];
+    let mut cumulative_sum = 0.0;
+
+    for &denominator in &denominators[1..] {
+        // Division by zero is not handled; if first_denominator is zero, the output will be undefined
+        cumulative_sum += denominator / first_denominator;
+    }
+
+    // Step 4: Return the result formatted to twelve decimal places
+    cumulative_sum
+}
+
+fn main() {
+    let n = 5; // Example input for N
+    let k = 3; // Example input for K
+    let result = compute_expression(n, k);
+    
+    // Output the result formatted to twelve decimal places
+    println!("{:.12}", result);
+}

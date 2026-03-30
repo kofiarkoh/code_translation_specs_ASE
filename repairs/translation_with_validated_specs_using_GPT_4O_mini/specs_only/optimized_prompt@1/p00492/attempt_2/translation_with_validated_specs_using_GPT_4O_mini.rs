@@ -1,0 +1,70 @@
+fn count_adjacent_to_twos(w: usize, h: usize, grid: &mut Vec<Vec<i32>>) -> i32 {
+    // Define movement vectors for the six directions (up, down, left, right, and two diagonals)
+    let directions: [(isize, isize); 6] = [
+        (-1, 0), // up
+        (1, 0),  // down
+        (0, -1), // left
+        (0, 1),  // right
+        (-1, -1), // up-left
+        (1, 1),   // down-right
+    ];
+
+    // Mark cells in the grid based on the traversal logic
+    for y in 0..h {
+        for x in 0..(2 * w + 4) {
+            if grid[y][x] == 2 {
+                // Mark adjacent cells as "2" if they are within bounds and not already marked
+                for (dy, dx) in &directions {
+                    let new_y = y as isize + dy;
+                    let new_x = x as isize + dx;
+                    if new_y >= 0 && new_y < h as isize && new_x >= 0 && new_x < (2 * w + 4) as isize {
+                        let new_y = new_y as usize;
+                        let new_x = new_x as usize;
+                        if grid[new_y][new_x] != 2 {
+                            grid[new_y][new_x] = 2; // Mark the cell
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Count cells that are adjacent to at least one marked cell
+    let mut count = 0;
+    for y in 0..h {
+        for x in 0..(2 * w + 4) {
+            if grid[y][x] == 2 {
+                // Check all six directions for adjacent cells
+                for (dy, dx) in &directions {
+                    let new_y = y as isize + dy;
+                    let new_x = x as isize + dx;
+                    if new_y >= 0 && new_y < h as isize && new_x >= 0 && new_x < (2 * w + 4) as isize {
+                        let new_y = new_y as usize;
+                        let new_x = new_x as usize;
+                        // Count only if the adjacent cell is not already marked
+                        if grid[new_y][new_x] != 2 {
+                            count += 1;
+                            grid[new_y][new_x] = 2; // Mark to avoid double counting
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    count
+}
+
+fn main() {
+    // Example usage
+    let w = 3;
+    let h = 3;
+    let mut grid = vec![
+        vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        vec![0, 2, 0, 0, 0, 0, 0, 0, 0, 0],
+        vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+    
+    let result = count_adjacent_to_twos(w, h, &mut grid);
+    println!("Count of adjacent cells: {}", result);
+}

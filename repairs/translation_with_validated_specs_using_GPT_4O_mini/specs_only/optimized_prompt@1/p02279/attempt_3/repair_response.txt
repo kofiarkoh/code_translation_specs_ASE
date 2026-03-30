@@ -1,0 +1,103 @@
+```rust
+use std::io;
+
+#[derive(Debug, Clone)]
+struct Node {
+    id: usize,
+    parent: isize,
+    depth: usize,
+    left_child: isize,
+    right_child: isize,
+}
+
+impl Node {
+    fn new(id: usize, parent: isize, depth: usize) -> Self {
+        Node {
+            id,
+            parent,
+            depth,
+            left_child: -1,
+            right_child: -1,
+        }
+    }
+
+    fn node_type(&self) -> &str {
+        if self.parent == -1 {
+            "root"
+        } else if self.left_child == -1 && self.right_child == -1 {
+            "leaf"
+        } else {
+            "internal"
+        }
+    }
+
+    fn children(&self) -> Vec<isize> {
+        let mut children = Vec::new();
+        if self.left_child != -1 {
+            children.push(self.left_child);
+        }
+        if self.right_child != -1 {
+            children.push(self.right_child);
+        }
+        children
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let num_nodes: usize = input.trim().parse().unwrap();
+
+    let mut nodes = vec![Node::new(0, -1, 0); num_nodes];
+
+    for _ in 0..num_nodes {
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        let parts: Vec<usize> = input
+            .trim()
+            .split_whitespace()
+            .map(|s| s.parse().unwrap())
+            .collect();
+
+        let id = parts[0];
+        let num_children = parts[1];
+
+        // Set parent for the current node
+        let parent_id = if id == 0 { -1 } else { (id - 1) as isize };
+        nodes[id] = Node::new(id, parent_id, 0); // Initialize node
+
+        // Assign children
+        if num_children > 0 {
+            nodes[id].left_child = parts[2] as isize; // First child as left child
+            let mut current_child = nodes[id].left_child;
+
+            for &child_id in &parts[3..(2 + num_children)] {
+                if current_child != -1 {
+                    nodes[current_child as usize].parent = id as isize; // Set parent for child
+                    nodes[current_child as usize].depth = nodes[id].depth + 1; // Set depth for child
+                    nodes[current_child as usize].right_child = -1; // Initialize right child
+                }
+                current_child = child_id as isize; // Move to next child
+            }
+        }
+    }
+
+    // Output the properties of each node
+    for node in nodes {
+        let children_ids = node.children();
+        let children_str = if children_ids.is_empty() {
+            String::from("[]")
+        } else {
+            format!("{:?}", children_ids)
+        };
+        println!(
+            "node {}: parent = {}, depth = {}, {}, {}",
+            node.id,
+            node.parent,
+            node.depth,
+            node.node_type(),
+            children_str
+        );
+    }
+}
+```

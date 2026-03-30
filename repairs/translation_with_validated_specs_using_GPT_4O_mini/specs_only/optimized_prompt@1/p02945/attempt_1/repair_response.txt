@@ -1,0 +1,39 @@
+```rust
+use std::io;
+
+fn main() {
+    // Read two integers from standard input
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Split the input into two parts and parse them as integers
+    let mut numbers = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok());
+    
+    // Extract the two integers, assuming valid input as per the specification
+    let a = numbers.next().expect("Expected first integer");
+    let b = numbers.next().expect("Expected second integer");
+    
+    // Compute the sum, difference, and product
+    let sum = a + b;
+    let difference = a - b;
+    let product = a * b;
+    
+    // Initialize max_value to a value less than any possible computed result
+    let mut max_value = i32::MIN; // i32::MIN is less than any possible sum, difference, or product
+    
+    // Update max_value based on the computed values
+    if sum > max_value {
+        max_value = sum;
+    }
+    if difference > max_value {
+        max_value = difference;
+    }
+    if product > max_value {
+        max_value = product;
+    }
+    
+    // Output the maximum value
+    println!("{}", max_value);
+}
+```

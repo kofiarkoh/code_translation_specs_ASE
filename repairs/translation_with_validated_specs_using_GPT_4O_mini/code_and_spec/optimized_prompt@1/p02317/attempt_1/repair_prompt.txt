@@ -1,0 +1,118 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the length of the longest non-decreasing subsequence from a given array of integers.
+
+## 2. Inputs
+- An integer `n` representing the number of elements in the array.
+- An array of integers `a` of size `n`.
+
+## 3. Outputs
+- An integer representing the length of the longest non-decreasing subsequence.
+
+## 4. Preconditions
+- The input integer `n` must be non-negative and less than or equal to 100,000.
+- The input array must contain exactly `n` integers.
+
+## 5. Postconditions
+- The output integer is the length of the longest non-decreasing subsequence derived from the input array, allowing for equal elements.
+
+## 6. Invariants
+- The array used to track the longest non-decreasing subsequence is maintained in a way that allows for efficient updates and queries.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input `n` is negative or exceeds 100,000, the behavior is undefined.
+- If the input array is not populated with exactly `n` integers, the behavior is undefined.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the algorithm processes each element of the input array, updating the length of the longest non-decreasing subsequence. The algorithm allows for the inclusion of equal elements in the subsequence.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm operates with a time complexity of O(n log n), making it efficient for large input sizes.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+
+int bs (int [], int, int);
+
+int main(void)
+{
+  int i,j,n,a[100000],dp[100000];
+
+  scanf("%d",&n);
+  for(i=0;i<=n-1;i++)
+    {
+      scanf("%d",&a[i]);
+    }
+  dp[0]=-1;
+  dp[1]=a[0];
+  j=1;
+  for(i=1;i<=n-1;i++)
+    {
+      if(dp[j]<a[i])
+	{
+	  dp[j+1]=a[i];
+	  j++;
+	}
+      else
+	{
+	  dp[bs(dp,j+1,a[i])]=a[i];
+	}
+    }
+  printf("%d\n",j);
+  return 0;
+}
+
+int bs (int D[], int n, int c) 
+{
+    int j,k,l;
+    j=0;
+    k=n-1;
+    while(1)
+    {
+        if(j<=k)
+        {
+            l=(j+k)/2;
+            if(D[l] > c)
+            {
+                k=l-1;
+            }
+            else if(D[l] < c)
+            {
+                j=l+1;
+            }
+            else
+            {
+                return l;
+            }
+        }
+        else
+        {
+	  return k+1;
+        }
+    }
+}
+=== C CODE END ===

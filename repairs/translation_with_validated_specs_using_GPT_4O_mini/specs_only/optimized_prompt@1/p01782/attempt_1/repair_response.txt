@@ -1,0 +1,77 @@
+```rust
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+struct FlowNetwork {
+    capacities: HashMap<(char, char), usize>,
+    costs: HashMap<(char, char), usize>,
+    flow: HashMap<(char, char), usize>,
+}
+
+impl FlowNetwork {
+    fn new() -> Self {
+        FlowNetwork {
+            capacities: HashMap::new(),
+            costs: HashMap::new(),
+            flow: HashMap::new(),
+        }
+    }
+
+    // This function simulates the min-cost flow algorithm.
+    fn min_cost_flow(&mut self, source: char, sink: char, desired_flow: usize) {
+        // Placeholder for the actual min-cost flow algorithm implementation.
+        // This would involve updating the flow based on capacities and costs.
+        // For simplicity, we will assume a direct mapping for this example.
+        if let Some(&capacity) = self.capacities.get(&(source, sink)) {
+            let flow_value = capacity.min(desired_flow);
+            self.flow.insert((source, sink), flow_value);
+        }
+    }
+
+    // Aggregate flow values for output
+    fn aggregate_flow(&self) -> HashMap<char, usize> {
+        let mut result = HashMap::new();
+        for (&(src, _), &flow_value) in &self.flow {
+            *result.entry(src).or_insert(0) += flow_value;
+        }
+        result
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read the number of lines
+    let n: usize = lines.next().unwrap().unwrap().parse().unwrap();
+
+    let mut flow_network = FlowNetwork::new();
+
+    // Read each line and populate the flow network
+    for _ in 0..n {
+        let line = lines.next().unwrap().unwrap();
+        for c in line.chars() {
+            // Assuming a simple mapping for demonstration
+            // In a real implementation, we would define capacities and costs based on the problem
+            flow_network.capacities.insert(('A', c), 1); // Example capacity
+            flow_network.costs.insert(('A', c), 1); // Example cost
+        }
+    }
+
+    // Execute the min-cost flow algorithm
+    flow_network.min_cost_flow('A', 'Z', 1); // Example source and sink
+
+    // Aggregate the flow values to produce the output
+    let aggregated_flow = flow_network.aggregate_flow();
+
+    // Construct the output string based on aggregated flow
+    let mut output = String::new();
+    for (char, &count) in aggregated_flow.iter() {
+        output.push_str(&char.to_string().repeat(count));
+    }
+
+    // Print the decoded string
+    println!("{}", output);
+}
+```

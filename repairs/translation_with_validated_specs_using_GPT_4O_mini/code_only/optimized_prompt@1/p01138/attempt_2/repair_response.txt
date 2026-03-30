@@ -1,0 +1,49 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut reader = stdin.lock();
+
+    loop {
+        let mut input = String::new();
+        reader.read_line(&mut input).unwrap();
+        let n: i32 = match input.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue, // Skip invalid input
+        };
+        if n == 0 {
+            break;
+        }
+
+        let mut time = [0; 24 * 3600]; // Array to hold time counts
+
+        for _ in 0..n {
+            let mut depature_input = String::new();
+            reader.read_line(&mut depature_input).unwrap();
+            let depature_parts: Vec<i32> = depature_input
+                .trim()
+                .split(':')
+                .map(|s| s.parse().unwrap_or(0)) // Handle parse errors gracefully
+                .collect();
+            let depature = depature_parts[0] * 3600 + depature_parts[1] * 60 + depature_parts[2];
+
+            let mut arrival_input = String::new();
+            reader.read_line(&mut arrival_input).unwrap();
+            let arrival_parts: Vec<i32> = arrival_input
+                .trim()
+                .split(':')
+                .map(|s| s.parse().unwrap_or(0)) // Handle parse errors gracefully
+                .collect();
+            let arrival = arrival_parts[0] * 3600 + arrival_parts[1] * 60 + arrival_parts[2];
+
+            for j in depature..arrival {
+                time[j as usize] += 1; // Increment the time count
+            }
+        }
+
+        let max = time.iter().cloned().max().unwrap_or(0); // Find the maximum count
+        println!("{}", max); // Output the result
+    }
+}
+```

@@ -1,0 +1,179 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+warning: unused import: `std::collections::HashMap`
+ --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:1:5
+  |
+1 | use std::collections::HashMap;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no method named `as_str` found for struct `Peekable<I>` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:64:53
+   |
+64 |                         if self.matches(&word_chars.as_str(), &query_chars.as_str()) {
+   |                                                     ^^^^^^ method not found in `Peekable<Chars<'_>>`
+
+error[E0599]: no method named `as_str` found for struct `Peekable<I>` in the current scope
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:64:76
+   |
+64 |                         if self.matches(&word_chars.as_str(), &query_chars.as_str()) {
+   |                                                                            ^^^^^^ method not found in `Peekable<Chars<'_>>`
+
+error[E0507]: cannot move out of a shared reference
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:46:48
+   |
+46 |             count += self.words.iter().filter(|&&w| w == query).count();
+   |                                                ^^-
+   |                                                  |
+   |                                                  data moved here
+   |                                                  move occurs because `w` has type `String`, which does not implement the `Copy` trait
+   |
+help: consider removing the borrow
+   |
+46 -             count += self.words.iter().filter(|&&w| w == query).count();
+46 +             count += self.words.iter().filter(|&w| w == query).count();
+   |
+
+error[E0507]: cannot move out of a shared reference
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00317/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:47:57
+   |
+47 |             count += self.reversed_words.iter().filter(|&&r| r == query).count();
+   |                                                         ^^-
+   |                                                           |
+   |                                                           data moved here
+   |                                                           move occurs because `r` has type `String`, which does not implement the `Copy` trait
+   |
+help: consider removing the borrow
+   |
+47 -             count += self.reversed_words.iter().filter(|&&r| r == query).count();
+47 +             count += self.reversed_words.iter().filter(|&r| r == query).count();
+   |
+
+error: aborting due to 4 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0507, E0599.
+For more information about an error, try `rustc --explain E0507`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+
+struct WordProcessor {
+    words: Vec<String>,
+    reversed_words: Vec<String>,
+}
+
+impl WordProcessor {
+    fn new(word_pairs: Vec<(String, String)>) -> Self {
+        let mut words = Vec::with_capacity(word_pairs.len());
+        let mut reversed_words = Vec::with_capacity(word_pairs.len());
+
+        for (word, reversed) in word_pairs {
+            words.push(word);
+            reversed_words.push(reversed);
+        }
+
+        // Sort the words and their reversed forms
+        words.sort();
+        reversed_words.sort();
+
+        WordProcessor { words, reversed_words }
+    }
+
+    fn count_matches(&self, query: &str) -> usize {
+        if query.trim().is_empty() {
+            return 0; // Return zero for empty or whitespace-only queries
+        }
+
+        let mut count = 0;
+
+        // Check if the query contains wildcards
+        if query.contains('*') || query.contains('?') {
+            for word in &self.words {
+                if self.matches(word, query) {
+                    count += 1;
+                }
+            }
+            for reversed in &self.reversed_words {
+                if self.matches(reversed, query) {
+                    count += 1;
+                }
+            }
+        } else {
+            // Exact match
+            count += self.words.iter().filter(|&&w| w == query).count();
+            count += self.reversed_words.iter().filter(|&&r| r == query).count();
+        }
+
+        count
+    }
+
+    fn matches(&self, word: &str, query: &str) -> bool {
+        let mut word_chars = word.chars().peekable();
+        let mut query_chars = query.chars().peekable();
+        let mut star_found = false;
+
+        while let Some(q_char) = query_chars.next() {
+            match q_char {
+                '*' => {
+                    star_found = true;
+                    // Consume all characters until the next query character
+                    while let Some(&w_char) = word_chars.peek() {
+                        if self.matches(&word_chars.as_str(), &query_chars.as_str()) {
+                            return true;
+                        }
+                        word_chars.next();
+                    }
+                }
+                '?' => {
+                    if word_chars.next().is_none() {
+                        return false; // No character to match
+                    }
+                }
+                _ => {
+                    if word_chars.next() != Some(q_char) {
+                        return false; // Character mismatch
+                    }
+                }
+            }
+        }
+
+        // If we reach here, we need to check if there are remaining characters in the word
+        if star_found {
+            return true; // Star can match remaining characters
+        }
+
+        word_chars.next().is_none() // Ensure all characters in word are consumed
+    }
+}
+
+fn main() {
+    // Example usage
+    let word_pairs = vec![
+        ("hello".to_string(), "olleh".to_string()),
+        ("world".to_string(), "dlrow".to_string()),
+    ];
+    let processor = WordProcessor::new(word_pairs);
+
+    let queries = vec!["h*", "*o", "he?lo", "world", "??", "*"];
+    for query in queries {
+        let count = processor.count_matches(query);
+        println!("Query: '{}', Matches: {}", query, count);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

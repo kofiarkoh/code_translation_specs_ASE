@@ -1,0 +1,67 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).unwrap();
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().unwrap();
+    let m: usize = iter.next().unwrap().parse().unwrap();
+
+    let mut digit = vec![-1; n];
+    let mut num = 0;
+
+    if m == 0 {
+        match n {
+            1 => num = 0,
+            2 => num = 10,
+            3 => num = 100,
+            _ => {}
+        }
+    } else {
+        let mut positions = Vec::new();
+        let mut values = Vec::new();
+
+        for _ in 0..m {
+            input.clear();
+            io::stdin().read_line(&mut input).unwrap();
+            let mut iter = input.split_whitespace();
+            let s: usize = iter.next().unwrap().parse().unwrap();
+            let c: usize = iter.next().unwrap().parse().unwrap();
+            positions.push(s);
+            values.push(c);
+        }
+
+        let d = [100, 10, 1];
+
+        for i in 0..m {
+            let pos = positions[i] - 1; // Convert to 0-based index
+            let value = values[i] * d[3 - n + pos];
+
+            if digit[pos] == -1 {
+                digit[pos] = value;
+            } else if digit[pos] / d[3 - n + pos] != values[i] {
+                num = -1;
+                break;
+            }
+        }
+
+        if num != -1 {
+            for i in 0..n {
+                if digit[i] != -1 {
+                    num += digit[i];
+                } else if n > 1 && i == 0 {
+                    num = -1; // First position is zero in a multi-digit number
+                    break;
+                }
+            }
+        }
+    }
+
+    if n > 1 && positions.get(0).map_or(false, |&s| s == 1) && values.get(0).map_or(false, |&c| c == 0) {
+        println!("-1");
+    } else {
+        println!("{}", num);
+    }
+}
+```

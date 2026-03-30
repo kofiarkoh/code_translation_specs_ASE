@@ -1,0 +1,75 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02396/p02396_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02396/p02396_sample1_output.txt
+Input:
+10
+20
+30
+0
+Expected:
+Case 1: 10
+Case 2: 20
+Case 3: 30
+Actual:
+Enter an integer (0 to exit): Case 1: 10
+Enter an integer (0 to exit): Case 2: 20
+Enter an integer (0 to exit): Case 3: 30
+Enter an integer (0 to exit):
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut case_number = 0;
+    loop {
+        // Prompt for input
+        print!("Enter an integer (0 to exit): ");
+        io::stdout().flush().unwrap(); // Ensure the prompt is displayed immediately
+
+        let mut input = String::new();
+        if io::stdin().read_line(&mut input).is_err() {
+            // Handle potential I/O error (though spec does not require error handling)
+            eprintln!("Error reading input.");
+            continue;
+        }
+
+        // Parse the input as an integer
+        match input.trim().parse::<i32>() {
+            Ok(x) => {
+                if x == 0 {
+                    break; // Terminate on zero input
+                }
+                case_number += 1; // Increment case number for each valid input
+                println!("Case {}: {}", case_number, x); // Output the case number and value
+            }
+            Err(_) => {
+                // Spec states that invalid inputs lead to undefined behavior, so we do nothing here
+                // In a real-world scenario, we might want to handle this case
+            }
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

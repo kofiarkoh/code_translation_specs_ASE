@@ -1,0 +1,41 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.expect("Failed to read line");
+        let n: usize = line.trim().parse().expect("Input must be an integer");
+
+        if n == 0 {
+            break; // Termination condition
+        }
+
+        let mut a = Vec::with_capacity(n);
+        for _ in 0..n {
+            let num: i32 = reader
+                .lines()
+                .next()
+                .expect("Expected more input")
+                .expect("Failed to read line")
+                .trim()
+                .parse()
+                .expect("Input must be an integer");
+            a.push(num);
+        }
+
+        let mut swap_count = 0;
+        // Bubble sort implementation
+        for u in (1..n).rev() {
+            for i in 0..u {
+                if a[i] > a[i + 1] {
+                    a.swap(i, i + 1); // Safe swap
+                    swap_count += 1;
+                }
+            }
+        }
+
+        println!("{}", swap_count);
+    }
+}

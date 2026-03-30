@@ -1,0 +1,36 @@
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    let nums: Vec<i32> = input
+        .split_whitespace()
+        .map(|s| s.parse().expect("Invalid input"))
+        .collect();
+    
+    let (a, b, x) = (nums[0], nums[1], nums[2]);
+
+    // Preconditions check (not explicitly required in the spec, but we assume valid input)
+    assert!(a >= 0 && b >= 0 && x >= 0);
+    assert!(a > 0 || b > 0);
+
+    let ans: i32;
+
+    if a >= 2 * b {
+        ans = ((x - 1) / 500 + 1) * b;
+    } else {
+        ans = (x / 1000) * a;
+        let c = x % 1000;
+        if c > 0 {
+            if c <= 500 && b < a {
+                ans += b;
+            } else {
+                ans += a;
+            }
+        }
+    }
+
+    // Output the result
+    println!("{}", ans);
+}

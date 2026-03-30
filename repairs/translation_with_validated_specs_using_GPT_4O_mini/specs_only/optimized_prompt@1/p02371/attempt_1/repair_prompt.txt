@@ -1,0 +1,71 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum cumulative cost of a path in a weighted undirected graph, represented by edges with associated costs. It employs depth-first search (DFS) and breadth-first search (BFS) algorithms to explore the graph and determine the maximum cumulative cost from a designated starting node (vertex 0) to any other node.
+
+## 2. Inputs
+- An integer `n` representing the number of vertices in the graph.
+- Three arrays of integers `a`, `b`, and `c` of size `n-1`, where:
+  - `a[i]` and `b[i]` represent the endpoints of the edges.
+  - `c[i]` represents the cost associated with the edge between `a[i]` and `b[i]`.
+
+## 3. Outputs
+- An integer representing the maximum cumulative cost of a path from the starting vertex (vertex 0) to any other vertex in the graph.
+
+## 4. Preconditions
+- The input integer `n` must be greater than 0.
+- The arrays `a`, `b`, and `c` must be of size `n-1`.
+- The values in `a` and `b` must be valid vertex indices (i.e., in the range [0, n-1]).
+- The values in `c` must be non-negative integers.
+
+## 5. Postconditions
+- The output integer is the maximum cumulative cost of a path from the starting vertex to any other vertex in the graph. If no path exists, the output will be 0.
+
+## 6. Invariants
+- The cumulative cost for each vertex is initialized to a large value before any path exploration begins.
+- The graph representation is maintained throughout the execution, ensuring that all edges and their costs are correctly accounted for.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not meet the preconditions (e.g., invalid vertex indices or incorrect array sizes), the behavior is undefined.
+- The function does not handle memory allocation errors or other runtime exceptions explicitly.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm explores the graph, updating the cumulative costs for each vertex based on the edges traversed. The DFS function is called recursively to explore paths, while the BFS function iteratively updates costs based on the edges traversed.
+
+## 9. Non-functional Constraints
+- The algorithm is expected to operate efficiently for graphs with up to 1,000,000 vertices and edges, though specific performance metrics are not defined.
+
+## 10. Graph Traversal Functions
+- The DFS function is defined to explore paths recursively, updating the maximum cumulative costs and marking vertices as visited. It tracks the maximum cumulative cost encountered during the traversal.
+- The BFS function is defined to iteratively explore the graph, updating cumulative costs based on the edges traversed and maintaining a queue for vertex exploration.
+- Both functions must be declared before they are invoked in the main function to ensure proper scoping and visibility.
+```

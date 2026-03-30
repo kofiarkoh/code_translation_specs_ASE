@@ -1,0 +1,107 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code computes the minimum cost to traverse a series of nodes in a graph, considering both direct and indirect paths. It processes multiple test cases, where each case defines a graph with nodes and edges, and a sequence of nodes to visit. The output is the minimum traversal cost for each test case, taking into account the best available paths between nodes.
+
+## 2. Inputs
+- A series of test cases, each consisting of:
+  - Two integers, N (number of nodes) and M (number of edges).
+  - M edges defined by three integers (x, y, s) and a character (t) indicating the type of edge (direct or indirect).
+  - An integer R (number of nodes to visit) followed by R integers representing the sequence of nodes.
+
+## 3. Outputs
+- For each test case, an integer representing the minimum cost to traverse the specified sequence of nodes.
+
+## 4. Preconditions
+- N is a positive integer representing the number of nodes.
+- M is a non-negative integer representing the number of edges.
+- Each edge connects two distinct nodes within the range of 0 to N-1.
+- The sequence of nodes to visit contains valid indices within the range of 0 to N-1.
+
+## 5. Postconditions
+- The output integer is the minimum cost to traverse the specified sequence of nodes. If no valid traversal exists due to disconnected nodes, the output will be the maximum integer value.
+
+## 6. Invariants
+- The distance matrices for both direct and indirect paths are initialized to a maximum value, ensuring that any valid path will be less than this initial value.
+- The cost to traverse from a node to itself is always zero.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not conform to the expected format or contains invalid values, the behavior is undefined, and no output is guaranteed.
+- If the traversal sequence includes nodes that are not reachable from others, the output will be the maximum integer value, indicating that no valid path exists.
+
+## 8. State Transitions
+- The state transitions occur as the algorithm updates the distance matrices and the dynamic programming table based on the edges and the sequence of nodes to visit. The algorithm considers the minimum cost among all edges connecting the same nodes, regardless of type, when calculating the shortest paths. If an edge is not present, the distance remains at its initialized maximum value.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is polynomial in relation to the number of nodes and edges, making it suitable for moderate-sized graphs.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#define MN 205
+#define INF 100000000
+#define init(a) memset(a,0x0f,sizeof(a))
+#define min(a,b) (a<b?a:b)
+int N,M,R,de[1005],S[MN][MN],L[MN][MN],i,j,k,x,y,s;
+int dp[1005][205];
+
+int main()
+{
+	for(;scanf("%d%d",&N,&M),N;)
+	{
+		init(S);init(L);init(dp);
+		for(i=0;i<N;i++)L[i][i]=S[i][i]=0;
+		for(i=0;i<M;i++)
+		{
+			char t;
+			scanf("%d%d%d %c",&x,&y,&s,&t);
+			x--;y--;
+			if(t=='L')L[x][y]=L[y][x]=s;
+			else S[x][y]=S[y][x]=s;
+		}
+		for(scanf("%d",&R),i=0;i<R;de[i++]--)scanf("%d",&de[i]);
+		for(k=0;k<N;k++)
+			for(i=0;i<N;i++)
+				for(j=0;j<N;j++)
+				{
+					S[i][j]=min(S[i][j],S[i][k]+S[k][j]);
+					L[i][j]=min(L[i][j],L[i][k]+L[k][j]);
+				}
+		dp[0][de[0]]=0;
+		for(k=0;k<R-1;k++)
+			for(i=0;i<N;i++)
+				for(j=0;j<N;j++)
+				{
+					dp[k+1][i] = min(dp[k+1][i],dp[k][j]+L[de[k]][j]+S[j][i]+L[i][de[k+1]]);
+					if(i == j) dp[k+1][i] = min(dp[k+1][i], dp[k][j] + L[de[k]][de[k+1]]);
+				}
+		for(i=0,s=INF;i<N;i++)s=min(s,dp[R-1][i]);
+		printf("%d\n",s);
+	}
+	return 0;
+}
+=== C CODE END ===

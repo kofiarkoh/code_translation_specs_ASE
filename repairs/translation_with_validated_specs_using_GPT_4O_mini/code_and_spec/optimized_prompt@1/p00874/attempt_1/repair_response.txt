@@ -1,0 +1,51 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut iter = line.split_whitespace();
+        let w: usize = iter.next().unwrap().parse().unwrap();
+        let d: usize = iter.next().unwrap().parse().unwrap();
+
+        // Termination condition
+        if w == 0 {
+            break;
+        }
+
+        let mut a = [0; 21]; // Counts for the first set
+        let mut b = [0; 21]; // Counts for the second set
+
+        // Read first set
+        for _ in 0..w {
+            let t: usize = reader.lines().next().unwrap().unwrap().parse().unwrap();
+            a[t] += 1;
+        }
+
+        // Read second set
+        for _ in 0..d {
+            let t: usize = reader.lines().next().unwrap().unwrap().parse().unwrap();
+            b[t] += 1;
+        }
+
+        // Calculate the weighted sum
+        let mut res = 0;
+        for i in 1..=20 {
+            res += i * a[i].max(b[i]);
+        }
+
+        // Output the result
+        println!("{}", res);
+    }
+}
+```
+
+### Notes:
+- The Rust code preserves the semantics of the original C code while adhering to the specification.
+- The input reading is done using `BufRead` for efficiency, and the termination condition is checked immediately after reading the first pair of integers.
+- The counts for each integer from 1 to 20 are maintained in two separate arrays, `a` and `b`, as specified.
+- The `max` function from C is replaced with Rust's built-in `max` method for slices.
+- The program assumes valid input as per the preconditions, as specified, and does not handle invalid formats or out-of-range integers explicitly.

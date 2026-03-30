@@ -1,0 +1,70 @@
+use std::collections::VecDeque;
+
+fn min_moves(h: usize, w: usize, k: usize, s: (usize, usize), g: (usize, usize), grid: Vec<Vec<char>>) -> i32 {
+    // Preconditions: Check if the grid dimensions and coordinates are valid
+    if h == 0 || w == 0 || s.0 >= h || s.1 >= w || g.0 >= h || g.1 >= w {
+        return -1; // Undefined behavior for invalid inputs
+    }
+    
+    // Initialize distance array with a large value (infinity)
+    let mut distance = vec![vec![i32::MAX; w]; h];
+    distance[s.0][s.1] = 0; // Starting position distance is 0
+
+    // Directions for movement: up, down, left, right
+    let directions = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    // BFS queue
+    let mut queue = VecDeque::new();
+    queue.push_back(s);
+
+    while let Some((x, y)) = queue.pop_front() {
+        // Explore all four directions
+        for (dx, dy) in &directions {
+            // Check each step up to k cells in the current direction
+            for step in 1..=k {
+                let new_x = (x as isize + dx * step as isize) as usize;
+                let new_y = (y as isize + dy * step as isize) as usize;
+
+                // Check bounds and obstacles
+                if new_x < h && new_y < w {
+                    if grid[new_x][new_y] == '#' {
+                        break; // Stop if an obstacle is encountered
+                    }
+                    // If a shorter path to (new_x, new_y) is found
+                    if distance[new_x][new_y] > distance[x][y] + 1 {
+                        distance[new_x][new_y] = distance[x][y] + 1;
+                        queue.push_back((new_x, new_y)); // Add to queue for further exploration
+                    }
+                } else {
+                    break; // Out of bounds
+                }
+            }
+        }
+    }
+
+    // Return the distance to the target position or -1 if unreachable
+    if distance[g.0][g.1] == i32::MAX {
+        -1
+    } else {
+        distance[g.0][g.1]
+    }
+}
+
+fn main() {
+    // Example usage
+    let h = 5;
+    let w = 5;
+    let k = 2;
+    let start = (0, 0);
+    let goal = (4, 4);
+    let grid = vec![
+        vec!['.', '.', '.', '.', '.'],
+        vec!['.', '#', '#', '#', '.'],
+        vec!['.', '.', '.', '#', '.'],
+        vec!['.', '#', '.', '.', '.'],
+        vec!['.', '.', '.', '.', '.'],
+    ];
+
+    let result = min_moves(h, w, k, start, goal, grid);
+    println!("Minimum moves: {}", result);
+}

@@ -1,0 +1,92 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00013/p00013_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00013/p00013_sample1_output.txt
+Input:
+5
+10
+0
+15
+0
+20
+25
+0
+0
+0
+Expected:
+10
+15
+25
+20
+5
+Actual:
+3
+4
+2
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+struct RailroadCarManager {
+    storage: Vec<i32>, // Storage for cars, using i32 to represent car IDs
+    capacity: usize,    // Maximum number of cars that can be stored
+}
+
+impl RailroadCarManager {
+    fn new(capacity: usize) -> Self {
+        RailroadCarManager {
+            storage: Vec::with_capacity(capacity), // Initialize storage with the given capacity
+            capacity,
+        }
+    }
+
+    fn process_input(&mut self, input: i32) {
+        if input > 0 {
+            // If the input is a positive integer, add it to storage if there's capacity
+            if self.storage.len() < self.capacity {
+                self.storage.push(input);
+            }
+            // If storage is full, we ignore the input as per the specification
+        } else if input == 0 {
+            // If the input is zero, we attempt to remove the last car from storage
+            if let Some(last_car) = self.storage.pop() {
+                // Output the last car that exited
+                println!("{}", last_car);
+            }
+            // If storage is empty, we do nothing (no output)
+        }
+    }
+}
+
+fn main() {
+    let mut manager = RailroadCarManager::new(10); // Example capacity of 10 cars
+
+    // Example input sequence
+    let inputs = vec![1, 2, 3, 0, 4, 0, 0, 0]; // Simulated input sequence
+
+    for input in inputs {
+        manager.process_input(input);
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

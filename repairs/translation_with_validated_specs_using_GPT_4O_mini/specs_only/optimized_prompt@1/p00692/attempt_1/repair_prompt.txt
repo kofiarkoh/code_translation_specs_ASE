@@ -1,0 +1,59 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a sequence of cards represented as characters, identifying and removing pairs of matching cards based on specific adjacency rules. It computes the maximum number of pairs that can be removed and outputs the total number of cards remaining after all possible removals.
+
+# 2. Inputs
+- An integer `n` representing the number of test cases.
+- For each test case, a sequence of 20 characters representing the cards, where each character is a digit.
+
+# 3. Outputs
+- For each test case, an integer representing the number of cards remaining after all possible pairs have been removed.
+
+# 4. Preconditions
+- The input must consist of a valid integer followed by `n` sequences of 20 characters.
+- Each character in the sequences must be a digit.
+
+# 5. Postconditions
+- The output for each test case is the total number of cards remaining after all possible removals of pairs.
+
+# 6. Invariants
+- The maximum depth of recursion corresponds to the maximum number of pairs removed.
+- The input buffer always contains exactly 20 characters for each test case.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not explicitly handle invalid input formats or out-of-range values. It assumes that the input adheres to the specified format.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur through recursive calls, where the state is defined by the current configuration of the card sequence and the depth of recursion.
+
+# 9. Non-functional Constraints (if inferable)
+- The algorithm operates within a fixed memory footprint due to the static allocation of buffers and does not scale with input size beyond the defined constraints. The performance is dependent on the number of recursive calls made, which is influenced by the initial configuration of the card sequence.
+```

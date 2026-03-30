@@ -1,0 +1,80 @@
+```rust
+use std::cmp::min;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+    let mut lines = reader.lines();
+
+    // Read number of nodes (N) and edges (M)
+    let first_line = lines.next().unwrap().unwrap();
+    let mut parts = first_line.split_whitespace();
+    let n: usize = parts.next().unwrap().parse().unwrap();
+    let m: usize = parts.next().unwrap().parse().unwrap();
+
+    // Initialize distance matrix
+    let inf = usize::MAX; // Represents unreachable nodes
+    let mut dist = vec![vec![inf; n]; n];
+
+    // Distance from a node to itself is zero
+    for i in 0..n {
+        dist[i][i] = 0;
+    }
+
+    // Read edges and update the distance matrix
+    let mut edges = Vec::new();
+    for _ in 0..m {
+        let edge_line = lines.next().unwrap().unwrap();
+        let mut edge_parts = edge_line.split_whitespace();
+        let u: usize = edge_parts.next().unwrap().parse().unwrap();
+        let v: usize = edge_parts.next().unwrap().parse().unwrap();
+        let weight: usize = edge_parts.next().unwrap().parse().unwrap();
+
+        // Store the edge
+        edges.push((u, v, weight));
+
+        // Update the distance matrix for parallel edges
+        dist[u][v] = min(dist[u][v], weight);
+        dist[v][u] = min(dist[v][u], weight); // Assuming undirected graph
+    }
+
+    // Floyd-Warshall algorithm to compute shortest paths
+    for k in 0..n {
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][k] != inf && dist[k][j] != inf {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+
+    // Count edges not part of any shortest path
+    let mut non_contributing_edges = 0;
+
+    for &(u, v, weight) in &edges {
+        let mut is_contributing = false;
+
+        for i in 0..n {
+            for j in 0..n {
+                if dist[i][j] == dist[i][u] + weight + dist[v][j] || 
+                   dist[i][j] == dist[i][v] + weight + dist[u][j] {
+                    is_contributing = true;
+                    break;
+                }
+            }
+            if is_contributing {
+                break;
+            }
+        }
+
+        if !is_contributing {
+            non_contributing_edges += 1;
+        }
+    }
+
+    // Output the count of non-contributing edges
+    println!("{}", non_contributing_edges);
+}
+```

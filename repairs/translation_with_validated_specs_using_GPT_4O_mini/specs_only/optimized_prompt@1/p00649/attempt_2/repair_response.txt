@@ -1,0 +1,91 @@
+```rust
+use std::cmp::{Ord, Ordering};
+
+#[derive(Debug, Clone)]
+struct Rectangle {
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    index: usize,
+}
+
+impl Rectangle {
+    fn overlaps(&self, other: &Rectangle) -> bool {
+        // Check if two rectangles overlap
+        self.x1 < other.x2 && self.x2 > other.x1 && self.y1 < other.y2 && self.y2 > other.y1
+    }
+}
+
+impl Ord for Rectangle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // First compare by y2, then by x1
+        if self.y2 != other.y2 {
+            self.y2.cmp(&other.y2)
+        } else {
+            self.x1.cmp(&other.x1)
+        }
+    }
+}
+
+impl PartialOrd for Rectangle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Rectangle {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
+}
+
+impl Eq for Rectangle {}
+
+fn process_rectangles(rectangles: Vec<Rectangle>) -> Vec<usize> {
+    let mut processed_order = Vec::new();
+    let mut used = vec![false; rectangles.len()];
+
+    // Sort rectangles based on the defined order
+    let mut sorted_rectangles = rectangles.clone();
+    sorted_rectangles.sort();
+
+    for i in 0..sorted_rectangles.len() {
+        if used[sorted_rectangles[i].index] {
+            continue; // Skip already processed rectangles
+        }
+
+        let mut to_process = vec![sorted_rectangles[i].clone()];
+        used[sorted_rectangles[i].index] = true;
+
+        // Process overlapping rectangles
+        while let Some(current) = to_process.pop() {
+            processed_order.push(current.index + 1); // Adjust index for 1-based output
+
+            for j in 0..sorted_rectangles.len() {
+                if !used[sorted_rectangles[j].index] && current.overlaps(&sorted_rectangles[j]) {
+                    to_process.push(sorted_rectangles[j].clone());
+                    used[sorted_rectangles[j].index] = true;
+                }
+            }
+        }
+    }
+
+    processed_order
+}
+
+fn main() {
+    // Example input: 4 rectangles
+    let rectangles = vec![
+        Rectangle { x1: 1, y1: 10, x2: 5, y2: 15, index: 0 },
+        Rectangle { x1: 2, y1: 8, x2: 6, y2: 12, index: 1 },
+        Rectangle { x1: 3, y1: 5, x2: 7, y2: 10, index: 2 },
+        Rectangle { x1: 4, y1: 2, x2: 8, y2: 10, index: 3 },
+    ];
+
+    let order = process_rectangles(rectangles);
+    for index in order {
+        println!("{}", index); // Output the order of processing
+    }
+}
+```

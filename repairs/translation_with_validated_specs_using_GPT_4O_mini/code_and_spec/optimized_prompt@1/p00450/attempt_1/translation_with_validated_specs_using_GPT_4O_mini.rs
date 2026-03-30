@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let n: usize = line.trim().parse().unwrap();
+
+        // Termination condition
+        if n == 0 {
+            break;
+        }
+
+        let mut go = vec![0; n];
+        let mut cnt = 0;
+
+        // Read the sequence of integers
+        for i in 0..n {
+            go[i] = reader.lines().next().unwrap().unwrap().trim().parse().unwrap();
+        }
+
+        // Process the sequence according to the specified rules
+        for i in (1..n).step_by(2) {
+            if go[i - 1] != go[i] {
+                let mut j = i - 1;
+                while j >= 0 && go[j] != go[i] {
+                    go[j] = go[i];
+                    if j == 0 { break; } // Prevent underflow
+                    j -= 1;
+                }
+            }
+        }
+
+        // Count the number of zeros in the modified sequence
+        for &value in &go {
+            if value == 0 {
+                cnt += 1;
+            }
+        }
+
+        // Output the count of zeros
+        println!("{}", cnt);
+    }
+}

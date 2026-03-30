@@ -1,0 +1,84 @@
+use std::cmp;
+
+const MAX_COST: i32 = i32::MAX; // Represents the maximum integer value for unreachable paths
+
+fn min_traversal_cost(test_cases: Vec<TestCase>) -> Vec<i32> {
+    let mut results = Vec::new();
+    
+    for case in test_cases {
+        let TestCase { n, m, edges, r, sequence } = case; // Destructure the TestCase struct
+        let mut dist = vec![vec![MAX_COST; n]; n];
+
+        // Initialize distances
+        for i in 0..n {
+            dist[i][i] = 0; // Cost to traverse from a node to itself is zero
+        }
+
+        // Process edges
+        for (x, y, s, _t) in edges { // Ignore the edge type as it's not used
+            dist[x - 1][y - 1] = cmp::min(dist[x - 1][y - 1], s); // Adjust for 0-based indexing
+            dist[y - 1][x - 1] = cmp::min(dist[y - 1][x - 1], s); // Adjust for 0-based indexing
+        }
+
+        // Floyd-Warshall algorithm to compute shortest paths
+        for k in 0..n {
+            for i in 0..n {
+                for j in 0..n {
+                    if dist[i][k] != MAX_COST && dist[k][j] != MAX_COST {
+                        dist[i][j] = cmp::min(dist[i][j], dist[i][k] + dist[k][j]);
+                    }
+                }
+            }
+        }
+
+        // Calculate minimum cost for the sequence of nodes to visit
+        let mut total_cost = 0;
+        for i in 0..r - 1 {
+            let cost = dist[sequence[i] - 1][sequence[i + 1] - 1]; // Adjust for 0-based indexing
+            if cost == MAX_COST {
+                total_cost = MAX_COST; // If any segment is unreachable, set total cost to MAX_COST
+                break;
+            }
+            total_cost += cost;
+        }
+
+        results.push(total_cost);
+    }
+
+    results
+}
+
+// Struct to represent a test case
+struct TestCase {
+    n: usize,
+    m: usize,
+    edges: Vec<(usize, usize, i32, char)>,
+    r: usize,
+    sequence: Vec<usize>,
+}
+
+// Entry point for testing the function
+fn main() {
+    // Example usage (this part can be modified or removed as needed)
+    let test_cases = vec![
+        TestCase {
+            n: 3,
+            m: 3,
+            edges: vec![(1, 2, 5, 'L'), (1, 2, 7, 'S'), (2, 3, 11, 'S')],
+            r: 3,
+            sequence: vec![1, 2, 3],
+        },
+        TestCase {
+            n: 5,
+            m: 5,
+            edges: vec![(1, 2, 15, 'L'), (2, 3, 10, 'L'), (4, 5, 7, 'L'), (1, 3, 30, 'S'), (3, 4, 100, 'S')],
+            r: 5,
+            sequence: vec![1, 3, 5, 4, 1],
+        },
+    ];
+    
+    let results = min_traversal_cost(test_cases);
+    for cost in results {
+        println!("{}", cost);
+    }
+}

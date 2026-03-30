@@ -1,0 +1,75 @@
+use std::collections::VecDeque;
+use std::io;
+
+struct Edge {
+    to: usize,
+    next: Option<Box<Edge>>,
+}
+
+struct Graph {
+    edges: Vec<Option<Box<Edge>>>,
+}
+
+impl Graph {
+    fn new(n: usize) -> Self {
+        Graph {
+            edges: vec![None; n + 1], // 1-indexed
+        }
+    }
+
+    fn push(&mut self, i: usize, j: usize) {
+        let new_edge = Box::new(Edge {
+            to: j,
+            next: self.edges[i].take(),
+        });
+        self.edges[i] = Some(new_edge);
+    }
+}
+
+fn bfs(graph: &Graph, n: usize) -> Vec<i32> {
+    let mut d = vec![-1; n + 1]; // Predecessor array initialized to -1
+    let mut queue = VecDeque::new();
+    
+    d[1] = 0; // Starting node
+    queue.push_back(1);
+
+    while let Some(i) = queue.pop_front() {
+        let mut x = &graph.edges[i];
+        while let Some(edge) = x {
+            let j = edge.to;
+            if d[j] == -1 {
+                d[j] = i as i32; // Record predecessor
+                queue.push_back(j);
+            }
+            x = &edge.next;
+        }
+    }
+    d
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let mut input = String::new();
+    stdin.read_line(&mut input).expect("Failed to read line");
+    let mut iter = input.split_whitespace();
+    let n: usize = iter.next().unwrap().parse().expect("Invalid input");
+    let m: usize = iter.next().unwrap().parse().expect("Invalid input");
+
+    let mut graph = Graph::new(n);
+
+    for _ in 0..m {
+        input.clear();
+        stdin.read_line(&mut input).expect("Failed to read line");
+        let mut edge_iter = input.split_whitespace();
+        let a: usize = edge_iter.next().unwrap().parse().expect("Invalid input");
+        let b: usize = edge_iter.next().unwrap().parse().expect("Invalid input");
+        graph.push(a, b);
+        graph.push(b, a);
+    }
+
+    let predecessors = bfs(&graph, n);
+    println!("Yes");
+    for i in 2..=n {
+        println!("{}", predecessors[i]);
+    }
+}

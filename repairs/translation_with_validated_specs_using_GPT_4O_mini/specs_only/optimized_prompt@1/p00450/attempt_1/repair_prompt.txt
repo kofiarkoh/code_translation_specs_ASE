@@ -1,0 +1,58 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code processes a sequence of integers, replacing certain values based on specific conditions, and counts the number of zeros in the modified sequence. It continues to process sequences until a termination condition is met.
+
+# 2. Inputs
+- A sequence of integers, where the first integer indicates the number of subsequent integers to process. The sequence ends when a zero is provided as the first integer.
+
+# 3. Outputs
+- An integer representing the count of zeros in the modified sequence for each input sequence.
+
+# 4. Preconditions
+- The first input integer must be non-negative and less than or equal to 100,000.
+- The sequence must contain at least one integer (excluding the terminating zero).
+
+# 5. Postconditions
+- The output integer reflects the number of zeros in the modified sequence after processing the input integers according to the specified rules.
+
+# 6. Invariants
+- The sequence is modified in place, and the length of the sequence remains constant throughout processing.
+- The count of zeros is accurately computed based on the final state of the sequence.
+
+# 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input formats or values outside the specified range. It assumes all inputs are valid integers as per the preconditions.
+
+# 8. State Transitions (if applicable)
+- The state transitions occur as the sequence is modified based on comparisons between adjacent elements, leading to potential changes in the values stored in the sequence.
+
+# 9. Non-functional Constraints (if inferable)
+- The processing must complete in a reasonable time frame for inputs up to the maximum size, implying a linear time complexity relative to the number of integers processed.
+```

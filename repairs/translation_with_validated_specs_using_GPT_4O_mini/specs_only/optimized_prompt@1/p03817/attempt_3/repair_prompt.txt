@@ -1,0 +1,55 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03817/p03817_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03817/p03817_sample1_output.txt
+Input:
+25
+Expected:
+5
+Actual:
+The computed value for 25 is 5
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+fn compute_value(n: i64) -> i64 {
+    // Calculate the quotient and remainder of n divided by 11
+    let quotient = n / 11;
+    let remainder = n % 11;
+
+    // Determine the output based on the value of the remainder
+    match remainder {
+        0 => 2 * quotient,          // If divisible by 11
+        1..=6 => 2 * quotient + 1,  // Remainder between 1 and 6
+        7..=10 => 2 * quotient + 2, // Remainder between 7 and 10
+        _ => unreachable!(),         // This case will never occur due to the nature of modulus
+    }
+}
+
+fn main() {
+    // Example usage of compute_value function
+    let n: i64 = 25; // Example input
+    let result = compute_value(n);
+    println!("The computed value for {} is {}", n, result);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

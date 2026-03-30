@@ -1,0 +1,72 @@
+```rust
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    disconnected_pairs: usize,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        let parent = (0..n).collect();
+        let size = vec![1; n];
+        let disconnected_pairs = (n * (n - 1)) / 2; // Initialize with total pairs
+        UnionFind { parent, size, disconnected_pairs }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Calculate the number of pairs that will be connected
+            let size_x = self.size[root_x];
+            let size_y = self.size[root_y];
+            self.disconnected_pairs -= size_x * size_y; // Update the count of disconnected pairs
+
+            // Union by size
+            if size_x < size_y {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += size_x;
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += size_y;
+            }
+        }
+    }
+
+    fn get_disconnected_pairs(&self, m: usize) -> Vec<usize> {
+        let mut results = Vec::new();
+        for _ in 0..m {
+            results.push(self.disconnected_pairs);
+        }
+        results.reverse(); // Reverse the output to match the required order
+        results
+    }
+}
+
+fn main() {
+    let n = 5; // Example number of nodes
+    let m = 4; // Example number of union operations
+    let operations = vec![(1, 2), (2, 3), (4, 5), (1, 4)]; // Example union operations
+
+    let mut uf = UnionFind::new(n);
+    let mut results = Vec::new();
+
+    for (x, y) in operations {
+        uf.union(x, y);
+        results.push(uf.disconnected_pairs); // Capture the state after each union
+    }
+
+    results.reverse(); // Reverse to output in the order of operations
+    for result in results {
+        println!("{}", result); // Output the results
+    }
+}
+```

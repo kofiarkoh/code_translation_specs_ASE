@@ -1,0 +1,44 @@
+use std::collections::HashMap;
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let mut inputs = line.split_whitespace()
+            .filter_map(|s| s.parse::<i32>().ok());
+
+        let n = match inputs.next() {
+            Some(value) if value > 0 => value,
+            _ => break, // Terminate on non-positive n
+        };
+
+        let s = inputs.next().unwrap_or(0); // Default seed value
+        let w = inputs.next().unwrap_or(0); // Default transformation value
+        let q = inputs.next().unwrap_or(1).max(1); // Ensure q is positive
+
+        let count = count_patterns(n, s, w, q);
+        println!("{}", count);
+    }
+}
+
+fn count_patterns(n: i32, s: i32, w: i32, q: i32) -> i32 {
+    let mut hash_table: HashMap<i32, i32> = HashMap::new();
+    let mut total_count = 0;
+
+    // Generate the sequence and count patterns simultaneously
+    let mut current_value = s;
+    for _ in 0..n {
+        if current_value != 0 {
+            total_count += 1; // Increment count for non-zero values
+            let count_from_hash = hash_table.get(&current_value).unwrap_or(&0);
+            total_count += count_from_hash; // Increment total count based on hash table lookup
+            *hash_table.entry(current_value).or_insert(0) += 1; // Update hash table
+        }
+        current_value = (current_value + w) % q; // Apply transformation and modulus
+    }
+
+    total_count
+}

@@ -1,0 +1,57 @@
+use std::io::{self, BufRead};
+
+fn main() -> Result<(), String> {
+    // Read input from stdin
+    let stdin = io::stdin();
+    let input = stdin.lock().lines().next().ok_or("No input provided")??;
+    
+    // Parse the first five integers
+    let mut parts = input.split_whitespace();
+    let x: usize = parts.next().ok_or("Missing X")?.parse().map_err(|_| "Invalid X")?;
+    let y: usize = parts.next().ok_or("Missing Y")?.parse().map_err(|_| "Invalid Y")?;
+    let a: usize = parts.next().ok_or("Missing A")?.parse().map_err(|_| "Invalid A")?;
+    let b: usize = parts.next().ok_or("Missing B")?.parse().map_err(|_| "Invalid B")?;
+    let c: usize = parts.next().ok_or("Missing C")?.parse().map_err(|_| "Invalid C")?;
+
+    // Read the arrays
+    let first_array: Vec<i32> = parts.by_ref().take(a).map(|s| s.parse().unwrap()).collect();
+    let second_array: Vec<i32> = parts.by_ref().take(b).map(|s| s.parse().unwrap()).collect();
+    let third_array: Vec<i32> = parts.by_ref().take(c).map(|s| s.parse().unwrap()).collect();
+
+    // Ensure the first and second arrays are sorted in descending order
+    let mut first_array = first_array;
+    let mut second_array = second_array;
+    first_array.sort_by(|a, b| b.cmp(a));
+    second_array.sort_by(|a, b| b.cmp(a));
+
+    // Process the third array to conditionally replace elements in the first and second arrays
+    let mut first_index = 0;
+    let mut second_index = 0;
+
+    for &value in &third_array {
+        // Try to replace in the first array
+        if first_index < first_array.len() {
+            if value > first_array[first_index] {
+                first_array[first_index] = value;
+                first_index += 1; // Move to the next index in the first array
+            }
+        } else {
+            // If first array index is invalid, try the second array
+            if second_index < second_array.len() {
+                if value > second_array[second_index] {
+                    second_array[second_index] = value;
+                    second_index += 1; // Move to the next index in the second array
+                }
+            }
+        }
+    }
+
+    // Calculate the sum of the first X elements from the first array and first Y elements from the second array
+    let sum_first = first_array.iter().take(x).sum::<i32>();
+    let sum_second = second_array.iter().take(y).sum::<i32>();
+
+    // Output the result
+    println!("{}", sum_first + sum_second);
+    
+    Ok(())
+}

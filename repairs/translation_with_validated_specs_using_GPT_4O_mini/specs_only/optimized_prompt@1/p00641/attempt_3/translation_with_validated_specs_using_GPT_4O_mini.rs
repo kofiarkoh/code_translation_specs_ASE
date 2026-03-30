@@ -1,0 +1,81 @@
+use std::collections::HashMap;
+
+const MODULO: usize = 10007;
+
+struct UnionFind {
+    parent: Vec<usize>,
+    size: Vec<usize>,
+    max_value: Vec<usize>,
+}
+
+impl UnionFind {
+    fn new(n: usize) -> Self {
+        UnionFind {
+            parent: (0..n).collect(),
+            size: vec![1; n],
+            max_value: vec![0; n], // Initialize max values to 0
+        }
+    }
+
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            self.parent[x] = self.find(self.parent[x]); // Path compression
+        }
+        self.parent[x]
+    }
+
+    fn union(&mut self, x: usize, y: usize, value_x: usize, value_y: usize) {
+        let root_x = self.find(x);
+        let root_y = self.find(y);
+
+        if root_x != root_y {
+            // Union by size
+            if self.size[root_x] < self.size[root_y] {
+                self.parent[root_x] = root_y;
+                self.size[root_y] += self.size[root_x];
+                self.max_value[root_y] = self.max_value[root_y].max(value_x).max(value_y);
+            } else {
+                self.parent[root_y] = root_x;
+                self.size[root_x] += self.size[root_y];
+                self.max_value[root_x] = self.max_value[root_x].max(value_x).max(value_y);
+            }
+        } else {
+            // Update max value if they are already connected
+            self.max_value[root_x] = self.max_value[root_x].max(value_x).max(value_y);
+        }
+    }
+
+    fn count_groups(&mut self) -> usize {
+        let mut distinct_groups = HashMap::new();
+        for i in 0..self.parent.len() {
+            let root = self.find(i);
+            distinct_groups.insert(root, self.max_value[root]);
+        }
+        distinct_groups.len()
+    }
+}
+
+fn process_relationships(n: usize, relationships: &[(usize, usize, usize, usize)]) -> usize {
+    let mut uf = UnionFind::new(n);
+    
+    for &(a, b, value_a, value_b) in relationships {
+        uf.union(a, b, value_a, value_b);
+    }
+    
+    uf.count_groups() % MODULO
+}
+
+fn main() {
+    // Example usage:
+    let n = 6; // Adjusted to match the maximum index used in relationships
+    let relationships = vec![
+        (0, 1, 1, 2),
+        (1, 2, 2, 3),
+        (2, 3, 3, 4),
+        (3, 4, 4, 5),
+        (4, 5, 0, 1),
+    ];
+    
+    let result = process_relationships(n, &relationships);
+    println!("{}", result); // Output the result
+}

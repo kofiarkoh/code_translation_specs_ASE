@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code determines the area of a triangle formed by three pairs of coordinates and classifies the area into specific categories based on its size. It checks for intersections between line segments defined by the coordinate pairs. If the line segments are collinear or overlapping, the program will classify the area as "kyo" without further area calculation. However, if the segments are not collinear, the area is calculated and classified accordingly.
+
+## 2. Inputs
+- Six pairs of integers representing coordinates: (ax, ay), (bx, by), (cx, cy), (dx, dy) for line segments.
+- The input is read until three complete sets of coordinates are provided.
+
+## 3. Outputs
+- A classification of the area of the triangle formed by the three sets of coordinates, which can be one of the following: "kyo", "syo-kichi", "kichi", "chu-kichi", or "dai-kichi".
+
+## 4. Preconditions
+- The input must consist of valid integer pairs representing coordinates.
+- Exactly three complete sets of coordinates must be provided for processing.
+
+## 5. Postconditions
+- If the line segments intersect and are not collinear, the area is calculated and classified.
+- If the line segments do not intersect or are collinear/overlapping, the output is "kyo".
+
+## 6. Invariants
+- The area calculation is based on the coordinates provided and remains consistent across valid inputs.
+- The classification of the area is determined solely by the computed area value.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not consist of three complete sets of coordinates, the program will not produce a valid output.
+- If the area calculation results in a value that cannot be classified, the output defaults to "kyo".
+- The program does not handle cases where line segments are collinear or overlapping in a manner that would yield a non-zero area; such cases will also result in the output "kyo".
+
+## 8. State Transitions
+- The system transitions from reading input to processing the coordinates and finally to outputting the classification based on the area.
+
+## 9. Non-functional Constraints
+- The program must handle input efficiently and provide output in a timely manner, though specific performance metrics are not defined.
+```

@@ -1,0 +1,68 @@
+use std::io::{self, Write};
+
+fn main() {
+    loop {
+        // Read input from the user
+        let mut input = String::new();
+        print!("Enter hours, minutes, and seconds (or -1 -1 -1 to exit): ");
+        io::stdout().flush().unwrap(); // Ensure prompt is displayed
+        io::stdin().read_line(&mut input).expect("Failed to read line");
+
+        // Parse the input into three integers
+        let parts: Vec<&str> = input.trim().split_whitespace().collect();
+        if parts.len() != 3 {
+            continue; // Ignore invalid input
+        }
+
+        let hours: i32 = match parts[0].parse() {
+            Ok(h) if h >= 0 => h,
+            _ => continue, // Ignore invalid input
+        };
+        let minutes: i32 = match parts[1].parse() {
+            Ok(m) if m >= 0 => m,
+            _ => continue, // Ignore invalid input
+        };
+        let seconds: i32 = match parts[2].parse() {
+            Ok(s) if s >= 0 => s,
+            _ => continue, // Ignore invalid input
+        };
+
+        // Check for termination condition
+        if hours == -1 && minutes == -1 && seconds == -1 {
+            break; // Exit the loop
+        }
+
+        // Calculate total seconds from input time
+        let total_input_seconds = hours * 3600 + minutes * 60 + seconds;
+
+        // Calculate remaining time until two hours (7200 seconds)
+        let total_duration_seconds = 7200; // 2 hours in seconds
+        let remaining_seconds = total_duration_seconds.saturating_sub(total_input_seconds);
+
+        // Format the remaining time for output
+        let remaining_hours = remaining_seconds / 3600;
+        let remaining_minutes = (remaining_seconds % 3600) / 60;
+        let remaining_seconds = remaining_seconds % 60;
+
+        // Output the first formatted time string
+        println!(
+            "Remaining time: {:02}:{:02}:{:02}",
+            remaining_hours, remaining_minutes, remaining_seconds
+        );
+
+        // Calculate three times the remaining time
+        let three_times_remaining_seconds = remaining_seconds + remaining_minutes * 60 + remaining_hours * 3600;
+        let three_times_remaining_seconds *= 3;
+
+        // Format the three times remaining time for output
+        let three_times_hours = three_times_remaining_seconds / 3600;
+        let three_times_minutes = (three_times_remaining_seconds % 3600) / 60;
+        let three_times_seconds = three_times_remaining_seconds % 60;
+
+        // Output the second formatted time string
+        println!(
+            "Three times remaining time: {:02}:{:02}:{:02}",
+            three_times_hours, three_times_minutes, three_times_seconds
+        );
+    }
+}

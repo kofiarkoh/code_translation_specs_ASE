@@ -1,0 +1,60 @@
+fn smallest_subarray_length(n: usize, k: usize, arr: &[i32]) -> usize {
+    // If N is less than K, return 0 as it's impossible to find a valid subarray.
+    if n < k {
+        return 0;
+    }
+
+    use std::collections::HashMap;
+
+    let mut count = HashMap::new();
+    let mut left = 0;
+    let mut min_length = usize::MAX;
+    let mut unique_count = 0;
+
+    for right in 0..n {
+        // Only consider numbers in the range [1, K]
+        if arr[right] >= 1 && arr[right] <= k as i32 {
+            let entry = count.entry(arr[right]).or_insert(0);
+            *entry += 1;
+
+            // If this is the first occurrence of the number, increment unique_count
+            if *entry == 1 {
+                unique_count += 1;
+            }
+        }
+
+        // While we have all numbers from 1 to K in the current window
+        while unique_count == k {
+            // Update the minimum length if the current window is smaller
+            min_length = min_length.min(right - left + 1);
+
+            // Try to contract the window from the left
+            if arr[left] >= 1 && arr[left] <= k as i32 {
+                let entry = count.entry(arr[left]).or_insert(0);
+                *entry -= 1;
+
+                // If this was the last occurrence of the number, decrement unique_count
+                if *entry == 0 {
+                    unique_count -= 1;
+                }
+            }
+            left += 1; // Move the left pointer to the right
+        }
+    }
+
+    // If min_length was updated, return it; otherwise, return 0
+    if min_length == usize::MAX {
+        0
+    } else {
+        min_length
+    }
+}
+
+fn main() {
+    // Example usage
+    let arr = [1, 2, 2, 1, 3, 1, 2, 3];
+    let n = arr.len();
+    let k = 3;
+    let result = smallest_subarray_length(n, k, &arr);
+    println!("The length of the smallest subarray is: {}", result);
+}

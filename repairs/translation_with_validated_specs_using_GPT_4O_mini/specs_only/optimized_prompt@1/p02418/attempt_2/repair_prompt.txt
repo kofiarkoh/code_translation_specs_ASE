@@ -1,0 +1,70 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02418/p02418_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p02418/p02418_sample1_output.txt
+Input:
+abcabc
+cab
+Expected:
+Yes
+Actual:
+Enter the first string (up to 100 characters): Enter the second string (up to 100 characters): Yes
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    // Read the first string
+    let mut first_string = String::new();
+    print!("Enter the first string (up to 100 characters): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut first_string).unwrap();
+    let first_string = first_string.trim(); // Remove any trailing newline
+
+    // Read the second string
+    let mut second_string = String::new();
+    print!("Enter the second string (up to 100 characters): ");
+    io::stdout().flush().unwrap(); // Ensure prompt is displayed
+    io::stdin().read_line(&mut second_string).unwrap();
+    let second_string = second_string.trim(); // Remove any trailing newline
+
+    // Preconditions: both strings must be non-empty and not exceed 100 characters
+    if first_string.is_empty() || second_string.is_empty() || 
+       first_string.len() > 100 || second_string.len() > 100 {
+        // According to the specification, we assume valid input, so we do not handle errors here.
+        return;
+    }
+
+    // Concatenate the first string with itself
+    let concatenated = format!("{}{}", first_string, first_string);
+
+    // Check if the second string is a substring of the concatenated result
+    if concatenated.contains(second_string) {
+        println!("Yes");
+    } else {
+        println!("No");
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

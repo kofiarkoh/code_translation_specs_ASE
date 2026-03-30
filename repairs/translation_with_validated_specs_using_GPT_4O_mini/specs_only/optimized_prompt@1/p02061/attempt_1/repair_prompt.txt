@@ -1,0 +1,61 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes a count of integers based on their prime factorization and a specific multiplicative condition. For each integer up to the maximum input value, it determines whether the product of its prime factors, each raised to their respective powers, meets or exceeds twice the integer itself. The results are stored for later retrieval.
+
+## 2. Inputs
+- An integer Q representing the number of subsequent integers.
+- An array of Q integers, each representing a value for which the count will be computed.
+
+## 3. Outputs
+- An array of Q integers, each representing the computed count for the corresponding input integer.
+
+## 4. Preconditions
+- The input Q must be a positive integer.
+- Each integer in the input array must be a non-negative integer.
+
+## 5. Postconditions
+- The output array contains counts that reflect the number of integers up to each input value that satisfy the specified multiplicative condition. Specifically, this condition is defined as the product of all prime factors raised to their respective powers being greater than or equal to twice the integer itself, but only for integers that have prime factors contributing to the product.
+
+## 6. Invariants
+- The maximum integer processed is always greater than or equal to the largest integer in the input array.
+- The count for each integer is non-decreasing as the integer value increases.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input for Q or any integer in the input array cannot be read correctly, the program terminates with an error code.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as the program processes each integer from 2 to the maximum input value, updating the count based on the results of the multiplicative condition derived from the prime factorization.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm must efficiently handle the factorization of integers up to the maximum input value, ensuring that performance remains acceptable for larger values of Q and N.
+```

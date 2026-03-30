@@ -1,0 +1,81 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and specification-driven translation.
+
+Task:
+Translate the given C code into Rust, using the provided code and specification as the source-of-truth for intended behavior.
+
+Primary goal:
+Preserve semantics. The Rust code must satisfy the specification (functional behavior, preconditions, postconditions, invariants, and error behavior).
+
+Instructions:
+1) Read the SPEC first and treat it as the definitive description of expected behavior.
+2) Use the C code only to resolve ambiguities and edge cases and do not implement any non implemented function.
+3) If the C code conflicts with the spec, follow the spec and explicitly note the mismatch.
+4) Prefer safe, idiomatic Rust:
+   - Strongly Avoid `unsafe` unless necessary; if used, justify it in a short comment. Prioritise converting unsafe code to safe code.
+5) Preserve I/O behavior exactly (stdin/stdout formatting, whitespace, newlines).
+6) Avoid unsafe unless absolutely necessary.
+7) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases or just as a human developer would to clarify intent.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+Now translate the following code using the specification.
+
+=== SPECIFICATION START ===
+# Revised Specification
+
+## 1. Functional Description
+The code calculates the area of a polygon defined by a set of vertices provided as input. It reads the number of vertices and their coordinates, computes the area using a specific implementation of the shoelace formula, and outputs the result formatted to one decimal place.
+
+## 2. Inputs
+- An integer \( n \) representing the number of vertices of the polygon, which must be a positive integer.
+- A sequence of \( n \) pairs of integers representing the x and y coordinates of each vertex.
+
+## 3. Outputs
+- A single floating-point number representing the area of the polygon, formatted to one decimal place.
+
+## 4. Preconditions
+- The number of vertices \( n \) is a positive integer.
+- Each vertex coordinate is an integer.
+
+## 5. Postconditions
+- The output area is a non-negative floating-point number.
+- The area is calculated based on the provided vertices using the shoelace formula, which is defined as:
+  \[
+  \text{Area} = \frac{1}{2} \left| \sum_{i=0}^{n-1} (x_i \cdot y_{i+1} - y_i \cdot x_{i+1}) \right|
+  \]
+  where \( (x_{n}, y_{n}) \) is defined as \( (x_0, y_0) \) to close the polygon.
+
+## 6. Invariants
+- The number of vertices remains constant throughout the execution.
+- The coordinates of the vertices are stored in a fixed-size structure.
+
+## 7. Error Handling / Exceptional Behavior
+- The code does not handle invalid input (e.g., non-integer values, negative numbers for the number of vertices).
+- The behavior is undefined for inputs that do not conform to the preconditions.
+
+## 8. State Transitions
+- The state transitions from reading input to calculating the area using the specified shoelace formula, and finally to outputting the result.
+
+## 9. Non-functional Constraints
+- The area calculation is performed in linear time relative to the number of vertices.
+=== SPECIFICATION END ===
+
+=== C CODE START ===
+#include <stdio.h>
+
+int main(void){
+	int n,k,i;
+	int p[100][2];
+	double menseki=0.0;
+	scanf("%d",&n);
+	
+	for(i=0;i<n;i++){
+		scanf("%d %d",&p[i][0],&p[i][1]);
+	}
+	
+	for(i=0;i<n;i++){
+		menseki+=(double)((p[i][0]-p[(i+1)%n][0])*(p[i][1]+p[(i+1)%n][1]));
+	}
+	printf("%.1lf\n",menseki/2.0);
+	return 0;
+}
+=== C CODE END ===

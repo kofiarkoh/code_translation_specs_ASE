@@ -1,0 +1,43 @@
+fn main() {
+    let test_cases = vec![
+        "12345678901234567890",
+        "11223344556677889900",
+        "00001111222233334444",
+        // Add more test cases as needed
+    ];
+
+    for cards in test_cases {
+        let remaining = remove_pairs(cards);
+        println!("{}", remaining);
+    }
+}
+
+// Function to remove pairs of matching cards based on adjacency rules
+fn remove_pairs(cards: &str) -> usize {
+    let mut cards: Vec<char> = cards.chars().collect();
+    let mut changed = true;
+
+    // Continue removing pairs until no more can be removed
+    while changed {
+        changed = false;
+        let mut i = 0;
+
+        // Iterate through the card sequence
+        while i < cards.len() {
+            // Check for adjacent matching pairs
+            if i + 1 < cards.len() && cards[i] == cards[i + 1] {
+                // Remove the pair
+                cards.remove(i);
+                cards.remove(i);
+                changed = true; // Mark that a change has occurred
+                // Reset index to check from the start again
+                i = 0;
+            } else {
+                i += 1; // Move to the next card
+            }
+        }
+    }
+
+    // Return the number of remaining cards
+    cards.len()
+}

@@ -1,0 +1,24 @@
+```rust
+fn compute_product(n: usize, m: usize, x: &[i32], y: &[i32]) -> i32 {
+    const MOD: i32 = 1_000_000_007;
+
+    // Calculate the first derived value t
+    let mut t: i32 = 0;
+    for i in 1..=n {
+        // i is 1-based, so we access x[i-1] for 0-based indexing
+        let xi = x[i - 1];
+        t = (t + ((i as i32 - 1) * xi - (n as i32 - i) * xi) % MOD + MOD) % MOD) % MOD;
+    }
+
+    // Calculate the second derived value k
+    let mut k: i32 = 0;
+    for j in 1..=m {
+        // j is 1-based, so we access y[j-1] for 0-based indexing
+        let yj = y[j - 1];
+        k = (k + ((j as i32 - 1) * yj - (m as i32 - j) * yj) % MOD + MOD) % MOD) % MOD;
+    }
+
+    // Return the product of t and k, reduced modulo MOD
+    (t * k) % MOD
+}
+```

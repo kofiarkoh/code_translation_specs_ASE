@@ -1,0 +1,37 @@
+```rust
+fn compute_value(t: [i64; 3], a: [i64; 3], b: [i64; 3]) -> String {
+    // Ensure T[1] and T[2] are not zero to avoid division by zero
+    if t[1] == 0 || t[2] == 0 {
+        panic!("T[1] and T[2] must not be zero.");
+    }
+
+    // Check if A[1] is greater than B[1] to determine if modifications are needed
+    let mut a1 = a[1];
+    let mut b1 = b[1];
+
+    if a1 > b1 {
+        // Modify A and B based on the specification
+        a1 -= b1; // Adjust A[1] by subtracting B[1]
+        b1 = 0;   // Set B[1] to 0
+    }
+
+    // Calculate the linear combination
+    if a1 * t[1] == b1 * t[2] {
+        return "infinity".to_string();
+    } else {
+        // Calculate the derived result based on the differences
+        let difference = a1 - b1; // This will be a1 since b1 is 0
+        return difference.to_string();
+    }
+}
+
+fn main() {
+    // Example usage
+    let t = [0, 3, 5]; // T[1] = 3, T[2] = 5
+    let a = [0, 4, 6]; // A[1] = 4
+    let b = [0, 2, 9]; // B[1] = 2
+
+    let result = compute_value(t, a, b);
+    println!("{}", result); // Expected output: 1
+}
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code computes the maximum value obtainable from a set of items, each defined by weight, size, and value, under specific constraints. It processes input data to determine the optimal selection of items that maximizes the total value without exceeding a defined size limit.
+
+## 2. Inputs
+- An integer representing the number of items.
+- For each item, three integers representing its weight, size, and value.
+
+## 3. Outputs
+- A single integer representing the maximum obtainable value from the selected items.
+
+## 4. Preconditions
+- The number of items is a non-negative integer.
+- Each item's weight, size, and value are non-negative integers.
+- The total size of selected items must not exceed a fixed maximum size limit of 20,000.
+
+## 5. Postconditions
+- The output value is the maximum sum of values from a selection of items that can be accommodated within the size constraints.
+
+## 6. Invariants
+- The array of items remains unchanged throughout the execution after being populated.
+- The dynamic programming array maintains the maximum values computed for each possible size up to the defined maximum size limit.
+
+## 7. Error Handling / Exceptional Behavior
+- If memory allocation fails for the items or the dynamic programming array, the program may terminate without producing a valid output.
+- Input reading failures are not explicitly handled, which may lead to undefined behavior.
+- If the total size of items exceeds the maximum size limit, the program may not function as intended.
+
+## 8. State Transitions (if applicable)
+- The state transitions occur as items are processed and the dynamic programming array is updated based on the current item being considered.
+
+## 9. Non-functional Constraints (if inferable)
+- The algorithm's time complexity is influenced by the number of items and the maximum size limit, which may affect performance for large inputs. The fixed maximum size limit of 20,000 imposes constraints on the input size and may lead to performance degradation if the number of items is large.
+```

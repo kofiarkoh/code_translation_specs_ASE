@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# 1. Functional Description
+The code implements a directed graph using an adjacency list representation. It provides functionality to create a graph, add edges, and check for cycles within the graph.
+
+# 2. Inputs
+- An integer representing the number of vertices in the graph.
+- An integer representing the number of edges to be added.
+- Pairs of integers representing the source and target vertices for each edge.
+
+# 3. Outputs
+- A binary integer indicating the presence (1) or absence (0) of cycles in the graph.
+
+# 4. Preconditions
+- The number of vertices must be a non-negative integer.
+- The number of edges must be a non-negative integer.
+- The source and target vertices must be valid indices within the range of the number of vertices.
+
+# 5. Postconditions
+- An adjacency list representing the directed graph is created.
+- Edges are added to the graph as specified by the input pairs.
+- The cycle detection function returns a value indicating whether a cycle exists in the graph.
+
+# 6. Invariants
+- The adjacency list structure maintains a valid representation of the graph throughout its operations.
+- The number of edges for each vertex is accurately tracked and updated upon adding edges.
+
+# 7. Error Handling / Exceptional Behavior
+- Memory allocation failures during graph creation or edge addition are not explicitly handled, which may lead to undefined behavior.
+- Invalid vertex indices (out of bounds) during edge addition may lead to undefined behavior.
+
+# 8. State Transitions (if applicable)
+- The state of the graph transitions from an empty state upon creation to a populated state as edges are added.
+- The state of the graph is queried for cycles, resulting in a binary output without altering the graph's structure.
+
+# 9. Non-functional Constraints (if inferable)
+- The implementation assumes sufficient memory is available for graph creation and edge addition.
+- The performance of cycle detection is dependent on the number of vertices and edges, potentially leading to increased time complexity with larger graphs.
+```

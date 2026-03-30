@@ -1,0 +1,145 @@
+```rust
+use std::collections::{VecDeque, HashMap};
+use std::i64;
+
+#[derive(Debug)]
+struct Edge {
+    id: usize,
+    head: usize,
+    tail: usize,
+    capacity: i64,
+    cost: i64,
+}
+
+struct NetworkFlow {
+    n: usize,
+    m: usize,
+    grid: Vec<Vec<char>>,
+    edges: Vec<Edge>,
+    supply_demand: Vec<i64>,
+}
+
+impl NetworkFlow {
+    fn new(n: usize, m: usize, grid: Vec<Vec<char>>, edges: Vec<Edge>, supply_demand: Vec<i64>) -> Self {
+        NetworkFlow { n, m, grid, edges, supply_demand }
+    }
+
+    fn min_cost_flow(&self) -> i64 {
+        // Initialize distance and potential arrays
+        let mut dist = vec![i64::MAX; self.n];
+        let mut potential = vec![0; self.n];
+        let mut flow = vec![0; self.m];
+
+        // Check for valid paths and initialize the flow
+        if !self.is_valid_flow() {
+            return i64::MAX; // Return infinite value if no valid flow exists
+        }
+
+        // Successive shortest path algorithm
+        let mut total_cost = 0;
+
+        // Main loop to find the minimum cost flow
+        loop {
+            // Reset distances for each iteration
+            dist.fill(i64::MAX);
+            dist[0] = 0; // Start from the source node
+
+            // Use a queue for BFS
+            let mut queue = VecDeque::new();
+            queue.push_back(0);
+
+            while let Some(u) = queue.pop_front() {
+                for edge in &self.edges {
+                    if edge.head == u {
+                        let v = edge.tail;
+                        let cost_with_potential = edge.cost + potential[u] - potential[v];
+                        if edge.capacity > flow[edge.id] && dist[v] > dist[u] + cost_with_potential {
+                            dist[v] = dist[u] + cost_with_potential;
+                            queue.push_back(v);
+                        }
+                    }
+                }
+            }
+
+            // If we cannot reach the sink, break
+            if dist[self.n - 1] == i64::MAX {
+                break;
+            }
+
+            // Update potentials
+            for i in 0..self.n {
+                if dist[i] < i64::MAX {
+                    potential[i] += dist[i];
+                }
+            }
+
+            // Find the maximum flow we can push through the network
+            let mut flow_amount = i64::MAX; // Start with a large flow amount
+            let mut path_found = false;
+
+            for edge in &self.edges {
+                if edge.head == 0 { // Only consider edges from the source
+                    let available_capacity = edge.capacity - flow[edge.id];
+                    if available_capacity > 0 {
+                        flow_amount = flow_amount.min(available_capacity);
+                        path_found = true;
+                    }
+                }
+            }
+
+            // If no path was found, break
+            if !path_found {
+                break;
+            }
+
+            // Update flow and total cost
+            for edge in &self.edges {
+                if edge.head == 0 {
+                    flow[edge.id] += flow_amount;
+                    total_cost += flow_amount * edge.cost;
+                }
+            }
+        }
+
+        total_cost
+    }
+
+    fn is_valid_flow(&self) -> bool {
+        // Check if the grid is valid and if there are any valid paths
+        for row in &self.grid {
+            for &cell in row {
+                if cell != '.' && cell != '#' {
+                    return false; // Invalid character in grid
+                }
+            }
+        }
+        true
+    }
+}
+
+fn main() {
+    // Example usage
+    let n = 5; // Number of nodes
+    let m = 6; // Number of edges
+    let grid = vec![
+        vec!['.', '.', '#', '.', '.'],
+        vec!['.', '#', '.', '#', '.'],
+        vec!['.', '.', '.', '.', '.'],
+        vec!['#', '#', '.', '#', '.'],
+        vec!['.', '.', '.', '.', '.'],
+    ];
+    let edges = vec![
+        Edge { id: 0, head: 0, tail: 1, capacity: 10, cost: 5 },
+        Edge { id: 1, head: 1, tail: 2, capacity: 5, cost: 2 },
+        Edge { id: 2, head: 2, tail: 3, capacity: 10, cost: 1 },
+        Edge { id: 3, head: 3, tail: 4, capacity: 10, cost: 3 },
+        Edge { id: 4, head: 0, tail: 2, capacity: 5, cost: 2 },
+        Edge { id: 5, head: 1, tail: 4, capacity: 5, cost: 4 },
+    ];
+    let supply_demand = vec![10, -5, -5, 0, 0]; // Supply/Demand values
+
+    let network_flow = NetworkFlow::new(n, m, grid, edges, supply_demand);
+    let min_cost = network_flow.min_cost_flow();
+    println!("Minimum cost of flow: {}", min_cost);
+}
+```

@@ -1,0 +1,77 @@
+fn factorial(n: usize) -> usize {
+    let mut result = 1;
+    for i in 2..=n {
+        result = result.wrapping_mul(i); // Use wrapping_mul to handle overflow as per specification
+    }
+    result
+}
+
+fn mod_inverse(a: usize, m: usize) -> usize {
+    let mut m0 = m;
+    let mut y = 0;
+    let mut x = 1;
+
+    if m == 1 {
+        return 0;
+    }
+
+    let mut a = a % m;
+
+    while a > 1 {
+        let q = a / m0;
+        let t = m0;
+
+        m0 = a % m0;
+        a = t;
+        t = y;
+
+        y = x.wrapping_sub(q.wrapping_mul(y)); // Use wrapping_sub to handle underflow
+        x = t;
+    }
+
+    if x < 0 {
+        x = x.wrapping_add(m); // Ensure x is non-negative
+    }
+
+    x
+}
+
+fn choose(n: usize, r: usize) -> usize {
+    if r > n {
+        return 0; // Invalid scenario
+    }
+    if r == 0 || r == n {
+        return 1; // Base case
+    }
+
+    let numerator = factorial(n);
+    let denominator = factorial(r).wrapping_mul(factorial(n - r)); // Use wrapping_mul to handle overflow
+    let inv_denominator = mod_inverse(denominator, 1_000_000_007); // Using a large prime for modulus
+
+    numerator.wrapping_mul(inv_denominator) % 1_000_000_007 // Final result modulo
+}
+
+fn compute_combinatorial(n: usize, m: usize) -> usize {
+    if n < 0 || m <= 1 {
+        return 0; // Preconditions check
+    }
+
+    let mut result = 0;
+
+    for i in 0..=n {
+        for j in 0..=n - i {
+            // Inclusion-exclusion principle applied here
+            let arrangements = choose(n, i).wrapping_mul(factorial(i)).wrapping_mul(factorial(n - i - j));
+            result = (result + arrangements) % m; // Ensure result is within bounds
+        }
+    }
+
+    result
+}
+
+fn main() {
+    let n = 10; // Example input
+    let m = 100; // Example modulus
+    let result = compute_combinatorial(n, m);
+    println!("{}", result); // Output the result
+}

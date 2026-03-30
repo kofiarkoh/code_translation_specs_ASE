@@ -1,0 +1,73 @@
+```rust
+use std::collections::HashSet;
+
+fn main() {
+    // Example input for testing
+    let test_cases = vec![
+        (5, 3, vec!["Alice", "Bob", "Charlie", "David", "Eve"], vec![
+            vec!["Alice", "Bob"],
+            vec!["Charlie", "David"],
+            vec!["Alice", "David", "Eve"],
+        ]),
+    ];
+
+    for (n, m, names, groups) in test_cases {
+        match find_max_distinct_groups(n, m, names, groups) {
+            Some(result) => {
+                println!("Max distinct groups: {}", result.len());
+                for group in result {
+                    println!("{:?}", group);
+                }
+            }
+            None => println!("Impossible to form groups"),
+        }
+    }
+}
+
+fn find_max_distinct_groups<'a>(n: usize, m: usize, names: Vec<&'a str>, groups: Vec<Vec<&'a str>>) -> Option<Vec<Vec<&'a str>>> {
+    // Check for valid input
+    if n == 0 || m == 0 || names.is_empty() || groups.is_empty() {
+        return None;
+    }
+
+    let mut max_groups = Vec::new();
+
+    // Iterate through all combinations of groups
+    for i in 0..(1 << m) {
+        let mut current_groups = Vec::new();
+        let mut used_names = HashSet::new();
+        let mut valid_combination = true;
+
+        for j in 0..m {
+            if (i & (1 << j)) != 0 { // Check if the j-th group is included
+                let group = &groups[j];
+                let mut group_set: HashSet<&'a str> = HashSet::new();
+                for name in group {
+                    if used_names.contains(name) {
+                        valid_combination = false;
+                        break;
+                    }
+                    group_set.insert(name);
+                }
+                if valid_combination {
+                    current_groups.push(group.clone());
+                    used_names.extend(group_set);
+                }
+            }
+            if !valid_combination {
+                break;
+            }
+        }
+
+        if valid_combination && current_groups.len() > max_groups.len() {
+            max_groups = current_groups;
+        }
+    }
+
+    if max_groups.is_empty() {
+        None
+    } else {
+        Some(max_groups)
+    }
+}
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The code implements a solution for the Eleven Puzzle, determining the minimum number of moves required to reach a goal state from a given initial state. It utilizes a hash table for state management and a breadth-first search approach to explore possible moves.
+
+## 2. Inputs
+- A sequence of integers representing the current state of the puzzle, where each integer corresponds to a tile or an empty space.
+- The input sequence must contain exactly 13 integers, with specific constraints on their values (e.g., non-negative integers).
+
+## 3. Outputs
+- An integer representing the minimum number of moves required to solve the puzzle, or a specific indicator (e.g., "NA") if the puzzle cannot be solved within the defined limits.
+
+## 4. Preconditions
+- The input must consist of 13 integers, with exactly one empty space represented by a zero.
+- The first integer must not be negative.
+
+## 5. Postconditions
+- The output will either be a non-negative integer indicating the number of moves or a specific indicator for unsolvable states.
+- The state of the puzzle is either solved or remains unsolvable based on the input configuration.
+
+## 6. Invariants
+- The hash table maintains a unique mapping of puzzle states to their corresponding move counts.
+- The search process only explores valid moves based on the current configuration of the puzzle.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input sequence is invalid (e.g., contains negative numbers, is not of the correct length, or contains multiple empty spaces), the program terminates without further processing.
+- If the puzzle cannot be solved within the defined limits, the output will indicate this with a specific message.
+
+## 8. State Transitions
+- The state transitions occur through valid moves defined in the move array, where the current state is transformed into a new state by swapping tiles based on the rules of the puzzle.
+
+## 9. Non-functional Constraints
+- The solution must operate within a time complexity that allows for efficient exploration of states, given the constraints of the puzzle size.
+- Memory usage is constrained by the size of the hash table and the queue used for state management.
+```

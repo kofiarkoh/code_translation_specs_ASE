@@ -1,0 +1,46 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let mut lines = stdin.lock().lines();
+    
+    // Read M and N
+    let first_line = lines.next().unwrap().unwrap();
+    let mut nums = first_line.split_whitespace().map(|s| s.parse::<usize>().unwrap());
+    let m = nums.next().unwrap();
+    let n = nums.next().unwrap();
+    
+    let mut a = 0;
+    let mut A = vec![0; n]; // Adjust size to n based on input
+
+    for i in 0..m {
+        // Read the array A
+        let line = lines.next().unwrap().unwrap();
+        let values: Vec<i32> = line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect();
+        
+        for j in 0..n {
+            A[j] = values[j];
+            if i != 0 {
+                A[j] ^= 1; // Bitwise XOR with 1
+            }
+        }
+
+        let (mut l, mut r) = (0, n as isize - 1); // Use isize for indexing
+        while l <= r {
+            if A[l as usize] == 1 {
+                a += 1;
+                A[l as usize] ^= 1; // Bitwise XOR with 1
+                l += 1;
+            } else if A[r as usize] == 1 {
+                a += 1;
+                A[r as usize] ^= 1; // Bitwise XOR with 1
+                r -= 1;
+            } else {
+                A[l as usize] ^= 1; // Bitwise XOR with 1
+                l += 1;
+            }
+        }
+    }
+    
+    println!("{}", a);
+}

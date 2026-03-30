@@ -1,0 +1,71 @@
+fn compute_indices(n: usize, a: &[i32], b: &[i32], c: &[i32]) -> Vec<usize> {
+    // Preconditions: n must be non-negative and arrays must be of size n
+    if n == 0 {
+        return Vec::new(); // If n is zero, return an empty output
+    }
+
+    // Initialize cost matrix d and predecessor matrix fr
+    let inf = 1e18 as i64; // Large value for initialization
+    let mut d = vec![vec![inf; n]; n]; // Cost matrix
+    let mut fr = vec![vec![-1; n]; n]; // Predecessor matrix
+
+    // Compute costs based on the given specification
+    for j in 0..(1 << n) { // Iterate over all combinations of indices
+        for i in 0..n {
+            for k in 0..n {
+                if (j & (1 << k)) != 0 { // Check if k is included in the bitmask j
+                    let weight_sum: i64 = (0..n)
+                        .filter(|&bit| (j & (1 << bit)) != 0)
+                        .map(|bit| c[bit] as i64 * 20)
+                        .sum();
+                    let cost = (b[k] - b[i]).abs() as i64 + weight_sum;
+                    if cost < d[i][k] {
+                        d[i][k] = cost; // Update cost
+                        fr[i][k] = j; // Update predecessor
+                    }
+                }
+            }
+        }
+    }
+
+    // Extract the sequence of indices based on the computed costs
+    let mut indices = Vec::new();
+    let mut min_cost = inf;
+    let mut best_index = 0;
+
+    // Find the best index with the minimum cost
+    for i in 0..n {
+        if d[0][i] < min_cost {
+            min_cost = d[0][i];
+            best_index = i;
+        }
+    }
+
+    // Backtrack to find the optimal path
+    let mut current_index = best_index;
+    let mut current_mask = (1 << n) - 1; // Start with all indices included
+
+    while current_index != -1 {
+        indices.push(current_index);
+        current_mask = fr[0][current_index]; // Get the predecessor mask
+        current_index = if current_mask == -1 { -1 } else { current_mask.trailing_zeros() as usize };
+    }
+
+    indices.reverse(); // Reverse to get the correct order
+    indices // Return the computed sequence of indices
+}
+
+fn main() {
+    // Example usage of compute_indices
+    let n = 3;
+    let a = [10, 2000, 5];
+    let b = [20, 4000, 10];
+    let c = [30, 6000, 15];
+    
+    let indices = compute_indices(n, &a, &b, &c);
+    // Print the computed indices as the expected output format
+    for index in indices {
+        print!("{} ", a[index]);
+    }
+    println!(); // Newline after output
+}

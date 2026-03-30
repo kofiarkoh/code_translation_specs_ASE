@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, BufRead};
+
+fn main() {
+    let stdin = io::stdin();
+    let handle = stdin.lock();
+    let mut lines = handle.lines();
+
+    // Read H and W
+    let first_line = lines.next().unwrap().unwrap();
+    let mut dimensions = first_line.split_whitespace();
+    let h: usize = dimensions.next().unwrap().parse().unwrap();
+    let w: usize = dimensions.next().unwrap().parse().unwrap();
+
+    // Initialize the grid
+    let mut s = vec![vec![' '; w]; h];
+
+    // Read the grid
+    for i in 0..h {
+        let line = lines.next().unwrap().unwrap();
+        for (j, c) in line.chars().enumerate() {
+            s[i][j] = c;
+        }
+    }
+
+    // Check the conditions
+    for i in 0..h {
+        for j in 0..w {
+            let u = if i > 0 { s[i - 1][j] } else { ' ' }; // Up
+            let l = if j > 0 { s[i][j - 1] } else { ' ' }; // Left
+            let d = if i + 1 < h { s[i + 1][j] } else { ' ' }; // Down
+            let r = if j + 1 < w { s[i][j + 1] } else { ' ' }; // Right
+
+            if s[i][j] == '#' {
+                if u == '#' || d == '#' || r == '#' || l == '#' {
+                    continue;
+                } else {
+                    println!("No");
+                    return;
+                }
+            }
+        }
+    }
+
+    println!("Yes");
+}
+```

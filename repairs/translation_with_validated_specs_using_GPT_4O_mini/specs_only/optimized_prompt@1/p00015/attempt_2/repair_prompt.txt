@@ -1,0 +1,114 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00015/p00015_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00015/p00015_sample1_output.txt
+Input:
+3
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+98765432109876543210987654321098765432109876543210987654321098765432109876543210
+99999999999999999999999999999999999999999999999999999999999999999999999999999999
+1
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+87654321098765432109876543210987654321098765432109876543210987654321098765432109
+Expected:
+overflow
+overflow
+99999999999999999999999999999999999999999999999999999999999999999999999999999999
+Actual:
+
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("Failed to read line");
+    
+    // Parse the number of datasets
+    let num_datasets: usize = input.trim().parse().expect("Invalid number of datasets");
+
+    for _ in 0..num_datasets {
+        let mut dataset = String::new();
+        io::stdin().read_line(&mut dataset).expect("Failed to read line");
+        let parts: Vec<&str> = dataset.trim().split_whitespace().collect();
+
+        // Ensure we have exactly two strings
+        if parts.len() != 2 {
+            continue; // Skip invalid datasets
+        }
+
+        let (num_str1, num_str2) = (parts[0], parts[1]);
+
+        // Check for overflow in string length
+        if num_str1.len() > 80 || num_str2.len() > 80 {
+            println!("Overflow");
+            continue; // Skip this dataset
+        }
+
+        // Convert strings to digit arrays
+        let digits1 = string_to_digit_array(num_str1);
+        let digits2 = string_to_digit_array(num_str2);
+
+        // Compute the sum
+        let sum = add_digit_arrays(&digits1, &digits2);
+
+        // Check for overflow in the sum
+        if sum.len() > 80 {
+            println!("Overflow");
+        } else {
+            // Convert the sum back to a string and print
+            let sum_str: String = sum.iter().rev().map(|&d| char::from_digit(d as u32, 10).unwrap()).collect();
+            println!("{}", sum_str);
+        }
+    }
+}
+
+// Converts a string of digits into a vector of digits (in reverse order)
+fn string_to_digit_array(s: &str) -> Vec<u8> {
+    s.chars().rev().map(|c| c.to_digit(10).unwrap() as u8).collect()
+}
+
+// Adds two digit arrays and returns the result as a new digit array
+fn add_digit_arrays(digits1: &[u8], digits2: &[u8]) -> Vec<u8> {
+    let mut result = Vec::new();
+    let mut carry = 0;
+    let max_len = digits1.len().max(digits2.len());
+
+    for i in 0..max_len {
+        let digit1 = *digits1.get(i).unwrap_or(&0);
+        let digit2 = *digits2.get(i).unwrap_or(&0);
+        let sum = digit1 + digit2 + carry;
+        result.push(sum % 10);
+        carry = sum / 10;
+    }
+
+    // If there's a carry left, add it to the result
+    if carry > 0 {
+        result.push(carry);
+    }
+
+    result
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,109 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00816/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:36:36
+   |
+17 |     let mut best_combination = HashSet::new();
+   |                                -------------- expected due to this value
+...
+36 |                 best_combination = current_combination.clone();
+   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `HashSet<_>`, found `Vec<usize>`
+   |
+   = note: expected struct `HashSet<_>`
+              found struct `Vec<usize>`
+
+error[E0308]: mismatched types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/translation_with_validated_specs_using_GPT_4O_mini/specs_only/optimized_prompt@1/p00816/attempt_1/translation_with_validated_specs_using_GPT_4O_mini.rs:49:19
+   |
+49 |     Ok((best_sum, best_combination))
+   |                   ^^^^^^^^^^^^^^^^ expected `Vec<usize>`, found `HashSet<_>`
+   |
+   = note: expected struct `Vec<usize>`
+              found struct `HashSet<_>`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashSet;
+
+fn process_string(target: usize, input: &str) -> Result<(usize, Vec<usize>), String> {
+    // Extract numbers from the input string
+    let numbers: Vec<usize> = input
+        .split(|c: char| !c.is_digit(10)) // Split by non-numeric characters
+        .filter_map(|s| s.parse().ok()) // Parse valid numbers
+        .collect();
+
+    // Check for valid numbers
+    if numbers.is_empty() {
+        return Err("error".to_string());
+    }
+
+    let n = numbers.len();
+    let mut best_sum = 0;
+    let mut best_combination = HashSet::new();
+    let mut found_multiple = false;
+
+    // Iterate through all combinations using bitmasking
+    for mask in 0..(1 << n) {
+        let mut current_sum = 0;
+        let mut current_combination = Vec::new();
+
+        for i in 0..n {
+            if mask & (1 << i) != 0 {
+                current_sum += numbers[i];
+                current_combination.push(numbers[i]);
+            }
+        }
+
+        // Check if the current sum is valid
+        if current_sum <= target {
+            if current_sum > best_sum {
+                best_sum = current_sum;
+                best_combination = current_combination.clone();
+                found_multiple = false; // Reset if we found a new best
+            } else if current_sum == best_sum {
+                found_multiple = true; // Found another combination with the same sum
+            }
+        }
+    }
+
+    // Determine the output based on the findings
+    if found_multiple {
+        return Err("rejected".to_string());
+    }
+
+    Ok((best_sum, best_combination))
+}
+
+fn main() {
+    let target = 10; // Example target
+    let input = "1,2,3,4"; // Example input
+
+    match process_string(target, input) {
+        Ok((sum, numbers)) => {
+            println!("Max sum: {}", sum);
+            println!("Selected numbers: {:?}", numbers);
+        }
+        Err(message) => {
+            println!("{}", message);
+        }
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

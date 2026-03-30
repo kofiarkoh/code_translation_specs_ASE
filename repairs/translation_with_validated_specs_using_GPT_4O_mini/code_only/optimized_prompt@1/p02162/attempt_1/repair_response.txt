@@ -1,0 +1,47 @@
+```rust
+use std::io::{self, Write};
+
+fn main() {
+    const A: &str = "Alice";
+    const B: &str = "Bob";
+    const D: &str = "Draw";
+
+    let mut input = String::new();
+    // Read input from stdin
+    if io::stdin().read_line(&mut input).is_err() {
+        // Handle error in reading input
+        return;
+    }
+
+    let mut numbers = input.split_whitespace()
+        .filter_map(|s| s.parse::<i32>().ok())
+        .collect::<Vec<_>>();
+
+    // Ensure we have exactly 4 integers
+    if numbers.len() != 4 {
+        return;
+    }
+
+    let (t1, t2, r1, r2) = (numbers[0], numbers[1], numbers[2], numbers[3]);
+
+    if r1 < 0 || r2 < 0 {
+        // Compare T1 and T2
+        if t1 < t2 {
+            println!("{}", A);
+        } else if t1 > t2 {
+            println!("{}", B);
+        } else {
+            println!("{}", D);
+        }
+    } else {
+        // Compare R1 and R2
+        if r1 > r2 {
+            println!("{}", A);
+        } else if r1 < r2 {
+            println!("{}", B);
+        } else {
+            println!("{}", D);
+        }
+    }
+}
+```

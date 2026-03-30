@@ -1,0 +1,72 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+# Revised Specification
+
+## 1. Functional Description
+The program computes the minimum difference between a modified value and its original value for a specified set of inputs. It ensures that the number of elements in a given array that exceed the modified value does not exceed a limit of 7.
+
+## 2. Inputs
+- An integer `n` representing the number of elements, where `1 ≤ n ≤ 110`.
+- An array `x` of size `n` containing integer values.
+- A 2D array `a` of size 3x`n`, where each row contains `n` integer values.
+
+## 3. Outputs
+- An integer representing the minimum difference found between a modified value and its original value. If no valid difference exists, the output will be the message "Saiko".
+
+## 4. Preconditions
+- The input integer `n` must be greater than 0 and less than or equal to 110.
+- The arrays `x` and `a` must be populated with integer values before processing.
+
+## 5. Postconditions
+- If a valid minimum difference is found, it is output as an integer.
+- If no valid difference is found, the message "Saiko" is printed.
+
+## 6. Invariants
+- The array `s` is reset to zero at the beginning of each iteration of the outer loop.
+- The function `f` computes a transformation for each element in the input array based on the number of elements that exceed the current element.
+
+## 7. Error Handling / Exceptional Behavior
+- If the input does not meet the preconditions, the behavior is undefined; no explicit error handling is implemented.
+
+## 8. State Transitions
+- The state transitions occur through the modification of the first element of the array `a` and the computation of the array `s` based on the results of the function `f`. The function `f` counts how many elements in the current row of `a` exceed each element, and this count is used to update the array `t`, which influences the computation of `s`.
+
+## 9. Non-functional Constraints
+- The algorithm operates within a time complexity that is manageable for the input size, ensuring efficient execution for the maximum constraints. The counting logic and transformations are designed to maintain performance within the specified limits.
+
+## 10. Modification Logic
+- The program modifies the first element of the array `a` based on the values of other elements in the same row. Specifically, for each element `a[k][i]`, the program considers two potential modifications: `a[k][i]` and `a[k][i] + 1`. The modified value is then evaluated to determine how many elements in the array exceed this value.
+
+## 11. Counting Logic
+- After modifying the first element of the array `a`, the program counts how many elements in the array `s` (which accumulates results from the function `f` applied to the other rows of `a`) exceed the value of `s[0] + t[0]`. This count is then checked against the limit of 7 to determine if the current modification is valid.
+
+## 12. Termination Behavior
+- The program terminates by either outputting the minimum difference found or the message "Saiko" if no valid modifications yield a difference that meets the specified conditions. The search for valid modifications continues until all elements in the array have been processed.
+```

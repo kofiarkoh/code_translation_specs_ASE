@@ -1,0 +1,137 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00649/p00649_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00649/p00649_sample1_output.txt
+Input:
+4
+1 10 5 15
+2 8 6 12
+3 5 7 10
+4 2 8 10
+3
+1 1 2 2
+2 2 3 3
+3 3 4 4
+0
+Expected:
+1
+2
+3
+4
+
+1
+2
+3
+Actual:
+[0, 2, 1]
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::{Ord, Ordering};
+
+#[derive(Debug, Clone)]
+struct Rectangle {
+    x1: i32,
+    y1: i32,
+    x2: i32,
+    y2: i32,
+    index: usize,
+}
+
+impl Rectangle {
+    fn overlaps(&self, other: &Rectangle) -> bool {
+        // Check if two rectangles overlap
+        self.x1 < other.x2 && self.x2 > other.x1 && self.y1 < other.y2 && self.y2 > other.y1
+    }
+}
+
+impl Ord for Rectangle {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // First compare by y2, then by x1
+        if self.y2 != other.y2 {
+            self.y2.cmp(&other.y2)
+        } else {
+            self.x1.cmp(&other.x1)
+        }
+    }
+}
+
+impl PartialOrd for Rectangle {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for Rectangle {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
+}
+
+impl Eq for Rectangle {}
+
+fn process_rectangles(rectangles: Vec<Rectangle>) -> Vec<usize> {
+    let mut processed_order = Vec::new();
+    let mut used = vec![false; rectangles.len()];
+
+    // Sort rectangles based on the defined order
+    let mut sorted_rectangles = rectangles.clone();
+    sorted_rectangles.sort();
+
+    for i in 0..sorted_rectangles.len() {
+        if used[sorted_rectangles[i].index] {
+            continue; // Skip already processed rectangles
+        }
+
+        let mut to_process = vec![sorted_rectangles[i].clone()];
+        used[sorted_rectangles[i].index] = true;
+
+        // Process overlapping rectangles
+        while let Some(current) = to_process.pop() {
+            processed_order.push(current.index);
+
+            for j in 0..sorted_rectangles.len() {
+                if !used[sorted_rectangles[j].index] && current.overlaps(&sorted_rectangles[j]) {
+                    to_process.push(sorted_rectangles[j].clone());
+                    used[sorted_rectangles[j].index] = true;
+                }
+            }
+        }
+    }
+
+    processed_order
+}
+
+fn main() {
+    // Example input: 3 rectangles
+    let rectangles = vec![
+        Rectangle { x1: 1, y1: 1, x2: 3, y2: 3, index: 0 },
+        Rectangle { x1: 2, y1: 2, x2: 4, y2: 4, index: 1 },
+        Rectangle { x1: 0, y1: 0, x2: 5, y2: 5, index: 2 },
+    ];
+
+    let order = process_rectangles(rectangles);
+    println!("{:?}", order); // Output the order of processing
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,45 @@
+use std::io::{self, BufRead};
+
+fn main() {
+    // Create a buffered reader to read from standard input
+    let stdin = io::stdin();
+    let reader = stdin.lock();
+
+    // Iterate over each line of input until EOF
+    for line in reader.lines() {
+        // Unwrap the line to get the string
+        let line = line.unwrap();
+        
+        // Split the line into parts and parse them as integers
+        let mut parts = line.split_whitespace();
+        if let (Some(first), Some(second)) = (parts.next(), parts.next()) {
+            // Parse the integers
+            let a: i32 = first.parse().unwrap();
+            let b: i32 = second.parse().unwrap();
+
+            // Calculate the absolute values
+            let abs_a = a.abs();
+            let abs_b = b.abs();
+
+            // Determine the output based on the specified rules
+            let result = if abs_a + abs_b == 1 {
+                1
+            } else if abs_a % 2 == 1 && abs_b % 2 == 1 {
+                abs_a + abs_b - 1
+            } else if abs_a % 2 == 0 && abs_b % 2 == 0 {
+                abs_a + abs_b
+            } else if (abs_a % 2 == 1 && abs_b % 2 == 0) || (abs_a % 2 == 0 && abs_b % 2 == 1) {
+                abs_a + abs_b
+            } else if abs_a == 0 && abs_b != 0 {
+                abs_a + abs_b + 1
+            } else if abs_b == 0 && abs_a != 0 {
+                abs_a + abs_b + 1
+            } else {
+                0 // This case should not occur based on the specification
+            };
+
+            // Print the result
+            println!("{}", result);
+        }
+    }
+}
