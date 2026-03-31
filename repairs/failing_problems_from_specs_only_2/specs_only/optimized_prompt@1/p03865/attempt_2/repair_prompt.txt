@@ -1,0 +1,57 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: COMPILE_FAILED
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: FAILED
+
+Compiler stderr:
+error[E0308]: `if` and `else` have incompatible types
+  --> /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/repairs/failing_problems_from_specs_only_2/specs_only/optimized_prompt@1/p03865/attempt_1/failing_problems_from_specs_only_2.rs:24:50
+   |
+24 |     let out = if cond != 0 { b"First\n" } else { b"Second\n" };
+   |                              ----------          ^^^^^^^^^^^ expected an array with a size of 6, found one with a size of 7
+   |                              |
+   |                              expected because of this
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0308`.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read, Write};
+
+fn main() {
+    const CAP: usize = 114_514;
+    let mut buf = vec![0u8; CAP];
+
+    // Single unbuffered read attempt. We intentionally do not add any explicit
+    // error handling beyond mapping errors to a sentinel that will likely
+    // trigger a panic below, reflecting the spec's "undefined behavior".
+    let l: isize = match io::stdin().read(&mut buf) {
+        Ok(n) => n as isize,
+        Err(_) => -1,
+    };
+
+    // The specification states the original program decrements L and then
+    // accesses buf[0] and buf[L-2]. If read fails or returns < 2 bytes,
+    // behavior is undefined; here we allow a panic via out-of-bounds indexing.
+    let n: isize = l - 1;
+
+    let eq: isize = if buf[0] == buf[(n - 1) as usize] { 1 } else { 0 };
+
+    let cond: isize = (n + eq) & 1;
+
+    let out = if cond != 0 { b"First\n" } else { b"Second\n" };
+    let _ = io::stdout().write_all(out);
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

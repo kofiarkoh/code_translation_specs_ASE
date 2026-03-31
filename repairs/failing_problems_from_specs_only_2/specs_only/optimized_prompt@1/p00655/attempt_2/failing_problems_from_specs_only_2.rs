@@ -1,0 +1,228 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Default)]
+struct FH {
+    // Stack of values (top at back)
+    stack: Vec<i32>,
+    // Prefix-min history (strictly decreasing values as recorded)
+    min_hist: Vec<i32>,
+    // Prefix-max history (strictly increasing values as recorded)
+    max_hist: Vec<i32>,
+}
+
+impl FH {
+    fn push(&mut self, x: i32) {
+        self.stack.push(x);
+
+        if self.min_hist.last().map_or(true, |&m| x < m) {
+            self.min_hist.push(x);
+        }
+        if self.max_hist.last().map_or(true, |&m| x > m) {
+            self.max_hist.push(x);
+        }
+    }
+
+    fn pop(&mut self) -> i32 {
+        let x = self.stack.pop().unwrap();
+        if self.min_hist.last().copied() == Some(x) {
+            self.min_hist.pop();
+        }
+        if self.max_hist.last().copied() == Some(x) {
+            self.max_hist.pop();
+        }
+        x
+    }
+
+    fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    fn query_min_k_from_end(&self, k: usize) -> i32 {
+        self.min_hist[self.min_hist.len() - k]
+    }
+
+    fn query_max_k_from_end(&self, k: usize) -> i32 {
+        self.max_hist[self.max_hist.len() - k]
+    }
+}
+
+#[derive(Default)]
+struct SH {
+    // Queue of values (front at front)
+    q: VecDeque<i32>,
+    // Monotone minima sequence (non-decreasing), stored front->back
+    min_mono: VecDeque<i32>,
+    // Monotone maxima sequence (non-increasing), stored front->back
+    max_mono: VecDeque<i32>,
+}
+
+impl SH {
+    fn push_back(&mut self, x: i32) {
+        self.q.push_back(x);
+
+        while let Some(&back) = self.min_mono.back() {
+            if back > x {
+                self.min_mono.pop_back();
+            } else {
+                break;
+            }
+        }
+        self.min_mono.push_back(x);
+
+        while let Some(&back) = self.max_mono.back() {
+            if back < x {
+                self.max_mono.pop_back();
+            } else {
+                break;
+            }
+        }
+        self.max_mono.push_back(x);
+    }
+
+    fn pop_front(&mut self) -> i32 {
+        let x = self.q.pop_front().unwrap();
+        if self.min_mono.front().copied() == Some(x) {
+            self.min_mono.pop_front();
+        }
+        if self.max_mono.front().copied() == Some(x) {
+            self.max_mono.pop_front();
+        }
+        x
+    }
+
+    fn len(&self) -> usize {
+        self.q.len()
+    }
+
+    fn query_min_k_from_front(&self, k: usize) -> i32 {
+        self.min_mono[k - 1]
+    }
+
+    fn query_max_k_from_front(&self, k: usize) -> i32 {
+        self.max_mono[k - 1]
+    }
+}
+
+fn rebalance_if_needed(fh: &mut FH, sh: &mut SH) {
+    // Only move from SH -> FH, and only when FH becomes smaller than SH.
+    if fh.len() < sh.len() {
+        let x = sh.pop_front();
+        fh.push(x);
+    }
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(qs) = it.next() else { break };
+        let q: usize = qs.parse().unwrap();
+        if q == 0 {
+            break;
+        }
+
+        let mut fh = FH::default();
+        let mut sh = SH::default();
+
+        for _ in 0..q {
+            // The judge input should be valid, but the original C-like spec says
+            // behavior is undefined on malformed input. To avoid Rust panics (RUNTIME_ERROR)
+            // on trailing whitespace or truncated input, we terminate cleanly if missing.
+            let Some(ops) = it.next() else {
+                print!("{out}");
+                return;
+            };
+            let op: i32 = ops.parse().unwrap();
+
+            match op {
+                0 => {
+                    let Some(xs) = it.next() else {
+                        print!("{out}");
+                        return;
+                    };
+                    let x: i32 = xs.parse().unwrap();
+                    sh.push_back(x);
+                    rebalance_if_needed(&mut fh, &mut sh);
+                }
+                1 => {
+                    let v = fh.pop();
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                    rebalance_if_needed(&mut fh, &mut sh);
+                }
+                2 => {
+                    let v = fh.query_min_k_from_end(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                3 => {
+                    let v = sh.query_min_k_from_front(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                4 => {
+                    let Some(ks) = it.next() else {
+                        print!("{out}");
+                        return;
+                    };
+                    let k: usize = ks.parse().unwrap();
+                    let v = fh.query_min_k_from_end(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                5 => {
+                    let Some(ks) = it.next() else {
+                        print!("{out}");
+                        return;
+                    };
+                    let k: usize = ks.parse().unwrap();
+                    let v = sh.query_min_k_from_front(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                6 => {
+                    let v = fh.query_max_k_from_end(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                7 => {
+                    let v = sh.query_max_k_from_front(1);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                8 => {
+                    let Some(ks) = it.next() else {
+                        print!("{out}");
+                        return;
+                    };
+                    let k: usize = ks.parse().unwrap();
+                    let v = fh.query_max_k_from_end(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                9 => {
+                    let Some(ks) = it.next() else {
+                        print!("{out}");
+                        return;
+                    };
+                    let k: usize = ks.parse().unwrap();
+                    let v = sh.query_max_k_from_front(k);
+                    out.push_str(&v.to_string());
+                    out.push('\n');
+                }
+                _ => {
+                    // Undefined behavior per spec; ignore.
+                }
+            }
+        }
+
+        out.push_str("end\n");
+    }
+
+    print!("{out}");
+}

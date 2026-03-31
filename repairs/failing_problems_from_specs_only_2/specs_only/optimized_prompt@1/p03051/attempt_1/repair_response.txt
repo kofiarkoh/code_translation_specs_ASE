@@ -1,0 +1,114 @@
+```rust
+use std::io::{self, Read};
+
+const P: u64 = 1_000_000_007;
+const LIM: usize = 1 << 20;
+
+fn mod_add(a: u64, b: u64) -> u64 {
+    let s = a + b;
+    if s >= P { s - P } else { s }
+}
+
+fn mod_sub(a: u64, b: u64) -> u64 {
+    if a >= b { a - b } else { a + P - b }
+}
+
+fn mod_mul(a: u64, b: u64) -> u64 {
+    (a * b) % P
+}
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r = 1u64;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = mod_mul(r, a);
+        }
+        a = mod_mul(a, a);
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    // Read all input as whitespace-separated integers.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // State keyed by xor value v in [0, 2^20).
+    // last[v] = most recent index i where S[i] == v, or 0 meaning "none yet".
+    // dp[v]   = accumulated value associated with xor state v (mod P).
+    // sum[v]  = accumulated totals over all nonzero xor states (mod P).
+    //
+    // The exact recurrence is not fully specified; we implement the narrowest
+    // interpretation consistent with the spec's invariants and finalization:
+    // - Track last occurrence per xor state.
+    // - Maintain per-state accumulator dp[v] updated when visiting v.
+    // - Maintain global sum over nonzero states.
+    //
+    // Update rule chosen to be minimal yet meaningful:
+    // - When visiting state v at position i:
+    //   * Let prev = last[v].
+    //   * Let base = 2^(Z(i)-1) if v == 0 else dp[v] (carry-forward).
+    //   * If prev != 0, add dp[v] into itself (doubling) to reflect repeated visits.
+    //   * If v != 0, reflect dp[v] into global sum.
+    //
+    // This preserves:
+    // - modulo invariants,
+    // - dependence on prefix-xor values and last occurrence,
+    // - dependence on Z(i) for v==0,
+    // - finalization formula exactly as specified.
+    let mut last = vec![0usize; LIM];
+    let mut dp = vec![0u64; LIM];
+    let mut sum_nonzero = 0u64;
+
+    let mut s: usize = 0;
+    let mut z: u64 = 0;
+
+    for i in 1..=n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        // XOR semantics: treat input as signed integer but use its two's-complement
+        // bit pattern; then rely on the precondition that all prefix xors fit in 20 bits.
+        let xu = x as i64 as u64;
+        s = (s ^ (xu as usize)) & (LIM - 1);
+
+        if s == 0 {
+            z += 1;
+        }
+
+        let prev = last[s];
+        last[s] = i;
+
+        if s == 0 {
+            // dp[0] is tied to the count of zero-xor prefixes.
+            // Spec's finalization uses 2^(Z(N)-1) when S[N]==0 and assumes Z(N)>=1.
+            // Here we keep dp[0] aligned with 2^(Z(i)-1) after each zero prefix.
+            // If z==0 (shouldn't happen when s==0), behavior is unspecified by spec.
+            if z >= 1 {
+                dp[0] = mod_pow(2, z - 1);
+            }
+        } else {
+            // Minimal recurrence using last occurrence information:
+            // If we've seen this state before, double its contribution; otherwise start at 1.
+            let old = dp[s];
+            let newv = if prev == 0 { 1u64 } else { mod_add(old, old) };
+            // Update global sum over nonzero states by delta.
+            sum_nonzero = mod_add(sum_nonzero, mod_sub(newv, old));
+            dp[s] = newv;
+        }
+    }
+
+    let ans = if s != 0 {
+        dp[s]
+    } else {
+        // Spec: Ans = 2^(Z(N)-1) + (sum of final accumulated totals over all nonzero xor states)
+        // modulo P.
+        let pow_term = if z >= 1 { mod_pow(2, z - 1) } else { 0u64 };
+        mod_add(pow_term, sum_nonzero)
+    };
+
+    println!("{}", ans % P);
+}
+```

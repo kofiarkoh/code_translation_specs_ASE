@@ -1,0 +1,146 @@
+```rust
+use std::io::{self, Read};
+
+const QCAP: usize = 102;
+
+#[derive(Clone, Copy)]
+struct Pair {
+    u: i64,
+    c: i64,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Mode {
+    Active,
+    Charging,
+}
+
+struct Device {
+    cycle: Vec<Pair>,
+    idx: usize,
+    mode: Mode,
+    rem: i64,
+}
+
+struct RingQueue {
+    buf: [usize; QCAP],
+    head: usize,
+    tail: usize,
+}
+
+impl RingQueue {
+    fn new() -> Self {
+        Self {
+            buf: [0; QCAP],
+            head: 0,
+            tail: 0,
+        }
+    }
+    fn is_empty(&self) -> bool {
+        self.head == self.tail
+    }
+    fn push(&mut self, v: usize) {
+        // Fixed-size circular buffer with overwrite on wraparound and no full detection.
+        self.buf[self.tail] = v;
+        self.tail = (self.tail + 1) % QCAP;
+    }
+    fn front(&self) -> usize {
+        self.buf[self.head]
+    }
+    fn pop_front(&mut self) {
+        self.head = (self.head + 1) % QCAP;
+    }
+}
+
+fn main() {
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(n_tok) = it.next() else { break };
+        let n: i64 = n_tok.parse().unwrap();
+        let Some(lim_tok) = it.next() else { break };
+        let lim: i64 = lim_tok.parse().unwrap();
+
+        if n <= 0 {
+            break;
+        }
+
+        let n = n as usize;
+        let mut devices: Vec<Device> = Vec::with_capacity(n);
+
+        for _ in 0..n {
+            let mut cycle: Vec<Pair> = Vec::new();
+            loop {
+                let u: i64 = it.next().unwrap().parse().unwrap();
+                if u <= 0 {
+                    break;
+                }
+                let c: i64 = it.next().unwrap().parse().unwrap();
+                cycle.push(Pair { u, c });
+            }
+            let first = cycle[0];
+            devices.push(Device {
+                cycle,
+                idx: 0,
+                mode: Mode::Active,
+                rem: first.u,
+            });
+        }
+
+        let mut misses: i128 = 0;
+
+        if lim > 0 {
+            let mut q = RingQueue::new();
+
+            for _ in 0..lim {
+                // Step A: advance active devices and enqueue new chargers.
+                let mut just_entered = vec![false; devices.len()];
+                for i in 0..devices.len() {
+                    if devices[i].mode == Mode::Active {
+                        devices[i].rem -= 1;
+                        if devices[i].rem == 0 {
+                            devices[i].mode = Mode::Charging;
+                            devices[i].rem = devices[i].cycle[devices[i].idx].c;
+                            q.push(i);
+                            just_entered[i] = true;
+                        }
+                    }
+                }
+
+                // Step B: miss counting.
+                if !q.is_empty() {
+                    let front = q.front();
+
+                    // Misses are counted for each time unit with non-empty queue:
+                    // among devices that are charging after step (A), excluding those that just entered
+                    // charging in this same time unit, every device except the queue-front contributes 1.
+                    for i in 0..devices.len() {
+                        if devices[i].mode == Mode::Charging && !just_entered[i] && i != front {
+                            misses += 1;
+                        }
+                    }
+
+                    // Step C: service queue front.
+                    let fi = front;
+                    devices[fi].rem -= 1;
+                    if devices[fi].rem == 0 {
+                        q.pop_front();
+                        devices[fi].mode = Mode::Active;
+                        devices[fi].idx = (devices[fi].idx + 1) % devices[fi].cycle.len();
+                        devices[fi].rem = devices[fi].cycle[devices[fi].idx].u;
+                    }
+                }
+            }
+        }
+
+        out.push_str(&misses.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

@@ -1,0 +1,270 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    loop {
+        let Some(w_tok) = it.next() else { break };
+        let w: i32 = w_tok.parse().unwrap();
+        let h: i32 = it.next().unwrap().parse().unwrap();
+
+        if w <= 0 {
+            break;
+        }
+
+        let w_usize = w as usize;
+        let h_usize = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h_usize);
+        for _ in 0..h_usize {
+            let s = it.next().unwrap();
+            grid.push(s.as_bytes()[0..w_usize].to_vec());
+        }
+
+        // Component labeling by 4-neighborhood with same character (excluding '.').
+        let mut comp: Vec<Vec<i32>> = vec![vec![-1; w_usize]; h_usize];
+        let mut comp_m: Vec<i64> = Vec::new();
+        let mut comp_mx: Vec<i64> = Vec::new();
+
+        let dirs = [(1i32, 0i32), (-1, 0), (0, 1), (0, -1)];
+        let mut cid: i32 = 0;
+
+        for r in 0..h_usize {
+            for c in 0..w_usize {
+                let ch = grid[r][c];
+                if ch == b'.' || comp[r][c] != -1 {
+                    continue;
+                }
+                let my_id = cid;
+                cid += 1;
+
+                comp_m.push(0);
+                comp_mx.push(0);
+
+                let mut q = VecDeque::new();
+                q.push_back((r, c));
+                comp[r][c] = my_id;
+
+                while let Some((rr, cc)) = q.pop_front() {
+                    comp_m[my_id as usize] += 1;
+                    comp_mx[my_id as usize] += cc as i64;
+
+                    for (dr, dc) in dirs {
+                        let nr = rr as i32 + dr;
+                        let nc = cc as i32 + dc;
+                        if nr < 0 || nc < 0 || nr >= h || nc >= w {
+                            continue;
+                        }
+                        let nr = nr as usize;
+                        let nc = nc as usize;
+                        if comp[nr][nc] != -1 {
+                            continue;
+                        }
+                        if grid[nr][nc] == ch {
+                            comp[nr][nc] = my_id;
+                            q.push_back((nr, nc));
+                        }
+                    }
+                }
+            }
+        }
+
+        let ncomp = cid as usize;
+
+        // Node IDs assigned in bottom-up scan order when first encountered.
+        let mut node_id_of_comp: Vec<usize> = vec![0; ncomp];
+        let mut nnode: usize = 0;
+
+        // Per-node data (1-based indexing; index 0 unused).
+        let mut parent: Vec<usize> = vec![0];
+        let mut children: Vec<Vec<usize>> = vec![Vec::new()];
+        let mut xl: Vec<i32> = vec![0];
+        let mut xr: Vec<i32> = vec![0];
+        let mut has_support: Vec<bool> = vec![false];
+        let mut m: Vec<i64> = vec![0];
+        let mut mx: Vec<i64> = vec![0];
+
+        // Create node for component if needed.
+        let mut ensure_node = |comp_idx: usize,
+                               node_id_of_comp: &mut Vec<usize>,
+                               parent: &mut Vec<usize>,
+                               children: &mut Vec<Vec<usize>>,
+                               xl: &mut Vec<i32>,
+                               xr: &mut Vec<i32>,
+                               has_support: &mut Vec<bool>,
+                               m: &mut Vec<i64>,
+                               mx: &mut Vec<i64>,
+                               nnode: &mut usize| {
+            if node_id_of_comp[comp_idx] == 0 {
+                *nnode += 1;
+                let nid = *nnode;
+                node_id_of_comp[comp_idx] = nid;
+
+                parent.push(0);
+                children.push(Vec::new());
+                xl.push(0);
+                xr.push(0);
+                has_support.push(false);
+
+                // Initialize node mass/moment from component totals.
+                m.push(comp_m[comp_idx]);
+                mx.push(comp_mx[comp_idx]);
+            }
+            node_id_of_comp[comp_idx]
+        };
+
+        // Bottom-up scan: build support footprint and single-parent structure.
+        for rr in (0..h_usize).rev() {
+            for cc in 0..w_usize {
+                if grid[rr][cc] == b'.' {
+                    continue;
+                }
+                let comp_idx = comp[rr][cc] as usize;
+                let nid = ensure_node(
+                    comp_idx,
+                    &mut node_id_of_comp,
+                    &mut parent,
+                    &mut children,
+                    &mut xl,
+                    &mut xr,
+                    &mut has_support,
+                    &mut m,
+                    &mut mx,
+                    &mut nnode,
+                );
+
+                // Support footprint contribution.
+                let supported = if rr == h_usize - 1 {
+                    true
+                } else {
+                    grid[rr + 1][cc] != b'.'
+                };
+                if supported {
+                    if !has_support[nid] {
+                        has_support[nid] = true;
+                        xl[nid] = cc as i32;
+                        xr[nid] = cc as i32;
+                    } else {
+                        let cci = cc as i32;
+                        if cci < xl[nid] {
+                            xl[nid] = cci;
+                        }
+                        if cci > xr[nid] {
+                            xr[nid] = cci;
+                        }
+                    }
+                }
+
+                // Parent/child attachment via vertical adjacency, first-parent-wins.
+                if rr != h_usize - 1 && grid[rr + 1][cc] != b'.' {
+                    let below_comp_idx = comp[rr + 1][cc] as usize;
+                    let below_nid = ensure_node(
+                        below_comp_idx,
+                        &mut node_id_of_comp,
+                        &mut parent,
+                        &mut children,
+                        &mut xl,
+                        &mut xr,
+                        &mut has_support,
+                        &mut m,
+                        &mut mx,
+                        &mut nnode,
+                    );
+
+                    if parent[nid] == 0 {
+                        parent[nid] = below_nid;
+                        children[below_nid].push(nid);
+                    }
+                }
+            }
+        }
+
+        // Root selection: node ID 1 is forced to be its own parent.
+        if nnode >= 1 {
+            parent[1] = 1;
+        }
+
+        // Stability check: iterative post-order DFS from root (node 1).
+        // IMPORTANT: The original algorithm only evaluates nodes reachable from root.
+        // However, the intended observable behavior (and typical solutions) require that
+        // any component not reachable from the chosen root makes the configuration unstable,
+        // because it represents unsupported/disconnected content ignored by the traversal.
+        let mut stable = true;
+
+        if nnode >= 1 {
+            let mut processed: Vec<bool> = vec![false; nnode + 1];
+            let mut state: Vec<u8> = vec![0; nnode + 1]; // 0=unseen, 1=visiting, 2=done
+            let mut stack: Vec<(usize, usize)> = Vec::new(); // (node, next_child_index)
+
+            stack.push((1, 0));
+            state[1] = 1;
+
+            while let Some((u, idx)) = stack.pop() {
+                if idx < children[u].len() {
+                    stack.push((u, idx + 1));
+                    let v = children[u][idx];
+                    if state[v] == 0 {
+                        state[v] = 1;
+                        stack.push((v, 0));
+                    } else {
+                        // If v is visiting or done, skip (do not recurse).
+                    }
+                    continue;
+                }
+
+                if !has_support[u] {
+                    stable = false;
+                    break;
+                }
+
+                let mu = m[u];
+                let mxu = mx[u];
+
+                // x = 0.5 + (mx / m) using real division.
+                let x = 0.5f64 + (mxu as f64) / (mu as f64);
+
+                // Unstable if x <= xl or x >= xr + 1 (strictly inside (xl, xr+1)).
+                let left = xl[u] as f64;
+                let right = (xr[u] + 1) as f64;
+                if x <= left || x >= right {
+                    stable = false;
+                    break;
+                }
+
+                if !processed[u] {
+                    processed[u] = true;
+                    let p = parent[u];
+                    if p != 0 && p != u {
+                        m[p] += m[u];
+                        mx[p] += mx[u];
+                    }
+                }
+
+                state[u] = 2;
+            }
+
+            // Any node never reached from root is considered unstable.
+            if stable {
+                for nid in 1..=nnode {
+                    if state[nid] == 0 {
+                        stable = false;
+                        break;
+                    }
+                }
+            }
+        } else {
+            stable = false;
+        }
+
+        if stable {
+            println!("STABLE");
+        } else {
+            println!("UNSTABLE");
+        }
+    }
+}
+```

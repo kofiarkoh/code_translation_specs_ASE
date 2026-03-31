@@ -1,0 +1,37 @@
+```rust
+use std::io::{self, Read, Write};
+
+fn main() {
+    // Fixed-size internal buffer: reads at most 114514 bytes in one call.
+    let mut buf = vec![0u8; 114_514];
+
+    // Single read from stdin; no explicit error handling per spec.
+    // On error, exit without defined output (keeps behavior unspecified).
+    let l: usize = match io::stdin().read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => return,
+    };
+
+    // Spec: behavior is undefined if fewer than 2 bytes are read.
+    // Avoid OOB in Rust by exiting early; output is unspecified in this case.
+    if l < 2 {
+        return;
+    }
+
+    // n = L - 1
+    let n = l - 1;
+
+    // eq = (buf[0] == buf[L-2]) ? 1 : 0  where L-2 == n-1
+    let eq: usize = (buf[0] == buf[n - 1]) as usize;
+
+    // condition = ((n + eq) & 1)
+    let cond = (n + eq) & 1;
+
+    let mut stdout = io::stdout().lock();
+    if cond != 0 {
+        let _ = stdout.write_all(b"First\n");
+    } else {
+        let _ = stdout.write_all(b"Second\n");
+    }
+}
+```

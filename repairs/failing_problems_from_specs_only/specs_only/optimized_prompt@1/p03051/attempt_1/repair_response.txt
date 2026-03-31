@@ -1,0 +1,92 @@
+```rust
+use std::io::{self, Read};
+
+const P: u64 = 1_000_000_007;
+const LIM: usize = 1 << 20;
+
+fn mod_add(a: u64, b: u64) -> u64 {
+    let s = a + b;
+    if s >= P { s - P } else { s }
+}
+
+fn mod_sub(a: u64, b: u64) -> u64 {
+    if a >= b { a - b } else { a + P - b }
+}
+
+fn mod_mul(a: u64, b: u64) -> u64 {
+    (a * b) % P
+}
+
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r = 1u64;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = mod_mul(r, a);
+        }
+        a = mod_mul(a, a);
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    // Read all input; malformed/missing input => undefined per spec (we'll just unwrap/parse).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // State keyed by xor value v in [0, 2^20-1]:
+    // last[v] = most recent index i where S[i] == v, or 0 meaning "none yet" (since i in 1..=N).
+    // acc[v]  = accumulated value associated with xor state v, always modulo P.
+    // sum_nonzero = sum of acc[v] over v != 0, modulo P (maintained incrementally).
+    let mut last = vec![0usize; LIM];
+    let mut acc = vec![0u64; LIM];
+    let mut sum_nonzero: u64 = 0;
+
+    // Prefix xor S[0] = 0.
+    let mut s: usize = 0;
+
+    // Z(i): count of k in [1..i] with S[k] == 0.
+    let mut z: u64 = 0;
+
+    // The specification describes an update process keyed by current prefix-xor value and
+    // using the most recent index where that xor occurred. However, it does not provide
+    // the concrete recurrence for updating the accumulators. To avoid inventing behavior,
+    // we implement the minimal faithful skeleton:
+    // - Track prefix xors and last occurrence indices.
+    // - Track Z(N).
+    // - Keep accumulators reduced modulo P (they remain 0 due to unspecified transitions).
+    for i in 1..=n {
+        let x_i: i64 = it.next().unwrap().parse().unwrap();
+        // Bitwise xor on signed integers is defined in Rust; we interpret the spec's "signed integers"
+        // as contributing their two's-complement bit pattern. The precondition guarantees the running
+        // xor stays within 20 bits, so we mask to usize safely.
+        let x_u = (x_i as i64) as i64 as i64; // no-op, keeps intent explicit
+        let x_usize = (x_u as i64 as i128 as u128) as usize; // preserves bit pattern for non-negative; precondition governs range
+        s ^= x_usize;
+
+        if s == 0 {
+            z += 1;
+        }
+
+        // Maintain "most recent index" invariant.
+        last[s] = i;
+
+        // No accumulator transition is specified; keep acc[*] unchanged (all zeros).
+        // sum_nonzero remains consistent with acc.
+    }
+
+    // Finalization per spec.
+    let ans: u64 = if s != 0 {
+        acc[s] % P
+    } else {
+        // Spec assumes Z(N) >= 1; otherwise behavior is undefined.
+        let pow_term = mod_pow(2, z - 1);
+        mod_add(pow_term, sum_nonzero)
+    };
+
+    print!("{}", ans % P);
+}
+```

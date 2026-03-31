@@ -1,0 +1,145 @@
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Occ {
+    seq: usize,
+    stu: usize,
+    id: usize,
+}
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let m_opt = it.next();
+        if m_opt.is_none() {
+            break;
+        }
+        let m: i32 = m_opt.unwrap().parse().unwrap();
+        if m <= 0 {
+            break;
+        }
+        let m = m as usize;
+
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        // Desks are 1..=m plus initial holding desk m+1.
+        // We store desks as Vec<Vec<book_id>> with index 0 unused for 1-based desk indices.
+        let holding = m + 1;
+        let mut desks: Vec<Vec<usize>> = vec![Vec::new(); holding + 1];
+
+        // Track whether a book has been introduced; book ids are assumed small (<= 100).
+        // Also track current desk location for each book id.
+        let max_book_id = 100usize;
+        let mut seen = vec![false; max_book_id + 1];
+        let mut loc_desk = vec![0usize; max_book_id + 1];
+
+        let mut occs: Vec<Occ> = Vec::new();
+
+        for stu in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id: usize = it.next().unwrap().parse().unwrap();
+
+                // Introduce book on first sight: append to holding desk (m+1).
+                if id <= max_book_id && !seen[id] {
+                    seen[id] = true;
+                    desks[holding].push(id);
+                    loc_desk[id] = holding;
+                }
+
+                occs.push(Occ { seq, stu, id });
+            }
+        }
+
+        // Process occurrences in increasing (seq, stu).
+        occs.sort_by(|a, b| a.seq.cmp(&b.seq).then_with(|| a.stu.cmp(&b.stu)));
+
+        let mut cost: i64 = 0;
+
+        for occ in occs {
+            let id = occ.id;
+
+            // A) Remove requested book from its current desk.
+            let from = loc_desk[id];
+            // Find and remove id from desks[from], shifting left (Vec::remove preserves order).
+            // Preconditions imply it exists exactly once.
+            let pos = desks[from]
+                .iter()
+                .position(|&x| x == id)
+                .unwrap();
+            desks[from].remove(pos);
+            cost += from as i64;
+
+            // B) Overflow procedure if primary desk is full before inserting id.
+            if desks[1].len() == c {
+                // Preconditions: m >= 2 and there exists a non-full auxiliary desk in 2..=m
+                // at each search point.
+                let mut tmp = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() != c {
+                        tmp = d;
+                        break;
+                    }
+                }
+                // Insert id temporarily at back of tmp.
+                desks[tmp].push(id);
+                cost += tmp as i64;
+
+                // Evict front book from primary desk.
+                let id2 = desks[1].remove(0);
+                cost += 1;
+
+                // Choose auxiliary desk j for evicted book under current sizes.
+                let mut j = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() != c {
+                        j = d;
+                        break;
+                    }
+                }
+
+                // Insert id2 normally at back; but if j == tmp, insert one slot earlier
+                // than the current back position, effectively canceling the temporary id.
+                if j == tmp {
+                    // At this moment, desks[tmp] ends with the temporary id.
+                    // Insert id2 at index len-1, pushing id to the back.
+                    let insert_at = desks[j].len().saturating_sub(1);
+                    desks[j].insert(insert_at, id2);
+                    // Remove the temporary id from the back to cancel it.
+                    let popped = desks[j].pop().unwrap();
+                    debug_assert!(popped == id);
+                } else {
+                    desks[j].push(id2);
+                }
+
+                // Update location of evicted book.
+                if id2 <= max_book_id {
+                    loc_desk[id2] = j;
+                }
+
+                cost += (j + tmp) as i64;
+                // Note: id is not recorded as being in tmp; it will be inserted into primary next.
+            }
+
+            // C) Insert requested book into primary desk.
+            desks[1].push(id);
+            if id <= max_book_id {
+                loc_desk[id] = 1;
+            }
+            cost += 1;
+        }
+
+        outputs.push(cost.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

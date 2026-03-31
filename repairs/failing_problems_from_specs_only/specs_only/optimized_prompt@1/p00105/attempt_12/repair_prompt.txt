@@ -1,0 +1,114 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 12
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::collections::HashMap;
+use std::io::{self, Read};
+
+const MAX: usize = 30;
+const PGMAX: usize = 1001; // indices 0..=1000
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    // C spec: not explicitly initialized (indeterminate). Rust cannot represent that safely.
+    // Use zero-init as the narrowest deterministic approximation.
+    pgnum: [u8; PGMAX],
+    tm: usize,
+}
+
+fn main() {
+    // Read all input; parse as whitespace-delimited tokens like scanf("%s %d").
+    let mut input = String::new();
+    let _ = io::stdin().read_to_string(&mut input);
+    let mut it = input.split_whitespace();
+
+    let mut entries: Vec<Entry> = Vec::new();
+    let mut index: HashMap<String, usize> = HashMap::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p_tok = match it.next() {
+            Some(s) => s,
+            None => break, // incomplete record => stop
+        };
+        let p_i32: i32 = match p_tok.parse() {
+            Ok(v) => v,
+            Err(_) => break, // parse failure => stop
+        };
+
+        // C spec: out-of-range page index is UB. We avoid UB by ignoring such records.
+        if p_i32 < 0 || (p_i32 as usize) >= PGMAX {
+            continue;
+        }
+        let p = p_i32 as usize;
+
+        let word = w.to_string();
+
+        if let Some(&idx) = index.get(&word) {
+            let e = &mut entries[idx];
+            e.pgnum[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+        } else {
+            // C spec: exceeding MAX is UB. We avoid UB by ignoring additional distinct words.
+            if entries.len() >= MAX {
+                continue;
+            }
+            let mut e = Entry {
+                word: word.clone(),
+                pgnum: [0u8; PGMAX],
+                tm: 0,
+            };
+            e.pgnum[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+            index.insert(word, entries.len() - 1);
+        }
+    }
+
+    // Sort by ascending lexicographic order (strcmp-like): bytewise comparison.
+    entries.sort_by(|a, b| a.word.as_bytes().cmp(b.word.as_bytes()));
+
+    // Output:
+    // For each word: print the word on its own line.
+    // Then scan pages 0..PGMAX-1; print indices with pgnum[j]==1.
+    // Print spaces between printed numbers, and print newline only when printed==tm.
+    // If printed never reaches tm, print no terminating newline for that word's page list.
+    let mut out = String::new();
+    for e in &entries {
+        out.push_str(&e.word);
+        out.push('\n');
+
+        let mut printed = 0usize;
+        for j in 0..PGMAX {
+            if e.pgnum[j] == 1 {
+                printed = printed.wrapping_add(1);
+                if printed == e.tm {
+                    out.push_str(&j.to_string());
+                    out.push('\n');
+                    break;
+                } else {
+                    out.push_str(&j.to_string());
+                    out.push(' ');
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

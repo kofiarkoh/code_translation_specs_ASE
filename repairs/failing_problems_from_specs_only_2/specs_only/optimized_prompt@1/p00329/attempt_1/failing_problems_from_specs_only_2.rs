@@ -1,0 +1,116 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as raw bytes; the spec is byte-based and does not skip whitespace.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut p: usize = 0;
+
+    // Read non-negative decimal integer K as digit characters.
+    // The routine stops at the first non-digit and consumes it (if present).
+    let mut k: usize = 0;
+    while p < input.len() && input[p].is_ascii_digit() {
+        k = k * 10 + (input[p] - b'0') as usize;
+        p += 1;
+    }
+    if p < input.len() {
+        // Consume the first non-digit after the integer, per spec.
+        p += 1;
+    }
+
+    // Preconditions say K >= 1; otherwise behavior unspecified.
+    let n: usize = k.wrapping_sub(1);
+
+    // Build adjacency: for each (row i, col j), read byte c and separator byte.
+    // Edge is from left vertex j to right vertex i iff (c & 1) != 0.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for i in 0..n {
+        for j in 0..n {
+            let c = input[p];
+            p += 1;
+            let _sep = input[p];
+            p += 1;
+            if (c & 1) != 0 {
+                adj[j].push(i);
+            }
+        }
+    }
+
+    // Kuhn-style DFS augmenting path for bipartite matching.
+    fn try_kuhn(
+        v_left: usize,
+        adj: &Vec<Vec<usize>>,
+        used_left: &mut [bool],
+        match_r_to_l: &mut [Option<usize>],
+    ) -> bool {
+        if used_left[v_left] {
+            return false;
+        }
+        used_left[v_left] = true;
+        for &r in &adj[v_left] {
+            if match_r_to_l[r].is_none()
+                || try_kuhn(match_r_to_l[r].unwrap(), adj, used_left, match_r_to_l)
+            {
+                match_r_to_l[r] = Some(v_left);
+                return true;
+            }
+        }
+        false
+    }
+
+    // Compute whether any perfect matching exists.
+    let mut match_r_to_l: Vec<Option<usize>> = vec![None; n];
+    for v in 0..n {
+        let mut used_left = vec![false; n];
+        if !try_kuhn(v, &adj, &mut used_left, &mut match_r_to_l) {
+            print!("no\n");
+            return;
+        }
+    }
+
+    // Invert to get current left->right mapping.
+    let mut match_l_to_r: Vec<Option<usize>> = vec![None; n];
+    for r in 0..n {
+        if let Some(l) = match_r_to_l[r] {
+            match_l_to_r[l] = Some(r);
+        }
+    }
+
+    // Output partners for left vertices in increasing order, with the specified
+    // remove-and-reaugment procedure.
+    let mut out = String::new();
+    out.push_str("yes\n");
+
+    for i in 0..n {
+        // Remove i and its currently matched partner (if any).
+        if let Some(r) = match_l_to_r[i] {
+            match_l_to_r[i] = None;
+            match_r_to_l[r] = None;
+        }
+
+        // Re-establish a perfect matching by augmenting from i.
+        let mut used_left = vec![false; n];
+        let ok = try_kuhn(i, &adj, &mut used_left, &mut match_r_to_l);
+        // If a perfect matching existed before, this should succeed; otherwise unspecified.
+        if !ok {
+            // Narrowest reasonable behavior: report failure if re-augmentation fails.
+            print!("no\n");
+            return;
+        }
+
+        // Recompute left->right mapping (simple and faithful; avoids subtle incremental bugs).
+        match_l_to_r.fill(None);
+        for r in 0..n {
+            if let Some(l) = match_r_to_l[r] {
+                match_l_to_r[l] = Some(r);
+            }
+        }
+
+        // Print 1-based partner index for left vertex i.
+        let partner_r = match_l_to_r[i].unwrap();
+        out.push_str(&(partner_r + 1).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

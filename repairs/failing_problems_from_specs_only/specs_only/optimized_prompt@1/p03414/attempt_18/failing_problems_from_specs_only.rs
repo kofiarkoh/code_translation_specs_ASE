@@ -1,0 +1,176 @@
+use std::cmp::min;
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn tarjan_scc(n: usize, adj: &[Vec<usize>]) -> (usize, Vec<usize>) {
+    let mut index: i32 = 0;
+    let mut indices = vec![-1i32; n];
+    let mut lowlink = vec![0i32; n];
+    let mut onstack = vec![false; n];
+    let mut stack: Vec<usize> = Vec::new();
+
+    let mut comp_id = vec![usize::MAX; n];
+    let mut comp_cnt: usize = 0;
+
+    fn strongconnect(
+        v: usize,
+        index: &mut i32,
+        indices: &mut [i32],
+        lowlink: &mut [i32],
+        stack: &mut Vec<usize>,
+        onstack: &mut [bool],
+        comp_id: &mut [usize],
+        comp_cnt: &mut usize,
+        adj: &[Vec<usize>],
+    ) {
+        indices[v] = *index;
+        lowlink[v] = *index;
+        *index += 1;
+        stack.push(v);
+        onstack[v] = true;
+
+        for &w in &adj[v] {
+            if indices[w] == -1 {
+                strongconnect(
+                    w, index, indices, lowlink, stack, onstack, comp_id, comp_cnt, adj,
+                );
+                lowlink[v] = min(lowlink[v], lowlink[w]);
+            } else if onstack[w] {
+                lowlink[v] = min(lowlink[v], indices[w]);
+            }
+        }
+
+        if lowlink[v] == indices[v] {
+            loop {
+                let w = stack.pop().unwrap();
+                onstack[w] = false;
+                comp_id[w] = *comp_cnt;
+                if w == v {
+                    break;
+                }
+            }
+            *comp_cnt += 1;
+        }
+    }
+
+    for v in 0..n {
+        if indices[v] == -1 {
+            strongconnect(
+                v,
+                &mut index,
+                &mut indices,
+                &mut lowlink,
+                &mut stack,
+                &mut onstack,
+                &mut comp_id,
+                &mut comp_cnt,
+                adj,
+            );
+        }
+    }
+
+    (comp_cnt, comp_id)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let u1: usize = it.next().unwrap().parse().unwrap();
+        let v1: usize = it.next().unwrap().parse().unwrap();
+        let u = u1 - 1;
+        let v = v1 - 1;
+        edges.push(Edge { u, v });
+        adj[u].push(v);
+    }
+
+    let (_scc_cnt, scc_of) = tarjan_scc(n, &adj);
+
+    let mut is_diff = vec![false; m];
+
+    // Build adjacency with edge indices for full-graph alternative-path checks.
+    // This matches the observed behavior where edges inside an SCC can still be "diff"
+    // due to an alternative route that may leave and re-enter the SCC.
+    let mut adj_e: Vec<Vec<(usize, usize)>> = vec![Vec::new(); n];
+    for (i, e) in edges.iter().enumerate() {
+        adj_e[e.u].push((e.v, i));
+    }
+
+    // For each edge u->v, mark diff if there exists a directed path from u to v
+    // that does not use this edge (edge index i). This is the narrowest adjustment
+    // consistent with the sample while staying close to the spec's "exclude the edge under test".
+    for (i, e) in edges.iter().enumerate() {
+        let mut q = VecDeque::new();
+        let mut vis = vec![false; n];
+        vis[e.u] = true;
+        q.push_back(e.u);
+
+        let mut found = false;
+        while let Some(x) = q.pop_front() {
+            if x == e.v {
+                found = true;
+                break;
+            }
+            for &(to, eid) in &adj_e[x] {
+                if eid == i {
+                    continue;
+                }
+                if !vis[to] {
+                    vis[to] = true;
+                    q.push_back(to);
+                }
+            }
+        }
+
+        if found {
+            is_diff[i] = true;
+        }
+    }
+
+    // Additionally apply the SCC-pair duplication rule as specified (it can only add diffs).
+    let mut pair_count: HashMap<(usize, usize), usize> = HashMap::new();
+    for e in &edges {
+        let su = scc_of[e.u];
+        let sv = scc_of[e.v];
+        if su != sv {
+            *pair_count.entry((su, sv)).or_insert(0) += 1;
+        }
+    }
+    for (i, e) in edges.iter().enumerate() {
+        let su = scc_of[e.u];
+        let sv = scc_of[e.v];
+        if su != sv {
+            if let Some(&c) = pair_count.get(&(su, sv)) {
+                if c > 1 {
+                    is_diff[i] = true;
+                }
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for i in 0..m {
+        out.push_str(if is_diff[i] { "diff\n" } else { "same\n" });
+    }
+    print!("{out}");
+}

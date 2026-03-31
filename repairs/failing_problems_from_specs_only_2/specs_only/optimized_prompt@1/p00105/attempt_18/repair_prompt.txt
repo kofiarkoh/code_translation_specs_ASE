@@ -1,0 +1,103 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 18
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+const PGMAX: usize = 1001; // indices 0..=1000
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    pg: [u8; PGMAX], // present iff == 1
+    tm: i32,         // incremented once per input record for this word
+}
+
+fn main() {
+    // Read all input and parse as repeated scanf("%s %d") pairs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut entries: Vec<Entry> = Vec::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s.to_string(),
+            None => break,
+        };
+        let p_tok = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p_i32 = match p_tok.parse::<i32>() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Spec: out-of-range page numbers are UB in C. Here we avoid panics and skip.
+        let p = match usize::try_from(p_i32).ok().filter(|&u| u < PGMAX) {
+            Some(u) => u,
+            None => continue,
+        };
+
+        if let Some(e) = entries.iter_mut().find(|e| e.word == w) {
+            e.pg[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+        } else {
+            let mut e = Entry {
+                word: w,
+                pg: [0u8; PGMAX],
+                tm: 0,
+            };
+            e.pg[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+        }
+    }
+
+    // Sort ascending lexicographic order (strcmp-like on bytes).
+    entries.sort_by(|a, b| a.word.as_bytes().cmp(b.word.as_bytes()));
+
+    let mut out = String::new();
+
+    for e in &entries {
+        // Output: word line.
+        out.push_str(&e.word);
+        out.push('\n');
+
+        // Page-number listing:
+        // Scan j increasing; for each pg[j]==1 print j.
+        // Print a space after each printed number except the one considered "last".
+        // "Last" is when exactly tm such indices have been printed.
+        // If tm exceeds the number of present pages, no terminating newline is printed.
+        let mut printed: i32 = 0;
+        for j in 0..PGMAX {
+            if e.pg[j] == 1 {
+                printed = printed.wrapping_add(1);
+                if printed == e.tm {
+                    out.push_str(&j.to_string());
+                    out.push('\n');
+                    break;
+                } else {
+                    out.push_str(&j.to_string());
+                    out.push(' ');
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

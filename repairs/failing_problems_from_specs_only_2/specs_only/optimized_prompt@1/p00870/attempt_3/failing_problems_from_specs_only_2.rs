@@ -1,0 +1,178 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read raw bytes to preserve any non-UTF8 and control characters.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut rd = TokenReader::new(&input);
+
+    let mut first = true;
+    let mut out = String::new();
+
+    loop {
+        let n = match rd.next_i32() {
+            None => break,
+            Some(v) => v,
+        };
+        let m = match rd.next_i32() {
+            None => break,
+            Some(v) => v,
+        };
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Spec precondition: 0 <= n <= 12. If violated, behavior is undefined; we still avoid panics.
+        let n_usize = if n < 0 { 0 } else { n as usize };
+        let m_usize = if m < 0 { 0 } else { m as usize };
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n_usize);
+        for _ in 0..n_usize {
+            patterns.push(rd.next_token_bytes().unwrap_or_default());
+        }
+
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m_usize {
+            let mut frag = rd.next_token_bytes().unwrap_or_default();
+            // Apply trimming rule exactly as specified.
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            text.extend_from_slice(&frag);
+        }
+        let l = text.len();
+
+        let mask_count: usize = if n_usize >= usize::BITS as usize {
+            // Undefined by spec; keep it bounded to avoid shifting overflow.
+            0
+        } else {
+            1usize << n_usize
+        };
+        let full_mask: usize = if mask_count == 0 { 0 } else { mask_count - 1 };
+
+        // reachable[pos][mask] as a flat bitset-like byte array.
+        let mut reachable: Vec<u8> = vec![0u8; (l + 1).saturating_mul(mask_count.max(1))];
+        if mask_count > 0 {
+            reachable[0] = 1; // (0, empty)
+        }
+
+        if mask_count > 0 {
+            for p in 0..l {
+                let base = p * mask_count;
+                for s in 0..mask_count {
+                    if reachable[base + s] == 0 {
+                        continue;
+                    }
+                    for k in 0..n_usize {
+                        let bit = 1usize << k;
+                        if (s & bit) != 0 {
+                            continue;
+                        }
+                        let pat = &patterns[k];
+                        let plen = pat.len();
+                        if p + plen > l {
+                            continue;
+                        }
+                        if text[p..p + plen] == pat[..] {
+                            let np = p + plen;
+                            let ns = s | bit;
+                            reachable[np * mask_count + ns] = 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut count: usize = 0;
+        if mask_count > 0 {
+            for p in 0..=l {
+                if reachable[p * mask_count + full_mask] != 0 {
+                    count += 1;
+                }
+            }
+        } else {
+            // If mask_count == 0 (only possible under undefined inputs), produce 0 deterministically.
+            count = 0;
+        }
+
+        if !first {
+            out.push('\n');
+        }
+        first = false;
+        out.push_str(&count.to_string());
+    }
+
+    print!("{out}");
+}
+
+struct TokenReader<'a> {
+    buf: &'a [u8],
+    i: usize,
+}
+
+impl<'a> TokenReader<'a> {
+    fn new(buf: &'a [u8]) -> Self {
+        Self { buf, i: 0 }
+    }
+
+    #[inline]
+    fn is_sep(b: u8) -> bool {
+        // Whitespace-delimited tokens; interpret as ASCII <= space.
+        b <= b' '
+    }
+
+    fn skip_seps(&mut self) {
+        while self.i < self.buf.len() && Self::is_sep(self.buf[self.i]) {
+            self.i += 1;
+        }
+    }
+
+    fn next_token_bytes(&mut self) -> Option<Vec<u8>> {
+        self.skip_seps();
+        if self.i >= self.buf.len() {
+            return None;
+        }
+        let start = self.i;
+        while self.i < self.buf.len() && !Self::is_sep(self.buf[self.i]) {
+            self.i += 1;
+        }
+        Some(self.buf[start..self.i].to_vec())
+    }
+
+    fn next_i32(&mut self) -> Option<i32> {
+        let tok = self.next_token_bytes()?;
+        // Parse a (possibly signed) decimal integer from raw bytes.
+        // If malformed, return None (no explicit error reporting in spec).
+        let mut idx = 0usize;
+        let mut sign: i64 = 1;
+        if idx < tok.len() && (tok[idx] == b'+' || tok[idx] == b'-') {
+            if tok[idx] == b'-' {
+                sign = -1;
+            }
+            idx += 1;
+        }
+        if idx >= tok.len() {
+            return None;
+        }
+        let mut val: i64 = 0;
+        while idx < tok.len() {
+            let c = tok[idx];
+            if !(b'0'..=b'9').contains(&c) {
+                return None;
+            }
+            val = val.saturating_mul(10).saturating_add((c - b'0') as i64);
+            idx += 1;
+        }
+        val = val.saturating_mul(sign);
+        if val < i32::MIN as i64 {
+            Some(i32::MIN)
+        } else if val > i32::MAX as i64 {
+            Some(i32::MAX)
+        } else {
+            Some(val as i32)
+        }
+    }
+}

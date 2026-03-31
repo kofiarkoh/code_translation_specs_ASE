@@ -1,0 +1,155 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read raw bytes; do not assume UTF-8.
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut rd = TokenReader::new(&input);
+
+    let mut first_out = true;
+    let mut out = String::new();
+
+    loop {
+        let n = match rd.next_usize() {
+            None => break,
+            Some(v) => v,
+        };
+        let m = match rd.next_usize() {
+            None => break,
+            Some(v) => v,
+        };
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Spec precondition: n <= 12; behavior undefined otherwise.
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            patterns.push(rd.next_token_bytes().unwrap_or_default());
+        }
+
+        // Concatenate text fragments. The spec's trimming rule is effectively a no-op
+        // under whitespace-delimited tokenization, but we still apply it to the token bytes.
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let mut frag = rd.next_token_bytes().unwrap_or_default();
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            text.extend_from_slice(&frag);
+        }
+        let l = text.len();
+
+        let mask_count = 1usize << n;
+        let full_mask = mask_count - 1;
+
+        // reachable[mask] at current position p; we scan p increasing and propagate to future positions.
+        // To preserve the spec's "scan positions in increasing order", we store for each position
+        // a bitset of reachable masks.
+        let mut pos_masks: Vec<Vec<u16>> = vec![Vec::new(); l + 1];
+        pos_masks[0].push(0);
+
+        // Also keep a boolean table to avoid pushing duplicates: seen[pos][mask].
+        let mut seen: Vec<u8> = vec![0u8; (l + 1) * mask_count];
+        seen[0 * mask_count + 0] = 1;
+
+        for p in 0..l {
+            // Iterate only masks known reachable at this position.
+            let masks_here = std::mem::take(&mut pos_masks[p]);
+            for s_u16 in masks_here {
+                let s = s_u16 as usize;
+
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let plen = pat.len();
+                    if p + plen > l {
+                        continue;
+                    }
+                    if text[p..p + plen] == pat[..] {
+                        let np = p + plen;
+                        let ns = s | bit;
+                        let idx = np * mask_count + ns;
+                        if seen[idx] == 0 {
+                            seen[idx] = 1;
+                            // n <= 12 so mask fits in u16.
+                            pos_masks[np].push(ns as u16);
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut count = 0usize;
+        for p in 0..=l {
+            if seen[p * mask_count + full_mask] != 0 {
+                count += 1;
+            }
+        }
+
+        if !first_out {
+            out.push('\n');
+        }
+        first_out = false;
+        out.push_str(&count.to_string());
+    }
+
+    print!("{out}");
+}
+
+struct TokenReader<'a> {
+    buf: &'a [u8],
+    i: usize,
+}
+
+impl<'a> TokenReader<'a> {
+    fn new(buf: &'a [u8]) -> Self {
+        Self { buf, i: 0 }
+    }
+
+    #[inline]
+    fn is_sep(b: u8) -> bool {
+        // Whitespace-delimited tokens: treat ASCII <= space as separators.
+        b <= b' '
+    }
+
+    fn skip_seps(&mut self) {
+        while self.i < self.buf.len() && Self::is_sep(self.buf[self.i]) {
+            self.i += 1;
+        }
+    }
+
+    fn next_token_bytes(&mut self) -> Option<Vec<u8>> {
+        self.skip_seps();
+        if self.i >= self.buf.len() {
+            return None;
+        }
+        let start = self.i;
+        while self.i < self.buf.len() && !Self::is_sep(self.buf[self.i]) {
+            self.i += 1;
+        }
+        Some(self.buf[start..self.i].to_vec())
+    }
+
+    fn next_usize(&mut self) -> Option<usize> {
+        let tok = self.next_token_bytes()?;
+        if tok.is_empty() {
+            return None;
+        }
+        // Parse unsigned decimal; if malformed, return None (no explicit error reporting).
+        let mut val: usize = 0;
+        for &c in &tok {
+            if !(b'0'..=b'9').contains(&c) {
+                return None;
+            }
+            val = val.saturating_mul(10).saturating_add((c - b'0') as usize);
+        }
+        Some(val)
+    }
+}

@@ -1,0 +1,105 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as bytes, then parse whitespace-delimited tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read patterns.
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            patterns.push(s.as_bytes().to_vec());
+        }
+
+        // Read and concatenate text fragments, applying the "strip last char if < ' '" rule.
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let frag = it.next().unwrap().as_bytes().to_vec();
+            if frag.is_empty() {
+                continue;
+            }
+            let mut frag2 = frag;
+            if let Some(&last) = frag2.last() {
+                if last < b' ' {
+                    frag2.pop();
+                }
+            }
+            text.extend_from_slice(&frag2);
+        }
+        let l = text.len();
+
+        // DP reachability: reachable[pos][mask] boolean.
+        // Constraints imply n <= 12, so masks fit in 0..2^n.
+        let full_mask: usize = if n == 0 { 0 } else { (1usize << n) - 1 };
+        let mask_count: usize = 1usize << n;
+
+        // Use a flat Vec<u8> for compactness and predictable semantics.
+        // Index: pos * mask_count + mask
+        let mut reachable: Vec<u8> = vec![0u8; (l + 1) * mask_count];
+
+        // Initial state (0, empty) is reachable.
+        reachable[0 * mask_count + 0] = 1;
+
+        // Scan positions increasing P = 0..L-1, propagate forward.
+        for p in 0..l {
+            let base_idx = p * mask_count;
+
+            for s in 0..mask_count {
+                // Special case in spec: (0, empty) treated as reachable.
+                // We already set it, so no extra handling needed.
+                if reachable[base_idx + s] == 0 {
+                    continue;
+                }
+
+                // Try to append each unused pattern k.
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let plen = pat.len();
+                    if p + plen > l {
+                        continue; // placements running past end are not matches
+                    }
+                    // Exact match at position p.
+                    if text[p..p + plen] == pat[..] {
+                        let np = p + plen;
+                        let ns = s | bit;
+                        reachable[np * mask_count + ns] = 1;
+                    }
+                }
+            }
+        }
+
+        // Count positions P where (P, FULL) is reachable.
+        let mut count: usize = 0;
+        for p in 0..=l {
+            if reachable[p * mask_count + full_mask] != 0 {
+                count += 1;
+            }
+        }
+
+        outputs.push(count.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

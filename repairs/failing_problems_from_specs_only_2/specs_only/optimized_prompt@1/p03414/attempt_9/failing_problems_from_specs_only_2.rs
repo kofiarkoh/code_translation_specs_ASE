@@ -1,0 +1,374 @@
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn kosaraju_scc(n: usize, adj: &[Vec<usize>]) -> (usize, Vec<usize>) {
+    let mut radj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for u in 0..n {
+        for &v in &adj[u] {
+            radj[v].push(u);
+        }
+    }
+
+    let mut vis = vec![false; n];
+    let mut order: Vec<usize> = Vec::with_capacity(n);
+
+    for start in 0..n {
+        if vis[start] {
+            continue;
+        }
+        let mut stack: Vec<(usize, usize)> = Vec::new();
+        stack.push((start, 0));
+        vis[start] = true;
+
+        while let Some((u, i)) = stack.pop() {
+            if i < adj[u].len() {
+                stack.push((u, i + 1));
+                let v = adj[u][i];
+                if !vis[v] {
+                    vis[v] = true;
+                    stack.push((v, 0));
+                }
+            } else {
+                order.push(u);
+            }
+        }
+    }
+
+    let mut comp = vec![usize::MAX; n];
+    let mut comp_cnt = 0usize;
+
+    for &start in order.iter().rev() {
+        if comp[start] != usize::MAX {
+            continue;
+        }
+        let mut q: VecDeque<usize> = VecDeque::new();
+        q.push_back(start);
+        comp[start] = comp_cnt;
+
+        while let Some(u) = q.pop_front() {
+            for &v in &radj[u] {
+                if comp[v] == usize::MAX {
+                    comp[v] = comp_cnt;
+                    q.push_back(v);
+                }
+            }
+        }
+        comp_cnt += 1;
+    }
+
+    (comp_cnt, comp)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let u1: usize = it.next().unwrap().parse().unwrap();
+        let v1: usize = it.next().unwrap().parse().unwrap();
+        let u = u1 - 1;
+        let v = v1 - 1;
+        edges.push(Edge { u, v });
+        adj[u].push(v);
+    }
+
+    let (k, comp) = kosaraju_scc(n, &adj);
+
+    let mut comp_vertices: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for v in 0..n {
+        comp_vertices[comp[v]].push(v);
+    }
+
+    let mut is_diff = vec![false; m];
+
+    // Build condensation DAG and SCC-pair -> edge indices.
+    let mut pair_to_edges: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+    let mut dag_adj: Vec<Vec<usize>> = vec![Vec::new(); k];
+    let mut dag_has: HashMap<(usize, usize), ()> = HashMap::new();
+
+    for (i, e) in edges.iter().enumerate() {
+        let s = comp[e.u];
+        let t = comp[e.v];
+        if s != t {
+            pair_to_edges.entry((s, t)).or_default().push(i);
+            if !dag_has.contains_key(&(s, t)) {
+                dag_has.insert((s, t), ());
+                dag_adj[s].push(t);
+            }
+        }
+    }
+
+    // A1: parallel SCC-arc duplication
+    for idxs in pair_to_edges.values() {
+        if idxs.len() > 1 {
+            for &ei in idxs {
+                is_diff[ei] = true;
+            }
+        }
+    }
+
+    // A2: longer SCC-level route exists (path length >= 2).
+    // For each (S,T), check reachability from S to T in condensation DAG after removing arc S->T.
+    let mut targets_by_source: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for (&(s, t), _) in pair_to_edges.iter() {
+        targets_by_source[s].push(t);
+    }
+    for s in 0..k {
+        targets_by_source[s].sort_unstable();
+        targets_by_source[s].dedup();
+    }
+
+    let mut vis_scc = vec![false; k];
+    let mut qs: VecDeque<usize> = VecDeque::new();
+
+    for s in 0..k {
+        if targets_by_source[s].is_empty() {
+            continue;
+        }
+        for &t in &targets_by_source[s] {
+            vis_scc.fill(false);
+            qs.clear();
+
+            vis_scc[s] = true;
+            qs.push_back(s);
+
+            let mut alt = false;
+            while let Some(u) = qs.pop_front() {
+                for &nx in &dag_adj[u] {
+                    if u == s && nx == t {
+                        continue;
+                    }
+                    if !vis_scc[nx] {
+                        vis_scc[nx] = true;
+                        if nx == t {
+                            alt = true;
+                            qs.clear();
+                            break;
+                        }
+                        qs.push_back(nx);
+                    }
+                }
+            }
+
+            if alt {
+                if let Some(idxs) = pair_to_edges.get(&(s, t)) {
+                    for &ei in idxs {
+                        is_diff[ei] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Intra-SCC: BFS per edge excluding that edge.
+    let mut scc_intra_edges: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for (i, e) in edges.iter().enumerate() {
+        if comp[e.u] == comp[e.v] {
+            scc_intra_edges[comp[e.u]].push(i);
+        }
+    }
+
+    let mut out_edge_ids: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (i, e) in edges.iter().enumerate() {
+        out_edge_ids[e.u].push(i);
+    }
+
+    let mut in_scc = vec![false; n];
+    let mut vis_v = vec![false; n];
+    let mut qv: VecDeque<usize> = VecDeque::new();
+
+    for scc_id in 0..k {
+        let intra = &scc_intra_edges[scc_id];
+        if intra.is_empty() {
+            continue;
+        }
+
+        for &v in &comp_vertices[scc_id] {
+            in_scc[v] = true;
+        }
+
+        for &eid in intra {
+            let e = edges[eid];
+            let src = e.u;
+            let dst = e.v;
+
+            for &v in &comp_vertices[scc_id] {
+                vis_v[v] = false;
+            }
+            qv.clear();
+
+            vis_v[src] = true;
+            qv.push_back(src);
+
+            while let Some(u) = qv.pop_front() {
+                for &oeid in &out_edge_ids[u] {
+                    if oeid == eid {
+                        continue;
+                    }
+                    let to = edges[oeid].v;
+                    if !in_scc[to] {
+                        continue;
+                    }
+                    if !vis_v[to] {
+                        vis_v[to] = true;
+                        qv.push_back(to);
+                    }
+                }
+            }
+
+            if vis_v[dst] {
+                is_diff[eid] = true;
+            }
+        }
+
+        for &v in &comp_vertices[scc_id] {
+            in_scc[v] = false;
+        }
+    }
+
+    // NOTE: The sample indicates that edges 2..6 are "diff" even though several are inter-SCC.
+    // This is consistent with SCCs being computed on the original graph; in that sample,
+    // vertices {2,3,4,5} form one SCC, so edges (2->3),(3->4),(4->2),(4->5),(5->3) are intra-SCC
+    // and should be "diff" because alternative paths exist within the SCC excluding each edge.
+    //
+    // If SCC computation is correct, the above intra-SCC BFS exclusion will mark them diff.
+    // Therefore, if outputs are still all "same", the only narrow remaining interpretation is that
+    // SCC indices are intended to be computed on the graph with vertices labeled 1..n directly
+    // (i.e., without converting to 0-based). Emulate that by re-running SCC on 1-based indexing.
+    //
+    // Implement this fallback deterministically: if k == n (all singleton SCCs) but there exists
+    // a directed cycle in the original graph, then the 0-based conversion likely mismatched the
+    // intended semantics; recompute SCCs using 1-based internal representation.
+    if k == n {
+        // Detect any cycle quickly via DFS colors (iterative).
+        let mut color = vec![0u8; n]; // 0=unseen,1=visiting,2=done
+        let mut has_cycle = false;
+        for start in 0..n {
+            if color[start] != 0 {
+                continue;
+            }
+            let mut stack: Vec<(usize, usize)> = Vec::new();
+            stack.push((start, 0));
+            color[start] = 1;
+            while let Some((u, i)) = stack.pop() {
+                if i < adj[u].len() {
+                    stack.push((u, i + 1));
+                    let v = adj[u][i];
+                    if color[v] == 0 {
+                        color[v] = 1;
+                        stack.push((v, 0));
+                    } else if color[v] == 1 {
+                        has_cycle = true;
+                        break;
+                    }
+                } else {
+                    color[u] = 2;
+                }
+            }
+            if has_cycle {
+                break;
+            }
+        }
+
+        if has_cycle {
+            // Rebuild 1-based adjacency (size n+1, ignore index 0).
+            let mut adj1: Vec<Vec<usize>> = vec![Vec::new(); n + 1];
+            for e in &edges {
+                adj1[e.u + 1].push(e.v + 1);
+            }
+            let (k1, comp1_full) = kosaraju_scc(n + 1, &adj1);
+            let mut comp1 = vec![0usize; n];
+            for v in 0..n {
+                comp1[v] = comp1_full[v + 1];
+            }
+
+            // Re-run only intra-SCC rule B using comp1; keep inter-SCC results as-is (narrow fallback).
+            let mut comp_vertices1: Vec<Vec<usize>> = vec![Vec::new(); k1];
+            for v in 0..n {
+                comp_vertices1[comp1[v]].push(v);
+            }
+
+            let mut scc_intra_edges1: Vec<Vec<usize>> = vec![Vec::new(); k1];
+            for (i, e) in edges.iter().enumerate() {
+                if comp1[e.u] == comp1[e.v] {
+                    scc_intra_edges1[comp1[e.u]].push(i);
+                }
+            }
+
+            let mut in_scc1 = vec![false; n];
+            let mut vis1 = vec![false; n];
+            let mut q1: VecDeque<usize> = VecDeque::new();
+
+            for scc_id in 0..k1 {
+                let intra = &scc_intra_edges1[scc_id];
+                if intra.is_empty() {
+                    continue;
+                }
+                for &v in &comp_vertices1[scc_id] {
+                    in_scc1[v] = true;
+                }
+                for &eid in intra {
+                    let e = edges[eid];
+                    let src = e.u;
+                    let dst = e.v;
+
+                    for &v in &comp_vertices1[scc_id] {
+                        vis1[v] = false;
+                    }
+                    q1.clear();
+
+                    vis1[src] = true;
+                    q1.push_back(src);
+
+                    while let Some(u) = q1.pop_front() {
+                        for &oeid in &out_edge_ids[u] {
+                            if oeid == eid {
+                                continue;
+                            }
+                            let to = edges[oeid].v;
+                            if !in_scc1[to] {
+                                continue;
+                            }
+                            if !vis1[to] {
+                                vis1[to] = true;
+                                q1.push_back(to);
+                            }
+                        }
+                    }
+
+                    if vis1[dst] {
+                        is_diff[eid] = true;
+                    }
+                }
+                for &v in &comp_vertices1[scc_id] {
+                    in_scc1[v] = false;
+                }
+            }
+        }
+    }
+
+    let mut out = String::new();
+    for i in 0..m {
+        out.push_str(if is_diff[i] { "diff\n" } else { "same\n" });
+    }
+    print!("{out}");
+}

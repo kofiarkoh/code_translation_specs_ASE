@@ -1,0 +1,86 @@
+use std::io::{self, Read};
+
+const PGMAX: usize = 1001; // pages 0..=1000
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    pg: [u8; PGMAX], // present iff == 1
+    tm: i32,         // incremented once per input record for this word
+}
+
+fn main() {
+    // Parse stdin as repeated scanf("%s %d") pairs.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut entries: Vec<Entry> = Vec::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s.to_string(),
+            None => break,
+        };
+        let p_tok = match it.next() {
+            Some(s) => s,
+            None => break,
+        };
+        let p_i32 = match p_tok.parse::<i32>() {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        // Spec says out-of-range is UB in C; here we avoid panics and skip.
+        let p = match usize::try_from(p_i32).ok().filter(|&u| u < PGMAX) {
+            Some(u) => u,
+            None => continue,
+        };
+
+        if let Some(e) = entries.iter_mut().find(|e| e.word == w) {
+            e.pg[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+        } else {
+            let mut e = Entry {
+                word: w,
+                pg: [0u8; PGMAX],
+                tm: 0,
+            };
+            e.pg[p] = 1;
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+        }
+    }
+
+    // Sort ascending lexicographic order (strcmp-like on bytes).
+    entries.sort_by(|a, b| a.word.as_bytes().cmp(b.word.as_bytes()));
+
+    let mut out = String::new();
+
+    for e in &entries {
+        // Spec: "One line containing the word." Then page numbers follow.
+        // In the original C style, the word line is separate.
+        out.push_str(&e.word);
+        out.push('\n');
+
+        // Scan pages and print those with pg[j] == 1.
+        // Stop when exactly tm such indices have been printed; otherwise may end
+        // without printing a terminating newline for the page list.
+        let mut printed: i32 = 0;
+        for j in 0..PGMAX {
+            if e.pg[j] == 1 {
+                printed = printed.wrapping_add(1);
+                if printed == e.tm {
+                    out.push_str(&j.to_string());
+                    out.push('\n');
+                    break;
+                } else {
+                    out.push_str(&j.to_string());
+                    out.push(' ');
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}

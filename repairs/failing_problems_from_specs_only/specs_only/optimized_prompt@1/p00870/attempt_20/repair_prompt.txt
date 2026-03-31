@@ -1,0 +1,163 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 20
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut data = Vec::new();
+    io::stdin().read_to_end(&mut data).unwrap();
+    let mut sc = Scanner::new(&data);
+
+    let mut out_lines: Vec<String> = Vec::new();
+
+    loop {
+        let n = match sc.next_usize() {
+            None => break,
+            Some(v) => v,
+        };
+        let m = match sc.next_usize() {
+            None => break,
+            Some(v) => v,
+        };
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            patterns.push(sc.next_token().unwrap_or_default());
+        }
+
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            // Read token and also observe the delimiter that ended it.
+            let (mut frag, delim) = sc.next_token_with_delim().unwrap_or((Vec::new(), None));
+
+            // Spec: "if its last character has ASCII code less than space (' '),
+            // that final character is removed before concatenation."
+            //
+            // In a C implementation, a trailing '\r' might be present in the buffer even if
+            // tokenization was line-based. We emulate the intent by stripping:
+            //   - a trailing control char already in the token, and
+            //   - if the delimiter that ended the token is a control char (< ' '), treat it
+            //     as if it had been part of the token and then removed (net effect: no change).
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            } else if let Some(d) = delim {
+                let _ = d;
+            }
+
+            text.extend_from_slice(&frag);
+        }
+
+        let l = text.len();
+        let mask_count = 1usize << n;
+        let full_mask = if n == 0 { 0 } else { mask_count - 1 };
+
+        let mut dp = vec![false; (l + 1) * mask_count];
+        dp[0] = true;
+
+        for p in 0..l {
+            let base = p * mask_count;
+            for s in 0..mask_count {
+                if !dp[base + s] {
+                    continue;
+                }
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let lenk = pat.len();
+                    if p + lenk > l {
+                        continue;
+                    }
+                    if &text[p..p + lenk] == &pat[..] {
+                        dp[(p + lenk) * mask_count + (s | bit)] = true;
+                    }
+                }
+            }
+        }
+
+        let mut count = 0usize;
+        for p in 0..=l {
+            if dp[p * mask_count + full_mask] {
+                count += 1;
+            }
+        }
+
+        out_lines.push(count.to_string());
+    }
+
+    print!("{}", out_lines.join("\n"));
+}
+
+struct Scanner<'a> {
+    data: &'a [u8],
+    i: usize,
+}
+
+impl<'a> Scanner<'a> {
+    fn new(data: &'a [u8]) -> Self {
+        Self { data, i: 0 }
+    }
+
+    fn is_ws(b: u8) -> bool {
+        // ASCII whitespace/control up to space, matching typical C tokenization.
+        b <= b' '
+    }
+
+    fn skip_ws(&mut self) {
+        while self.i < self.data.len() && Self::is_ws(self.data[self.i]) {
+            self.i += 1;
+        }
+    }
+
+    fn next_token(&mut self) -> Option<Vec<u8>> {
+        self.next_token_with_delim().map(|(t, _)| t)
+    }
+
+    fn next_token_with_delim(&mut self) -> Option<(Vec<u8>, Option<u8>)> {
+        self.skip_ws();
+        if self.i >= self.data.len() {
+            return None;
+        }
+        let start = self.i;
+        while self.i < self.data.len() && !Self::is_ws(self.data[self.i]) {
+            self.i += 1;
+        }
+        let tok = self.data[start..self.i].to_vec();
+        let delim = if self.i < self.data.len() {
+            Some(self.data[self.i])
+        } else {
+            None
+        };
+        // Consume exactly one delimiter if present; subsequent calls will skip remaining ws.
+        if self.i < self.data.len() {
+            self.i += 1;
+        }
+        Some((tok, delim))
+    }
+
+    fn next_usize(&mut self) -> Option<usize> {
+        let tok = self.next_token()?;
+        let s = std::str::from_utf8(&tok).ok()?;
+        s.parse::<usize>().ok()
+    }
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

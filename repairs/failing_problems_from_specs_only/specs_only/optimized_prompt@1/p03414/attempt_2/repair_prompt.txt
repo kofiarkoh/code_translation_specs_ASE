@@ -1,0 +1,327 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03414/p03414_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p03414/p03414_sample1_output.txt
+Input:
+5 6
+1 2
+2 3
+3 4
+4 2
+4 5
+5 3
+Expected:
+same
+diff
+diff
+diff
+diff
+diff
+Actual:
+same
+same
+same
+same
+same
+same
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::cmp::min;
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn tarjan_scc(n: usize, adj: &[Vec<usize>]) -> (usize, Vec<usize>) {
+    let mut index: i32 = 0;
+    let mut indices = vec![-1i32; n];
+    let mut lowlink = vec![0i32; n];
+    let mut onstack = vec![false; n];
+    let mut stack: Vec<usize> = Vec::new();
+
+    let mut comp_id = vec![usize::MAX; n];
+    let mut comp_cnt: usize = 0;
+
+    fn strongconnect(
+        v: usize,
+        index: &mut i32,
+        indices: &mut [i32],
+        lowlink: &mut [i32],
+        stack: &mut Vec<usize>,
+        onstack: &mut [bool],
+        comp_id: &mut [usize],
+        comp_cnt: &mut usize,
+        adj: &[Vec<usize>],
+    ) {
+        indices[v] = *index;
+        lowlink[v] = *index;
+        *index += 1;
+        stack.push(v);
+        onstack[v] = true;
+
+        for &w in &adj[v] {
+            if indices[w] == -1 {
+                strongconnect(
+                    w, index, indices, lowlink, stack, onstack, comp_id, comp_cnt, adj,
+                );
+                lowlink[v] = min(lowlink[v], lowlink[w]);
+            } else if onstack[w] {
+                lowlink[v] = min(lowlink[v], indices[w]);
+            }
+        }
+
+        if lowlink[v] == indices[v] {
+            loop {
+                let w = stack.pop().unwrap();
+                onstack[w] = false;
+                comp_id[w] = *comp_cnt;
+                if w == v {
+                    break;
+                }
+            }
+            *comp_cnt += 1;
+        }
+    }
+
+    for v in 0..n {
+        if indices[v] == -1 {
+            strongconnect(
+                v,
+                &mut index,
+                &mut indices,
+                &mut lowlink,
+                &mut stack,
+                &mut onstack,
+                &mut comp_id,
+                &mut comp_cnt,
+                adj,
+            );
+        }
+    }
+
+    (comp_cnt, comp_id)
+}
+
+fn main() {
+    // Read all input
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let u1: usize = it.next().unwrap().parse().unwrap();
+        let v1: usize = it.next().unwrap().parse().unwrap();
+        let u = u1 - 1;
+        let v = v1 - 1;
+        edges.push(Edge { u, v });
+        adj[u].push(v);
+    }
+
+    // SCC decomposition
+    let (scc_cnt, scc_of) = tarjan_scc(n, &adj);
+
+    // Prepare output labels; default "same"
+    let mut is_diff = vec![false; m];
+
+    // Group vertices by SCC for intra-SCC processing
+    let mut verts_in_scc: Vec<Vec<usize>> = vec![Vec::new(); scc_cnt];
+    for v in 0..n {
+        verts_in_scc[scc_of[v]].push(v);
+    }
+
+    // Build intra-SCC adjacency with edge indices (to exclude the tested edge)
+    let mut intra_adj: Vec<Vec<Vec<(usize, usize)>>> = vec![Vec::new(); scc_cnt];
+    for s in 0..scc_cnt {
+        intra_adj[s] = vec![Vec::new(); n];
+    }
+    for (i, e) in edges.iter().enumerate() {
+        let su = scc_of[e.u];
+        let sv = scc_of[e.v];
+        if su == sv {
+            intra_adj[su][e.u].push((e.v, i));
+        }
+    }
+
+    // Intra-SCC classification:
+    // edge u->v is diff if there exists a path u=>v within SCC not using this edge.
+    // We implement this by BFS from u within SCC while skipping the tested edge index.
+    // Complexity can be high in worst case; constraints are small enough for n<=1000.
+    for (i, e) in edges.iter().enumerate() {
+        let s = scc_of[e.u];
+        if s != scc_of[e.v] {
+            continue;
+        }
+
+        // BFS within SCC s from e.u to e.v, skipping edge i
+        let mut q = VecDeque::new();
+        let mut vis = vec![false; n];
+        vis[e.u] = true;
+        q.push_back(e.u);
+
+        let mut found = false;
+        while let Some(x) = q.pop_front() {
+            if x == e.v {
+                found = true;
+                break;
+            }
+            for &(to, eid) in &intra_adj[s][x] {
+                if eid == i {
+                    continue;
+                }
+                if !vis[to] {
+                    vis[to] = true;
+                    q.push_back(to);
+                }
+            }
+        }
+
+        if found {
+            is_diff[i] = true;
+        }
+    }
+
+    // Inter-SCC processing:
+    // 1) mark all edges in SCC-pair (S,T) as diff if multiple edges induce same arc.
+    // 2) mark edges inducing S->T as diff if there exists a path S=>T of length >=2 in condensation DAG.
+    //
+    // Build counts and edge lists per ordered SCC pair.
+    let mut pair_to_edges: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+    for (i, e) in edges.iter().enumerate() {
+        let su = scc_of[e.u];
+        let sv = scc_of[e.v];
+        if su != sv {
+            pair_to_edges.entry((su, sv)).or_default().push(i);
+        }
+    }
+
+    // Condition (1): parallel SCC-arc duplication
+    for (_k, idxs) in pair_to_edges.iter() {
+        if idxs.len() > 1 {
+            for &eid in idxs {
+                is_diff[eid] = true;
+            }
+        }
+    }
+
+    // Build condensation adjacency (unique arcs) and indegrees for topo order
+    let mut cond_adj: Vec<Vec<usize>> = vec![Vec::new(); scc_cnt];
+    let mut indeg = vec![0usize; scc_cnt];
+    {
+        let mut seen_arc: HashMap<(usize, usize), ()> = HashMap::new();
+        for &(su, sv) in pair_to_edges.keys() {
+            if seen_arc.insert((su, sv), ()).is_none() {
+                cond_adj[su].push(sv);
+                indeg[sv] += 1;
+            }
+        }
+    }
+
+    // Topological order of condensation DAG (it is a DAG by definition)
+    let mut dq = VecDeque::new();
+    for i in 0..scc_cnt {
+        if indeg[i] == 0 {
+            dq.push_back(i);
+        }
+    }
+    let mut topo: Vec<usize> = Vec::with_capacity(scc_cnt);
+    while let Some(x) = dq.pop_front() {
+        topo.push(x);
+        for &y in &cond_adj[x] {
+            indeg[y] -= 1;
+            if indeg[y] == 0 {
+                dq.push_back(y);
+            }
+        }
+    }
+    // If malformed (shouldn't happen), topo may be shorter; we proceed with what we have.
+
+    // Compute reachability in condensation DAG using bitsets.
+    // reach[s] contains all nodes reachable from s via >=1 arcs.
+    let words = (scc_cnt + 63) / 64;
+    let mut reach: Vec<Vec<u64>> = vec![vec![0u64; words]; scc_cnt];
+
+    // Process in reverse topological order: reach[s] = union(reach[child]) U {child}
+    for &s in topo.iter().rev() {
+        for &t in &cond_adj[s] {
+            // add t
+            reach[s][t / 64] |= 1u64 << (t % 64);
+            // union reach[t]
+            for w in 0..words {
+                reach[s][w] |= reach[t][w];
+            }
+        }
+    }
+
+    // Condition (2): existence of a longer SCC-level route (path length >= 2)
+    // For each arc S->T, check if there exists some intermediate X such that S->X and X=>T.
+    // Equivalent: (reach[S] without direct T) intersects (pred-set of T)? But easiest:
+    // check if there exists neighbor X of S with X != T and T is reachable from X (>=1).
+    for (&(s, t), idxs) in pair_to_edges.iter() {
+        let mut has_longer = false;
+        for &x in &cond_adj[s] {
+            if x == t {
+                continue;
+            }
+            let bit = (reach[x][t / 64] >> (t % 64)) & 1;
+            if bit == 1 {
+                has_longer = true;
+                break;
+            }
+        }
+        if has_longer {
+            for &eid in idxs {
+                is_diff[eid] = true;
+            }
+        }
+    }
+
+    // Output in input order
+    let mut out = String::new();
+    for i in 0..m {
+        if is_diff[i] {
+            out.push_str("diff\n");
+        } else {
+            out.push_str("same\n");
+        }
+    }
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

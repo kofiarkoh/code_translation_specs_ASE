@@ -1,0 +1,98 @@
+```rust
+use std::io::{self, Read};
+
+const MOD: u64 = 1_000_000_007;
+const LIM: usize = 1 << 20;
+
+fn mod_add(a: u64, b: u64) -> u64 {
+    let s = a + b;
+    if s >= MOD { s - MOD } else { s }
+}
+fn mod_sub(a: u64, b: u64) -> u64 {
+    if a >= b { a - b } else { a + MOD - b }
+}
+fn mod_mul(a: u64, b: u64) -> u64 {
+    (a * b) % MOD
+}
+fn mod_pow(mut a: u64, mut e: u64) -> u64 {
+    let mut r = 1u64;
+    while e > 0 {
+        if (e & 1) != 0 {
+            r = mod_mul(r, a);
+        }
+        a = mod_mul(a, a);
+        e >>= 1;
+    }
+    r
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = it.next().unwrap().parse().unwrap();
+
+    // Prefix xor S[0]=0.
+    let mut s: usize = 0;
+
+    // Z(i): number of k in [1..i] with S[k]==0.
+    let mut z: u64 = 0;
+
+    // last[v] = most recent index i where S[i]==v, or 0 meaning "none yet".
+    // acc[v]  = accumulated value associated with xor state v (mod MOD).
+    let mut last = vec![0usize; LIM];
+    let mut acc = vec![0u64; LIM];
+
+    // Maintain sum of acc[v] over v!=0 (mod MOD).
+    let mut sum_nonzero: u64 = 0;
+
+    // z_at[i] = Z(i), with z_at[0]=0.
+    let mut z_at = vec![0u64; n + 1];
+
+    for i in 1..=n {
+        let x: i64 = it.next().unwrap().parse().unwrap();
+        // Two's-complement bit pattern; precondition ensures prefix xor stays within 20 bits.
+        s ^= x as usize;
+
+        if s == 0 {
+            z += 1;
+        }
+        z_at[i] = z;
+
+        let prev = last[s];
+        let z_prev = z_at[prev]; // z_at[0]=0 handles "none yet".
+
+        // Contribution uses the count of zero-xor prefixes since the previous occurrence.
+        // To match the spec's finalization term 2^(Z(N)-1) when S[N]==0, we use:
+        //   contribution = 2^(Z(i)-Z(prev))  if Z(i)>Z(prev), else 0.
+        let mut contrib = 0u64;
+        if z > z_prev {
+            contrib = mod_pow(2, (z - z_prev) as u64);
+        }
+
+        if contrib != 0 {
+            let old = acc[s];
+            let newv = mod_add(old, contrib);
+            acc[s] = newv;
+
+            if s != 0 {
+                sum_nonzero = mod_add(sum_nonzero, mod_sub(newv, old));
+            }
+        }
+
+        last[s] = i;
+    }
+
+    let ans = if s != 0 {
+        acc[s] % MOD
+    } else {
+        // Spec: Ans = 2^(Z(N)-1) + sum of final accumulated totals over all nonzero xor states.
+        // Spec assumes Z(N) >= 1; otherwise behavior undefined.
+        let pow_term = mod_pow(2, z - 1);
+        mod_add(pow_term, sum_nonzero)
+    };
+
+    print!("{}", ans);
+}
+```

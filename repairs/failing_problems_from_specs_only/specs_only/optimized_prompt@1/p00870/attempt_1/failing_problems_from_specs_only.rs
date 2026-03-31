@@ -1,0 +1,95 @@
+use std::io::{self, Read};
+
+fn main() {
+    // Read entire stdin as whitespace-delimited tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: usize = n_opt.unwrap().parse().unwrap();
+        let m: usize = it.next().unwrap().parse().unwrap();
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        // Read patterns.
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let s = it.next().unwrap();
+            patterns.push(s.as_bytes().to_vec());
+        }
+
+        // Read and concatenate text fragments, applying the "strip last char if < ' '" rule.
+        let mut text: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let frag = it.next().unwrap().as_bytes().to_vec();
+            if frag.is_empty() {
+                continue;
+            }
+            let mut frag2 = frag;
+            if let Some(&last) = frag2.last() {
+                if last < b' ' {
+                    frag2.pop();
+                }
+            }
+            text.extend_from_slice(&frag2);
+        }
+        let l = text.len();
+
+        // DP reachability: dp[pos][mask] boolean.
+        // Constraints imply n <= 12, so masks fit in 0..(1<<n).
+        let full_mask: usize = if n == 0 { 0 } else { (1usize << n) - 1 };
+        let mask_count = 1usize << n;
+
+        // dp is indexed as dp[pos * mask_count + mask]
+        let mut dp = vec![false; (l + 1) * mask_count];
+        dp[0 * mask_count + 0] = true;
+
+        // Scan positions increasing, as specified.
+        for p in 0..l {
+            for s in 0..mask_count {
+                if !dp[p * mask_count + s] {
+                    continue;
+                }
+                // Try to append any unused pattern.
+                for k in 0..n {
+                    let bit = 1usize << k;
+                    if (s & bit) != 0 {
+                        continue;
+                    }
+                    let pat = &patterns[k];
+                    let lenk = pat.len();
+                    if p + lenk > l {
+                        continue;
+                    }
+                    // Exact match at position p.
+                    if text[p..p + lenk] == pat[..] {
+                        let np = p + lenk;
+                        let ns = s | bit;
+                        dp[np * mask_count + ns] = true;
+                    }
+                }
+            }
+        }
+
+        // Count positions P where (P, FULL) reachable.
+        let mut count: usize = 0;
+        for p in 0..=l {
+            if dp[p * mask_count + full_mask] {
+                count += 1;
+            }
+        }
+
+        outputs.push(count.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}

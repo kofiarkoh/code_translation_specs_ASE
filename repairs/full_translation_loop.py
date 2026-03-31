@@ -29,17 +29,17 @@ except ModuleNotFoundError:
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "translation_with_validated_specs_using_GPT_4O_mini"
+PIPELINE_NAME = "failing_problems_from_specs_only_2"
 DATASET_NAME = "optimized_prompt@1"
-INITIAL_TRANSLATION_PROFILES = ["specs_only", "code_only", "code_and_spec"]
-SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "validated_specs_WITH_GPT_gpt-4o-mini"
-CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "final_problems"
+INITIAL_TRANSLATION_PROFILES = ["specs_only"] # "code_only", "code_and_spec"]
+SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "validated_specs_WITH_GPT_gpt-5.2"
+CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "non_passing_specs_only_batch"
 MAX_PROBLEMS_TO_RUN: int | None = None
-MAX_REPAIR_ATTEMPTS = 3
+MAX_REPAIR_ATTEMPTS = 40
 PARALLEL_PROBLEMS = 10
 REDO_ONLY_API_ERRORS = False
-MODEL = "gpt-4o-mini"
- #"gpt-4o-mini"
+MODEL = "gpt-5.2"
+ #"gpt-4o-mini" 
 API_TIMEOUT_SECONDS = 180
 USE_OPENAI_API = True
 
@@ -443,7 +443,7 @@ def load_jobs(profile_name: str) -> list[RepairJob]:
             return []
 
     needs_spec = profile.needs_spec
-    root_for_iteration = SPECS_ROOT if needs_spec else CODE_ROOT
+    root_for_iteration = CODE_ROOT #SPECS_ROOT if needs_spec else CODE_ROOT
     for problem_dir in sorted(root_for_iteration.iterdir()):
         if not problem_dir.is_dir():
             continue

@@ -1,0 +1,66 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Reads three C `int` values `n`, `m`, and `r` from standard input using `scanf` with the format string `"%d%d%d"`. It computes an adjusted value `r' = r − n*m` using `int` arithmetic. The program then outputs, as a decimal integer followed by a newline:
+- `0` if `r' < 0`,
+- `1` if `r' == 0`,
+- otherwise the exact binomial coefficient  
+  \[
+  \binom{n + r' - 1}{n - 1}
+  \]
+  (equivalently \(\binom{n + r' - 1}{r'}\)), computed via big-integer arithmetic.
+
+2. Inputs  
+- Three integers provided in text form on standard input, parsed as C `int` via `scanf("%d%d%d", ...)`.
+
+3. Outputs  
+- One line containing a single decimal integer (`0`, `1`, or a positive binomial coefficient as above), followed by a newline.
+
+4. Preconditions / Assumptions  
+- Exactly three values must be successfully read by `scanf`; otherwise behavior is unspecified.  
+- The computation of `r' = r − n*m` is performed in C `int` arithmetic; if `n*m` or the subtraction overflows the range of `int`, behavior is undefined (per C rules).  
+- For the binomial-coefficient branch (`r' > 0`) to execute meaningfully and safely:
+  - `n` is assumed to be at least `1` (so `n−1` is non-negative and the combinatorial formula matches the intended loop bounds).
+  - The resulting value must fit within the program’s fixed-capacity big-integer storage; otherwise the produced value may be incorrect (overflow/truncation within the fixed representation).
+
+5. Postconditions / Detailed Behavior  
+Let `r' = r − n*m` (as computed in `int` arithmetic).
+- If `r' < 0`: prints `0` and a newline.  
+- If `r' == 0`: prints `1` and a newline.  
+- If `r' > 0`: prints the exact integer value of \(\binom{n + r' - 1}{n - 1}\) and a newline, provided it fits in the internal big-integer capacity and the preconditions hold.
+
+6. Computation Notes (Semantics, not implementation requirements)  
+- In the `r' > 0` case, the program computes the binomial coefficient by multiplying a sequence of consecutive integers and then dividing by `1..k`, where `k` is the smaller of `(n−1)` and `r'`, ensuring the intended result is an integer at the end.  
+- The printed number is the exact value represented internally at print time (no rounding).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages or recovery for malformed/missing input.  
+- If `n <= 0` while `r' > 0`, or if `int` overflow occurs in forming `r'`, or if the result exceeds the fixed big-integer capacity, the program’s behavior/output is unspecified.
+```

@@ -1,0 +1,253 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Debug)]
+struct Node {
+    parent: usize,        // 0 means unset during construction
+    children: Vec<usize>, // in attachment order
+    m: i64,               // mass
+    mx: i64,              // horizontal moment (sum of column indices)
+    xl: i32,              // support interval min (inclusive)
+    xr: i32,              // support interval max (inclusive)
+    processed: bool,      // aggregated upward already
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(w_tok) = it.next() else { break };
+        let w: i32 = w_tok.parse().unwrap();
+        let h: i32 = it.next().unwrap().parse().unwrap();
+        if w <= 0 {
+            break;
+        }
+
+        let wu = w as usize;
+        let hu = h as usize;
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(hu);
+        for _ in 0..hu {
+            let s = it.next().unwrap_or("");
+            let bytes = s.as_bytes();
+            let mut row = vec![b'.'; wu];
+            for c in 0..wu {
+                row[c] = bytes[c];
+            }
+            grid.push(row);
+        }
+
+        // Component formation: 4-neighborhood, same character, excluding '.'
+        let mut comp = vec![vec![-1i32; wu]; hu];
+        let mut comp_m: Vec<i64> = Vec::new();
+        let mut comp_mx: Vec<i64> = Vec::new();
+
+        let dirs = [(1i32, 0i32), (-1, 0), (0, 1), (0, -1)];
+        let mut cid: i32 = 0;
+
+        for r in 0..hu {
+            for c in 0..wu {
+                if grid[r][c] == b'.' || comp[r][c] != -1 {
+                    continue;
+                }
+                let ch = grid[r][c];
+                let this_id = cid;
+                cid += 1;
+
+                comp_m.push(0);
+                comp_mx.push(0);
+
+                let mut q = VecDeque::new();
+                q.push_back((r, c));
+                comp[r][c] = this_id;
+
+                while let Some((rr, cc)) = q.pop_front() {
+                    comp_m[this_id as usize] += 1;
+                    comp_mx[this_id as usize] += cc as i64;
+
+                    for (dr, dc) in dirs {
+                        let nr = rr as i32 + dr;
+                        let nc = cc as i32 + dc;
+                        if nr < 0 || nr >= h || nc < 0 || nc >= w {
+                            continue;
+                        }
+                        let nru = nr as usize;
+                        let ncu = nc as usize;
+                        if comp[nru][ncu] != -1 {
+                            continue;
+                        }
+                        if grid[nru][ncu] != ch {
+                            continue;
+                        }
+                        comp[nru][ncu] = this_id;
+                        q.push_back((nru, ncu));
+                    }
+                }
+            }
+        }
+
+        // Build scan-order node IDs and support structure.
+        let ncomp = cid as usize;
+        let mut comp_to_node = vec![0usize; ncomp];
+
+        // nodes[0] unused sentinel for 1-based indexing.
+        let mut nodes: Vec<Node> = Vec::with_capacity(ncomp + 1);
+        nodes.push(Node {
+            parent: 0,
+            children: Vec::new(),
+            m: 0,
+            mx: 0,
+            xl: 0,
+            xr: -1,
+            processed: false,
+        });
+
+        // Helper to create node on first encounter in scan.
+        let mut ensure_node =
+            |comp_id: usize, nodes: &mut Vec<Node>, comp_to_node: &mut [usize]| -> usize {
+                if comp_to_node[comp_id] != 0 {
+                    return comp_to_node[comp_id];
+                }
+                let nid = nodes.len(); // 1-based id
+                comp_to_node[comp_id] = nid;
+                nodes.push(Node {
+                    parent: 0,
+                    children: Vec::new(),
+                    m: comp_m[comp_id],
+                    mx: comp_mx[comp_id],
+                    xl: i32::MAX,
+                    xr: i32::MIN,
+                    processed: false,
+                });
+                nid
+            };
+
+        // Bottom-up scan: rows h-1..0, cols 0..w-1
+        for rr in (0..hu).rev() {
+            for cc in 0..wu {
+                if grid[rr][cc] == b'.' {
+                    continue;
+                }
+                let comp_id = comp[rr][cc] as usize;
+                let nid = ensure_node(comp_id, &mut nodes, &mut comp_to_node);
+
+                // Support footprint update:
+                // Spec: bottom row contributes; otherwise contributes only if below is occupied.
+                let supported = if rr + 1 >= hu {
+                    true
+                } else {
+                    grid[rr + 1][cc] != b'.'
+                };
+                if supported {
+                    let col = cc as i32;
+                    if col < nodes[nid].xl {
+                        nodes[nid].xl = col;
+                    }
+                    if col > nodes[nid].xr {
+                        nodes[nid].xr = col;
+                    }
+                }
+
+                // Parent/child relation via vertical adjacency, first-parent-wins.
+                if rr + 1 < hu && grid[rr + 1][cc] != b'.' {
+                    let below_comp = comp[rr + 1][cc] as usize;
+                    let pid = ensure_node(below_comp, &mut nodes, &mut comp_to_node);
+
+                    if nodes[nid].parent == 0 {
+                        nodes[nid].parent = pid;
+                        nodes[pid].children.push(nid);
+                    }
+                }
+            }
+        }
+
+        // Root selection: node ID 1 is forced to be its own parent.
+        if nodes.len() > 1 {
+            nodes[1].parent = 1;
+        }
+
+        // Iterative post-order DFS.
+        // Stability check uses:
+        //   x = 0.5 + (mx / m) with real division
+        // unstable if x <= xl or x >= xr + 1.
+        //
+        // Use exact integer arithmetic to avoid floating issues:
+        //   x = 0.5 + mx/m  => 2x = 1 + 2*mx/m
+        // Compare x <= xl and x >= xr+1 by multiplying by m:
+        //   x <= xl    <=>  m + 2*mx <= 2*xl*m
+        //   x >= xr+1  <=>  m + 2*mx >= 2*(xr+1)*m
+        //
+        // This matches the spec's real-division semantics exactly for rational values.
+        let stable = if nodes.len() <= 1 {
+            false
+        } else {
+            let root = 1usize;
+            let mut stack: Vec<(usize, u8)> = Vec::new(); // (node, state) state: 0 enter, 1 exit
+            stack.push((root, 0));
+
+            let mut color = vec![0u8; nodes.len()]; // 0=unseen,1=visiting,2=done
+            let mut ok = true;
+
+            while let Some((u, st)) = stack.pop() {
+                if !ok {
+                    break;
+                }
+                if st == 0 {
+                    if color[u] == 2 {
+                        continue;
+                    }
+                    if color[u] == 1 {
+                        ok = false;
+                        break;
+                    }
+                    color[u] = 1;
+                    stack.push((u, 1));
+                    for &v in nodes[u].children.iter().rev() {
+                        stack.push((v, 0));
+                    }
+                } else {
+                    color[u] = 2;
+
+                    let m = nodes[u].m;
+                    let mx = nodes[u].mx;
+                    let xl = nodes[u].xl as i64;
+                    let xr = nodes[u].xr as i64;
+
+                    let lhs = m + 2 * mx;
+                    let lo = 2 * xl * m;
+                    let hi = 2 * (xr + 1) * m;
+
+                    if lhs <= lo || lhs >= hi {
+                        ok = false;
+                        break;
+                    }
+
+                    if !nodes[u].processed {
+                        nodes[u].processed = true;
+                        let p = nodes[u].parent;
+                        if p != 0 && p != u {
+                            let um = nodes[u].m;
+                            let umx = nodes[u].mx;
+                            nodes[p].m += um;
+                            nodes[p].mx += umx;
+                        }
+                    }
+                }
+            }
+
+            ok
+        };
+
+        if stable {
+            out.push_str("STABLE\n");
+        } else {
+            out.push_str("UNSTABLE\n");
+        }
+    }
+
+    print!("{out}");
+}

@@ -1,0 +1,135 @@
+```rust
+use std::io::{self, Read};
+
+fn main() {
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut p: usize = 0;
+
+    // Read non-negative decimal integer K as digit characters.
+    // Stops at first non-digit and consumes it (if present).
+    let mut k: usize = 0;
+    while p < input.len() && input[p].is_ascii_digit() {
+        k = k
+            .wrapping_mul(10)
+            .wrapping_add((input[p] - b'0') as usize);
+        p += 1;
+    }
+    if p < input.len() {
+        p += 1; // consume first non-digit
+    }
+
+    // N = K - 1 (precondition: K >= 1)
+    let n: usize = k.wrapping_sub(1);
+
+    // Read adjacency: exactly 2*N*N bytes, for each (i,j):
+    // read byte c => edge from left j to right i present iff (c & 1) != 0
+    // then read and discard one byte.
+    //
+    // Store edges in the order they are encountered for each left vertex.
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for i in 0..n {
+        for j in 0..n {
+            let c = input[p];
+            p += 1;
+            if (c & 1) != 0 {
+                adj[j].push(i);
+            }
+            p += 1; // discard separator byte
+        }
+    }
+
+    // Kuhn-style augmenting path for bipartite matching.
+    // match_r[r] = Some(l) means right r matched to left l.
+    fn try_augment(
+        v: usize,
+        adj: &Vec<Vec<usize>>,
+        seen_l: &mut [bool],
+        seen_r: &mut [bool],
+        match_r: &mut [Option<usize>],
+    ) -> bool {
+        if seen_l[v] {
+            return false;
+        }
+        seen_l[v] = true;
+
+        for &r in &adj[v] {
+            if seen_r[r] {
+                continue;
+            }
+            seen_r[r] = true;
+
+            match match_r[r] {
+                None => {
+                    match_r[r] = Some(v);
+                    return true;
+                }
+                Some(u) => {
+                    if try_augment(u, adj, seen_l, seen_r, match_r) {
+                        match_r[r] = Some(v);
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
+    // Compute whether any perfect matching exists.
+    let mut match_r: Vec<Option<usize>> = vec![None; n];
+    for v in 0..n {
+        let mut seen_l = vec![false; n];
+        let mut seen_r = vec![false; n];
+        if !try_augment(v, &adj, &mut seen_l, &mut seen_r, &mut match_r) {
+            print!("no\n");
+            return;
+        }
+    }
+
+    // Helper to compute match_l from match_r.
+    fn build_match_l(n: usize, match_r: &[Option<usize>]) -> Vec<Option<usize>> {
+        let mut match_l = vec![None; n];
+        for (r, &ml) in match_r.iter().enumerate() {
+            if let Some(l) = ml {
+                match_l[l] = Some(r);
+            }
+        }
+        match_l
+    }
+
+    // Output partners for left vertices in increasing order.
+    // For each left i:
+    // - remove i and its currently matched partner (if any)
+    // - run augmenting-path routine starting from i to re-establish perfect matching
+    // - print resulting partner of i (1-based right index)
+    let mut out = String::new();
+    out.push_str("yes\n");
+
+    for i in 0..n {
+        let match_l = build_match_l(n, &match_r);
+
+        if let Some(r) = match_l[i] {
+            // Remove the pair (i, r)
+            match_r[r] = None;
+        }
+
+        let mut seen_l = vec![false; n];
+        let mut seen_r = vec![false; n];
+        let ok = try_augment(i, &adj, &mut seen_l, &mut seen_r, &mut match_r);
+
+        // Under the specification, this should succeed given a perfect matching existed.
+        // If it doesn't (unspecified behavior), we still produce a defined output.
+        if !ok {
+            out.push_str("0\n");
+            continue;
+        }
+
+        let match_l2 = build_match_l(n, &match_r);
+        let partner_r = match_l2[i].unwrap_or(0);
+        out.push_str(&(partner_r + 1).to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}
+```

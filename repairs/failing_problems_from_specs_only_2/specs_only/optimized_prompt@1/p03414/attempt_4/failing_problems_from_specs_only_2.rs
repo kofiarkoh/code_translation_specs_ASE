@@ -1,0 +1,280 @@
+use std::collections::{HashMap, VecDeque};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Edge {
+    u: usize,
+    v: usize,
+}
+
+fn tarjan_scc(n: usize, adj: &[Vec<usize>]) -> (usize, Vec<usize>) {
+    let mut index: i32 = 0;
+    let mut stack: Vec<usize> = Vec::new();
+    let mut on_stack = vec![false; n];
+    let mut idx = vec![-1i32; n];
+    let mut low = vec![0i32; n];
+    let mut comp = vec![usize::MAX; n];
+    let mut comp_cnt: usize = 0;
+
+    fn dfs(
+        v: usize,
+        adj: &[Vec<usize>],
+        index: &mut i32,
+        stack: &mut Vec<usize>,
+        on_stack: &mut [bool],
+        idx: &mut [i32],
+        low: &mut [i32],
+        comp: &mut [usize],
+        comp_cnt: &mut usize,
+    ) {
+        idx[v] = *index;
+        low[v] = *index;
+        *index += 1;
+        stack.push(v);
+        on_stack[v] = true;
+
+        for &to in &adj[v] {
+            if idx[to] == -1 {
+                dfs(to, adj, index, stack, on_stack, idx, low, comp, comp_cnt);
+                low[v] = low[v].min(low[to]);
+            } else if on_stack[to] {
+                low[v] = low[v].min(idx[to]);
+            }
+        }
+
+        if low[v] == idx[v] {
+            loop {
+                let w = stack.pop().unwrap();
+                on_stack[w] = false;
+                comp[w] = *comp_cnt;
+                if w == v {
+                    break;
+                }
+            }
+            *comp_cnt += 1;
+        }
+    }
+
+    for v in 0..n {
+        if idx[v] == -1 {
+            dfs(
+                v,
+                adj,
+                &mut index,
+                &mut stack,
+                &mut on_stack,
+                &mut idx,
+                &mut low,
+                &mut comp,
+                &mut comp_cnt,
+            );
+        }
+    }
+
+    (comp_cnt, comp)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let n: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+    let m: usize = match it.next() {
+        Some(x) => x.parse().unwrap(),
+        None => return,
+    };
+
+    let mut edges: Vec<Edge> = Vec::with_capacity(m);
+    let mut adj: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for _ in 0..m {
+        let u1: usize = it.next().unwrap().parse().unwrap();
+        let v1: usize = it.next().unwrap().parse().unwrap();
+        let u = u1 - 1;
+        let v = v1 - 1;
+        edges.push(Edge { u, v });
+        adj[u].push(v);
+    }
+
+    let (k, comp) = tarjan_scc(n, &adj);
+
+    let mut comp_vertices: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for v in 0..n {
+        comp_vertices[comp[v]].push(v);
+    }
+
+    let mut is_diff = vec![false; m];
+
+    // Inter-SCC:
+    // A1: multiple original edges inducing same SCC arc => all diff.
+    // A2: there exists an SCC-level path from S to T of length >= 2 => all edges inducing S->T diff.
+    //
+    // To avoid subtle bugs in transitive-closure DP, implement A2 exactly as stated:
+    // For each SCC S, BFS in condensation DAG starting from all out-neighbors of S except T,
+    // and see if T is reachable. This checks existence of a path S -> X -> ... -> T with X != T,
+    // i.e., length >= 2.
+    let mut pair_to_edges: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+    let mut dag_adj: Vec<Vec<usize>> = vec![Vec::new(); k];
+    let mut dag_has: HashMap<(usize, usize), ()> = HashMap::new();
+
+    for (i, e) in edges.iter().enumerate() {
+        let s = comp[e.u];
+        let t = comp[e.v];
+        if s != t {
+            pair_to_edges.entry((s, t)).or_default().push(i);
+            if !dag_has.contains_key(&(s, t)) {
+                dag_has.insert((s, t), ());
+                dag_adj[s].push(t);
+            }
+        }
+    }
+
+    for idxs in pair_to_edges.values() {
+        if idxs.len() > 1 {
+            for &ei in idxs {
+                is_diff[ei] = true;
+            }
+        }
+    }
+
+    // Group targets per source SCC to reuse BFS work.
+    let mut targets_by_source: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for (&(s, t), _) in pair_to_edges.iter() {
+        targets_by_source[s].push(t);
+    }
+    for s in 0..k {
+        targets_by_source[s].sort_unstable();
+        targets_by_source[s].dedup();
+    }
+
+    let mut vis_scc = vec![false; k];
+    let mut q: VecDeque<usize> = VecDeque::new();
+
+    for s in 0..k {
+        if targets_by_source[s].is_empty() {
+            continue;
+        }
+
+        // For each target t, run BFS from all neighbors of s except t.
+        // Complexity is O(outdeg(s) * (k + arcs)) in worst case, but k<=n<=1000.
+        for &t in &targets_by_source[s] {
+            for v in 0..k {
+                vis_scc[v] = false;
+            }
+            q.clear();
+
+            for &x in &dag_adj[s] {
+                if x == t {
+                    continue;
+                }
+                if !vis_scc[x] {
+                    vis_scc[x] = true;
+                    q.push_back(x);
+                }
+            }
+
+            let mut longer = false;
+            while let Some(u) = q.pop_front() {
+                if u == t {
+                    longer = true;
+                    break;
+                }
+                for &nx in &dag_adj[u] {
+                    if !vis_scc[nx] {
+                        vis_scc[nx] = true;
+                        q.push_back(nx);
+                    }
+                }
+            }
+
+            if longer {
+                if let Some(idxs) = pair_to_edges.get(&(s, t)) {
+                    for &ei in idxs {
+                        is_diff[ei] = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Intra-SCC: BFS per edge excluding that edge.
+    let mut scc_intra_edges: Vec<Vec<usize>> = vec![Vec::new(); k];
+    for (i, e) in edges.iter().enumerate() {
+        if comp[e.u] == comp[e.v] {
+            scc_intra_edges[comp[e.u]].push(i);
+        }
+    }
+
+    let mut out_edge_ids: Vec<Vec<usize>> = vec![Vec::new(); n];
+    for (i, e) in edges.iter().enumerate() {
+        out_edge_ids[e.u].push(i);
+    }
+
+    let mut in_scc = vec![false; n];
+    let mut vis_v = vec![false; n];
+    let mut qv: VecDeque<usize> = VecDeque::new();
+
+    for scc_id in 0..k {
+        let intra = &scc_intra_edges[scc_id];
+        if intra.is_empty() {
+            continue;
+        }
+
+        for &v in &comp_vertices[scc_id] {
+            in_scc[v] = true;
+        }
+
+        for &eid in intra {
+            let e = edges[eid];
+            let src = e.u;
+            let dst = e.v;
+
+            for &v in &comp_vertices[scc_id] {
+                vis_v[v] = false;
+            }
+            qv.clear();
+
+            vis_v[src] = true;
+            qv.push_back(src);
+
+            let mut found = false;
+            while let Some(u) = qv.pop_front() {
+                if u == dst {
+                    found = true;
+                    break;
+                }
+                for &oeid in &out_edge_ids[u] {
+                    if oeid == eid {
+                        continue;
+                    }
+                    let to = edges[oeid].v;
+                    if !in_scc[to] {
+                        continue;
+                    }
+                    if !vis_v[to] {
+                        vis_v[to] = true;
+                        qv.push_back(to);
+                    }
+                }
+            }
+
+            if found {
+                is_diff[eid] = true;
+            }
+        }
+
+        for &v in &comp_vertices[scc_id] {
+            in_scc[v] = false;
+        }
+    }
+
+    let mut out = String::new();
+    for i in 0..m {
+        out.push_str(if is_diff[i] { "diff\n" } else { "same\n" });
+    }
+    print!("{out}");
+}

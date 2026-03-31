@@ -1,0 +1,156 @@
+```rust
+use std::io::{self, Read};
+
+fn gcd_u128(mut a: u128, mut b: u128) -> u128 {
+    while b != 0 {
+        let t = a % b;
+        a = b;
+        b = t;
+    }
+    a
+}
+
+fn main() {
+    // Read entire stdin and parse three C `int` values similarly to scanf("%d%d%d").
+    // If fewer than three integers are present, behavior is unspecified by the spec;
+    // here we simply return without output.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).ok();
+    let mut it = input.split_whitespace();
+
+    let n: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let m: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+    let r: i32 = match it.next().and_then(|s| s.parse::<i32>().ok()) {
+        Some(v) => v,
+        None => return,
+    };
+
+    // C `int` arithmetic for r' = r - n*m.
+    // In C, overflow here is undefined; the spec says behavior is unspecified then.
+    // We choose a narrow, deterministic emulation: two's-complement wrapping i32.
+    let nm = n.wrapping_mul(m);
+    let rp = r.wrapping_sub(nm);
+
+    if rp < 0 {
+        println!("0");
+        return;
+    }
+    if rp == 0 {
+        println!("1");
+        return;
+    }
+
+    // r' > 0 branch: compute C(n + r' - 1, n - 1) using big-integer arithmetic.
+    // If n <= 0 here, behavior is unspecified by the spec; we do not add extra handling.
+    let n_minus_1_i32 = n.wrapping_sub(1);
+    let rp_u64 = rp as u64;
+
+    // Use k = min(n-1, r') as described.
+    // If n-1 is negative, casting to u64 yields a huge value; this matches "unspecified"
+    // territory and we intentionally do not guard it.
+    let n_minus_1_u64 = n_minus_1_i32 as u64;
+    let k = std::cmp::min(n_minus_1_u64, rp_u64);
+
+    // Compute N = n + r' - 1 in i32 wrapping arithmetic, then interpret as u64.
+    // Overflow here is also unspecified in the original C; we keep wrapping.
+    let n_plus_rp_minus_1_i32 = n.wrapping_add(rp).wrapping_sub(1);
+    let n_total_u64 = n_plus_rp_minus_1_i32 as u64;
+
+    // Exact binomial via multiplicative formula with gcd cancellations.
+    // We use arbitrary-precision via Vec<u32> base 1e9.
+    const BASE: u32 = 1_000_000_000;
+
+    fn mul_small(d: &mut Vec<u32>, mut m: u128) {
+        if m == 0 {
+            d.clear();
+            d.push(0);
+            return;
+        }
+        let mut carry: u128 = 0;
+        for x in d.iter_mut() {
+            let v = (*x as u128) * m + carry;
+            *x = (v % (BASE as u128)) as u32;
+            carry = v / (BASE as u128);
+        }
+        while carry != 0 {
+            d.push((carry % (BASE as u128)) as u32);
+            carry /= BASE as u128;
+        }
+    }
+
+    fn div_small_exact(d: &mut Vec<u32>, div: u128) {
+        // Exact division by small integer (div > 0), assuming remainder becomes 0.
+        let mut rem: u128 = 0;
+        for i in (0..d.len()).rev() {
+            let cur = rem * (BASE as u128) + d[i] as u128;
+            d[i] = (cur / div) as u32;
+            rem = cur % div;
+        }
+        // Trim leading zeros.
+        while d.len() > 1 && *d.last().unwrap() == 0 {
+            d.pop();
+        }
+        // If rem != 0, original C program would have had an internal inconsistency;
+        // spec implies integrality at the end. We do not add extra behavior.
+    }
+
+    // Prepare numerator terms: (N-k+1) .. N
+    let mut nums: Vec<u128> = Vec::with_capacity(k as usize);
+    if k > 0 {
+        let start = n_total_u64.wrapping_sub(k).wrapping_add(1);
+        for i in 0..k {
+            nums.push((start.wrapping_add(i)) as u128);
+        }
+    }
+
+    // Cancel denominators 1..k against numerator terms using gcd.
+    for d in 2..=k {
+        let mut denom = d as u128;
+        if denom == 1 {
+            continue;
+        }
+        for x in nums.iter_mut() {
+            if denom == 1 {
+                break;
+            }
+            let g = gcd_u128(*x, denom);
+            if g > 1 {
+                *x /= g;
+                denom /= g;
+            }
+        }
+        // If denom != 1 here, the cancellation failed; spec implies it should not.
+        // We proceed anyway (unspecified territory).
+    }
+
+    // Multiply remaining numerator terms into big integer.
+    let mut big: Vec<u32> = vec![1];
+    for x in nums {
+        if x != 1 {
+            mul_small(&mut big, x);
+        }
+    }
+
+    // No remaining denominator should exist after cancellation; print big integer.
+    // Convert to decimal string.
+    let mut out = String::new();
+    if big.is_empty() {
+        out.push('0');
+    } else {
+        let mut it = big.iter().rev();
+        if let Some(&first) = it.next() {
+            out.push_str(&first.to_string());
+        }
+        for &chunk in it {
+            out.push_str(&format!("{:09}", chunk));
+        }
+    }
+    println!("{out}");
+}
+```
