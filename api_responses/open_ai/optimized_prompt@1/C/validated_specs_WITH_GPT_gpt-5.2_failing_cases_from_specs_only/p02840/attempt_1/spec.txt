@@ -1,0 +1,45 @@
+1. Functional Description  
+Computes and outputs the number of distinct integer values obtainable from sums of the form  
+\[
+\sum_{k=0}^{i-1} (X + kD)
+\]
+for any choice of length \(i\) where \(0 \le i \le N\), after accounting for overlaps between different lengths that yield the same value. The result is the cardinality of the set of all such sums.
+
+2. Inputs  
+- Three signed integers:  
+  - \(N\): maximum number of terms selectable (also the maximum length of the prefix sum).  
+  - \(X\): first term of an arithmetic progression.  
+  - \(D\): common difference of the arithmetic progression.
+
+3. Outputs  
+- One signed integer: the number of distinct sums achievable as described above.
+
+4. Preconditions  
+- Input values must be representable in signed 64-bit integer range.  
+- \(N\) must satisfy \(0 \le N \le 200000\) (implied by fixed internal storage).  
+- Intermediate arithmetic (including products involving \(N\), \(X\), and \(D\)) must not overflow signed 64-bit integers for the produced result to be meaningful.
+
+5. Postconditions  
+- If \(X = 0\) and \(D = 0\): output is \(1\).  
+- Else if \(D = 0\): output is \(N + 1\).  
+- Else if \(X = 0\) (and \(D \ne 0\)): output is \(\frac{N(N-1)}{2} + 1\).  
+- Otherwise: output equals the number of distinct values in  
+  \[
+  \left\{ \sum_{k=0}^{i-1} (X + kD) \;\middle|\; i \in \{0,1,\dots,N\} \right\}.
+  \]
+
+6. Invariants  
+- When \(D \ne 0\), the computation is invariant under scaling \((X, D)\) by a common nonzero factor: only the ratio after dividing by \(\gcd(|X|,|D|)\) affects the distinct-count result.  
+- When \(D \ne 0\), the set of achievable sums is partitioned by residue class modulo \(|D|\); within each residue class, achievable sums form a union of integer-spaced intervals with step \(|D|\). The final count equals the total number of step-\(|D|\) lattice points covered by these unions.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is missing/invalid, behavior is unspecified.  
+- If preconditions are violated (e.g., \(N > 200000\) or 64-bit overflow occurs), behavior is unspecified and the output is not guaranteed correct.
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: reads one triple \((N,X,D)\), writes one integer result, then terminates.
+
+9. Non-functional Constraints (if inferable)  
+- Uses fixed internal capacity proportional to \(N\) with an upper bound implied by \(N \le 200000\).  
+- Time and memory usage are bounded by processing up to \(N+1\) length-cases and maintaining a bounded number of interval records per residue class; performance depends on hashing into a fixed number of buckets (100003).

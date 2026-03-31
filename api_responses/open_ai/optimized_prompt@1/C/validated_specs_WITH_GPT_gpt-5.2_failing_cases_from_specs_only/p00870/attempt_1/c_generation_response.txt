@@ -1,0 +1,86 @@
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAX_PATTERNS 12
+#define MAX_PLEN 20
+#define MAX_SUBSETS (1 << MAX_PATTERNS)
+#define MAX_TARGET 5000
+
+static int pattern_len[MAX_PATTERNS];
+static char pattern[MAX_PATTERNS][MAX_PLEN + 1];
+
+static char target[MAX_TARGET + 1];
+static int target_len;
+
+/* dp[mask][pos] == 1 if reachable: starting at 0, using exactly patterns in mask once each,
+   ending exactly at position pos. */
+static unsigned char dp[MAX_SUBSETS][MAX_TARGET + 1];
+
+static int match_at(int pat_idx, int pos) {
+    int len = pattern_len[pat_idx];
+    if (pos + len > target_len) return 0;
+    /* Exact character-by-character match */
+    return (memcmp(target + pos, pattern[pat_idx], (size_t)len) == 0);
+}
+
+int main(void) {
+    int n_patterns, n_frags;
+
+    while (scanf("%d %d", &n_patterns, &n_frags) == 2) {
+        if (n_patterns == 0 && n_frags == 0) break;
+
+        for (int i = 0; i < n_patterns; i++) {
+            if (scanf("%20s", pattern[i]) != 1) return 0; /* unspecified on malformed input */
+            pattern_len[i] = (int)strlen(pattern[i]);
+        }
+
+        target_len = 0;
+        target[0] = '\0';
+        for (int i = 0; i < n_frags; i++) {
+            char frag[MAX_TARGET + 1];
+            if (scanf("%5000s", frag) != 1) return 0; /* unspecified on malformed input */
+            int flen = (int)strlen(frag);
+            /* Bounds violations are undefined per spec; we do not guard beyond fixed storage. */
+            memcpy(target + target_len, frag, (size_t)flen);
+            target_len += flen;
+        }
+        target[target_len] = '\0';
+
+        int subsets = 1 << n_patterns;
+
+        /* Clear only the used portion: dp[mask][0..target_len] */
+        for (int m = 0; m < subsets; m++) {
+            memset(dp[m], 0, (size_t)(target_len + 1));
+        }
+
+        dp[0][0] = 1;
+
+        for (int mask = 0; mask < subsets; mask++) {
+            for (int pos = 0; pos <= target_len; pos++) {
+                if (!dp[mask][pos]) continue;
+
+                for (int i = 0; i < n_patterns; i++) {
+                    if (mask & (1 << i)) continue; /* already used */
+                    if (!match_at(i, pos)) continue;
+
+                    int npos = pos + pattern_len[i];
+                    int nmask = mask | (1 << i);
+                    dp[nmask][npos] = 1;
+                }
+            }
+        }
+
+        int full = subsets - 1;
+        int count = 0;
+        for (int pos = 0; pos <= target_len; pos++) {
+            if (dp[full][pos]) count++;
+        }
+
+        printf("%d\n", count);
+    }
+
+    return 0;
+}
+```

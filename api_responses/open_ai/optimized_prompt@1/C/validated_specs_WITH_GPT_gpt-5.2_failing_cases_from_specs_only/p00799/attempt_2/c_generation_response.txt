@@ -1,0 +1,139 @@
+```c
+#include <stdio.h>
+
+#define MAX_BAT 102
+#define MAX_PAIRS 51
+#define QCAP 102
+
+typedef struct {
+    int use[MAX_PAIRS];
+    int chg[MAX_PAIRS];
+    int m;              /* number of pairs */
+    int idx;            /* current pair index */
+    int state;          /* 0 = using, 1 = charging */
+    int r;              /* remaining time in current segment */
+    int just_to_chg;    /* set to 1 if transitioned to charging in current time unit */
+} Battery;
+
+typedef struct {
+    int a[QCAP];
+    int head, tail, size;
+} Queue;
+
+static void q_init(Queue *q) {
+    q->head = q->tail = q->size = 0;
+}
+
+static int q_empty(const Queue *q) {
+    return q->size == 0;
+}
+
+static int q_front(const Queue *q) {
+    return q->a[q->head];
+}
+
+static void q_push(Queue *q, int v) {
+    /* Behavior unspecified on overflow per spec; we do not guard. */
+    q->a[q->tail] = v;
+    q->tail = (q->tail + 1) % QCAP;
+    q->size++;
+}
+
+static void q_pop(Queue *q) {
+    q->head = (q->head + 1) % QCAP;
+    q->size--;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n <= 0) break;
+
+        int lim;
+        if (scanf("%d", &lim) != 1) break;
+
+        Battery b[MAX_BAT];
+        for (int i = 0; i < n; i++) {
+            b[i].m = 0;
+            b[i].idx = 0;
+            b[i].state = 0; /* using */
+            b[i].r = 0;
+            b[i].just_to_chg = 0;
+
+            while (1) {
+                int u;
+                if (scanf("%d", &u) != 1) return 0; /* unspecified; just stop */
+                if (u <= 0) break;
+                int c;
+                if (scanf("%d", &c) != 1) return 0;
+
+                if (b[i].m < MAX_PAIRS) {
+                    b[i].use[b[i].m] = u;
+                    b[i].chg[b[i].m] = c;
+                    b[i].m++;
+                } else {
+                    /* Unspecified if more than 51 pairs; still consume input but ignore extras. */
+                }
+            }
+
+            /* Assumption: at least one pair exists. */
+            b[i].idx = 0;
+            b[i].state = 0; /* using */
+            b[i].r = b[i].use[0];
+        }
+
+        Queue q;
+        q_init(&q);
+
+        long long missed = 0;
+
+        for (int t = 1; t <= lim; t++) {
+            /* Clear per-time-unit transition markers */
+            for (int i = 0; i < n; i++) b[i].just_to_chg = 0;
+
+            /* A. Using progress and transitions to charging */
+            for (int i = 0; i < n; i++) {
+                if (b[i].state == 0) { /* using */
+                    b[i].r -= 1;
+                    if (b[i].r == 0) {
+                        b[i].state = 1; /* charging */
+                        b[i].r = b[i].chg[b[i].idx];
+                        b[i].just_to_chg = 1;
+                        q_push(&q, i);
+                    }
+                }
+            }
+
+            /* B. Missed-opportunity counting and charging progress */
+            if (!q_empty(&q)) {
+                int front = q_front(&q);
+
+                /* Count missed opportunities among batteries already charging (not just transitioned) */
+                for (int i = 0; i < n; i++) {
+                    if (b[i].state == 1 && !b[i].just_to_chg) {
+                        if (i != front) missed += 1;
+                    }
+                }
+
+                /* Front battery receives one unit of charging progress only if it was already charging */
+                if (b[front].state == 1 && !b[front].just_to_chg) {
+                    b[front].r -= 1;
+                }
+
+                /* C. Charging completion at the queue front */
+                if (b[front].state == 1 && !b[front].just_to_chg && b[front].r == 0) {
+                    b[front].state = 0; /* using */
+                    b[front].idx += 1;
+                    if (b[front].idx >= b[front].m) b[front].idx = 0;
+                    b[front].r = b[front].use[b[front].idx];
+                    q_pop(&q);
+                }
+            }
+        }
+
+        printf("%lld\n", missed);
+    }
+
+    return 0;
+}
+```

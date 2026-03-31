@@ -1,0 +1,17 @@
+A. Likely mismatch category  
+Wrong abstraction of the optimization objective / wrong cost encoding (lexicographic minimization not preserved), leading to wrong matching choice and wrong output length.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the objective correctly at a high level (lexicographically maximize letter counts in `A..Z,a..z`), but it does not constrain *how* that lexicographic order must be implemented in a way that is faithful to the source program’s arithmetic model.  
+- In particular, the spec allows an implementation to “scalarize” the 52‑component lexicographic vector into a single integer cost (e.g., using powers of a base), but the source program does **not** do that. It uses a 52‑component signed‑char vector and compares vectors componentwise in order.  
+- The spec’s “bounded internal arithmetic” note is too vague: it doesn’t state that the source’s comparison is performed on a fixed-width per-component representation (signed 8-bit) with a specific “infinity” sentinel vector, and that costs are accumulated as vectors, not as a single numeric weight.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the optimization is performed using **52-dimensional vector costs with per-component arithmetic and lexicographic comparison**, not via any scalar encoding; any correct reimplementation must preserve lexicographic ordering exactly, independent of integer overflow/underflow in scalar encodings.  
+- Clarify the role of the program’s “infinity” distance initialization: each component is set to a fixed constant (60) in a signed-char vector, and shortest-path relaxation compares these vectors lexicographically. This implies the algorithm relies on small bounded component magnitudes and does not model “infinite” as a large scalar.  
+- Clarify that the output must always contain exactly **N letters** (one per matched row/column), which in the source is guaranteed by sending exactly N units of flow and then printing counts derived from the resulting cost vector.
+
+D. Why this clarification is supported by the source program  
+- The source represents costs and distances as `typedef struct { signed char a[52]; } T;` and all operations (`mx_add2`, `mx_mul2`, `mx_cmp`) are performed componentwise on this vector; lexicographic comparison is implemented by scanning components from 0 to 51 and returning the first difference. There is no scalar cost anywhere.  
+- “Infinity” is explicitly set by `for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;` and distances are initialized by copying this vector, not by using a numeric `INF`.  
+- The final output is derived from the resulting vector `a = minCostFlow(...)` by printing `-mx[a].a[i]` copies of each letter; this inherently assumes the vector components correctly encode counts. Any scalarization that overflows or fails to preserve lexicographic dominance can change the chosen matching and even break the invariant that exactly N letters are printed.

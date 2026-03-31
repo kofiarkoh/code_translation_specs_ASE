@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of up to 102 repeating battery usage/charge cycles. At each time unit, batteries that are in “use” may transition to “charging” when their current use segment completes; at most one charging battery receives charging progress per time unit (selected in first-in-first-out order among those that just began charging). The program outputs the total count of “missed charging opportunities”: for each time unit, for each battery that is charging but not selected to receive charging progress that time unit, the count is incremented by 1.
+
+2. Inputs  
+For each test case:  
+- An integer count of batteries `n`.  
+- An integer simulation duration `lim` (number of time units to simulate).  
+- For each battery, a sequence of one or more positive integer pairs `(use_duration, charge_duration)`, terminated by a non-positive `use_duration`.  
+Input consists of multiple test cases and ends when a test case has `n <= 0`.
+
+3. Outputs  
+For each test case, outputs a single integer: the total number of missed charging opportunities accumulated over the `lim` simulated time units.
+
+4. Preconditions  
+- `1 <= n <= 102`.  
+- `lim >= 0`.  
+- For each battery, at least one `(use_duration, charge_duration)` pair is provided before termination.  
+- Each battery provides at most 51 `(use_duration, charge_duration)` pairs.  
+- All provided `use_duration` and `charge_duration` values are non-negative integers, and the intended meaningful operation assumes they are positive.  
+- The number of batteries that can be simultaneously queued as “waiting to be charged” never exceeds 102 (fixed queue capacity); otherwise behavior is not guaranteed.
+
+5. Postconditions  
+After processing a test case:  
+- The printed value equals the sum, over all time units from 1 to `lim`, of the number of batteries that are in charging state during that time unit but are not the single battery selected (if any) to receive one unit of charging progress in that time unit.  
+- Each battery’s use/charge pattern repeats cyclically through its provided pairs for the duration of the simulation.
+
+6. Invariants  
+During simulation for a test case:  
+- Each battery is always in exactly one of two states: using or charging.  
+- Each battery has a remaining-time counter for its current state segment that is decremented only when that battery is progressed in that state (use always progresses every time unit; charging progresses only when selected).  
+- Batteries enter the charging-selection queue in the same order as they complete a use segment (FIFO discipline).  
+- At most one queued battery receives charging progress in any single time unit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, missing, or violates the stated bounds (e.g., too many batteries, too many pairs per battery, queue overflow, or zero/negative durations where positive are required for meaningful progress), the behavior is unspecified (may produce incorrect output or fail to terminate).
+
+8. State Transitions (if applicable)  
+For each battery, repeatedly over time:  
+- **Using → Charging**: occurs when the remaining use time reaches zero at the end of a time unit; the battery is enqueued for charging and its remaining charging time is set to the corresponding charge duration for that cycle element.  
+- **Charging (selected) → Charging (still charging)**: if selected for charging in a time unit and remaining charging time remains positive after decrement.  
+- **Charging (selected) → Using**: if selected for charging in a time unit and remaining charging time reaches zero; the battery advances to the next cycle element (wrapping to the first after the last) and its remaining use time is set to that element’s use duration.  
+- **Charging (not selected)**: no progress is made; this contributes +1 to the output count for that battery for that time unit.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum sizes are implied: up to 102 batteries, up to 51 cycle elements per battery, and a charging queue capacity of 102.  
+- Time complexity is proportional to `n * lim` per test case.  
+- Memory usage is bounded by the fixed limits above.
+
+```

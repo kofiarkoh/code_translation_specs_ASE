@@ -1,0 +1,484 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1070 FIMO sequence
+// 2018.3.22 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//#define getchar_unlocked()  getchar()
+int in()
+{
+	int n = 0, c = getchar_unlocked();
+while (c < '0') c = getchar_unlocked();
+	do n = 10*n + (c & 0xf), c = getchar_unlocked(); while (c >= '0');
+	return n;
+}
+
+#define FH   0        // First half
+#define SH   1        // Second half
+#define ALL  2
+#define MAX 200005
+
+int que[2][MAX]; int qt[2], qe[2];
+int min[2][MAX]; int at[2], ae[2];
+int max[2][MAX]; int zt[2], ze[2];
+#define size(id)  (qe[id]-qt[id])
+#define minSZ(id) (ae[id]-at[id])
+#define maxSZ(id) (ze[id]-zt[id])
+
+int del(int id);
+void add(int id, int a)
+{
+	if (id == ALL) {
+		add(SH, a);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+		return;
+	}
+	que[id][qe[id]++] = a;
+	if (size(id) == 1) {
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	} else if (id == FH) {
+		if (min[id][ae[id]-1] > a) min[id][ae[id]++] = a;
+		if (max[id][ze[id]-1] < a) max[id][ze[id]++] = a;
+	} else {
+		while (minSZ(id) > 0 && min[id][ae[id]-1] > a) ae[id]--;
+		while (maxSZ(id) > 0 && max[id][ze[id]-1] < a) ze[id]--;
+		min[id][ae[id]++] = a, max[id][ze[id]++] = a;
+	}
+}
+
+int del(int id)
+{
+	int a;
+	if (id == ALL) {
+		a = del(FH);
+		if (size(FH) < size(SH)) add(FH, del(SH));
+	} else if (id == FH) {
+		a = que[id][--qe[id]];
+		if (min[id][ae[id]-1] == a) ae[id]--;
+		if (max[id][ze[id]-1] == a) ze[id]--;
+	} else {
+		a = que[id][qt[id]++];
+		if (min[id][at[id]] == a) at[id]++;
+		if (max[id][zt[id]] == a) zt[id]++;
+	}
+	return a;
+}
+
+int gmin(int id, int th)
+{
+	if (id == FH) return min[id][ae[id]-th];
+	else          return min[id][at[id]+th-1];
+}
+
+int gmax(int id, int th)
+{
+	if (id == FH) return max[id][ze[id]-th];
+	else          return max[id][zt[id]+th-1];
+}
+
+int main()
+{
+	int q, op, a;
+
+    while (q = in()) {
+		qt[FH] = qt[SH] = qe[FH] = qe[SH] = 0;
+		at[FH] = at[SH] = ae[FH] = ae[SH] = 0;
+		zt[FH] = zt[SH] = ze[FH] = ze[SH] = 0;
+
+		while (q--) {
+			op = in();
+			if      (op == 0) { add(ALL, in()); continue; }
+			else if (op == 1) a = del(ALL);
+			else if (op == 2) a = gmin(FH, 1);
+			else if (op == 3) a = gmin(SH, 1);
+			else if (op == 4) a = gmin(FH, in());
+			else if (op == 5) a = gmin(SH, in());
+			else if (op == 6) a = gmax(FH, 1);
+			else if (op == 7) a = gmax(SH, 1);
+			else if (op == 8) a = gmax(FH, in());
+			else              a = gmax(SH, in());
+			printf("%d\n", a);
+		}
+		puts("end");
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description
+Maintains a dynamic sequence of integers that supports insertion, deletion of a specific “middle” element, and queries for order-statistics-based minima and maxima within each of two maintained halves of the sequence. The sequence is partitioned into a first half and a second half such that their sizes differ by at most one and the first half is never smaller than the second half. For each half, the program can report the k-th smallest or k-th largest element (for specified k), and can delete and return the current last element of the first half (which corresponds to the sequence’s middle element under the maintained balancing rule).
+
+The program processes one or more independent batches of operations; after each batch it outputs a terminator line.
+
+2. Inputs
+- A stream of non-negative integers forming multiple batches.
+- Each batch begins with an integer `q` (number of operations in the batch).
+- Then `q` operations follow, each starting with an operation code:
+  - Code 0: followed by one integer value to insert into the sequence.
+  - Codes 4, 5, 8, 9: followed by one integer parameter `k` (rank).
+  - All other codes have no additional parameters.
+
+A batch with `q = 0` ends all processing.
+
+3. Outputs
+- For each operation that is not an insertion (i.e., operation codes other than 0), outputs one integer result on its own line.
+- After completing each batch of `q` operations, outputs a single line containing the word `end`.
+
+4. Preconditions
+- For any operation that requests deletion or a query result, the sequence (and the relevant half) must contain enough elements to satisfy the request:
+  - Deletion requires the sequence to be non-empty.
+  - Queries on the first half require the first half to be non-empty (and for rank-based queries, rank `k` must be within the size of the first half).
+  - Queries on the second half require the second half to be non-empty (and for rank-based queries, rank `k` must be within the size of the second half).
+- Total number of inserted elements within a batch must not exceed a fixed capacity implied by the implementation (approximately 200,000 elements per half), otherwise behavior is not guaranteed.
+- All input integers are assumed to be within the range representable by the program’s integer type.
+
+5. Postconditions
+After each operation within a batch:
+- If the operation is insertion:
+  - The inserted value becomes part of the maintained sequence.
+  - The partition into halves is rebalanced so that:
+    - size(first half) ≥ size(second half)
+    - size(first half) − size(second half) ≤ 1
+- If the operation is deletion:
+  - One element is removed from the sequence and printed.
+  - The removed element is the current last element of the first half under the maintained partitioning.
+  - The partition is rebalanced to restore the size constraints above.
+- If the operation is a query:
+  - The sequence is not modified.
+  - The printed value equals the requested order statistic within the specified half:
+    - “k-th smallest in half” returns the element that would appear at position k (1-based) if that half’s elements were sorted ascending.
+    - “k-th largest in half” returns the element that would appear at position k (1-based) if that half’s elements were sorted descending.
+
+After each batch:
+- All internal state is reset before the next batch begins.
+
+6. Invariants
+Within a batch, after every operation:
+- The sequence is partitioned into two halves (first and second) satisfying:
+  - size(first half) ≥ size(second half)
+  - size(first half) − size(second half) ≤ 1
+- The multiset of elements in the two halves equals the multiset of all inserted elements minus those deleted so far.
+- For each half, order-statistics queries (k-th smallest / k-th largest) are consistent with the multiset of elements currently in that half.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If preconditions are violated (e.g., deletion from empty sequence, rank out of range, exceeding fixed capacity, malformed/insufficient input), the behavior is undefined: outputs may be incorrect and the program may crash or access invalid memory.
+
+8. State Transitions (if applicable)
+- Global state per batch consists of:
+  - The current multiset of elements in the sequence.
+  - A partition of that multiset into first and second halves satisfying the balancing invariant.
+- Operation effects:
+  - Insert: adds one element; may move one element from second half to first half to restore balance.
+  - Delete: removes one element from first half; may move one element from second half to first half to restore balance.
+  - Query: no state change.
+- Batch boundary: state is cleared to empty sequence and empty halves.
+
+9. Non-functional Constraints (if inferable)
+- Designed for high-throughput processing with fixed-size storage; per-batch capacity is bounded (on the order of 200,000 elements per half).
+- Intended to support efficient per-operation performance for insertion, deletion, and k-th min/max queries under the stated preconditions.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 200000  /* per half, as implied by specification */
+
+/*
+  We maintain two multisets (first half and second half) with order-statistics:
+  - first half size >= second half size
+  - size difference <= 1
+  - "middle" deletion removes the current last element of the first half.
+    Interpreting "last element of the first half" under the maintained partition
+    as the maximum element in the first half (consistent with typical balancing
+    where first half holds the smaller elements and second half holds the larger).
+  - Queries:
+      code 4: k-th smallest in first half
+      code 5: k-th largest  in first half
+      code 8: k-th smallest in second half
+      code 9: k-th largest  in second half
+    (Only these codes are specified to take k; other non-zero codes are treated
+     as deletion, per "all other codes have no additional parameters" and the
+     need to output for any non-insertion.)
+  Implementation: randomized treap with subtree sizes for order statistics.
+*/
+
+typedef struct Node {
+    int key;
+    unsigned pr;
+    int cnt;
+    int sz;
+    struct Node *l, *r;
+} Node;
+
+static Node pool[2 * MAXN + 5];
+static int pool_used;
+
+static unsigned rng_state = 2463534242u;
+static unsigned rnd_u32(void) {
+    /* xorshift32 */
+    unsigned x = rng_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    rng_state = x;
+    return x;
+}
+
+static int sz(Node *t) { return t ? t->sz : 0; }
+
+static void pull(Node *t) {
+    if (!t) return;
+    t->sz = t->cnt + sz(t->l) + sz(t->r);
+}
+
+static Node *new_node(int key) {
+    Node *n = &pool[pool_used++];
+    n->key = key;
+    n->pr = rnd_u32();
+    n->cnt = 1;
+    n->sz = 1;
+    n->l = n->r = NULL;
+    return n;
+}
+
+static void rot_right(Node **t) {
+    Node *x = (*t)->l;
+    (*t)->l = x->r;
+    x->r = *t;
+    pull(*t);
+    pull(x);
+    *t = x;
+}
+
+static void rot_left(Node **t) {
+    Node *x = (*t)->r;
+    (*t)->r = x->l;
+    x->l = *t;
+    pull(*t);
+    pull(x);
+    *t = x;
+}
+
+static void treap_insert(Node **t, int key) {
+    if (!*t) {
+        *t = new_node(key);
+        return;
+    }
+    if (key == (*t)->key) {
+        (*t)->cnt++;
+        pull(*t);
+        return;
+    } else if (key < (*t)->key) {
+        treap_insert(&(*t)->l, key);
+        if ((*t)->l && (*t)->l->pr > (*t)->pr) rot_right(t);
+    } else {
+        treap_insert(&(*t)->r, key);
+        if ((*t)->r && (*t)->r->pr > (*t)->pr) rot_left(t);
+    }
+    pull(*t);
+}
+
+static void treap_erase(Node **t, int key) {
+    if (!*t) return; /* undefined behavior if key not present; keep narrow */
+    if (key == (*t)->key) {
+        if ((*t)->cnt > 1) {
+            (*t)->cnt--;
+            pull(*t);
+            return;
+        }
+        /* remove node by rotating down */
+        if (!(*t)->l) {
+            *t = (*t)->r;
+            return;
+        } else if (!(*t)->r) {
+            *t = (*t)->l;
+            return;
+        } else {
+            if ((*t)->l->pr > (*t)->r->pr) {
+                rot_right(t);
+                treap_erase(&(*t)->r, key);
+            } else {
+                rot_left(t);
+                treap_erase(&(*t)->l, key);
+            }
+        }
+    } else if (key < (*t)->key) {
+        treap_erase(&(*t)->l, key);
+    } else {
+        treap_erase(&(*t)->r, key);
+    }
+    if (*t) pull(*t);
+}
+
+static int treap_kth(Node *t, int k) {
+    /* 1-based kth smallest; precondition: 1 <= k <= sz(t) */
+    while (t) {
+        int left_sz = sz(t->l);
+        if (k <= left_sz) {
+            t = t->l;
+        } else if (k <= left_sz + t->cnt) {
+            return t->key;
+        } else {
+            k -= left_sz + t->cnt;
+            t = t->r;
+        }
+    }
+    return 0; /* unreachable under preconditions */
+}
+
+static int treap_min(Node *t) {
+    while (t && t->l) t = t->l;
+    return t->key;
+}
+
+static int treap_max(Node *t) {
+    while (t && t->r) t = t->r;
+    return t->key;
+}
+
+/* Global per-batch state */
+static Node *A; /* first half */
+static Node *B; /* second half */
+
+static void rebalance(void) {
+    /* Maintain: |A| >= |B| and |A|-|B| <= 1, and A holds smaller elements than B */
+    while (sz(A) < sz(B)) {
+        int x = treap_min(B);
+        treap_erase(&B, x);
+        treap_insert(&A, x);
+    }
+    while (sz(A) > sz(B) + 1) {
+        int x = treap_max(A);
+        treap_erase(&A, x);
+        treap_insert(&B, x);
+    }
+}
+
+static void insert_value(int x) {
+    if (!A) {
+        treap_insert(&A, x);
+    } else {
+        int amax = treap_max(A);
+        if (x <= amax) treap_insert(&A, x);
+        else treap_insert(&B, x);
+    }
+    rebalance();
+}
+
+static int delete_middle(void) {
+    /* Remove and return current last element of first half => max(A) */
+    int x = treap_max(A);
+    treap_erase(&A, x);
+    rebalance();
+    return x;
+}
+
+static int query_kth_smallest(Node *t, int k) {
+    return treap_kth(t, k);
+}
+
+static int query_kth_largest(Node *t, int k) {
+    /* kth largest = (size-k+1)th smallest */
+    int n = sz(t);
+    return treap_kth(t, n - k + 1);
+}
+
+static void reset_batch(void) {
+    A = B = NULL;
+    pool_used = 0;
+    /* rng_state left as-is; not specified, and does not affect observable I/O */
+}
+
+int main(void) {
+    int q;
+    while (scanf("%d", &q) == 1) {
+        if (q == 0) break;
+        reset_batch();
+        for (int i = 0; i < q; i++) {
+            int code;
+            if (scanf("%d", &code) != 1) return 0; /* undefined input; exit */
+            if (code == 0) {
+                int x;
+                scanf("%d", &x);
+                insert_value(x);
+            } else if (code == 4 || code == 5 || code == 8 || code == 9) {
+                int k;
+                scanf("%d", &k);
+                int out = 0;
+                if (code == 4) out = query_kth_smallest(A, k);
+                else if (code == 5) out = query_kth_largest(A, k);
+                else if (code == 8) out = query_kth_smallest(B, k);
+                else out = query_kth_largest(B, k);
+                printf("%d\n", out);
+            } else {
+                /* All other non-zero codes: deletion operation */
+                int out = delete_middle();
+                printf("%d\n", out);
+            }
+        }
+        printf("end\n");
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: RUNTIME ERROR
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00655/p00655_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00655/p00655_sample1_output.txt
+Exit code: -11
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 0
+Timed out: 0
+Runtime errors: 1
+
+```

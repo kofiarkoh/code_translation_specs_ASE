@@ -1,0 +1,177 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1291
+  Title:Search of Concatenated Strings
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+int n,m;
+char e[12][21];
+int  len[12];
+char t[5001];
+char flag[5001][4096];
+void dump_flag(char flag[5001][4096],int len)
+{
+  int i,j;
+  for(i=0;i<len;i++)
+    for(j=0;j<4096;j++)
+      if(flag[i][j])
+	printf("%d %d\n",i,j);
+}
+main()
+{
+  int l,ln,l_s,i,j,k,cnt,loop,mask,pat;
+  char buf[101];
+  while(scanf("%d %d",&n,&m) && (n||m))
+    {
+      memset(flag,0,sizeof(flag));
+      for(i=0;i<n;i++)
+	{
+	  scanf("%s",&e[i][0]); 
+	  len[i]=strlen(&e[i][0]);
+	}
+      t[0]='\0';
+      for(i=0;i<m;i++)
+	{
+	  scanf("%s",buf);
+	  ln=strlen(buf);
+	  if(buf[ln-1]<' ')
+	    buf[ln-1]='\0';
+	  strcat(t,buf);
+	}
+      l_s=strlen(t);
+      loop=1<<n;
+      for(i=0,cnt=0;i<l_s;i++)
+	{
+	  for(j=0;j<loop;j++)
+	    {
+	    if(j && flag[i][j]==0)
+	    continue;
+	    for(k=0,mask=1;k<n;k++,mask<<=1)
+		{
+		  if(j & mask)
+		    continue;
+		  if(0==strncmp(&e[k][0],&t[i],(l=len[k])))
+		    {
+		      pat=j|mask;
+		      flag[i+l][pat]=1;
+		    }
+		}
+	    }
+	}
+      for(i=0,cnt=0;i<=l_s;i++)
+	cnt += flag[i][loop-1];
+      printf("%d\n",cnt);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each dataset, the program counts how many indices in a constructed target string are reachable in a state where **all given patterns have been used exactly once**, when building a match by repeatedly choosing an unused pattern that exactly matches the target at the current index and advancing by that pattern’s full length.
+
+2. Inputs  
+- Multiple datasets. Each dataset begins with two integers `n` and `m`.  
+  - `n`: number of pattern strings.  
+  - `m`: number of string fragments used to build the target string.  
+- Then `n` pattern strings (whitespace-delimited tokens).  
+- Then `m` fragment strings (whitespace-delimited tokens), concatenated in the given order to form the target string.  
+- Input terminates when `n == 0` and `m == 0`.
+
+3. Outputs  
+- For each dataset, output one integer: the number of target indices `p` (with `0 ≤ p ≤ |target|`) such that there exists a sequence using every pattern exactly once that matches the target consecutively from some reachable start state and ends exactly at index `p`.
+
+4. Preconditions / Constraints (implied by fixed storage)  
+- `n ≤ 12` (so that `2^n ≤ 4096`).  
+- Each pattern length ≤ 20 characters.  
+- The total length of the concatenated target string ≤ 5000 characters.  
+- Patterns and fragments are read as single tokens (no internal whitespace).  
+- If these bounds are violated, behavior is undefined.
+
+5. Semantics / Reachability Definition  
+- Let `target` be the concatenation of the `m` fragments in order. Let `L = |target|`.  
+- Define a reachability table over states `(i, S)` where:  
+  - `i` is an index into the target string (`0 ≤ i ≤ L`), representing the current position.  
+  - `S` is a subset of patterns already used (represented conceptually as a set; each pattern can be used at most once).  
+- A transition is allowed from `(i, S)` to `(i + len(k), S ∪ {k})` for any pattern `k ∉ S` such that the full pattern `k` matches the target starting at index `i` for `len(k)` characters (exact character-by-character match).  
+- The computation treats `(0, ∅)` as the only intended starting state; reachability is propagated forward by the above transitions.
+
+6. Counting / Output Meaning  
+- A target index `p` is counted if and only if the state `(p, AllPatterns)` is reachable, where `AllPatterns` denotes the subset containing every pattern.  
+- The final output is the number of indices `p` in `[0, L]` for which `(p, AllPatterns)` is reachable.  
+- Different orders of using the patterns may lead to the same end index; each end index is counted at most once.
+
+7. Edge Cases  
+- If no sequence of pattern matches can use all patterns exactly once, the output is zero.  
+- The end index `p` need not equal `L`; reaching a full-pattern-used state may occur before the end of the target string.  
+- Patterns are treated as distinct by their input position (even if their contents are identical), and each input pattern instance may be used at most once.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. Malformed input or premature EOF results in unspecified behavior.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+**Test harness / oracle mismatch (no behavioral evidence)**; possibly **input parsing/normalization edge case** is underspecified.
+
+B. What the current specification may be missing or misstating  
+- The failing report provides **no concrete failing input/output**, so it does not actually demonstrate a semantic mismatch between the spec-derived program and the source. The only “failure” is that the evaluation framework expected sample-based validation but found none (“NO_SAMPLES”).  
+- Separately, the spec’s input description is slightly cleaner than the source’s actual parsing: the source contains a defensive step that **removes a trailing control character** from each fragment (`if(buf[ln-1]<' ') buf[ln-1]='\0';`). The current spec does not mention any such normalization, and the generated program does not implement it.
+
+C. What general behavior should be clarified in the specification  
+- Clarify whether fragment tokens may contain (or be followed by) **non-printable trailing characters** that should be stripped before concatenation, and if so, what exact rule is used (the source strips the last character if it is `< ' '` after reading the token).  
+- Clarify that the program’s behavior is defined purely by token-based `scanf("%s")` reading, plus that extra trailing-character stripping step, rather than assuming perfectly clean tokens.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly performs:
+  ```c
+  ln=strlen(buf);
+  if(buf[ln-1]<' ')
+    buf[ln-1]='\0';
+  strcat(t,buf);
+  ```
+  This indicates the intended behavior includes **post-processing each fragment** before concatenation, even though `scanf("%s")` normally would not include whitespace/newlines. The presence of this code suggests the author anticipated inputs where the last character of a scanned fragment could be a control character and chose to remove it.  
+- Because the failing report contains no sample I/O, this is the only concrete, source-supported area where the current specification could be missing a real behavior detail.
+
+```

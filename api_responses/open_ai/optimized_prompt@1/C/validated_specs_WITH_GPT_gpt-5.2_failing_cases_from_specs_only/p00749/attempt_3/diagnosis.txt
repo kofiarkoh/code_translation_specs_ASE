@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong ordering rule / wrong transition rule in constructing the support tree (parent/child links), leading to an incorrect set of components being aggregated and checked.
+
+B. What the current specification may be missing or misstating  
+- The spec’s description of the **scan order dependence** is not precise enough to reproduce the source’s behavior. In particular, the generated program interprets scan order as **top-to-bottom** for both (1) choosing the root and (2) selecting the “first” supporting parent, but the source program’s effective order is different.  
+- The spec’s “support relation based on immediate adjacency between a cell and the cell directly below it” is broadly correct, but it does not capture the source’s additional constraints on when a parent link is created (e.g., early returns that prevent later parent assignment once certain conditions are met), which makes the resulting support forest/tree differ from the spec-derived implementation.
+
+C. What general behavior should be clarified in the specification  
+- The **exact iteration order** used when building components’ aggregate properties and when establishing parent/child links (including whether the grid is scanned bottom-up vs top-down, and how ties/first-encounter are defined).  
+- The **exact rule for assigning a parent** when multiple candidate supporting components exist, including any “stop conditions” that prevent further parent consideration once some state is set (i.e., whether parent assignment can be skipped or frozen due to earlier events during scanning).  
+- The **root selection rule** should be stated in terms of the source’s actual scan (which component becomes index 1 / root in the source), not as an informal “bottom-most encountered” phrasing that can be implemented with the wrong traversal direction.
+
+D. Why this clarification is supported by the source program  
+- The source constructs components and the support structure in a single pass that scans **rows from bottom to top** (`for (r = h-1; r >= 0; r--)`) and columns left to right. This order affects:
+  - which component gets created first and becomes the distinguished component `tbl[1]` (the one later forced to be its own parent and used as the sole starting point for `check(1)`), and
+  - which supporting relationship is established first when a component could attach to more than one below-component.
+- Parent/child linking is performed inside `mktree(r,c,this)` with several early exits (e.g., returning if `tbl[this].par` is already set, returning if the below cell is empty, returning if the below component is the same, etc.). These control-flow details mean “first supporting component encountered” is specifically “first encountered under the source’s bottom-up scan and subject to these early-return conditions,” not simply “first in a generic row-major scan.”
+- The failing sample where the spec-derived code reports `STABLE` but the source reports `UNSTABLE` is consistent with building a different support tree (or choosing a different root), which changes which masses/moments get aggregated into which footprint checks, and can easily flip stability outcomes without changing the local balance formula.

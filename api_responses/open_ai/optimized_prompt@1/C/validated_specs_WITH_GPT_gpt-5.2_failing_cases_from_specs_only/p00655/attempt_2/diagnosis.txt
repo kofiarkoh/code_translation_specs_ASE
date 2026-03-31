@@ -1,0 +1,31 @@
+A. Likely mismatch category  
+- Wrong abstraction / wrong transition rule for maintaining the two halves  
+- Wrong operation-code mapping (which codes are deletion vs which are queries, and which half/min/max they refer to)  
+- Wrong termination/loop condition for batches (input handling)
+
+B. What the current specification may be missing or misstating  
+- **Halves are not “value-based” multisets.** The spec describes each half as a multiset supporting “k-th smallest/largest” within that half, implying the halves are defined by value order (e.g., “lower half” vs “upper half”). In the source, the halves are **positional halves of a sequence/deque-like structure**, not “lower values” and “higher values.”  
+- **Insertion semantics are misstated.** The spec says insertion “adds one element; may move one element from second half to first half to restore balance,” but does not state *where* the element is inserted in the sequence. In the source, insertion always appends to the **end of the overall sequence** (implemented by pushing into the second half), then rebalances by moving one element from the front of the second half to the back of the first half if needed.  
+- **Deletion semantics are misstated.** The spec says deletion removes “the current last element of the first half” and equates that with “middle element,” but it frames halves as multisets. In the source, deletion removes the **last element of the first half in sequence order** (a stack-pop from the back of the first-half buffer), then may rebalance by moving one element from the front of the second half to the back of the first half.  
+- **Query semantics are misstated.** The spec claims queries return k-th smallest/largest “if that half’s elements were sorted.” In the source, each half maintains specialized min/max structures tied to **sequence order**, and the query operations return the **k-th element in a monotone min-queue/max-queue sense** (i.e., k-th minimum/maximum over a set of candidates derived from the half’s internal structure), not general order statistics of the half’s multiset.  
+- **Operation code mapping is incomplete/incorrect.** The spec only assigns parameterized queries to codes 4,5,8,9 and treats “all other non-zero codes” as deletion. The source has a full mapping:  
+  - 1 = delete  
+  - 2/3 = min of FH/SH  
+  - 4/5 = “k-th min” of FH/SH  
+  - 6/7 = max of FH/SH  
+  - 8/9 = “k-th max” of FH/SH  
+  Treating codes like 2,3,6,7 as deletion will quickly delete from an empty structure and crash.  
+- **Batch termination differs.** The spec says “A batch with q=0 ends all processing.” The source loops as `while (q = in())`, which indeed stops on 0, but also implies input parsing is via a digit-skipping routine that does not handle EOF/negative the same way as `scanf`. The spec doesn’t capture that input format is “non-negative integers only” and that parsing skips non-digits.
+
+C. What general behavior should be clarified in the specification  
+- Define the data structure as a **sequence split into two contiguous halves by position**, not as two value-partitioned multisets.  
+- Specify **exact insertion position** (append to end of sequence) and **exact deletion position** (remove last element of first half, i.e., the “middle” under the balancing rule).  
+- Clarify that balancing is done by **moving boundary elements between halves in sequence order** (from the front of second half to the back of first half), not by moving smallest/largest values.  
+- Precisely define what “k-th min/max” queries mean in the source: they are not “k-th smallest/largest after sorting,” but are derived from the maintained monotone structures (effectively “k-th element in the monotone min/max stack/queue representation” for that half).  
+- Provide the **complete operation-code table** (0–9) including which codes take a parameter and which half/min/max they query.
+
+D. Why this clarification is supported by the source program  
+- `add(ALL,a)` always calls `add(SH,a)` first, meaning new elements go to the **second half** (the “back” of the sequence), then possibly moves one element via `del(SH)` into `add(FH, ...)` to rebalance. This is positional/sequence behavior, not value-based partitioning.  
+- `del(ALL)` deletes from `del(FH)` (which pops from the **end** of FH: `a = que[FH][--qe[FH]]`), then may move one element from SH to FH if `size(FH) < size(SH)`. Again, boundary movement is by sequence ends.  
+- The min/max maintenance differs between FH and SH: FH updates min/max only by comparing to the last recorded extreme (stack-like), while SH uses while-loops that pop to maintain monotonicity (queue-like). The query functions `gmin/gmax` index into these structures by position (`ae-th`, `at+th-1`, etc.), which is not the same as selecting the k-th smallest/largest element of the half’s multiset.  
+- The `main` dispatch explicitly distinguishes codes 1..9 into delete/min/max/k-th variants; therefore the spec’s “all other non-zero codes are deletion” is incompatible with the source and can directly lead to deletion on empty and a segmentation fault (consistent with the observed runtime error).

@@ -1,0 +1,187 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAXV 105
+#define MAXE 12000 /* enough for N<=51: ~2*N*N + 4*N edges, each with reverse */
+#define DIM 52
+
+typedef signed char sc;
+
+typedef struct {
+    sc v[DIM];
+} Vec;
+
+static int N;
+
+static int head[MAXV];
+static int to[MAXE], nxt[MAXE], cap[MAXE];
+static Vec cost[MAXE];
+static int ecnt = 0;
+
+static int prevv[MAXV], preve[MAXV];
+static Vec distv[MAXV];
+static int inq[MAXV];
+
+static Vec INFV;
+
+static int letter_index(char ch) {
+    if (ch >= 'A' && ch <= 'Z') return (int)(ch - 'A');
+    if (ch >= 'a' && ch <= 'z') return 26 + (int)(ch - 'a');
+    return -1; /* unspecified by spec if non-letter */
+}
+
+static char index_letter(int idx) {
+    if (idx < 26) return (char)('A' + idx);
+    return (char)('a' + (idx - 26));
+}
+
+static Vec vec_zero(void) {
+    Vec r;
+    for (int i = 0; i < DIM; i++) r.v[i] = 0;
+    return r;
+}
+
+static Vec vec_inf(void) {
+    Vec r;
+    for (int i = 0; i < DIM; i++) r.v[i] = (sc)60;
+    return r;
+}
+
+/* Lexicographic compare: return -1 if a<b, 0 if equal, +1 if a>b */
+static int vec_cmp(const Vec *a, const Vec *b) {
+    for (int i = 0; i < DIM; i++) {
+        if (a->v[i] < b->v[i]) return -1;
+        if (a->v[i] > b->v[i]) return 1;
+    }
+    return 0;
+}
+
+static Vec vec_add(const Vec *a, const Vec *b) {
+    Vec r;
+    for (int i = 0; i < DIM; i++) {
+        /* componentwise signed 8-bit arithmetic; overflow is unspecified by spec */
+        r.v[i] = (sc)(a->v[i] + b->v[i]);
+    }
+    return r;
+}
+
+static Vec vec_neg(const Vec *a) {
+    Vec r;
+    for (int i = 0; i < DIM; i++) r.v[i] = (sc)(-a->v[i]);
+    return r;
+}
+
+static void add_edge(int u, int v, int c, Vec w) {
+    to[ecnt] = v;
+    cap[ecnt] = c;
+    cost[ecnt] = w;
+    nxt[ecnt] = head[u];
+    head[u] = ecnt++;
+
+    to[ecnt] = u;
+    cap[ecnt] = 0;
+    cost[ecnt] = vec_neg(&w);
+    nxt[ecnt] = head[v];
+    head[v] = ecnt++;
+}
+
+/* SPFA-like shortest path under lexicographic vector distances */
+static int shortest_path(int s, int t, int V) {
+    for (int i = 0; i < V; i++) {
+        distv[i] = INFV;
+        inq[i] = 0;
+        prevv[i] = -1;
+        preve[i] = -1;
+    }
+    distv[s] = vec_zero();
+
+    static int q[MAXV * 20];
+    int qh = 0, qt = 0;
+    q[qt++] = s;
+    inq[s] = 1;
+
+    while (qh != qt) {
+        int u = q[qh++];
+        if (qh >= (int)(sizeof(q) / sizeof(q[0]))) qh = 0;
+        inq[u] = 0;
+
+        for (int e = head[u]; e != -1; e = nxt[e]) {
+            if (cap[e] <= 0) continue;
+            int v = to[e];
+            Vec cand = vec_add(&distv[u], &cost[e]);
+            if (vec_cmp(&cand, &distv[v]) < 0) {
+                distv[v] = cand;
+                prevv[v] = u;
+                preve[v] = e;
+                if (!inq[v]) {
+                    q[qt++] = v;
+                    if (qt >= (int)(sizeof(q) / sizeof(q[0]))) qt = 0;
+                    inq[v] = 1;
+                }
+            }
+        }
+    }
+    return (prevv[t] != -1);
+}
+
+int main(void) {
+    if (scanf("%d", &N) != 1) return 0;
+
+    int V = 2 * N + 2;
+    int S = 2 * N;
+    int T = 2 * N + 1;
+
+    for (int i = 0; i < MAXV; i++) head[i] = -1;
+    INFV = vec_inf();
+
+    /* Read grid lines; use first N characters of each line */
+    char line[4096];
+    /* consume endline after N */
+    int ch;
+    do { ch = getchar(); } while (ch != '\n' && ch != EOF);
+
+    for (int i = 0; i < N; i++) {
+        if (!fgets(line, (int)sizeof(line), stdin)) line[0] = '\0';
+        /* ensure at least N chars are present per spec precondition */
+        for (int j = 0; j < N; j++) {
+            char c = line[j];
+            int idx = letter_index(c);
+
+            Vec w = vec_zero();
+            if (idx >= 0) w.v[idx] = (sc)-1; /* choosing this cell adds -1 to that component */
+
+            /* edge from row i to column j */
+            add_edge(i, N + j, 1, w);
+        }
+    }
+
+    /* Source to rows, columns to sink */
+    Vec z = vec_zero();
+    for (int i = 0; i < N; i++) add_edge(S, i, 1, z);
+    for (int j = 0; j < N; j++) add_edge(N + j, T, 1, z);
+
+    Vec total = vec_zero();
+    int flow = 0;
+
+    while (flow < N) {
+        if (!shortest_path(S, T, V)) break; /* under preconditions, should not happen */
+        /* augment by 1 (all capacities are 1 along augmenting path) */
+        int v = T;
+        while (v != S) {
+            int e = preve[v];
+            cap[e] -= 1;
+            cap[e ^ 1] += 1;
+            v = prevv[v];
+        }
+        total = vec_add(&total, &distv[T]);
+        flow += 1;
+    }
+
+    /* Output letters in fixed order, each printed -component times */
+    for (int i = 0; i < DIM; i++) {
+        int cnt = (int)(-(int)total.v[i]);
+        for (int k = 0; k < cnt; k++) putchar(index_letter(i));
+    }
+    putchar('\n');
+    return 0;
+}

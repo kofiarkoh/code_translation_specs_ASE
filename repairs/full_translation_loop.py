@@ -29,13 +29,13 @@ except ModuleNotFoundError:
     )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PIPELINE_NAME = "failing_problems_from_specs_only_2"
+PIPELINE_NAME = "failing_problems_from_specs_only__modified_specs_prompt"
 DATASET_NAME = "optimized_prompt@1"
 INITIAL_TRANSLATION_PROFILES = ["specs_only"] # "code_only", "code_and_spec"]
-SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "validated_specs_WITH_GPT_gpt-5.2"
+SPECS_ROOT = PROJECT_ROOT / "api_responses" / "open_ai" / DATASET_NAME / "C" / "validated_specs_WITH_GPT_gpt-5.2_failing_cases_from_specs_only"
 CODE_ROOT = PROJECT_ROOT / "collected_dataset" / "C" / "non_passing_specs_only_batch"
 MAX_PROBLEMS_TO_RUN: int | None = None
-MAX_REPAIR_ATTEMPTS = 40
+MAX_REPAIR_ATTEMPTS = 3
 PARALLEL_PROBLEMS = 10
 REDO_ONLY_API_ERRORS = False
 MODEL = "gpt-5.2"

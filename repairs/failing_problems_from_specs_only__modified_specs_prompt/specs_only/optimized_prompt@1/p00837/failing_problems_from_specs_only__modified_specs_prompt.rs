@@ -1,0 +1,142 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Loc {
+    desk: usize,
+    pos: usize,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(m_tok) = it.next() else { break };
+        let m_i: i32 = m_tok.parse().unwrap();
+        if m_i <= 0 {
+            break;
+        }
+        let m = m_i as usize;
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        let mut desks: Vec<Vec<u32>> = vec![Vec::new(); m + 2]; // 1..=m plus m+1
+        let mut seen = [false; 101];
+        let mut loc: [Loc; 101] = [Loc { desk: 0, pos: 0 }; 101];
+
+        // Requests are serviced in deterministic global order:
+        // increasing request position within a student's list, ties by increasing student index.
+        // The original intended behavior (per known problem) is 1-based request position.
+        // We therefore store seq as 1..=t (not 0..t-1).
+        let mut reqs: Vec<(usize, usize, u32)> = Vec::new();
+
+        for student in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for k in 1..=t {
+                let id_u32: u32 = it.next().unwrap().parse().unwrap();
+                let id = id_u32 as usize;
+
+                if !seen[id] {
+                    seen[id] = true;
+                    let d = m + 1;
+                    let p = desks[d].len();
+                    desks[d].push(id_u32);
+                    loc[id] = Loc { desk: d, pos: p };
+                }
+
+                reqs.push((k, student, id_u32));
+            }
+        }
+
+        reqs.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+
+        fn remove_at(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, pos: usize) -> u32 {
+            let removed = desks[desk].remove(pos);
+            for p in pos..desks[desk].len() {
+                let bid = desks[desk][p] as usize;
+                loc[bid] = Loc { desk, pos: p };
+            }
+            removed
+        }
+
+        fn append_to(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, id: u32) {
+            let p = desks[desk].len();
+            desks[desk].push(id);
+            loc[id as usize] = Loc { desk, pos: p };
+        }
+
+        fn insert_at(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, pos: usize, id: u32) {
+            desks[desk].insert(pos, id);
+            for p in pos..desks[desk].len() {
+                let bid = desks[desk][p] as usize;
+                loc[bid] = Loc { desk, pos: p };
+            }
+        }
+
+        let mut total: i64 = 0;
+
+        for &(_k, _student, id_u32) in &reqs {
+            let id = id_u32 as usize;
+
+            // 8.1 remove requested book
+            let l = loc[id];
+            let from = l.desk;
+            let pos = l.pos;
+            let _ = remove_at(&mut desks, &mut loc, from, pos);
+            total += from as i64;
+
+            // 8.2 relocation if primary full before placing id
+            if desks[1].len() == c {
+                // 1) choose tmp: smallest 2..=m not full
+                let mut tmp = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() < c {
+                        tmp = d;
+                        break;
+                    }
+                }
+
+                // 2) temporarily place id on tmp (append)
+                append_to(&mut desks, &mut loc, tmp, id_u32);
+                total += tmp as i64;
+
+                // 3) evict front from primary
+                let id2 = remove_at(&mut desks, &mut loc, 1, 0);
+                total += 1;
+
+                // 4) choose destination j: smallest 2..=m not full now
+                let mut j = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() < c {
+                        j = d;
+                        break;
+                    }
+                }
+
+                // 5) place evicted book into j at defined position
+                let mut ins_pos = desks[j].len();
+                if j == tmp {
+                    ins_pos = ins_pos.saturating_sub(1);
+                }
+                insert_at(&mut desks, &mut loc, j, ins_pos, id2);
+
+                // 6) add j + tmp, then remove temporary id from end of tmp
+                total += (j + tmp) as i64;
+                let popped = desks[tmp].pop().unwrap();
+                debug_assert!(popped == id_u32);
+                loc[id] = Loc { desk: 0, pos: 0 };
+            }
+
+            // 8.3 place requested book onto primary
+            append_to(&mut desks, &mut loc, 1, id_u32);
+            total += 1;
+        }
+
+        outs.push(total.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}

@@ -1,0 +1,76 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given a bipartite graph between two equally sized sets (left side and right side), determines whether a perfect matching exists (a one-to-one pairing that matches every left element to a distinct right element using only allowed edges).  
+- If no perfect matching exists, the program outputs `"no"` and terminates.  
+- If a perfect matching exists, the program outputs `"yes"` and then outputs `N` integers, one per left element in increasing order, produced by a specific rematching procedure derived from an initially found perfect matching.
+
+2. Inputs  
+- An integer `N_in` (a non-negative integer as parsed by the program). The effective size is `N = N_in - 1`.  
+- Then `N × N` binary entries describing allowed edges from left vertices `0..N-1` to right vertices `0..N-1`.  
+  - The program reads these entries as characters and treats an entry as “allowed” when the character’s ASCII code is odd (in typical inputs this corresponds to `'1'` meaning allowed and `'0'` meaning not allowed).  
+  - After each entry character, one additional character is consumed (typically a separator such as whitespace or newline).  
+  - Any deviation from this expected character layout results in unspecified behavior.
+
+3. Outputs  
+- If no perfect matching exists: one line containing exactly `no` (lowercase).  
+- If a perfect matching exists:  
+  - One line containing exactly `yes` (lowercase).  
+  - Then exactly `N` lines. For each left vertex `i` from `0` to `N-1`, the program prints one integer in `1..N` representing a right vertex index (1-based) obtained by the rematching procedure described below.
+
+4. Preconditions / Constraints  
+- `N = N_in - 1` must satisfy `0 ≤ N ≤ 1004` to stay within fixed internal array bounds.  
+- The input must provide exactly `N × N` entries in the character-based format the program expects (entry character plus one extra consumed character per entry). Otherwise behavior is undefined.
+
+5. Semantics of the Decision (`yes`/`no`)  
+- The program outputs `no` iff it fails to find a matching of size `N` (i.e., it cannot match every left vertex to a distinct right vertex).  
+- The program outputs `yes` iff it finds a matching of size `N`.
+
+6. Semantics of the `N` Lines After `yes` (Rematching Procedure)  
+When `yes` is printed, the program has already computed one perfect matching using a DFS-based augmenting-path algorithm (Kuhn-style), with adjacency lists ordered by the input scan order.
+
+Then, for each left vertex `i` in increasing order, it performs the following steps and prints the resulting right partner of `i`:
+
+- Let `p` be the right vertex currently matched with `i` in the current matching state.  
+- Temporarily unmatch both endpoints of that matched edge: `i` becomes unmatched and `p` becomes unmatched.  
+- Run exactly one DFS-based augmenting-path search starting from `i` on the current matching state, attempting to re-match `i` (possibly by reassigning other left vertices along an augmenting path). This search respects the stored adjacency order.  
+- After this single augmentation attempt, output the (1-based) index of the right vertex that ends up matched to `i`.
+
+Notes/implications of this definition:  
+- The printed partner for each `i` is algorithm- and traversal-order dependent (it is the result of that single DFS augmentation given the current matching state and adjacency order), not a canonical choice such as “smallest possible partner.”  
+- The `N` printed partners are produced sequentially while the matching state is being updated; they are not computed independently from a fixed original matching.  
+- The program does not explicitly verify, for each printed pair `(i, r)`, that it belongs to some perfect matching under an independent “force this edge and re-solve” check; it only outputs what its rematching procedure yields.
+
+7. Edge Cases / Termination  
+- If `N = 0`, the program outputs `yes` and no additional lines.  
+- The program terminates immediately after printing either `no` or `yes` followed by the `N` rematching outputs.
+
+8. Error Handling  
+- No explicit error handling is performed. Inputs outside bounds or not matching the expected character layout may cause incorrect results or memory errors.
+
+```

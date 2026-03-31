@@ -1,0 +1,89 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads an integer \(N\) and a sequence of \(N\) integers, forms the prefix bitwise-xor sequence \(s_i\), and computes a single integer result modulo \(10^9+7\). The computation maintains, for each possible xor value in a fixed domain of size \(2^{20}\), a small set of modular accumulators and a “last seen index”. Updates occur only for the xor-class equal to the current prefix-xor \(s_i\). The final output is either the per-class value for the final prefix-xor (when nonzero) or a combination of a power-of-two term (based on how many prefix-xors are zero) plus accumulated contributions from all nonzero xor-classes (when the final prefix-xor is zero).
+
+2. Inputs  
+- An integer \(N\).  
+- A sequence of \(N\) integers \(a_1, a_2, \dots, a_N\).
+
+3. Outputs  
+- One integer in the range \([0,10^9+6]\) printed to standard output: the computed value modulo \(10^9+7\).
+
+4. Preconditions / Assumptions  
+- \(N \ge 1\).  
+- All computed prefix-xor values \(s_i\) must lie in \([0,2^{20}-1]\); otherwise the program performs out-of-bounds array access (undefined behavior). (This effectively constrains the input values so that the running xor never leaves this range.)  
+- Sufficient memory is available for arrays of sizes \(N+1\) and \(2^{20}\).  
+- Input is well-formed and provides exactly \(N\) sequence values after \(N\).  
+- No additional constraints are imposed by the program (values may be negative in the input type, but the prefix-xor range constraint must still hold).
+
+5. Definitions  
+Let:  
+- Modulus \(P = 10^9+7\). All arithmetic described below is performed modulo \(P\) (with intermediate products reduced modulo \(P\) as in the program).  
+- \(s_0 = 0\), and for \(i=1..N\): \(s_i = s_{i-1} \oplus a_i\).  
+- \(Onum[0]=0\), and for \(i=1..N\): \(Onum[i] = Onum[i-1] + [s_i = 0]\), i.e., the count of indices \(j \in [1..i]\) with \(s_j=0\).  
+- Domain size \(M = 2^{20}\), and xor-classes \(x \in [0..M-1]\).
+
+6. State Variables and Initialization  
+For each xor-class \(x \in [0..M-1]\), the program maintains:  
+- \(prev[x]\): last index \(i\) (in \([1..current]\)) such that \(s_i = x\); initialized to \(0\) for all \(x\) (meaning “not seen yet”).  
+- \(dp[x]\): a per-class modular value; initialized to \(0\) for all \(x\).  
+- \(sum[x]\): a per-class modular accumulator; initialized to \(0\) for all \(x\).  
+- \(Osum[x]\): a per-class modular accumulator; initialized to \(1\) for all \(x\).
+
+7. Per-step Update (Core Recurrence)  
+For each position \(i=1..N\):  
+- Let \(x = s_i\).  
+- Let \(\Delta = Onum[i] - Onum[prev[x]]\). (This is the number of zero prefix-xors among indices \(j\) with \(prev[x] < j \le i\).)  
+- Update only the state for this \(x\) using the previous values of \(sum[x]\), \(Osum[x]\), and \(prev[x]\):  
+  - \(dp[x] \leftarrow (\,sum[x]\cdot \Delta + Osum[x]\,) \bmod P\)  
+  - \(Osum[x] \leftarrow (\,Osum[x] + sum[x]\cdot \Delta\,) \bmod P\)  
+  - \(sum[x] \leftarrow (\,sum[x] + dp[x]\,) \bmod P\)  
+  - \(prev[x] \leftarrow i\)  
+All other xor-classes \(y \ne x\) remain unchanged at step \(i\).
+
+8. Final Answer  
+Let \(t = s_N\). The program outputs:  
+- If \(t \ne 0\): output \(dp[t]\).  
+- If \(t = 0\): output  
+  \[
+  \left(2^{(Onum[N]-1)} + \sum_{x=1}^{M-1} sum[x]\right) \bmod P,
+  \]
+  where exponentiation is computed modulo \(P\) with exponent \(Onum[N]-1\).  
+Note: when \(s_N=0\), \(Onum[N]\ge 1\) (since index \(N\) itself contributes), so the exponent \(Onum[N]-1\) is always a nonnegative integer.
+
+9. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If memory allocation fails, input is malformed, or any prefix-xor \(s_i\) falls outside \([0,2^{20}-1]\), behavior is undefined.  
+- The program always terminates after processing \(N\) elements under the above assumptions.
+
+10. Non-functional Characteristics  
+- Time complexity: \(O(N + 2^{20})\) due to initialization over the fixed xor domain and a constant amount of work per element.  
+- Memory usage: \(O(N + 2^{20})\).
+
+```

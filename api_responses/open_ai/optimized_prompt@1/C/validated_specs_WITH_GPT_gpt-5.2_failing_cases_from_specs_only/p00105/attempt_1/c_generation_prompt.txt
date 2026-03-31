@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of records, each consisting of a word and an associated page number. It builds an index grouping records by word, tracking the set of page numbers associated with each word and the total count of records seen for that word. After all input is consumed, it outputs all distinct words in ascending lexicographic order; for each word, it outputs the page numbers that were recorded for that word in ascending numeric order.
+
+2. Inputs  
+- A stream of zero or more records.  
+- Each record contains:  
+  - A word token (bounded length).  
+  - A non-negative integer page number (assumed to be within a fixed supported range).
+
+3. Outputs  
+For each distinct word encountered (up to a fixed maximum count):  
+- One line containing the word.  
+- One line containing the associated page numbers in ascending order, separated by single spaces, terminated by a newline.
+
+4. Preconditions  
+- The number of distinct words in the input does not exceed 100.  
+- Each word’s length fits within 30 characters (excluding terminator).  
+- Each page number is within the supported range 0 to 1000 inclusive.  
+- For each word, the total number of input records for that word does not exceed 1001.  
+- Input records are well-formed as a word followed by an integer.
+
+5. Postconditions  
+- For every distinct word read, exactly one word entry is produced in the output.  
+- Output word entries are ordered by ascending lexicographic order of the word.  
+- For each output word, the printed page numbers are in ascending numeric order and correspond to page numbers that appeared at least once with that word in the input.  
+- If the same word-page pair appears multiple times in the input, the page number is printed at most once for that word.
+
+6. Invariants  
+- Each stored word entry corresponds to a unique word among stored entries.  
+- For each stored word entry, the set of recorded page numbers is a subset of the supported page range.  
+- The printed page numbers for a word are strictly increasing (no duplicates) due to set semantics.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any precondition is violated (e.g., too many distinct words, word too long, page number out of range, too many records for a word, malformed input), behavior is undefined and may include incorrect output or memory corruption.
+
+8. State Transitions (if applicable)  
+- The program transitions from an empty index state to a populated index state by consuming input records until end-of-input.  
+- After input consumption, it transitions to a finalized state where entries are sorted and then emitted to output.  
+- No persistent state is maintained beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed capacity limits: up to 100 distinct words; page numbers tracked only within 0..1000; word length limited to 30 characters.  
+- Time and memory usage are bounded by these fixed limits; sorting cost grows with the number of distinct words (up to the fixed maximum).
+
+```

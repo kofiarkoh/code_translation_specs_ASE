@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads a sequence of records, each consisting of a word and an associated page number. It maintains up to a fixed maximum number of distinct word entries. For each word entry, it records (by marking) which page numbers have been seen with that word and also maintains a per-word counter that is incremented once for every input record for that word (including repeated occurrences of the same page number).  
+After all input is consumed, it sorts the stored word entries in ascending lexicographic order and outputs each word followed by a line of page numbers in ascending numeric order. The page-number output is produced by scanning the supported page-number range from low to high and printing those page numbers whose mark equals 1, stopping when the program believes it has printed the “last” page for that word based on the per-word counter.
+
+2. Inputs  
+- A stream of zero or more records read until end-of-file.  
+- Each record contains:  
+  - A word token read with `%s` (whitespace-delimited).  
+  - An integer page number read with `%d`.
+
+3. Outputs  
+For each stored distinct word (up to the fixed maximum count):  
+- One line containing the word.  
+- One subsequent line containing page numbers selected by the program’s internal marks, printed in increasing numeric order, separated by single spaces, and terminated by a newline.  
+The program prints page numbers by scanning the entire supported page range in increasing order and printing each page whose mark equals 1; it terminates this scan early when the number of printed pages reaches `(tm - 1)` according to the per-word counter `tm`.
+
+4. Preconditions / Assumptions for Defined Behavior  
+Because the program does not initialize its index storage, its behavior is only well-defined under additional assumptions about initial state and input consistency:  
+- The number of distinct words encountered does not exceed 100.  
+- Each word fits within 30 characters (excluding the terminating null).  
+- Each page number is within 0 to 1000 inclusive.  
+- The in-memory index array is assumed to start in a state equivalent to all `pgnum[]` entries being 0 and all `tm` counters being 0 for all potential word slots; otherwise, results are not defined by the program.  
+- For each word, the input is assumed not to contain repeated records for the same word-page pair; otherwise the per-word counter `tm` may exceed the number of distinct marked pages, which can cause the page-printing loop to fail to terminate at the intended point or to produce output not corresponding to the intended set of pages.  
+- Input records are well-formed as a word followed by an integer; scanning stops at EOF.
+
+5. Postconditions (under the assumptions above)  
+- For every distinct word read, exactly one word entry is produced in the output.  
+- Output word entries are ordered by ascending lexicographic order of the word.  
+- For each output word, the printed page numbers are in ascending numeric order and correspond to page numbers that were marked as present for that word.  
+- Each page number is printed at most once per word because printing is driven by a per-page mark and a single increasing scan of the page range.
+
+6. State / Counting Semantics  
+- When a record `(word, page)` is read:  
+  - If `word` already exists in the stored entries, the program sets that entry’s `pgnum[page]` mark to 1 and increments that entry’s counter `tm` by 1.  
+  - If `word` is new, the program creates a new entry, copies the word, sets `pgnum[page]` to 1, increments `tm` by 1, and increases the distinct-word count.  
+- The counter `tm` is the number of input records processed for that word (not the number of distinct pages), and it is used to decide when to stop printing page numbers for that word.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any precondition/assumption is violated (e.g., too many distinct words, word too long, page number out of range, malformed input, lack of zero-initialized index storage, or repeated word-page pairs), behavior is undefined and may include incorrect output, missing output, extra output, non-termination of the page-printing scan, or memory corruption.
+
+8. Termination Behavior  
+- Input is consumed until EOF.  
+- After sorting and printing all stored entries, the program terminates normally.
+
+```

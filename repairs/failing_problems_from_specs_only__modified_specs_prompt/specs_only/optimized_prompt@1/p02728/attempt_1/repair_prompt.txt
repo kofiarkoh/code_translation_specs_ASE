@@ -1,0 +1,73 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description
+Computes, for each node of an input tree, the number of linear orderings (permutations) of all nodes such that the nodes in the subtree rooted at that node (when the tree is rooted at that node) appear as a contiguous block in the ordering. Results are reported modulo a fixed prime.
+
+2. Inputs
+- An integer `n`: the number of nodes.
+- `n-1` undirected edges, each given as a pair of node labels.
+
+3. Outputs
+- Exactly `n` lines.
+- Line `i` (for node label `i`) contains the computed value for that node, reduced modulo the fixed prime.
+
+4. Preconditions
+- `n` is within the fixed capacity implied by the program’s static storage (up to about 200,000 nodes).
+- Node labels are integers in the range `[1, n]`.
+- The `n-1` edges form a connected, acyclic undirected graph (a tree).
+- All modular divisions performed are valid, i.e., every value inverted modulo the prime is nonzero modulo that prime (this is satisfied under the tree-size bound and the prime modulus).
+
+5. Postconditions
+For each node `r` in `[1, n]`, the output value equals:
+- The number of permutations of `{1..n}` in which the set of nodes in the rooted subtree of `r` (when the tree is rooted at `r`) occupies a single contiguous interval in the permutation,
+- Taken modulo the fixed prime.
+
+Equivalently, for each `r`, the output equals:
+- `n! / ( ∏ over all nodes u of size(subtree_u_when_rooted_at_r) )` modulo the prime.
+
+6. Invariants
+- The underlying undirected tree structure is unchanged throughout computation.
+- During computation, subtree sizes are maintained consistently with the current chosen root orientation used internally for rerooting steps.
+- All reported results are reduced modulo the fixed prime.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If input violates preconditions (non-tree, out-of-range labels, exceeding capacity, or malformed input), behavior is undefined (may crash, loop incorrectly, or produce incorrect output).
+- If a modular inverse is requested for a value congruent to zero modulo the prime (not expected under stated bounds), behavior is undefined with respect to the intended mathematical result.
+
+8. State Transitions (if applicable)
+- Conceptually transitions through different root choices to compute per-node results (“rerooting” across edges), while preserving the same underlying tree.
+- For each transition from a node to an adjacent node, internal state is updated so that subtree sizes and the associated per-root product term correspond to the new root, then restored when returning.
+
+9. Non-functional Constraints (if inferable)
+- Time complexity is linear in `n` (proportional to the number of nodes/edges), aside from logarithmic-time modular exponentiation used for modular inverses.
+- Memory usage is linear in `n` with fixed-size arrays sized for roughly 200,000 nodes and about twice that many directed edge records.
+- Uses recursion proportional to tree height; on very deep trees this may exceed typical call stack limits.
+```

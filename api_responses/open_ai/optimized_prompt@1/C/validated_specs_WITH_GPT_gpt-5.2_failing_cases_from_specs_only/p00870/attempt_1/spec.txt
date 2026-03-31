@@ -1,0 +1,48 @@
+1. Functional Description  
+For each dataset, computes how many positions in a constructed target string can be reached such that, starting from the beginning of the target string, one can select and concatenate each of the given patterns exactly once (in any order) so that the concatenation matches a prefix of the target string and ends exactly at that position. The reported count is the number of end positions (including possibly the start position only if all patterns are empty, which is not expected) where all patterns have been used exactly once in a valid sequential match.
+
+2. Inputs  
+- Repeated datasets, each beginning with two integers:  
+  - The number of patterns.  
+  - The number of string fragments used to build the target string.  
+- Then a list of pattern strings.  
+- Then a list of fragment strings, which are concatenated in the given order to form the target string.
+
+3. Outputs  
+- For each dataset, outputs a single integer: the number of end positions in the target string that are reachable by matching a concatenation of all patterns exactly once from the start of the target string.
+
+4. Preconditions  
+- Number of patterns is within a fixed small bound implied by storage (at most 12).  
+- Each pattern length is within a fixed bound implied by storage (at most 20 characters).  
+- The number of fragments and their total concatenated length fit within a fixed bound implied by storage (total target length at most 5000 characters).  
+- The total number of pattern subsets fits within the fixed bound implied by storage (requires 2^(number of patterns) ≤ 4096, i.e., number of patterns ≤ 12).  
+- Pattern and fragment strings contain no embedded terminators and are provided as single tokens (no internal whitespace).  
+- Datasets terminate when both initial integers are zero.
+
+5. Postconditions  
+For each dataset:  
+- Let the target string be the concatenation of the provided fragments in order.  
+- A position `p` (0 ≤ p ≤ |target|) is counted if and only if there exists an ordering of all patterns such that:  
+  - Starting at position 0 of the target, the first pattern matches the target at position 0, the second matches immediately after the first, and so on without gaps or overlaps.  
+  - Each pattern is used exactly once.  
+  - The concatenation ends exactly at position `p`.  
+- The output equals the number of such positions `p`.
+
+6. Invariants  
+- Reachability is defined only by consuming the target string from left to right starting at position 0, using a subset of patterns exactly once each, and always advancing by the full length of the matched pattern.  
+- No pattern may be used more than once in any reachability witness.  
+- Only exact character-by-character matches of full patterns against the corresponding target substring contribute to reachability.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input violates the fixed bounds (too many patterns, patterns too long, target too long, or too many subsets), behavior is undefined (may corrupt memory or produce incorrect results).  
+- If the input stream ends unexpectedly or contains malformed tokens, behavior is unspecified (may terminate early or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- For each dataset, the computation starts with only the initial state “at position 0 with no patterns used” considered reachable.  
+- Reachable states expand by matching any not-yet-used pattern at the current position, transitioning to a new position advanced by that pattern’s length and marking that pattern as used.  
+- Final states are those with all patterns used; the output counts how many distinct end positions are reachable in such final states.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size tables sized for: target length up to 5000 and pattern-subset states up to 4096.  
+- Time cost grows proportionally to (target length) × (number of subsets) × (number of patterns), within the fixed bounds above.

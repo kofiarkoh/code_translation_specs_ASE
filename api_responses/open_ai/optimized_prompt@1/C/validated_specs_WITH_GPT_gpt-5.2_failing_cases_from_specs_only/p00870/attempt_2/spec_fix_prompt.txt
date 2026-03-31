@@ -1,0 +1,182 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+/*
+  AOJ 1291
+  Title:Search of Concatenated Strings
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+
+int n,m;
+char e[12][21];
+int  len[12];
+char t[5001];
+char flag[5001][4096];
+void dump_flag(char flag[5001][4096],int len)
+{
+  int i,j;
+  for(i=0;i<len;i++)
+    for(j=0;j<4096;j++)
+      if(flag[i][j])
+	printf("%d %d\n",i,j);
+}
+main()
+{
+  int l,ln,l_s,i,j,k,cnt,loop,mask,pat;
+  char buf[101];
+  while(scanf("%d %d",&n,&m) && (n||m))
+    {
+      memset(flag,0,sizeof(flag));
+      for(i=0;i<n;i++)
+	{
+	  scanf("%s",&e[i][0]); 
+	  len[i]=strlen(&e[i][0]);
+	}
+      t[0]='\0';
+      for(i=0;i<m;i++)
+	{
+	  scanf("%s",buf);
+	  ln=strlen(buf);
+	  if(buf[ln-1]<' ')
+	    buf[ln-1]='\0';
+	  strcat(t,buf);
+	}
+      l_s=strlen(t);
+      loop=1<<n;
+      for(i=0,cnt=0;i<l_s;i++)
+	{
+	  for(j=0;j<loop;j++)
+	    {
+	    if(j && flag[i][j]==0)
+	    continue;
+	    for(k=0,mask=1;k<n;k++,mask<<=1)
+		{
+		  if(j & mask)
+		    continue;
+		  if(0==strncmp(&e[k][0],&t[i],(l=len[k])))
+		    {
+		      pat=j|mask;
+		      flag[i+l][pat]=1;
+		    }
+		}
+	    }
+	}
+      for(i=0,cnt=0;i<=l_s;i++)
+	cnt += flag[i][loop-1];
+      printf("%d\n",cnt);
+    }
+  return(0);
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each dataset, computes how many positions in a constructed target string can be reached such that, starting from the beginning of the target string, one can select and concatenate each of the given patterns exactly once (in any order) so that the concatenation matches a prefix of the target string and ends exactly at that position. The reported count is the number of end positions (including possibly the start position only if all patterns are empty, which is not expected) where all patterns have been used exactly once in a valid sequential match.
+
+2. Inputs  
+- Repeated datasets, each beginning with two integers:  
+  - The number of patterns.  
+  - The number of string fragments used to build the target string.  
+- Then a list of pattern strings.  
+- Then a list of fragment strings, which are concatenated in the given order to form the target string.
+
+3. Outputs  
+- For each dataset, outputs a single integer: the number of end positions in the target string that are reachable by matching a concatenation of all patterns exactly once from the start of the target string.
+
+4. Preconditions  
+- Number of patterns is within a fixed small bound implied by storage (at most 12).  
+- Each pattern length is within a fixed bound implied by storage (at most 20 characters).  
+- The number of fragments and their total concatenated length fit within a fixed bound implied by storage (total target length at most 5000 characters).  
+- The total number of pattern subsets fits within the fixed bound implied by storage (requires 2^(number of patterns) ≤ 4096, i.e., number of patterns ≤ 12).  
+- Pattern and fragment strings contain no embedded terminators and are provided as single tokens (no internal whitespace).  
+- Datasets terminate when both initial integers are zero.
+
+5. Postconditions  
+For each dataset:  
+- Let the target string be the concatenation of the provided fragments in order.  
+- A position `p` (0 ≤ p ≤ |target|) is counted if and only if there exists an ordering of all patterns such that:  
+  - Starting at position 0 of the target, the first pattern matches the target at position 0, the second matches immediately after the first, and so on without gaps or overlaps.  
+  - Each pattern is used exactly once.  
+  - The concatenation ends exactly at position `p`.  
+- The output equals the number of such positions `p`.
+
+6. Invariants  
+- Reachability is defined only by consuming the target string from left to right starting at position 0, using a subset of patterns exactly once each, and always advancing by the full length of the matched pattern.  
+- No pattern may be used more than once in any reachability witness.  
+- Only exact character-by-character matches of full patterns against the corresponding target substring contribute to reachability.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input violates the fixed bounds (too many patterns, patterns too long, target too long, or too many subsets), behavior is undefined (may corrupt memory or produce incorrect results).  
+- If the input stream ends unexpectedly or contains malformed tokens, behavior is unspecified (may terminate early or produce incorrect output).
+
+8. State Transitions (if applicable)  
+- For each dataset, the computation starts with only the initial state “at position 0 with no patterns used” considered reachable.  
+- Reachable states expand by matching any not-yet-used pattern at the current position, transitioning to a new position advanced by that pattern’s length and marking that pattern as used.  
+- Final states are those with all patterns used; the output counts how many distinct end positions are reachable in such final states.
+
+9. Non-functional Constraints (if inferable)  
+- Memory usage is bounded by fixed-size tables sized for: target length up to 5000 and pattern-subset states up to 4096.  
+- Time cost grows proportionally to (target length) × (number of subsets) × (number of patterns), within the fixed bounds above.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong state-transition / reachability definition (ordering of DP expansion), and possibly wrong assumption about what “starting from the beginning” means in the source.
+
+B. What the current specification may be missing or misstating  
+- The spec describes reachability as “starting from position 0” and then building forward, which naturally leads to a DP over `(used-pattern-set, position)` (as in the generated program).  
+- The source program instead performs a forward scan over target positions `i` and expands subset states *at that fixed position* (`flag[i][subset] -> flag[i+len][subset∪{k}]`). This is a DP over `(position, used-pattern-set)` with a particular iteration order (increasing `i`, then all subsets at `i`).  
+- While these two formulations are often equivalent, the spec currently asserts an abstraction (“starting from the beginning … concatenation matches a prefix …”) that may be too strong or too specific compared to what the source actually computes. In particular, the source’s transition rule is anchored on *any reachable position `i`*, not explicitly on “prefix-only” language; it’s a general reachability in the concatenated target string from position 0 via exact matches.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the DP state space and transition semantics in a way that matches the source:  
+  - A state is “at target index `i` having used exactly the subset `S` of patterns”.  
+  - From such a state, you may append any unused pattern `k` that matches the target starting at `i`, moving to `(i+len[k], S∪{k})`.  
+  - The initial reachable state is `(0, ∅)` only.  
+  - The answer counts how many indices `i` have the full-set state reachable.  
+- Clarify that the computation is reachability in the target string via successive exact pattern matches, not a higher-level “prefix of target” characterization that could be misread as a different constraint (even if it often coincides).
+
+D. Why this clarification is supported by the source program  
+- The source uses `flag[i][j]` where `i` is a position in `t` and `j` is a subset bitmask; it sets `flag[i+l][pat]=1` when `strncmp(e[k], &t[i], l)==0`. This is explicitly a position-indexed reachability DP.  
+- It seeds reachability implicitly only at `(0,0)` by allowing transitions from `j==0` at every `i` (because it skips the `continue` only when `j==0`), but since transitions require a match at `t[i]`, the only meaningful start is still governed by reachability propagation. This subtlety is not captured by the current “prefix from the beginning” phrasing and should be specified in the same operational terms as the code.
+
+```

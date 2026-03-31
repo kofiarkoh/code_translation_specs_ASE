@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- **Missing non-functional/implementation constraints** (code-generation feasibility / C language constraints), leading to **invalid generated C** rather than a behavioral mismatch at runtime.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the algorithm at a high level (min-cost perfect matching with lexicographic 52D costs) but does **not constrain how it must be implemented in C** in a way that guarantees:
+  - **Compilable C11 code** (e.g., no nested function definitions; no nonstandard keywords like `auto` used as in GNU C nested functions).
+  - **Feasible memory usage** consistent with the source program’s approach (the generated code attempted a `2^N` DP array, which is not viable for the stated `N ≤ 51` and even caused an invalid shift/array size at compile time).
+- The spec’s “supports up to N=51” is framed as a graph-size limit, but it does not also state that the intended solution must be **polynomial-space** (as the source is), which leaves room for exponential-space interpretations that contradict the source’s design constraints.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the intended computation must be realizable within the source program’s **fixed-size, polynomial memory model**, i.e.:
+  - The algorithm is implemented via **min-cost flow / successive shortest augmenting paths** on a graph of size `O(N)` vertices and `O(N^2)` edges (not subset DP).
+  - The implementation must remain within **C (C11) portability constraints**: no nested functions, no compiler extensions required, and no constructs that would fail to compile under standard C.
+- Clarify that internal storage is bounded similarly to the source: fixed arrays sized for `N ≤ 51` and a bounded number of cost-vectors, rather than any approach requiring `O(2^N)` states.
+
+D. Why this clarification is supported by the source program  
+- The source uses a **fixed-size adjacency matrix** `EDGE edge[MAX][MAX]` with `MAX=105` and constructs a flow network with `V = 2N+2 ≤ 104`, demonstrating an explicit **polynomial, fixed-bound memory strategy**.
+- The source’s cost handling uses a global pool `mx[10000]` of 52-byte vectors and runs a Bellman-Ford-like relaxation over `V` vertices—again **polynomial** and designed to fit static limits.
+- Nothing in the source resembles subset DP or any exponential structure; therefore, a spec that permits such implementations is underconstrained relative to the source and can lead to non-compiling or non-viable generated C even if the high-level math objective is correct.

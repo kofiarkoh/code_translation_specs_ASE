@@ -1,0 +1,16 @@
+A. Likely mismatch category  
+- **Wrong data-structure capacity/constraint (buffer sizing) leading to memory corruption**, plus a **missing constraint about maximum `q` / maximum stored elements per batch**.
+
+B. What the current specification may be missing or misstating  
+- The spec’s capacity statement (“~200,000 per half”) is too vague and was interpreted in the generated code as a single fixed `CAP=400000` for *each* internal structure.  
+- In the source, **each half’s arrays are sized `MAX=200005`**, and there are **multiple arrays per half** (main storage plus min/max auxiliaries). The generated code’s circular deques/stacks can silently overflow/wrap if the true required capacity exceeds `CAP`, causing out-of-bounds writes or invalid indexing and a segfault.  
+- The spec does not clearly state whether `q` itself can be as large as the internal `MAX`, nor does it tie `q`/number of insertions to the fixed array bounds that the source relies on.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **exact fixed internal limits** that the source assumes, in a way that constrains valid inputs: e.g., an upper bound on the number of operations and/or the maximum number of elements that can be present/inserted in a batch such that **no internal array index exceeds its allocated size**.  
+- Clarify that the implementation is **array-index based (not dynamically resizing)** and therefore requires inputs to respect those bounds; otherwise behavior is undefined (including crashes).  
+- Optionally clarify that multiple auxiliary structures exist and may each need to accommodate up to the half size (so “capacity per half” must cover *all* pushes into those arrays).
+
+D. Why this clarification is supported by the source program  
+- The source uses fixed-size global arrays `que[2][MAX]`, `min[2][MAX]`, `max[2][MAX]` with `MAX 200005` and monotonically increasing indices (`qe`, `ae`, `ze`, etc.) without wraparound checks. This means correctness and safety depend on **never exceeding `MAX` pushes** into any of these arrays within a batch.  
+- Because the generated program chose a different capacity model (circular buffers with `CAP=400000`) and the spec did not pin down the true bound, a realistic test with larger `q`/more insertions can cause **index wrap/overwrite or out-of-range access**, producing the observed **segmentation fault (-11)**.

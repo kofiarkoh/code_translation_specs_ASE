@@ -1,0 +1,203 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXH 60
+#define MAXW 10
+#define MAXN (MAXH*MAXW)
+#define MAXC 100 /* representable components: 0..99 */
+
+static int w, h;
+static char grid[MAXH][MAXW + 1];
+
+static int comp_id[MAXH][MAXW]; /* -1 for empty/unassigned */
+static int parent[MAXC];
+static int child[MAXC][MAXC];
+static int nchild[MAXC];
+
+static int mass0[MAXC];
+static int moment0[MAXC];
+static int xl0[MAXC], xr0[MAXC];
+
+static int massAgg[MAXC];
+static int momentAgg[MAXC];
+
+static int qx[MAXN], qy[MAXN];
+
+static void reset_tables(void) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) comp_id[y][x] = -1;
+    }
+    for (int i = 0; i < MAXC; i++) {
+        parent[i] = -1;
+        nchild[i] = 0;
+        mass0[i] = 0;
+        moment0[i] = 0;
+        xl0[i] = 0;
+        xr0[i] = 0;
+        massAgg[i] = 0;
+        momentAgg[i] = 0;
+    }
+}
+
+static int bfs_component(int sy, int sx, int cid) {
+    char sym = grid[sy][sx];
+    int head = 0, tail = 0;
+
+    qx[tail] = sx; qy[tail] = sy; tail++;
+    comp_id[sy][sx] = cid;
+
+    int m = 0;
+    int mx = 0;
+    int xl = sx, xr = sx;
+
+    while (head < tail) {
+        int x = qx[head];
+        int y = qy[head];
+        head++;
+
+        m++;
+        mx += x;
+        if (x < xl) xl = x;
+        if (x > xr) xr = x;
+
+        /* 4-neighborhood */
+        const int dx[4] = {1, -1, 0, 0};
+        const int dy[4] = {0, 0, 1, -1};
+        for (int k = 0; k < 4; k++) {
+            int nx = x + dx[k];
+            int ny = y + dy[k];
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            if (grid[ny][nx] != sym) continue;
+            if (comp_id[ny][nx] != -1) continue;
+            comp_id[ny][nx] = cid;
+            qx[tail] = nx; qy[tail] = ny; tail++;
+        }
+    }
+
+    mass0[cid] = m;
+    moment0[cid] = mx;
+    xl0[cid] = xl;
+    xr0[cid] = xr;
+    return 0;
+}
+
+static void build_support_edges(int ncomp) {
+    /* Determine parent by scan order: y from 0..h-1, x from 0..w-1.
+       For each filled cell, if there is a filled cell directly below belonging
+       to a different component, then the above component gets parent set to the
+       below component if not already set. Later candidates are ignored. */
+    for (int y = 0; y < h - 1; y++) {
+        for (int x = 0; x < w; x++) {
+            int a = comp_id[y][x];
+            if (a < 0) continue;
+            int b = comp_id[y + 1][x];
+            if (b < 0) continue;
+            if (a == b) continue;
+            if (parent[a] == -1) parent[a] = b;
+        }
+    }
+
+    /* Build children lists from parent[] */
+    for (int c = 0; c < ncomp; c++) {
+        if (parent[c] >= 0 && parent[c] < ncomp) {
+            int p = parent[c];
+            if (nchild[p] < MAXC) {
+                child[p][nchild[p]++] = c;
+            }
+        }
+    }
+}
+
+static int check_component(int c) {
+    /* Bottom-up aggregation */
+    massAgg[c] = mass0[c];
+    momentAgg[c] = moment0[c];
+
+    for (int i = 0; i < nchild[c]; i++) {
+        int ch = child[c][i];
+        if (ch == c) continue; /* defensive */
+        if (!check_component(ch)) return 0;
+        massAgg[c] += massAgg[ch];
+        momentAgg[c] += momentAgg[ch];
+    }
+
+    /* Balance rule:
+       x = 0.5 + (mx / m), real division.
+       Condition: xl < x < xr + 1.
+       To avoid floating point and preserve strictness:
+         xl < 0.5 + mx/m  < xr+1
+       Multiply by 2m (m>0):
+         2m*xl < m + 2mx < 2m*(xr+1)
+    */
+    int m = massAgg[c];
+    int mx = momentAgg[c];
+    int xl = xl0[c];
+    int xr = xr0[c];
+
+    /* m is positive for any real component */
+    long long left = 2LL * m * (long long)xl;
+    long long mid  = (long long)m + 2LL * (long long)mx;
+    long long right = 2LL * m * (long long)(xr + 1);
+
+    if (!(left < mid && mid < right)) return 0;
+    return 1;
+}
+
+int main(void) {
+    while (1) {
+        if (scanf("%d %d", &w, &h) != 2) return 0;
+        if (w <= 0) {
+            /* h is read but ignored for termination per spec */
+            return 0;
+        }
+
+        /* Read exactly h rows, each with at least w characters, no spaces */
+        for (int y = 0; y < h; y++) {
+            if (scanf("%10s", grid[y]) != 1) return 0;
+            /* If longer than w, extra chars are ignored by our fixed buffer;
+               spec bounds w<=10 so this is safe. */
+        }
+
+        reset_tables();
+
+        int ncomp = 0;
+        int root = -1;
+
+        /* Component construction and root selection:
+           root is the component containing the bottom-most encountered filled cells
+           according to scan order. We interpret scan order as row-major from top-left
+           to bottom-right; thus the last filled cell encountered determines root. */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (grid[y][x] == '.') continue;
+                if (comp_id[y][x] == -1) {
+                    if (ncomp < MAXC) {
+                        bfs_component(y, x, ncomp);
+                        ncomp++;
+                    } else {
+                        /* Capacity exceeded: unspecified behavior; keep going with truncation */
+                        comp_id[y][x] = 0;
+                    }
+                }
+                root = comp_id[y][x];
+            }
+        }
+
+        if (ncomp == 0 || root < 0) {
+            /* No components: vacuously stable under the described check */
+            puts("STABLE");
+            continue;
+        }
+
+        build_support_edges(ncomp);
+
+        /* Force root to be its own parent for bookkeeping */
+        parent[root] = root;
+
+        /* Only check reachable from root via constructed child links */
+        if (check_component(root)) puts("STABLE");
+        else puts("UNSTABLE");
+    }
+}
+```

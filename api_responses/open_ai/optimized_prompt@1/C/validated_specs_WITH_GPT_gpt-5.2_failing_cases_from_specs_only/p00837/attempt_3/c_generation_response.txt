@@ -1,0 +1,210 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_M 10
+#define MAX_BOOK_ID 100
+#define MAX_REQ 5002
+
+typedef struct {
+    int seq;     /* sequence-within-student */
+    int student; /* student index */
+    int id;      /* book identifier */
+} Request;
+
+static int cmp_request(const void *a, const void *b) {
+    const Request *ra = (const Request *)a;
+    const Request *rb = (const Request *)b;
+    if (ra->seq != rb->seq) return (ra->seq < rb->seq) ? -1 : 1;
+    if (ra->student != rb->student) return (ra->student < rb->student) ? -1 : 1;
+    return 0;
+}
+
+int main(void) {
+    int m, c, n;
+
+    while (scanf("%d", &m) == 1) {
+        if (m <= 0) break;
+        if (scanf("%d %d", &c, &n) != 2) break;
+
+        /* Desks are indexed 1..m plus special holding desk m+1. */
+        int deskCount = m + 1;
+
+        /* deskBooks[d][k] = book id at position k on desk d (1-based desk index). */
+        int *deskBooks[MAX_M + 2];
+        int deskSize[MAX_M + 2];
+
+        for (int d = 1; d <= deskCount; d++) {
+            deskSize[d] = 0;
+            /* Capacity can exceed total books; allocate enough for all requests + distinct books. */
+            deskBooks[d] = (int *)malloc((MAX_REQ + 5) * sizeof(int));
+            if (!deskBooks[d]) return 0; /* undefined behavior per spec; just stop */
+        }
+
+        /* Track each book's current desk and position. Book IDs are 1..100. */
+        int bookDesk[MAX_BOOK_ID + 1];
+        int bookPos[MAX_BOOK_ID + 1];
+        unsigned char seen[MAX_BOOK_ID + 1];
+        memset(seen, 0, sizeof(seen));
+
+        /* Requests collection */
+        Request reqs[MAX_REQ];
+        int reqCount = 0;
+
+        for (int i = 0; i < n; i++) {
+            int t;
+            scanf("%d", &t);
+            for (int k = 0; k < t; k++) {
+                int id;
+                scanf("%d", &id);
+
+                /* Introduce distinct books onto desk m+1, no cost. */
+                if (!seen[id]) {
+                    seen[id] = 1;
+                    int d = m + 1;
+                    int pos = deskSize[d];
+                    deskBooks[d][pos] = id;
+                    deskSize[d]++;
+                    bookDesk[id] = d;
+                    bookPos[id] = pos;
+                }
+
+                /* Record request with sequence-within-student = k, student index = i. */
+                if (reqCount < MAX_REQ) {
+                    reqs[reqCount].seq = k;
+                    reqs[reqCount].student = i;
+                    reqs[reqCount].id = id;
+                    reqCount++;
+                } else {
+                    /* Undefined per spec if exceeded; ignore further safely. */
+                }
+            }
+        }
+
+        qsort(reqs, (size_t)reqCount, sizeof(reqs[0]), cmp_request);
+
+        long long totalCost = 0;
+
+        /* Helper lambdas are not C; implement as local static-like blocks via macros. */
+        for (int r = 0; r < reqCount; r++) {
+            int id = reqs[r].id;
+
+            /* 8.1 Remove requested book from its current desk */
+            int from = bookDesk[id];
+            int pos = bookPos[id];
+
+            /* Remove at position pos from desk 'from', compact, update positions behind. */
+            int sz = deskSize[from];
+            /* Shift left elements after pos */
+            for (int p = pos + 1; p < sz; p++) {
+                int movedId = deskBooks[from][p];
+                deskBooks[from][p - 1] = movedId;
+                bookPos[movedId] = p - 1;
+            }
+            deskSize[from] = sz - 1;
+
+            totalCost += from;
+
+            /* 8.2 If primary desk is full before placing id */
+            if (deskSize[1] == c) {
+                /* 1) Choose tmp: smallest in 2..m not full */
+                int tmp = 0;
+                for (int d = 2; d <= m; d++) {
+                    if (deskSize[d] < c) {
+                        tmp = d;
+                        break;
+                    }
+                }
+                /* If tmp==0, undefined per spec; proceed with tmp=0 would crash; just stop. */
+                if (tmp == 0) {
+                    /* Free and exit */
+                    for (int d = 1; d <= deskCount; d++) free(deskBooks[d]);
+                    return 0;
+                }
+
+                /* 2) Temporarily place requested book on tmp (append) */
+                int tmpPos = deskSize[tmp];
+                deskBooks[tmp][tmpPos] = id;
+                deskSize[tmp]++;
+                bookDesk[id] = tmp;
+                bookPos[id] = tmpPos;
+                totalCost += tmp;
+
+                /* 3) Evict the front book from primary desk */
+                int id2 = deskBooks[1][0];
+                int sz1 = deskSize[1];
+                for (int p = 1; p < sz1; p++) {
+                    int movedId = deskBooks[1][p];
+                    deskBooks[1][p - 1] = movedId;
+                    bookPos[movedId] = p - 1;
+                }
+                deskSize[1] = sz1 - 1;
+                totalCost += 1;
+
+                /* 4) Choose destination desk j for evicted book */
+                int j = 0;
+                for (int d = 2; d <= m; d++) {
+                    if (deskSize[d] < c) {
+                        j = d;
+                        break;
+                    }
+                }
+                if (j == 0) {
+                    for (int d = 1; d <= deskCount; d++) free(deskBooks[d]);
+                    return 0;
+                }
+
+                /* 5) Place id2 into desk j at defined position */
+                int insertPos = deskSize[j];
+                if (j == tmp) insertPos = insertPos - 1; /* immediately before temporary id */
+
+                if (j == tmp) {
+                    /* Insert before last element (the temporary id), shifting only that last element. */
+                    /* Current last element is at position deskSize[tmp]-1 and is 'id'. */
+                    int lastIndex = deskSize[tmp] - 1;
+                    /* Shift the last element one step right (to keep it last) */
+                    deskBooks[tmp][lastIndex + 1] = deskBooks[tmp][lastIndex];
+                    /* Update moved temporary id position */
+                    bookPos[id] = lastIndex + 1;
+                    /* Place id2 at lastIndex */
+                    deskBooks[tmp][lastIndex] = id2;
+                    /* Increase size by 1 for the insertion */
+                    deskSize[tmp] = lastIndex + 2;
+                    bookDesk[id2] = tmp;
+                    bookPos[id2] = lastIndex;
+                } else {
+                    /* Append at end */
+                    deskBooks[j][insertPos] = id2;
+                    deskSize[j]++;
+                    bookDesk[id2] = j;
+                    bookPos[id2] = insertPos;
+                }
+
+                /* 6) Add j + tmp to cost, then remove temporary id from end of tmp */
+                totalCost += (long long)j + (long long)tmp;
+
+                /* Remove temporary id from end of tmp by decreasing size by one. */
+                /* After insertion when j==tmp, temporary id is at the end; when j!=tmp, it is also at end. */
+                deskSize[tmp]--;
+                /* After this, id is no longer considered located on tmp; it will be placed on desk 1 next. */
+                /* We do not set bookDesk/bookPos for id here; it will be overwritten on placement to desk 1. */
+            }
+
+            /* 8.3 Place requested book onto primary desk */
+            int pos1 = deskSize[1];
+            deskBooks[1][pos1] = id;
+            deskSize[1]++;
+            bookDesk[id] = 1;
+            bookPos[id] = pos1;
+            totalCost += 1;
+        }
+
+        printf("%lld\n", totalCost);
+
+        for (int d = 1; d <= deskCount; d++) free(deskBooks[d]);
+    }
+
+    return 0;
+}
+```

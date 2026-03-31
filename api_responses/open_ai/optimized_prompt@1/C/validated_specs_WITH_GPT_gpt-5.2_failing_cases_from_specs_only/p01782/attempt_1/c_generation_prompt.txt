@@ -1,0 +1,69 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes an assignment between the N input rows and N input columns (a perfect matching) that minimizes a lexicographic cost vector over the 52 alphabetic characters (A–Z, a–z), where selecting a cell labeled with a character decreases the corresponding component of the cost vector by 1. After finding the minimum-cost perfect matching, outputs the multiset of characters chosen by that matching, sorted in the fixed order A–Z then a–z, with each character repeated as many times as it appears in the chosen N cells.
+
+2. Inputs  
+- An integer N.  
+- An N×N grid of characters, where each grid entry is intended to be an alphabetic letter in {A–Z, a–z}.  
+- Only the first N characters of each of the N grid lines are semantically used as the grid.
+
+3. Outputs  
+- A single line consisting of zero or more alphabetic characters followed by a newline.  
+- The characters printed are exactly those selected from the grid by the computed minimum-cost perfect matching, emitted in nondecreasing order with all uppercase letters before lowercase letters (A…Z then a…z), with multiplicity equal to the number of times each letter was selected.
+
+4. Preconditions  
+- N is such that the constructed graph fits within fixed internal limits: specifically N ≤ 51 (so that the number of vertices 2N+2 ≤ 104).  
+- Each of the N grid lines contains at least N characters representing the grid entries.  
+- Each grid entry used is an alphabetic character A–Z or a–z.  
+- A perfect matching exists in the complete bipartite structure implied by the N×N grid (always true given the construction), and the minimum-cost computation terminates under the program’s arithmetic bounds.
+
+5. Postconditions  
+- Exactly N grid positions are selected, with exactly one selected from each row and exactly one selected from each column.  
+- Among all such selections, the chosen selection minimizes the 52-dimensional cost vector in lexicographic order from ‘A’ through ‘Z’ then ‘a’ through ‘z’, where each selected character contributes −1 to its corresponding component and 0 to others. Equivalently, it maximizes the count of ‘A’; subject to that, maximizes the count of ‘B’; …; subject to all uppercase counts, maximizes the count of ‘a’; and so on through ‘z’.  
+- The output line contains exactly the N selected characters, sorted as specified.
+
+6. Invariants  
+- The selection always maintains the one-per-row and one-per-column constraint.  
+- The total number of selected characters is always N.  
+- The internal cost representation is a fixed-length vector of 52 signed components corresponding bijectively to A–Z and a–z, and comparisons between costs are performed lexicographically in that fixed order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., N exceeds internal limits, non-alphabetic characters appear, insufficient input length, or internal arithmetic/storage bounds are exceeded), behavior is undefined: it may produce incorrect output, crash, or exhibit memory corruption.
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: consumes one instance of input and produces one output line.  
+- Internally transitions from “unassigned” to “assigned” by constructing a bipartite assignment instance and then augmenting the matching until N assignments are made.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum problem size implied by static storage: supports up to N=51.  
+- Uses fixed-size internal cost vectors of length 52 with signed-byte components; correctness requires that intermediate and final component magnitudes remain within that representable range.  
+- Output is deterministic for a given input.
+
+```

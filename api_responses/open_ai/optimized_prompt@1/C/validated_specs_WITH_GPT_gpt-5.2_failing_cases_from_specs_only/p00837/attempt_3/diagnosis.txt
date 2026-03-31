@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+Wrong state-update rule / wrong abstraction of desk contents (book position tracking), leading to incorrect relocation/removal behavior and thus wrong cost accumulation.
+
+B. What the current specification may be missing or misstating  
+- The spec describes desk operations in terms of ordered sequences and compaction, but it does not explicitly require that **the tracked position of every book behind a removed book must be updated** (i.e., their indices shift left).  
+- The spec also implies that insertion into an auxiliary desk during relocation may require “shifting later elements right,” but it does not clearly state that this shift must also update the tracked positions of the shifted books.  
+- More generally, the spec is written as if it’s sufficient to track only “which desk” a book is on, while the source program’s behavior depends on also tracking **the exact position within that desk** and maintaining it consistently after every shift.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the algorithm maintains, as part of the state, for each book both:  
+1) the desk index it is on, and  
+2) its current position within that desk’s ordered sequence,  
+
+and that whenever a book is removed from or inserted into a desk, **all affected books’ stored positions are updated to reflect the compaction/shift**. This is essential because subsequent removals use the stored position directly (not a search), so stale positions change which book is removed/moved and therefore change costs.
+
+D. Why this clarification is supported by the source program  
+- The source keeps `book[id][0]` (desk) and `book[id][1]` (position). When removing a book at `pos`, it shifts `desk[from][j]` left and executes `book[t][1]--` for each shifted book `t`, explicitly updating positions.  
+- During eviction from desk 1, it similarly shifts left and decrements `book[t][1]--` for each shifted book.  
+- During insertion of `id2` into an auxiliary desk at `pos`, the source writes directly into `desk[j][pos]` and sets `book[id2][1]=pos` without shifting in code—this only works because the chosen `pos` is always at the end or one-before-end in a way that avoids needing a general insert shift. This reinforces that **position bookkeeping is integral** to the intended behavior.  
+- The generated program instead searches for the book each time and does not maintain per-book positions for all books after shifts/inserts, which is a different abstraction than the source and can lead to different desk contents over time and thus different total cost.

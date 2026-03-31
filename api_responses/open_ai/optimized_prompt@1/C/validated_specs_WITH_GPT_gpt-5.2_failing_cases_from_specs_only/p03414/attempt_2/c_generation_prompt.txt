@@ -1,0 +1,77 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+- The program reads a directed graph with `n` vertices and `m` directed edges and prints, for each input edge in input order, either **`same`** or **`diff`**.  
+- The classification is based on strongly connected components (SCCs) of the graph and on whether an edge is “forced” either at the SCC-to-SCC level (for edges crossing SCCs) or within an SCC (for edges whose endpoints are in the same SCC).
+
+2. Inputs  
+- First line: two integers `n` and `m`.  
+- Next `m` lines: two integers `i` and `j` describing a directed edge `i → j`.  
+- Vertex indices are interpreted as 1-based in the input and are converted internally to 0-based.
+
+3. Outputs  
+- Exactly `m` lines, in the same order as the input edges.  
+- Line `h` (0-based edge index) is either `same` or `diff`, giving the classification of that input edge.
+
+4. Preconditions / Assumptions  
+- `1 ≤ n ≤ 1000`.  
+- `0 ≤ m ≤ 200000`.  
+- Each edge endpoint is a valid vertex index in the declared range.  
+- The program uses fixed-size internal arrays sized for these bounds; if bounds are exceeded or input is malformed, behavior is unspecified.
+
+5. Classification Semantics  
+
+Let an input edge be `e = (u → v)`.
+
+### 5.1 Edges whose endpoints are in different SCCs  
+Let `Su = SCC(u)` and `Sv = SCC(v)` with `Su != Sv`. Consider the SCC-condensation graph formed by contracting each SCC to a node and keeping directed edges between SCCs induced by original edges.
+
+The program outputs **`diff`** for `e` if either of the following holds (and **`same`** otherwise):
+
+1) **Non-unique direct SCC edge:** there is more than one original edge whose source lies in `Su` and whose destination lies in `Sv`.  
+2) **Bypassable at SCC level:** there exists a directed path in the SCC-condensation graph from `Su` to `Sv` that uses at least one intermediate SCC (equivalently, a path of length ≥ 2 in terms of SCC-to-SCC edges).
+
+If neither condition holds (i.e., `e` is the only edge from `Su` to `Sv` and there is no longer SCC-level route from `Su` to `Sv`), then `e` is labeled **`same`**.
+
+### 5.2 Edges whose endpoints are in the same SCC  
+If `SCC(u) == SCC(v)`, the program outputs:
+
+- **`same`** if there exists a directed path from `u` to `v` that stays within that SCC and does **not** traverse the edge `e`.  
+- **`diff`** otherwise (i.e., removing `e` eliminates reachability from `u` to `v` within the SCC).
+
+This decision is purely about reachability within the SCC with the single edge excluded; edges outside the SCC are not considered for the alternative path.
+
+6. Additional Notes on Scope and Determinism  
+- SCCs are computed over the entire input graph; every vertex belongs to exactly one SCC.  
+- Cross-SCC reasoning is performed only on edges that go between different SCCs; intra-SCC reasoning is performed only within each SCC.  
+- The output is deterministic for a given input graph and is printed strictly in input edge order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced. If input violates assumptions (out-of-range indices, exceeding fixed capacities, malformed input), the program’s behavior is unspecified.
+
+```

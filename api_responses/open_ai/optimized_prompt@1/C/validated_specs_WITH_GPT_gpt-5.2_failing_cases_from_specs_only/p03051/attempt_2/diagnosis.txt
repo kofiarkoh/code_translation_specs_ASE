@@ -1,0 +1,28 @@
+A. Likely mismatch category  
+- **Missing transition rule / wrong abstraction** (the specification omits the actual DP recurrence and the meaning of the maintained per-xor-class quantities).  
+- Secondarily: **wrong termination/exception assumption** about the “negative exponent” case.
+
+B. What the current specification may be missing or misstating  
+- It does not define the **concrete update equations** for the three per-class accumulators (in the source: `dp[x]`, `sum[x]`, `Osum[x]`) nor how `prev[x]` and the zero-prefix counter (`Onum`) interact in those equations.  
+- It treats the recurrence as an unspecified “unique values determined by the recurrence,” which is not enough to reproduce behavior; the generated code therefore (reasonably) implemented a no-op, yielding 0 instead of the source’s nontrivial result.  
+- The spec’s exceptional-behavior note “if `Z_N=0` and `s_N=0` then exponent is negative” is **incorrect given the source’s definitions**: `Onum[0]=0` and `Onum[i]` counts `s[i]==0` for `i>=1`, so `s_N==0` implies `Onum[N] >= 1` (because `s_N` itself is a zero prefix-xor). Thus the exponent `Onum[N]-1` is never negative in the source.
+
+C. What general behavior should be clarified in the specification  
+- Precisely specify the **state variables per xor-class** and their **initial values** (notably `Osum[x]` starts at 1 for all classes, while `sum[x]` and `dp[x]` start at 0; `prev[x]` starts at 0).  
+- Precisely specify the **per-step update** when processing position `i` with `x = s[i]`, including the role of:
+  - `prev[x]` (last index where this xor-class occurred, with 0 meaning “never seen”), and  
+  - the count of zero prefix-xors between `prev[x]` and `i` via `Onum[i] - Onum[prev[x]]`.  
+- Clarify the **final answer rule** in terms of these concrete quantities:
+  - if `s_N != 0`, output `dp[s_N]`;  
+  - if `s_N == 0`, output `2^(Onum[N]-1) + sum_{x=1..2^20-1} sum[x]` (mod p).  
+- Remove or correct the claim about possible negative exponent / nontermination, since the source logic prevents it.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly computes and updates:
+  - `dp[x] = MOD(sum[x] * (Onum[i] - Onum[prev[x]]) + Osum[x]);`
+  - `Osum[x] = MOD(Osum[x] + sum[x] * (Onum[i] - Onum[prev[x]]));`
+  - `sum[x] = MOD(sum[x] + dp[x]);`
+  - then sets `prev[x] = i;`
+  with initial `sum[*]=0`, `dp[*]=0`, `prev[*]=0`, and **`Osum[*]=1`** for all xor-classes. These are essential semantics missing from the current spec.  
+- The final output logic in the source is not “some value associated with the final class” in an abstract sense; it is concretely `dp[s[N]]` when `s[N]!=0`, otherwise a specific combination of `power(2, Onum[N]-1)` and all `sum[i]` for nonzero classes.  
+- The “negative exponent” scenario is contradicted by the source’s own definitions: if `s[N]==0`, then the index `N` itself contributes to `Onum[N]`, guaranteeing `Onum[N] >= 1`, so `Onum[N]-1 >= 0`.

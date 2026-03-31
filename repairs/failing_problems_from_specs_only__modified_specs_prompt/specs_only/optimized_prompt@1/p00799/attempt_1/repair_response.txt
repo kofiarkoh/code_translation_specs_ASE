@@ -1,0 +1,137 @@
+```rust
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum State {
+    Using,
+    Charging,
+}
+
+#[derive(Clone)]
+struct Battery {
+    pairs: Vec<(i64, i64)>, // (use_duration, charge_duration)
+    idx: usize,             // cyclic index into pairs
+    state: State,
+    rem: i64,               // remaining time in current segment
+}
+
+fn main() {
+    // Read entire stdin as whitespace-separated tokens.
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outputs: Vec<String> = Vec::new();
+
+    loop {
+        let n_opt = it.next();
+        if n_opt.is_none() {
+            break;
+        }
+        let n: i64 = match n_opt.unwrap().parse() {
+            Ok(v) => v,
+            Err(_) => break, // unspecified on malformed input; stop.
+        };
+        if n <= 0 {
+            break;
+        }
+        let n_usize = n as usize;
+
+        let lim: i64 = match it.next() {
+            Some(tok) => tok.parse().unwrap_or(0),
+            None => break,
+        };
+
+        let mut bats: Vec<Battery> = Vec::with_capacity(n_usize);
+
+        for _ in 0..n_usize {
+            let mut pairs: Vec<(i64, i64)> = Vec::new();
+            loop {
+                let u: i64 = match it.next() {
+                    Some(tok) => tok.parse().unwrap_or(0),
+                    None => 0, // unspecified; treat as termination-ish.
+                };
+                if u <= 0 {
+                    break;
+                }
+                let c: i64 = match it.next() {
+                    Some(tok) => tok.parse().unwrap_or(0),
+                    None => 0, // unspecified
+                };
+                pairs.push((u, c));
+            }
+
+            // Preconditions say at least one pair exists; if not, keep empty and
+            // initialize with rem=0 (unspecified behavior anyway).
+            let (u0, _) = pairs.get(0).copied().unwrap_or((0, 0));
+            bats.push(Battery {
+                pairs,
+                idx: 0,
+                state: State::Using,
+                rem: u0,
+            });
+        }
+
+        let mut q: VecDeque<usize> = VecDeque::new(); // FIFO of battery indices
+        let mut missed: i64 = 0;
+
+        for _t in 1..=lim {
+            // Step A: using progress and transitions to charging.
+            // Track which batteries transitioned this time unit to exclude them from Step B counting.
+            let mut transitioned: Vec<bool> = vec![false; n_usize];
+
+            for i in 0..n_usize {
+                if bats[i].state == State::Using {
+                    bats[i].rem -= 1;
+                    if bats[i].rem == 0 {
+                        bats[i].state = State::Charging;
+                        let (_, c) = bats[i].pairs[bats[i].idx];
+                        bats[i].rem = c;
+                        q.push_back(i);
+                        transitioned[i] = true;
+                    }
+                }
+            }
+
+            // Step B: missed-opportunity counting and charging progress.
+            if q.is_empty() {
+                continue;
+            }
+
+            let front = *q.front().unwrap();
+
+            // Count missed opportunities among batteries that were already charging (not transitioned now),
+            // excluding the queue-front battery.
+            for i in 0..n_usize {
+                if bats[i].state == State::Charging && !transitioned[i] && i != front {
+                    missed += 1;
+                }
+            }
+
+            // Queue-front battery receives one unit of charging progress only if it was already charging.
+            if bats[front].state == State::Charging && !transitioned[front] {
+                bats[front].rem -= 1;
+            }
+
+            // Step C: charging completion at the queue front.
+            // Completion check happens after Step B progress (if any).
+            if bats[front].state == State::Charging && bats[front].rem == 0 {
+                bats[front].state = State::Using;
+                if !bats[front].pairs.is_empty() {
+                    bats[front].idx = (bats[front].idx + 1) % bats[front].pairs.len();
+                    let (u, _) = bats[front].pairs[bats[front].idx];
+                    bats[front].rem = u;
+                } else {
+                    bats[front].rem = 0;
+                }
+                q.pop_front();
+            }
+        }
+
+        outputs.push(missed.to_string());
+    }
+
+    print!("{}", outputs.join("\n"));
+}
+```

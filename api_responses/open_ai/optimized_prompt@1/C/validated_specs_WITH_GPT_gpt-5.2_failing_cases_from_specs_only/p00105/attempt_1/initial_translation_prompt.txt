@@ -1,0 +1,127 @@
+You are an expert senior software engineer.
+Given source code, generate a precise, structured behavioral specification that states WHAT the code guarantees, not HOW it achieves it.
+
+Output must use exactly these sections and headings:
+1. Functional Description
+2. Inputs
+3. Outputs
+4. Preconditions
+5. Postconditions
+6. Invariants
+7. Error Handling / Exceptional Behavior
+8. State Transitions (if applicable)
+9. Non-functional Constraints (if inferable)
+
+Content requirements:
+- Preserve any implicit resource bounds if they affect observable behavior or correctness.
+- Do not invent unbounded or arbitrarily large capacities; assume implementations should respect reasonable fixed limits implied by the program.
+- Be concise and contract-focused; omit incidental or low-level details.
+- Do not reference language/library APIs, format strings, or identifiers.
+- Describe I/O abstractly; never cite exact parsing patterns or format specifiers.
+- Do not restate implementation structure or control flow.
+- If behavior is ambiguous, state explicit assumptions.
+- Avoid extreme assumptions. Capture only behavior implied by the code's observable contract.
+- Return only the nine sections with the exact headings and numbering specified.
+
+Now generate the specification for the code below:
+
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+#define PGMAX 1001
+#define WDMAX 31
+
+typedef struct _index {
+	int pgnum[PGMAX];
+	int tm;
+	char str[WDMAX];
+} index_t;
+
+void swap( int i, int j, index_t idx[MAX] )
+{
+	char tmp_str[WDMAX];
+	int tmp_pgnum[PGMAX];
+	int tmp_tm;
+
+	strcpy( tmp_str, idx[i].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		tmp_pgnum[k] = idx[i].pgnum[k];
+	}
+	tmp_tm = idx[i].tm;
+
+	strcpy( idx[i].str, idx[j].str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[i].pgnum[k] = idx[j].pgnum[k];
+	}
+	idx[i].tm = idx[j].tm;
+
+	strcpy( idx[j].str, tmp_str );
+	for ( int k = 0 ; k < PGMAX ; k++ ) {
+		idx[j].pgnum[k] = tmp_pgnum[k];
+	}
+	idx[j].tm = tmp_tm;
+}
+
+int main()
+{
+	index_t idx[MAX];
+	char tmp_str[WDMAX] = {};
+	int tmp_pgnum = 0, rgnum = 0, i = 0, j = 0, flag = 0, k = 0;
+
+	while ( scanf( "%s %d", tmp_str, &tmp_pgnum ) != EOF ) {
+		flag = 1;
+		i = 0;
+		while ( i < rgnum ) {
+			if ( strcmp( tmp_str, idx[i].str ) == 0 ) {
+				// BEPO?$5$l$?J8;zNs$NCf$+$i, B:#2sF~NO$5$l$?J8;zNs$,EPO?$5$l$F$$$k$+3NG'$9$k
+				idx[i].pgnum[tmp_pgnum] = 1;
+				idx[i].tm++;
+				flag = 0; // BF~NOJ8;zNs$,EPO?:Q$_$N>l9g
+				break;
+			}
+			i++;
+		}
+
+		if ( flag ) {
+			// BF~NOJ8;zNs$,EPO?$5$l$F$$$J$$>l9g
+			idx[rgnum].pgnum[tmp_pgnum] = 1;
+			idx[rgnum].tm++;
+			strcpy( idx[rgnum].str, tmp_str );
+			rgnum++;
+		}
+		
+	}
+
+	// BF~NOJ8;zNs$N@0Ns$r9T$&
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		for ( j = i+1 ; j < rgnum ; j++ ) {
+			if ( strcmp( idx[i].str, idx[j].str ) > 0 ) {
+				swap( i, j, idx );
+			}
+		}
+	}
+
+	// B@0Ns:Q$_$NF~NOJ8;zNs$NG[Ns$KBP$7$F, B=P8=$7$?%Z!<%8HV9f$J$I$r=PNO$9$k
+	for ( i = 0 ; i < rgnum ; i++ ) {
+		printf( "%s\n", idx[i].str );
+		k = 0;
+		for ( j = 0 ; j < PGMAX ; j++ ) {
+			if ( idx[i].pgnum[j] == 1 ) { 
+				if ( k == idx[i].tm-1 ) {
+					printf( "%d\n", j );
+					break;
+				} else {
+					printf( "%d ", j );
+					k++;
+				}
+			}
+		}
+	}
+
+	return 0;	
+}
+
+
+```

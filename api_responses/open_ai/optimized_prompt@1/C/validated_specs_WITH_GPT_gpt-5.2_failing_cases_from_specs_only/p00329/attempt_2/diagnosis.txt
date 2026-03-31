@@ -1,0 +1,24 @@
+A. Likely mismatch category  
+- Wrong output formatting (case sensitivity)  
+- Wrong abstraction/selection rule for the per-left outputs (the “certified partner” rule is misstated)
+
+B. What the current specification may be missing or misstating  
+1) Output tokens are case-sensitive and must be exactly `"yes"` / `"no"` (lowercase). The current spec only says “acceptance/rejection” and the generated code prints `"Yes"` / `"No"`.  
+2) The meaning of the `N` lines after `"yes"` is not “any right node that can appear with left `i` in some perfect matching.” The source program is not checking feasibility by “forcing (i,r) and re-solving.” Instead, it computes one perfect matching, then for each left node `i` it *removes i’s current matched edge and runs one augmenting-path search starting from i*, and prints the new match found by that single DFS-based augmentation. This is a specific algorithmic choice that can yield a different right index than “smallest feasible forced edge” and is not characterized correctly by the current spec.
+
+C. What general behavior should be clarified in the specification  
+- Exact required output strings (including lowercase).  
+- In the “yes” case, clarify that the program outputs, for each left vertex in order, the right vertex obtained by:
+  - starting from an existing perfect matching,
+  - temporarily unmatching left `i` and its partner,
+  - running one Kuhn-style DFS augmentation from `i` using the current adjacency order,
+  - and printing the resulting matched right vertex for `i`.  
+This implies the outputs are algorithm-dependent (depend on DFS traversal order / adjacency order) and are not defined as “any certified possible partner” nor as “smallest such partner,” nor as an independently validated forced-edge witness.
+
+D. Why this clarification is supported by the source program  
+- The source prints `outs("yes")` / `outs("no")`, which are lowercase literals.  
+- After finding an initial perfect matching, the loop does:
+  - `match[match[i]] = -1; match[i] = -1;` (explicitly unmatches `i` and its current partner),
+  - `mark++; bpm(i);` (runs exactly one DFS augmentation from `i`),
+  - then prints `out(match[i]-N+1);` (the right node reached by that augmentation).  
+There is no loop over candidate rights and no “force edge then recompute perfect matching” check; therefore the current spec’s “guaranteed to be part of some perfect pairing” characterization is at least incomplete/vague and the generated selection rule does not match the source’s transition rule.

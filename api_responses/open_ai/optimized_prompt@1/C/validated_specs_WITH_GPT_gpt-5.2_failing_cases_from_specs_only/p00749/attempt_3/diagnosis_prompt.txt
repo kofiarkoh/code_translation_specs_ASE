@@ -1,0 +1,452 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each provided 2D grid, determines whether the configuration is **STABLE** or **UNSTABLE** under a balance rule applied to connected components of non-empty cells. Non-empty cells with the same symbol that are orthogonally adjacent (up/down/left/right) belong to the same component. Components induce a vertical **support** relation based on immediate adjacency between a cell and the cell directly below it. The configuration is reported **STABLE** iff, for every component, the horizontal center of mass of that component together with all components it supports above lies strictly within that component’s own horizontal footprint.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - Two integers: grid width `w` and grid height `h`.  
+  - Then exactly `h` rows of grid data, each containing `w` characters.  
+- `'.'` denotes an empty cell; any other character denotes a filled cell belonging to a component.  
+- Input terminates when a test case is encountered with `w <= 0` (the corresponding `h` is read but ignored for termination).
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Assumptions  
+- Dimensions must fit the program’s fixed storage: `h <= 60`, `w <= 10`, and `w*h <= 600`.  
+- Each input row must provide at least `w` characters (no spaces).  
+- The number of connected components of non-empty cells must fit the component table (at most 99 components are representable).  
+- The support relation is assumed to be **single-parent**: each component can be attached to at most one supporting component below. If a component has cells that touch multiple distinct components directly below, the program will attach it to the first such supporting component encountered by its scan order and ignore later candidates; the resulting behavior is therefore dependent on scan order rather than a well-defined physical rule.
+
+5. Component Construction  
+- **Connected components:** Two filled cells are in the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- For each component, the program computes intrinsic properties from its own cells:  
+  - intrinsic mass `m`: number of cells in the component,  
+  - intrinsic horizontal moment `mx`: sum of the column indices of its cells (0-based),  
+  - intrinsic horizontal footprint `[xl, xr]`: minimum and maximum column indices occupied by the component.  
+- **Support edges (parent/children):**  
+  - A component `A` is considered supported by component `B` (i.e., `B` is the parent of `A`) if there exists at least one cell of `A` such that the cell directly below it is a filled cell belonging to `B`.  
+  - Each component has at most one parent (as noted in Preconditions).  
+  - A component may support **zero or more** components above it (i.e., may have multiple children).
+
+6. Stability Evaluation (Aggregation and Balance Rule)  
+- Stability is evaluated by recursively processing the support tree(s) bottom-up, aggregating each component into its parent after the component and all of its descendants have been processed.  
+- For a component with aggregated mass `m` and aggregated moment `mx`, its horizontal center of mass is computed as:  
+  - `x = 0.5 + (mx / m)` (real-valued division).  
+- The component is considered balanced iff its center of mass lies strictly inside its own footprint interval in the following sense:  
+  - `xl < x < xr + 1`.  
+  (Equivalently, `x` must be greater than the minimum occupied column and less than one past the maximum occupied column.)  
+- If any component fails this strict-inside condition, the entire configuration is **UNSTABLE**. Otherwise it is **STABLE**.
+
+7. Rooting / Overall Decision  
+- The program treats the component that contains the bottom-most encountered filled cells (according to its internal scan order) as the root of evaluation and forces that component to be its own parent for aggregation bookkeeping.  
+- The output is `STABLE` only if the recursive check starting from this root succeeds; components not reachable from this root via the constructed parent/child links are not separately checked.
+
+8. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting. If the input violates the stated capacity limits or the single-parent assumption, the output is unspecified beyond the scan-order-dependent attachment behavior described above.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXH 60
+#define MAXW 10
+#define MAXN (MAXH*MAXW)
+#define MAXC 100 /* representable components: 0..99 */
+
+static int w, h;
+static char grid[MAXH][MAXW + 1];
+
+static int comp_id[MAXH][MAXW]; /* -1 for empty/unassigned */
+static int parent[MAXC];
+static int child[MAXC][MAXC];
+static int nchild[MAXC];
+
+static int mass0[MAXC];
+static int moment0[MAXC];
+static int xl0[MAXC], xr0[MAXC];
+
+static int massAgg[MAXC];
+static int momentAgg[MAXC];
+
+static int qx[MAXN], qy[MAXN];
+
+static void reset_tables(void) {
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) comp_id[y][x] = -1;
+    }
+    for (int i = 0; i < MAXC; i++) {
+        parent[i] = -1;
+        nchild[i] = 0;
+        mass0[i] = 0;
+        moment0[i] = 0;
+        xl0[i] = 0;
+        xr0[i] = 0;
+        massAgg[i] = 0;
+        momentAgg[i] = 0;
+    }
+}
+
+static int bfs_component(int sy, int sx, int cid) {
+    char sym = grid[sy][sx];
+    int head = 0, tail = 0;
+
+    qx[tail] = sx; qy[tail] = sy; tail++;
+    comp_id[sy][sx] = cid;
+
+    int m = 0;
+    int mx = 0;
+    int xl = sx, xr = sx;
+
+    while (head < tail) {
+        int x = qx[head];
+        int y = qy[head];
+        head++;
+
+        m++;
+        mx += x;
+        if (x < xl) xl = x;
+        if (x > xr) xr = x;
+
+        /* 4-neighborhood */
+        const int dx[4] = {1, -1, 0, 0};
+        const int dy[4] = {0, 0, 1, -1};
+        for (int k = 0; k < 4; k++) {
+            int nx = x + dx[k];
+            int ny = y + dy[k];
+            if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+            if (grid[ny][nx] != sym) continue;
+            if (comp_id[ny][nx] != -1) continue;
+            comp_id[ny][nx] = cid;
+            qx[tail] = nx; qy[tail] = ny; tail++;
+        }
+    }
+
+    mass0[cid] = m;
+    moment0[cid] = mx;
+    xl0[cid] = xl;
+    xr0[cid] = xr;
+    return 0;
+}
+
+static void build_support_edges(int ncomp) {
+    /* Determine parent by scan order: y from 0..h-1, x from 0..w-1.
+       For each filled cell, if there is a filled cell directly below belonging
+       to a different component, then the above component gets parent set to the
+       below component if not already set. Later candidates are ignored. */
+    for (int y = 0; y < h - 1; y++) {
+        for (int x = 0; x < w; x++) {
+            int a = comp_id[y][x];
+            if (a < 0) continue;
+            int b = comp_id[y + 1][x];
+            if (b < 0) continue;
+            if (a == b) continue;
+            if (parent[a] == -1) parent[a] = b;
+        }
+    }
+
+    /* Build children lists from parent[] */
+    for (int c = 0; c < ncomp; c++) {
+        if (parent[c] >= 0 && parent[c] < ncomp) {
+            int p = parent[c];
+            if (nchild[p] < MAXC) {
+                child[p][nchild[p]++] = c;
+            }
+        }
+    }
+}
+
+static int check_component(int c) {
+    /* Bottom-up aggregation */
+    massAgg[c] = mass0[c];
+    momentAgg[c] = moment0[c];
+
+    for (int i = 0; i < nchild[c]; i++) {
+        int ch = child[c][i];
+        if (ch == c) continue; /* defensive */
+        if (!check_component(ch)) return 0;
+        massAgg[c] += massAgg[ch];
+        momentAgg[c] += momentAgg[ch];
+    }
+
+    /* Balance rule:
+       x = 0.5 + (mx / m), real division.
+       Condition: xl < x < xr + 1.
+       To avoid floating point and preserve strictness:
+         xl < 0.5 + mx/m  < xr+1
+       Multiply by 2m (m>0):
+         2m*xl < m + 2mx < 2m*(xr+1)
+    */
+    int m = massAgg[c];
+    int mx = momentAgg[c];
+    int xl = xl0[c];
+    int xr = xr0[c];
+
+    /* m is positive for any real component */
+    long long left = 2LL * m * (long long)xl;
+    long long mid  = (long long)m + 2LL * (long long)mx;
+    long long right = 2LL * m * (long long)(xr + 1);
+
+    if (!(left < mid && mid < right)) return 0;
+    return 1;
+}
+
+int main(void) {
+    while (1) {
+        if (scanf("%d %d", &w, &h) != 2) return 0;
+        if (w <= 0) {
+            /* h is read but ignored for termination per spec */
+            return 0;
+        }
+
+        /* Read exactly h rows, each with at least w characters, no spaces */
+        for (int y = 0; y < h; y++) {
+            if (scanf("%10s", grid[y]) != 1) return 0;
+            /* If longer than w, extra chars are ignored by our fixed buffer;
+               spec bounds w<=10 so this is safe. */
+        }
+
+        reset_tables();
+
+        int ncomp = 0;
+        int root = -1;
+
+        /* Component construction and root selection:
+           root is the component containing the bottom-most encountered filled cells
+           according to scan order. We interpret scan order as row-major from top-left
+           to bottom-right; thus the last filled cell encountered determines root. */
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (grid[y][x] == '.') continue;
+                if (comp_id[y][x] == -1) {
+                    if (ncomp < MAXC) {
+                        bfs_component(y, x, ncomp);
+                        ncomp++;
+                    } else {
+                        /* Capacity exceeded: unspecified behavior; keep going with truncation */
+                        comp_id[y][x] = 0;
+                    }
+                }
+                root = comp_id[y][x];
+            }
+        }
+
+        if (ncomp == 0 || root < 0) {
+            /* No components: vacuously stable under the described check */
+            puts("STABLE");
+            continue;
+        }
+
+        build_support_edges(ncomp);
+
+        /* Force root to be its own parent for bookkeeping */
+        parent[root] = root;
+
+        /* Only check reachable from root via constructed child links */
+        if (check_component(root)) puts("STABLE");
+        else puts("UNSTABLE");
+    }
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_output.txt
+Input:
+5 4
+.....
+..#..
+.###.
+#####
+6 6
+......
+..##..
+.####.
+######
+......
+......
+0 0
+Expected:
+STABLE
+UNSTABLE
+Actual:
+STABLE
+STABLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

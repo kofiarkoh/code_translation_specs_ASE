@@ -1,0 +1,24 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong transition rule for the support relation and aggregation order (tree structure), leading to wrong stability evaluation.
+
+B. What the current specification may be missing or misstating  
+- It implies (and the generated code enforces) that each component supports **at most one** component above it (via a single `child` pointer / indegree logic), and more generally treats the support structure as a simple parent–single-child chain or a structure that can be processed by indegree counts.  
+- The source program actually builds a **general rooted tree** where a supporting component (below) can have **multiple supported components above** (children), maintained via `ch` (first child) and `sib` (sibling list).  
+- The spec’s wording “a component may be supported by at most one component directly below it” is correct (single parent), but it does not equally emphasize that a component may support **many** components above; the generated code effectively assumes/implements the opposite constraint (single child), which is not source behavior.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the vertical support relation forms a **forest/tree with single-parent but potentially many-children**:  
+  - Each component has **at most one parent** (the component directly below it that it attaches to).  
+  - Each component may have **zero or more children** (components directly above that attach to it).  
+- Clarify that stability checking is performed by recursively checking/aggregating **all descendants** of a component (all children and their siblings), not just one supported component.  
+- Clarify that the algorithm’s correctness depends on aggregating contributions from **every** supported component above before checking the supporting component’s balance.
+
+D. Why this clarification is supported by the source program  
+- In `mktree`, when attaching `this` to its parent `p`, the source does:
+  - `tbl[p].ch = this` if no child exists, else walks `while (tbl[s].sib) s = tbl[s].sib; tbl[s].sib = this;`  
+  This explicitly implements **multiple children per parent** via a sibling chain.  
+- In `check`, the source recursively processes:
+  - the first child `ch` (`if (ch) check(ch)`), and then
+  - iterates through **all siblings** (`while (sib) { check(sib); sib = tbl[sib].sib; }`)  
+  ensuring **all** supported components are checked and aggregated into the parent (`tbl[par].m += ...; tbl[par].mx += ...;`).  
+- Therefore, any specification (or derived implementation) that models support as “at most one child” or that only aggregates one supported component per parent will diverge from the source behavior, which can flip an `UNSTABLE` case into `STABLE` when omitted children would have shifted the center of mass outside the footprint.

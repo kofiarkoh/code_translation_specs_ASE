@@ -1,0 +1,233 @@
+```c
+#include <stdio.h>
+
+#define MAX_DESKS 11          /* primary + up to 10 auxiliary */
+#define MAX_BOOK_ID 100
+#define MAX_REQ 5002
+
+typedef struct {
+    int book;
+    int next; /* next node index in desk list */
+} Node;
+
+static int desk_head[MAX_DESKS + 1]; /* 1..(aux+1) */
+static int desk_tail[MAX_DESKS + 1];
+static int desk_cnt[MAX_DESKS + 1];
+
+static int book_desk[MAX_BOOK_ID + 1]; /* 0 means unknown/not present */
+static int book_node[MAX_BOOK_ID + 1]; /* node index in pool */
+
+static Node pool[MAX_REQ + 5];
+static int pool_used;
+
+static int req_book[MAX_REQ + 5];
+static int req_pos[MAX_REQ + 5];
+static int req_student[MAX_REQ + 5];
+static int req_total;
+
+static void desk_init(int dcount) {
+    for (int d = 1; d <= dcount; d++) {
+        desk_head[d] = 0;
+        desk_tail[d] = 0;
+        desk_cnt[d] = 0;
+    }
+    for (int b = 1; b <= MAX_BOOK_ID; b++) {
+        book_desk[b] = 0;
+        book_node[b] = 0;
+    }
+    pool_used = 0;
+}
+
+static int new_node(int book) {
+    ++pool_used;
+    pool[pool_used].book = book;
+    pool[pool_used].next = 0;
+    return pool_used;
+}
+
+static void desk_append_node(int desk, int node_idx) {
+    pool[node_idx].next = 0;
+    if (desk_head[desk] == 0) {
+        desk_head[desk] = desk_tail[desk] = node_idx;
+    } else {
+        pool[desk_tail[desk]].next = node_idx;
+        desk_tail[desk] = node_idx;
+    }
+    desk_cnt[desk]++;
+}
+
+static void desk_append_book(int desk, int book) {
+    int n = new_node(book);
+    desk_append_node(desk, n);
+    book_desk[book] = desk;
+    book_node[book] = n;
+}
+
+/* Remove a specific book from its current desk list, preserving relative order of others. */
+static void remove_book_from_desk(int book) {
+    int d = book_desk[book];
+    int target = book_node[book];
+    if (d <= 0 || target <= 0) return; /* undefined per spec if inconsistent; keep narrow */
+
+    int prev = 0;
+    int cur = desk_head[d];
+    while (cur && cur != target) {
+        prev = cur;
+        cur = pool[cur].next;
+    }
+    if (!cur) return; /* inconsistent; undefined */
+
+    int nxt = pool[cur].next;
+    if (prev == 0) desk_head[d] = nxt;
+    else pool[prev].next = nxt;
+
+    if (desk_tail[d] == cur) desk_tail[d] = prev;
+
+    desk_cnt[d]--;
+    book_desk[book] = 0;
+    book_node[book] = 0;
+    /* node remains in pool but is detached; reused only by creating new nodes */
+}
+
+/* Pop the front book from a desk (used for relocation from primary). Returns book id, or 0 if empty. */
+static int pop_front_book(int desk) {
+    int h = desk_head[desk];
+    if (!h) return 0;
+    int book = pool[h].book;
+    int nxt = pool[h].next;
+    desk_head[desk] = nxt;
+    if (!nxt) desk_tail[desk] = 0;
+    desk_cnt[desk]--;
+
+    book_desk[book] = 0;
+    book_node[book] = 0;
+    return book;
+}
+
+/* Find the lowest-index desk (excluding primary desk 1) with available capacity. Returns desk index or 0. */
+static int find_aux_with_space(int dcount, int cap) {
+    for (int d = 2; d <= dcount; d++) {
+        if (desk_cnt[d] < cap) return d;
+    }
+    return 0;
+}
+
+/*
+ * Service one request for 'book' under capacity rules.
+ * Cost model per spec:
+ *  - add index of desk removed from (current location at service time)
+ *  - add index of primary desk for placing (always 1)
+ *  - plus any additional desk-index costs incurred by mandatory relocations
+ *
+ * Relocation sequence (narrowest deterministic interpretation consistent with spec):
+ *  - If primary desk is at capacity before placing requested book:
+ *      - move one book out of primary desk to the lowest-index auxiliary desk with space
+ *        (cost adds: primary index + destination index)
+ *      - then place requested book onto primary (cost adds: primary index)
+ *  - No temporary placement of requested book is performed unless needed; spec says "may",
+ *    so we choose the simplest sequence that satisfies capacity.
+ */
+static long long service_request(int dcount, int cap, int book) {
+    long long cost = 0;
+
+    int from = book_desk[book];
+    /* If book not yet known/placed, treat it as already on primary? Spec doesn't define.
+       Narrowest: assume all requested books are "tracked" only when first requested and
+       initially located on primary desk (so removal cost is 1 and no state change needed).
+       However, spec says each tracked book is located on exactly one desk; to preserve that,
+       we materialize unknown books on primary before servicing. */
+    if (from == 0) {
+        /* materialize on primary desk as if it was there already */
+        if (desk_cnt[1] >= cap && cap >= 0) {
+            /* relocation needed even to materialize; follow same rule */
+            int dest = find_aux_with_space(dcount, cap);
+            /* undefined if dest==0 per spec */
+            int moved = pop_front_book(1);
+            cost += 1 + dest;
+            if (moved) desk_append_book(dest, moved);
+        }
+        desk_append_book(1, book);
+        from = 1;
+    }
+
+    /* remove requested book */
+    cost += from;
+    remove_book_from_desk(book);
+
+    /* ensure space on primary before placing */
+    if (desk_cnt[1] >= cap && cap >= 0) {
+        int dest = find_aux_with_space(dcount, cap);
+        /* undefined if dest==0 per spec */
+        int moved = pop_front_book(1);
+        cost += 1 + dest;
+        if (moved) desk_append_book(dest, moved);
+    }
+
+    /* place requested book onto primary */
+    cost += 1;
+    desk_append_book(1, book);
+
+    return cost;
+}
+
+/* Stable deterministic global order: increasing request position, ties by increasing student index. */
+static void stable_sort_requests(int n) {
+    /* insertion sort is fine for n<=5002 */
+    for (int i = 2; i <= n; i++) {
+        int b = req_book[i];
+        int p = req_pos[i];
+        int s = req_student[i];
+        int j = i - 1;
+        while (j >= 1) {
+            if (req_pos[j] < p) break;
+            if (req_pos[j] == p && req_student[j] <= s) break;
+            req_book[j + 1] = req_book[j];
+            req_pos[j + 1] = req_pos[j];
+            req_student[j + 1] = req_student[j];
+            j--;
+        }
+        req_book[j + 1] = b;
+        req_pos[j + 1] = p;
+        req_student[j + 1] = s;
+    }
+}
+
+int main(void) {
+    int aux;
+    while (scanf("%d", &aux) == 1) {
+        if (aux <= 0) break;
+
+        int cap, students;
+        if (scanf("%d %d", &cap, &students) != 2) break;
+
+        int dcount = aux + 1; /* desk 1 is primary, 2..dcount are auxiliary */
+        desk_init(dcount);
+
+        req_total = 0;
+        for (int si = 1; si <= students; si++) {
+            int k;
+            scanf("%d", &k);
+            for (int pi = 1; pi <= k; pi++) {
+                int book;
+                scanf("%d", &book);
+                ++req_total;
+                req_book[req_total] = book;
+                req_pos[req_total] = pi;
+                req_student[req_total] = si;
+            }
+        }
+
+        stable_sort_requests(req_total);
+
+        long long total_cost = 0;
+        for (int i = 1; i <= req_total; i++) {
+            total_cost += service_request(dcount, cap, req_book[i]);
+        }
+
+        /* Spec says accumulated in signed integer; print as integer.
+           Using long long internally to reduce UB; cast back to long long print. */
+        printf("%lld\n", total_cost);
+    }
+    return 0;
+}
+```

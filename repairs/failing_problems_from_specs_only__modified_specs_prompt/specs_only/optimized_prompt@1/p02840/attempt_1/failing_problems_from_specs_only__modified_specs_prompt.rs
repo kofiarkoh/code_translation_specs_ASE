@@ -1,0 +1,122 @@
+use std::cmp::{max, min};
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Node {
+    v: i64, // residue in [0, D-1]
+    l: i64, // inclusive
+    r: i64, // exclusive
+}
+
+fn gcd_i64(mut a: i64, mut b: i64) -> i64 {
+    // gcd(|a|,|b|) with nonnegative result; gcd(0,0)=0
+    a = a.abs();
+    b = b.abs();
+    while b != 0 {
+        let t = a % b;
+        a = b;
+        b = t;
+    }
+    a
+}
+
+fn mod_nonneg(a: i64, m: i64) -> i64 {
+    // m > 0
+    let r = a % m;
+    if r < 0 { r + m } else { r }
+}
+
+fn main() {
+    // Read exactly one triple (N, X, D); malformed input => unspecified, so we just unwrap.
+    let mut s = String::new();
+    io::stdin().read_to_string(&mut s).unwrap();
+    let mut it = s.split_whitespace();
+    let n: i64 = it.next().unwrap().parse().unwrap();
+    let mut x: i64 = it.next().unwrap().parse().unwrap();
+    let mut d: i64 = it.next().unwrap().parse().unwrap();
+
+    // 5.1 Special cases
+    if x == 0 && d == 0 {
+        println!("1");
+        return;
+    } else if d == 0 {
+        // All subset sums are i*X for i=0..N, all distinct since X != 0 here.
+        println!("{}", n + 1);
+        return;
+    } else if x == 0 {
+        // Distinct sums from choosing indices only: D * (sum of chosen indices).
+        // sum of indices ranges 0..N(N-1)/2, all achievable.
+        let nn = n;
+        let ans = nn * (nn - 1) / 2 + 1;
+        println!("{}", ans);
+        return;
+    }
+
+    // 5.2 General case (X != 0 and D != 0)
+    let g = gcd_i64(x, d);
+    // If g==0 cannot happen here because x!=0 and d!=0.
+    x /= g;
+    d /= g;
+
+    // Normalize so internal step D > 0, and compute endpoints X and Y as specified.
+    let mut y: i64;
+    if d < 0 {
+        y = x;
+        x = x + d * (n - 1);
+        d = -d;
+    } else {
+        y = x + d * (n - 1);
+    }
+    // Now d > 0.
+
+    let mut nodes: Vec<Node> = Vec::new();
+
+    // i = 0 interval: v=0, [0, D)
+    nodes.push(Node { v: 0, l: 0, r: d });
+
+    // For i = 1..N, generate interval and merge/insert with one found node only.
+    for i in 1..=n {
+        // L(i) = ((2X + D(i-1)) * i) / 2
+        // R(i) = ((2Y - D(i-1)) * i) / 2 + D
+        // All arithmetic is i64; overflow behavior is unspecified in spec, so we use i128
+        // to avoid panics and then cast back, which preserves intended math when in-range.
+        let ii = i as i128;
+        let x128 = x as i128;
+        let y128 = y as i128;
+        let d128 = d as i128;
+
+        let l128 = ((2 * x128 + d128 * (ii - 1)) * ii) / 2;
+        let r128 = ((2 * y128 - d128 * (ii - 1)) * ii) / 2 + d128;
+
+        let l = l128 as i64;
+        let r = r128 as i64;
+
+        let v = mod_nonneg(l, d);
+
+        // Search for a mergeable existing interval: same residue and overlap/touch predicate.
+        // Predicate: p.l <= R and p.r >= L (note: uses R, not R-1; touch allowed).
+        let mut found_idx: Option<usize> = None;
+        for (idx, p) in nodes.iter().enumerate() {
+            if p.v == v && p.l <= r && p.r >= l {
+                found_idx = Some(idx);
+                break;
+            }
+        }
+
+        if let Some(idx) = found_idx {
+            let p = &mut nodes[idx];
+            p.l = min(p.l, l);
+            p.r = max(p.r, r);
+        } else {
+            nodes.push(Node { v, l, r });
+        }
+    }
+
+    // Count distinct sums: sum over stored intervals of (r-l)/D using integer division.
+    let mut ans: i64 = 0;
+    for p in nodes.iter() {
+        ans += (p.r - p.l) / d;
+    }
+
+    println!("{}", ans);
+}

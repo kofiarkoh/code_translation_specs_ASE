@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- Wrong state-transition / reachability definition (ordering of DP expansion), and possibly wrong assumption about what “starting from the beginning” means in the source.
+
+B. What the current specification may be missing or misstating  
+- The spec describes reachability as “starting from position 0” and then building forward, which naturally leads to a DP over `(used-pattern-set, position)` (as in the generated program).  
+- The source program instead performs a forward scan over target positions `i` and expands subset states *at that fixed position* (`flag[i][subset] -> flag[i+len][subset∪{k}]`). This is a DP over `(position, used-pattern-set)` with a particular iteration order (increasing `i`, then all subsets at `i`).  
+- While these two formulations are often equivalent, the spec currently asserts an abstraction (“starting from the beginning … concatenation matches a prefix …”) that may be too strong or too specific compared to what the source actually computes. In particular, the source’s transition rule is anchored on *any reachable position `i`*, not explicitly on “prefix-only” language; it’s a general reachability in the concatenated target string from position 0 via exact matches.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the DP state space and transition semantics in a way that matches the source:  
+  - A state is “at target index `i` having used exactly the subset `S` of patterns”.  
+  - From such a state, you may append any unused pattern `k` that matches the target starting at `i`, moving to `(i+len[k], S∪{k})`.  
+  - The initial reachable state is `(0, ∅)` only.  
+  - The answer counts how many indices `i` have the full-set state reachable.  
+- Clarify that the computation is reachability in the target string via successive exact pattern matches, not a higher-level “prefix of target” characterization that could be misread as a different constraint (even if it often coincides).
+
+D. Why this clarification is supported by the source program  
+- The source uses `flag[i][j]` where `i` is a position in `t` and `j` is a subset bitmask; it sets `flag[i+l][pat]=1` when `strncmp(e[k], &t[i], l)==0`. This is explicitly a position-indexed reachability DP.  
+- It seeds reachability implicitly only at `(0,0)` by allowing transitions from `j==0` at every `i` (because it skips the `continue` only when `j==0`), but since transitions require a match at `t[i]`, the only meaningful start is still governed by reachability propagation. This subtlety is not captured by the current “prefix from the beginning” phrasing and should be specified in the same operational terms as the code.

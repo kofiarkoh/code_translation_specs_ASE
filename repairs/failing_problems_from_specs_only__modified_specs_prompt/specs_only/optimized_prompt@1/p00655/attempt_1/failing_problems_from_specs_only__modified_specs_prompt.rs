@@ -1,0 +1,264 @@
+use std::io::{self, Read};
+
+const MAX: usize = 200_005;
+
+struct Scanner {
+    buf: Vec<u8>,
+    i: usize,
+}
+impl Scanner {
+    fn new() -> Self {
+        let mut input = String::new();
+        io::stdin().read_to_string(&mut input).unwrap();
+        Self {
+            buf: input.into_bytes(),
+            i: 0,
+        }
+    }
+
+    fn next_u32(&mut self) -> Option<u32> {
+        while self.i < self.buf.len() && !self.buf[self.i].is_ascii_digit() {
+            self.i += 1;
+        }
+        if self.i >= self.buf.len() {
+            return None;
+        }
+        let mut x: u32 = 0;
+        while self.i < self.buf.len() && self.buf[self.i].is_ascii_digit() {
+            x = x * 10 + (self.buf[self.i] - b'0') as u32;
+            self.i += 1;
+        }
+        Some(x)
+    }
+}
+
+/*
+Specification requires fixed-size arrays with indices that only grow within a batch
+(no wraparound, no bounds checks). In Rust we still must avoid UB, so we use Vec<i32>
+with capacity MAX and only push/pop; preconditions guarantee we never exceed MAX.
+*/
+
+struct FH {
+    // Main storage as a stack (back of FH is top).
+    a: Vec<i32>,
+
+    // Record sequences when scanning FH left->right:
+    // prefix minima: strictly decreasing record values
+    // prefix maxima: strictly increasing record values
+    // Queries take k-th from the END (most recent record first).
+    rec_min: Vec<i32>,
+    rec_max: Vec<i32>,
+}
+impl FH {
+    fn new() -> Self {
+        Self {
+            a: Vec::with_capacity(MAX),
+            rec_min: Vec::with_capacity(MAX),
+            rec_max: Vec::with_capacity(MAX),
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.a.len()
+    }
+
+    fn push_back(&mut self, x: i32) {
+        self.a.push(x);
+
+        // Update record minima/maxima based on full FH scan semantics.
+        // Since we only append at the back, we can update incrementally:
+        // new record min if x < last record min (or first element),
+        // new record max if x > last record max (or first element).
+        if self.rec_min.is_empty() || x < *self.rec_min.last().unwrap() {
+            self.rec_min.push(x);
+        }
+        if self.rec_max.is_empty() || x > *self.rec_max.last().unwrap() {
+            self.rec_max.push(x);
+        }
+    }
+
+    fn pop_back(&mut self) -> i32 {
+        let x = self.a.pop().unwrap();
+
+        // If the removed element was the most recent record min/max, remove it.
+        if !self.rec_min.is_empty() && x == *self.rec_min.last().unwrap() {
+            self.rec_min.pop();
+        }
+        if !self.rec_max.is_empty() && x == *self.rec_max.last().unwrap() {
+            self.rec_max.pop();
+        }
+        x
+    }
+
+    fn mink_from_end(&self, k1: usize) -> i32 {
+        // k1 is 1-based; take k-th from end.
+        let idx = self.rec_min.len() - k1;
+        self.rec_min[idx]
+    }
+
+    fn maxk_from_end(&self, k1: usize) -> i32 {
+        let idx = self.rec_max.len() - k1;
+        self.rec_max[idx]
+    }
+}
+
+struct SH {
+    // Main storage as a queue implemented by fixed-growing indices.
+    a: Vec<i32>,
+    head: usize, // index of current front within `a`
+
+    // Monotone deques for minima/maxima, also with fixed-growing indices.
+    // We store values only (not indices), matching the described behavior:
+    // - On insertion at back: discard dominated elements at back.
+    // - On removal from front: if leaving value equals front of deque, pop front.
+    minq: Vec<i32>,
+    min_head: usize,
+    maxq: Vec<i32>,
+    max_head: usize,
+}
+impl SH {
+    fn new() -> Self {
+        Self {
+            a: Vec::with_capacity(MAX),
+            head: 0,
+            minq: Vec::with_capacity(MAX),
+            min_head: 0,
+            maxq: Vec::with_capacity(MAX),
+            max_head: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.a.len() - self.head
+    }
+
+    fn push_back(&mut self, x: i32) {
+        self.a.push(x);
+
+        // Maintain nondecreasing min deque: pop back while last > x.
+        while self.minq.len() > self.min_head {
+            let last = *self.minq.last().unwrap();
+            if last <= x {
+                break;
+            }
+            self.minq.pop();
+        }
+        self.minq.push(x);
+
+        // Maintain nonincreasing max deque: pop back while last < x.
+        while self.maxq.len() > self.max_head {
+            let last = *self.maxq.last().unwrap();
+            if last >= x {
+                break;
+            }
+            self.maxq.pop();
+        }
+        self.maxq.push(x);
+    }
+
+    fn pop_front(&mut self) -> i32 {
+        let x = self.a[self.head];
+        self.head += 1;
+
+        if self.min_head < self.minq.len() && self.minq[self.min_head] == x {
+            self.min_head += 1;
+        }
+        if self.max_head < self.maxq.len() && self.maxq[self.max_head] == x {
+            self.max_head += 1;
+        }
+        x
+    }
+
+    fn mink_from_front(&self, k1: usize) -> i32 {
+        self.minq[self.min_head + (k1 - 1)]
+    }
+
+    fn maxk_from_front(&self, k1: usize) -> i32 {
+        self.maxq[self.max_head + (k1 - 1)]
+    }
+}
+
+fn rebalance(fh: &mut FH, sh: &mut SH) {
+    // Maintain |FH| >= |SH| and |FH|-|SH| <= 1.
+    // Per spec, after insertion/deletion we only need to fix the case |FH| < |SH|
+    // by moving one element from front of SH to back of FH.
+    if fh.len() < sh.len() {
+        let x = sh.pop_front();
+        fh.push_back(x);
+    }
+}
+
+fn main() {
+    let mut sc = Scanner::new();
+    let mut out = String::new();
+
+    loop {
+        let Some(q) = sc.next_u32() else { break };
+        if q == 0 {
+            break;
+        }
+
+        let mut fh = FH::new();
+        let mut sh = SH::new();
+
+        for _ in 0..q {
+            let op = sc.next_u32().unwrap() as u32;
+            match op {
+                0 => {
+                    let x = sc.next_u32().unwrap() as i32;
+                    sh.push_back(x);
+                    rebalance(&mut fh, &mut sh);
+                }
+                1 => {
+                    let x = fh.pop_back();
+                    out.push_str(&format!("{x}\n"));
+                    rebalance(&mut fh, &mut sh);
+                }
+                2 => {
+                    let v = fh.mink_from_end(1);
+                    out.push_str(&format!("{v}\n"));
+                }
+                3 => {
+                    let v = sh.mink_from_front(1);
+                    out.push_str(&format!("{v}\n"));
+                }
+                4 => {
+                    let k = sc.next_u32().unwrap() as usize;
+                    let v = fh.mink_from_end(k);
+                    out.push_str(&format!("{v}\n"));
+                }
+                5 => {
+                    let k = sc.next_u32().unwrap() as usize;
+                    let v = sh.mink_from_front(k);
+                    out.push_str(&format!("{v}\n"));
+                }
+                6 => {
+                    let v = fh.maxk_from_end(1);
+                    out.push_str(&format!("{v}\n"));
+                }
+                7 => {
+                    let v = sh.maxk_from_front(1);
+                    out.push_str(&format!("{v}\n"));
+                }
+                8 => {
+                    let k = sc.next_u32().unwrap() as usize;
+                    let v = fh.maxk_from_end(k);
+                    out.push_str(&format!("{v}\n"));
+                }
+                9 => {
+                    let k = sc.next_u32().unwrap() as usize;
+                    let v = sh.maxk_from_front(k);
+                    out.push_str(&format!("{v}\n"));
+                }
+                _ => {
+                    // Undefined behavior per spec for malformed input/opcodes.
+                    // We do nothing to keep behavior unspecified.
+                }
+            }
+        }
+
+        out.push_str("end\n");
+    }
+
+    print!("{out}");
+}

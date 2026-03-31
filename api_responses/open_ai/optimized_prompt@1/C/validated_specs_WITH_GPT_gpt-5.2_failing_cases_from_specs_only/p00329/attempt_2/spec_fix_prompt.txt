@@ -1,0 +1,219 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description
+Determines whether a perfect one-to-one pairing exists between two equally sized sets of size `N` under a given binary feasibility relation, and:
+- If no perfect pairing exists, outputs a negative decision.
+- If a perfect pairing exists, outputs an affirmative decision and then outputs, for each left-side element in increasing order, one right-side element index that is guaranteed to be part of some perfect pairing.
+
+2. Inputs
+- An integer `N_in` representing the problem size parameter.
+- A square `N × N` binary matrix (where `N = N_in - 1`) describing allowed pairings between left elements `0..N-1` and right elements `0..N-1`.
+  - Each matrix entry indicates whether the corresponding left/right pair is allowed.
+
+3. Outputs
+- If no perfect pairing exists: a single line indicating rejection.
+- If a perfect pairing exists:
+  - A single line indicating acceptance.
+  - Then exactly `N` lines, where line `i` (1-based in the output ordering) contains an integer in `1..N` denoting the selected right-side partner for left element `i` (with left elements output in order from 1 to `N`).
+
+4. Preconditions
+- `N_in - 1` must be within the fixed supported bound: `0 ≤ N ≤ 1004`.
+- The input must provide exactly `N × N` binary feasibility entries in the expected textual form (any nonconforming input yields unspecified behavior).
+- The feasibility relation is interpreted as a bipartite graph between `N` left nodes and `N` right nodes.
+
+5. Postconditions
+- If the program outputs rejection, then no perfect pairing exists that matches every left element to a distinct right element using only allowed pairs.
+- If the program outputs acceptance, then:
+  - A perfect pairing exists.
+  - For each left element `i` (1..N), the printed right index `r_i` (1..N) satisfies:
+    - The pair `(i, r_i)` is allowed by the input relation.
+    - There exists at least one perfect pairing of all `N` left elements in which left element `i` is matched to right element `r_i`.
+  - The `N` printed right indices are not guaranteed to be all distinct across different `i` (they are per-left “certified possible” partners, not necessarily a single consistent perfect pairing).
+
+6. Invariants
+- The feasibility relation is treated as fixed throughout execution.
+- Any pairing considered valid always respects the feasibility relation and the one-to-one constraint within that pairing.
+- When acceptance is printed, each subsequent per-left output is derived under the invariant that a perfect pairing exists for the full instance.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If `N > 1004`, or if the input does not contain the required amount/format of data, behavior is undefined (may include incorrect output or memory corruption).
+- If `N = 0`, the program will output acceptance and no per-left lines.
+
+8. State Transitions (if applicable)
+- The program transitions from an initial “undecided” state to exactly one of:
+  - “rejected” state: outputs rejection and terminates.
+  - “accepted” state: outputs acceptance, then iterates through left elements producing `N` certified partner outputs, then terminates.
+- In the accepted state, each left element is processed independently to select a certified partner; this processing does not guarantee global consistency across different left elements’ selections.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage proportional to `N^2` with an explicit maximum `N ≤ 1004`; memory usage grows quadratically with `N` within that bound.
+- Execution time is polynomial in `N` and may be high near the maximum bound due to repeated matching computations.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- Wrong output formatting (case sensitivity)  
+- Wrong abstraction/selection rule for the per-left outputs (the “certified partner” rule is misstated)
+
+B. What the current specification may be missing or misstating  
+1) Output tokens are case-sensitive and must be exactly `"yes"` / `"no"` (lowercase). The current spec only says “acceptance/rejection” and the generated code prints `"Yes"` / `"No"`.  
+2) The meaning of the `N` lines after `"yes"` is not “any right node that can appear with left `i` in some perfect matching.” The source program is not checking feasibility by “forcing (i,r) and re-solving.” Instead, it computes one perfect matching, then for each left node `i` it *removes i’s current matched edge and runs one augmenting-path search starting from i*, and prints the new match found by that single DFS-based augmentation. This is a specific algorithmic choice that can yield a different right index than “smallest feasible forced edge” and is not characterized correctly by the current spec.
+
+C. What general behavior should be clarified in the specification  
+- Exact required output strings (including lowercase).  
+- In the “yes” case, clarify that the program outputs, for each left vertex in order, the right vertex obtained by:
+  - starting from an existing perfect matching,
+  - temporarily unmatching left `i` and its partner,
+  - running one Kuhn-style DFS augmentation from `i` using the current adjacency order,
+  - and printing the resulting matched right vertex for `i`.  
+This implies the outputs are algorithm-dependent (depend on DFS traversal order / adjacency order) and are not defined as “any certified possible partner” nor as “smallest such partner,” nor as an independently validated forced-edge witness.
+
+D. Why this clarification is supported by the source program  
+- The source prints `outs("yes")` / `outs("no")`, which are lowercase literals.  
+- After finding an initial perfect matching, the loop does:
+  - `match[match[i]] = -1; match[i] = -1;` (explicitly unmatches `i` and its current partner),
+  - `mark++; bpm(i);` (runs exactly one DFS augmentation from `i`),
+  - then prints `out(match[i]-N+1);` (the right node reached by that augmentation).  
+There is no loop over candidate rights and no “force edge then recompute perfect matching” check; therefore the current spec’s “guaranteed to be part of some perfect pairing” characterization is at least incomplete/vague and the generated selection rule does not match the source’s transition rule.
+
+```

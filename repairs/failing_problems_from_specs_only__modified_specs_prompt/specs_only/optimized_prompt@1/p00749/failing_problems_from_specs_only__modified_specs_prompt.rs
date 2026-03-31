@@ -1,0 +1,273 @@
+use std::io::{self, Read};
+
+#[derive(Clone, Copy)]
+struct Cell {
+    ch: u8,
+    rep: usize, // DSU representative (only meaningful if ch != b'.')
+}
+
+struct DSU {
+    p: Vec<usize>,
+    r: Vec<u8>,
+}
+impl DSU {
+    fn new(n: usize) -> Self {
+        Self {
+            p: (0..n).collect(),
+            r: vec![0; n],
+        }
+    }
+    fn find(&mut self, x: usize) -> usize {
+        if self.p[x] != x {
+            let root = self.find(self.p[x]);
+            self.p[x] = root;
+        }
+        self.p[x]
+    }
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        if self.r[ra] < self.r[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.p[rb] = ra;
+        if self.r[ra] == self.r[rb] {
+            self.r[ra] = self.r[ra].wrapping_add(1);
+        }
+    }
+}
+
+#[derive(Clone)]
+struct Comp {
+    // intrinsic/aggregated
+    m: i64,
+    mx: i64,
+    xl: i32,
+    xr: i32,
+
+    // support structure
+    parent: Option<usize>, // internal index (1-based)
+    children: Vec<usize>,  // internal indices (1-based), append order
+
+    // evaluation bookkeeping
+    visited: bool,
+}
+
+fn idx(r: usize, c: usize, w: usize) -> usize {
+    r * w + c
+}
+
+// Balance check without floating point:
+// x = 0.5 + mx/m
+// Condition: xl < x < xr+1
+// Multiply by 2m (m>0):
+//   2m*xl < m + 2mx < 2m*(xr+1)
+fn balanced(m: i64, mx: i64, xl: i32, xr: i32) -> bool {
+    if m <= 0 {
+        return false;
+    }
+    let left = (xl as i64) * 2 * m;
+    let mid = m + 2 * mx;
+    let right = ((xr as i64) + 1) * 2 * m;
+    left < mid && mid < right
+}
+
+fn dfs(u: usize, comps: &mut [Comp]) -> bool {
+    if comps[u].visited {
+        return true;
+    }
+    comps[u].visited = true;
+
+    let children = comps[u].children.clone();
+    for &v in &children {
+        if !dfs(v, comps) {
+            return false;
+        }
+        let (cm, cmx) = (comps[v].m, comps[v].mx);
+        comps[u].m += cm;
+        comps[u].mx += cmx;
+    }
+
+    balanced(comps[u].m, comps[u].mx, comps[u].xl, comps[u].xr)
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut out = String::new();
+
+    loop {
+        let Some(w_tok) = it.next() else { break };
+        let w: i32 = w_tok.parse().unwrap();
+        let Some(h_tok) = it.next() else { break };
+        let h: i32 = h_tok.parse().unwrap();
+
+        if w <= 0 {
+            break;
+        }
+        let (w_us, h_us) = (w as usize, h as usize);
+
+        let mut grid: Vec<Vec<u8>> = Vec::with_capacity(h_us);
+        for _ in 0..h_us {
+            let row = it.next().unwrap_or("");
+            let mut bytes = row.as_bytes().to_vec();
+            if bytes.len() < w_us {
+                bytes.resize(w_us, b'.');
+            } else if bytes.len() > w_us {
+                bytes.truncate(w_us);
+            }
+            grid.push(bytes);
+        }
+
+        let n = w_us * h_us;
+        let mut dsu = DSU::new(n);
+
+        // Connectivity: same non-empty character, orthogonal adjacency.
+        for r in 0..h_us {
+            for c in 0..w_us {
+                let ch = grid[r][c];
+                if ch == b'.' {
+                    continue;
+                }
+                if c + 1 < w_us && grid[r][c + 1] == ch {
+                    dsu.union(idx(r, c, w_us), idx(r, c + 1, w_us));
+                }
+                if r + 1 < h_us && grid[r + 1][c] == ch {
+                    dsu.union(idx(r, c, w_us), idx(r + 1, c, w_us));
+                }
+            }
+        }
+
+        // Cell table with representatives.
+        let mut cells: Vec<Cell> = Vec::with_capacity(n);
+        for r in 0..h_us {
+            for c in 0..w_us {
+                let ch = grid[r][c];
+                let rep = if ch == b'.' {
+                    0
+                } else {
+                    dsu.find(idx(r, c, w_us))
+                };
+                cells.push(Cell { ch, rep });
+            }
+        }
+
+        // Bottom-up scan: assign internal indices, accumulate intrinsic properties, build support links.
+        let mut rep_to_internal: Vec<Option<usize>> = vec![None; n];
+        let mut comps: Vec<Comp> = vec![Comp {
+            m: 0,
+            mx: 0,
+            xl: 0,
+            xr: -1,
+            parent: None,
+            children: Vec::new(),
+            visited: false,
+        }];
+
+        let mut next_internal = 1usize;
+
+        for rr in (0..h_us).rev() {
+            for cc in 0..w_us {
+                let cell = cells[idx(rr, cc, w_us)];
+                if cell.ch == b'.' {
+                    continue;
+                }
+
+                let rep = cell.rep;
+                let internal = match rep_to_internal[rep] {
+                    Some(id) => id,
+                    None => {
+                        let id = next_internal;
+                        next_internal += 1;
+                        rep_to_internal[rep] = Some(id);
+                        comps.push(Comp {
+                            m: 0,
+                            mx: 0,
+                            xl: cc as i32,
+                            xr: cc as i32,
+                            parent: None,
+                            children: Vec::new(),
+                            visited: false,
+                        });
+                        id
+                    }
+                };
+
+                // Intrinsic accumulation.
+                {
+                    let comp = &mut comps[internal];
+                    comp.m += 1;
+                    comp.mx += cc as i64;
+                    let c_i32 = cc as i32;
+                    if c_i32 < comp.xl {
+                        comp.xl = c_i32;
+                    }
+                    if c_i32 > comp.xr {
+                        comp.xr = c_i32;
+                    }
+                }
+
+                // Support link attempt.
+                if rr == h_us - 1 {
+                    continue;
+                }
+                if comps[internal].parent.is_some() {
+                    continue; // frozen after first assignment
+                }
+                let below = cells[idx(rr + 1, cc, w_us)];
+                if below.ch == b'.' {
+                    continue;
+                }
+                let below_rep = below.rep;
+                let Some(below_internal) = rep_to_internal[below_rep] else {
+                    continue;
+                };
+                if below_internal == internal {
+                    continue;
+                }
+
+                comps[internal].parent = Some(below_internal);
+                comps[below_internal].children.push(internal);
+            }
+        }
+
+        // The original program's recursive procedure starts from internal component index 1.
+        // However, the intended "distinguished root" is the first encountered component in scan order,
+        // and stability is evaluated over the support forest rooted at the ground.
+        // Narrowest adjustment consistent with observed behavior: if component 1 has a parent,
+        // climb parent pointers to the topmost ancestor and start there.
+        let stable = if comps.len() <= 1 {
+            false
+        } else {
+            let mut root = 1usize;
+            // Follow parent pointers as long as they exist and do not self-loop.
+            // This also avoids infinite loops if malformed cycles exist.
+            let mut steps = 0usize;
+            while let Some(p) = comps[root].parent {
+                if p == root {
+                    break;
+                }
+                root = p;
+                steps += 1;
+                if steps > comps.len() + 5 {
+                    break;
+                }
+            }
+            comps[root].parent = Some(root);
+            dfs(root, &mut comps)
+        };
+
+        if stable {
+            out.push_str("STABLE\n");
+        } else {
+            out.push_str("UNSTABLE\n");
+        }
+    }
+
+    print!("{out}");
+}

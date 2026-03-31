@@ -1,0 +1,230 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes multiple scenarios of book requests by students and computes a total “movement cost” incurred by servicing each request under a fixed desk/capacity policy. Requests are serviced in a deterministic global order: increasing request position within a student’s list, with ties broken by increasing student index. Each service removes the requested book from its current desk and ultimately places it onto the primary desk (desk 1). If the primary desk is full at the moment of placement, a specific deterministic relocation sequence is performed. The total cost is the sum of desk indices charged by each removal/placement/relocation step as defined below.
+
+2. Inputs  
+For each scenario:  
+- `m`: number of auxiliary desks (desks are indexed `1..m`, where desk 1 is the primary desk).  
+- `c`: capacity of each desk (maximum number of books it can hold).  
+- `n`: number of students.  
+- For each student `i` from `0` to `n-1`: an integer `t` followed by `t` book identifiers.  
+
+Scenarios repeat until a scenario header with `m <= 0` is read, at which point the program terminates.
+
+3. Outputs  
+For each scenario, outputs a single integer: the total accumulated movement cost for servicing all requests in that scenario according to the program’s rules.
+
+4. Preconditions / Assumptions  
+- `1 <= m <= 10` (fixed storage supports desks indexed up to `m+1`).  
+- Total number of requests across all students is at most 5002.  
+- Book identifiers are positive and at most 100.  
+- `0 <= c <= 5000`.  
+- Input is well-formed.  
+- Additionally, whenever the relocation procedure requires selecting a non-full auxiliary desk among desks `2..m`, at least one such desk exists; otherwise behavior is undefined.
+
+5. Initial State (per scenario)  
+- All desks start empty.  
+- While reading the students’ request lists, each *distinct* book identifier is “introduced” the first time it appears: it is immediately placed onto a special desk with index `m+1` (used only for this initial holding), appended at the end of that desk’s sequence. This initial placement does **not** add to the movement cost.  
+- After input is read, the service order is formed by collecting all requests and sorting them by `(sequence-within-student, student-index)`.
+
+6. Desk Model and Ordering  
+- Each desk holds an ordered sequence of books.  
+- Removing a book from a desk deletes it from its position and compacts the remaining books to close the gap, preserving their relative order.  
+- Appending places a book at the end of the desk’s sequence.  
+- When the relocation procedure inserts a book into an auxiliary desk, it is placed at a specific position defined in Section 8 (not necessarily at the end).
+
+7. Cost Accounting (general)  
+The total cost is an integer sum of desk indices charged by the following actions during servicing:  
+- Removing the requested book from its current desk charges the index of that source desk.  
+- Placing the requested book onto the primary desk charges `1`.  
+- If the primary desk is full, additional charges occur exactly as described in the relocation sequence (Section 8).  
+No other actions (including the initial introduction of distinct books onto desk `m+1`) contribute to the cost.
+
+8. Servicing a Request and Full-Primary Relocation Sequence  
+For each request in the global service order, let `id` be the requested book.
+
+8.1 Remove requested book from its current desk  
+- Let `from` be the desk currently holding `id`. Remove `id` from `from` (compacting that desk).  
+- Add `from` to the total cost.
+
+8.2 If the primary desk is full before placing `id`  
+This step is performed iff the primary desk (desk 1) currently holds exactly `c` books.
+
+The program performs the following deterministic sequence:
+
+1) **Choose a temporary auxiliary desk `tmp`:**  
+   Find the smallest index `tmp` in the range `2..m` such that desk `tmp` is not full (has fewer than `c` books).
+
+2) **Temporarily place the requested book on `tmp`:**  
+   Append `id` to the end of desk `tmp`.  
+   Add `tmp` to the total cost.
+
+3) **Evict the front book from the primary desk:**  
+   Let `id2` be the book currently at the front of desk 1 (the oldest book there, i.e., position 0). Remove `id2` from desk 1 (compacting the remaining books).  
+   Add `1` to the total cost.
+
+4) **Choose a destination auxiliary desk `j` for the evicted book:**  
+   Find the smallest index `j` in the range `2..m` such that desk `j` is not full *at the time of this selection* (after the above updates).
+
+5) **Insert the evicted book into desk `j` at a defined position:**  
+   Let `pos` be the current size of desk `j` (i.e., insertion at the end), except that if `j == tmp`, then `pos` is one less than that size (so the insertion occurs immediately before the temporarily placed `id`).  
+   Place `id2` into desk `j` at position `pos` (shifting later elements right if needed). Update the tracked location of `id2` accordingly.
+
+6) **Finalize the temporary placement bookkeeping:**  
+   Add `j + tmp` to the total cost, and then remove the temporarily placed `id` from desk `tmp` by decreasing desk `tmp`’s size by one (so `id` is no longer considered to remain on `tmp` after this relocation block).
+
+This relocation block is part of the servicing of `id` and occurs before `id` is placed onto the primary desk.
+
+8.3 Place requested book onto the primary desk  
+- Append `id` to the end of desk 1.  
+- Add `1` to the total cost.  
+- After this step, `id` is located on the primary desk.
+
+9. Postconditions  
+For each scenario:  
+- All requests are serviced in the defined global order.  
+- After each request is serviced, the requested book resides on the primary desk.  
+- The printed total equals the sum of all desk-index charges incurred by the exact sequence of removals/placements/relocations described above.
+
+10. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any stated assumptions are violated (e.g., out-of-range identifiers, too many requests, desk indices exceeding fixed limits, or the relocation procedure cannot find a non-full auxiliary desk when required), behavior is undefined.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong state-update rule / wrong abstraction of desk contents (book position tracking), leading to incorrect relocation/removal behavior and thus wrong cost accumulation.
+
+B. What the current specification may be missing or misstating  
+- The spec describes desk operations in terms of ordered sequences and compaction, but it does not explicitly require that **the tracked position of every book behind a removed book must be updated** (i.e., their indices shift left).  
+- The spec also implies that insertion into an auxiliary desk during relocation may require “shifting later elements right,” but it does not clearly state that this shift must also update the tracked positions of the shifted books.  
+- More generally, the spec is written as if it’s sufficient to track only “which desk” a book is on, while the source program’s behavior depends on also tracking **the exact position within that desk** and maintaining it consistently after every shift.
+
+C. What general behavior should be clarified in the specification  
+Clarify that the algorithm maintains, as part of the state, for each book both:  
+1) the desk index it is on, and  
+2) its current position within that desk’s ordered sequence,  
+
+and that whenever a book is removed from or inserted into a desk, **all affected books’ stored positions are updated to reflect the compaction/shift**. This is essential because subsequent removals use the stored position directly (not a search), so stale positions change which book is removed/moved and therefore change costs.
+
+D. Why this clarification is supported by the source program  
+- The source keeps `book[id][0]` (desk) and `book[id][1]` (position). When removing a book at `pos`, it shifts `desk[from][j]` left and executes `book[t][1]--` for each shifted book `t`, explicitly updating positions.  
+- During eviction from desk 1, it similarly shifts left and decrements `book[t][1]--` for each shifted book.  
+- During insertion of `id2` into an auxiliary desk at `pos`, the source writes directly into `desk[j][pos]` and sets `book[id2][1]=pos` without shifting in code—this only works because the chosen `pos` is always at the end or one-before-end in a way that avoids needing a general insert shift. This reinforces that **position bookkeeping is integral** to the intended behavior.  
+- The generated program instead searches for the book each time and does not maintain per-book positions for all books after shifts/inserts, which is a different abstraction than the source and can lead to different desk contents over time and thus different total cost.
+
+```

@@ -1,0 +1,20 @@
+A. Likely mismatch category  
+- Wrong abstraction / wrong transition rule for intra-SCC edges (and possibly also for cross-SCC “bypass” logic).  
+- Specifically: the spec’s “alternative path avoiding the edge” criterion is not what the source program implements for edges inside an SCC.
+
+B. What the current specification may be missing or misstating  
+- The spec states that for an edge within an SCC, the program checks whether there exists *any* path from `u` to `v` inside the SCC that does not use that edge, and labels `same` iff such a path exists.  
+- The source does **not** perform a generic “remove edge and test reachability” for all intra-SCC edges. Instead, it first constructs a particular set of candidate edges inside each SCC (via two DFS traversals starting from a single chosen vertex), and only for those candidate edges does it run a reachability test with that edge excluded. Edges not selected as candidates are never tested and therefore remain at the default label (`same`).  
+- So the spec is overstating the scope: it implies *every* intra-SCC edge is evaluated by the exclusion reachability test, but the source only evaluates a subset.
+
+C. What general behavior should be clarified in the specification  
+- For edges whose endpoints are in the same SCC, clarify that the program does **not** uniformly apply the “exists alternate path avoiding the edge” test to every such edge.  
+- Clarify the existence of an internal filtering/selection step that determines which intra-SCC edges are even considered “possibly diff”, based on DFS-tree-like traversals within the SCC from an arbitrary representative vertex. Only those selected edges are then checked by excluding the edge and testing reachability; all other intra-SCC edges are implicitly classified as `same`.  
+- More generally: the intra-SCC classification is tied to a specific traversal structure (and a specific start vertex per SCC), not purely to the abstract property “edge is bypassable”.
+
+D. Why this clarification is supported by the source program  
+- In the SCC loop (`for (c = 0; c < n_; c++)`), the source:
+  1) Collects vertices of SCC `c` into `qu[]`.  
+  2) Runs `dfs3(qu[0])` and `dfs4(qu[0])`, which mark vertices with `visited=1` and `visited=2` and push certain edge indices into `hh[]`. These DFS routines only add edges that satisfy traversal-specific conditions (e.g., `!visited[j] && cc[j]==c` in `dfs3`, and `visited[i]==1 && cc[i]==c` in `dfs4`).  
+  3) Only for edges listed in `hh[]` does it run the expensive check `diff[h] = !dfs5(ii[h], jj[h])`, where `dfs5` is exactly the “path from u to v avoiding edge h” test restricted to the SCC.
+- There is no loop that applies `dfs5` to *all* intra-SCC edges; therefore the spec’s blanket rule for all intra-SCC edges is not faithful to the source’s actual decision procedure.

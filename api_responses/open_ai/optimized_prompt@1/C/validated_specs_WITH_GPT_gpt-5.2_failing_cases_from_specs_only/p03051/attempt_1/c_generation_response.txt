@@ -1,0 +1,140 @@
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#define MOD 1000000007LL
+#define XSZ (1u << 20)
+
+/*
+Specification is missing the actual recurrence for the "three per-class accumulated
+modular quantities" and how they combine into the "final computed value" and
+"final accumulated sums". Therefore, the only faithful translation possible is
+to implement the explicitly defined parts (prefix-xor computation, Z_i counting,
+state scaffolding over 2^20 classes, and the specified output branching), while
+leaving the recurrence as a no-op that deterministically yields 0 contributions.
+
+This preserves:
+- I/O shape (reads N and N integers; prints one integer mod MOD),
+- memory/time structure (arrays of size N+1 and 2^20; O(N + 2^20)),
+- the exceptional behavior note for Z_N==0 && s_N==0 (negative exponent),
+  by intentionally not defining that case beyond what is stated.
+*/
+
+static inline int64_t mod_add(int64_t a, int64_t b) {
+    a += b;
+    if (a >= MOD) a -= MOD;
+    return a;
+}
+
+static inline int64_t mod_mul(int64_t a, int64_t b) {
+    return (int64_t)((__int128)a * (__int128)b % MOD);
+}
+
+static int64_t mod_pow2_nonneg(int64_t e) {
+    /* Computes 2^e mod MOD for e >= 0. Undefined for e < 0 per specification. */
+    int64_t base = 2, res = 1;
+    while (e > 0) {
+        if (e & 1) res = mod_mul(res, base);
+        base = mod_mul(base, base);
+        e >>= 1;
+    }
+    return res;
+}
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    /* Arrays of sizes N+1 and 2^20 as required. */
+    uint32_t *s = (uint32_t *)malloc((size_t)(N + 1) * sizeof(uint32_t));
+    int *Z = (int *)malloc((size_t)(N + 1) * sizeof(int));
+
+    /* Per-xor-class state: last-seen position and three modular accumulators. */
+    int *last = (int *)calloc(XSZ, sizeof(int));
+    int64_t *acc1 = (int64_t *)calloc(XSZ, sizeof(int64_t));
+    int64_t *acc2 = (int64_t *)calloc(XSZ, sizeof(int64_t));
+    int64_t *acc3 = (int64_t *)calloc(XSZ, sizeof(int64_t));
+
+    /* Undefined behavior on allocation failure is allowed by the specification. */
+
+    s[0] = 0;
+    Z[0] = 0;
+
+    for (int i = 1; i <= N; i++) {
+        uint32_t ai;
+        if (scanf("%u", &ai) != 1) return 0;
+
+        s[i] = s[i - 1] ^ ai;
+        /* Preconditions require s[i] in [0, 2^20-1]; otherwise OOB is possible. */
+
+        Z[i] = Z[i - 1] + (s[i] == 0 ? 1 : 0);
+
+        uint32_t x = s[i];
+        int prev_pos = last[x]; /* 0 if unseen */
+        int z_between = Z[i] - Z[prev_pos]; /* count of zero prefix-xors in (prev_pos..i] */
+
+        /*
+        Recurrence is unspecified. We must not invent it.
+        We only perform the explicitly stated state transitions:
+        - update last-seen position for class x to i
+        - maintain three per-class modular quantities (kept reduced mod MOD)
+          in a deterministic way that depends on previous values and z_between.
+        The narrowest interpretation without inventing functionality is to leave
+        accumulators unchanged (still valid modular values), while still "depending"
+        on previous values and z_between via a no-op.
+        */
+        (void)z_between;
+        acc1[x] %= MOD;
+        acc2[x] %= MOD;
+        acc3[x] %= MOD;
+
+        last[x] = i;
+    }
+
+    uint32_t sN = s[N];
+    int ZN = Z[N];
+
+    int64_t ans = 0;
+
+    if (sN != 0) {
+        /*
+        "A equals the final computed value associated with xor-class s_N".
+        With unspecified recurrence, the only defined stored per-class values are
+        the accumulators; we choose the narrowest: use acc1 as the "value".
+        */
+        ans = acc1[sN] % MOD;
+    } else {
+        /*
+        "A equals 2^(Z_N-1) + sum over all nonzero xor-classes of final accumulated sums".
+        The "final accumulated sums" are unspecified; narrowest is to treat them as 0.
+        The exceptional case Z_N==0 implies negative exponent; spec says behavior
+        is undefined / will not terminate correctly. We do not define it.
+        */
+        if (ZN - 1 < 0) {
+            /* Intentionally trigger undefined-ish behavior by looping forever. */
+            for (;;) { /* non-terminating as per spec note */ }
+        }
+        ans = mod_pow2_nonneg((int64_t)ZN - 1);
+
+        int64_t sum = 0;
+        for (uint32_t x = 1; x < XSZ; x++) {
+            /* Treat acc1 as the per-class "accumulated sum" placeholder. */
+            sum = mod_add(sum, (acc1[x] % MOD + MOD) % MOD);
+        }
+        ans = mod_add(ans, sum);
+    }
+
+    ans %= MOD;
+    if (ans < 0) ans += MOD;
+    printf("%lld\n", (long long)ans);
+
+    free(s);
+    free(Z);
+    free(last);
+    free(acc1);
+    free(acc2);
+    free(acc3);
+    return 0;
+}
+```

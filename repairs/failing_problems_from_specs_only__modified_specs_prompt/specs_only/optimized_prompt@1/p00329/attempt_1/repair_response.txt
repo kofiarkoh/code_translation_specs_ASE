@@ -1,0 +1,119 @@
+```rust
+use std::io::{self, Read};
+
+fn try_kuhn(
+    v_left: usize,
+    g: &Vec<Vec<usize>>,
+    used_left: &mut [bool],
+    mt_right_to_left: &mut [Option<usize>],
+    mt_left_to_right: &mut [Option<usize>],
+) -> bool {
+    if used_left[v_left] {
+        return false;
+    }
+    used_left[v_left] = true;
+
+    for &to_right in &g[v_left] {
+        match mt_right_to_left[to_right] {
+            None => {
+                mt_right_to_left[to_right] = Some(v_left);
+                mt_left_to_right[v_left] = Some(to_right);
+                return true;
+            }
+            Some(prev_left) => {
+                if try_kuhn(prev_left, g, used_left, mt_right_to_left, mt_left_to_right) {
+                    mt_right_to_left[to_right] = Some(v_left);
+                    mt_left_to_right[v_left] = Some(to_right);
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+fn main() {
+    // Read entire stdin as bytes; we must emulate character-level consumption precisely
+    // for the matrix (two bytes per cell, no whitespace skipping).
+    let mut input = Vec::new();
+    io::stdin().read_to_end(&mut input).unwrap();
+    let mut p: usize = 0;
+
+    // Parse N_in as a non-negative decimal integer with no sign.
+    // Narrow interpretation: skip leading non-digits (unspecified in spec, but common in such programs).
+    while p < input.len() && !(input[p] as char).is_ascii_digit() {
+        p += 1;
+    }
+    let mut n_in: usize = 0;
+    while p < input.len() && (input[p] as char).is_ascii_digit() {
+        n_in = n_in.saturating_mul(10).saturating_add((input[p] - b'0') as usize);
+        p += 1;
+    }
+
+    // Effective size N = N_in - 1, with wraparound avoided by saturating at 0.
+    // Spec says N_in is non-negative; if N_in == 0 then N would underflow in C,
+    // but constraints imply valid inputs. We choose the narrowest safe behavior.
+    let n: usize = if n_in == 0 { 0 } else { n_in - 1 };
+
+    // Build adjacency lists for left vertices (indexed by column j),
+    // edges added in input scanning order: i outer, j inner.
+    let mut g: Vec<Vec<usize>> = vec![Vec::new(); n];
+
+    for i in 0..n {
+        for j in 0..n {
+            // Read exactly two bytes per cell: value byte then one ignored byte.
+            // If input is malformed/short, behavior is unspecified; we treat missing as 0.
+            let val = if p < input.len() { input[p] } else { 0 };
+            p = p.saturating_add(1);
+            // ignore separator
+            p = p.saturating_add(1);
+
+            if (val & 1) == 1 {
+                // Edge from left=j to right=i
+                g[j].push(i);
+            }
+        }
+    }
+
+    // Find initial perfect matching using Kuhn-style DFS in left vertex order 0..N-1.
+    let mut mt_right_to_left: Vec<Option<usize>> = vec![None; n];
+    let mut mt_left_to_right: Vec<Option<usize>> = vec![None; n];
+
+    let mut matched = 0usize;
+    for v in 0..n {
+        let mut used_left = vec![false; n];
+        if try_kuhn(v, &g, &mut used_left, &mut mt_right_to_left, &mut mt_left_to_right) {
+            matched += 1;
+        }
+    }
+
+    if matched != n {
+        print!("no\n");
+        return;
+    }
+
+    // Perfect matching exists.
+    print!("yes\n");
+
+    // Sequential "unmatch and re-augment once" procedure.
+    for i in 0..n {
+        // Remove currently matched edge incident to i (if any).
+        if let Some(r) = mt_left_to_right[i] {
+            mt_left_to_right[i] = None;
+            mt_right_to_left[r] = None;
+        }
+
+        // Perform exactly one augmenting-path DFS starting from i.
+        let mut used_left = vec![false; n];
+        let _ = try_kuhn(i, &g, &mut used_left, &mut mt_right_to_left, &mut mt_left_to_right);
+
+        // Print matched_right(i) + 1. With a perfect matching and this procedure,
+        // i should end up matched; if not (malformed input / unspecified), print 0.
+        let out = match mt_left_to_right[i] {
+            Some(r) => r + 1,
+            None => 0,
+        };
+        print!("{out}\n");
+    }
+}
+```

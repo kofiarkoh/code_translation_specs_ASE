@@ -1,0 +1,137 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 2
+Observed status: NO_SAMPLES
+
+Latest execution report:
+```text
+Status: NO_SAMPLES
+No sample input/output pairs were found.
+```
+
+Latest Rust code:
+```rust
+use std::cmp::Ordering;
+use std::io::{self, Read};
+
+const MAX_WORDS: usize = 100;
+const MAX_WORD_LEN: usize = 30;
+const MAX_PAGE: usize = 1000;
+
+#[derive(Clone)]
+struct Entry {
+    word: String,
+    pgnum: [u8; MAX_PAGE + 1], // marks are compared to exactly 1
+    tm: i32,                   // count of input records for this word
+}
+
+fn main() {
+    // Read entire stdin and tokenize like scanf("%s %d") would (whitespace-delimited).
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    // Specification assumes zero-initialized storage; we model that explicitly.
+    let mut entries: Vec<Entry> = Vec::new();
+
+    loop {
+        let w = match it.next() {
+            Some(s) => s,
+            None => break, // EOF / no more tokens
+        };
+        let p_tok = match it.next() {
+            Some(s) => s,
+            None => break, // scanf("%s %d") would fail; stop
+        };
+
+        // Under the spec's assumptions, input is well-formed and within bounds.
+        // If violated, behavior is undefined; we choose a narrow interpretation:
+        // ignore malformed page numbers by stopping (closest to scanf failure).
+        let page: usize = match p_tok.parse::<i32>() {
+            Ok(v) if (0..=MAX_PAGE as i32).contains(&v) => v as usize,
+            _ => break,
+        };
+
+        // Under assumptions: word length <= 30 and distinct words <= 100.
+        // If violated, behavior is undefined; we do not add extra handling.
+        let mut found = None;
+        for (idx, e) in entries.iter_mut().enumerate() {
+            if e.word == w {
+                found = Some(idx);
+                break;
+            }
+        }
+
+        if let Some(idx) = found {
+            let e = &mut entries[idx];
+            e.pgnum[page] = 1;
+            e.tm = e.tm.wrapping_add(1); // emulate C int overflow/wraparound as closely as possible
+        } else {
+            if entries.len() >= MAX_WORDS {
+                // Undefined by spec; stop adding further entries (narrow, non-inventive choice).
+                continue;
+            }
+            let mut word = w.to_string();
+            if word.len() > MAX_WORD_LEN {
+                // Undefined by spec; truncate to fit the stated storage size.
+                word.truncate(MAX_WORD_LEN);
+            }
+            let mut e = Entry {
+                word,
+                pgnum: [0u8; MAX_PAGE + 1],
+                tm: 0,
+            };
+            e.pgnum[page] = 1;
+            e.tm = e.tm.wrapping_add(1);
+            entries.push(e);
+        }
+    }
+
+    // Sort ascending lexicographic order based on strcmp (byte-wise, C locale).
+    // Rust's String Ord is lexicographic by Unicode scalar values; for ASCII inputs
+    // (implied by typical %s usage), this matches strcmp. We compare bytes to be closer.
+    entries.sort_by(|a, b| {
+        let ab = a.word.as_bytes();
+        let bb = b.word.as_bytes();
+        let n = ab.len().min(bb.len());
+        for i in 0..n {
+            match ab[i].cmp(&bb[i]) {
+                Ordering::Equal => {}
+                non_eq => return non_eq,
+            }
+        }
+        ab.len().cmp(&bb.len())
+    });
+
+    let mut out = String::new();
+
+    for e in &entries {
+        out.push_str(&e.word);
+        out.push('\n');
+
+        // Printing semantics:
+        // Scan j from 0..=1000; when pgnum[j]==1, check if k == tm-1.
+        // If yes: print j + '\n' and stop scanning for this word.
+        // Else: print j + ' ' and increment k.
+        //
+        // Under assumptions, tm equals number of distinct marked pages, so this prints
+        // all marked pages with correct spacing and newline.
+        let mut k: i32 = 0;
+        for j in 0..=MAX_PAGE {
+            if e.pgnum[j] == 1 {
+                if k == e.tm.wrapping_sub(1) {
+                    out.push_str(&format!("{j}\n"));
+                    break;
+                } else {
+                    out.push_str(&format!("{j} "));
+                    k = k.wrapping_add(1);
+                }
+            }
+        }
+    }
+
+    print!("{out}");
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

@@ -1,0 +1,122 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple scenarios of book requests by students and computes a total “movement cost” incurred by servicing each request under a fixed desk/capacity policy. Requests are serviced in a deterministic global order: increasing request position within a student’s list, with ties broken by increasing student index. Each service removes the requested book from its current desk and ultimately places it onto the primary desk (desk 1). If the primary desk is full at the moment just before placement, a specific deterministic relocation sequence is performed. The total cost is the sum of desk indices charged by each removal/placement/relocation step as defined below.
+
+2. Inputs  
+For each scenario:  
+- `m`: number of desks available for normal operation, indexed `1..m` (desk 1 is the primary desk).  
+- `c`: capacity of each desk (maximum number of books it can hold).  
+- `n`: number of students.  
+- For each student `i` from `0` to `n-1`: an integer `t` followed by `t` book identifiers.  
+
+Scenarios repeat until a scenario header with `m <= 0` is read, at which point the program terminates.
+
+3. Outputs  
+For each scenario, outputs a single integer: the total accumulated movement cost for servicing all requests in that scenario according to the rules below.
+
+4. Preconditions / Assumptions  
+- `1 <= m <= 10`.  
+- Total number of requests across all students is at most 5002.  
+- Book identifiers are positive and at most 100.  
+- `0 <= c <= 5000`.  
+- Input is well-formed.  
+- When the relocation procedure requires selecting a desk among `2..m` that is not full, at least one such desk exists; otherwise behavior is undefined.
+
+5. Initial State (per scenario)  
+- All desks `1..m` start empty.  
+- While reading the students’ request lists, each *distinct* book identifier is “introduced” the first time it appears: it is immediately placed onto a special initial holding desk with index `m+1`, appended at the end of that desk’s sequence. This initial placement does **not** add to the movement cost.  
+- After input is read, the service order is formed by collecting all requests and sorting them by `(sequence-within-student, student-index)`.
+
+6. Desk Model, Ordering, and Tracked Book Locations  
+- Each desk holds an ordered sequence of books (positions `0..size-1`).  
+- The program’s state conceptually includes, for every book currently present, both:  
+  1) the desk index it is on, and  
+  2) its current position within that desk’s sequence.  
+- Removing a book from a desk deletes it from its position and compacts the remaining books to close the gap, preserving their relative order. **As part of this compaction, the stored positions of all books that were behind the removed book on that desk decrease by 1.**  
+- Appending places a book at the end of the desk’s sequence and sets its stored position accordingly.  
+- During relocation (Section 8.2), the only “insertion” performed into an auxiliary desk is at the end or immediately before the last element in a way that does not require shifting an arbitrary number of existing elements; nevertheless, the stored desk/position for the moved book is updated to match its new location.
+
+7. Cost Accounting (general)  
+The total cost is an integer sum of desk indices charged by the following actions during servicing:  
+- Removing the requested book from its current desk charges the index of that source desk.  
+- Placing the requested book onto the primary desk charges `1`.  
+- If the primary desk is full, additional charges occur exactly as described in the relocation sequence (Section 8.2).  
+No other actions (including the initial introduction of distinct books onto desk `m+1`) contribute to the cost.
+
+8. Servicing a Request and Full-Primary Relocation Sequence  
+For each request in the global service order, let `id` be the requested book.
+
+8.1 Remove requested book from its current desk  
+- Let `from` be the desk currently holding `id`, and `pos` its stored position on that desk. Remove `id` from `from` at that position (compacting that desk and updating stored positions of affected books as described in Section 6).  
+- Add `from` to the total cost.
+
+8.2 If the primary desk is full before placing `id`  
+This step is performed iff desk 1 currently holds exactly `c` books (i.e., is full) at this moment.
+
+The program performs the following deterministic sequence:
+
+1) **Choose a temporary desk `tmp`:**  
+   Find the smallest index `tmp` in the range `2..m` such that desk `tmp` is not full (has fewer than `c` books).  
+   (If no such desk exists, behavior is undefined.)
+
+2) **Temporarily place the requested book on `tmp`:**  
+   Append `id` to the end of desk `tmp` and update `id`’s stored desk/position accordingly.  
+   Add `tmp` to the total cost.
+
+3) **Evict the front book from the primary desk:**  
+   Let `id2` be the book currently at the front of desk 1 (position 0). Remove `id2` from desk 1 (compacting desk 1 and updating stored positions of the remaining books on desk 1).  
+   Add `1` to the total cost.
+
+4) **Choose a destination desk `j` for the evicted book:**  
+   Find the smallest index `j` in the range `2..m` such that desk `j` is not full *at the time of this selection* (after the above updates).
+
+5) **Place the evicted book into desk `j` at a defined position:**  
+   Let `pos` be the current size of desk `j`. If `j == tmp`, use `pos-1` instead (so `id2` is placed immediately before the temporarily appended `id` on that desk).  
+   Place `id2` into desk `j` at that position and update `id2`’s stored desk/position accordingly.
+
+6) **Finalize the temporary placement bookkeeping and costs:**  
+   Add `j + tmp` to the total cost. Then remove the temporarily placed `id` from the end of desk `tmp` by decreasing desk `tmp`’s size by one (so `id` does not remain on `tmp` after this relocation block).  
+   (After this step, `id` is no longer considered to be located on `tmp`; it will be placed onto desk 1 in the next step.)
+
+8.3 Place requested book onto the primary desk  
+- Append `id` to the end of desk 1, update `id`’s stored desk/position accordingly, and add `1` to the total cost.  
+- After this step, `id` is located on the primary desk.
+
+9. Postconditions  
+For each scenario:  
+- All requests are serviced in the defined global order.  
+- After each request is serviced, the requested book resides on the primary desk.  
+- The printed total equals the sum of all desk-index charges incurred by the exact sequence of removals/placements/relocations described above, with desk contents and per-book stored positions updated consistently after every compaction/move.
+
+10. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any stated assumptions are violated (e.g., out-of-range identifiers, too many requests, desk indices exceeding fixed limits, or the relocation procedure cannot find a non-full desk when required), behavior is undefined.
+```

@@ -1,0 +1,64 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Reads three signed decimal integers `n`, `m`, and `r` from standard input (as C `int` values). It computes an adjusted value \(r' = r - n \cdot m\) using the program’s native `int` arithmetic. It then outputs, followed by a newline:  
+- `0` if \(r' < 0\),  
+- `1` if \(r' = 0\),  
+- otherwise (when \(r' > 0\)) the binomial coefficient \(\binom{n + r' - 1}{n - 1}\), computed exactly using an internal fixed-capacity nonnegative big-integer.
+
+The printed number is in base-10 without leading zeros (except that `0` is printed as a single digit).
+
+2. Inputs  
+- Standard input must contain three integers readable by `scanf("%d%d%d", ...)` into C `int` variables, in decimal notation with optional leading whitespace and sign.
+
+3. Outputs  
+- Exactly one line to standard output containing a single decimal integer as described above.
+
+4. Preconditions / Defined-Behavior Constraints  
+- Input must successfully provide three values in the range of C `int`.  
+- The computation of \(r' = r - n \cdot m\) is performed in `int`; if `n*m` or the subtraction overflows `int`, behavior is undefined.  
+- For the case \(r' > 0\), the following must hold for defined behavior and meaningful output:  
+  - \(n \ge 1\) (so that \(n-1\) is nonnegative and the combinational formula is well-formed for the program’s loop structure).  
+  - The value \(\binom{n + r' - 1}{n - 1}\) must fit within the program’s fixed big-integer capacity (a fixed number of base-\(10^9\) blocks). If it does not, the program does not detect overflow and the output is not defined by this specification.  
+  - The intermediate multiplications/divisions used to form the binomial coefficient must not overflow the program’s internal fixed-width types (`long long` for temporary products and remainders); otherwise behavior is undefined.
+
+5. Computation Details (Semantics)  
+- Let \(r' = r - n \cdot m\) as computed by the program.  
+- If \(r' > 0\), the program computes \(\binom{n + r' - 1}{n - 1}\) by multiplying a sequence of descending integers and then dividing by \(1,2,\dots,k\), where \(k = \min(n-1, r')\). This yields the exact binomial coefficient under the preconditions above.
+
+6. Big-Integer Representation and Printing Semantics  
+- The internal big-integer is a nonnegative integer stored in a fixed-length array of base-\(10^9\) blocks, least-significant block first. Each block is maintained in the range \([0, 10^9-1]\).  
+- For printing, the most significant nonzero block is printed in decimal without zero-padding; remaining lower blocks are printed as exactly 9 decimal digits each (zero-padded as needed), followed by a newline.
+
+7. Error Handling / Exceptional Behavior  
+- The program performs no explicit validation of input count, parameter ranges, division-by-zero conditions, or overflow/capacity conditions. If the preconditions are violated, the program may print an incorrect value, exhibit undefined behavior, or terminate abnormally.
+
+8. Implementation/Environment Constraints (to match the source program)  
+- The intended implementation is standard C using only `<stdio.h>` for I/O, reading inputs with `scanf("%d%d%d", ...)` into `int` variables and printing with `printf`/`puts`/`putchar`. No fixed-width integer scanning macros (e.g., `SCNd64`) are required or implied by this specification.
+
+```

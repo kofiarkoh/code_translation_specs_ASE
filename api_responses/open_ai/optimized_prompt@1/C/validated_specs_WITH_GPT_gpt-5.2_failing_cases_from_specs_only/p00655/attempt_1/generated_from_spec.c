@@ -1,0 +1,242 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define MAXN 200000  /* per half, as implied by specification */
+
+/*
+  We maintain two multisets (first half and second half) with order-statistics:
+  - first half size >= second half size
+  - size difference <= 1
+  - "middle" deletion removes the current last element of the first half.
+    Interpreting "last element of the first half" under the maintained partition
+    as the maximum element in the first half (consistent with typical balancing
+    where first half holds the smaller elements and second half holds the larger).
+  - Queries:
+      code 4: k-th smallest in first half
+      code 5: k-th largest  in first half
+      code 8: k-th smallest in second half
+      code 9: k-th largest  in second half
+    (Only these codes are specified to take k; other non-zero codes are treated
+     as deletion, per "all other codes have no additional parameters" and the
+     need to output for any non-insertion.)
+  Implementation: randomized treap with subtree sizes for order statistics.
+*/
+
+typedef struct Node {
+    int key;
+    unsigned pr;
+    int cnt;
+    int sz;
+    struct Node *l, *r;
+} Node;
+
+static Node pool[2 * MAXN + 5];
+static int pool_used;
+
+static unsigned rng_state = 2463534242u;
+static unsigned rnd_u32(void) {
+    /* xorshift32 */
+    unsigned x = rng_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    rng_state = x;
+    return x;
+}
+
+static int sz(Node *t) { return t ? t->sz : 0; }
+
+static void pull(Node *t) {
+    if (!t) return;
+    t->sz = t->cnt + sz(t->l) + sz(t->r);
+}
+
+static Node *new_node(int key) {
+    Node *n = &pool[pool_used++];
+    n->key = key;
+    n->pr = rnd_u32();
+    n->cnt = 1;
+    n->sz = 1;
+    n->l = n->r = NULL;
+    return n;
+}
+
+static void rot_right(Node **t) {
+    Node *x = (*t)->l;
+    (*t)->l = x->r;
+    x->r = *t;
+    pull(*t);
+    pull(x);
+    *t = x;
+}
+
+static void rot_left(Node **t) {
+    Node *x = (*t)->r;
+    (*t)->r = x->l;
+    x->l = *t;
+    pull(*t);
+    pull(x);
+    *t = x;
+}
+
+static void treap_insert(Node **t, int key) {
+    if (!*t) {
+        *t = new_node(key);
+        return;
+    }
+    if (key == (*t)->key) {
+        (*t)->cnt++;
+        pull(*t);
+        return;
+    } else if (key < (*t)->key) {
+        treap_insert(&(*t)->l, key);
+        if ((*t)->l && (*t)->l->pr > (*t)->pr) rot_right(t);
+    } else {
+        treap_insert(&(*t)->r, key);
+        if ((*t)->r && (*t)->r->pr > (*t)->pr) rot_left(t);
+    }
+    pull(*t);
+}
+
+static void treap_erase(Node **t, int key) {
+    if (!*t) return; /* undefined behavior if key not present; keep narrow */
+    if (key == (*t)->key) {
+        if ((*t)->cnt > 1) {
+            (*t)->cnt--;
+            pull(*t);
+            return;
+        }
+        /* remove node by rotating down */
+        if (!(*t)->l) {
+            *t = (*t)->r;
+            return;
+        } else if (!(*t)->r) {
+            *t = (*t)->l;
+            return;
+        } else {
+            if ((*t)->l->pr > (*t)->r->pr) {
+                rot_right(t);
+                treap_erase(&(*t)->r, key);
+            } else {
+                rot_left(t);
+                treap_erase(&(*t)->l, key);
+            }
+        }
+    } else if (key < (*t)->key) {
+        treap_erase(&(*t)->l, key);
+    } else {
+        treap_erase(&(*t)->r, key);
+    }
+    if (*t) pull(*t);
+}
+
+static int treap_kth(Node *t, int k) {
+    /* 1-based kth smallest; precondition: 1 <= k <= sz(t) */
+    while (t) {
+        int left_sz = sz(t->l);
+        if (k <= left_sz) {
+            t = t->l;
+        } else if (k <= left_sz + t->cnt) {
+            return t->key;
+        } else {
+            k -= left_sz + t->cnt;
+            t = t->r;
+        }
+    }
+    return 0; /* unreachable under preconditions */
+}
+
+static int treap_min(Node *t) {
+    while (t && t->l) t = t->l;
+    return t->key;
+}
+
+static int treap_max(Node *t) {
+    while (t && t->r) t = t->r;
+    return t->key;
+}
+
+/* Global per-batch state */
+static Node *A; /* first half */
+static Node *B; /* second half */
+
+static void rebalance(void) {
+    /* Maintain: |A| >= |B| and |A|-|B| <= 1, and A holds smaller elements than B */
+    while (sz(A) < sz(B)) {
+        int x = treap_min(B);
+        treap_erase(&B, x);
+        treap_insert(&A, x);
+    }
+    while (sz(A) > sz(B) + 1) {
+        int x = treap_max(A);
+        treap_erase(&A, x);
+        treap_insert(&B, x);
+    }
+}
+
+static void insert_value(int x) {
+    if (!A) {
+        treap_insert(&A, x);
+    } else {
+        int amax = treap_max(A);
+        if (x <= amax) treap_insert(&A, x);
+        else treap_insert(&B, x);
+    }
+    rebalance();
+}
+
+static int delete_middle(void) {
+    /* Remove and return current last element of first half => max(A) */
+    int x = treap_max(A);
+    treap_erase(&A, x);
+    rebalance();
+    return x;
+}
+
+static int query_kth_smallest(Node *t, int k) {
+    return treap_kth(t, k);
+}
+
+static int query_kth_largest(Node *t, int k) {
+    /* kth largest = (size-k+1)th smallest */
+    int n = sz(t);
+    return treap_kth(t, n - k + 1);
+}
+
+static void reset_batch(void) {
+    A = B = NULL;
+    pool_used = 0;
+    /* rng_state left as-is; not specified, and does not affect observable I/O */
+}
+
+int main(void) {
+    int q;
+    while (scanf("%d", &q) == 1) {
+        if (q == 0) break;
+        reset_batch();
+        for (int i = 0; i < q; i++) {
+            int code;
+            if (scanf("%d", &code) != 1) return 0; /* undefined input; exit */
+            if (code == 0) {
+                int x;
+                scanf("%d", &x);
+                insert_value(x);
+            } else if (code == 4 || code == 5 || code == 8 || code == 9) {
+                int k;
+                scanf("%d", &k);
+                int out = 0;
+                if (code == 4) out = query_kth_smallest(A, k);
+                else if (code == 5) out = query_kth_largest(A, k);
+                else if (code == 8) out = query_kth_smallest(B, k);
+                else out = query_kth_largest(B, k);
+                printf("%d\n", out);
+            } else {
+                /* All other non-zero codes: deletion operation */
+                int out = delete_middle();
+                printf("%d\n", out);
+            }
+        }
+        printf("end\n");
+    }
+    return 0;
+}

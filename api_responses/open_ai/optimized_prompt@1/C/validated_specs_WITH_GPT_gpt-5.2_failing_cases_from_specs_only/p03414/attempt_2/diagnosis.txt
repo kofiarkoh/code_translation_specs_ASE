@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+- **Wrong abstraction / over-specification leading to non-implementable (or non-portable) generated code**, plus **missing algorithmic constraints** (the spec allows implementations that diverge significantly from the source’s concrete method).
+
+B. What the current specification may be missing or misstating  
+- The specification describes the classification in terms of **general reachability / redundancy properties** (“alternative path avoiding the edge”, SCC-DAG bypassability), but it does **not constrain how** this must be computed.  
+- Because of that, a generator can choose a very different internal method (here: dominator/strong-bridge machinery) and even introduce **non-ISO-C constructs** (nested functions via `auto`), which is unrelated to the source program’s approach.  
+- In particular, the spec does not reflect that the source’s within-SCC decision is implemented by **explicit DFS-based edge testing** (remove edge `h` and test reachability), not by dominators/strong bridges.
+
+C. What general behavior should be clarified in the specification  
+- Clarify **implementation/portability constraints** expected of generated code (e.g., “must be valid ISO C11; no nested functions / compiler extensions”).  
+- Clarify the **intended computational characterization** for intra-SCC edges: the source checks, for certain candidate edges, whether there exists a path from `u` to `v` **within the SCC** avoiding that edge, using repeated DFS with per-edge exclusion—rather than relying on a different graph-theoretic surrogate (like dominator-based strong-bridge tests).  
+- Clarify the **scope of edges tested inside SCCs**: the source does not naively test every internal edge; it first collects a subset via two traversals (`dfs3`/`dfs4`) and only then runs the avoidance DFS (`dfs5`) for those edges.
+
+D. Why this clarification is supported by the source program  
+- The source program’s intra-SCC logic is concretely:  
+  - build a vertex list for SCC `c`;  
+  - run `dfs3` (forward) and `dfs4` (reverse) from one SCC vertex, collecting edge IDs into `hh[]`;  
+  - for each collected edge `h`, clear `visited[]`, set `h_ = h`, and set `diff[h] = !dfs5(ii[h], jj[h])`, where `dfs5` is a **reachability test that explicitly forbids traversing edge `h_`**.  
+- There is **no dominator computation** and no need for nonstandard C features in the source. The failing case (compilation errors from nested `auto` functions) is strong evidence that the spec is currently too unconstrained about permissible implementation techniques and language subset, allowing generators to emit code that cannot even compile under the stated toolchain (`-std=c11`).

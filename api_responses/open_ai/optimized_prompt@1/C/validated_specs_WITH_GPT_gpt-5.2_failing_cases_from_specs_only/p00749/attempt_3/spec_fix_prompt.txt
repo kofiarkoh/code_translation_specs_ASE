@@ -1,0 +1,234 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+For each provided 2D grid, determines whether the configuration is **STABLE** or **UNSTABLE** under a balance rule applied to connected components of non-empty cells. Non-empty cells with the same symbol that are orthogonally adjacent (up/down/left/right) belong to the same component. Components induce a vertical **support** relation based on immediate adjacency between a cell and the cell directly below it. The configuration is reported **STABLE** iff, for every component, the horizontal center of mass of that component together with all components it supports above lies strictly within that component’s own horizontal footprint.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - Two integers: grid width `w` and grid height `h`.  
+  - Then exactly `h` rows of grid data, each containing `w` characters.  
+- `'.'` denotes an empty cell; any other character denotes a filled cell belonging to a component.  
+- Input terminates when a test case is encountered with `w <= 0` (the corresponding `h` is read but ignored for termination).
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Assumptions  
+- Dimensions must fit the program’s fixed storage: `h <= 60`, `w <= 10`, and `w*h <= 600`.  
+- Each input row must provide at least `w` characters (no spaces).  
+- The number of connected components of non-empty cells must fit the component table (at most 99 components are representable).  
+- The support relation is assumed to be **single-parent**: each component can be attached to at most one supporting component below. If a component has cells that touch multiple distinct components directly below, the program will attach it to the first such supporting component encountered by its scan order and ignore later candidates; the resulting behavior is therefore dependent on scan order rather than a well-defined physical rule.
+
+5. Component Construction  
+- **Connected components:** Two filled cells are in the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- For each component, the program computes intrinsic properties from its own cells:  
+  - intrinsic mass `m`: number of cells in the component,  
+  - intrinsic horizontal moment `mx`: sum of the column indices of its cells (0-based),  
+  - intrinsic horizontal footprint `[xl, xr]`: minimum and maximum column indices occupied by the component.  
+- **Support edges (parent/children):**  
+  - A component `A` is considered supported by component `B` (i.e., `B` is the parent of `A`) if there exists at least one cell of `A` such that the cell directly below it is a filled cell belonging to `B`.  
+  - Each component has at most one parent (as noted in Preconditions).  
+  - A component may support **zero or more** components above it (i.e., may have multiple children).
+
+6. Stability Evaluation (Aggregation and Balance Rule)  
+- Stability is evaluated by recursively processing the support tree(s) bottom-up, aggregating each component into its parent after the component and all of its descendants have been processed.  
+- For a component with aggregated mass `m` and aggregated moment `mx`, its horizontal center of mass is computed as:  
+  - `x = 0.5 + (mx / m)` (real-valued division).  
+- The component is considered balanced iff its center of mass lies strictly inside its own footprint interval in the following sense:  
+  - `xl < x < xr + 1`.  
+  (Equivalently, `x` must be greater than the minimum occupied column and less than one past the maximum occupied column.)  
+- If any component fails this strict-inside condition, the entire configuration is **UNSTABLE**. Otherwise it is **STABLE**.
+
+7. Rooting / Overall Decision  
+- The program treats the component that contains the bottom-most encountered filled cells (according to its internal scan order) as the root of evaluation and forces that component to be its own parent for aggregation bookkeeping.  
+- The output is `STABLE` only if the recursive check starting from this root succeeds; components not reachable from this root via the constructed parent/child links are not separately checked.
+
+8. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting. If the input violates the stated capacity limits or the single-parent assumption, the output is unspecified beyond the scan-order-dependent attachment behavior described above.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong ordering rule / wrong transition rule in constructing the support tree (parent/child links), leading to an incorrect set of components being aggregated and checked.
+
+B. What the current specification may be missing or misstating  
+- The spec’s description of the **scan order dependence** is not precise enough to reproduce the source’s behavior. In particular, the generated program interprets scan order as **top-to-bottom** for both (1) choosing the root and (2) selecting the “first” supporting parent, but the source program’s effective order is different.  
+- The spec’s “support relation based on immediate adjacency between a cell and the cell directly below it” is broadly correct, but it does not capture the source’s additional constraints on when a parent link is created (e.g., early returns that prevent later parent assignment once certain conditions are met), which makes the resulting support forest/tree differ from the spec-derived implementation.
+
+C. What general behavior should be clarified in the specification  
+- The **exact iteration order** used when building components’ aggregate properties and when establishing parent/child links (including whether the grid is scanned bottom-up vs top-down, and how ties/first-encounter are defined).  
+- The **exact rule for assigning a parent** when multiple candidate supporting components exist, including any “stop conditions” that prevent further parent consideration once some state is set (i.e., whether parent assignment can be skipped or frozen due to earlier events during scanning).  
+- The **root selection rule** should be stated in terms of the source’s actual scan (which component becomes index 1 / root in the source), not as an informal “bottom-most encountered” phrasing that can be implemented with the wrong traversal direction.
+
+D. Why this clarification is supported by the source program  
+- The source constructs components and the support structure in a single pass that scans **rows from bottom to top** (`for (r = h-1; r >= 0; r--)`) and columns left to right. This order affects:
+  - which component gets created first and becomes the distinguished component `tbl[1]` (the one later forced to be its own parent and used as the sole starting point for `check(1)`), and
+  - which supporting relationship is established first when a component could attach to more than one below-component.
+- Parent/child linking is performed inside `mktree(r,c,this)` with several early exits (e.g., returning if `tbl[this].par` is already set, returning if the below cell is empty, returning if the below component is the same, etc.). These control-flow details mean “first supporting component encountered” is specifically “first encountered under the source’s bottom-up scan and subject to these early-return conditions,” not simply “first in a generic row-major scan.”
+- The failing sample where the spec-derived code reports `STABLE` but the source reports `UNSTABLE` is consistent with building a different support tree (or choosing a different root), which changes which masses/moments get aggregated into which footprint checks, and can easily flip stability outcomes without changing the local balance formula.
+
+```

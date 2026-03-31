@@ -1,0 +1,359 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description
+Determines whether a perfect one-to-one pairing exists between two equally sized sets of size `N` under a given binary feasibility relation, and:
+- If no perfect pairing exists, outputs a negative decision.
+- If a perfect pairing exists, outputs an affirmative decision and then outputs, for each left-side element in increasing order, one right-side element index that is guaranteed to be part of some perfect pairing.
+
+2. Inputs
+- An integer `N_in` representing the problem size parameter.
+- A square `N × N` binary matrix (where `N = N_in - 1`) describing allowed pairings between left elements `0..N-1` and right elements `0..N-1`.
+  - Each matrix entry indicates whether the corresponding left/right pair is allowed.
+
+3. Outputs
+- If no perfect pairing exists: a single line indicating rejection.
+- If a perfect pairing exists:
+  - A single line indicating acceptance.
+  - Then exactly `N` lines, where line `i` (1-based in the output ordering) contains an integer in `1..N` denoting the selected right-side partner for left element `i` (with left elements output in order from 1 to `N`).
+
+4. Preconditions
+- `N_in - 1` must be within the fixed supported bound: `0 ≤ N ≤ 1004`.
+- The input must provide exactly `N × N` binary feasibility entries in the expected textual form (any nonconforming input yields unspecified behavior).
+- The feasibility relation is interpreted as a bipartite graph between `N` left nodes and `N` right nodes.
+
+5. Postconditions
+- If the program outputs rejection, then no perfect pairing exists that matches every left element to a distinct right element using only allowed pairs.
+- If the program outputs acceptance, then:
+  - A perfect pairing exists.
+  - For each left element `i` (1..N), the printed right index `r_i` (1..N) satisfies:
+    - The pair `(i, r_i)` is allowed by the input relation.
+    - There exists at least one perfect pairing of all `N` left elements in which left element `i` is matched to right element `r_i`.
+  - The `N` printed right indices are not guaranteed to be all distinct across different `i` (they are per-left “certified possible” partners, not necessarily a single consistent perfect pairing).
+
+6. Invariants
+- The feasibility relation is treated as fixed throughout execution.
+- Any pairing considered valid always respects the feasibility relation and the one-to-one constraint within that pairing.
+- When acceptance is printed, each subsequent per-left output is derived under the invariant that a perfect pairing exists for the full instance.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If `N > 1004`, or if the input does not contain the required amount/format of data, behavior is undefined (may include incorrect output or memory corruption).
+- If `N = 0`, the program will output acceptance and no per-left lines.
+
+8. State Transitions (if applicable)
+- The program transitions from an initial “undecided” state to exactly one of:
+  - “rejected” state: outputs rejection and terminates.
+  - “accepted” state: outputs acceptance, then iterates through left elements producing `N` certified partner outputs, then terminates.
+- In the accepted state, each left element is processed independently to select a certified partner; this processing does not guarantee global consistency across different left elements’ selections.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage proportional to `N^2` with an explicit maximum `N ≤ 1004`; memory usage grows quadratically with `N` within that bound.
+- Execution time is polynomial in `N` and may be high near the maximum bound due to repeated matching computations.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 1004
+
+static unsigned char g[MAXN][MAXN]; /* feasibility matrix: g[left][right] in {0,1} */
+
+static int N;
+
+/* Matching arrays:
+   - matchR[r] = left matched to right r, or -1
+   - matchL[l] = right matched to left l, or -1
+*/
+static int matchR[MAXN];
+static int matchL[MAXN];
+
+/* DFS visitation marks for Kuhn algorithm */
+static unsigned char visR[MAXN];
+static int visToken;
+
+/* Optional forced edge (forceL -> forceR) for feasibility test */
+static int forceL, forceR;
+
+static int dfs_augment(int l) {
+    for (int r = 0; r < N; r++) {
+        if (!g[l][r]) continue;
+        if (visR[r] == (unsigned char)visToken) continue;
+        visR[r] = (unsigned char)visToken;
+
+        int l2 = matchR[r];
+        if (l2 == -1 || dfs_augment(l2)) {
+            matchR[r] = l;
+            matchL[l] = r;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Computes maximum matching size under current g[][], optionally forcing (forceL,forceR).
+   Returns size of matching found (Kuhn; sufficient for N<=1004).
+*/
+static int max_matching_with_optional_force(int useForce) {
+    for (int i = 0; i < N; i++) {
+        matchL[i] = -1;
+        matchR[i] = -1;
+    }
+
+    int matched = 0;
+
+    if (useForce) {
+        /* If forced edge is not allowed, impossible */
+        if (forceL < 0 || forceL >= N || forceR < 0 || forceR >= N) return 0;
+        if (!g[forceL][forceR]) return 0;
+
+        matchL[forceL] = forceR;
+        matchR[forceR] = forceL;
+        matched = 1;
+    }
+
+    /* Try to match all left nodes (skip forced left if any) */
+    for (int l = 0; l < N; l++) {
+        if (useForce && l == forceL) continue;
+        visToken++;
+        if (visToken == 0) { /* handle unsigned char wraparound */
+            memset(visR, 0, sizeof(visR));
+            visToken = 1;
+        }
+        if (dfs_augment(l)) matched++;
+    }
+
+    return matched;
+}
+
+int main(void) {
+    int N_in;
+    if (scanf("%d", &N_in) != 1) return 0;
+
+    N = N_in - 1;
+
+    /* Per spec: behavior undefined if N out of bounds; we do not add explicit handling. */
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            int x;
+            if (scanf("%d", &x) != 1) return 0;
+            g[i][j] = (unsigned char)(x ? 1 : 0);
+        }
+    }
+
+    if (N == 0) {
+        /* Acceptance and no per-left lines */
+        puts("Yes");
+        return 0;
+    }
+
+    /* First, decide if a perfect matching exists */
+    visToken = 1;
+    memset(visR, 0, sizeof(visR));
+    int mm = max_matching_with_optional_force(0);
+    if (mm != N) {
+        puts("No");
+        return 0;
+    }
+
+    puts("Yes");
+
+    /* For each left i, output a right index (1..N) that can be part of some perfect matching.
+       Narrow interpretation: choose the smallest right r such that forcing (i,r) still allows
+       a perfect matching. This guarantees existence of a perfect matching containing (i,r).
+    */
+    for (int i = 0; i < N; i++) {
+        int chosen = -1;
+        for (int r = 0; r < N; r++) {
+            if (!g[i][r]) continue;
+            forceL = i;
+            forceR = r;
+
+            visToken = 1;
+            memset(visR, 0, sizeof(visR));
+            int mm2 = max_matching_with_optional_force(1);
+            if (mm2 == N) {
+                chosen = r;
+                break;
+            }
+        }
+
+        /* Under acceptance invariant, a choice must exist for each i. */
+        if (chosen < 0) chosen = 0; /* unspecified fallback; should not occur if spec holds */
+
+        printf("%d\n", chosen + 1);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_output.txt
+Input:
+4
+1 0 1
+0 1 0
+1 0 1
+Expected:
+yes
+1
+2
+3
+Actual:
+Yes
+1
+2
+1
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

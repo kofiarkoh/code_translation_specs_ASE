@@ -1,0 +1,100 @@
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define MAX_N 12
+#define MAX_PATLEN 20
+#define MAX_L 5000
+#define MAX_MASK (1 << MAX_N)
+
+/*
+  DP semantics:
+  reachable[i][mask] == 1 iff state (i, mask) is reachable from (0, 0)
+  by repeatedly choosing an unused pattern that matches target at i and
+  advancing by its full length.
+*/
+
+static char patterns[MAX_N][MAX_PATLEN + 1];
+static int patlen[MAX_N];
+
+static char target[MAX_L + 1];
+
+static unsigned char reachable[MAX_L + 1][MAX_MASK];
+
+static int match_at(const char *t, int L, int pos, const char *pat, int plen) {
+    /* Exact match of plen chars starting at pos; must be within bounds. */
+    if (pos + plen > L) return 0;
+    /* plen <= 20, so memcmp is fine. */
+    return memcmp(t + pos, pat, (size_t)plen) == 0;
+}
+
+int main(void) {
+    int n, m;
+
+    while (scanf("%d %d", &n, &m) == 2) {
+        if (n == 0 && m == 0) break;
+
+        /* Read patterns */
+        for (int i = 0; i < n; i++) {
+            if (scanf("%20s", patterns[i]) != 1) return 0; /* unspecified on malformed input */
+            patlen[i] = (int)strlen(patterns[i]);
+        }
+
+        /* Build target by concatenating m fragments */
+        int L = 0;
+        target[0] = '\0';
+        for (int j = 0; j < m; j++) {
+            char frag[MAX_L + 1];
+            if (scanf("%5000s", frag) != 1) return 0; /* unspecified on malformed input */
+            int flen = (int)strlen(frag);
+            /* Bounds are assumed valid per specification; behavior undefined if exceeded. */
+            memcpy(target + L, frag, (size_t)flen);
+            L += flen;
+        }
+        target[L] = '\0';
+
+        int allMask = (1 << n) - 1;
+
+        /* Clear reachability table for this dataset */
+        /* Only need up to L and masks up to (1<<n)-1, but simplest is full clear of used region. */
+        for (int i = 0; i <= L; i++) {
+            memset(reachable[i], 0, (size_t)(1 << n));
+        }
+
+        /* Starting state */
+        reachable[0][0] = 1;
+
+        /* Propagate reachability forward */
+        for (int i = 0; i <= L; i++) {
+            for (int mask = 0; mask <= allMask; mask++) {
+                if (!reachable[i][mask]) continue;
+
+                /* Try each unused pattern */
+                for (int k = 0; k < n; k++) {
+                    int bit = 1 << k;
+                    if (mask & bit) continue;
+
+                    int plen = patlen[k];
+                    if (match_at(target, L, i, patterns[k], plen)) {
+                        int ni = i + plen;
+                        int nmask = mask | bit;
+                        /* ni is within [0, L] due to match_at bounds check */
+                        reachable[ni][nmask] = 1;
+                    }
+                }
+            }
+        }
+
+        /* Count indices p where (p, allMask) is reachable */
+        int count = 0;
+        for (int p = 0; p <= L; p++) {
+            if (reachable[p][allMask]) count++;
+        }
+
+        printf("%d\n", count);
+    }
+
+    return 0;
+}
+```

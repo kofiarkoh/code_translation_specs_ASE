@@ -1,0 +1,221 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2679 Decoding Ancient Messages
+// 2018.3.15 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { signed char a[52]; } T;
+T mx[10000]; int sz;
+#define mx_zero   0
+#define mx_inf    1
+
+int  mx_new() { return sz++; }
+void mx_clear(int a) { memset(mx+a, 0, sizeof(T)); }
+void mx_add1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] += mx[b].a[i]; }
+void mx_add2(int s, int a, int b) { int i; for (i = 0; i < 52; i++) mx[s].a[i] = mx[a].a[i]+mx[b].a[i]; }
+void mx_sub1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] -= mx[b].a[i]; }
+void mx_sub2(int d, int a, int b) { int i; for (i = 0; i < 52; i++) mx[d].a[i] = mx[a].a[i]-mx[b].a[i]; }
+void mx_mul2(int m, int a, int k) { int i; for (i = 0; i < 52; i++) mx[m].a[i] = mx[a].a[i] * k; }
+void mx_cpy(int a, int b) { memcpy(mx+a, mx+b, sizeof(T)); }
+int  mx_cmp(int a, int b) {
+	int k, i; for (i = 0; i < 52; i++) if (k = mx[a].a[i] - mx[b].a[i]) return k; return 0; }
+
+#define MAX 105
+typedef struct { int to, rev; int cap; int cost; } EDGE;
+EDGE edge[MAX][MAX]; int hi[MAX];
+int  V;				// 頂点数
+int  dist[MAX], prevv[MAX], preve[MAX];
+
+void add_edge(int from, int to, int cap, int cost, int rcost)
+{
+	int f, t;
+	EDGE *e;
+
+	f = hi[from]++, t = hi[to]++;
+	e = &edge[from][f], e->to = to, e->cap = cap, e->cost = cost, e->rev = t;
+	e = &edge[to][t], e->to = from, e->cap = 0, e->cost = rcost, e->rev = f;
+}
+
+int minCostFlow(int S, int T, int F)
+{
+	int i, v, nv, d, update;
+	int t = mx_new(), ret;
+	EDGE *e;
+
+	for (i = 0; i < V; i++) dist[i] = mx_new(); 
+	ret = mx_new();
+	while (F > 0) {
+		for (v = 0; v < V; v++) mx_cpy(dist[v], mx_inf);
+		mx_clear(dist[S]);
+		do {
+			update = 0;
+			for (v = 0; v < V; v++) {
+				if (mx_cmp(dist[v], mx_inf) == 0) continue;
+				for (i = 0; i < hi[v]; i++) {
+					e = &edge[v][i];
+					if (e->cap <= 0) continue;
+					nv = e->to;
+					mx_add2(t, dist[v], e->cost);
+					if (mx_cmp(dist[nv], t) > 0) {
+						mx_cpy(dist[nv], t), prevv[nv] = v, preve[e->to] = i;
+						update = 1;
+					}
+				}
+			}
+		} while (update);
+
+		d = F;
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			if (d > e->cap) d = e->cap;
+		}
+		F -= d;
+
+		mx_mul2(t, dist[T], d);
+		mx_add1(ret, t);
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			e->cap -= d;
+			edge[v][e->rev].cap += d;
+		}
+	}
+	return ret;
+}
+
+char map[53][53];
+
+int main()
+{
+	int N, i, j, a, b;
+	int source, sink;
+	char buf[10], c;
+
+	fgets(buf, 10, stdin), N = atoi(buf);
+	for (i = 0; i < N; i++) fgets(map[i], 53, stdin);
+
+	for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;
+	sz = 2,	source = N << 1, sink = source + 1, V = sink + 1;
+
+	for (i = 0; i < N; i++) {
+		add_edge(source, i, 1, mx_new(), mx_new());
+		for (j = 0; j < N; j++) {
+			c = map[i][j], a = mx_new(), b = mx_new();
+			if (c < 'a') mx[a].a[   c-'A'] = -1, mx[b].a[   c-'A'] = 1;
+			else         mx[a].a[26+c-'a'] = -1, mx[b].a[26+c-'a'] = 1;
+			add_edge(i, N+j, 1, a, b);
+		}
+		add_edge(N+i, sink, 1, mx_new(), mx_new());
+	}
+
+	a = minCostFlow(source, sink, N);
+
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i];
+		while (b) putchar('A'+i), b--;
+	}
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i+26];
+		while (b) putchar('a'+i), b--;
+	}
+	putchar('\n');
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given an integer \(N\) and an \(N \times N\) grid of letters, the program selects exactly one cell from each row and exactly one cell from each column (a perfect matching between rows and columns). Among all such selections, it chooses one that is optimal under a fixed lexicographic objective over the 52 letters in the order `A`–`Z` then `a`–`z`: selecting a cell labeled with a letter contributes \(-1\) to that letter’s component of a 52-dimensional cost vector (all other components unchanged), and the total cost vector of a selection is the sum over its \(N\) chosen cells. The program minimizes this vector in lexicographic order (equivalently, it maximizes the count of `A`; subject to that maximizes `B`; …; then `Z`; then `a`; …; then `z`).  
+
+After computing the optimal selection, it outputs the multiset of letters from the selected \(N\) cells, sorted in the fixed order `A`–`Z` then `a`–`z`, with each letter repeated according to how many times it was selected.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- Then \(N\) lines representing the grid.  
+- For each of these \(N\) lines, only the first \(N\) characters are used as grid entries; any remaining characters on the line (including the trailing newline) are ignored.
+
+3. Outputs  
+- One line consisting of the selected letters printed in nondecreasing order with all uppercase letters before lowercase letters (`A`…`Z` then `a`…`z`), followed by a newline.  
+- The output contains exactly \(N\) letters (counting repetitions), corresponding to the \(N\) selected grid cells.
+
+4. Preconditions / Constraints  
+- \(N\) must satisfy the program’s fixed internal graph-size limits: it constructs a flow network with \(2N+2\) vertices stored in fixed-size arrays of capacity 105, so \(2N+2 \le 105\) (i.e., \(N \le 51\)).  
+- Each of the \(N\) grid lines must contain at least \(N\) characters.  
+- Each used grid character must be an ASCII alphabetic letter in `A`–`Z` or `a`–`z`. (Other characters lead to undefined behavior.)  
+- The program relies on bounded internal arithmetic: letter counts are accumulated in signed 8-bit components; correctness requires that intermediate component magnitudes remain within that representable range.
+
+5. Postconditions / Semantics of Optimality  
+- Exactly one cell is chosen from each row and exactly one from each column.  
+- The chosen set of \(N\) cells is lexicographically minimal with respect to the 52-component cost vector ordered by `A`–`Z`, `a`–`z`, where each chosen letter contributes \(-1\) to its component.  
+- The printed output is derived solely from the counts of letters in the chosen cells and is sorted by the fixed letter order; it does not encode which rows/columns were matched.
+
+6. Determinism and Tie Handling  
+- If multiple perfect matchings yield the same optimal 52-dimensional cost vector, any of them may be selected internally; however, because the output depends only on the resulting letter counts, all optimal matchings that share the same cost vector produce identical output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced. If any precondition is violated (size limits, malformed/short input lines, non-letter characters, or internal overflow), behavior is undefined.
+
+8. Resource/Feasibility Expectations (as implied by the program)  
+- The computation is performed using a polynomial-size flow-network formulation with \(O(N)\) vertices and \(O(N^2)\) edges under fixed static storage bounds; it is not intended to require exponential-time or exponential-space state enumeration.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong abstraction of the optimization objective / wrong cost encoding (lexicographic minimization not preserved), leading to wrong matching choice and wrong output length.
+
+B. What the current specification may be missing or misstating  
+- The specification describes the objective correctly at a high level (lexicographically maximize letter counts in `A..Z,a..z`), but it does not constrain *how* that lexicographic order must be implemented in a way that is faithful to the source program’s arithmetic model.  
+- In particular, the spec allows an implementation to “scalarize” the 52‑component lexicographic vector into a single integer cost (e.g., using powers of a base), but the source program does **not** do that. It uses a 52‑component signed‑char vector and compares vectors componentwise in order.  
+- The spec’s “bounded internal arithmetic” note is too vague: it doesn’t state that the source’s comparison is performed on a fixed-width per-component representation (signed 8-bit) with a specific “infinity” sentinel vector, and that costs are accumulated as vectors, not as a single numeric weight.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the optimization is performed using **52-dimensional vector costs with per-component arithmetic and lexicographic comparison**, not via any scalar encoding; any correct reimplementation must preserve lexicographic ordering exactly, independent of integer overflow/underflow in scalar encodings.  
+- Clarify the role of the program’s “infinity” distance initialization: each component is set to a fixed constant (60) in a signed-char vector, and shortest-path relaxation compares these vectors lexicographically. This implies the algorithm relies on small bounded component magnitudes and does not model “infinite” as a large scalar.  
+- Clarify that the output must always contain exactly **N letters** (one per matched row/column), which in the source is guaranteed by sending exactly N units of flow and then printing counts derived from the resulting cost vector.
+
+D. Why this clarification is supported by the source program  
+- The source represents costs and distances as `typedef struct { signed char a[52]; } T;` and all operations (`mx_add2`, `mx_mul2`, `mx_cmp`) are performed componentwise on this vector; lexicographic comparison is implemented by scanning components from 0 to 51 and returning the first difference. There is no scalar cost anywhere.  
+- “Infinity” is explicitly set by `for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;` and distances are initialized by copying this vector, not by using a numeric `INF`.  
+- The final output is derived from the resulting vector `a = minCostFlow(...)` by printing `-mx[a].a[i]` copies of each letter; this inherently assumes the vector components correctly encode counts. Any scalarization that overflows or fails to preserve lexicographic dominance can change the chosen matching and even break the invariant that exactly N letters are printed.
+
+```

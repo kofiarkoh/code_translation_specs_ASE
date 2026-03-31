@@ -1,0 +1,52 @@
+A. Likely mismatch category  
+Wrong transition/merging rule and wrong abstraction about how intervals are stored/merged per residue class (also a mismatch in the parameter transformation for negative \(D\)).
+
+B. What the current specification may be missing or misstating  
+1) **Interval storage/merging is misstated as “at most one interval per residue class” and “merge only if overlap/touch; otherwise ignore.”**  
+In the source, for each residue \(V\), the program stores **one interval that is repeatedly expanded**. It does **not** ignore non-overlapping intervals; instead, it simply inserts a new interval node when no *currently mergeable* node is found. Over time, multiple nodes with the same residue can exist (because insertion happens when no overlapping node is found), and later insertions may merge with one of them. The spec’s “at most one interval per residue” and “ignore if not mergeable” is not source-faithful.
+
+2) **The “merge search” condition is misstated.**  
+The source searches within the hash bucket for a node with the same residue **and** overlapping condition `(p->l <= R && p->r >= L)`. If none exists, it creates a new node. The current spec describes merging “against the first matching interval found” but doesn’t emphasize that “matching” includes the overlap test; this leads to incorrect behavior if implemented as “find residue first, then decide overlap.”
+
+3) **Negative-\(D\) handling is misstated/incomplete.**  
+The source does not merely “reverse the progression” by shifting \(X\) to \(X+(N-1)D\). It introduces two endpoints \(X\) and \(Y\) with asymmetric definitions:
+- If \(D<0\): `Y = X; X = X + D*(N-1); D = -D`
+- Else: `Y = X + D*(N-1)`
+So later formulas use both \(X\) and \(Y\). The spec’s description (“adjust endpoints accordingly before flipping sign”) is too vague and can be (and was) implemented incorrectly.
+
+C. What general behavior should be clarified in the specification  
+1) **Data structure semantics per residue class:**  
+Clarify that the program maintains a set of intervals per residue class (implemented via hash buckets), where:
+- A new interval is merged into an existing interval **only if** there exists an interval with the same residue that overlaps/touches it.
+- **If no such overlapping interval exists, a new interval node is inserted** (even if another interval with the same residue exists but is disjoint).
+- Therefore, there can be **multiple intervals with the same residue** at intermediate and final stages.
+
+2) **Exact merge lookup rule:**  
+Clarify that the lookup is for an interval satisfying **both**:
+- same residue `v == V`, and
+- overlap/touch predicate `l <= R && r >= L`.
+Only such an interval is merged; otherwise insertion occurs.
+
+3) **Exact formulas and role of \(Y\):**  
+Clarify the computation of \(L(i)\), \(R(i)\), and how \(Y\) is defined and used, especially when \(D<0\). The source’s \(L,R\) are not derived from the “min/max index sum” formula used in the generated code; they are computed exactly as:
+- `L = (X*2 + D*(i-1)) * i / 2`
+- `R = (Y*2 - D*(i-1)) * i / 2 + D`
+with \(X,Y,D\) after normalization/sign handling.
+
+D. Why this clarification is supported by the source program  
+- The insertion/merge logic in the source is:
+
+  ```c
+  for (p = hash[h]; p != NULL; p = p->next)
+      if (p->v == V && p->l <= R && p->r >= L) break;
+
+  if (p == NULL) { insert new node with (V,L,R); }
+  else { expand p to min/max; }
+  ```
+
+  This directly implies:
+  - “matching” requires both same residue and overlap,
+  - if no overlapping interval exists, the code **inserts** (does not ignore),
+  - multiple nodes with the same residue can exist (disjoint intervals).
+
+- The negative-\(D\) handling in the source explicitly defines and uses \(Y\) differently depending on the sign of \(D\), and \(R(i)\) depends on \(Y\). Any spec that omits \(Y\) or replaces it with a simple “reverse progression” transformation is underspecified and likely to diverge from the source.

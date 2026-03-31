@@ -1,0 +1,131 @@
+use std::collections::VecDeque;
+use std::io::{self, Read};
+
+fn main() {
+    // The specification's fragment normalization depends on inspecting the last character
+    // of each fragment token *as read into a buffer*, potentially including control chars
+    // (< ' ') that would normally be treated as whitespace by split_whitespace().
+    //
+    // Therefore we implement our own tokenization that splits only on ASCII whitespace
+    // (<= ' '), but *returns tokens without stripping any trailing control characters
+    // that are not used as delimiters*. This matches typical C "%s" scanning behavior
+    // more closely for the intended problems, while still allowing the normalization
+    // rule to matter when such characters are present inside a token.
+    //
+    // Note: If the input actually contains a control character as the last byte of a token,
+    // it cannot simultaneously be a delimiter. So the only way it can appear is if it is
+    // not treated as a delimiter by the original program. We conservatively treat only
+    // ASCII whitespace as delimiters, which is the narrowest reasonable interpretation.
+    let mut bytes = Vec::new();
+    io::stdin().read_to_end(&mut bytes).unwrap();
+    let mut idx = 0usize;
+
+    fn is_delim(b: u8) -> bool {
+        // ASCII whitespace: space, \t, \n, \r, \x0b, \x0c
+        matches!(b, b' ' | b'\t' | b'\n' | b'\r' | 0x0b | 0x0c)
+    }
+
+    fn next_token(bytes: &[u8], idx: &mut usize) -> Option<Vec<u8>> {
+        while *idx < bytes.len() && is_delim(bytes[*idx]) {
+            *idx += 1;
+        }
+        if *idx >= bytes.len() {
+            return None;
+        }
+        let start = *idx;
+        while *idx < bytes.len() && !is_delim(bytes[*idx]) {
+            *idx += 1;
+        }
+        Some(bytes[start..*idx].to_vec())
+    }
+
+    fn parse_usize(tok: &[u8]) -> usize {
+        // Input is assumed well-formed per spec; malformed input => unspecified behavior.
+        let s = std::str::from_utf8(tok).unwrap();
+        s.parse::<usize>().unwrap()
+    }
+
+    let mut out = String::new();
+
+    loop {
+        let n_tok = match next_token(&bytes, &mut idx) {
+            Some(t) => t,
+            None => break,
+        };
+        let m_tok = match next_token(&bytes, &mut idx) {
+            Some(t) => t,
+            None => break,
+        };
+
+        let n = parse_usize(&n_tok);
+        let m = parse_usize(&m_tok);
+
+        if n == 0 && m == 0 {
+            break;
+        }
+
+        let mut patterns: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for _ in 0..n {
+            let t = next_token(&bytes, &mut idx).unwrap();
+            patterns.push(t);
+        }
+
+        let mut target: Vec<u8> = Vec::new();
+        for _ in 0..m {
+            let mut frag = next_token(&bytes, &mut idx).unwrap();
+            if let Some(&last) = frag.last() {
+                if last < b' ' {
+                    frag.pop();
+                }
+            }
+            target.extend_from_slice(&frag);
+        }
+
+        let l = target.len();
+        let masks = 1usize << n;
+        let all_mask = masks.wrapping_sub(1);
+
+        // reachable[mask][i] stored as a bitset over i to reduce memory and improve speed.
+        // However, L <= 5000 so a simple Vec<Vec<bool>> is also fine; we keep it simple but
+        // store as Vec<Vec<u8>> to avoid Vec<bool> bit-proxy semantics.
+        let mut reachable: Vec<Vec<u8>> = vec![vec![0u8; l + 1]; masks];
+
+        let mut q: VecDeque<(usize, usize)> = VecDeque::new();
+        reachable[0][0] = 1;
+        q.push_back((0, 0));
+
+        while let Some((pos, mask)) = q.pop_front() {
+            for k in 0..n {
+                let bit = 1usize << k;
+                if (mask & bit) != 0 {
+                    continue;
+                }
+                let pat = &patterns[k];
+                let plen = pat.len();
+                if pos + plen > l {
+                    continue;
+                }
+                if target[pos..pos + plen] == pat[..] {
+                    let npos = pos + plen;
+                    let nmask = mask | bit;
+                    if reachable[nmask][npos] == 0 {
+                        reachable[nmask][npos] = 1;
+                        q.push_back((npos, nmask));
+                    }
+                }
+            }
+        }
+
+        let mut count = 0usize;
+        for p in 0..=l {
+            if reachable[all_mask][p] != 0 {
+                count += 1;
+            }
+        }
+
+        out.push_str(&count.to_string());
+        out.push('\n');
+    }
+
+    print!("{out}");
+}

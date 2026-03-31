@@ -1,0 +1,443 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAXN 1000
+#define MAXM 200000
+
+typedef struct {
+    int to;
+    int next;
+} Edge;
+
+static int n, m;
+
+/* Original graph */
+static int head[MAXN];
+static Edge E[MAXM];
+static int ecnt;
+
+/* Reverse graph for SCC */
+static int rhead[MAXN];
+static Edge RE[MAXM];
+static int recnt;
+
+/* Input edges stored for output in order */
+static int in_u[MAXM], in_v[MAXM];
+
+/* Kosaraju */
+static unsigned char vis[MAXN];
+static int order[MAXN], ord_sz;
+static int comp_id[MAXN], comp_cnt;
+static int comp_size[MAXN];
+
+/* Condensation graph (unique SCC edges) */
+static int chead[MAXN];
+static Edge CE[MAXM]; /* upper bound: at most m unique SCC edges */
+static int ccnt;
+
+/* For SCC-level classification */
+static int pair_u[MAXM], pair_v[MAXM]; /* unique SCC edge list aligned with CE indices */
+static int pair_mult[MAXM];            /* multiplicity of original edges between SCC pair */
+static int pair_idx_of_input[MAXM];    /* for cross edges: which unique pair index */
+static int is_cross[MAXM];             /* 1 if endpoints in different SCCs */
+
+/* For SCC-level bypass test: reachability bitsets */
+static unsigned int reach[MAXN][(MAXN + 31) / 32]; /* reach[s][t]=1 if s can reach t in condensation */
+static int topo[MAXN], topo_sz;
+
+/* For intra-SCC forced-edge test: dominators on SCC subgraph */
+static int dom_head[MAXN];
+static Edge DOM_E[MAXM];
+static int dom_ecnt;
+
+static int rdom_head[MAXN];
+static Edge RDOM_E[MAXM];
+static int rdom_ecnt;
+
+/* Per SCC temporary arrays */
+static int nodes[MAXN];          /* vertices in current SCC */
+static int node_pos[MAXN];       /* map vertex -> index in nodes[] for current SCC, else -1 */
+static int scc_edges_idx[MAXM];  /* indices of input edges inside current SCC */
+static int scc_edges_cnt;
+
+/* Dominator bitsets for current SCC */
+static unsigned int dom[MAXN][(MAXN + 31) / 32];
+static unsigned int rdom[MAXN][(MAXN + 31) / 32];
+
+static void add_edge(int u, int v) {
+    E[ecnt].to = v;
+    E[ecnt].next = head[u];
+    head[u] = ecnt++;
+}
+static void add_redge(int u, int v) {
+    RE[recnt].to = v;
+    RE[recnt].next = rhead[u];
+    rhead[u] = recnt++;
+}
+static void add_cedge(int cu, int cv) {
+    CE[ccnt].to = cv;
+    CE[ccnt].next = chead[cu];
+    chead[cu] = ccnt;
+    pair_u[ccnt] = cu;
+    pair_v[ccnt] = cv;
+    pair_mult[ccnt] = 0;
+    ccnt++;
+}
+static void add_dom_edge(int u, int v) {
+    DOM_E[dom_ecnt].to = v;
+    DOM_E[dom_ecnt].next = dom_head[u];
+    dom_head[u] = dom_ecnt++;
+}
+static void add_rdom_edge(int u, int v) {
+    RDOM_E[rdom_ecnt].to = v;
+    RDOM_E[rdom_ecnt].next = rdom_head[u];
+    rdom_head[u] = rdom_ecnt++;
+}
+
+static void dfs1(int u) {
+    vis[u] = 1;
+    for (int ei = head[u]; ei != -1; ei = E[ei].next) {
+        int v = E[ei].to;
+        if (!vis[v]) dfs1(v);
+    }
+    order[ord_sz++] = u;
+}
+
+static void dfs2(int u, int cid) {
+    comp_id[u] = cid;
+    comp_size[cid]++;
+    for (int ei = rhead[u]; ei != -1; ei = RE[ei].next) {
+        int v = RE[ei].to;
+        if (comp_id[v] == -1) dfs2(v, cid);
+    }
+}
+
+/* Topological order of condensation graph (DAG) using Kahn */
+static void topo_sort_condensation(void) {
+    static int indeg[MAXN];
+    memset(indeg, 0, sizeof(indeg));
+    for (int u = 0; u < comp_cnt; u++) {
+        for (int ei = chead[u]; ei != -1; ei = CE[ei].next) {
+            indeg[CE[ei].to]++;
+        }
+    }
+    static int q[MAXN];
+    int qh = 0, qt = 0;
+    for (int i = 0; i < comp_cnt; i++) if (indeg[i] == 0) q[qt++] = i;
+    topo_sz = 0;
+    while (qh < qt) {
+        int u = q[qh++];
+        topo[topo_sz++] = u;
+        for (int ei = chead[u]; ei != -1; ei = CE[ei].next) {
+            int v = CE[ei].to;
+            if (--indeg[v] == 0) q[qt++] = v;
+        }
+    }
+    /* If graph is a DAG, topo_sz==comp_cnt. Condensation is always a DAG. */
+}
+
+static inline void bitset_zero(unsigned int *bs, int words) {
+    memset(bs, 0, (size_t)words * sizeof(unsigned int));
+}
+static inline void bitset_fill_ones(unsigned int *bs, int words, int bits) {
+    for (int i = 0; i < words; i++) bs[i] = 0xFFFFFFFFu;
+    int extra = words * 32 - bits;
+    if (extra > 0) bs[words - 1] >>= extra;
+}
+static inline void bitset_set(unsigned int *bs, int idx) {
+    bs[idx >> 5] |= (1u << (idx & 31));
+}
+static inline int bitset_test(const unsigned int *bs, int idx) {
+    return (bs[idx >> 5] >> (idx & 31)) & 1u;
+}
+static inline int bitset_equal(const unsigned int *a, const unsigned int *b, int words) {
+    return memcmp(a, b, (size_t)words * sizeof(unsigned int)) == 0;
+}
+static inline void bitset_copy(unsigned int *dst, const unsigned int *src, int words) {
+    memcpy(dst, src, (size_t)words * sizeof(unsigned int));
+}
+static inline void bitset_or(unsigned int *dst, const unsigned int *src, int words) {
+    for (int i = 0; i < words; i++) dst[i] |= src[i];
+}
+static inline void bitset_and(unsigned int *dst, const unsigned int *src, int words) {
+    for (int i = 0; i < words; i++) dst[i] &= src[i];
+}
+
+/* Compute reachability on condensation DAG via reverse topological DP with bitsets */
+static void compute_condensation_reach(void) {
+    int words = (comp_cnt + 31) / 32;
+    for (int i = 0; i < comp_cnt; i++) bitset_zero(reach[i], words);
+
+    /* process in reverse topological order */
+    for (int ti = topo_sz - 1; ti >= 0; ti--) {
+        int u = topo[ti];
+        for (int ei = chead[u]; ei != -1; ei = CE[ei].next) {
+            int v = CE[ei].to;
+            bitset_set(reach[u], v);
+            bitset_or(reach[u], reach[v], words);
+        }
+    }
+}
+
+/* Dominator computation on a directed graph restricted to nodes[] (size k).
+   Graph is given by adjacency lists dom_head/DOM_E and reverse rdom_head/RDOM_E.
+   Start node is s (a vertex id in [0,n)).
+   Result dom_out[v] bitset over vertices in SCC (indexed by node_pos) indicating dominators of v.
+*/
+static void compute_dominators_for_scc(
+    int k, int s,
+    int *pred_head, Edge *predE,
+    int *succ_head, Edge *succE,
+    unsigned int dom_out[MAXN][(MAXN + 31) / 32]
+) {
+    int words = (k + 31) / 32;
+
+    /* Initialize: dom[s]={s}; others = all ones */
+    for (int i = 0; i < k; i++) {
+        int v = nodes[i];
+        if (v == s) {
+            bitset_zero(dom_out[v], words);
+            bitset_set(dom_out[v], node_pos[v]);
+        } else {
+            bitset_fill_ones(dom_out[v], words, k);
+        }
+    }
+
+    /* Iterative refinement:
+       dom[v] = {v} U (intersection over predecessors p of v of dom[p])
+       For nodes with no predecessors within SCC, intersection over empty set is all ones,
+       so dom[v] becomes all ones with v forced in; this matches the standard formulation.
+    */
+    unsigned int tmp[(MAXN + 31) / 32];
+    int changed = 1;
+    while (changed) {
+        changed = 0;
+        for (int i = 0; i < k; i++) {
+            int v = nodes[i];
+            if (v == s) continue;
+
+            bitset_fill_ones(tmp, words, k);
+
+            int has_pred = 0;
+            for (int ei = pred_head[v]; ei != -1; ei = predE[ei].next) {
+                int p = predE[ei].to;
+                if (node_pos[p] < 0) continue;
+                has_pred = 1;
+                bitset_and(tmp, dom_out[p], words);
+            }
+            (void)has_pred; /* empty predecessor set leaves tmp as all ones */
+
+            bitset_set(tmp, node_pos[v]);
+
+            if (!bitset_equal(tmp, dom_out[v], words)) {
+                bitset_copy(dom_out[v], tmp, words);
+                changed = 1;
+            }
+        }
+    }
+}
+
+int main(void) {
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    /* Fixed-size arrays per spec; behavior unspecified if bounds exceeded. */
+    for (int i = 0; i < n; i++) {
+        head[i] = rhead[i] = -1;
+        chead[i] = -1;
+        dom_head[i] = rdom_head[i] = -1;
+        node_pos[i] = -1;
+    }
+    ecnt = recnt = ccnt = dom_ecnt = rdom_ecnt = 0;
+
+    for (int i = 0; i < m; i++) {
+        int a, b;
+        scanf("%d %d", &a, &b);
+        a--; b--;
+        in_u[i] = a;
+        in_v[i] = b;
+        add_edge(a, b);
+        add_redge(b, a);
+    }
+
+    /* SCC via Kosaraju */
+    memset(vis, 0, sizeof(vis));
+    ord_sz = 0;
+    for (int i = 0; i < n; i++) if (!vis[i]) dfs1(i);
+
+    for (int i = 0; i < n; i++) comp_id[i] = -1;
+    comp_cnt = 0;
+    memset(comp_size, 0, sizeof(comp_size));
+    for (int i = ord_sz - 1; i >= 0; i--) {
+        int v = order[i];
+        if (comp_id[v] == -1) {
+            dfs2(v, comp_cnt);
+            comp_cnt++;
+        }
+    }
+
+    /* Build condensation unique edges and multiplicities.
+       Since comp_cnt <= 1000, we can use a dense map for uniqueness. */
+    static int pair_map[MAXN][MAXN];
+    for (int i = 0; i < comp_cnt; i++)
+        for (int j = 0; j < comp_cnt; j++)
+            pair_map[i][j] = -1;
+
+    for (int i = 0; i < m; i++) {
+        int u = in_u[i], v = in_v[i];
+        int cu = comp_id[u], cv = comp_id[v];
+        if (cu != cv) {
+            is_cross[i] = 1;
+            int idx = pair_map[cu][cv];
+            if (idx == -1) {
+                idx = ccnt;
+                pair_map[cu][cv] = idx;
+                add_cedge(cu, cv);
+            }
+            pair_mult[idx]++; /* count original edges between SCCs */
+            pair_idx_of_input[i] = idx;
+        } else {
+            is_cross[i] = 0;
+            pair_idx_of_input[i] = -1;
+        }
+    }
+
+    /* SCC-level reachability for bypass test */
+    topo_sort_condensation();
+    compute_condensation_reach();
+
+    /* Prepare output labels: 0 => same, 1 => diff */
+    static unsigned char out_diff[MAXM];
+    memset(out_diff, 0, (size_t)m);
+
+    /* Classify cross-SCC edges */
+    for (int i = 0; i < m; i++) {
+        if (!is_cross[i]) continue;
+        int idx = pair_idx_of_input[i];
+        int cu = comp_id[in_u[i]];
+        int cv = comp_id[in_v[i]];
+
+        int diff = 0;
+
+        /* Condition 1: non-unique direct SCC edge */
+        if (pair_mult[idx] > 1) diff = 1;
+
+        /* Condition 2: bypassable at SCC level (path length >= 2) */
+        if (!diff) {
+            /* exists intermediate k with cu->k and k->cv */
+            int words = (comp_cnt + 31) / 32;
+            for (int k = 0; k < comp_cnt; k++) {
+                if (k == cu || k == cv) continue;
+                if (bitset_test(reach[cu], k) && bitset_test(reach[k], cv)) {
+                    diff = 1;
+                    break;
+                }
+            }
+            (void)words;
+        }
+
+        out_diff[i] = (unsigned char)diff;
+    }
+
+    /* Build adjacency lists for dominator computations on original graph and its reverse.
+       We reuse original edges; lists include all edges, but we will ignore those leaving SCC. */
+    for (int i = 0; i < m; i++) {
+        int u = in_u[i], v = in_v[i];
+        add_dom_edge(u, v);
+        add_rdom_edge(v, u); /* reverse adjacency for predecessors in original */
+    }
+    /* For reverse graph dominators, we need adjacency of reversed edges and its reverse.
+       Reversed adjacency is rdom_head already (v->u). Its predecessor lists are dom_head (u->v) in original.
+       We'll pass appropriate heads/edges when computing rdom. */
+
+    /* Group vertices by SCC */
+    static int comp_vertices[MAXN][MAXN];
+    static int comp_vcnt[MAXN];
+    memset(comp_vcnt, 0, sizeof(comp_vcnt));
+    for (int v = 0; v < n; v++) {
+        int c = comp_id[v];
+        comp_vertices[c][comp_vcnt[c]++] = v;
+    }
+
+    /* For each SCC, compute dominators from an arbitrary root and reverse-dominators from same root.
+       Then for each intra-SCC edge (u->v), edge is "same" iff u dominates v AND v reverse-dominates u,
+       i.e., edge is a strong bridge in the SCC; otherwise "diff".
+       This matches: no alternative path from u to v within SCC avoiding that edge.
+    */
+    for (int c = 0; c < comp_cnt; c++) {
+        int k = comp_vcnt[c];
+        if (k <= 1) {
+            /* Single-vertex SCC: any self-loop has alternative path only if there is another self-loop.
+               Spec defines intra-SCC by reachability excluding the edge; for k==1, reachability u->u
+               without using the edge exists iff there is a cycle not using it, which requires another self-loop.
+               Our dominator method would mark self-loop as strong bridge; handle explicitly. */
+            int v = comp_vertices[c][0];
+            int self_loops = 0;
+            for (int i = 0; i < m; i++) {
+                if (!is_cross[i] && in_u[i] == v && in_v[i] == v) self_loops++;
+            }
+            for (int i = 0; i < m; i++) {
+                if (!is_cross[i] && in_u[i] == v && in_v[i] == v) {
+                    /* alternative path exists iff there is another self-loop */
+                    out_diff[i] = (unsigned char)(self_loops <= 1);
+                }
+            }
+            continue;
+        }
+
+        /* Setup nodes[] and node_pos[] for this SCC */
+        for (int i = 0; i < n; i++) node_pos[i] = -1;
+        for (int i = 0; i < k; i++) {
+            nodes[i] = comp_vertices[c][i];
+            node_pos[nodes[i]] = i;
+        }
+
+        /* Choose root as first node */
+        int root = nodes[0];
+
+        /* Compute dominators in original direction: dom[v] */
+        compute_dominators_for_scc(k, root, rdom_head, RDOM_E, dom_head, DOM_E, dom);
+
+        /* Compute dominators in reversed direction (reverse-dominators): rdom[v] on reversed graph.
+           Predecessors in reversed graph are successors in original graph (dom_head/DOM_E). */
+        compute_dominators_for_scc(k, root, dom_head, DOM_E, rdom_head, RDOM_E, rdom);
+
+        /* Classify intra-SCC edges */
+        for (int i = 0; i < m; i++) {
+            if (is_cross[i]) continue;
+            int u = in_u[i], v = in_v[i];
+            if (comp_id[u] != c) continue;
+
+            /* If u==v inside SCC with k>1, there is always an alternative path u->u avoiding this edge
+               iff there exists any cycle not using it. Dominator criterion below treats self-loop as
+               strong bridge only if it is the only way to return; in SCC with >1 nodes, self-loop is
+               never required for u to reach itself (u can go around SCC), so it should be "same".
+               This follows from SCC property: there exists a cycle through other vertices. */
+            if (u == v) {
+                out_diff[i] = 0;
+                continue;
+            }
+
+            int u_dom_v = bitset_test(dom[v], node_pos[u]);
+            int v_rdom_u = bitset_test(rdom[u], node_pos[v]);
+
+            /* same iff edge is forced (no alternative path) */
+            out_diff[i] = (unsigned char)(!(u_dom_v && v_rdom_u));
+            /* out_diff=1 means "diff"; forced => print "diff"? Spec:
+               - intra-SCC: output "same" if alternative path exists; "diff" otherwise.
+               So forced => "diff". Our out_diff is set to !(forced), so invert: */
+            out_diff[i] = (unsigned char)(u_dom_v && v_rdom_u);
+        }
+    }
+
+    /* Print outputs in input order */
+    for (int i = 0; i < m; i++) {
+        if (out_diff[i]) {
+            puts("diff");
+        } else {
+            puts("same");
+        }
+    }
+
+    return 0;
+}

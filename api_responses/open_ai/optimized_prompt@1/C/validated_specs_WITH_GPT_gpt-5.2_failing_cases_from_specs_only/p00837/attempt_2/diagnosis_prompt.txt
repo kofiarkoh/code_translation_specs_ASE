@@ -1,0 +1,428 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes multiple scenarios of book requests by students and computes a total “movement cost” incurred by repeatedly retrieving the requested book from its current desk and then placing it onto the primary desk. Each request is handled in a deterministic global order: increasing request position within a student’s list, with ties broken by increasing student index. The computed total cost is the sum of desk indices involved in each removal and placement operation, including any additional relocations required to respect desk capacity constraints.
+
+2. Inputs  
+For each scenario:  
+- An integer number of auxiliary desks.  
+- An integer capacity per desk.  
+- An integer number of students.  
+- For each student: an integer count of requested books, followed by that many book identifiers.  
+Scenarios repeat until a scenario header indicates termination.
+
+3. Outputs  
+For each scenario, outputs a single integer: the total accumulated movement cost for servicing all requests in the scenario under the program’s desk/capacity rules.
+
+4. Preconditions  
+- The number of auxiliary desks is positive and does not exceed 10 (since desks are indexed from 1 through auxiliary+1, with fixed storage sized for up to 11 desks).  
+- The number of total requests across all students does not exceed 5002.  
+- Each student’s request count is non-negative and the sum across students matches the total requests.  
+- Book identifiers are positive and do not exceed 100.  
+- The desk capacity is non-negative and does not exceed 5000.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each scenario:  
+- All requests are considered serviced in the defined global order.  
+- The reported total cost equals the sum of:  
+  - The index of the desk from which each requested book is removed at the time of service, plus  
+  - The index of the primary desk for placing the requested book, plus  
+  - Any additional desk-index costs incurred by mandatory relocations triggered when the primary desk is at capacity at the moment of placement.  
+- After servicing a request, the requested book is located on the primary desk.
+
+6. Invariants  
+- Each tracked book is located on exactly one desk at any time, with a well-defined position within that desk’s sequence.  
+- For each desk, the number of books on that desk never exceeds the configured capacity, except that the scenario is undefined if no desk has available capacity when a relocation is required.  
+- The relative order of books on a desk is preserved except for removals of specific books and left-compaction of remaining books.  
+- The primary desk is the designated destination for every serviced request.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., identifiers out of range, too many requests, desk counts exceeding fixed limits, or a relocation is required but no desk has free capacity), behavior is undefined (may compute incorrect results or access invalid memory).  
+- Termination occurs when the scenario header indicates a non-positive auxiliary desk count.
+
+8. State Transitions (if applicable)  
+Within a scenario, the system state consists of: the assignment of each known book to a desk and position, and the current occupancy of each desk. For each serviced request:  
+- The requested book is removed from its current desk (that desk’s occupancy decreases by one).  
+- If the primary desk is at capacity before placing the requested book, a relocation sequence occurs that moves one book out of the primary desk to some other desk with available capacity, and may temporarily place the requested book on an auxiliary desk as part of that sequence; desk occupancies are updated accordingly.  
+- The requested book is placed onto the primary desk (primary desk occupancy increases by one).  
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum sizes are implied: up to 5002 total requests, up to 100 distinct book identifiers tracked, up to 11 desks (primary plus up to 10 auxiliary), and up to 5000 books per desk.  
+- The computed cost is accumulated in a signed integer; overflow is possible if inputs are large enough, and is not guarded against.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+#define MAX_DESKS 11          /* primary + up to 10 auxiliary */
+#define MAX_BOOK_ID 100
+#define MAX_REQ 5002
+
+typedef struct {
+    int book;
+    int next; /* next node index in desk list */
+} Node;
+
+static int desk_head[MAX_DESKS + 1]; /* 1..(aux+1) */
+static int desk_tail[MAX_DESKS + 1];
+static int desk_cnt[MAX_DESKS + 1];
+
+static int book_desk[MAX_BOOK_ID + 1]; /* 0 means unknown/not present */
+static int book_node[MAX_BOOK_ID + 1]; /* node index in pool */
+
+static Node pool[MAX_REQ + 5];
+static int pool_used;
+
+static int req_book[MAX_REQ + 5];
+static int req_pos[MAX_REQ + 5];
+static int req_student[MAX_REQ + 5];
+static int req_total;
+
+static void desk_init(int dcount) {
+    for (int d = 1; d <= dcount; d++) {
+        desk_head[d] = 0;
+        desk_tail[d] = 0;
+        desk_cnt[d] = 0;
+    }
+    for (int b = 1; b <= MAX_BOOK_ID; b++) {
+        book_desk[b] = 0;
+        book_node[b] = 0;
+    }
+    pool_used = 0;
+}
+
+static int new_node(int book) {
+    ++pool_used;
+    pool[pool_used].book = book;
+    pool[pool_used].next = 0;
+    return pool_used;
+}
+
+static void desk_append_node(int desk, int node_idx) {
+    pool[node_idx].next = 0;
+    if (desk_head[desk] == 0) {
+        desk_head[desk] = desk_tail[desk] = node_idx;
+    } else {
+        pool[desk_tail[desk]].next = node_idx;
+        desk_tail[desk] = node_idx;
+    }
+    desk_cnt[desk]++;
+}
+
+static void desk_append_book(int desk, int book) {
+    int n = new_node(book);
+    desk_append_node(desk, n);
+    book_desk[book] = desk;
+    book_node[book] = n;
+}
+
+/* Remove a specific book from its current desk list, preserving relative order of others. */
+static void remove_book_from_desk(int book) {
+    int d = book_desk[book];
+    int target = book_node[book];
+    if (d <= 0 || target <= 0) return; /* undefined per spec if inconsistent; keep narrow */
+
+    int prev = 0;
+    int cur = desk_head[d];
+    while (cur && cur != target) {
+        prev = cur;
+        cur = pool[cur].next;
+    }
+    if (!cur) return; /* inconsistent; undefined */
+
+    int nxt = pool[cur].next;
+    if (prev == 0) desk_head[d] = nxt;
+    else pool[prev].next = nxt;
+
+    if (desk_tail[d] == cur) desk_tail[d] = prev;
+
+    desk_cnt[d]--;
+    book_desk[book] = 0;
+    book_node[book] = 0;
+    /* node remains in pool but is detached; reused only by creating new nodes */
+}
+
+/* Pop the front book from a desk (used for relocation from primary). Returns book id, or 0 if empty. */
+static int pop_front_book(int desk) {
+    int h = desk_head[desk];
+    if (!h) return 0;
+    int book = pool[h].book;
+    int nxt = pool[h].next;
+    desk_head[desk] = nxt;
+    if (!nxt) desk_tail[desk] = 0;
+    desk_cnt[desk]--;
+
+    book_desk[book] = 0;
+    book_node[book] = 0;
+    return book;
+}
+
+/* Find the lowest-index desk (excluding primary desk 1) with available capacity. Returns desk index or 0. */
+static int find_aux_with_space(int dcount, int cap) {
+    for (int d = 2; d <= dcount; d++) {
+        if (desk_cnt[d] < cap) return d;
+    }
+    return 0;
+}
+
+/*
+ * Service one request for 'book' under capacity rules.
+ * Cost model per spec:
+ *  - add index of desk removed from (current location at service time)
+ *  - add index of primary desk for placing (always 1)
+ *  - plus any additional desk-index costs incurred by mandatory relocations
+ *
+ * Relocation sequence (narrowest deterministic interpretation consistent with spec):
+ *  - If primary desk is at capacity before placing requested book:
+ *      - move one book out of primary desk to the lowest-index auxiliary desk with space
+ *        (cost adds: primary index + destination index)
+ *      - then place requested book onto primary (cost adds: primary index)
+ *  - No temporary placement of requested book is performed unless needed; spec says "may",
+ *    so we choose the simplest sequence that satisfies capacity.
+ */
+static long long service_request(int dcount, int cap, int book) {
+    long long cost = 0;
+
+    int from = book_desk[book];
+    /* If book not yet known/placed, treat it as already on primary? Spec doesn't define.
+       Narrowest: assume all requested books are "tracked" only when first requested and
+       initially located on primary desk (so removal cost is 1 and no state change needed).
+       However, spec says each tracked book is located on exactly one desk; to preserve that,
+       we materialize unknown books on primary before servicing. */
+    if (from == 0) {
+        /* materialize on primary desk as if it was there already */
+        if (desk_cnt[1] >= cap && cap >= 0) {
+            /* relocation needed even to materialize; follow same rule */
+            int dest = find_aux_with_space(dcount, cap);
+            /* undefined if dest==0 per spec */
+            int moved = pop_front_book(1);
+            cost += 1 + dest;
+            if (moved) desk_append_book(dest, moved);
+        }
+        desk_append_book(1, book);
+        from = 1;
+    }
+
+    /* remove requested book */
+    cost += from;
+    remove_book_from_desk(book);
+
+    /* ensure space on primary before placing */
+    if (desk_cnt[1] >= cap && cap >= 0) {
+        int dest = find_aux_with_space(dcount, cap);
+        /* undefined if dest==0 per spec */
+        int moved = pop_front_book(1);
+        cost += 1 + dest;
+        if (moved) desk_append_book(dest, moved);
+    }
+
+    /* place requested book onto primary */
+    cost += 1;
+    desk_append_book(1, book);
+
+    return cost;
+}
+
+/* Stable deterministic global order: increasing request position, ties by increasing student index. */
+static void stable_sort_requests(int n) {
+    /* insertion sort is fine for n<=5002 */
+    for (int i = 2; i <= n; i++) {
+        int b = req_book[i];
+        int p = req_pos[i];
+        int s = req_student[i];
+        int j = i - 1;
+        while (j >= 1) {
+            if (req_pos[j] < p) break;
+            if (req_pos[j] == p && req_student[j] <= s) break;
+            req_book[j + 1] = req_book[j];
+            req_pos[j + 1] = req_pos[j];
+            req_student[j + 1] = req_student[j];
+            j--;
+        }
+        req_book[j + 1] = b;
+        req_pos[j + 1] = p;
+        req_student[j + 1] = s;
+    }
+}
+
+int main(void) {
+    int aux;
+    while (scanf("%d", &aux) == 1) {
+        if (aux <= 0) break;
+
+        int cap, students;
+        if (scanf("%d %d", &cap, &students) != 2) break;
+
+        int dcount = aux + 1; /* desk 1 is primary, 2..dcount are auxiliary */
+        desk_init(dcount);
+
+        req_total = 0;
+        for (int si = 1; si <= students; si++) {
+            int k;
+            scanf("%d", &k);
+            for (int pi = 1; pi <= k; pi++) {
+                int book;
+                scanf("%d", &book);
+                ++req_total;
+                req_book[req_total] = book;
+                req_pos[req_total] = pi;
+                req_student[req_total] = si;
+            }
+        }
+
+        stable_sort_requests(req_total);
+
+        long long total_cost = 0;
+        for (int i = 1; i <= req_total; i++) {
+            total_cost += service_request(dcount, cap, req_book[i]);
+        }
+
+        /* Spec says accumulated in signed integer; print as integer.
+           Using long long internally to reduce UB; cast back to long long print. */
+        printf("%lld\n", total_cost);
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_output.txt
+Input:
+3 2 4
+2 1 2
+1 3
+3 4 5 6
+2 7 8
+0 0 0
+Expected:
+90
+Actual:
+40
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

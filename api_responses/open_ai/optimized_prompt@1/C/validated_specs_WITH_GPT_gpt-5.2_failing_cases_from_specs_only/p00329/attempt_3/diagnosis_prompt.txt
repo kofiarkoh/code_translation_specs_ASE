@@ -1,0 +1,320 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 0334 Amidakuji
+// 2019.8.11 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+//// 高速入出力
+#if 1
+#define gc() getchar_unlocked()
+#define pc(c) putchar_unlocked(c)
+#else
+#define gc() getchar()
+#define pc(c) putchar(c)
+#endif
+
+int in()  // 非負整数の入力
+{
+	int n = 0, c = gc();
+	do n = 10 * n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+void out(long long n)  // 正整数の表示（出力）
+{
+	int i;
+	char ob[40];
+
+	i = 0; while (n) ob[i++] = n % 10 + '0', n /= 10;
+	while (i--) pc(ob[i]);
+	pc('\n');
+}
+
+void outs(char *s) { while (*s) pc(*s++); pc('\n'); }
+
+#define MAX 1005
+int  hi[MAX], to[MAX][MAX];
+int  seen[MAX];
+int  match[MAX];
+int  mark = 1;
+
+int bpm(int u);
+int bipartiteMatching(int m, int n)
+{
+	int u, max;
+
+	memset(match, -1, sizeof(match));
+	max = 0;
+	for (u = 0; u < m; u++) if (match[u] < 0) {
+		mark++;
+		if (bpm(u)) max++;
+	}
+	return max;
+}
+
+int bpm(int u)
+{
+	int i, v, w;
+
+	seen[u] = mark;
+	for (i = 0; i < hi[u]; i++) {
+		v = to[u][i], w = match[v];
+		if (w < 0 || (seen[w] != mark && bpm(w))) {
+			match[v] = u, match[u] = v;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int cmp(const void *u, const void *v) { return *(int *)u - *(int *)v; }
+
+int main()
+{
+	int N, i, j, k;
+	
+	N = in()-1;
+	for (i = 0; i < N; i++) {
+		for (j = 0; j < N; j++) {
+			if (gc() & 1) to[j][hi[j]++] = N+i;
+			gc();
+		}
+	}
+	if (bipartiteMatching(N, N) < N) outs("no");
+	else {
+		outs("yes");
+		for (i = 0; i < N; i++) {
+			match[match[i]] = -1;
+			match[i] = -1;
+			mark++;
+			bpm(i);
+			hi[i] = 0;
+			to[i][hi[i]++] = match[i];
+			out(match[i]-N+1);
+		}
+	}
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Given a bipartite graph between two equally sized sets (left side and right side), determines whether a perfect matching exists (a one-to-one pairing that matches every left element to a distinct right element using only allowed edges).  
+- If no perfect matching exists, the program outputs `"no"` and terminates.  
+- If a perfect matching exists, the program outputs `"yes"` and then outputs `N` integers, one per left element in increasing order, produced by a specific rematching procedure derived from an initially found perfect matching.
+
+2. Inputs  
+- An integer `N_in` (a non-negative integer as parsed by the program). The effective size is `N = N_in - 1`.  
+- Then `N × N` binary entries describing allowed edges from left vertices `0..N-1` to right vertices `0..N-1`.  
+  - The program reads these entries as characters and treats an entry as “allowed” when the character’s ASCII code is odd (in typical inputs this corresponds to `'1'` meaning allowed and `'0'` meaning not allowed).  
+  - After each entry character, one additional character is consumed (typically a separator such as whitespace or newline).  
+  - Any deviation from this expected character layout results in unspecified behavior.
+
+3. Outputs  
+- If no perfect matching exists: one line containing exactly `no` (lowercase).  
+- If a perfect matching exists:  
+  - One line containing exactly `yes` (lowercase).  
+  - Then exactly `N` lines. For each left vertex `i` from `0` to `N-1`, the program prints one integer in `1..N` representing a right vertex index (1-based) obtained by the rematching procedure described below.
+
+4. Preconditions / Constraints  
+- `N = N_in - 1` must satisfy `0 ≤ N ≤ 1004` to stay within fixed internal array bounds.  
+- The input must provide exactly `N × N` entries in the character-based format the program expects (entry character plus one extra consumed character per entry). Otherwise behavior is undefined.
+
+5. Semantics of the Decision (`yes`/`no`)  
+- The program outputs `no` iff it fails to find a matching of size `N` (i.e., it cannot match every left vertex to a distinct right vertex).  
+- The program outputs `yes` iff it finds a matching of size `N`.
+
+6. Semantics of the `N` Lines After `yes` (Rematching Procedure)  
+When `yes` is printed, the program has already computed one perfect matching using a DFS-based augmenting-path algorithm (Kuhn-style), with adjacency lists ordered by the input scan order.
+
+Then, for each left vertex `i` in increasing order, it performs the following steps and prints the resulting right partner of `i`:
+
+- Let `p` be the right vertex currently matched with `i` in the current matching state.  
+- Temporarily unmatch both endpoints of that matched edge: `i` becomes unmatched and `p` becomes unmatched.  
+- Run exactly one DFS-based augmenting-path search starting from `i` on the current matching state, attempting to re-match `i` (possibly by reassigning other left vertices along an augmenting path). This search respects the stored adjacency order.  
+- After this single augmentation attempt, output the (1-based) index of the right vertex that ends up matched to `i`.
+
+Notes/implications of this definition:  
+- The printed partner for each `i` is algorithm- and traversal-order dependent (it is the result of that single DFS augmentation given the current matching state and adjacency order), not a canonical choice such as “smallest possible partner.”  
+- The `N` printed partners are produced sequentially while the matching state is being updated; they are not computed independently from a fixed original matching.  
+- The program does not explicitly verify, for each printed pair `(i, r)`, that it belongs to some perfect matching under an independent “force this edge and re-solve” check; it only outputs what its rematching procedure yields.
+
+7. Edge Cases / Termination  
+- If `N = 0`, the program outputs `yes` and no additional lines.  
+- The program terminates immediately after printing either `no` or `yes` followed by the `N` rematching outputs.
+
+8. Error Handling  
+- No explicit error handling is performed. Inputs outside bounds or not matching the expected character layout may cause incorrect results or memory errors.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 1005
+
+static int N;
+static int adj[MAXN][MAXN];
+static int degL[MAXN];
+
+static int matchR[MAXN]; /* right -> left, -1 if free */
+static int matchL[MAXN]; /* left  -> right, -1 if free */
+static unsigned char visL[MAXN];
+
+static int dfs_kuhn(int v) {
+    int k;
+    if (visL[v]) return 0;
+    visL[v] = 1;
+    for (k = 0; k < degL[v]; k++) {
+        int r = adj[v][k];
+        int u = matchR[r];
+        if (u == -1 || dfs_kuhn(u)) {
+            matchR[r] = v;
+            matchL[v] = r;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int N_in;
+    int i, j;
+
+    if (scanf("%d", &N_in) != 1) return 0;
+    N = N_in - 1;
+
+    /* Fixed internal bounds per specification; behavior outside is unspecified.
+       We still avoid out-of-bounds writes by clamping to safe range. */
+    if (N < 0) N = 0;
+    if (N > 1004) N = 1004;
+
+    for (i = 0; i < N; i++) degL[i] = 0;
+
+    /* Read N*N entries as: one entry character, then consume one extra character. */
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            int c1 = getchar();
+            int c2;
+            if (c1 == EOF) c1 = 0;
+            if ((c1 & 1) != 0) {
+                adj[i][degL[i]++] = j;
+            }
+            c2 = getchar();
+            (void)c2; /* consumed separator; unspecified behavior if layout differs */
+        }
+    }
+
+    for (i = 0; i < N; i++) {
+        matchL[i] = -1;
+        matchR[i] = -1;
+    }
+
+    /* Find one maximum matching using DFS-based augmenting paths in input order. */
+    for (i = 0; i < N; i++) {
+        memset(visL, 0, (size_t)N * sizeof(visL[0]));
+        (void)dfs_kuhn(i);
+    }
+
+    /* Decide perfect matching existence. */
+    for (i = 0; i < N; i++) {
+        if (matchL[i] == -1) {
+            puts("no");
+            return 0;
+        }
+    }
+
+    puts("yes");
+
+    /* Rematching procedure: sequentially unmatch i and its partner, run one DFS, print new partner. */
+    for (i = 0; i < N; i++) {
+        int p = matchL[i];
+
+        /* Temporarily unmatch edge (i, p). */
+        if (p >= 0 && p < N) {
+            matchL[i] = -1;
+            matchR[p] = -1;
+        } else {
+            /* Should not happen under perfect matching; keep narrow behavior. */
+            matchL[i] = -1;
+        }
+
+        memset(visL, 0, (size_t)N * sizeof(visL[0]));
+        (void)dfs_kuhn(i);
+
+        /* Output 1-based right index matched to i after this single augmentation attempt. */
+        printf("%d\n", matchL[i] + 1);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00329/p00329_sample1_output.txt
+Input:
+4
+1 0 1
+0 1 0
+1 0 1
+Expected:
+yes
+1
+2
+3
+Actual:
+no
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

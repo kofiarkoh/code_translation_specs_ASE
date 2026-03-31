@@ -1,0 +1,65 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given an integer \(N\) and an \(N \times N\) grid of letters, the program selects exactly one cell from each row and exactly one cell from each column (i.e., a perfect matching between rows and columns). Each chosen cell contributes to a **52-component cost vector** indexed in the fixed order `A`–`Z` then `a`–`z`. Choosing a cell labeled with a letter \(L\) adds \(-1\) to the component for \(L\) and leaves all other components unchanged. The total cost vector of a selection is the componentwise sum over its \(N\) chosen cells.
+
+Among all perfect matchings, the program chooses one whose total cost vector is **lexicographically minimal** under that fixed component order, using **componentwise signed 8-bit arithmetic** and lexicographic comparison (first differing component determines the ordering). Equivalently, it maximizes the number of `A` letters; subject to that maximizes `B`; and so on through `Z`, then `a` through `z`.
+
+After computing an optimal matching, it outputs the multiset of letters from the selected \(N\) cells, sorted in the fixed order `A`–`Z` then `a`–`z`, with each letter repeated according to how many times it was selected.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- Then \(N\) lines representing the grid.  
+- For each of these \(N\) lines, the program reads the line as a string and uses the first \(N\) characters as the grid entries.
+
+3. Outputs  
+- One line consisting of the selected letters printed in nondecreasing order with all uppercase letters before lowercase letters (`A`…`Z` then `a`…`z`), followed by a newline.  
+- The output is produced by, for each letter in that fixed order, printing it \(-c\) times where \(c\) is the corresponding component of the final 52-component cost vector. Under the intended input constraints, this results in exactly \(N\) printed letters.
+
+4. Preconditions / Constraints  
+- \(N\) must satisfy the program’s fixed internal graph-size limits: it constructs a flow network with \(2N+2\) vertices stored in fixed-size arrays of size 105, so \(2N+2 \le 105\) (i.e., \(N \le 51\)).  
+- Each of the \(N\) grid lines must contain at least \(N\) usable characters.  
+- Each used grid character must be an ASCII alphabetic letter in `A`–`Z` or `a`–`z`; other characters are not handled meaningfully.  
+- All cost computations are performed per component in `signed char` (8-bit) storage. Correctness therefore relies on all intermediate and final component values (including during shortest-path relaxation and flow augmentation) remaining within the representable `signed char` range; otherwise behavior is not defined by the specification.
+
+5. Semantics of Optimality and Comparison Model  
+- The optimization is defined over a 52-dimensional vector space with:  
+  - **Addition/subtraction/multiplication by a small integer performed componentwise**, and  
+  - **Lexicographic comparison performed by scanning components from `A` through `z` and comparing the first component that differs**.  
+- Distances for unreachable states are represented by a fixed “infinity” sentinel vector whose every component is a constant positive value (60 in the program), and shortest-path relaxation compares candidate distance vectors against this sentinel using the same lexicographic rule. This model assumes the problem’s true optimal distances remain well below that sentinel in every component under the stated arithmetic constraints.
+
+6. Determinism and Tie Handling  
+- If multiple perfect matchings yield the same optimal 52-component cost vector, any of them may be chosen internally. The output depends only on the resulting per-letter counts (i.e., the cost vector components), not on which specific rows/columns were paired.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced. If any precondition is violated (size limits, malformed/short input lines, non-letter characters, or overflow/underflow of the signed-char vector arithmetic), the program’s behavior is unspecified.
+
+8. Resource/Feasibility Expectations (as implied by the program)  
+- The computation is performed via a min-cost flow formulation on a graph with \(O(N)\) vertices and \(O(N^2)\) edges under fixed static storage bounds, using repeated shortest-path relaxations under the vector/lexicographic cost model.
+
+```

@@ -1,0 +1,86 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_WORDS 100
+#define WORD_LEN  30
+#define MAX_PAGE  1000
+
+struct idx_entry {
+    char word[WORD_LEN + 1];
+    int pgnum[MAX_PAGE + 1];
+    int tm;
+};
+
+static int cmp_idx_entry(const void *a, const void *b) {
+    const struct idx_entry *ea = (const struct idx_entry *)a;
+    const struct idx_entry *eb = (const struct idx_entry *)b;
+    return strcmp(ea->word, eb->word);
+}
+
+int main(void) {
+    /* The specification notes the original program does not initialize this.
+       For defined behavior, it assumes an initial state equivalent to all zeros.
+       We therefore explicitly zero-initialize to match the assumed defined state. */
+    struct idx_entry idx[MAX_WORDS] = {0};
+
+    int n = 0;
+    char wbuf[WORD_LEN + 1];
+    int page;
+
+    while (scanf("%30s %d", wbuf, &page) == 2) {
+        int found = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (strcmp(idx[i].word, wbuf) == 0) {
+                /* Existing word */
+                if (page >= 0 && page <= MAX_PAGE) {
+                    idx[i].pgnum[page] = 1;
+                }
+                idx[i].tm += 1;
+                found = 1;
+                break;
+            }
+        }
+
+        if (!found) {
+            /* New word */
+            if (n < MAX_WORDS) {
+                strcpy(idx[n].word, wbuf);
+                if (page >= 0 && page <= MAX_PAGE) {
+                    idx[n].pgnum[page] = 1;
+                }
+                idx[n].tm += 1;
+                n += 1;
+            } else {
+                /* Undefined behavior per spec if too many distinct words.
+                   We do nothing explicit here. */
+            }
+        }
+    }
+
+    qsort(idx, (size_t)n, sizeof(idx[0]), cmp_idx_entry);
+
+    for (int i = 0; i < n; i++) {
+        printf("%s\n", idx[i].word);
+
+        int k = 0;
+        for (int j = 0; j <= MAX_PAGE; j++) {
+            if (idx[i].pgnum[j] == 1) {
+                if (k == idx[i].tm - 1) {
+                    printf("%d\n", j);
+                    break;
+                } else {
+                    printf("%d ", j);
+                    k++;
+                }
+            }
+        }
+        /* Per specification, if assumptions are violated (e.g., repeated word-page pairs),
+           the scan may fail to terminate early and/or omit the final newline; we do not
+           add any corrective printing here. */
+    }
+
+    return 0;
+}
+```

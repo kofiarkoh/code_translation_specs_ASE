@@ -1,0 +1,82 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a single integer value modulo a fixed prime modulus. The value is a deterministic function of an input length and an input sequence of integers, derived from the sequence’s prefix bitwise-xor values and the positions where those prefix-xor values equal zero. The computation maintains per-prefix-xor-class accumulations over a fixed domain of size \(2^{20}\) and produces either:
+- a value associated specifically with the final prefix-xor class (when the final prefix-xor is nonzero), or
+- a value combining contributions from all nonzero prefix-xor classes plus an additional term depending only on the count of zero prefix-xors (when the final prefix-xor is zero).
+
+2. Inputs  
+- An integer \(N\): the number of elements in the sequence.  
+- A sequence of \(N\) integers \(a_1, a_2, \dots, a_N\).
+
+3. Outputs  
+- One integer in the range \([0, \text{modulus}-1]\), written to standard output.
+
+4. Preconditions  
+- \(N \ge 1\).  
+- All prefix-xor values \(s_i = a_1 \oplus a_2 \oplus \dots \oplus a_i\) must lie in \([0, 2^{20}-1]\). (Equivalently, the program assumes the effective xor-state space is exactly \(2^{20}\); inputs violating this cause out-of-bounds behavior.)  
+- Sufficient memory is available to allocate arrays of sizes \(N+1\) and \(2^{20}\).  
+- The input provides exactly \(N\) sequence values after \(N\).
+
+5. Postconditions  
+Let:  
+- \(s_0 = 0\), and for \(i \in [1..N]\), \(s_i = s_{i-1} \oplus a_i\).  
+- \(Z_i\) be the count of indices \(j \in [1..i]\) such that \(s_j = 0\). (So \(Z_N\) is the total number of zero prefix-xors.)  
+
+The program outputs a value \(A\) modulo \(10^9+7\) such that:  
+- If \(s_N \ne 0\), then \(A\) equals the final computed value associated with xor-class \(s_N\) after processing all positions \(1..N\).  
+- If \(s_N = 0\), then \(A\) equals \(\;2^{(Z_N-1)}\) (modulo the modulus) plus the final accumulated sums over all xor-classes \(x \in [1..2^{20}-1]\), modulo the modulus.
+
+(“Final computed value” and “final accumulated sums” refer to the unique values determined by the recurrence induced by iterating positions \(i=1..N\) and updating the state for xor-class \(s_i\); the output is fully determined by the input under the stated preconditions.)
+
+6. Invariants  
+- All maintained arithmetic state used for the final answer is reduced modulo \(10^9+7\) and thus remains within \([0, 10^9+6]\) after each update.  
+- For each xor-class \(x \in [0..2^{20}-1]\), the stored “last-seen position” for \(x\) is always either 0 (meaning unseen so far) or an index in \([1..i]\) after processing position \(i\).  
+- The count \(Z_i\) is nondecreasing in \(i\) and increases by exactly 1 at position \(i\) iff \(s_i=0\).
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error handling is performed.  
+- If memory allocation fails, behavior is undefined (may crash or misbehave).  
+- If any prefix-xor value falls outside \([0, 2^{20}-1]\), behavior is undefined due to invalid indexing.  
+- If input is missing or malformed, behavior is undefined.  
+- If \(Z_N = 0\) and \(s_N = 0\), the exponent \(Z_N-1\) is negative; the program does not define behavior for negative exponents and will not terminate correctly. (Under normal arithmetic properties, \(s_N=0\) implies at least one zero prefix-xor only if some prefix equals zero; this is not guaranteed for all sequences, so this is a real exceptional case unless excluded by input constraints.)
+
+8. State Transitions (if applicable)  
+- The computation progresses through positions \(i=1..N\). At each position, it transitions the internal state associated with xor-class \(s_i\) by updating:
+  - the last-seen position for that class to \(i\), and
+  - three per-class accumulated modular quantities that depend on:
+    - the previous accumulated quantities for that class, and
+    - the number of zero prefix-xors that occurred between the previous last-seen position of that class and the current position.
+- No other xor-class state changes at that step.
+
+9. Non-functional Constraints (if inferable)  
+- Time complexity is \(O(N + 2^{20})\).  
+- Memory usage is \(O(N + 2^{20})\).  
+- The xor-state space is fixed at exactly \(2^{20}\); correctness depends on inputs respecting this bound.
+
+```

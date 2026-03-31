@@ -1,0 +1,54 @@
+1. Functional Description  
+Reads integers \(N, X, D\) and outputs the number of **distinct integer values** that can be formed as follows:
+
+Choose an integer \(i\) with \(0 \le i \le N\). Then choose \(i\) terms from the arithmetic progression
+\[
+X,\; X+D,\; X+2D,\; \dots,\; X+(N-1)D
+\]
+(i.e., choose any subset of size \(i\) from the first \(N\) terms), and take the sum of the chosen terms.  
+The program counts how many distinct sums are possible over all valid choices of \(i\) and subsets.
+
+Equivalently (for \(D \ne 0\)), for each fixed \(i\), the set of achievable sums forms an arithmetic progression with step \(|D|\) over a contiguous range; the program unions these ranges across all \(i\) and counts the distinct lattice points.
+
+2. Inputs  
+- Three signed 64-bit integers:
+  - \(N\): number of available terms from the arithmetic progression.
+  - \(X\): first term.
+  - \(D\): common difference.
+
+3. Output  
+- One signed integer: the number of distinct subset sums obtainable under the rule above.
+
+4. Preconditions / Assumptions  
+- \(0 \le N \le 200000\) (the program uses fixed-size storage indexed up to \(N\)).  
+- All computations are performed in signed 64-bit integer arithmetic; if intermediate values overflow, behavior is not defined by the specification.  
+- Input is read using `scanf`; if input is missing or malformed, behavior is unspecified.
+
+5. Detailed Semantics and Edge Cases  
+
+5.1 Special cases when \(X=0\) or \(D=0\)  
+The program returns immediately with:
+- If \(X=0\) and \(D=0\): output \(1\) (all terms are zero, so only sum \(0\) is possible).
+- Else if \(D=0\): output \(N+1\) (all terms equal \(X\); sums are \(kX\) for \(k=0..N\), which are treated as distinct by the program’s logic).
+- Else if \(X=0\) and \(D\ne 0\): output \(\frac{N(N-1)}{2}+1\).
+
+5.2 General case (\(X \ne 0\) and \(D \ne 0\))  
+- The program first divides \(X\) and \(D\) by \(G=\gcd(|X|,|D|)\). This normalization does not change the final distinct-count result computed by the program.
+- It then ensures the effective step is positive by transforming parameters so that the internal \(D>0\). (If the input \(D<0\), it adjusts the effective endpoints accordingly before flipping the sign of \(D\).)
+
+For each \(i\) from \(0\) to \(N\), consider sums of \(i\) chosen terms. For fixed \(i\), these sums all share the same residue modulo the (normalized, positive) \(D\), and as the chosen indices vary, the sums cover a contiguous range in steps of \(D\). The program represents this as a half-open interval \([L(i), R(i))\) on the integer line, where the attainable sums for that \(i\) are exactly:
+\[
+\{\, s \in \mathbb{Z} \mid s \equiv V(i)\ (\mathrm{mod}\ D),\; L(i) \le s < R(i)\,\},
+\]
+with \(V(i) \equiv L(i) \pmod D\).
+
+- The program unions these sets over all \(i\in\{0,\dots,N\}\) by grouping intervals by residue class \(V\) modulo \(D\) and merging overlapping/touching intervals within each residue class.
+- Finally, for each merged interval \([l,r)\) in a residue class, it adds \((r-l)/D\) to the answer, which counts how many integers in that interval have the required residue (i.e., how many distinct sums are represented by that merged interval).
+
+6. Ordering / Tie-breaking / Merging Rules  
+- Intervals are grouped by residue \(V\in\{0,\dots,D-1\}\) (computed as a nonnegative modulo).  
+- Within a residue class, a newly generated interval is merged into an existing stored interval if they overlap or touch in the sense used by the program: an existing interval \([l,r)\) is considered mergeable with \([L,R)\) when \(l \le R\) and \(r \ge L\). When merged, the stored interval becomes \([\min(l,L), \max(r,R))\).  
+- The program maintains at most one stored interval per residue class in its internal structure; merging is performed against the first matching interval found in that residue’s hash bucket.
+
+7. Termination and Side Effects  
+- The program reads exactly one triple \((N,X,D)\), prints one line containing the computed count, flushes stdout, and terminates.

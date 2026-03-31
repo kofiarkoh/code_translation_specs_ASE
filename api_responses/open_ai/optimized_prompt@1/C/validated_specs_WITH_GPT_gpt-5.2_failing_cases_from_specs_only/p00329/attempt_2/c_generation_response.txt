@@ -1,0 +1,102 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 1005
+
+static int N;
+static int adj[MAXN][MAXN];
+static int degL[MAXN];
+
+static int matchR[MAXN]; /* right -> left, -1 if free */
+static int matchL[MAXN]; /* left  -> right, -1 if free */
+static unsigned char visL[MAXN];
+
+static int dfs_kuhn(int v) {
+    int k;
+    if (visL[v]) return 0;
+    visL[v] = 1;
+    for (k = 0; k < degL[v]; k++) {
+        int r = adj[v][k];
+        int u = matchR[r];
+        if (u == -1 || dfs_kuhn(u)) {
+            matchR[r] = v;
+            matchL[v] = r;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int N_in;
+    int i, j;
+
+    if (scanf("%d", &N_in) != 1) return 0;
+    N = N_in - 1;
+
+    /* Fixed internal bounds per specification; behavior outside is unspecified.
+       We still avoid out-of-bounds writes by clamping to safe range. */
+    if (N < 0) N = 0;
+    if (N > 1004) N = 1004;
+
+    for (i = 0; i < N; i++) degL[i] = 0;
+
+    /* Read N*N entries as: one entry character, then consume one extra character. */
+    for (i = 0; i < N; i++) {
+        for (j = 0; j < N; j++) {
+            int c1 = getchar();
+            int c2;
+            if (c1 == EOF) c1 = 0;
+            if ((c1 & 1) != 0) {
+                adj[i][degL[i]++] = j;
+            }
+            c2 = getchar();
+            (void)c2; /* consumed separator; unspecified behavior if layout differs */
+        }
+    }
+
+    for (i = 0; i < N; i++) {
+        matchL[i] = -1;
+        matchR[i] = -1;
+    }
+
+    /* Find one maximum matching using DFS-based augmenting paths in input order. */
+    for (i = 0; i < N; i++) {
+        memset(visL, 0, (size_t)N * sizeof(visL[0]));
+        (void)dfs_kuhn(i);
+    }
+
+    /* Decide perfect matching existence. */
+    for (i = 0; i < N; i++) {
+        if (matchL[i] == -1) {
+            puts("no");
+            return 0;
+        }
+    }
+
+    puts("yes");
+
+    /* Rematching procedure: sequentially unmatch i and its partner, run one DFS, print new partner. */
+    for (i = 0; i < N; i++) {
+        int p = matchL[i];
+
+        /* Temporarily unmatch edge (i, p). */
+        if (p >= 0 && p < N) {
+            matchL[i] = -1;
+            matchR[p] = -1;
+        } else {
+            /* Should not happen under perfect matching; keep narrow behavior. */
+            matchL[i] = -1;
+        }
+
+        memset(visL, 0, (size_t)N * sizeof(visL[0]));
+        (void)dfs_kuhn(i);
+
+        /* Output 1-based right index matched to i after this single augmentation attempt. */
+        printf("%d\n", matchL[i] + 1);
+    }
+
+    return 0;
+}
+```

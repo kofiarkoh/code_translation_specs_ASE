@@ -1,0 +1,93 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_WORDS 100
+#define MAX_WORD_LEN 30
+#define MAX_PAGE 1000
+
+struct Entry {
+    char word[MAX_WORD_LEN + 1];
+    int pgnum[MAX_PAGE + 1]; /* marks: 0/1 */
+    int tm;                  /* count of input records for this word */
+};
+
+static int entry_cmp(const void *a, const void *b) {
+    const struct Entry *ea = (const struct Entry *)a;
+    const struct Entry *eb = (const struct Entry *)b;
+    return strcmp(ea->word, eb->word);
+}
+
+int main(void) {
+    struct Entry idx[MAX_WORDS];
+    int n = 0;
+
+    /* Specification assumes idx starts as if all pgnum[] and tm are 0.
+       We explicitly zero-initialize to match the defined-behavior assumptions. */
+    memset(idx, 0, sizeof(idx));
+
+    for (;;) {
+        char wbuf[1024];
+        int page;
+        int r = scanf("%1023s%d", wbuf, &page);
+        if (r == EOF) break;
+        if (r != 2) break; /* malformed input => undefined per spec; stop */
+
+        /* Find existing word */
+        int found = -1;
+        for (int i = 0; i < n; i++) {
+            if (strcmp(idx[i].word, wbuf) == 0) {
+                found = i;
+                break;
+            }
+        }
+
+        if (found >= 0) {
+            /* Existing entry */
+            if (page >= 0 && page <= MAX_PAGE) {
+                idx[found].pgnum[page] = 1;
+            }
+            idx[found].tm += 1;
+        } else {
+            /* New entry */
+            if (n >= MAX_WORDS) {
+                /* undefined per spec; do nothing further */
+                continue;
+            }
+            /* Copy word (spec assumes <= 30 chars; otherwise undefined) */
+            strncpy(idx[n].word, wbuf, MAX_WORD_LEN);
+            idx[n].word[MAX_WORD_LEN] = '\0';
+
+            if (page >= 0 && page <= MAX_PAGE) {
+                idx[n].pgnum[page] = 1;
+            }
+            idx[n].tm += 1;
+            n += 1;
+        }
+    }
+
+    /* Sort entries lexicographically by word */
+    if (n > 1) {
+        qsort(idx, (size_t)n, sizeof(idx[0]), entry_cmp);
+    }
+
+    /* Output */
+    for (int i = 0; i < n; i++) {
+        printf("%s\n", idx[i].word);
+
+        int printed = 0;
+        /* Scan supported page range low to high, printing marked pages.
+           Stop early when printed reaches (tm - 1) as specified. */
+        for (int p = 0; p <= MAX_PAGE; p++) {
+            if (idx[i].pgnum[p] == 1) {
+                printf("%d ", p);
+                printed++;
+            }
+            if (printed == (idx[i].tm - 1)) {
+                break;
+            }
+        }
+        printf("\n");
+    }
+
+    return 0;
+}

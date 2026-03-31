@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, the program constructs a target string by concatenating `m` input fragments (after a small normalization step on each fragment). It then performs a reachability search over positions in the target and subsets of patterns already used, where each step chooses one currently-unused pattern that exactly matches the target at the current position and advances by that pattern’s full length. The program outputs how many target indices are reachable in a state where **all patterns have been used (each at most once)**.
+
+2. Inputs  
+- Multiple datasets. Each dataset begins with two integers `n` and `m`.  
+  - `n`: number of pattern strings.  
+  - `m`: number of string fragments used to build the target string.  
+- Then `n` pattern strings, each read as a single whitespace-delimited token.  
+- Then `m` fragment strings, each read as a single whitespace-delimited token, processed as described below, and concatenated in the given order to form the target string.  
+- Input terminates when `n == 0` and `m == 0`.
+
+3. Fragment normalization (as performed by the program)  
+After reading each fragment token into a buffer, the program checks its last character; if that last character has ASCII code strictly less than the space character (`' '`), it is removed (replaced by the string terminator) before concatenation. No other trimming or normalization is performed.
+
+4. Outputs  
+- For each dataset, output one integer: the number of indices `p` (with `0 ≤ p ≤ |target|`) such that the state “at position `p` having used all patterns” is reachable under the transition rules below.  
+- Each index `p` is counted at most once, regardless of how many different pattern orders reach it.
+
+5. Preconditions / Constraints (implied by fixed storage)  
+- `n ≤ 12` (so that `2^n ≤ 4096`).  
+- Each pattern length ≤ 20 characters.  
+- The total length of the concatenated target string ≤ 5000 characters.  
+- Patterns and fragments are read as single tokens (no internal whitespace).  
+- If these bounds are violated, behavior is undefined.
+
+6. Semantics / Reachability Definition  
+- Let `target` be the concatenation of the normalized `m` fragments in order. Let `L = |target|`.  
+- Define a reachability table over states `(i, S)` where:  
+  - `i` is an index into the target string (`0 ≤ i ≤ L`), representing the current position.  
+  - `S` is a subset of patterns already used (patterns are distinguished by input position; each can be used at most once).  
+- Initial state: `(0, ∅)` is reachable.  
+- Transition rule: from any reachable `(i, S)`, for any pattern `k ∉ S` such that the entire pattern `k` matches `target` starting at index `i` for `len(k)` characters (exact character-by-character match), the state `(i + len(k), S ∪ {k})` becomes reachable.  
+  - Transitions are only considered for positions `i` within the target; matching uses the pattern’s full length.
+
+7. Counting / Output Meaning  
+- Let `AllPatterns` be the subset containing every pattern.  
+- The output is the number of indices `p` in `[0, L]` such that `(p, AllPatterns)` is reachable.  
+- Reaching `(p, AllPatterns)` does not require `p == L`; it may occur before the end of the target string.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. Malformed input or premature EOF results in unspecified behavior.
+
+```

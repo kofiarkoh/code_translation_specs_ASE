@@ -19,6 +19,8 @@ Output must use exactly these sections and headings:
 9. Non-functional Constraints (if inferable)
 
 Content requirements:
+- Preserve any implicit resource bounds if they affect observable behavior or correctness.
+- Do not invent unbounded or arbitrarily large capacities; assume implementations should respect reasonable fixed limits implied by the program.
 - Be concise and contract-focused; omit incidental or low-level details.
 - Do not reference language/library APIs, format strings, or identifiers.
 - Describe I/O abstractly; never cite exact parsing patterns or format specifiers.

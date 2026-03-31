@@ -1,0 +1,22 @@
+A. Likely mismatch category  
+Wrong transition/ordering rule for the charging queue (and thus wrong counting rule timing).
+
+B. What the current specification may be missing or misstating  
+- It implies (and the generated code implements) that a battery can be **re-enqueued every time unit while still charging** (i.e., round-robin service among charging batteries).  
+- It also implies counting “missed charging opportunities” for **all charging batteries except the selected one**, regardless of whether they are actually *waiting in the queue* or are the currently-served head element.
+
+In the source program, a battery that starts charging is enqueued **once**, and then only the **front** of the queue can receive charging progress; batteries behind the front do not get re-queued or rotated.
+
+C. What general behavior should be clarified in the specification  
+- Whether the charging-selection structure is a true FIFO **waiting queue** where only the head can be charged until completion (non-preemptive service), versus a scheme where partially charged batteries rejoin the queue (time-sliced/round-robin).  
+- Precisely **when** the “missed opportunity” counter increments: which charging batteries are considered “not selected” in a time unit (e.g., all charging batteries except the head, and excluding those that just transitioned this same time unit), and whether the head-of-queue is treated specially.
+
+D. Why this clarification is supported by the source program  
+- The source enqueues a battery only at the moment it finishes a use segment:  
+  `que[end] = i; ...` occurs only inside `if (--tp->r == 0) { tp->use = 0; ... }` (Using→Charging). There is **no code path** that re-enqueues a battery after partial charging.  
+- Charging progress is applied only to the single battery at `que[top]`, and it stays there until its charge time reaches zero; only then is `top` advanced (dequeued):  
+  `if (i == que[top]) tp->r--;` and later `if (tp->r == 0) { tp->use = 1; ... if (++top == QMAX) top = 0; }`  
+  This is non-preemptive FIFO service, not round-robin.  
+- The missed-count increment happens for charging batteries that are **not the head-of-queue** (and also not updated in the current time step), matching the loop:  
+  `if (tp->t != t && tp->use == 0) { if (i == que[top]) tp->r--; else ans++; }`  
+  This differs from the spec’s “all charging but not selected” abstraction because “selected” is implicitly “the queue head,” not “whoever was popped this tick and possibly requeued.”

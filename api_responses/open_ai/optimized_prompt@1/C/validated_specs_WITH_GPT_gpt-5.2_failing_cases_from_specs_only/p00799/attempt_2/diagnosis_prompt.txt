@@ -1,0 +1,319 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1219: Pump up Batteries
+// 2017.10.23 bal4u@uu
+
+#include <stdio.h>
+#include <string.h>
+
+#define QMAX 102
+int que[104], top, end;
+
+typedef struct { char use; int t, r, i, n, u[51], c[51]; } T; // r:remain time
+T tbl[102], *tp, *tend;
+
+int main() 
+{
+	int n, lim, i, u, c, t, ans;
+
+	while (scanf("%d%d", &n, &lim) && n > 0) {
+		for (tp = tbl, tend = tp + n; tp < tend; tp++) {
+			tp->use = 1, tp->i = 0;
+			for (i = 0; scanf("%d", &u) && u > 0; i++)
+				scanf("%d", &c), tp->u[i] = u, tp->c[i] = c;
+			tp->n = i, tp->r = tp->u[0];
+		}
+
+		ans = 0, top = end = 0;
+		for (t = 1; t <= lim; t++) {
+			for (tp = tbl, i = 0; i < n; i++, tp++) {
+				if (tp->use) {
+					tp->t = t;
+					if (--tp->r == 0) {
+						tp->use = 0, tp->r = tp->c[tp->i];
+						que[end] = i; if (++end == QMAX) end = 0;
+					}
+				}
+			}
+			if (end == top) continue;
+			for (tp = tbl, i = 0; i < n; i++, tp++) {
+				if (tp->t != t && tp->use == 0) {
+					if (i == que[top]) tp->r--;
+					else ans++;
+				}
+			}
+			if (top != end) {
+				tp = tbl + que[top];
+				if (tp->r == 0) {
+					tp->use = 1;
+					if (++tp->i == tp->n) tp->i = 0;
+					tp->r = tp->u[tp->i];
+					if (++top == QMAX) top = 0;
+				}
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0; 
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of up to 102 repeating battery usage/charge cycles. At each time unit, batteries that are in “use” may transition to “charging” when their current use segment completes; at most one charging battery receives charging progress per time unit (selected in first-in-first-out order among those that just began charging). The program outputs the total count of “missed charging opportunities”: for each time unit, for each battery that is charging but not selected to receive charging progress that time unit, the count is incremented by 1.
+
+2. Inputs  
+For each test case:  
+- An integer count of batteries `n`.  
+- An integer simulation duration `lim` (number of time units to simulate).  
+- For each battery, a sequence of one or more positive integer pairs `(use_duration, charge_duration)`, terminated by a non-positive `use_duration`.  
+Input consists of multiple test cases and ends when a test case has `n <= 0`.
+
+3. Outputs  
+For each test case, outputs a single integer: the total number of missed charging opportunities accumulated over the `lim` simulated time units.
+
+4. Preconditions  
+- `1 <= n <= 102`.  
+- `lim >= 0`.  
+- For each battery, at least one `(use_duration, charge_duration)` pair is provided before termination.  
+- Each battery provides at most 51 `(use_duration, charge_duration)` pairs.  
+- All provided `use_duration` and `charge_duration` values are non-negative integers, and the intended meaningful operation assumes they are positive.  
+- The number of batteries that can be simultaneously queued as “waiting to be charged” never exceeds 102 (fixed queue capacity); otherwise behavior is not guaranteed.
+
+5. Postconditions  
+After processing a test case:  
+- The printed value equals the sum, over all time units from 1 to `lim`, of the number of batteries that are in charging state during that time unit but are not the single battery selected (if any) to receive one unit of charging progress in that time unit.  
+- Each battery’s use/charge pattern repeats cyclically through its provided pairs for the duration of the simulation.
+
+6. Invariants  
+During simulation for a test case:  
+- Each battery is always in exactly one of two states: using or charging.  
+- Each battery has a remaining-time counter for its current state segment that is decremented only when that battery is progressed in that state (use always progresses every time unit; charging progresses only when selected).  
+- Batteries enter the charging-selection queue in the same order as they complete a use segment (FIFO discipline).  
+- At most one queued battery receives charging progress in any single time unit.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If input is malformed, missing, or violates the stated bounds (e.g., too many batteries, too many pairs per battery, queue overflow, or zero/negative durations where positive are required for meaningful progress), the behavior is unspecified (may produce incorrect output or fail to terminate).
+
+8. State Transitions (if applicable)  
+For each battery, repeatedly over time:  
+- **Using → Charging**: occurs when the remaining use time reaches zero at the end of a time unit; the battery is enqueued for charging and its remaining charging time is set to the corresponding charge duration for that cycle element.  
+- **Charging (selected) → Charging (still charging)**: if selected for charging in a time unit and remaining charging time remains positive after decrement.  
+- **Charging (selected) → Using**: if selected for charging in a time unit and remaining charging time reaches zero; the battery advances to the next cycle element (wrapping to the first after the last) and its remaining use time is set to that element’s use duration.  
+- **Charging (not selected)**: no progress is made; this contributes +1 to the output count for that battery for that time unit.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum sizes are implied: up to 102 batteries, up to 51 cycle elements per battery, and a charging queue capacity of 102.  
+- Time complexity is proportional to `n * lim` per test case.  
+- Memory usage is bounded by the fixed limits above.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+
+#define MAXN 102
+#define MAXPAIRS 51
+#define QCAP 102
+
+typedef struct {
+    int use[MAXPAIRS];
+    int chg[MAXPAIRS];
+    int m;              /* number of pairs */
+    int idx;            /* current pair index */
+    int state;          /* 0 = using, 1 = charging */
+    int rem;            /* remaining time in current state segment */
+    int queued;         /* 1 if currently in charging queue, else 0 */
+} Battery;
+
+typedef struct {
+    int a[QCAP];
+    int head, tail, size;
+} Queue;
+
+static void q_init(Queue *q) {
+    q->head = q->tail = q->size = 0;
+}
+
+static void q_push(Queue *q, int v) {
+    /* Behavior is unspecified on overflow per spec; we do not guard. */
+    q->a[q->tail] = v;
+    q->tail = (q->tail + 1) % QCAP;
+    q->size++;
+}
+
+static int q_pop(Queue *q) {
+    int v = q->a[q->head];
+    q->head = (q->head + 1) % QCAP;
+    q->size--;
+    return v;
+}
+
+int main(void) {
+    int n;
+    while (scanf("%d", &n) == 1) {
+        if (n <= 0) break;
+
+        int lim;
+        if (scanf("%d", &lim) != 1) break;
+
+        Battery b[MAXN];
+        for (int i = 0; i < n; i++) {
+            b[i].m = 0;
+            b[i].idx = 0;
+            b[i].state = 0; /* using */
+            b[i].queued = 0;
+
+            for (;;) {
+                int u;
+                if (scanf("%d", &u) != 1) return 0;
+                if (u <= 0) break;
+                int c;
+                if (scanf("%d", &c) != 1) return 0;
+
+                if (b[i].m < MAXPAIRS) {
+                    b[i].use[b[i].m] = u;
+                    b[i].chg[b[i].m] = c;
+                    b[i].m++;
+                } else {
+                    /* Unspecified if too many pairs; still consume input and ignore extras. */
+                }
+            }
+
+            /* Preconditions say at least one pair exists; otherwise unspecified. */
+            b[i].rem = (b[i].m > 0) ? b[i].use[0] : 0;
+        }
+
+        Queue q;
+        q_init(&q);
+
+        long long missed = 0;
+
+        for (int t = 0; t < lim; t++) {
+            /* 1) Using progresses for all using batteries; those that finish enter charging and queue. */
+            for (int i = 0; i < n; i++) {
+                if (b[i].state == 0) {
+                    b[i].rem -= 1;
+                    if (b[i].rem == 0) {
+                        b[i].state = 1; /* charging */
+                        b[i].rem = b[i].chg[b[i].idx];
+                        if (!b[i].queued) {
+                            q_push(&q, i);
+                            b[i].queued = 1;
+                        }
+                    }
+                }
+            }
+
+            /* 2) Select at most one queued battery to receive one unit of charging progress. */
+            int selected = -1;
+            if (q.size > 0) {
+                selected = q_pop(&q);
+                b[selected].queued = 0;
+            }
+
+            /* 3) Count missed opportunities: charging but not selected. */
+            for (int i = 0; i < n; i++) {
+                if (b[i].state == 1 && i != selected) {
+                    missed += 1;
+                }
+            }
+
+            /* 4) Apply charging progress to selected battery (if any). */
+            if (selected != -1) {
+                b[selected].rem -= 1;
+                if (b[selected].rem == 0) {
+                    /* Charging complete: advance cycle element and start using next use duration. */
+                    if (b[selected].m > 0) {
+                        b[selected].idx = (b[selected].idx + 1) % b[selected].m;
+                        b[selected].state = 0; /* using */
+                        b[selected].rem = b[selected].use[b[selected].idx];
+                    } else {
+                        /* Unspecified if no pairs; keep in using with rem=0. */
+                        b[selected].state = 0;
+                        b[selected].rem = 0;
+                    }
+                } else {
+                    /* Still charging: re-enqueue to preserve FIFO among those waiting. */
+                    if (!b[selected].queued) {
+                        q_push(&q, selected);
+                        b[selected].queued = 1;
+                    }
+                }
+            }
+        }
+
+        printf("%lld\n", missed);
+    }
+
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00799/p00799_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00799/p00799_sample1_output.txt
+Input:
+2 10
+3 5 0
+2 3 0
+3 15
+4 2 0
+2 3 0
+1 2 0
+0 0
+Expected:
+5
+14
+Actual:
+7
+22
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

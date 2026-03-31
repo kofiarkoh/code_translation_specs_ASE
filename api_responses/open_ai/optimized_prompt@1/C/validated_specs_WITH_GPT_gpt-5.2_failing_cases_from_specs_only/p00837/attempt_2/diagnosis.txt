@@ -1,0 +1,35 @@
+A. Likely mismatch category  
+Wrong transition rule / wrong abstraction of the relocation procedure (and associated cost accounting), plus a missing initial-state rule for first-seen books.
+
+B. What the current specification may be missing or misstating  
+- **Initial placement of distinct books**: The source program pre-populates desks with each *distinct* book the first time it appears in the input, placing it on a specific auxiliary desk (index `m+1`) before any servicing occurs. The current spec does not describe any such preloading and the generated code instead “materializes” unknown books on the primary desk at service time.  
+- **Relocation when primary is full**: The source uses a **multi-step swap-like sequence** when desk 1 is full, involving:
+  - temporarily placing the requested book onto a chosen auxiliary desk,
+  - removing the *front* book from desk 1,
+  - inserting that removed book into (possibly another) auxiliary desk at a specific position,
+  - and adjusting multiple desk occupancies (including decrementing the temporary desk).
+  The current spec describes relocation only vaguely (“moves one book out… may temporarily place…”) and the generated code implements a much simpler “move one book from primary to first auxiliary with space” rule.  
+- **Which book is relocated from primary**: The source always relocates `desk[1][0]` (the oldest/front book), not an arbitrary book. The spec doesn’t pin down this selection rule.  
+- **Which auxiliary desk(s) are chosen**: The source chooses two desks via “first desk from 2..m with available space” scans, with subtle interaction when the same desk is selected twice (position adjustment). The spec does not define this deterministic choice.  
+- **Cost counting details**: The source adds several desk indices during the full-primary relocation (including extra additions like `ans += j + tmp` and decrementing `hi[tmp]`), which is more than “remove-from + place-to + move-one-out”. The spec’s cost description is too high-level to force these exact additions.
+
+C. What general behavior should be clarified in the specification  
+- Define the **initial configuration** of books before servicing begins (especially how first-seen distinct book IDs are placed onto desks, and whether this depends on `m`).  
+- Precisely specify the **full-primary handling algorithm**:
+  - whether the requested book is temporarily placed elsewhere before reaching primary,
+  - exactly **which book** is evicted from primary (e.g., front/oldest),
+  - exactly **which auxiliary desk(s)** are selected and in what order,
+  - how insertion position is determined when moving a book into an auxiliary desk,
+  - and the exact **sequence of state updates** (including any temporary placements that are later undone).  
+- Specify the **exact cost contributions** for each sub-step in that relocation sequence, not just “additional relocations”.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly preloads each new `id` encountered into desk `tmp = m+1` (`book[id][0]=tmp; desk[tmp][...] = id;`), proving an initial-state rule exists and is not “unknown until requested”.  
+- When `hi[1] == c`, the source performs a fixed, deterministic multi-operation block that:
+  - selects `tmp` as the first non-full desk in `2..m`,
+  - places the requested `id` into `desk[tmp]` and adds `tmp` to cost,
+  - removes `id2 = desk[1][0]` (front of primary), shifts the rest, adds `1` to cost,
+  - selects `j` as the first non-full desk in `2..m`, inserts `id2` with a position adjustment if `j==tmp`,
+  - updates `book[id2]` location,
+  - adds `j + tmp` to cost and decrements `hi[tmp]`.
+  This is far more specific than the current spec’s relocation description and cannot be reproduced by the simpler “evict one book to first auxiliary with space” abstraction.

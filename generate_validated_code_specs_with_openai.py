@@ -40,11 +40,11 @@ from validated_spec_prompts import (
 # =========================
 # Configure these values
 # =========================
-PROBLEMS_ROOT = Path("./collected_dataset/C/final_problems")
+PROBLEMS_ROOT = Path("./collected_dataset/C/non_passing_specs_only_batch")
 SAMPLE_IO_ROOT = Path("./collected_dataset/problem_test_inputs_and_outputs")
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-5.2"
 DATASET_NAME = "optimized_prompt@1"
-OUTPUT_ROOT = Path(f"./api_responses/open_ai/{DATASET_NAME}/C/validated_specs_WITH_GPT_{MODEL}")
+OUTPUT_ROOT = Path(f"./api_responses/open_ai/{DATASET_NAME}/C/validated_specs_WITH_GPT_{MODEL}_failing_cases_from_specs_only")
 
 FILE_GLOB = "*.c"
 MAX_PROBLEMS_TO_PROCESS = 300

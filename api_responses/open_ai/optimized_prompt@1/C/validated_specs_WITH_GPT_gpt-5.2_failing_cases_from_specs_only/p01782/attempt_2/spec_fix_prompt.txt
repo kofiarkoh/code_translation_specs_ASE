@@ -1,0 +1,230 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 2679 Decoding Ancient Messages
+// 2018.3.15 bal4u
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { signed char a[52]; } T;
+T mx[10000]; int sz;
+#define mx_zero   0
+#define mx_inf    1
+
+int  mx_new() { return sz++; }
+void mx_clear(int a) { memset(mx+a, 0, sizeof(T)); }
+void mx_add1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] += mx[b].a[i]; }
+void mx_add2(int s, int a, int b) { int i; for (i = 0; i < 52; i++) mx[s].a[i] = mx[a].a[i]+mx[b].a[i]; }
+void mx_sub1(int a, int b) { int i; for (i = 0; i < 52; i++) mx[a].a[i] -= mx[b].a[i]; }
+void mx_sub2(int d, int a, int b) { int i; for (i = 0; i < 52; i++) mx[d].a[i] = mx[a].a[i]-mx[b].a[i]; }
+void mx_mul2(int m, int a, int k) { int i; for (i = 0; i < 52; i++) mx[m].a[i] = mx[a].a[i] * k; }
+void mx_cpy(int a, int b) { memcpy(mx+a, mx+b, sizeof(T)); }
+int  mx_cmp(int a, int b) {
+	int k, i; for (i = 0; i < 52; i++) if (k = mx[a].a[i] - mx[b].a[i]) return k; return 0; }
+
+#define MAX 105
+typedef struct { int to, rev; int cap; int cost; } EDGE;
+EDGE edge[MAX][MAX]; int hi[MAX];
+int  V;				// 頂点数
+int  dist[MAX], prevv[MAX], preve[MAX];
+
+void add_edge(int from, int to, int cap, int cost, int rcost)
+{
+	int f, t;
+	EDGE *e;
+
+	f = hi[from]++, t = hi[to]++;
+	e = &edge[from][f], e->to = to, e->cap = cap, e->cost = cost, e->rev = t;
+	e = &edge[to][t], e->to = from, e->cap = 0, e->cost = rcost, e->rev = f;
+}
+
+int minCostFlow(int S, int T, int F)
+{
+	int i, v, nv, d, update;
+	int t = mx_new(), ret;
+	EDGE *e;
+
+	for (i = 0; i < V; i++) dist[i] = mx_new(); 
+	ret = mx_new();
+	while (F > 0) {
+		for (v = 0; v < V; v++) mx_cpy(dist[v], mx_inf);
+		mx_clear(dist[S]);
+		do {
+			update = 0;
+			for (v = 0; v < V; v++) {
+				if (mx_cmp(dist[v], mx_inf) == 0) continue;
+				for (i = 0; i < hi[v]; i++) {
+					e = &edge[v][i];
+					if (e->cap <= 0) continue;
+					nv = e->to;
+					mx_add2(t, dist[v], e->cost);
+					if (mx_cmp(dist[nv], t) > 0) {
+						mx_cpy(dist[nv], t), prevv[nv] = v, preve[e->to] = i;
+						update = 1;
+					}
+				}
+			}
+		} while (update);
+
+		d = F;
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			if (d > e->cap) d = e->cap;
+		}
+		F -= d;
+
+		mx_mul2(t, dist[T], d);
+		mx_add1(ret, t);
+		for (v = T; v != S; v = prevv[v]) {
+			e = &edge[prevv[v]][preve[v]];
+			e->cap -= d;
+			edge[v][e->rev].cap += d;
+		}
+	}
+	return ret;
+}
+
+char map[53][53];
+
+int main()
+{
+	int N, i, j, a, b;
+	int source, sink;
+	char buf[10], c;
+
+	fgets(buf, 10, stdin), N = atoi(buf);
+	for (i = 0; i < N; i++) fgets(map[i], 53, stdin);
+
+	for (i = 0; i < 52; i++) mx[mx_inf].a[i] = 60;
+	sz = 2,	source = N << 1, sink = source + 1, V = sink + 1;
+
+	for (i = 0; i < N; i++) {
+		add_edge(source, i, 1, mx_new(), mx_new());
+		for (j = 0; j < N; j++) {
+			c = map[i][j], a = mx_new(), b = mx_new();
+			if (c < 'a') mx[a].a[   c-'A'] = -1, mx[b].a[   c-'A'] = 1;
+			else         mx[a].a[26+c-'a'] = -1, mx[b].a[26+c-'a'] = 1;
+			add_edge(i, N+j, 1, a, b);
+		}
+		add_edge(N+i, sink, 1, mx_new(), mx_new());
+	}
+
+	a = minCostFlow(source, sink, N);
+
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i];
+		while (b) putchar('A'+i), b--;
+	}
+	for (i = 0; i < 26; i++) {
+		b = -mx[a].a[i+26];
+		while (b) putchar('a'+i), b--;
+	}
+	putchar('\n');
+	return 0;
+}
+
+```
+
+Current specification:
+```text
+1. Functional Description  
+Computes an assignment between the N input rows and N input columns (a perfect matching) that minimizes a lexicographic cost vector over the 52 alphabetic characters (A–Z, a–z), where selecting a cell labeled with a character decreases the corresponding component of the cost vector by 1. After finding the minimum-cost perfect matching, outputs the multiset of characters chosen by that matching, sorted in the fixed order A–Z then a–z, with each character repeated as many times as it appears in the chosen N cells.
+
+2. Inputs  
+- An integer N.  
+- An N×N grid of characters, where each grid entry is intended to be an alphabetic letter in {A–Z, a–z}.  
+- Only the first N characters of each of the N grid lines are semantically used as the grid.
+
+3. Outputs  
+- A single line consisting of zero or more alphabetic characters followed by a newline.  
+- The characters printed are exactly those selected from the grid by the computed minimum-cost perfect matching, emitted in nondecreasing order with all uppercase letters before lowercase letters (A…Z then a…z), with multiplicity equal to the number of times each letter was selected.
+
+4. Preconditions  
+- N is such that the constructed graph fits within fixed internal limits: specifically N ≤ 51 (so that the number of vertices 2N+2 ≤ 104).  
+- Each of the N grid lines contains at least N characters representing the grid entries.  
+- Each grid entry used is an alphabetic character A–Z or a–z.  
+- A perfect matching exists in the complete bipartite structure implied by the N×N grid (always true given the construction), and the minimum-cost computation terminates under the program’s arithmetic bounds.
+
+5. Postconditions  
+- Exactly N grid positions are selected, with exactly one selected from each row and exactly one selected from each column.  
+- Among all such selections, the chosen selection minimizes the 52-dimensional cost vector in lexicographic order from ‘A’ through ‘Z’ then ‘a’ through ‘z’, where each selected character contributes −1 to its corresponding component and 0 to others. Equivalently, it maximizes the count of ‘A’; subject to that, maximizes the count of ‘B’; …; subject to all uppercase counts, maximizes the count of ‘a’; and so on through ‘z’.  
+- The output line contains exactly the N selected characters, sorted as specified.
+
+6. Invariants  
+- The selection always maintains the one-per-row and one-per-column constraint.  
+- The total number of selected characters is always N.  
+- The internal cost representation is a fixed-length vector of 52 signed components corresponding bijectively to A–Z and a–z, and comparisons between costs are performed lexicographically in that fixed order.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If preconditions are violated (e.g., N exceeds internal limits, non-alphabetic characters appear, insufficient input length, or internal arithmetic/storage bounds are exceeded), behavior is undefined: it may produce incorrect output, crash, or exhibit memory corruption.
+
+8. State Transitions (if applicable)  
+- Stateless from an external perspective: consumes one instance of input and produces one output line.  
+- Internally transitions from “unassigned” to “assigned” by constructing a bipartite assignment instance and then augmenting the matching until N assignments are made.
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum problem size implied by static storage: supports up to N=51.  
+- Uses fixed-size internal cost vectors of length 52 with signed-byte components; correctness requires that intermediate and final component magnitudes remain within that representable range.  
+- Output is deterministic for a given input.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+- **Missing non-functional/implementation constraints** (code-generation feasibility / C language constraints), leading to **invalid generated C** rather than a behavioral mismatch at runtime.
+
+B. What the current specification may be missing or misstating  
+- The spec describes the algorithm at a high level (min-cost perfect matching with lexicographic 52D costs) but does **not constrain how it must be implemented in C** in a way that guarantees:
+  - **Compilable C11 code** (e.g., no nested function definitions; no nonstandard keywords like `auto` used as in GNU C nested functions).
+  - **Feasible memory usage** consistent with the source program’s approach (the generated code attempted a `2^N` DP array, which is not viable for the stated `N ≤ 51` and even caused an invalid shift/array size at compile time).
+- The spec’s “supports up to N=51” is framed as a graph-size limit, but it does not also state that the intended solution must be **polynomial-space** (as the source is), which leaves room for exponential-space interpretations that contradict the source’s design constraints.
+
+C. What general behavior should be clarified in the specification  
+- Clarify that the intended computation must be realizable within the source program’s **fixed-size, polynomial memory model**, i.e.:
+  - The algorithm is implemented via **min-cost flow / successive shortest augmenting paths** on a graph of size `O(N)` vertices and `O(N^2)` edges (not subset DP).
+  - The implementation must remain within **C (C11) portability constraints**: no nested functions, no compiler extensions required, and no constructs that would fail to compile under standard C.
+- Clarify that internal storage is bounded similarly to the source: fixed arrays sized for `N ≤ 51` and a bounded number of cost-vectors, rather than any approach requiring `O(2^N)` states.
+
+D. Why this clarification is supported by the source program  
+- The source uses a **fixed-size adjacency matrix** `EDGE edge[MAX][MAX]` with `MAX=105` and constructs a flow network with `V = 2N+2 ≤ 104`, demonstrating an explicit **polynomial, fixed-bound memory strategy**.
+- The source’s cost handling uses a global pool `mx[10000]` of 52-byte vectors and runs a Bellman-Ford-like relaxation over `V` vertices—again **polynomial** and designed to fit static limits.
+- Nothing in the source resembles subset DP or any exponential structure; therefore, a spec that permits such implementations is underconstrained relative to the source and can lead to non-compiling or non-viable generated C even if the high-level math objective is correct.
+
+```

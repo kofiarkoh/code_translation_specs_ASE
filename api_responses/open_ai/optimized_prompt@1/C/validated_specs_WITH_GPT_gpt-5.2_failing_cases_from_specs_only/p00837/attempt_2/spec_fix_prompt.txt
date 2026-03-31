@@ -1,0 +1,206 @@
+Fix spec
+
+You are revising a natural-language specification for a program.
+
+You are given:
+1. The source program
+2. The current specification
+3. An analysis of likely mismatches between the source and the current specification
+
+Your task:
+Revise the specification so that it more faithfully captures the source program.
+
+Important rules:
+- The source program is the only ground truth.
+- Preserve correct parts of the current specification.
+- Revise only parts that are incomplete, ambiguous, over-abstracted, or incorrect.
+- Do NOT optimize for any specific failing test.
+- Do NOT mention specific test inputs, outputs, or examples in the revised specification.
+- Add only behavior justified by the source program.
+- Prefer general semantic clarification over ad hoc patching.
+- Do not be too specific about implementation details.
+
+Focus especially on clarifying:
+- input assumptions and constraints
+- edge cases
+- state transitions
+- counting logic
+- ordering/tie-breaking
+- termination behavior
+- output semantics
+
+Output format:
+Just provide the revised specification
+
+Source program:
+```c
+// AOJ 1258: Book Replacement
+// 2017.10.22 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct { int stu, seq, id; } T;
+T req[5002]; int len;
+int desk[12][5001]; int hi[12];
+int book[101][2];
+
+int cmp(T *a, T *b)
+{
+	if (a->seq - b->seq) return (a->seq - b->seq);
+	return a->stu - b->stu;
+}
+
+int main()
+{
+	int m, c, n, i, j, id, ans;
+	int from, pos, tmp, id2, t;
+
+	while (scanf("%d%d%d", &m, &c, &n) && m > 0) {
+		memset(hi, 0, sizeof(hi)), memset(book, 0, sizeof(book));
+		tmp = m + 1;
+		for (len = i = 0; i < n; i++) {
+			scanf("%d", &t); 
+			for (j = 0; j < t; j++) {
+				scanf("%d", &id);
+				req[len].stu = i, req[len].seq = j, req[len++].id = id;
+				if (book[id][0] == 0) {
+					book[id][0] = tmp, book[id][1] = hi[tmp], desk[tmp][hi[tmp]++] = id;
+				}
+			}
+		}
+		qsort(req, len, sizeof(T), cmp);
+
+		for (ans = 0, i = 0; i < len; i++) {
+			id = req[i].id;
+			from = book[id][0], pos = book[id][1];
+
+			for (j = pos+1; j < hi[from]; j++) {
+				t = desk[from][j], book[t][1]--;
+				desk[from][j-1] = desk[from][j];
+			}
+			hi[from]--, ans += from;
+
+			if (hi[1] == c) {
+				for (tmp = 2; tmp <= m && hi[tmp] == c; tmp++);
+				desk[tmp][hi[tmp]++] = id, ans += tmp;
+
+				id2 = desk[1][0];
+				for (j = 1; j < hi[1]; j++) {
+					t = desk[1][j], book[t][1]--;
+					desk[1][j-1] = desk[1][j];
+				}
+				hi[1]--, ans++;
+
+				for (j = 2; j <= m && hi[j] == c; j++);
+				pos = hi[j]; if (j == tmp) pos--;
+				desk[j][pos] = id2; hi[j]++;
+				book[id2][0] = j, book[id2][1] = pos;
+				ans += j + tmp; hi[tmp]--;
+			}
+			
+			book[id][0] = 1, book[id][1] = hi[1];
+			desk[1][hi[1]++] = id, ans++;
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Processes multiple scenarios of book requests by students and computes a total “movement cost” incurred by repeatedly retrieving the requested book from its current desk and then placing it onto the primary desk. Each request is handled in a deterministic global order: increasing request position within a student’s list, with ties broken by increasing student index. The computed total cost is the sum of desk indices involved in each removal and placement operation, including any additional relocations required to respect desk capacity constraints.
+
+2. Inputs  
+For each scenario:  
+- An integer number of auxiliary desks.  
+- An integer capacity per desk.  
+- An integer number of students.  
+- For each student: an integer count of requested books, followed by that many book identifiers.  
+Scenarios repeat until a scenario header indicates termination.
+
+3. Outputs  
+For each scenario, outputs a single integer: the total accumulated movement cost for servicing all requests in the scenario under the program’s desk/capacity rules.
+
+4. Preconditions  
+- The number of auxiliary desks is positive and does not exceed 10 (since desks are indexed from 1 through auxiliary+1, with fixed storage sized for up to 11 desks).  
+- The number of total requests across all students does not exceed 5002.  
+- Each student’s request count is non-negative and the sum across students matches the total requests.  
+- Book identifiers are positive and do not exceed 100.  
+- The desk capacity is non-negative and does not exceed 5000.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each scenario:  
+- All requests are considered serviced in the defined global order.  
+- The reported total cost equals the sum of:  
+  - The index of the desk from which each requested book is removed at the time of service, plus  
+  - The index of the primary desk for placing the requested book, plus  
+  - Any additional desk-index costs incurred by mandatory relocations triggered when the primary desk is at capacity at the moment of placement.  
+- After servicing a request, the requested book is located on the primary desk.
+
+6. Invariants  
+- Each tracked book is located on exactly one desk at any time, with a well-defined position within that desk’s sequence.  
+- For each desk, the number of books on that desk never exceeds the configured capacity, except that the scenario is undefined if no desk has available capacity when a relocation is required.  
+- The relative order of books on a desk is preserved except for removals of specific books and left-compaction of remaining books.  
+- The primary desk is the designated destination for every serviced request.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., identifiers out of range, too many requests, desk counts exceeding fixed limits, or a relocation is required but no desk has free capacity), behavior is undefined (may compute incorrect results or access invalid memory).  
+- Termination occurs when the scenario header indicates a non-positive auxiliary desk count.
+
+8. State Transitions (if applicable)  
+Within a scenario, the system state consists of: the assignment of each known book to a desk and position, and the current occupancy of each desk. For each serviced request:  
+- The requested book is removed from its current desk (that desk’s occupancy decreases by one).  
+- If the primary desk is at capacity before placing the requested book, a relocation sequence occurs that moves one book out of the primary desk to some other desk with available capacity, and may temporarily place the requested book on an auxiliary desk as part of that sequence; desk occupancies are updated accordingly.  
+- The requested book is placed onto the primary desk (primary desk occupancy increases by one).  
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum sizes are implied: up to 5002 total requests, up to 100 distinct book identifiers tracked, up to 11 desks (primary plus up to 10 auxiliary), and up to 5000 books per desk.  
+- The computed cost is accumulated in a signed integer; overflow is possible if inputs are large enough, and is not guarded against.
+
+```
+
+Mismatch analysis:
+```text
+A. Likely mismatch category  
+Wrong transition rule / wrong abstraction of the relocation procedure (and associated cost accounting), plus a missing initial-state rule for first-seen books.
+
+B. What the current specification may be missing or misstating  
+- **Initial placement of distinct books**: The source program pre-populates desks with each *distinct* book the first time it appears in the input, placing it on a specific auxiliary desk (index `m+1`) before any servicing occurs. The current spec does not describe any such preloading and the generated code instead “materializes” unknown books on the primary desk at service time.  
+- **Relocation when primary is full**: The source uses a **multi-step swap-like sequence** when desk 1 is full, involving:
+  - temporarily placing the requested book onto a chosen auxiliary desk,
+  - removing the *front* book from desk 1,
+  - inserting that removed book into (possibly another) auxiliary desk at a specific position,
+  - and adjusting multiple desk occupancies (including decrementing the temporary desk).
+  The current spec describes relocation only vaguely (“moves one book out… may temporarily place…”) and the generated code implements a much simpler “move one book from primary to first auxiliary with space” rule.  
+- **Which book is relocated from primary**: The source always relocates `desk[1][0]` (the oldest/front book), not an arbitrary book. The spec doesn’t pin down this selection rule.  
+- **Which auxiliary desk(s) are chosen**: The source chooses two desks via “first desk from 2..m with available space” scans, with subtle interaction when the same desk is selected twice (position adjustment). The spec does not define this deterministic choice.  
+- **Cost counting details**: The source adds several desk indices during the full-primary relocation (including extra additions like `ans += j + tmp` and decrementing `hi[tmp]`), which is more than “remove-from + place-to + move-one-out”. The spec’s cost description is too high-level to force these exact additions.
+
+C. What general behavior should be clarified in the specification  
+- Define the **initial configuration** of books before servicing begins (especially how first-seen distinct book IDs are placed onto desks, and whether this depends on `m`).  
+- Precisely specify the **full-primary handling algorithm**:
+  - whether the requested book is temporarily placed elsewhere before reaching primary,
+  - exactly **which book** is evicted from primary (e.g., front/oldest),
+  - exactly **which auxiliary desk(s)** are selected and in what order,
+  - how insertion position is determined when moving a book into an auxiliary desk,
+  - and the exact **sequence of state updates** (including any temporary placements that are later undone).  
+- Specify the **exact cost contributions** for each sub-step in that relocation sequence, not just “additional relocations”.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly preloads each new `id` encountered into desk `tmp = m+1` (`book[id][0]=tmp; desk[tmp][...] = id;`), proving an initial-state rule exists and is not “unknown until requested”.  
+- When `hi[1] == c`, the source performs a fixed, deterministic multi-operation block that:
+  - selects `tmp` as the first non-full desk in `2..m`,
+  - places the requested `id` into `desk[tmp]` and adds `tmp` to cost,
+  - removes `id2 = desk[1][0]` (front of primary), shifts the rest, adds `1` to cost,
+  - selects `j` as the first non-full desk in `2..m`, inserts `id2` with a position adjustment if `j==tmp`,
+  - updates `book[id2]` location,
+  - adds `j + tmp` to cost and decrements `hi[tmp]`.
+  This is far more specific than the current spec’s relocation description and cannot be reproduced by the simpler “evict one book to first auxiliary with space” abstraction.
+
+```

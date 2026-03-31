@@ -1,0 +1,79 @@
+1. Functional Description  
+The program maintains a dynamic **sequence** of integers. At all times the sequence is represented as two **contiguous positional halves**:
+
+- **First half (FH)**: the prefix of the sequence  
+- **Second half (SH)**: the suffix of the sequence  
+
+The halves are kept balanced by size so that:
+
+- `|FH| >= |SH|`, and  
+- `|FH| - |SH| <= 1`
+
+The program supports appending a value to the end of the sequence, deleting a specific “middle” element determined by the balancing rule, and querying certain minimum/maximum values derived from each half’s maintained auxiliary structures (as defined below). The program processes one or more independent batches of operations; after each batch it prints a terminator line.
+
+2. Inputs  
+- Input is a stream of **non-negative integers**. Parsing skips any non-digit characters until a digit is found, then reads a maximal run of digits as one integer.  
+- The input consists of multiple batches. Each batch begins with an integer `q` (number of operations in the batch).  
+- If `q = 0`, the program terminates immediately (no further output).  
+- Each batch contains exactly `q` operations. Each operation begins with an operation code `op` and may be followed by one additional integer parameter depending on `op`:
+
+Operation codes:
+- `0 x`: append value `x` to the sequence (no output)
+- `1`: delete and output one element (defined in §5)
+- `2`: output `min1(FH)` (defined in §5)
+- `3`: output `min1(SH)`
+- `4 k`: output `mink(FH, k)`
+- `5 k`: output `mink(SH, k)`
+- `6`: output `max1(FH)`
+- `7`: output `max1(SH)`
+- `8 k`: output `maxk(FH, k)`
+- `9 k`: output `maxk(SH, k)`
+
+3. Outputs  
+- For every operation except insertion (`op = 0`), the program prints one integer on its own line.  
+- After completing each batch of `q` operations, the program prints a line containing exactly `end`.
+
+4. Preconditions / Assumptions  
+- For `op = 1`, the overall sequence must be non-empty.  
+- For queries on FH (ops 2,4,6,8), FH must contain enough elements for the requested rank.  
+- For queries on SH (ops 3,5,7,9), SH must contain enough elements for the requested rank.  
+- Rank parameters `k` are **1-based** and must satisfy `1 <= k <= |half|` for the referenced half.  
+- All values fit in the C `int` type.  
+- **Fixed-capacity constraint (required for defined behavior):** the implementation uses fixed-size arrays of length `MAX = 200005` for each half’s main storage and for each half’s auxiliary min/max structures, with indices that only grow within a batch (no wraparound and no bounds checks). Therefore, within a batch, the number of elements ever stored in either half, and the number of auxiliary entries accumulated for that half, must never exceed `MAX`. In particular, the total number of successful insertions in a batch must be small enough that no internal index into any of these arrays reaches `MAX` or beyond; otherwise behavior is undefined.
+
+5. Semantics of Operations  
+
+5.1 Sequence and balancing behavior (positional, not value-based)  
+- The halves represent a split of the sequence by position: `sequence = FH followed by SH`.  
+- **Insertion (`op = 0`)**: the value is appended to the **end of the overall sequence**, i.e., it is first placed at the end of SH. Then, if balancing is violated (i.e., `|FH| < |SH|`), one element is moved from the **front of SH** to the **back of FH** to restore the size constraints.  
+- **Deletion (`op = 1`)**: removes and outputs the element at the **back of FH** (the last element of the first half). After removal, if `|FH| < |SH|`, one element is moved from the **front of SH** to the **back of FH** to restore the size constraints.  
+  - Under the maintained size rule, the deleted element corresponds to the “middle” element of the sequence (the last element of the larger/left half).
+
+5.2 Query values (as maintained by the program)  
+The program does **not** compute general order statistics by sorting a half. Instead, each half maintains auxiliary monotone structures derived from the half’s **current sequence order**, and queries return elements from those structures:
+
+- For FH, the program maintains two sequences of “record” values when scanning FH from left to right:
+  - a decreasing sequence of prefix minima (values that set a new minimum),
+  - an increasing sequence of prefix maxima (values that set a new maximum).
+  Queries on FH return the `k`-th element counted from the **end** of these record sequences (i.e., the most recently established records first).
+
+- For SH, the program maintains two monotone deques corresponding to SH in its current order:
+  - a nondecreasing deque for minima,
+  - a nonincreasing deque for maxima,
+  maintained by discarding dominated elements at the back on insertion and discarding from the front when elements leave the front of SH.
+  Queries on SH return the `k`-th element counted from the **front** of these deques.
+
+Using this maintained meaning:
+- `min1(half)` is the `k = 1` case of `mink(half, k)`  
+- `max1(half)` is the `k = 1` case of `maxk(half, k)`  
+- `mink(FH, k)` / `maxk(FH, k)` select the `k`-th element from the end of FH’s recorded-min / recorded-max sequences.  
+- `mink(SH, k)` / `maxk(SH, k)` select the `k`-th element from the front of SH’s monotone min / max deque.
+
+Queries do not modify the sequence or the halves.
+
+6. Batch Behavior and State Reset  
+- Each batch starts with an empty sequence (both halves empty).  
+- After processing `q` operations, the program prints `end` and then discards all state before reading the next batch.
+
+7. Error Handling / Undefined Behavior  
+- The program performs no explicit error checking. If any precondition is violated (empty deletion, rank out of range, exceeding the fixed internal limits described above, malformed/insufficient input), behavior is undefined (may print incorrect values, crash, or access invalid memory).

@@ -1,0 +1,19 @@
+A. Likely mismatch category  
+Missing constraint / wrong assumption about initialization and counting semantics (state initialization + transition rule).
+
+B. What the current specification may be missing or misstating  
+- It assumes clean “set semantics” for page numbers (and that duplicates don’t affect output), but the source program’s internal logic increments a per-word counter (`tm`) on *every* record, even if the same word-page pair repeats. That counter is then used to decide when to stop printing page numbers.  
+- The specification implicitly assumes the page-number set is correctly initialized to empty for each word. In the source, `idx` is an uninitialized local array; `pgnum[]` and `tm` are never zeroed before being incremented/checked. So the “set of recorded pages” and the “count” are not reliably derived solely from input unless you assume zero-initialized memory (which C does not guarantee for local variables).  
+- The spec states a precondition “total number of input records for that word does not exceed 1001,” but in the source `tm` is not “records for that word” in a safe sense; it’s incremented regardless of whether a new page was added, and it starts from an indeterminate value.
+
+C. What general behavior should be clarified in the specification  
+- Whether the program’s behavior relies on implicit/undefined initial state (i.e., local arrays not initialized) versus a well-defined empty index at start.  
+- Whether the “count” tracked per word is intended to be:
+  1) number of records seen for that word, or  
+  2) number of *distinct pages* for that word,  
+  and how that count interacts with output termination (the source uses it to decide when to print the “last” page).  
+- Whether duplicates of the same word-page pair are allowed and, if so, whether they affect output indirectly via the counter used to stop printing.
+
+D. Why this clarification is supported by the source program  
+- `index_t idx[MAX];` is a stack variable with no initialization; `idx[rgnum].pgnum[tmp_pgnum] = 1; idx[rgnum].tm++;` occurs without setting `tm` to 0 or clearing `pgnum[]`. Likewise, existing entries do `idx[i].pgnum[tmp_pgnum] = 1; idx[i].tm++;` without checking if that page was already present.  
+- Output prints pages by scanning `pgnum[]` for `== 1`, but stops when `k == idx[i].tm - 1`. This makes correct output depend on `tm` matching the number of `pgnum[j]==1` entries. With duplicates or uninitialized `tm/pgnum`, that relationship can break, so the “prints each page at most once” behavior is not fully justified by the source unless additional assumptions are stated.

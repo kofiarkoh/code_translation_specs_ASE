@@ -1,0 +1,53 @@
+1. Functional Description  
+The program reads a square 0/1-style character matrix and interprets it as a bipartite graph with two parts of equal size. It determines whether a perfect matching exists (a one-to-one pairing that matches every vertex on the left side to a distinct vertex on the right side using only allowed edges).  
+- If no perfect matching exists, it outputs `no` and terminates.  
+- If a perfect matching exists, it outputs `yes` and then prints `N` integers (one per left vertex in increasing order) produced by a specific sequential “unmatch and re-augment once” procedure based on the matching state.
+
+2. Inputs  
+- An integer `N_in` read as a non-negative decimal integer with no sign. The effective size used by the program is `N = N_in - 1`.  
+- Then a character grid of `N × N` entries is consumed at the character level. For each of the `N × N` positions, the program reads **two characters**:
+  - The first character is the cell value; it is treated as “edge present” iff its character code is odd (commonly `'1'` is present and `'0'` is absent).
+  - The second character is consumed and ignored (typically a separator such as a space or newline).
+- The program does **not** skip whitespace before reading each cell; it consumes exactly the characters as described above. Therefore the matrix must be laid out so that each cell’s value character is immediately available when read, followed by one extra character to discard.
+
+3. Graph Interpretation (important indexing detail)  
+Let the matrix positions be addressed by the loop indices `(i, j)` in the order `i = 0..N-1` outer, `j = 0..N-1` inner, where the program reads the cell character for each `(i, j)`.
+
+The bipartite graph is constructed as follows:  
+- Left-side vertices are indexed `0..N-1` and correspond to the **column index `j`**.  
+- Right-side vertices are indexed `0..N-1` and correspond to the **row index `i`**.  
+- If the cell at `(i, j)` is “present” (odd character code), an edge is added from left vertex `j` to right vertex `i`.
+
+Equivalently, the input matrix is interpreted as the transpose of the common “row = left, column = right” convention.
+
+4. Outputs  
+- If no perfect matching exists: one line containing exactly `no`.  
+- If a perfect matching exists:
+  - One line containing exactly `yes`.  
+  - Then exactly `N` additional lines. For each left vertex `i` from `0` to `N-1`, the program prints one integer in `1..N` equal to `(matched_right(i) + 1)` after performing the rematching procedure described below.
+
+5. Semantics of the Decision (`yes`/`no`)  
+- The program outputs `no` iff it cannot find a matching of size `N` in the constructed bipartite graph.  
+- The program outputs `yes` iff it finds a matching of size `N`.
+
+6. Semantics of the `N` Lines After `yes` (Sequential Rematching Procedure)  
+After finding an initial perfect matching using a DFS-based augmenting-path algorithm (Kuhn-style) that explores each left vertex’s adjacency list in the order edges were added during input scanning, the program processes left vertices `i = 0..N-1` sequentially. For each such `i`:
+
+- It removes the currently matched edge incident to `i` by marking both endpoints as unmatched.  
+- It then performs exactly one augmenting-path DFS starting from `i` to re-match `i`, possibly reassigning other matches along the found augmenting path, using the same fixed adjacency order.  
+- It prints the 1-based index of the right vertex that ends up matched to `i` after this single augmentation attempt.
+
+Important implications:  
+- The printed partner for each `i` is determined by the algorithm’s traversal order and the evolving matching state; it is not guaranteed to be a canonical choice (e.g., not necessarily the smallest possible partner).  
+- The matching state is updated as the program proceeds from `i = 0` to `N-1`; later outputs depend on earlier rematching steps.
+
+7. Preconditions / Constraints  
+- `N = N_in - 1` must satisfy `0 ≤ N ≤ 1004` to remain within fixed internal array bounds.  
+- The input must provide the matrix in the exact character layout the program consumes (two characters per cell, with no general whitespace skipping). Otherwise behavior is unspecified.
+
+8. Edge Cases / Termination  
+- If `N = 0`, the program outputs `yes` and prints no additional lines.  
+- The program terminates immediately after printing either `no` or `yes` followed by the `N` rematching outputs.
+
+9. Error Handling  
+No explicit error handling is performed; malformed input or out-of-range sizes may lead to incorrect results or memory errors.

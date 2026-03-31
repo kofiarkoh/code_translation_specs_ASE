@@ -1,0 +1,101 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description
+Maintains a dynamic sequence of integers that supports insertion, deletion of a specific “middle” element, and queries for order-statistics-based minima and maxima within each of two maintained halves of the sequence. The sequence is partitioned into a first half and a second half such that their sizes differ by at most one and the first half is never smaller than the second half. For each half, the program can report the k-th smallest or k-th largest element (for specified k), and can delete and return the current last element of the first half (which corresponds to the sequence’s middle element under the maintained balancing rule).
+
+The program processes one or more independent batches of operations; after each batch it outputs a terminator line.
+
+2. Inputs
+- A stream of non-negative integers forming multiple batches.
+- Each batch begins with an integer `q` (number of operations in the batch).
+- Then `q` operations follow, each starting with an operation code:
+  - Code 0: followed by one integer value to insert into the sequence.
+  - Codes 4, 5, 8, 9: followed by one integer parameter `k` (rank).
+  - All other codes have no additional parameters.
+
+A batch with `q = 0` ends all processing.
+
+3. Outputs
+- For each operation that is not an insertion (i.e., operation codes other than 0), outputs one integer result on its own line.
+- After completing each batch of `q` operations, outputs a single line containing the word `end`.
+
+4. Preconditions
+- For any operation that requests deletion or a query result, the sequence (and the relevant half) must contain enough elements to satisfy the request:
+  - Deletion requires the sequence to be non-empty.
+  - Queries on the first half require the first half to be non-empty (and for rank-based queries, rank `k` must be within the size of the first half).
+  - Queries on the second half require the second half to be non-empty (and for rank-based queries, rank `k` must be within the size of the second half).
+- Total number of inserted elements within a batch must not exceed a fixed capacity implied by the implementation (approximately 200,000 elements per half), otherwise behavior is not guaranteed.
+- All input integers are assumed to be within the range representable by the program’s integer type.
+
+5. Postconditions
+After each operation within a batch:
+- If the operation is insertion:
+  - The inserted value becomes part of the maintained sequence.
+  - The partition into halves is rebalanced so that:
+    - size(first half) ≥ size(second half)
+    - size(first half) − size(second half) ≤ 1
+- If the operation is deletion:
+  - One element is removed from the sequence and printed.
+  - The removed element is the current last element of the first half under the maintained partitioning.
+  - The partition is rebalanced to restore the size constraints above.
+- If the operation is a query:
+  - The sequence is not modified.
+  - The printed value equals the requested order statistic within the specified half:
+    - “k-th smallest in half” returns the element that would appear at position k (1-based) if that half’s elements were sorted ascending.
+    - “k-th largest in half” returns the element that would appear at position k (1-based) if that half’s elements were sorted descending.
+
+After each batch:
+- All internal state is reset before the next batch begins.
+
+6. Invariants
+Within a batch, after every operation:
+- The sequence is partitioned into two halves (first and second) satisfying:
+  - size(first half) ≥ size(second half)
+  - size(first half) − size(second half) ≤ 1
+- The multiset of elements in the two halves equals the multiset of all inserted elements minus those deleted so far.
+- For each half, order-statistics queries (k-th smallest / k-th largest) are consistent with the multiset of elements currently in that half.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting is performed.
+- If preconditions are violated (e.g., deletion from empty sequence, rank out of range, exceeding fixed capacity, malformed/insufficient input), the behavior is undefined: outputs may be incorrect and the program may crash or access invalid memory.
+
+8. State Transitions (if applicable)
+- Global state per batch consists of:
+  - The current multiset of elements in the sequence.
+  - A partition of that multiset into first and second halves satisfying the balancing invariant.
+- Operation effects:
+  - Insert: adds one element; may move one element from second half to first half to restore balance.
+  - Delete: removes one element from first half; may move one element from second half to first half to restore balance.
+  - Query: no state change.
+- Batch boundary: state is cleared to empty sequence and empty halves.
+
+9. Non-functional Constraints (if inferable)
+- Designed for high-throughput processing with fixed-size storage; per-batch capacity is bounded (on the order of 200,000 elements per half).
+- Intended to support efficient per-operation performance for insertion, deletion, and k-th min/max queries under the stated preconditions.
+
+```

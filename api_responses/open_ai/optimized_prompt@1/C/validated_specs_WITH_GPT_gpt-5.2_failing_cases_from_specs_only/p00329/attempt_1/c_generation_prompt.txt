@@ -1,0 +1,78 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description
+Determines whether a perfect one-to-one pairing exists between two equally sized sets of size `N` under a given binary feasibility relation, and:
+- If no perfect pairing exists, outputs a negative decision.
+- If a perfect pairing exists, outputs an affirmative decision and then outputs, for each left-side element in increasing order, one right-side element index that is guaranteed to be part of some perfect pairing.
+
+2. Inputs
+- An integer `N_in` representing the problem size parameter.
+- A square `N × N` binary matrix (where `N = N_in - 1`) describing allowed pairings between left elements `0..N-1` and right elements `0..N-1`.
+  - Each matrix entry indicates whether the corresponding left/right pair is allowed.
+
+3. Outputs
+- If no perfect pairing exists: a single line indicating rejection.
+- If a perfect pairing exists:
+  - A single line indicating acceptance.
+  - Then exactly `N` lines, where line `i` (1-based in the output ordering) contains an integer in `1..N` denoting the selected right-side partner for left element `i` (with left elements output in order from 1 to `N`).
+
+4. Preconditions
+- `N_in - 1` must be within the fixed supported bound: `0 ≤ N ≤ 1004`.
+- The input must provide exactly `N × N` binary feasibility entries in the expected textual form (any nonconforming input yields unspecified behavior).
+- The feasibility relation is interpreted as a bipartite graph between `N` left nodes and `N` right nodes.
+
+5. Postconditions
+- If the program outputs rejection, then no perfect pairing exists that matches every left element to a distinct right element using only allowed pairs.
+- If the program outputs acceptance, then:
+  - A perfect pairing exists.
+  - For each left element `i` (1..N), the printed right index `r_i` (1..N) satisfies:
+    - The pair `(i, r_i)` is allowed by the input relation.
+    - There exists at least one perfect pairing of all `N` left elements in which left element `i` is matched to right element `r_i`.
+  - The `N` printed right indices are not guaranteed to be all distinct across different `i` (they are per-left “certified possible” partners, not necessarily a single consistent perfect pairing).
+
+6. Invariants
+- The feasibility relation is treated as fixed throughout execution.
+- Any pairing considered valid always respects the feasibility relation and the one-to-one constraint within that pairing.
+- When acceptance is printed, each subsequent per-left output is derived under the invariant that a perfect pairing exists for the full instance.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error handling is performed.
+- If `N > 1004`, or if the input does not contain the required amount/format of data, behavior is undefined (may include incorrect output or memory corruption).
+- If `N = 0`, the program will output acceptance and no per-left lines.
+
+8. State Transitions (if applicable)
+- The program transitions from an initial “undecided” state to exactly one of:
+  - “rejected” state: outputs rejection and terminates.
+  - “accepted” state: outputs acceptance, then iterates through left elements producing `N` certified partner outputs, then terminates.
+- In the accepted state, each left element is processed independently to select a certified partner; this processing does not guarantee global consistency across different left elements’ selections.
+
+9. Non-functional Constraints (if inferable)
+- Uses fixed-size storage proportional to `N^2` with an explicit maximum `N ≤ 1004`; memory usage grows quadratically with `N` within that bound.
+- Execution time is polynomial in `N` and may be high near the maximum bound due to repeated matching computations.
+
+```

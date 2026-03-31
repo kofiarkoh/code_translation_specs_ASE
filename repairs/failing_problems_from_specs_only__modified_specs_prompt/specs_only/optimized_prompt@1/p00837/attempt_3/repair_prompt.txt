@@ -1,0 +1,193 @@
+The previous repair attempt was executed and did not fully pass.
+
+Attempt number: 3
+Observed status: FAIL
+
+Latest execution report:
+```text
+COMPILER: rustc
+COMPILER_FLAGS: --edition=2021 -O
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_input.txt
+Expected output file: /Users/lithe/Documents/research/code_translation_specs/code_translation_specs_ASE/collected_dataset/problem_test_inputs_and_outputs/p00837/p00837_sample1_output.txt
+Input:
+3 2 4
+2 1 2
+1 3
+3 4 5 6
+2 7 8
+0 0 0
+Expected:
+90
+Actual:
+78
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+```
+
+Latest Rust code:
+```rust
+use std::io::{self, Read};
+
+#[derive(Clone, Copy, Debug)]
+struct Loc {
+    desk: usize,
+    pos: usize,
+}
+
+fn main() {
+    let mut input = String::new();
+    io::stdin().read_to_string(&mut input).unwrap();
+    let mut it = input.split_whitespace();
+
+    let mut outs: Vec<String> = Vec::new();
+
+    loop {
+        let Some(m_tok) = it.next() else { break };
+        let m_i: i32 = m_tok.parse().unwrap();
+        if m_i <= 0 {
+            break;
+        }
+        let m = m_i as usize;
+        let c: usize = it.next().unwrap().parse().unwrap();
+        let n: usize = it.next().unwrap().parse().unwrap();
+
+        // Desks 1..=m plus special holding desk m+1.
+        let mut desks: Vec<Vec<u32>> = vec![Vec::new(); m + 2];
+
+        // Book ids are positive and at most 100.
+        // Use fixed arrays to avoid any HashMap corner-case differences.
+        let mut seen = [false; 101];
+        let mut loc: [Loc; 101] = [Loc { desk: 0, pos: 0 }; 101];
+
+        // Requests: (sequence-within-student, student-index, book-id)
+        let mut reqs: Vec<(usize, usize, u32)> = Vec::new();
+
+        for student in 0..n {
+            let t: usize = it.next().unwrap().parse().unwrap();
+            for seq in 0..t {
+                let id_u32: u32 = it.next().unwrap().parse().unwrap();
+                let id = id_u32 as usize;
+
+                if !seen[id] {
+                    seen[id] = true;
+                    let d = m + 1;
+                    let p = desks[d].len();
+                    desks[d].push(id_u32);
+                    loc[id] = Loc { desk: d, pos: p };
+                    // No cost for initial introduction.
+                }
+
+                reqs.push((seq, student, id_u32));
+            }
+        }
+
+        reqs.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+
+        // Remove at position with compaction and location updates.
+        fn remove_at(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, pos: usize) -> u32 {
+            let removed = desks[desk].remove(pos);
+            for p in pos..desks[desk].len() {
+                let bid = desks[desk][p] as usize;
+                loc[bid] = Loc { desk, pos: p };
+            }
+            removed
+        }
+
+        // Append to end with location update.
+        fn append_to(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, id: u32) {
+            let p = desks[desk].len();
+            desks[desk].push(id);
+            loc[id as usize] = Loc { desk, pos: p };
+        }
+
+        // Insert at position with shifting updates.
+        fn insert_at(desks: &mut [Vec<u32>], loc: &mut [Loc; 101], desk: usize, pos: usize, id: u32) {
+            desks[desk].insert(pos, id);
+            for p in pos..desks[desk].len() {
+                let bid = desks[desk][p] as usize;
+                loc[bid] = Loc { desk, pos: p };
+            }
+        }
+
+        let mut total: i64 = 0;
+
+        for &(_seq, _student, id_u32) in &reqs {
+            let id = id_u32 as usize;
+
+            // 8.1 remove requested book
+            let l = loc[id];
+            let from = l.desk;
+            let pos = l.pos;
+            let _ = remove_at(&mut desks, &mut loc, from, pos);
+            total += from as i64;
+
+            // 8.2 relocation if primary full
+            if desks[1].len() == c {
+                // 1) choose tmp
+                let mut tmp = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() < c {
+                        tmp = d;
+                        break;
+                    }
+                }
+
+                // 2) temporarily place id on tmp
+                append_to(&mut desks, &mut loc, tmp, id_u32);
+                total += tmp as i64;
+
+                // 3) evict front from primary
+                let id2 = remove_at(&mut desks, &mut loc, 1, 0);
+                total += 1;
+
+                // 4) choose destination j (after eviction)
+                let mut j = 0usize;
+                for d in 2..=m {
+                    if desks[d].len() < c {
+                        j = d;
+                        break;
+                    }
+                }
+
+                // 5) place evicted book into j at defined position
+                let mut ins_pos = desks[j].len();
+                if j == tmp {
+                    ins_pos = ins_pos.saturating_sub(1);
+                }
+                insert_at(&mut desks, &mut loc, j, ins_pos, id2);
+
+                // 6) add j + tmp, then remove temporary id from end of tmp
+                total += (j + tmp) as i64;
+
+                let popped = desks[tmp].pop().unwrap();
+                debug_assert!(popped == id_u32);
+
+                // Important: after popping, the temporarily placed id is no longer on tmp.
+                // To preserve the spec's state model, restore its location to "nowhere"
+                // until it is appended to desk 1 in step 8.3.
+                // (This matters if later logic were to consult loc before 8.3; we keep it faithful.)
+                loc[id] = Loc { desk: 0, pos: 0 };
+            }
+
+            // 8.3 place requested book onto primary
+            append_to(&mut desks, &mut loc, 1, id_u32);
+            total += 1;
+        }
+
+        outs.push(total.to_string());
+    }
+
+    print!("{}", outs.join("\n"));
+}
+```
+
+Please produce an improved repaired Rust file. Return only the Rust code in a single ```rust code block.

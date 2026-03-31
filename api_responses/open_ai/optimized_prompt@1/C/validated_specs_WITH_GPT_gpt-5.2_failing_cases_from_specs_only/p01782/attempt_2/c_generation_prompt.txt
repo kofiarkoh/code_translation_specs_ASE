@@ -1,0 +1,62 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Given an integer \(N\) and an \(N \times N\) grid of letters, the program selects exactly one cell from each row and exactly one cell from each column (a perfect matching between rows and columns). Among all such selections, it chooses one that is optimal under a fixed lexicographic objective over the 52 letters in the order `A`–`Z` then `a`–`z`: selecting a cell labeled with a letter contributes \(-1\) to that letter’s component of a 52-dimensional cost vector (all other components unchanged), and the total cost vector of a selection is the sum over its \(N\) chosen cells. The program minimizes this vector in lexicographic order (equivalently, it maximizes the count of `A`; subject to that maximizes `B`; …; then `Z`; then `a`; …; then `z`).  
+
+After computing the optimal selection, it outputs the multiset of letters from the selected \(N\) cells, sorted in the fixed order `A`–`Z` then `a`–`z`, with each letter repeated according to how many times it was selected.
+
+2. Inputs  
+- A line containing an integer \(N\).  
+- Then \(N\) lines representing the grid.  
+- For each of these \(N\) lines, only the first \(N\) characters are used as grid entries; any remaining characters on the line (including the trailing newline) are ignored.
+
+3. Outputs  
+- One line consisting of the selected letters printed in nondecreasing order with all uppercase letters before lowercase letters (`A`…`Z` then `a`…`z`), followed by a newline.  
+- The output contains exactly \(N\) letters (counting repetitions), corresponding to the \(N\) selected grid cells.
+
+4. Preconditions / Constraints  
+- \(N\) must satisfy the program’s fixed internal graph-size limits: it constructs a flow network with \(2N+2\) vertices stored in fixed-size arrays of capacity 105, so \(2N+2 \le 105\) (i.e., \(N \le 51\)).  
+- Each of the \(N\) grid lines must contain at least \(N\) characters.  
+- Each used grid character must be an ASCII alphabetic letter in `A`–`Z` or `a`–`z`. (Other characters lead to undefined behavior.)  
+- The program relies on bounded internal arithmetic: letter counts are accumulated in signed 8-bit components; correctness requires that intermediate component magnitudes remain within that representable range.
+
+5. Postconditions / Semantics of Optimality  
+- Exactly one cell is chosen from each row and exactly one from each column.  
+- The chosen set of \(N\) cells is lexicographically minimal with respect to the 52-component cost vector ordered by `A`–`Z`, `a`–`z`, where each chosen letter contributes \(-1\) to its component.  
+- The printed output is derived solely from the counts of letters in the chosen cells and is sorted by the fixed letter order; it does not encode which rows/columns were matched.
+
+6. Determinism and Tie Handling  
+- If multiple perfect matchings yield the same optimal 52-dimensional cost vector, any of them may be selected internally; however, because the output depends only on the resulting letter counts, all optimal matchings that share the same cost vector produce identical output.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error messages are produced. If any precondition is violated (size limits, malformed/short input lines, non-letter characters, or internal overflow), behavior is undefined.
+
+8. Resource/Feasibility Expectations (as implied by the program)  
+- The computation is performed using a polynomial-size flow-network formulation with \(O(N)\) vertices and \(O(N^2)\) edges under fixed static storage bounds; it is not intended to require exponential-time or exponential-space state enumeration.
+
+```

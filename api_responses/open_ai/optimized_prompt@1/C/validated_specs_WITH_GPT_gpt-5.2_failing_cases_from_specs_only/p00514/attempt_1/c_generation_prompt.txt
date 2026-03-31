@@ -1,0 +1,75 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Computes and outputs a nonnegative integer value derived from three input integers. After adjusting the third input by subtracting the product of the first two inputs, the program outputs:  
+- `0` if the adjusted value is negative,  
+- `1` if the adjusted value is zero,  
+- otherwise the binomial coefficient \(\binom{n+r-1}{n-1}\) where \(r\) denotes the adjusted value.  
+The result is printed as a decimal integer without leading zeros (except the single digit `0` case).
+
+2. Inputs  
+- Three signed integers: \(n\), \(m\), \(r\).
+
+3. Outputs  
+- A single line containing one decimal integer:  
+  - `0`, or  
+  - `1`, or  
+  - \(\binom{n+r-1}{n-1}\) for the adjusted \(r>0\), computed exactly within the program’s fixed big-integer capacity.
+
+4. Preconditions  
+- Input must provide three integers.  
+- For the binomial-coefficient case (adjusted \(r>0\)):  
+  - \(n \ge 1\).  
+  - The computed binomial coefficient must fit within the program’s fixed-precision decimal capacity (approximately up to 77,338 digits).  
+  - Intermediate arithmetic must not overflow the program’s internal fixed-width integer types; this effectively constrains the magnitudes of \(n\), \(m\), \(r\) and the adjusted \(r\) to “reasonable” ranges consistent with exact computation under the fixed capacity.
+
+5. Postconditions  
+- Let \(r' = r - n \cdot m\) using mathematical integer arithmetic. Then:  
+  - If \(r' < 0\), the program outputs `0`.  
+  - If \(r' = 0\), the program outputs `1`.  
+  - If \(r' > 0\), the program outputs exactly \(\binom{n+r'-1}{n-1}\) in base-10 representation, followed by a newline.
+
+6. Invariants  
+- The internal big-integer value is always maintained as a nonnegative integer represented in fixed-size base-\(10^9\) blocks.  
+- Each block remains within \([0, 10^9-1]\) throughout computation.  
+- In the binomial-coefficient case, the sequence of operations preserves exactness assuming no capacity/type overflow occurs.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input, division by zero, negative parameters, or overflow.  
+- If preconditions are violated (e.g., \(n \le 0\) when \(r'>0\), required divisions by zero, or result exceeding fixed capacity), behavior is undefined from the program’s contract perspective (may produce incorrect output or crash).
+
+8. State Transitions (if applicable)  
+- Initializes an internal big-integer state to 1 for the binomial-coefficient case.  
+- Transforms this state through a finite sequence of exact multiplications and divisions to reach the final binomial coefficient value.  
+- No persistent state beyond program termination.
+
+9. Non-functional Constraints (if inferable)  
+- Uses a fixed-precision big-integer with capacity of 8,667 base-\(10^9\) blocks (about 77,338 decimal digits). Results exceeding this capacity are not supported.  
+- Time and work scale linearly with the fixed block count per arithmetic operation and with the smaller of \((n-1)\) and \(r'\) for the number of multiplicative/divisive steps.
+
+```

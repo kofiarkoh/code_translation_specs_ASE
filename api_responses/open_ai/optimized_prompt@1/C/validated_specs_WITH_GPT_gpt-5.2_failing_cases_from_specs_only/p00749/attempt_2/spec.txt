@@ -1,0 +1,46 @@
+1. Functional Description  
+For each provided 2D grid, determines whether the configuration is **STABLE** or **UNSTABLE** under a balance rule applied to connected components of non-empty cells. Non-empty cells with the same symbol that are orthogonally adjacent (up/down/left/right) belong to the same component. Components induce a vertical **support** relation based on immediate adjacency between a cell and the cell directly below it. The configuration is reported **STABLE** iff, for every component, the horizontal center of mass of that component together with all components it supports above lies strictly within that component’s own horizontal footprint.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - Two integers: grid width `w` and grid height `h`.  
+  - Then exactly `h` rows of grid data, each containing `w` characters.  
+- `'.'` denotes an empty cell; any other character denotes a filled cell belonging to a component.  
+- Input terminates when a test case is encountered with `w <= 0` (the corresponding `h` is read but ignored for termination).
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Assumptions  
+- Dimensions must fit the program’s fixed storage: `h <= 60`, `w <= 10`, and `w*h <= 600`.  
+- Each input row must provide at least `w` characters (no spaces).  
+- The number of connected components of non-empty cells must fit the component table (at most 99 components are representable).  
+- The support relation is assumed to be **single-parent**: each component can be attached to at most one supporting component below. If a component has cells that touch multiple distinct components directly below, the program will attach it to the first such supporting component encountered by its scan order and ignore later candidates; the resulting behavior is therefore dependent on scan order rather than a well-defined physical rule.
+
+5. Component Construction  
+- **Connected components:** Two filled cells are in the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- For each component, the program computes intrinsic properties from its own cells:  
+  - intrinsic mass `m`: number of cells in the component,  
+  - intrinsic horizontal moment `mx`: sum of the column indices of its cells (0-based),  
+  - intrinsic horizontal footprint `[xl, xr]`: minimum and maximum column indices occupied by the component.  
+- **Support edges (parent/children):**  
+  - A component `A` is considered supported by component `B` (i.e., `B` is the parent of `A`) if there exists at least one cell of `A` such that the cell directly below it is a filled cell belonging to `B`.  
+  - Each component has at most one parent (as noted in Preconditions).  
+  - A component may support **zero or more** components above it (i.e., may have multiple children).
+
+6. Stability Evaluation (Aggregation and Balance Rule)  
+- Stability is evaluated by recursively processing the support tree(s) bottom-up, aggregating each component into its parent after the component and all of its descendants have been processed.  
+- For a component with aggregated mass `m` and aggregated moment `mx`, its horizontal center of mass is computed as:  
+  - `x = 0.5 + (mx / m)` (real-valued division).  
+- The component is considered balanced iff its center of mass lies strictly inside its own footprint interval in the following sense:  
+  - `xl < x < xr + 1`.  
+  (Equivalently, `x` must be greater than the minimum occupied column and less than one past the maximum occupied column.)  
+- If any component fails this strict-inside condition, the entire configuration is **UNSTABLE**. Otherwise it is **STABLE**.
+
+7. Rooting / Overall Decision  
+- The program treats the component that contains the bottom-most encountered filled cells (according to its internal scan order) as the root of evaluation and forces that component to be its own parent for aggregation bookkeeping.  
+- The output is `STABLE` only if the recursive check starting from this root succeeds; components not reachable from this root via the constructed parent/child links are not separately checked.
+
+8. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting. If the input violates the stated capacity limits or the single-parent assumption, the output is unspecified beyond the scan-order-dependent attachment behavior described above.

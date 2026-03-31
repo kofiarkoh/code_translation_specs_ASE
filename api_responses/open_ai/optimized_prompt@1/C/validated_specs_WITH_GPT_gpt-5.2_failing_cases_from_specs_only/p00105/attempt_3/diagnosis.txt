@@ -1,0 +1,43 @@
+A. Likely mismatch category  
+- Wrong output formatting / wrong termination condition in the page-number printing loop  
+- Also a likely mismatch in “defined behavior” assumptions vs. actual source behavior (initialization)
+
+B. What the current specification may be missing or misstating  
+1) **Trailing-space vs. no-trailing-space rule**  
+- The spec says page numbers are “separated by single spaces” and “terminated by a newline,” which strongly implies no trailing space.  
+- The source program prints page numbers with a conditional: it prints `"j "` for all but the last printed page, and prints `"j\n"` for the last one. That means **no trailing space** on the last page number line.  
+- The generated program prints `"%d "` for every printed page and then prints `"\n"` afterward, which produces a **trailing space** whenever at least one page is printed.
+
+2) **The “stop when printed reaches (tm - 1)” description is not accurate enough**  
+- The source does **not** stop when “printed pages reaches (tm - 1)” in the sense of a count comparison after printing.  
+- Instead, it stops when the loop variable `k` equals `tm-1` *at the moment it encounters a marked page*, and it prints that page as the last one (with newline) and breaks. This is subtly different from the generated code’s “print then if printed == tm-1 break” logic, and it matters for formatting (last element handling) and for edge cases like `tm==0` or inconsistent `tm` vs. marks.
+
+3) **Initialization assumption may be overstated as part of the program’s behavior**  
+- The spec frames behavior as “well-defined only if idx starts zeroed,” and the generated code enforces that by `memset`.  
+- The source program does **not** zero-initialize `idx` at all. So the spec’s “defined behavior” section is not merely a precondition; it changes observable behavior if a reimplementation chooses to initialize.
+
+C. What general behavior should be clarified in the specification  
+- **Exact formatting of the page-number line**: whether the last printed page number is followed by a space or not (source: no trailing space; newline immediately after last number).  
+- **Exact stopping/last-element logic** for printing pages: the source uses `k == tm-1` to decide that the current page is the last and prints it differently, rather than printing uniformly and stopping afterward.  
+- **Whether zero-initialization is part of the intended modeled behavior or merely an external assumption**: the current spec mixes “assumption for defined behavior” with an implementation that actively enforces it, which can diverge from the source.
+
+D. Why this clarification is supported by the source program  
+- The source’s printing block is:
+
+  ```c
+  if ( idx[i].pgnum[j] == 1 ) { 
+      if ( k == idx[i].tm-1 ) {
+          printf( "%d\n", j );
+          break;
+      } else {
+          printf( "%d ", j );
+          k++;
+      }
+  }
+  ```
+
+  This explicitly implements:
+  - **Different formatting for the last printed page** (`"%d\n"` vs `"%d "`), implying **no trailing space**.
+  - A **break** that occurs only when a marked page is encountered and deemed “last” by the `k == tm-1` check, not by a generic “printed count reached threshold” after printing.
+
+- The source never calls `memset` or otherwise initializes `idx`, `tm`, or `pgnum` arrays, so any spec that treats “starts as all zeros” as part of the modeled behavior (rather than an external assumption) risks diverging from the source’s actual behavior.

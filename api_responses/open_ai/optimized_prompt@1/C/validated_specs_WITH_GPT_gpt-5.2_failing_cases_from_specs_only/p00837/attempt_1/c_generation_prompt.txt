@@ -1,0 +1,80 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Processes multiple scenarios of book requests by students and computes a total “movement cost” incurred by repeatedly retrieving the requested book from its current desk and then placing it onto the primary desk. Each request is handled in a deterministic global order: increasing request position within a student’s list, with ties broken by increasing student index. The computed total cost is the sum of desk indices involved in each removal and placement operation, including any additional relocations required to respect desk capacity constraints.
+
+2. Inputs  
+For each scenario:  
+- An integer number of auxiliary desks.  
+- An integer capacity per desk.  
+- An integer number of students.  
+- For each student: an integer count of requested books, followed by that many book identifiers.  
+Scenarios repeat until a scenario header indicates termination.
+
+3. Outputs  
+For each scenario, outputs a single integer: the total accumulated movement cost for servicing all requests in the scenario under the program’s desk/capacity rules.
+
+4. Preconditions  
+- The number of auxiliary desks is positive and does not exceed 10 (since desks are indexed from 1 through auxiliary+1, with fixed storage sized for up to 11 desks).  
+- The number of total requests across all students does not exceed 5002.  
+- Each student’s request count is non-negative and the sum across students matches the total requests.  
+- Book identifiers are positive and do not exceed 100.  
+- The desk capacity is non-negative and does not exceed 5000.  
+- Input is well-formed according to the described structure.
+
+5. Postconditions  
+For each scenario:  
+- All requests are considered serviced in the defined global order.  
+- The reported total cost equals the sum of:  
+  - The index of the desk from which each requested book is removed at the time of service, plus  
+  - The index of the primary desk for placing the requested book, plus  
+  - Any additional desk-index costs incurred by mandatory relocations triggered when the primary desk is at capacity at the moment of placement.  
+- After servicing a request, the requested book is located on the primary desk.
+
+6. Invariants  
+- Each tracked book is located on exactly one desk at any time, with a well-defined position within that desk’s sequence.  
+- For each desk, the number of books on that desk never exceeds the configured capacity, except that the scenario is undefined if no desk has available capacity when a relocation is required.  
+- The relative order of books on a desk is preserved except for removals of specific books and left-compaction of remaining books.  
+- The primary desk is the designated destination for every serviced request.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting or recovery is performed.  
+- If preconditions are violated (e.g., identifiers out of range, too many requests, desk counts exceeding fixed limits, or a relocation is required but no desk has free capacity), behavior is undefined (may compute incorrect results or access invalid memory).  
+- Termination occurs when the scenario header indicates a non-positive auxiliary desk count.
+
+8. State Transitions (if applicable)  
+Within a scenario, the system state consists of: the assignment of each known book to a desk and position, and the current occupancy of each desk. For each serviced request:  
+- The requested book is removed from its current desk (that desk’s occupancy decreases by one).  
+- If the primary desk is at capacity before placing the requested book, a relocation sequence occurs that moves one book out of the primary desk to some other desk with available capacity, and may temporarily place the requested book on an auxiliary desk as part of that sequence; desk occupancies are updated accordingly.  
+- The requested book is placed onto the primary desk (primary desk occupancy increases by one).  
+
+9. Non-functional Constraints (if inferable)  
+- Fixed maximum sizes are implied: up to 5002 total requests, up to 100 distinct book identifiers tracked, up to 11 desks (primary plus up to 10 auxiliary), and up to 5000 books per desk.  
+- The computed cost is accumulated in a signed integer; overflow is possible if inputs are large enough, and is not guarded against.
+
+```

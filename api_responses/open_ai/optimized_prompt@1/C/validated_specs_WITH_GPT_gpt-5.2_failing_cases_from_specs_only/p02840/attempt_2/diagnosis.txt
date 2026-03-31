@@ -1,0 +1,18 @@
+A. Likely mismatch category  
+Wrong abstraction / wrong counting rule (and consequently wrong transition rule for how values are generated and merged).
+
+B. What the current specification may be missing or misstating  
+- It describes the set as **only prefix sums** of the arithmetic progression: \(\sum_{k=0}^{i-1}(X+kD)\) for \(0\le i\le N\). That set has size at most \(N+1\).  
+- The source program is clearly counting **many more values** (e.g., 160 when \(N=10\)), so the underlying set is not “one sum per length \(i\)”.  
+- The spec’s “partition by residue class modulo \(|D|\) and union of intervals” is too vague and, as written, is consistent with treating each \(i\) as producing a single point per residue. The source instead constructs **intervals \([L,R)\) (in steps of \(D\)) per \(i\)** and merges them, which implies each \(i\) corresponds to a *range* of achievable sums, not a single sum.
+
+C. What general behavior should be clarified in the specification  
+- Clarify the **actual family of sums being considered**: it is not just the single prefix sum for each length. There is an additional degree of freedom (e.g., choosing how many terms / which terms / some parameter besides \(i\)) that makes each \(i\) contribute an arithmetic-progression *interval* of possible sums.  
+- Clarify the **interval construction and counting model** used by the source: for each \(i\), compute bounds \(L(i)\) and \(R(i)\) (with step \(D\)) for a fixed residue \(V(i)\), merge overlapping intervals within each residue class, and count lattice points as \((r-l)/D\) (note: half-open vs inclusive needs to be specified).  
+- Clarify handling of **negative \(D\)**: the source normalizes by gcd and then forces \(D>0\) via a transformation involving \(Y\), changing how \(L,R\) are computed. This is more specific than “use \(|D|\)”.
+
+D. Why this clarification is supported by the source program  
+- The source computes, for each \(i=1..N\):  
+  - \(L = (2X + D(i-1))\cdot i/2\) and \(R = (2Y - D(i-1))\cdot i/2 + D\), then groups by \(V = L \bmod D\), and merges intervals when they overlap (\(p->l \le R\) and \(p->r \ge L\)). This is incompatible with “one value per \(i\)”.  
+- The final answer is accumulated as \(\sum (p->r - p->l)/D\), which counts **multiple values per merged interval** spaced by \(D\). That only makes sense if each \(i\) contributes a *range* of achievable sums in a residue class.  
+- The early-exit cases (especially \(X=0, D\ne 0\) giving \(N(N-1)/2+1\)) also indicate the counted set grows quadratically in \(N\), again contradicting the “prefix sums only” interpretation.

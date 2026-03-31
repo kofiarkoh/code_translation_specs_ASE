@@ -1,0 +1,92 @@
+You are a senior systems engineer fluent in C and Rust, with strong expertise in program semantics and safe systems programming.
+
+Task:
+Translate the given Specification into Rust code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in Rust.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable Rust that stays as faithful as possible to the stated behavior
+5) Prefer safe, idiomatic Rust:
+   - Avoid `unsafe` unless necessary; if used, justify it in a short comment.
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid Rust comments inside the code and not after the code.
+8) Return ONLY the Rust code in a single ```rust code block.
+
+
+Specification:
+```text
+1. Functional Description  
+For each provided 2D grid, determines whether the configuration is **STABLE** or **UNSTABLE** under a balance rule applied to connected components of non-empty cells. Non-empty cells with the same symbol that are orthogonally adjacent (up/down/left/right) belong to the same component. Components induce a vertical **support** relation based on the presence of a filled cell directly below a cell. The configuration is reported **STABLE** iff the program’s recursive aggregation-and-check procedure (starting from a distinguished root component chosen by its scan order) succeeds; otherwise it is **UNSTABLE**.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - Two integers: grid width `w` and grid height `h`.  
+  - Then exactly `h` rows of grid data, each containing `w` characters (no spaces).  
+- `'.'` denotes an empty cell; any other character denotes a filled cell belonging to a component.  
+- Input terminates when a test case is encountered with `w <= 0` (the corresponding `h` is read but ignored for termination).
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions / Assumptions  
+- Dimensions must fit the program’s fixed storage: `h <= 60`, `w <= 10`, and `w*h <= 600`.  
+- Each input row must provide at least `w` characters.  
+- The number of connected components of non-empty cells must fit the component table (at most 99 components are representable).  
+- The support relation constructed by the program is **single-parent**: each component can be assigned at most one parent component below. If a component could be supported by multiple distinct components, the program selects at most one according to its scan order and ignores later candidates (see Section 6).
+
+5. Component Construction (Connectivity)  
+- **Connected components:** Two filled cells are in the same component iff they have the same character and are connected via a path of orthogonally adjacent cells of that same character.  
+- Connectivity is computed over the whole grid (independent of scan order), but component IDs used later are assigned when the grid is scanned as described in Section 6.
+
+6. Scan Order, Per-Component Properties, and Support-Link Construction  
+The program performs a single bottom-up pass over the grid to (a) assign each discovered connected component an internal index, (b) compute per-component intrinsic properties, and (c) establish parent/child links.
+
+- **Scan order:** Rows are processed from bottom to top (`r = h-1` down to `0`), and within each row columns are processed left to right (`c = 0` to `w-1`). Empty cells are skipped.
+
+- **Component indexing / creation:** When a filled cell is encountered, its union-find representative identifies its connected component. The first time a representative is encountered in this scan, a new internal component record is created and assigned the next index. Consequently, the component that is first encountered in this bottom-up, left-to-right scan becomes internal index `1`.
+
+- **Intrinsic properties accumulated during the scan:** For each component, over all its cells:
+  - intrinsic mass `m`: number of cells in the component,  
+  - intrinsic horizontal moment `mx`: sum of the column indices of its cells (0-based),  
+  - intrinsic horizontal footprint `[xl, xr]`: minimum and maximum column indices among its cells.  
+  These are accumulated as cells are visited in the scan; the footprint is updated whenever a cell of the component is processed.
+
+- **Support (parent/children) link rule and its stop conditions:**  
+  While processing each filled cell `(r,c)` of a component `A`, the program may attempt to assign `A` a parent based on the cell directly below:
+  - If `r` is the bottom row (`r == h-1`), no parent assignment is attempted for that cell (only footprint updates occur).
+  - Otherwise, if the cell directly below `(r+1,c)` is empty, no parent assignment is attempted for that cell.
+  - Otherwise, let `B` be the component containing `(r+1,c)`. If `B` is the same component as `A`, no parent assignment is attempted for that cell.
+  - If `A` already has a parent assigned, no further parent assignment is attempted for `A` from any later-processed cells (parent assignment is “frozen” after the first assignment).
+  - If none of the above conditions prevent it and `A` has no parent yet, then `B` becomes the parent of `A`, and `A` is appended to the end of `B`’s child list.  
+  Because the scan is bottom-up and left-to-right, and because parent assignment stops once a parent is set, the chosen parent (when multiple candidates exist) is the one first encountered under this scan subject to the above early-exit conditions.
+
+7. Stability Evaluation (Aggregation and Balance Rule)  
+- Stability is evaluated by a recursive traversal starting from internal component index `1` only. Before evaluation, that component is forced to be its own parent for bookkeeping.  
+- The recursion processes a component’s children (and their sibling chains) before checking the component itself.  
+- Each component begins with its intrinsic `m` and `mx`. After a child component is successfully processed, the child’s aggregated `m` and `mx` are added into its parent’s `m` and `mx` (so the parent’s check uses the combined mass/moment of itself plus all successfully aggregated descendants). Each component is aggregated into its parent at most once.
+- For a component with current aggregated mass `m` and aggregated moment `mx`, its horizontal center of mass is computed as:
+  - `x = 0.5 + (mx / m)` using real-valued division.
+- The component is considered balanced iff its center of mass lies strictly inside its own footprint interval in the following sense:
+  - `xl < x < xr + 1`.  
+  If any checked component fails this strict-inside condition, evaluation fails and the configuration is **UNSTABLE**.
+
+8. Rooting / Overall Decision and Coverage  
+- The program outputs `STABLE` iff the recursive check starting from component index `1` succeeds; otherwise it outputs `UNSTABLE`.  
+- Only components reachable from this root via the constructed parent/child links are checked and aggregated. Components not reachable from the root are not separately validated and do not affect the result.
+
+9. Error Handling / Exceptional Behavior  
+- There is no explicit error reporting. If the input violates capacity limits, behavior is unspecified. If the physical situation would imply multiple supports, the program’s single-parent, scan-order-dependent selection described above determines the constructed support structure.
+```

@@ -1,0 +1,100 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 1005
+
+/* Adjacency stored as bitset per left vertex (0..N-1), right vertices are bits. */
+static unsigned long long adj[MAXN][(MAXN + 63) / 64];
+
+static int matchL[MAXN]; /* matchL[l] = r or -1 */
+static int matchR[MAXN]; /* matchR[r] = l or -1 */
+static unsigned char visR[MAXN]; /* visited right vertices in a DFS */
+
+/* DFS-based augmenting path search (Kuhn-style), scanning neighbors in increasing
+   right index order, which corresponds to the order edges were added during input
+   scanning (i increasing outer, j increasing inner => for fixed left=j, rights i
+   are encountered in increasing i). */
+static int dfs_augment(int l, int N) {
+    for (int r = 0; r < N; r++) {
+        unsigned long long word = adj[l][r >> 6];
+        if (((word >> (r & 63)) & 1ULL) == 0ULL) continue;
+        if (visR[r]) continue;
+        visR[r] = 1;
+
+        if (matchR[r] == -1 || dfs_augment(matchR[r], N)) {
+            matchL[l] = r;
+            matchR[r] = l;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    int N_in;
+    if (scanf("%d", &N_in) != 1) return 0;
+
+    int N = N_in - 1;
+
+    /* Initialize adjacency and matches. */
+    int words = (N + 63) / 64;
+    for (int i = 0; i < N; i++) {
+        for (int w = 0; w < words; w++) adj[i][w] = 0ULL;
+    }
+    for (int i = 0; i < N; i++) {
+        matchL[i] = -1;
+        matchR[i] = -1;
+    }
+
+    /* Consume the matrix at the character level: for each cell, read two chars:
+       value char (odd code => edge present), then one ignored char.
+       No whitespace skipping is performed for these chars. */
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            int c1 = getchar();
+            int c2 = getchar();
+            (void)c2;
+
+            if (c1 != EOF && (c1 & 1)) {
+                /* Edge from left vertex j to right vertex i. */
+                adj[j][i >> 6] |= (1ULL << (i & 63));
+            }
+        }
+    }
+
+    /* Find initial maximum matching by trying to augment from each left vertex. */
+    int matched = 0;
+    for (int l = 0; l < N; l++) {
+        memset(visR, 0, (size_t)N);
+        if (dfs_augment(l, N)) matched++;
+    }
+
+    if (matched != N) {
+        puts("no");
+        return 0;
+    }
+
+    puts("yes");
+
+    /* Sequential “unmatch and re-augment once” procedure. */
+    for (int l = 0; l < N; l++) {
+        int r0 = matchL[l];
+        if (r0 != -1) {
+            matchL[l] = -1;
+            matchR[r0] = -1;
+        }
+
+        memset(visR, 0, (size_t)N);
+        (void)dfs_augment(l, N);
+
+        /* Print 1-based right index matched to l after this single attempt. */
+        /* Specification implies perfect matching exists; after re-augment it should
+           be matched again. If not, printing 0 would be the narrowest fallback. */
+        int r = matchL[l];
+        printf("%d\n", (r >= 0) ? (r + 1) : 0);
+    }
+
+    return 0;
+}
+```

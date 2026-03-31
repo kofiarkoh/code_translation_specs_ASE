@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+Simulates, over a fixed number of discrete time units, a set of up to 102 batteries that repeatedly alternate between **using** and **charging** according to a per-battery cyclic list of `(use_duration, charge_duration)` pairs. Each time unit, every battery that is in the using state consumes one unit of its remaining use time. When a battery finishes a use segment, it switches to charging and is appended to a single global FIFO waiting queue. Charging service is **non-preemptive**: at most one battery can receive one unit of charging progress per time unit, and only the battery currently at the **front** of the queue can receive that progress; it remains at the front until its current charge segment completes.
+
+The program outputs a count of “missed charging opportunities” accumulated during the simulation: in each time unit where the queue is non-empty, every battery that is in the charging state **and is not the current queue-front battery** contributes +1 to the count for that time unit (with the exception noted below for batteries that just transitioned to charging in that same time unit).
+
+2. Inputs  
+For each test case:  
+- An integer `n` (number of batteries).  
+- An integer `lim` (number of time units to simulate).  
+- For each battery, a sequence of one or more pairs `(use_duration, charge_duration)`, terminated by a non-positive `use_duration`. For each positive `use_duration` read, a corresponding `charge_duration` is read immediately after it.
+
+Input consists of multiple test cases and ends when a test case has `n <= 0`.
+
+3. Outputs  
+For each test case, prints a single integer: the total missed-opportunity count accumulated over time units `1..lim` under the rules described above.
+
+4. Preconditions / Assumptions  
+- `1 <= n <= 102`.  
+- Each battery provides at least one `(use_duration, charge_duration)` pair before termination.  
+- Each battery provides at most 51 pairs.  
+- Meaningful operation assumes `use_duration > 0` for each provided pair; `charge_duration` is read as an integer and is used as the required number of charging service units for that segment.  
+- The FIFO queue has a fixed capacity of 102 entries; behavior is unspecified if more than this many batteries are enqueued without being dequeued.
+
+5. Simulation Semantics and State  
+Each battery maintains:  
+- A cyclic index into its list of pairs (advances after completing a charge segment, wrapping to the first pair after the last).  
+- A state: **using** or **charging**.  
+- A remaining-time counter `r` for the current segment.
+
+Initialization per test case:  
+- Each battery starts in **using** state at its first pair, with remaining use time set to that pair’s `use_duration`.  
+- The charging queue starts empty.  
+- The missed-opportunity counter starts at 0.
+
+Per time unit `t = 1..lim`, the following occurs in order:
+
+A. Using progress and transitions to charging (for all batteries)  
+- For every battery currently in **using** state: decrement its remaining use time by 1.  
+- If a battery’s remaining use time becomes 0 as a result, it immediately transitions to **charging**, sets its remaining time to the corresponding `charge_duration` of its current pair, and is appended to the end of the FIFO queue.  
+  - A battery is enqueued **only at this transition**; it is not re-enqueued while charging.
+
+B. Missed-opportunity counting and charging progress (only if the queue is non-empty)  
+- If the queue is empty after step A, no charging progress occurs and no missed-opportunity counting occurs for that time unit.  
+- Otherwise, consider batteries that are in **charging** state but did **not** transition from using to charging during the current time unit (i.e., batteries that were already charging from earlier time units). Among those batteries:  
+  - The battery whose index equals the current front of the queue receives one unit of charging progress (its remaining charge time is decremented by 1).  
+  - Every other such charging battery (i.e., charging but not the queue front) contributes +1 to the missed-opportunity counter for this time unit.
+
+C. Charging completion at the queue front  
+- After the queue-front battery (if any) receives charging progress in step B, if its remaining charge time becomes 0, it transitions to **using**, advances its cyclic pair index by 1 (wrapping to 0 after the last pair), sets remaining time to the new pair’s `use_duration`, and is removed from the front of the queue.
+
+6. Postconditions  
+After simulating exactly `lim` time units, the printed value equals the total number of increments performed in step B across all time units.
+
+7. Error Handling / Exceptional Behavior  
+No explicit error reporting is performed. If input is malformed or violates the stated bounds/assumptions (including queue overflow or missing pair components), behavior is unspecified.
+
+```

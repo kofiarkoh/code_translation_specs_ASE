@@ -1,0 +1,403 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 1000
+#define MAXM 200000
+#define MAXSCC MAXN
+
+typedef struct {
+    int u, v;
+} Edge;
+
+static int n, m;
+static Edge E[MAXM];
+
+/* adjacency (original graph) */
+static int head_out[MAXN], to_out[MAXM], next_out[MAXM];
+static int head_in[MAXN], to_in[MAXM], next_in[MAXM];
+
+/* SCC (Kosaraju) */
+static int vis[MAXN];
+static int order[MAXN], ord_sz;
+static int comp[MAXN], comp_cnt;
+static int comp_rep[MAXSCC]; /* representative vertex per SCC (first encountered in collection order) */
+
+/* per-SCC vertex lists in "collection order" (increasing vertex id) */
+static int comp_vhead[MAXSCC], comp_vnext[MAXN];
+
+/* output labels: 0 => same, 1 => diff */
+static unsigned char label_diff[MAXM];
+
+/* cross-SCC edge grouping by (A,B) */
+typedef struct {
+    int a, b;
+    int cnt;
+    int first_edge; /* one representative edge index */
+} PairCnt;
+
+static PairCnt pairs[MAXM];
+static int pair_cnt;
+
+/* condensation adjacency (unique SCC edges) */
+static int chead[MAXSCC], cto[MAXM], cnext[MAXM], cedge_rep[MAXM];
+static int cecnt;
+
+/* DP dd[*] */
+static int dd[MAXSCC];
+
+/* intra-SCC candidate edges H(c) */
+static unsigned char cand[MAXM];
+
+/* ---------- graph building ---------- */
+static void add_edge(int idx, int u, int v) {
+    E[idx].u = u;
+    E[idx].v = v;
+
+    to_out[idx] = v;
+    next_out[idx] = head_out[u];
+    head_out[u] = idx;
+
+    to_in[idx] = u;
+    next_in[idx] = head_in[v];
+    head_in[v] = idx;
+}
+
+/* ---------- Kosaraju DFS (iterative to avoid recursion depth issues) ---------- */
+static void dfs1_iter(int start) {
+    /* stack of (vertex, next edge index to explore) */
+    static int st_v[MAXN];
+    static int st_e[MAXN];
+    int sp = 0;
+
+    vis[start] = 1;
+    st_v[sp] = start;
+    st_e[sp] = head_out[start];
+    sp++;
+
+    while (sp > 0) {
+        int v = st_v[sp - 1];
+        int *pe = &st_e[sp - 1];
+        int e = *pe;
+
+        while (e != -1 && vis[to_out[e]]) e = next_out[e];
+        if (e == -1) {
+            /* finish */
+            order[ord_sz++] = v;
+            sp--;
+        } else {
+            *pe = next_out[e];
+            int w = to_out[e];
+            if (!vis[w]) {
+                vis[w] = 1;
+                st_v[sp] = w;
+                st_e[sp] = head_out[w];
+                sp++;
+            }
+        }
+    }
+}
+
+static void dfs2_iter(int start, int cid) {
+    static int st[MAXN];
+    int sp = 0;
+    st[sp++] = start;
+    comp[start] = cid;
+
+    while (sp > 0) {
+        int v = st[--sp];
+        for (int e = head_in[v]; e != -1; e = next_in[e]) {
+            int w = to_in[e]; /* predecessor */
+            if (comp[w] == -1) {
+                comp[w] = cid;
+                st[sp++] = w;
+            }
+        }
+    }
+}
+
+/* ---------- pair counting for cross-SCC parallel edges ---------- */
+static int pair_find(int a, int b) {
+    /* linear search; SCC count <= 1000 so cross pairs <= m but typically manageable */
+    for (int i = 0; i < pair_cnt; i++) {
+        if (pairs[i].a == a && pairs[i].b == b) return i;
+    }
+    return -1;
+}
+
+static void pair_add_edge(int a, int b, int edge_idx) {
+    int k = pair_find(a, b);
+    if (k < 0) {
+        pairs[pair_cnt].a = a;
+        pairs[pair_cnt].b = b;
+        pairs[pair_cnt].cnt = 1;
+        pairs[pair_cnt].first_edge = edge_idx;
+        pair_cnt++;
+    } else {
+        pairs[k].cnt++;
+    }
+}
+
+/* ---------- condensation adjacency (unique edges) ---------- */
+static void cadd_edge(int a, int b, int rep_edge_idx) {
+    cto[cecnt] = b;
+    cedge_rep[cecnt] = rep_edge_idx;
+    cnext[cecnt] = chead[a];
+    chead[a] = cecnt;
+    cecnt++;
+}
+
+/* ---------- intra-SCC traversals to select candidate edges H(c) ---------- */
+static unsigned char fmark[MAXN]; /* reached by forward DFS within SCC */
+static unsigned char bmark[MAXN]; /* visited by backward DFS within SCC */
+
+static void forward_dfs_tree_edges(int rep, int cid) {
+    /* iterative DFS; record only tree edges that first discover a new vertex */
+    static int st_v[MAXN];
+    static int st_e[MAXN];
+    int sp = 0;
+
+    fmark[rep] = 1;
+    st_v[sp] = rep;
+    st_e[sp] = head_out[rep];
+    sp++;
+
+    while (sp > 0) {
+        int v = st_v[sp - 1];
+        int *pe = &st_e[sp - 1];
+        int e = *pe;
+
+        while (e != -1) {
+            int w = to_out[e];
+            if (comp[w] == cid && !fmark[w]) break;
+            e = next_out[e];
+        }
+
+        if (e == -1) {
+            sp--;
+        } else {
+            *pe = next_out[e];
+            int w = to_out[e];
+            if (comp[w] == cid && !fmark[w]) {
+                fmark[w] = 1;
+                cand[e] = 1; /* record this tree edge */
+                st_v[sp] = w;
+                st_e[sp] = head_out[w];
+                sp++;
+            }
+        }
+    }
+}
+
+static void backward_dfs_edges(int rep, int cid) {
+    /* DFS on reverse edges within SCC, but only traverse edges whose tail is fmark==1.
+       Record every traversed edge. */
+    static int st[MAXN];
+    int sp = 0;
+
+    bmark[rep] = 1;
+    st[sp++] = rep;
+
+    while (sp > 0) {
+        int v = st[--sp];
+        for (int e = head_in[v]; e != -1; e = next_in[e]) {
+            int u = to_in[e]; /* tail of original edge u->v */
+            if (comp[u] != cid) continue;
+            if (!fmark[u]) continue; /* restriction */
+            cand[e] = 1; /* record traversed edge */
+            if (!bmark[u]) {
+                bmark[u] = 1;
+                st[sp++] = u;
+            }
+        }
+    }
+}
+
+/* ---------- intra-SCC reachability test excluding one edge ---------- */
+static unsigned char rvis[MAXN];
+
+static int reachable_excluding_edge(int cid, int src, int dst, int forbid_edge_idx) {
+    if (src == dst) {
+        /* path of length 0 exists; excluding the edge still allows reachability */
+        return 1;
+    }
+
+    /* BFS/DFS stack */
+    static int st[MAXN];
+    int sp = 0;
+
+    memset(rvis, 0, (size_t)n);
+    rvis[src] = 1;
+    st[sp++] = src;
+
+    while (sp > 0) {
+        int v = st[--sp];
+        for (int e = head_out[v]; e != -1; e = next_out[e]) {
+            if (e == forbid_edge_idx) continue;
+            int w = to_out[e];
+            if (comp[w] != cid) continue;
+            if (!rvis[w]) {
+                if (w == dst) return 1;
+                rvis[w] = 1;
+                st[sp++] = w;
+            }
+        }
+    }
+    return 0;
+}
+
+int main(void) {
+    if (scanf("%d %d", &n, &m) != 2) return 0;
+
+    /* fixed-size arrays; behavior unspecified if bounds exceeded */
+    for (int i = 0; i < n; i++) {
+        head_out[i] = -1;
+        head_in[i] = -1;
+    }
+    for (int i = 0; i < MAXSCC; i++) {
+        comp_vhead[i] = -1;
+        chead[i] = -1;
+        comp_rep[i] = -1;
+    }
+    memset(label_diff, 0, (size_t)m);
+    memset(cand, 0, (size_t)m);
+
+    for (int i = 0; i < m; i++) {
+        int u, v;
+        if (scanf("%d %d", &u, &v) != 2) return 0;
+        u--; v--;
+        add_edge(i, u, v);
+    }
+
+    /* SCC computation (Kosaraju) */
+    memset(vis, 0, (size_t)n);
+    ord_sz = 0;
+    for (int i = 0; i < n; i++) {
+        if (!vis[i]) dfs1_iter(i);
+    }
+
+    for (int i = 0; i < n; i++) comp[i] = -1;
+    comp_cnt = 0;
+    for (int k = ord_sz - 1; k >= 0; k--) {
+        int v = order[k];
+        if (comp[v] == -1) {
+            dfs2_iter(v, comp_cnt);
+            comp_cnt++;
+        }
+    }
+
+    /* Build per-SCC vertex lists in increasing vertex id order (collection order) */
+    for (int v = 0; v < n; v++) {
+        int cid = comp[v];
+        comp_vnext[v] = comp_vhead[cid];
+        comp_vhead[cid] = v;
+    }
+    /* comp_vhead currently has vertices in reverse increasing order due to push-front.
+       We need "first vertex encountered in internal collection order"; narrowest
+       reasonable interpretation: increasing vertex id. So find min vertex per SCC. */
+    for (int c = 0; c < comp_cnt; c++) {
+        int minv = -1;
+        for (int v = 0; v < n; v++) {
+            if (comp[v] == c) {
+                if (minv == -1 || v < minv) minv = v;
+            }
+        }
+        comp_rep[c] = (minv == -1) ? 0 : minv;
+    }
+
+    /* Cross-SCC parallel edge counting */
+    pair_cnt = 0;
+    for (int i = 0; i < m; i++) {
+        int a = comp[E[i].u];
+        int b = comp[E[i].v];
+        if (a != b) pair_add_edge(a, b, i);
+    }
+
+    /* Mark all cross-SCC edges with non-unique SCC-to-SCC connection as diff */
+    for (int i = 0; i < m; i++) {
+        int a = comp[E[i].u];
+        int b = comp[E[i].v];
+        if (a == b) continue;
+        int k = pair_find(a, b);
+        if (k >= 0 && pairs[k].cnt > 1) label_diff[i] = 1;
+    }
+
+    /* Build condensation adjacency with unique SCC edges (one per (a,b)) */
+    cecnt = 0;
+    for (int i = 0; i < pair_cnt; i++) {
+        cadd_edge(pairs[i].a, pairs[i].b, pairs[i].first_edge);
+    }
+
+    /* SCC-level DP in increasing SCC index order */
+    for (int s = 0; s < comp_cnt; s++) {
+        for (int i = 0; i < comp_cnt; i++) dd[i] = -1;
+        dd[s] = 0;
+
+        for (int i = s; i < comp_cnt; i++) {
+            if (dd[i] < 0) continue;
+            for (int e = chead[i]; e != -1; e = cnext[e]) {
+                int t = cto[e];
+                int nd = dd[i] + 1;
+                if (nd > dd[t]) dd[t] = nd;
+            }
+        }
+
+        /* For each outgoing edge from s to t, if dd[t] > 1 then label all original edges s->t as diff */
+        for (int e = chead[s]; e != -1; e = cnext[e]) {
+            int t = cto[e];
+            if (dd[t] > 1) {
+                /* label all original edges with comp(u)=s and comp(v)=t */
+                for (int k = 0; k < m; k++) {
+                    if (comp[E[k].u] == s && comp[E[k].v] == t) {
+                        label_diff[k] = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Intra-SCC candidate selection and testing */
+    memset(fmark, 0, (size_t)n);
+    memset(bmark, 0, (size_t)n);
+
+    for (int c = 0; c < comp_cnt; c++) {
+        int rep = comp_rep[c];
+
+        /* reset marks only for vertices in this SCC (n<=1000 so scan is fine) */
+        for (int v = 0; v < n; v++) {
+            if (comp[v] == c) {
+                fmark[v] = 0;
+                bmark[v] = 0;
+            }
+        }
+
+        forward_dfs_tree_edges(rep, c);
+        backward_dfs_edges(rep, c);
+
+        /* For each recorded intra-SCC edge, test reachability excluding that edge */
+        for (int e = 0; e < m; e++) {
+            if (!cand[e]) continue;
+            int u = E[e].u, v = E[e].v;
+            if (comp[u] != c || comp[v] != c) continue;
+
+            if (reachable_excluding_edge(c, u, v, e)) {
+                /* explicitly same (default) */
+                /* label_diff[e] remains as-is; but intra-SCC procedure can set diff */
+            } else {
+                label_diff[e] = 1;
+            }
+        }
+    }
+
+    /* Output in input order */
+    for (int i = 0; i < m; i++) {
+        if (label_diff[i]) {
+            puts("diff");
+        } else {
+            puts("same");
+        }
+    }
+
+    return 0;
+}
+```

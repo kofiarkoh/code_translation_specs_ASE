@@ -1,0 +1,450 @@
+Diagnosis generation
+
+You are analyzing a natural-language specification against a source program.
+
+You are given:
+1. The source program
+2. The current specification derived from the source
+3. A failing test case showing that code generated from the specification does not match the source behavior
+
+Your task is NOT to repair the specification yet.
+Your task is to infer what this failure suggests about the specification.
+
+Important rules:
+- Treat the source program as the only ground truth.
+- Treat the failing test only as evidence of possible mismatch.
+- Do NOT suggest patching the specification to satisfy this one test case.
+- Infer only general issues supported by the source program.
+- Do NOT restate the test as a special-case rule.
+
+Please analyze:
+- what part of the source behavior is likely missing, vague, or incorrect in the current specification
+- whether the failure suggests a missing edge case, missing constraint, wrong abstraction, wrong transition rule, wrong counting rule, wrong termination condition, wrong ordering rule, or wrong assumption
+
+Output format:
+A. Likely mismatch category
+B. What the current specification may be missing or misstating
+C. What general behavior should be clarified in the specification
+D. Why this clarification is supported by the source program
+
+Source program:
+```c
+// AOJ 1168: Off Balance
+// 2017.12.22 bal4u@uu
+
+#include <stdio.h>
+//#include <stdlib.h>
+#include <string.h>
+
+#define MAX 602
+
+/* UNION-FIND library */
+int p[MAX], rank[MAX];
+
+void make_set(int x) { p[x] = x, rank[x] = 0; }
+void link(int x, int y) {
+	if (rank[x] > rank[y]) p[y] = x;
+	else { p[x] = y; if (rank[x] == rank[y]) rank[y] = rank[y] + 1;	}
+}
+int find_set(int x) { if (x != p[x]) p[x] = find_set(p[x]);	return p[x]; }
+void union_set(int x, int y) { link(find_set(x), find_set(y)); }
+
+char map[60][12]; int w, h;
+int  rel[60][10];
+int mv[4][2] = {{-1,0},{0,1},{1,0},{0,-1}};
+
+typedef struct { int used, m, mx, xl, xr, par, ch, sib; } T;
+T tbl[100]; int sz;
+int tr[MAX];
+
+void mktree(int r, int c, int this)
+{
+	int k, p, s;
+
+	if (r == h-1) {
+		if (map[r][c] == '.') return;
+		if (tbl[this].xl < 0) tbl[this].xl = c;
+		else if (c < tbl[this].xl) tbl[this].xl = c;
+		if (c > tbl[this].xr) tbl[this].xr = c;
+		return;
+	}
+	if (map[r+1][c] == '.') return;
+
+	k = rel[r+1][c];
+	if ((p = tr[k]) == this) return;
+
+	if (tbl[this].xl < 0) tbl[this].xl = c;
+	else if (c < tbl[this].xl) tbl[this].xl = c;
+	if (c > tbl[this].xr) tbl[this].xr = c;
+	if (tbl[this].par) return;
+
+	if ((s = tbl[p].ch) == 0) tbl[p].ch = this;
+	else {
+		while (tbl[s].sib) s = tbl[s].sib;
+		tbl[s].sib = this;
+	}
+	tbl[this].par = p;
+}
+
+int check(int this)
+{
+	int par, ch, sib;
+	double x;
+
+	if (tbl[this].used) return 1;
+	ch = tbl[this].ch;
+	if (ch) { if (!check(ch)) return 0; }
+
+	sib = tbl[this].sib;
+	while (sib) {
+		if (!check(sib)) return 0;
+		sib = tbl[sib].sib;
+	}
+
+	x = 0.5+(double)tbl[this].mx / tbl[this].m;
+	if (x <= tbl[this].xl || tbl[this].xr+1 <= x) return 0;
+
+	par = tbl[this].par;
+	tbl[par].m  += tbl[this].m;
+	tbl[par].mx += tbl[this].mx;
+	tbl[this].used = 1;
+	return 1;
+}
+
+int max;
+
+int main()
+{
+	int r, c, r2, c2, i, k;
+	T *tp;
+
+	while (scanf("%d%d", &w, &h) && w > 0) {
+
+		memset(rank, 0, sizeof(rank));
+		for (i = 0, r = 0; r < h; r++) {
+			scanf("%s", map[r]);
+			for (c = 0; c < w; c++) p[i] = i, rel[r][c] = i, i++;
+		}
+
+		for (r = 0; r < h; r++) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			for (i = 0; i < 4; i++) {
+				r2 = r + mv[i][0], c2 = c + mv[i][1];
+				if (r2 >= 0 && r2 < h && c2 >= 0 && c2 < w) {
+					if (map[r2][c2] == map[r][c]) union_set(rel[r][c], rel[r2][c2]);
+				}
+			}
+		}
+
+		sz = 1,	memset(tbl, 0, sizeof(tbl));
+		memset(tr, -1, sizeof(tr));
+		for (r = h-1; r >= 0; r--) for (c = 0; c < w; c++) {
+			if (map[r][c] == '.') continue;
+			k = rel[r][c] = find_set(rel[r][c]);
+			if (tr[k] < 0) i = tr[k] = sz++, tp = tbl+i, tp->xl = -1;
+			else           i = tr[k],        tp = tbl+i;
+			tp->m++, tp->mx += c;
+			mktree(r, c, i);
+		}
+		tbl[1].par = 1;
+
+		puts(check(1) ? "STABLE": "UNSTABLE");
+	}
+	return 0;
+}
+```
+
+Current specification:
+```text
+1. Functional Description  
+Determines whether each provided 2D grid configuration is globally **stable** or **unstable** under a balance rule applied to connected components of non-empty cells. Non-empty cells with the same symbol that are orthogonally adjacent belong to the same component. Components form a vertical support relation: a component may be supported by at most one component directly below it (based on immediate vertical adjacency). The configuration is reported **stable** iff every component’s horizontal center of mass lies strictly within its own horizontal footprint, after accounting for the masses of all components it supports.
+
+2. Inputs  
+- A sequence of test cases.  
+- For each test case:  
+  - Two positive integers: grid width and grid height.  
+  - Then exactly `height` rows of grid data, each containing `width` characters.  
+- Cells contain either an “empty” marker or a non-empty symbol; only non-empty symbols participate in components.  
+- Input terminates when a test case is encountered with non-positive width.
+
+3. Outputs  
+- For each test case, outputs exactly one line: either `STABLE` or `UNSTABLE`.
+
+4. Preconditions  
+- `1 <= width <= 10` and `1 <= height <= 60` (implied by fixed storage).  
+- Total number of cells `width * height <= 600` (implied by fixed storage).  
+- Each grid row provided has at least `width` characters.  
+- The number of distinct connected components of non-empty cells does not exceed 99 (implied by fixed storage for component records).  
+- The support relation induced by immediate vertical adjacency is such that each component has at most one supporting component below it (the program assumes a single parent support; if multiple supports exist, behavior is not defined by this contract).
+
+5. Postconditions  
+For each test case:  
+- Outputs `STABLE` iff all of the following hold for every non-empty connected component, when evaluated bottom-up through the support relation:  
+  - Let the component’s mass be its number of cells plus the masses of all components it supports (directly or indirectly).  
+  - Let the component’s horizontal moment be the sum of column indices of its own cells plus the moments of all components it supports.  
+  - Let the component’s horizontal center of mass be `0.5 + (moment / mass)`.  
+  - Let the component’s horizontal footprint be the inclusive range from its minimum occupied column to its maximum occupied column.  
+  - The center of mass lies strictly inside the footprint interval, i.e., strictly greater than the minimum column and strictly less than one past the maximum column.  
+- If any component violates the strict-inside condition, outputs `UNSTABLE`.
+
+6. Invariants  
+- Each non-empty cell belongs to exactly one connected component defined by orthogonal adjacency of equal symbols.  
+- Each component has a well-defined:  
+  - intrinsic mass (count of its cells),  
+  - intrinsic horizontal moment (sum of its cells’ column indices),  
+  - intrinsic footprint (min/max column among its cells).  
+- During stability evaluation, a component’s aggregated mass and moment equal the sum of its intrinsic values and those of all supported descendants that have been aggregated into it.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting for malformed input or capacity overflow.  
+- If input violates the stated preconditions (e.g., dimensions exceed fixed limits, too many components, or ambiguous/multiple supports), the observable output is unspecified.
+
+8. State Transitions (if applicable)  
+- For each test case, the program transitions through these abstract states:  
+  1) Parse grid and identify connected components of non-empty equal symbols.  
+  2) Derive a parent/child support relation based on immediate vertical adjacency between components.  
+  3) Evaluate stability bottom-up by aggregating supported masses/moments into supporting components and checking each component’s balance condition.  
+  4) Emit `STABLE` if all checks pass; otherwise emit `UNSTABLE`.  
+- No state is preserved between test cases beyond reading the next case.
+
+9. Non-functional Constraints (if inferable)  
+- Operates within fixed, small memory bounds implied by static arrays: up to 60×10 grid cells and up to 99 components.  
+- Time cost per test case is bounded by a small constant factor times the number of cells (plus near-linear component merging), consistent with the fixed maximum grid size.
+
+```
+
+Generated C program from the current specification:
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAX_W 10
+#define MAX_H 60
+#define MAX_CELLS (MAX_W * MAX_H)
+#define MAX_COMP 99
+
+typedef struct {
+    int used;
+    int intrinsic_mass;      /* number of cells */
+    int intrinsic_moment;    /* sum of column indices of its own cells */
+    int min_col, max_col;    /* footprint from own cells only */
+    int parent;              /* supporting component below (or -1) */
+    int child;               /* supported component above (or -1); at most one per spec assumption */
+    int agg_mass;            /* aggregated mass (intrinsic + supported descendants) */
+    int agg_moment;          /* aggregated moment */
+    int indeg;               /* number of children (0 or 1 under spec assumption) */
+} Comp;
+
+static char grid[MAX_H][MAX_W + 1];
+static int comp_id[MAX_H][MAX_W];
+
+static int in_bounds(int r, int c, int h, int w) {
+    return (r >= 0 && r < h && c >= 0 && c < w);
+}
+
+int main(void) {
+    int w, h;
+    while (scanf("%d", &w) == 1) {
+        if (w <= 0) break;
+        if (scanf("%d", &h) != 1) break;
+
+        /* Read grid rows; each row has at least w characters per spec. */
+        for (int r = 0; r < h; r++) {
+            if (scanf("%s", grid[r]) != 1) grid[r][0] = '\0';
+            grid[r][w] = '\0';
+        }
+
+        /* Initialize component ids to -1. */
+        for (int r = 0; r < h; r++)
+            for (int c = 0; c < w; c++)
+                comp_id[r][c] = -1;
+
+        Comp comps[MAX_COMP + 1];
+        memset(comps, 0, sizeof(comps));
+        for (int i = 0; i <= MAX_COMP; i++) {
+            comps[i].min_col = 0x3fffffff;
+            comps[i].max_col = -0x3fffffff;
+            comps[i].parent = -1;
+            comps[i].child = -1;
+        }
+
+        int ncomp = 0;
+
+        /* Identify connected components of non-empty equal symbols (orthogonal adjacency). */
+        for (int r0 = 0; r0 < h; r0++) {
+            for (int c0 = 0; c0 < w; c0++) {
+                char sym = grid[r0][c0];
+                if (sym == '.' || sym == '\0') continue; /* treat '.' as empty marker (narrowest reasonable) */
+                if (comp_id[r0][c0] != -1) continue;
+
+                if (ncomp >= MAX_COMP) {
+                    /* Capacity overflow: unspecified behavior by contract; proceed without extra handling. */
+                }
+                int cid = ncomp++;
+                if (cid > MAX_COMP) cid = MAX_COMP; /* clamp to avoid out-of-bounds; behavior unspecified anyway */
+
+                comps[cid].used = 1;
+                comps[cid].intrinsic_mass = 0;
+                comps[cid].intrinsic_moment = 0;
+                comps[cid].min_col = 0x3fffffff;
+                comps[cid].max_col = -0x3fffffff;
+                comps[cid].parent = -1;
+                comps[cid].child = -1;
+
+                /* BFS/DFS using a simple queue over cell indices. */
+                int q[MAX_CELLS];
+                int qh = 0, qt = 0;
+                q[qt++] = r0 * w + c0;
+                comp_id[r0][c0] = cid;
+
+                while (qh < qt) {
+                    int idx = q[qh++];
+                    int r = idx / w;
+                    int c = idx % w;
+
+                    comps[cid].intrinsic_mass += 1;
+                    comps[cid].intrinsic_moment += c;
+                    if (c < comps[cid].min_col) comps[cid].min_col = c;
+                    if (c > comps[cid].max_col) comps[cid].max_col = c;
+
+                    static const int dr[4] = { -1, 1, 0, 0 };
+                    static const int dc[4] = { 0, 0, -1, 1 };
+                    for (int k = 0; k < 4; k++) {
+                        int nr = r + dr[k], nc = c + dc[k];
+                        if (!in_bounds(nr, nc, h, w)) continue;
+                        if (comp_id[nr][nc] != -1) continue;
+                        if (grid[nr][nc] != sym) continue;
+                        comp_id[nr][nc] = cid;
+                        q[qt++] = nr * w + nc;
+                    }
+                }
+            }
+        }
+
+        /* Derive support relation based on immediate vertical adjacency:
+           if a cell of component A has a non-empty cell directly below belonging to component B,
+           then A is supported by B (A.parent = B). Each component has at most one parent per spec. */
+        for (int r = 0; r < h - 1; r++) {
+            for (int c = 0; c < w; c++) {
+                int a = comp_id[r][c];
+                int b = comp_id[r + 1][c];
+                if (a == -1 || b == -1) continue;
+                if (a == b) continue;
+                /* a is above b */
+                if (comps[a].parent == -1) {
+                    comps[a].parent = b;
+                } else {
+                    /* Multiple supports: unspecified by contract; keep first observed. */
+                }
+            }
+        }
+
+        /* Build child pointers and indegrees (each parent may have at most one child under spec assumption). */
+        for (int i = 0; i < ncomp && i <= MAX_COMP; i++) {
+            if (!comps[i].used) continue;
+            int p = comps[i].parent;
+            if (p >= 0 && p <= MAX_COMP) {
+                comps[p].child = i; /* if multiple children exist, behavior unspecified; last wins */
+                comps[p].indeg += 1;
+            }
+        }
+
+        /* Bottom-up evaluation: aggregate supported masses/moments into supporting components.
+           Use a queue of components with indeg==0 (no supported components above them). */
+        int q[MAX_COMP + 1];
+        int qh = 0, qt = 0;
+        for (int i = 0; i < ncomp && i <= MAX_COMP; i++) {
+            if (!comps[i].used) continue;
+            comps[i].agg_mass = comps[i].intrinsic_mass;
+            comps[i].agg_moment = comps[i].intrinsic_moment;
+            if (comps[i].indeg == 0) q[qt++] = i;
+        }
+
+        int stable = 1;
+
+        while (qh < qt) {
+            int v = q[qh++];
+
+            /* Check strict-inside condition using integer arithmetic:
+               center = 0.5 + moment/mass
+               require: center > min_col  AND center < (max_col + 1)
+               Multiply by 2*mass:
+                 2*center*mass = mass + 2*moment
+               Conditions:
+                 mass + 2*moment > 2*min_col*mass
+                 mass + 2*moment < 2*(max_col+1)*mass
+            */
+            int mass = comps[v].agg_mass;
+            int moment = comps[v].agg_moment;
+            int minc = comps[v].min_col;
+            int maxc = comps[v].max_col;
+
+            /* mass is positive for any non-empty component */
+            long long lhs = (long long)mass + 2LL * (long long)moment;
+            long long lo = 2LL * (long long)minc * (long long)mass;
+            long long hi = 2LL * (long long)(maxc + 1) * (long long)mass;
+
+            if (!(lhs > lo && lhs < hi)) {
+                stable = 0;
+                break;
+            }
+
+            /* Propagate aggregation to parent (supporting component below). */
+            int p = comps[v].parent;
+            if (p >= 0 && p <= MAX_COMP) {
+                comps[p].agg_mass += comps[v].agg_mass;
+                comps[p].agg_moment += comps[v].agg_moment;
+                comps[p].indeg -= 1;
+                if (comps[p].indeg == 0) q[qt++] = p;
+            }
+        }
+
+        /* If there are cycles or unresolved indegrees, behavior is not defined by contract.
+           We do not add extra handling; remaining components would not be checked. */
+
+        puts(stable ? "STABLE" : "UNSTABLE");
+    }
+    return 0;
+}
+
+```
+
+Failing execution report:
+```text
+COMPILER: gcc
+COMPILER_FLAGS: -O2 -std=c11
+
+Compilation: PASSED
+
+Sample 1: FAIL
+Input file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_input.txt
+Expected output file: collected_dataset/problem_test_inputs_and_outputs/p00749/p00749_sample1_output.txt
+Input:
+5 4
+.....
+..#..
+.###.
+#####
+6 6
+......
+..##..
+.####.
+######
+......
+......
+0 0
+Expected:
+STABLE
+UNSTABLE
+Actual:
+STABLE
+STABLE
+
+Summary
+Total samples: 1
+Passed: 0
+Failed: 1
+Timed out: 0
+Runtime errors: 0
+
+```

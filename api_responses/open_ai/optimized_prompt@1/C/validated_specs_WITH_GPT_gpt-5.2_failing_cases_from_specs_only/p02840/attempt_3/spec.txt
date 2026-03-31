@@ -1,0 +1,86 @@
+1. Functional Description  
+Reads integers \(N, X, D\) and outputs the number of **distinct integer values** obtainable as subset sums from the first \(N\) terms of the arithmetic progression
+\[
+X,\; X+D,\; X+2D,\; \dots,\; X+(N-1)D.
+\]
+A subset may have any size \(i\) with \(0 \le i \le N\); for each \(i\), any choice of \(i\) distinct terms is allowed, and the sum of the chosen terms is considered. The program counts how many distinct sums occur over all subset sizes and choices.
+
+For \(D \ne 0\), for each fixed subset size \(i\), the achievable sums lie in a single residue class modulo a normalized step and form a contiguous run in that residue class; the program unions these runs across all \(i\) and counts the distinct lattice points represented.
+
+2. Inputs  
+- Three signed 64-bit integers:
+  - \(N\): number of available terms from the progression.
+  - \(X\): first term.
+  - \(D\): common difference.
+
+3. Output  
+- One signed integer: the number of distinct subset sums obtainable under the rule above.
+
+4. Preconditions / Assumptions  
+- \(0 \le N \le 200000\) (the program uses fixed-size storage indexed up to \(N\)).  
+- All computations use signed 64-bit integer arithmetic; if intermediate values overflow, behavior is unspecified.  
+- Input is read using `scanf`; if input is missing or malformed, behavior is unspecified.
+
+5. Detailed Semantics and Edge Cases  
+
+5.1 Special cases when \(X=0\) or \(D=0\)  
+The program returns immediately with:
+- If \(X=0\) and \(D=0\): output \(1\).  
+- Else if \(D=0\): output \(N+1\).  
+- Else (so \(X=0\) and \(D\ne 0\)): output \(\frac{N(N-1)}{2}+1\).
+
+5.2 General case (\(X \ne 0\) and \(D \ne 0\))  
+
+**Normalization and sign handling**
+- Let \(G=\gcd(|X|,|D|)\). The program replaces \(X \leftarrow X/G\) and \(D \leftarrow D/G\).
+- It then defines two endpoint-like values \(X\) and \(Y\) used in later formulas, and ensures the internal step is positive:
+  - If \(D < 0\): set \(Y \leftarrow X\); set \(X \leftarrow X + D\cdot (N-1)\); then set \(D \leftarrow -D\).
+  - If \(D > 0\): set \(Y \leftarrow X + D\cdot (N-1)\).
+  After this, \(D>0\) holds for the remaining computation.
+
+**Per-size reachable-set representation**
+For each \(i\) from \(0\) to \(N\), the program constructs an interval description of the sums achievable using exactly \(i\) terms. It computes:
+- For \(i=0\), it initializes a single interval with residue \(v=0\) and bounds \([l,r]=[0, D]\).
+- For each \(i=1..N\), it computes:
+  \[
+  L(i) = \frac{(2X + D(i-1))\cdot i}{2}, \qquad
+  R(i) = \frac{(2Y - D(i-1))\cdot i}{2} + D,
+  \]
+  and the residue class
+  \[
+  V(i) \equiv L(i) \pmod D,
+  \]
+  taken as a nonnegative remainder in \(\{0,\dots,D-1\}\).
+
+For a fixed \(i\), the program treats the achievable sums as exactly the integers \(s\) such that:
+- \(s \equiv V(i) \pmod D\), and
+- \(L(i) \le s < R(i)\).
+(Equivalently, it represents a contiguous run of points spaced by \(D\) within \([L(i), R(i))\).)
+
+**Union/merging logic across all \(i\)**
+- The program maintains a collection of stored intervals, each tagged with a residue value \(v\) (modulo \(D\)). Multiple stored intervals may share the same residue.
+- When processing a newly generated interval \([L,R)\) with residue \(V\), it searches among currently stored intervals for one that satisfies **both**:
+  - same residue: \(p.v = V\), and
+  - overlap/touch predicate: \(p.l \le R\) and \(p.r \ge L\).
+- If such an interval is found, it is expanded in place to:
+  \[
+  p.l \leftarrow \min(p.l, L), \qquad p.r \leftarrow \max(p.r, R).
+  \]
+- If no stored interval satisfies both conditions, the program inserts a new stored interval node with \((v,l,r)=(V,L,R)\), even if other stored intervals with the same residue exist but are disjoint.
+
+No additional passes are performed to repeatedly merge intervals that become connectable indirectly; merging occurs only when a newly processed interval overlaps/touches an existing one found by the above search.
+
+**Counting distinct sums**
+After all \(i\) have been processed, the program computes:
+\[
+\text{ans} = \sum_{\text{stored intervals }(v,l,r)} \frac{r-l}{D},
+\]
+using integer division. This corresponds to counting, for each stored interval \([l,r)\), how many integers in that half-open range have the interval’s residue modulo \(D\).
+
+6. Ordering / Tie-breaking / Merging Rules  
+- Residues are computed as a nonnegative modulo \(D\).  
+- A new interval is merged only with a stored interval that matches both residue and the overlap/touch predicate \(l \le R\) and \(r \ge L\); otherwise a new interval is created.  
+- Because insertion occurs when no mergeable interval exists, there may be multiple stored intervals for the same residue class.
+
+7. Termination and Side Effects  
+- The program reads exactly one triple \((N,X,D)\), prints one line containing the computed count, flushes stdout, and terminates.

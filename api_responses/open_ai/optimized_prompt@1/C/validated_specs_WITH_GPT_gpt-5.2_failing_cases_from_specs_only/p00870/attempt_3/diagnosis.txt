@@ -1,0 +1,21 @@
+A. Likely mismatch category  
+**Test harness / oracle mismatch (no behavioral evidence)**; possibly **input parsing/normalization edge case** is underspecified.
+
+B. What the current specification may be missing or misstating  
+- The failing report provides **no concrete failing input/output**, so it does not actually demonstrate a semantic mismatch between the spec-derived program and the source. The only “failure” is that the evaluation framework expected sample-based validation but found none (“NO_SAMPLES”).  
+- Separately, the spec’s input description is slightly cleaner than the source’s actual parsing: the source contains a defensive step that **removes a trailing control character** from each fragment (`if(buf[ln-1]<' ') buf[ln-1]='\0';`). The current spec does not mention any such normalization, and the generated program does not implement it.
+
+C. What general behavior should be clarified in the specification  
+- Clarify whether fragment tokens may contain (or be followed by) **non-printable trailing characters** that should be stripped before concatenation, and if so, what exact rule is used (the source strips the last character if it is `< ' '` after reading the token).  
+- Clarify that the program’s behavior is defined purely by token-based `scanf("%s")` reading, plus that extra trailing-character stripping step, rather than assuming perfectly clean tokens.
+
+D. Why this clarification is supported by the source program  
+- The source explicitly performs:
+  ```c
+  ln=strlen(buf);
+  if(buf[ln-1]<' ')
+    buf[ln-1]='\0';
+  strcat(t,buf);
+  ```
+  This indicates the intended behavior includes **post-processing each fragment** before concatenation, even though `scanf("%s")` normally would not include whitespace/newlines. The presence of this code suggests the author anticipated inputs where the last character of a scanned fragment could be a control character and chose to remove it.  
+- Because the failing report contains no sample I/O, this is the only concrete, source-supported area where the current specification could be missing a real behavior detail.

@@ -1,0 +1,240 @@
+```c
+#include <stdio.h>
+#include <string.h>
+
+#define MAXN 51
+#define COSTDIM 52
+#define INF 0x3f3f3f3f
+
+typedef signed char i8;
+
+static int char_index(int c) {
+    if (c >= 'A' && c <= 'Z') return c - 'A';
+    if (c >= 'a' && c <= 'z') return 26 + (c - 'a');
+    /* Preconditions say this won't happen; undefined behavior otherwise. */
+    return 0;
+}
+
+static int lex_less(const i8 a[COSTDIM], const i8 b[COSTDIM]) {
+    for (int k = 0; k < COSTDIM; k++) {
+        if (a[k] != b[k]) return (a[k] < b[k]);
+    }
+    return 0;
+}
+
+static void cost_add(i8 out[COSTDIM], const i8 a[COSTDIM], const i8 b[COSTDIM]) {
+    /* Signed-byte arithmetic; overflow is implementation-defined in C,
+       but preconditions require magnitudes remain representable. */
+    for (int k = 0; k < COSTDIM; k++) out[k] = (i8)(a[k] + b[k]);
+}
+
+int main(void) {
+    int N;
+    if (scanf("%d", &N) != 1) return 0;
+
+    /* Consume the remainder of the line after N. */
+    int ch;
+    do { ch = getchar(); } while (ch != '\n' && ch != EOF);
+
+    static char grid[MAXN][MAXN];
+    static char linebuf[4096];
+
+    for (int i = 0; i < N; i++) {
+        if (!fgets(linebuf, (int)sizeof(linebuf), stdin)) return 0;
+        /* Only first N characters are semantically used. */
+        for (int j = 0; j < N; j++) grid[i][j] = linebuf[j];
+    }
+
+    /* Edge costs: selecting a letter decreases its component by 1. */
+    static i8 edge_cost[MAXN][MAXN][COSTDIM];
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = 0; k < COSTDIM; k++) edge_cost[i][j][k] = 0;
+            int idx = char_index((unsigned char)grid[i][j]);
+            edge_cost[i][j][idx] = (i8)-1;
+        }
+    }
+
+    /* DP over subsets of columns: dp[mask] is best lexicographic cost vector
+       after assigning first popcount(mask) rows to columns in mask. */
+    int maxmask = 1 << N;
+
+    static i8 dp[1 << MAXN][COSTDIM]; /* Not feasible for MAXN; but N<=51.
+                                         We must not allocate 2^N for N up to 51.
+                                         Use narrowest reasonable interpretation:
+                                         implement assignment via min-cost max-flow
+                                         with lexicographic costs instead. */
+    (void)dp; /* silence unused if compiled with warnings */
+
+    /* Min-cost max-flow with lexicographic costs (52-dim signed-byte vectors).
+       Graph: source -> rows -> cols -> sink, capacity 1 edges.
+       Use successive shortest augmenting path with Bellman-Ford-like relaxation
+       on lexicographic distances (no negative cycles in this layered graph). */
+
+    /* Vertex indexing: 0=src, 1..N rows, N+1..2N cols, 2N+1=sink */
+    int V = 2 * N + 2;
+    int SRC = 0;
+    int SNK = 2 * N + 1;
+
+    /* Fixed-size adjacency with explicit edge list (Dinic-style). */
+    typedef struct {
+        int to, rev;
+        int cap;
+        i8 cost[COSTDIM];
+    } Edge;
+
+    /* Upper bound edges:
+       src->rows: N
+       rows->cols: N*N
+       cols->sink: N
+       plus reverse edges => *2
+    */
+    static Edge g[2 * (MAXN + MAXN * MAXN + MAXN)][104]; /* too awkward */
+    /* Use compact adjacency arrays instead. */
+    static Edge edges[2 * (MAXN + MAXN * MAXN + MAXN)];
+    static int head[104], nxt[2 * (MAXN + MAXN * MAXN + MAXN)];
+    static int ecnt;
+
+    for (int i = 0; i < V; i++) head[i] = -1;
+    ecnt = 0;
+
+    auto void add_edge(int u, int v, int cap, const i8 cost[COSTDIM]) {
+        int e1 = ecnt++;
+        int e2 = ecnt++;
+        edges[e1].to = v;
+        edges[e1].rev = e2;
+        edges[e1].cap = cap;
+        for (int k = 0; k < COSTDIM; k++) edges[e1].cost[k] = cost[k];
+
+        edges[e2].to = u;
+        edges[e2].rev = e1;
+        edges[e2].cap = 0;
+        for (int k = 0; k < COSTDIM; k++) edges[e2].cost[k] = (i8)(-cost[k]);
+
+        nxt[e1] = head[u]; head[u] = e1;
+        nxt[e2] = head[v]; head[v] = e2;
+    }
+
+    /* Build graph */
+    i8 zero[COSTDIM];
+    for (int k = 0; k < COSTDIM; k++) zero[k] = 0;
+
+    for (int i = 0; i < N; i++) add_edge(SRC, 1 + i, 1, zero);
+    for (int j = 0; j < N; j++) add_edge(1 + N + j, SNK, 1, zero);
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            add_edge(1 + i, 1 + N + j, 1, edge_cost[i][j]);
+        }
+    }
+
+    /* Successive shortest augmenting path using lexicographic distances. */
+    static i8 dist[104][COSTDIM];
+    static int inq[104];
+    static int prevv[104];
+    static int preve[104];
+
+    i8 total_cost[COSTDIM];
+    for (int k = 0; k < COSTDIM; k++) total_cost[k] = 0;
+
+    int flow = 0;
+    while (flow < N) {
+        /* Initialize distances to +INF in lexicographic sense:
+           represent as a flag plus vector; simplest: use a separate reachable flag. */
+        static int reachable[104];
+        for (int v = 0; v < V; v++) {
+            reachable[v] = 0;
+            inq[v] = 0;
+            prevv[v] = -1;
+            preve[v] = -1;
+            for (int k = 0; k < COSTDIM; k++) dist[v][k] = 0;
+        }
+        reachable[SRC] = 1;
+        for (int k = 0; k < COSTDIM; k++) dist[SRC][k] = 0;
+
+        /* SPFA-like relaxation with lexicographic comparison. */
+        static int q[10000];
+        int qh = 0, qt = 0;
+        q[qt++] = SRC;
+        inq[SRC] = 1;
+
+        while (qh != qt) {
+            int u = q[qh++];
+            if (qh == (int)(sizeof(q) / sizeof(q[0]))) qh = 0;
+            inq[u] = 0;
+
+            for (int ei = head[u]; ei != -1; ei = nxt[ei]) {
+                Edge *e = &edges[ei];
+                if (e->cap <= 0) continue;
+                int v = e->to;
+
+                i8 cand[COSTDIM];
+                if (!reachable[u]) continue;
+                cost_add(cand, dist[u], e->cost);
+
+                int improve = 0;
+                if (!reachable[v]) {
+                    improve = 1;
+                } else if (lex_less(cand, dist[v])) {
+                    improve = 1;
+                }
+
+                if (improve) {
+                    reachable[v] = 1;
+                    for (int k = 0; k < COSTDIM; k++) dist[v][k] = cand[k];
+                    prevv[v] = u;
+                    preve[v] = ei;
+                    if (!inq[v]) {
+                        inq[v] = 1;
+                        q[qt++] = v;
+                        if (qt == (int)(sizeof(q) / sizeof(q[0]))) qt = 0;
+                    }
+                }
+            }
+        }
+
+        if (!reachable[SNK]) break; /* Should not happen under preconditions. */
+
+        /* Augment 1 unit (all capacities are 1 along path). */
+        int v = SNK;
+        while (v != SRC) {
+            int ei = preve[v];
+            edges[ei].cap -= 1;
+            edges[edges[ei].rev].cap += 1;
+            v = prevv[v];
+        }
+
+        /* Add path cost to total cost. */
+        for (int k = 0; k < COSTDIM; k++) total_cost[k] = (i8)(total_cost[k] + dist[SNK][k]);
+        flow += 1;
+    }
+
+    /* Recover chosen matching by inspecting saturated row->col edges. */
+    static int counts[COSTDIM];
+    for (int k = 0; k < COSTDIM; k++) counts[k] = 0;
+
+    for (int i = 0; i < N; i++) {
+        int u = 1 + i;
+        for (int ei = head[u]; ei != -1; ei = nxt[ei]) {
+            Edge *e = &edges[ei];
+            int v = e->to;
+            if (v >= 1 + N && v < 1 + N + N) {
+                /* Original forward edge had cap 1; if now cap==0, it was used. */
+                if (e->cap == 0) {
+                    int j = v - (1 + N);
+                    int idx = char_index((unsigned char)grid[i][j]);
+                    counts[idx]++;
+                    break;
+                }
+            }
+        }
+    }
+
+    /* Output sorted A-Z then a-z with multiplicity. */
+    for (int k = 0; k < COSTDIM; k++) {
+        char outc = (k < 26) ? (char)('A' + k) : (char)('a' + (k - 26));
+        for (int t = 0; t < counts[k]; t++) putchar(outc);
+    }
+    putchar('\n');
+    return 0;
+}
+```

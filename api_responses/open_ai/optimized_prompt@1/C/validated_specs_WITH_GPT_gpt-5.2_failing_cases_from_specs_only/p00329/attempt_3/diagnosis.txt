@@ -1,0 +1,26 @@
+A. Likely mismatch category  
+**Wrong input parsing / wrong graph construction (ordering/indexing of vertices).**
+
+B. What the current specification may be missing or misstating  
+- The spec describes the input as an `N×N` matrix of binary entries read as “entry character + one extra consumed character per entry,” but it does not capture that the **source program’s scanning pattern is not row-major in the natural “left i, right j” sense**.  
+- In the source, edges are added to `to[j]` while iterating `i` then `j`, i.e. the adjacency list index is `j`, not `i`. This effectively **transposes** the matrix relative to the “left vertex i corresponds to row i” interpretation used by the generated program/spec.  
+- Additionally, the source uses a custom `in()` that reads digits directly and then immediately starts consuming the matrix with `gc()`. The spec’s “one extra character consumed after each entry” is incomplete without clarifying that the **first matrix character is read immediately after the integer without skipping whitespace**, and that the matrix is expected to be in a very specific character layout.
+
+C. What general behavior should be clarified in the specification  
+- Clarify **which matrix dimension corresponds to left vertices and which corresponds to right vertices** as implemented by the source (i.e., whether an input “1” at position `(row i, col j)` creates an edge from left `i` to right `j`, or from left `j` to right `i`).  
+- Clarify the **exact character-level input format** the source expects around the matrix (including whether whitespace is skipped or treated as data, and the fact that the program reads two characters per cell with no whitespace skipping), because this affects whether the constructed graph matches the intended matrix at all.
+
+D. Why this clarification is supported by the source program  
+- Graph construction in the source is:
+
+  ```c
+  for (i = 0; i < N; i++) {
+    for (j = 0; j < N; j++) {
+      if (gc() & 1) to[j][hi[j]++] = N+i;
+      gc();
+    }
+  }
+  ```
+
+  This shows that when reading the cell at loop indices `(i, j)`, the edge is appended to adjacency list `to[j]` and points to vertex `N+i`. So the “left-side vertex” being populated is `j`, not `i`, which is a **systematic transpose** compared to the spec’s statement “edges from left vertices `0..N-1` to right vertices `0..N-1` described by `N×N` entries” in row-major order.  
+- The failing test producing `no` where the source expects `yes` is consistent with building the **wrong bipartite graph** (e.g., transposed edges and/or misread characters), which can easily destroy existence of a perfect matching even when one exists in the correctly interpreted graph.

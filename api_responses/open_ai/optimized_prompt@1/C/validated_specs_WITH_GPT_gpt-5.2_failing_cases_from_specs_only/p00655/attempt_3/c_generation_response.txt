@@ -1,0 +1,192 @@
+```c
+#include <stdio.h>
+#include <ctype.h>
+
+#define MAX 200005
+
+/* Fast-ish integer reader per spec:
+   - skip non-digits
+   - read maximal run of digits as non-negative int
+   Undefined behavior if input is insufficient/malformed (per spec). */
+static int read_uint(void) {
+    int c;
+    do {
+        c = getchar();
+    } while (c != EOF && !isdigit((unsigned char)c));
+    int x = 0;
+    while (c != EOF && isdigit((unsigned char)c)) {
+        x = x * 10 + (c - '0');
+        c = getchar();
+    }
+    return x;
+}
+
+/* FH (first half) storage as a stack (back is top).
+   Additionally maintain "record" sequences when scanning FH left->right:
+   - prefix minima records: strictly decreasing values
+   - prefix maxima records: strictly increasing values
+   Queries take k-th from END (most recent record first).
+*/
+static int fh[MAX];
+static int fh_n;
+
+static int fh_minrec[MAX];
+static int fh_minrec_n;
+
+static int fh_maxrec[MAX];
+static int fh_maxrec_n;
+
+/* SH (second half) storage as a queue implemented by growing indices (no wrap).
+   Additionally maintain monotone deques for minima/maxima over SH in current order:
+   - min deque: nondecreasing values
+   - max deque: nonincreasing values
+   On insertion at back: pop dominated from back, then push.
+   On removal from front: if leaving value equals deque front, pop front.
+   Queries take k-th from FRONT.
+*/
+static int sh[MAX];
+static int sh_l, sh_r; /* active range [sh_l, sh_r) */
+
+static int sh_mindeq[MAX];
+static int sh_mindeq_l, sh_mindeq_r;
+
+static int sh_maxdeq[MAX];
+static int sh_maxdeq_l, sh_maxdeq_r;
+
+/* Push value to back of FH and update record sequences. */
+static void fh_push(int x) {
+    fh[fh_n++] = x;
+
+    if (fh_minrec_n == 0 || x < fh_minrec[fh_minrec_n - 1]) {
+        fh_minrec[fh_minrec_n++] = x;
+    }
+    if (fh_maxrec_n == 0 || x > fh_maxrec[fh_maxrec_n - 1]) {
+        fh_maxrec[fh_maxrec_n++] = x;
+    }
+}
+
+/* Pop value from back of FH and update record sequences if needed. */
+static int fh_pop(void) {
+    int x = fh[--fh_n];
+    if (fh_minrec_n > 0 && x == fh_minrec[fh_minrec_n - 1]) fh_minrec_n--;
+    if (fh_maxrec_n > 0 && x == fh_maxrec[fh_maxrec_n - 1]) fh_maxrec_n--;
+    return x;
+}
+
+/* Push value to back of SH and update monotone deques. */
+static void sh_push(int x) {
+    sh[sh_r++] = x;
+
+    while (sh_mindeq_r > sh_mindeq_l && sh_mindeq[sh_mindeq_r - 1] > x) sh_mindeq_r--;
+    sh_mindeq[sh_mindeq_r++] = x;
+
+    while (sh_maxdeq_r > sh_maxdeq_l && sh_maxdeq[sh_maxdeq_r - 1] < x) sh_maxdeq_r--;
+    sh_maxdeq[sh_maxdeq_r++] = x;
+}
+
+/* Pop value from front of SH and update monotone deques. */
+static int sh_pop_front(void) {
+    int x = sh[sh_l++];
+    if (sh_mindeq_l < sh_mindeq_r && sh_mindeq[sh_mindeq_l] == x) sh_mindeq_l++;
+    if (sh_maxdeq_l < sh_maxdeq_r && sh_maxdeq[sh_maxdeq_l] == x) sh_maxdeq_l++;
+    return x;
+}
+
+static int sh_size(void) { return sh_r - sh_l; }
+
+/* Rebalance if |FH| < |SH| by moving one element from front of SH to back of FH. */
+static void rebalance_if_needed(void) {
+    if (fh_n < sh_size()) {
+        int x = sh_pop_front();
+        fh_push(x);
+    }
+}
+
+static void reset_batch(void) {
+    fh_n = 0;
+    fh_minrec_n = 0;
+    fh_maxrec_n = 0;
+
+    sh_l = sh_r = 0;
+    sh_mindeq_l = sh_mindeq_r = 0;
+    sh_maxdeq_l = sh_maxdeq_r = 0;
+}
+
+int main(void) {
+    for (;;) {
+        int q = read_uint();
+        if (q == 0) return 0;
+
+        reset_batch();
+
+        for (int i = 0; i < q; i++) {
+            int op = read_uint();
+            switch (op) {
+                case 0: {
+                    int x = read_uint();
+                    /* Append to end of overall sequence => push to SH back, then rebalance. */
+                    sh_push(x);
+                    rebalance_if_needed();
+                } break;
+
+                case 1: {
+                    /* Delete and output back of FH, then rebalance. */
+                    int x = fh_pop();
+                    printf("%d\n", x);
+                    rebalance_if_needed();
+                } break;
+
+                case 2: {
+                    /* min1(FH) == mink(FH,1): last element of FH min record sequence */
+                    printf("%d\n", fh_minrec[fh_minrec_n - 1]);
+                } break;
+
+                case 3: {
+                    /* min1(SH): front of SH min deque */
+                    printf("%d\n", sh_mindeq[sh_mindeq_l]);
+                } break;
+
+                case 4: {
+                    int k = read_uint();
+                    /* mink(FH,k): k-th from end of min record sequence */
+                    printf("%d\n", fh_minrec[fh_minrec_n - k]);
+                } break;
+
+                case 5: {
+                    int k = read_uint();
+                    /* mink(SH,k): k-th from front of min deque */
+                    printf("%d\n", sh_mindeq[sh_mindeq_l + (k - 1)]);
+                } break;
+
+                case 6: {
+                    /* max1(FH) */
+                    printf("%d\n", fh_maxrec[fh_maxrec_n - 1]);
+                } break;
+
+                case 7: {
+                    /* max1(SH) */
+                    printf("%d\n", sh_maxdeq[sh_maxdeq_l]);
+                } break;
+
+                case 8: {
+                    int k = read_uint();
+                    /* maxk(FH,k): k-th from end of max record sequence */
+                    printf("%d\n", fh_maxrec[fh_maxrec_n - k]);
+                } break;
+
+                case 9: {
+                    int k = read_uint();
+                    /* maxk(SH,k): k-th from front of max deque */
+                    printf("%d\n", sh_maxdeq[sh_maxdeq_l + (k - 1)]);
+                } break;
+
+                default:
+                    /* Undefined behavior per spec; do nothing. */
+                    break;
+            }
+        }
+
+        puts("end");
+    }
+}
+```

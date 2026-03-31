@@ -1,0 +1,70 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description  
+For each dataset, the program counts how many indices in a constructed target string are reachable in a state where **all given patterns have been used exactly once**, when building a match by repeatedly choosing an unused pattern that exactly matches the target at the current index and advancing by that pattern’s full length.
+
+2. Inputs  
+- Multiple datasets. Each dataset begins with two integers `n` and `m`.  
+  - `n`: number of pattern strings.  
+  - `m`: number of string fragments used to build the target string.  
+- Then `n` pattern strings (whitespace-delimited tokens).  
+- Then `m` fragment strings (whitespace-delimited tokens), concatenated in the given order to form the target string.  
+- Input terminates when `n == 0` and `m == 0`.
+
+3. Outputs  
+- For each dataset, output one integer: the number of target indices `p` (with `0 ≤ p ≤ |target|`) such that there exists a sequence using every pattern exactly once that matches the target consecutively from some reachable start state and ends exactly at index `p`.
+
+4. Preconditions / Constraints (implied by fixed storage)  
+- `n ≤ 12` (so that `2^n ≤ 4096`).  
+- Each pattern length ≤ 20 characters.  
+- The total length of the concatenated target string ≤ 5000 characters.  
+- Patterns and fragments are read as single tokens (no internal whitespace).  
+- If these bounds are violated, behavior is undefined.
+
+5. Semantics / Reachability Definition  
+- Let `target` be the concatenation of the `m` fragments in order. Let `L = |target|`.  
+- Define a reachability table over states `(i, S)` where:  
+  - `i` is an index into the target string (`0 ≤ i ≤ L`), representing the current position.  
+  - `S` is a subset of patterns already used (represented conceptually as a set; each pattern can be used at most once).  
+- A transition is allowed from `(i, S)` to `(i + len(k), S ∪ {k})` for any pattern `k ∉ S` such that the full pattern `k` matches the target starting at index `i` for `len(k)` characters (exact character-by-character match).  
+- The computation treats `(0, ∅)` as the only intended starting state; reachability is propagated forward by the above transitions.
+
+6. Counting / Output Meaning  
+- A target index `p` is counted if and only if the state `(p, AllPatterns)` is reachable, where `AllPatterns` denotes the subset containing every pattern.  
+- The final output is the number of indices `p` in `[0, L]` for which `(p, AllPatterns)` is reachable.  
+- Different orders of using the patterns may lead to the same end index; each end index is counted at most once.
+
+7. Edge Cases  
+- If no sequence of pattern matches can use all patterns exactly once, the output is zero.  
+- The end index `p` need not equal `L`; reaching a full-pattern-used state may occur before the end of the target string.  
+- Patterns are treated as distinct by their input position (even if their contents are identical), and each input pattern instance may be used at most once.
+
+8. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed. Malformed input or premature EOF results in unspecified behavior.
+
+```

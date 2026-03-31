@@ -1,0 +1,84 @@
+You are a senior systems engineer fluent in C, with strong expertise in program semantics and systems programming.
+
+Task:
+Translate the given Specification into C code.
+
+Primary goal:
+Preserve semantics based ONLY on the Specification provided. Do not assume any external code or source.
+
+Instructions:
+1) Treat the Specification as the only source of truth for behavior.
+2) Preserve observable I/O behavior described in the Specification.
+3) Preserve corner-case behavior implied by the Specification. For example, if the Specification relies on:
+   - integer overflow / wraparound,
+   - bit-level tricks,
+   - undefined/implementation-defined behavior,
+   then emulate the intended behavior as closely as possible in C.
+4) If the Specification is incomplete, ambiguous, or inconsistent:
+   - do not invent extra functionality
+   - choose the narrowest reasonable interpretation justified by the Specification
+   - produce compilable C code that stays as faithful as possible to the stated behavior
+
+6) You may add comments as needed to explain non-obvious translation choices, especially if they relate to preserving semantics or handling corner cases.
+7) Any explanation must appear only as valid C comments inside the code and not after the code.
+8) Return ONLY the C code in a single ```c code block.
+
+Specification:
+```text
+1. Functional Description
+- Reads a directed graph with a fixed number of vertices and edges.
+- For each input edge, classifies it as either:
+  - **“same”**: the edge is redundant in the sense that there exists an alternative directed path from its source to its destination that does not use this edge, and (if the edge connects two different strongly connected components) it is the unique direct edge from the source component to the destination component and is not bypassable via a longer component-level route.
+  - **“diff”**: otherwise (i.e., removing the edge breaks reachability from its source to its destination, or the edge is not uniquely determined at the component level as described below).
+- More precisely, an edge is labeled **“diff”** if any of the following holds:
+  - Its endpoints lie in different strongly connected components (SCCs) and either:
+    - there exists at least one other edge from the same source SCC to the same destination SCC, or
+    - there exists a directed path in the SCC-condensation graph from the source SCC to the destination SCC of length at least 2 (i.e., via at least one intermediate SCC).
+  - Its endpoints lie in the same SCC and there is **no** directed path from its source to its destination that avoids this edge.
+
+2. Inputs
+- Two integers:
+  - number of vertices `n`
+  - number of directed edges `m`
+- Then `m` pairs of integers, each giving one directed edge as an ordered pair of vertex indices.
+- Vertex indices are interpreted as referring to the `n` vertices (assumed to be provided in a consistent 1-based scheme and internally treated as 0-based).
+
+3. Outputs
+- Exactly `m` lines, in the same order as the input edges.
+- Each line is either the word **“same”** or **“diff”**, representing the classification of that edge as defined above.
+
+4. Preconditions
+- `1 ≤ n ≤ 1000`.
+- `0 ≤ m ≤ 200000`.
+- Every input edge endpoint refers to a valid vertex (within the declared vertex range).
+- The total number of internal adjacency-link records required does not exceed a fixed bound proportional to `3*m` (i.e., the program assumes sufficient capacity for building multiple adjacency representations derived from the `m` edges).
+
+5. Postconditions
+- For each edge `e = (u → v)`:
+  - If `u` and `v` are in different SCCs, the output is:
+    - **“same”** iff:
+      - `e` is the only edge from SCC(u) to SCC(v), and
+      - there is no alternative SCC-level path from SCC(u) to SCC(v) that uses at least one intermediate SCC.
+    - **“diff”** otherwise.
+  - If `u` and `v` are in the same SCC, the output is:
+    - **“same”** iff there exists a directed path from `u` to `v` that does not traverse `e`.
+    - **“diff”** otherwise.
+
+6. Invariants
+- The SCC partition of the vertex set is well-defined and each vertex belongs to exactly one SCC.
+- The SCC-condensation graph considered for cross-SCC reasoning contains only edges whose endpoints are in different SCCs.
+- For any edge within an SCC, the “same/diff” decision depends only on existence of an alternative path within that SCC that avoids the edge.
+
+7. Error Handling / Exceptional Behavior
+- No explicit error reporting or recovery is performed.
+- If input is malformed, out of range, or exceeds fixed internal capacities, behavior is unspecified (may produce incorrect output or terminate abnormally).
+
+8. State Transitions (if applicable)
+- Not applicable as an external contract: the program is a batch computation with no externally observable intermediate states beyond final printed classifications.
+
+9. Non-functional Constraints (if inferable)
+- Operates within fixed-size memory bounds implied by maximum `n` and `m`.
+- Produces output in input edge order.
+- Assumes a single run over one graph instance per execution.
+
+```

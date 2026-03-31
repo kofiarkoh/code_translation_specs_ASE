@@ -1,0 +1,50 @@
+1. Functional Description  
+Reads a sequence of records, each consisting of a word and an associated page number, until end-of-file. It maintains an in-memory list of up to a fixed maximum number of distinct word entries. For each stored word entry, it sets a per-page “seen” mark for the given page number and increments a per-word counter `tm` once for every input record for that word (including repeated occurrences of the same page number).  
+After all input is consumed, it sorts the stored word entries in ascending lexicographic order (based on `strcmp`) and outputs each word followed by a line of page numbers in ascending numeric order. The page-number line is produced by scanning the supported page-number range from low to high and printing page numbers whose mark equals 1, using `tm` to decide which encountered marked page is treated as the “last” one to print.
+
+2. Inputs  
+- A stream of zero or more records read until end-of-file.  
+- Each record contains:  
+  - A word token read with `%s` (whitespace-delimited).  
+  - An integer page number read with `%d`.  
+- Reading stops when `scanf("%s %d", ...)` fails due to EOF.
+
+3. Outputs  
+For each stored distinct word (up to the fixed maximum count):  
+- One line containing the word.  
+- One subsequent line containing page numbers selected by the program’s internal marks, printed in increasing numeric order.  
+  - When printing multiple page numbers for a word, the program prints a single space after each printed page number except the last printed one; the last printed page number is immediately followed by a newline (no trailing space).  
+  - The program scans page numbers from the minimum supported value up to the maximum supported value and prints only those positions whose mark is exactly 1, stopping early when it encounters a marked page that it considers the last one according to the `tm`-based rule described below.
+
+4. Preconditions / Assumptions for Defined Behavior  
+The program does not initialize the `idx` array (including `pgnum[]` and `tm`) before using it. Therefore, its behavior is only well-defined under assumptions about initial memory state and input constraints:  
+- The number of distinct words encountered does not exceed 100.  
+- Each word fits within 30 characters (excluding the terminating null).  
+- Each page number is within 0 to 1000 inclusive.  
+- The in-memory index storage is assumed to begin in a state equivalent to all `pgnum[]` entries being 0 and all `tm` counters being 0 for all potential word slots; otherwise, results are not defined by the program.  
+- For each word, the input is assumed not to contain repeated records for the same word-page pair; otherwise `tm` can exceed the number of distinct marked pages, which can cause the page-printing scan to fail to terminate early as intended and/or to omit the final newline for that word’s page-number line.  
+- Input records are well-formed as a word followed by an integer.
+
+5. Postconditions (under the assumptions above)  
+- For every distinct word read, exactly one word entry is produced in the output.  
+- Output word entries are ordered by ascending lexicographic order of the word.  
+- For each output word, the printed page numbers are in ascending numeric order and correspond to page numbers whose mark was set to 1 for that word.  
+- Each page number is printed at most once per word because printing is driven by a per-page mark and a single increasing scan of the page range.
+
+6. State / Counting Semantics  
+- When a record `(word, page)` is read:  
+  - If `word` already exists among the stored entries, the program sets that entry’s `pgnum[page]` mark to 1 and increments that entry’s counter `tm` by 1.  
+  - If `word` is new, the program creates a new entry, copies the word, sets `pgnum[page]` to 1, increments `tm` by 1, and increases the distinct-word count.  
+- The counter `tm` is the number of input records processed for that word (not the number of distinct pages).  
+- Page-number printing uses two notions:  
+  - A scan index `j` that increases from 0 to 1000.  
+  - A printed-mark counter `k` that starts at 0 for each word and is incremented only when a marked page is printed in the non-final format.  
+  - When the scan encounters a marked page (`pgnum[j] == 1`), the program checks whether `k == tm - 1`. If so, it prints `j` as the last page number (followed by newline) and stops scanning for that word; otherwise it prints `j` followed by a space and increments `k`.
+
+7. Error Handling / Exceptional Behavior  
+- No explicit error reporting is performed.  
+- If any precondition/assumption is violated (e.g., too many distinct words, word too long, page number out of range, malformed input, lack of zero-initialized index storage, or repeated word-page pairs), behavior is undefined and may include incorrect output, missing output, extra output, missing newlines on page-number lines, failure to stop early when printing pages, memory corruption, or other unintended behavior.
+
+8. Termination Behavior  
+- Input is consumed until EOF.  
+- After sorting and printing all stored entries, the program terminates normally.
