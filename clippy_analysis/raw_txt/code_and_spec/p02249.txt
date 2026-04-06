@@ -1,0 +1,42 @@
+    Checking code_and_spec_p02249 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p02249)
+warning: manual check for common ascii range
+  --> src/main.rs:27:17
+   |
+27 |             if !(b'0'..=b'9').contains(&c) {
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `c.is_ascii_digit()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_is_ascii_check
+   = note: `-W clippy::manual-is-ascii-check` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_is_ascii_check)]`
+
+warning: the loop variable `rr` is only used to index `t`
+  --> src/main.rs:85:19
+   |
+85 |         for rr in 0..r_pat {
+   |                   ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+85 -         for rr in 0..r_pat {
+85 +         for <item> in t.iter().take(r_pat) {
+   |
+
+warning: the loop variable `rr` is used to index `a`
+   --> src/main.rs:126:15
+    |
+126 |     for rr in 0..=h - r {
+    |               ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+126 -     for rr in 0..=h - r {
+126 +     for (rr, <item>) in a.iter().enumerate().take((h - r) + 1) {
+    |
+
+warning: `code_and_spec_p02249` (bin "code_and_spec_p02249") generated 3 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_and_spec_p02249"` to apply 1 suggestion)
+warning: `code_and_spec_p02249` (bin "code_and_spec_p02249" test) generated 3 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s

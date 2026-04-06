@@ -1,0 +1,85 @@
+    Checking code_only_p00244 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00244)
+warning: this `if` statement can be collapsed
+   --> src/main.rs:108:9
+    |
+108 | /         if s == goal {
+109 | |             if c != 1 {
+110 | |                 break;
+111 | |             }
+112 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+    = note: `-W clippy::collapsible-if` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+108 ~         if s == goal && c != 1 {
+109 +             break;
+110 +         }
+    |
+
+warning: this `if` statement can be collapsed
+   --> src/main.rs:121:13
+    |
+121 | /             if c != 1 {
+122 | |                 if node[s2][c] < 0 || k1 < node[s2][c] {
+123 | |                     node[s2][c] = k1;
+124 | |                     enq(s2 as i32, k1, c as i32);
+125 | |                 }
+126 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+    |
+121 ~             if c != 1 && (node[s2][c] < 0 || k1 < node[s2][c]) {
+122 +                 node[s2][c] = k1;
+123 +                 enq(s2 as i32, k1, c as i32);
+124 +             }
+    |
+
+warning: unused variable: `size`
+  --> src/main.rs:97:24
+   |
+97 | fn search(tbl: &[Tbl], size: usize, start: usize, goal: usize) -> i32 {
+   |                        ^^^^ help: if this is intentional, prefix it with an underscore: `_size`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: this looks like you are swapping elements of `QUE` manually
+  --> src/main.rs:38:13
+   |
+38 | /             let tmp = QUE[i];
+39 | |             QUE[i] = QUE[smallest];
+40 | |             QUE[smallest] = tmp;
+   | |________________________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+   = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+help: try
+   |
+38 ~             let i = i;
+39 +             let smallest = smallest;
+40 +             QUE.swap(i, smallest);
+   |
+
+warning: this looks like you are swapping elements of `QUE` manually
+  --> src/main.rs:70:17
+   |
+70 | /                 let tmp = QUE[i];
+71 | |                 QUE[i] = QUE[ii];
+72 | |                 QUE[ii] = tmp;
+   | |______________________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+help: try
+   |
+70 ~                 let i = i;
+71 +                 QUE.swap(i, ii);
+   |
+
+warning: `code_only_p00244` (bin "code_only_p00244") generated 5 warnings (2 duplicates) (run `cargo clippy --fix --bin "code_only_p00244"` to apply 2 suggestions)
+warning: `code_only_p00244` (bin "code_only_p00244" test) generated 5 warnings (3 duplicates) (run `cargo clippy --fix --bin "code_only_p00244" --tests` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

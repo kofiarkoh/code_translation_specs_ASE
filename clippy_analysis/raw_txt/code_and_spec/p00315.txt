@@ -1,0 +1,77 @@
+    Checking code_and_spec_p00315 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00315)
+warning: variable does not need to be mutable
+  --> src/main.rs:54:9
+   |
+54 |     let mut update = |a: &Vec<Vec<u8>>, t: &mut Vec<Vec<u8>>, total: &mut i32, x: usize, y: usize| {
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+  --> src/main.rs:62:9
+   |
+62 |     let mut change = |a: &mut Vec<Vec<u8>>,
+   |         ----^^^^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: the loop variable `i` is only used to index `a`
+  --> src/main.rs:14:14
+   |
+14 |     for i in 0..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+14 -     for i in 0..n {
+14 +     for <item> in a.iter_mut().take(n) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:17:9
+   |
+17 | /         for j in 0..n {
+18 | |             a[i][j] = s[j];
+19 | |         }
+   | |_________^ help: try replacing the loop by: `a[i][..n].copy_from_slice(&s[..n]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: the loop variable `i` is used to index `t`
+  --> src/main.rs:35:14
+   |
+35 |     for i in 0..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+35 -     for i in 0..n {
+35 +     for (i, <item>) in t.iter_mut().enumerate().take(n) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:89:5
+   |
+89 |     print!("{ans}\n");
+   |     ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+89 -     print!("{ans}\n");
+89 +     println!("{ans}");
+   |
+
+warning: `code_and_spec_p00315` (bin "code_and_spec_p00315") generated 6 warnings (run `cargo clippy --fix --bin "code_and_spec_p00315"` to apply 3 suggestions)
+warning: `code_and_spec_p00315` (bin "code_and_spec_p00315" test) generated 6 warnings (6 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

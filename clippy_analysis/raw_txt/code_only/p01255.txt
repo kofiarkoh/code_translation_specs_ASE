@@ -1,0 +1,55 @@
+    Checking code_only_p01255 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p01255)
+warning: field `hi2` is never read
+   --> src/main.rs:136:5
+    |
+133 | struct S {
+    |        - field in this struct
+...
+136 |     hi2: i32, // unused, but kept to mirror C struct layout/fields
+    |     ^^^
+    |
+    = note: `S` has derived impls for the traits `Default`, `Debug`, and `Clone`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` on by default
+
+warning: field `aa` is never read
+   --> src/main.rs:173:5
+    |
+164 | struct Solver {
+    |        ------ field in this struct
+...
+173 |     aa: Vec<[[A; 25]; 1]>, // not used; placeholder to avoid accidental use
+    |     ^^
+
+warning: name `SEG` contains a capitalized acronym
+  --> src/main.rs:17:8
+   |
+17 | struct SEG {
+   |        ^^^ help: consider making the acronym lowercase, except the initial letter: `Seg`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#upper_case_acronyms
+   = note: `-W clippy::upper-case-acronyms` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::upper_case_acronyms)]`
+
+warning: this `impl` can be derived
+   --> src/main.rs:122:1
+    |
+122 | / impl Default for A {
+123 | |     fn default() -> Self {
+124 | |         Self {
+125 | |             hi: 0,
+...   |
+130 | | }
+    | |_^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#derivable_impls
+    = note: `-W clippy::derivable-impls` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::derivable_impls)]`
+help: replace the manual implementation with a derive attribute
+    |
+117 + #[derive(Default)]
+118 ~ struct A {
+    |
+
+warning: `code_only_p01255` (bin "code_only_p01255" test) generated 4 warnings (run `cargo clippy --fix --bin "code_only_p01255" --tests` to apply 1 suggestion)
+warning: `code_only_p01255` (bin "code_only_p01255") generated 4 warnings (4 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s

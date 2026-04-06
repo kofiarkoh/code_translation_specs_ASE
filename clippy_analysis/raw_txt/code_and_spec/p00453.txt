@@ -1,0 +1,42 @@
+    Checking code_and_spec_p00453 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00453)
+warning: manual `RangeInclusive::contains` implementation
+  --> src/main.rs:38:27
+   |
+38 |             debug_assert!(cnt >= 1 && cnt <= MAX_OPT);
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `(1..=MAX_OPT).contains(&cnt)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+   = note: `-W clippy::manual-range-contains` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_range_contains)]`
+
+warning: the loop variable `i` is only used to index `c`
+  --> src/main.rs:49:18
+   |
+49 |         for i in 0..80 {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+49 -         for i in 0..80 {
+49 +         for <item> in c.iter_mut().take(80) {
+   |
+
+warning: the loop variable `skips` is used to index `c`
+  --> src/main.rs:96:22
+   |
+96 |         for skips in 0..=m {
+   |                      ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+96 -         for skips in 0..=m {
+96 +         for (skips, <item>) in c.iter().enumerate().take(m + 1) {
+   |
+
+warning: `code_and_spec_p00453` (bin "code_and_spec_p00453") generated 3 warnings (run `cargo clippy --fix --bin "code_and_spec_p00453"` to apply 1 suggestion)
+warning: `code_and_spec_p00453` (bin "code_and_spec_p00453" test) generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s

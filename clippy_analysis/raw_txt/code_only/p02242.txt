@@ -1,0 +1,42 @@
+    Checking code_only_p02242 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p02242)
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:53:12
+   |
+53 |         if c < 48 || 57 < c {
+   |            ^^^^^^^^^^^^^^^^ help: use: `!(48..=57).contains(&c)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+   = note: `-W clippy::manual-range-contains` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_range_contains)]`
+
+warning: the loop variable `i` is only used to index `nodes`
+  --> src/main.rs:87:14
+   |
+87 |     for i in 0..(n as usize) {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+87 -     for i in 0..(n as usize) {
+87 +     for <item> in nodes.iter_mut().take((n as usize)) {
+   |
+
+warning: the loop variable `i` is used to index `nodes`
+   --> src/main.rs:147:14
+    |
+147 |     for i in 0..(n.max(0) as usize) {
+    |              ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+147 -     for i in 0..(n.max(0) as usize) {
+147 +     for (i, <item>) in nodes.iter().enumerate().take((n.max(0) as usize)) {
+    |
+
+warning: `code_only_p02242` (bin "code_only_p02242") generated 3 warnings (run `cargo clippy --fix --bin "code_only_p02242"` to apply 1 suggestion)
+warning: `code_only_p02242` (bin "code_only_p02242" test) generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

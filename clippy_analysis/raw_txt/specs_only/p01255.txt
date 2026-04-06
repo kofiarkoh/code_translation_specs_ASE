@@ -1,0 +1,102 @@
+    Checking specs_only_p01255 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p01255)
+warning: variable does not need to be mutable
+   --> src/main.rs:230:13
+    |
+230 |         let mut order_fwd = verts.clone();
+    |             ----^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: function `feq` is never used
+  --> src/main.rs:29:4
+   |
+29 | fn feq(a: f64, b: f64) -> bool {
+   |    ^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: function `point_eq` is never used
+  --> src/main.rs:33:4
+   |
+33 | fn point_eq(a: Point, b: Point) -> bool {
+   |    ^^^^^^^^
+
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:68:37
+   |
+68 |     if t < -EPS || t > 1.0 + EPS || u < -EPS || u > 1.0 + EPS {
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `!(-EPS..=1.0 + EPS).contains(&u)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+   = note: `-W clippy::manual-range-contains` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_range_contains)]`
+
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:68:8
+   |
+68 |     if t < -EPS || t > 1.0 + EPS || u < -EPS || u > 1.0 + EPS {
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `!(-EPS..=1.0 + EPS).contains(&t)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:86:37
+   |
+86 | fn greedy_welsh_powell_variant(adj: &Vec<Vec<bool>>, order: &[usize]) -> usize {
+   |                                     ^^^^^^^^^^^^^^^ help: change this to: `&[Vec<bool>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+   = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: the loop variable `i` is used to index `color`
+   --> src/main.rs:109:22
+    |
+109 |             for i in 0..n {
+    |                      ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+109 -             for i in 0..n {
+109 +             for (i, <item>) in color.iter().enumerate().take(n) {
+    |
+
+warning: use of `or_insert_with` to construct default value
+   --> src/main.rs:171:53
+    |
+171 |                 let entry = point_routes.entry(key).or_insert_with(Vec::new);
+    |                                                     ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+    = note: `-W clippy::unwrap-or-default` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::unwrap_or_default)]`
+
+warning: use of `or_insert_with` to construct default value
+   --> src/main.rs:183:57
+    |
+183 |                     let entry = point_routes.entry(key).or_insert_with(Vec::new);
+    |                                                         ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `or_default()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unwrap_or_default
+
+warning: the loop variable `i` is used to index `adj`
+   --> src/main.rs:192:18
+    |
+192 |         for i in 0..n {
+    |                  ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+192 -         for i in 0..n {
+192 +         for (i, <item>) in adj.iter_mut().enumerate().take(n) {
+    |
+
+warning: `specs_only_p01255` (bin "specs_only_p01255" test) generated 10 warnings (1 duplicate) (run `cargo clippy --fix --bin "specs_only_p01255" --tests` to apply 4 suggestions)
+warning: `specs_only_p01255` (bin "specs_only_p01255") generated 10 warnings (9 duplicates) (run `cargo clippy --fix --bin "specs_only_p01255"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.37s

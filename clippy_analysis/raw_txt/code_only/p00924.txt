@@ -1,0 +1,99 @@
+    Checking code_only_p00924 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00924)
+warning: unneeded `return` statement
+  --> src/main.rs:13:13
+   |
+13 |             return 0;
+   |             ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+   = note: `-W clippy::needless-return` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_return)]`
+help: remove `return`
+   |
+13 -             return 0;
+13 +             0
+   |
+
+warning: unneeded `return` statement
+  --> src/main.rs:15:13
+   |
+15 |             return 1;
+   |             ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_return
+help: remove `return`
+   |
+15 -             return 1;
+15 +             1
+   |
+
+warning: parameter is only used in recursion
+  --> src/main.rs:3:58
+   |
+3  | fn solve(bit: &mut [u8], runlen: &mut [i32], len: usize, runlenlen: usize, start: u8) -> i32 {
+   |                                                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_runlenlen`
+   |
+note: parameter used here
+  --> src/main.rs:9:50
+   |
+9  |         return solve(bit, &mut runlen[1..], len, runlenlen - 1, next_start);
+   |                                                  ^^^^^^^^^
+...
+19 |         return solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+   |                                                      ^^^^^^^^^
+...
+30 |         return pos as i32 + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+   |                                                                   ^^^^^^^^^
+...
+39 |         return pos as i32 + solve(&mut bit[1..], runlen, len - 1, runlenlen, start);
+   |                                                                   ^^^^^^^^^
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#only_used_in_recursion
+   = note: `-W clippy::only-used-in-recursion` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::only_used_in_recursion)]`
+
+warning: the loop variable `i` is only used to index `b`
+  --> src/main.rs:54:14
+   |
+54 |     for i in 0..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+54 -     for i in 0..n {
+54 +     for <item> in b.iter_mut().take(n) {
+   |
+
+warning: the loop variable `i` is used to index `p`
+  --> src/main.rs:65:14
+   |
+65 |     for i in 0..m {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+65 -     for i in 0..m {
+65 +     for (i, <item>) in p.iter_mut().enumerate().take(m) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:86:5
+   |
+86 |     print!("{}\n", ret);
+   |     ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+86 -     print!("{}\n", ret);
+86 +     println!("{}", ret);
+   |
+
+warning: `code_only_p00924` (bin "code_only_p00924") generated 6 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p00924"` to apply 2 suggestions)
+warning: `code_only_p00924` (bin "code_only_p00924" test) generated 6 warnings (5 duplicates) (run `cargo clippy --fix --bin "code_only_p00924" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.34s

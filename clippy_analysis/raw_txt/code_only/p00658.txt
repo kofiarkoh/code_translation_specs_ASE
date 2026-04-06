@@ -1,0 +1,132 @@
+    Checking code_only_p00658 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00658)
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:216:16
+    |
+216 |           } else {
+    |  ________________^
+217 | |             if self.map[self.py][self.px - 1] == b'.'
+218 | |                 && self.map[self.py][self.px + 1] != b'.'
+219 | |                 && self.map[self.py][self.px + 1] != b'C'
+...   |
+227 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+    = note: `-W clippy::collapsible-else-if` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_else_if)]`
+help: collapse nested if block
+    |
+216 ~         } else if self.map[self.py][self.px - 1] == b'.'
+217 +             && self.map[self.py][self.px + 1] != b'.'
+218 +             && self.map[self.py][self.px + 1] != b'C'
+219 +         {
+220 +             self.map[self.py][self.px] = self.map[self.py][self.px + 1];
+221 +             self.map[self.py][self.px + 1] = b'.';
+222 +             self.px -= 1;
+223 +         } else {
+224 +             return;
+225 +         }
+    |
+
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:254:16
+    |
+254 |           } else {
+    |  ________________^
+255 | |             if self.px > 0
+256 | |                 && self.map[self.py - 1][self.px] == b'.'
+257 | |                 && self.map[self.py - 1][self.px - 1] == b'.'
+...   |
+265 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+help: collapse nested if block
+    |
+254 ~         } else if self.px > 0
+255 +             && self.map[self.py - 1][self.px] == b'.'
+256 +             && self.map[self.py - 1][self.px - 1] == b'.'
+257 +             && self.map[self.py][self.px - 1] != b'.'
+258 +         {
+259 +             self.px -= 1;
+260 +             self.py -= 1;
+261 +         } else {
+262 +             return;
+263 +         }
+    |
+
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:288:16
+    |
+288 |           } else {
+    |  ________________^
+289 | |             if self.px > 0
+290 | |                 && self.map[self.py][self.px - 1] == b'.'
+291 | |                 && self.map[self.py + 1][self.px - 1] == b'.'
+...   |
+298 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+help: collapse nested if block
+    |
+288 ~         } else if self.px > 0
+289 +             && self.map[self.py][self.px - 1] == b'.'
+290 +             && self.map[self.py + 1][self.px - 1] == b'.'
+291 +         {
+292 +             self.px -= 1;
+293 +             self.py += 1;
+294 +         } else {
+295 +             return;
+296 +         }
+    |
+
+warning: it looks like you're manually copying between slices
+   --> src/main.rs:408:13
+    |
+408 | /             for x in 0..width {
+409 | |                 game.map[i][x] = row[x];
+410 | |             }
+    | |_____________^ help: try replacing the loop by: `game.map[i][..width].copy_from_slice(&row[..width]);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+    = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+    = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: accessing first element with `command2.as_bytes().get(0)`
+   --> src/main.rs:427:39
+    |
+427 |                         let isright = command2.as_bytes().get(0) == Some(&b'R');
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `command2.as_bytes().first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+    = note: `-W clippy::get-first` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::get_first)]`
+
+warning: accessing first element with `command2.as_bytes().get(0)`
+   --> src/main.rs:431:39
+    |
+431 |                         let isright = command2.as_bytes().get(0) == Some(&b'R');
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `command2.as_bytes().first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+
+warning: accessing first element with `command2.as_bytes().get(0)`
+   --> src/main.rs:435:39
+    |
+435 |                         let isright = command2.as_bytes().get(0) == Some(&b'R');
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `command2.as_bytes().first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+
+warning: accessing first element with `command2.as_bytes().get(0)`
+   --> src/main.rs:439:39
+    |
+439 |                         let isright = command2.as_bytes().get(0) == Some(&b'R');
+    |                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `command2.as_bytes().first()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#get_first
+
+warning: `code_only_p00658` (bin "code_only_p00658") generated 8 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p00658"` to apply 6 suggestions)
+warning: `code_only_p00658` (bin "code_only_p00658" test) generated 8 warnings (7 duplicates) (run `cargo clippy --fix --bin "code_only_p00658" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

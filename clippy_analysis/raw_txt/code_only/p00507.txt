@@ -1,0 +1,32 @@
+    Checking code_only_p00507 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00507)
+warning: the loop variable `kk` is only used to index `r`
+  --> src/main.rs:45:27
+   |
+45 |                 for kk in 0..3 {
+   |                           ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+45 -                 for kk in 0..3 {
+45 +                 for <item> in &mut r {
+   |
+
+warning: this looks like you are swapping `r[kk]` and `a` manually
+  --> src/main.rs:48:25
+   |
+48 | /                         let tmp = r[kk];
+49 | |                         r[kk] = a;
+50 | |                         a = tmp;
+   | |________________________________^ help: try: `std::mem::swap(&mut r[kk], &mut a);`
+   |
+   = note: or maybe you should use `std::mem::replace`?
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+   = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+
+warning: `code_only_p00507` (bin "code_only_p00507") generated 2 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p00507"` to apply 1 suggestion)
+warning: `code_only_p00507` (bin "code_only_p00507" test) generated 2 warnings (1 duplicate)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s

@@ -1,0 +1,63 @@
+    Checking code_only_p03608 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03608)
+warning: this function has too many arguments (8/7)
+  --> src/main.rs:5:1
+   |
+5  | / fn dfs(
+6  | |     c: i32,
+7  | |     las: i32,
+8  | |     dist: i32,
+...  |
+13 | |     r_count: i32,
+14 | | ) {
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+   = note: `-W clippy::too-many-arguments` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::too_many_arguments)]`
+
+warning: the loop variable `i` is used to index `d`
+  --> src/main.rs:49:14
+   |
+49 |     for i in 1..=n {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+49 -     for i in 1..=n {
+49 +     for (i, <item>) in d.iter_mut().enumerate().take(n + 1).skip(1) {
+   |
+
+warning: the loop variable `i` is only used to index `r`
+  --> src/main.rs:58:14
+   |
+58 |     for i in 1..=r_count as usize {
+   |              ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+58 -     for i in 1..=r_count as usize {
+58 +     for <item> in r.iter_mut().take(r_count as usize + 1).skip(1) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:88:5
+   |
+88 |     print!("{}\n", res);
+   |     ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+88 -     print!("{}\n", res);
+88 +     println!("{}", res);
+   |
+
+warning: `code_only_p03608` (bin "code_only_p03608" test) generated 4 warnings (3 duplicates)
+warning: `code_only_p03608` (bin "code_only_p03608") generated 4 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p03608"` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s

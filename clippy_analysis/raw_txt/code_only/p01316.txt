@@ -1,0 +1,75 @@
+    Checking code_only_p01316 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p01316)
+warning: the loop variable `i` is only used to index `c`
+  --> src/main.rs:26:18
+   |
+26 |         for i in 0..m {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+26 -         for i in 0..m {
+26 +         for <item> in c.iter_mut().take(m) {
+   |
+
+warning: the loop variable `j` is used to index `prev`
+  --> src/main.rs:45:22
+   |
+45 |             for j in 0..256usize {
+   |                      ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+45 -             for j in 0..256usize {
+45 +             for (j, <item>) in prev.iter().enumerate() {
+   |
+
+warning: the loop variable `k` is only used to index `c`
+  --> src/main.rs:48:30
+   |
+48 |                     for k in 0..m {
+   |                              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+48 -                     for k in 0..m {
+48 +                     for <item> in c.iter().take(m) {
+   |
+
+warning: clamp-like pattern without using clamp function
+  --> src/main.rs:50:25
+   |
+50 | /                         if t < 0 {
+51 | |                             t = 0;
+52 | |                         } else if t > 255 {
+53 | |                             t = 255;
+54 | |                         }
+   | |_________________________^ help: replace with clamp: `t = t.clamp(0, 255);`
+   |
+   = note: clamp will panic if max < min
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_clamp
+   = note: `-W clippy::manual-clamp` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_clamp)]`
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:79:9
+   |
+79 |         print!("{res}\n");
+   |         ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+79 -         print!("{res}\n");
+79 +         println!("{res}");
+   |
+
+warning: `code_only_p01316` (bin "code_only_p01316") generated 5 warnings (3 duplicates)
+warning: `code_only_p01316` (bin "code_only_p01316" test) generated 5 warnings (2 duplicates) (run `cargo clippy --fix --bin "code_only_p01316" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s

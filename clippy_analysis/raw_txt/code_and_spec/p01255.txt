@@ -1,0 +1,164 @@
+    Checking code_and_spec_p01255 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p01255)
+warning: constant `MAX` is never used
+  --> src/main.rs:98:7
+   |
+98 | const MAX: usize = 5000;
+   |       ^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+   --> src/main.rs:120:17
+    |
+120 | fn pushback(aa: &mut Vec<Vec<A>>, ff: &mut [i32], i: usize, iid: usize, j: usize, jid: usize) {
+    |                 ^^^^^^^^^^^^^^^^ help: change this to: `&mut [Vec<A>]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+    = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: call to `reserve` immediately after creation
+   --> src/main.rs:143:5
+    |
+143 | /     let mut tbl: Vec<PP> = Vec::new();
+144 | |     tbl.reserve(2 * nseg + nseg * (nseg.saturating_sub(1)) / 2);
+    | |________________________________________________________________^ help: consider using `Vec::with_capacity(/* Space hint */)`: `let mut tbl: Vec<PP> = Vec::with_capacity(2 * nseg + nseg * (nseg.saturating_sub(1)) / 2);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#reserve_after_initialization
+    = note: `-W clippy::reserve-after-initialization` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::reserve_after_initialization)]`
+
+warning: the loop variable `i` is only used to index `data`
+   --> src/main.rs:146:14
+    |
+146 |     for i in 0..nseg {
+    |              ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+146 -     for i in 0..nseg {
+146 +     for <item> in data.iter().take(nseg) {
+    |
+
+warning: the loop variable `i` is only used to index `data`
+   --> src/main.rs:187:14
+    |
+187 |     for i in 0..nseg {
+    |              ^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+187 -     for i in 0..nseg {
+187 +     for <item> in data.iter().take(nseg) {
+    |
+
+warning: the loop variable `i` is used to index `conflict`
+   --> src/main.rs:245:14
+    |
+245 |     for i in 0..lim {
+    |              ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+245 -     for i in 0..lim {
+245 +     for (i, <item>) in conflict.iter_mut().enumerate().take(lim) {
+    |
+
+warning: the loop variable `i` is only used to index `ss`
+   --> src/main.rs:249:14
+    |
+249 |     for i in 0..sz {
+    |              ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+249 -     for i in 0..sz {
+249 +     for <item> in ss.iter().take(sz) {
+    |
+
+warning: the loop variable `c` is used to index `color`
+   --> src/main.rs:276:22
+    |
+276 |             for c in 0..lim {
+    |                      ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+276 -             for c in 0..lim {
+276 +             for (c, <item>) in color.iter_mut().enumerate().take(lim) {
+    |
+
+warning: the loop variable `j` is only used to index `ss`
+   --> src/main.rs:290:26
+    |
+290 |                 for j in 0..sz {
+    |                          ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+290 -                 for j in 0..sz {
+290 +                 for <item> in ss.iter().take(sz) {
+    |
+
+warning: the loop variable `cc` is used to index `color`
+   --> src/main.rs:292:31
+    |
+292 |                     for cc in 0..lim {
+    |                               ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+292 -                     for cc in 0..lim {
+292 +                     for (cc, <item>) in color.iter_mut().enumerate().take(lim) {
+    |
+
+warning: the loop variable `cc` is used to index `color`
+   --> src/main.rs:313:31
+    |
+313 |                     for cc in 0..lim {
+    |                               ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+313 -                     for cc in 0..lim {
+313 +                     for (cc, <item>) in color.iter_mut().enumerate().take(lim) {
+    |
+
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:393:5
+    |
+393 | /     loop {
+394 | |         let lim = match sc.next_i32() {
+395 | |             Some(v) => v,
+396 | |             None => break,
+...   |
+432 | |         out.push_str(&format!("{ans}\n"));
+433 | |     }
+    | |_____^ help: try: `while let Some(v) = sc.next_i32() { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: call to `reserve` immediately after creation
+   --> src/main.rs:404:9
+    |
+404 | /         let mut data: Vec<T> = Vec::new();
+405 | |         data.reserve(N);
+    | |________________________^ help: consider using `Vec::with_capacity(/* Space hint */)`: `let mut data: Vec<T> = Vec::with_capacity(N);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#reserve_after_initialization
+
+warning: `code_and_spec_p01255` (bin "code_and_spec_p01255" test) generated 13 warnings (3 duplicates)
+warning: `code_and_spec_p01255` (bin "code_and_spec_p01255") generated 13 warnings (10 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.41s

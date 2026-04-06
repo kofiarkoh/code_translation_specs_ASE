@@ -1,0 +1,45 @@
+    Checking code_only_p01138 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p01138)
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:70:5
+    |
+70  | /     loop {
+71  | |         let n = match read_i32(bytes, &mut idx) {
+72  | |             Some(v) => v,
+73  | |             None => break, // EOF / parse failure: C code would have undefined behavior; we stop.
+...   |
+106 | |         out.push_str(&format!("{maxv}\n"));
+107 | |     }
+    | |_____^ help: try: `while let Some(v) = read_i32(bytes, &mut idx) { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+  --> src/main.rs:94:31
+   |
+94 |             let end = arr.min((24 * 3600) as i32).max(0) as usize;
+   |                               ^^^^^^^^^^^^^^^^^^ help: try: `(24 * 3600)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+   = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: the loop variable `j` is only used to index `time`
+  --> src/main.rs:95:22
+   |
+95 |             for j in start..end {
+   |                      ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+95 -             for j in start..end {
+95 +             for <item> in time.iter_mut().take(end).skip(start) {
+   |
+
+warning: `code_only_p01138` (bin "code_only_p01138" test) generated 3 warnings (run `cargo clippy --fix --bin "code_only_p01138" --tests` to apply 1 suggestion)
+warning: `code_only_p01138` (bin "code_only_p01138") generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s

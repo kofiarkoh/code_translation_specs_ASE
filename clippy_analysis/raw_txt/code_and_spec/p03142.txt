@@ -1,0 +1,45 @@
+    Checking code_and_spec_p03142 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p03142)
+warning: unnecessary parentheses around `while` condition
+  --> src/main.rs:59:11
+   |
+59 |     while (if phase == 0 { !next0.is_empty() } else { !next1.is_empty() }) {
+   |           ^                                                              ^
+   |
+   = note: `#[warn(unused_parens)]` on by default
+help: remove these parentheses
+   |
+59 -     while (if phase == 0 { !next0.is_empty() } else { !next1.is_empty() }) {
+59 +     while if phase == 0 { !next0.is_empty() } else { !next1.is_empty() } {
+   |
+
+warning: the loop variable `v` is used to index `indeg`
+  --> src/main.rs:52:14
+   |
+52 |     for v in 1..=n {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+52 -     for v in 1..=n {
+52 +     for (v, <item>) in indeg.iter().enumerate().take(n + 1).skip(1) {
+   |
+
+warning: the loop variable `v` is only used to index `answer`
+  --> src/main.rs:88:14
+   |
+88 |     for v in 1..=n {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+88 -     for v in 1..=n {
+88 +     for <item> in answer.iter().take(n + 1).skip(1) {
+   |
+
+warning: `code_and_spec_p03142` (bin "code_and_spec_p03142") generated 3 warnings (run `cargo clippy --fix --bin "code_and_spec_p03142"` to apply 1 suggestion)
+warning: `code_and_spec_p03142` (bin "code_and_spec_p03142" test) generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

@@ -1,0 +1,57 @@
+    Checking code_only_p00108 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00108)
+warning: the loop variable `i` is only used to index `numline`
+  --> src/main.rs:26:18
+   |
+26 |         for i in 0..n {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+26 -         for i in 0..n {
+26 +         for <item> in numline.iter_mut().take(n) {
+   |
+
+warning: the loop variable `i` is only used to index `numline`
+  --> src/main.rs:47:22
+   |
+47 |             for i in 0..n {
+   |                      ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+47 -             for i in 0..n {
+47 +             for <item> in numline.iter().take(n) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:72:17
+   |
+72 | /                 for i in 0..n {
+73 | |                     numline[i] = tmpline[i];
+74 | |                 }
+   | |_________________^ help: try replacing the loop by: `numline[..n].copy_from_slice(&tmpline[..n]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: the loop variable `i` is used to index `tmpline`
+  --> src/main.rs:81:18
+   |
+81 |         for i in 0..n {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+81 -         for i in 0..n {
+81 +         for (i, <item>) in tmpline.iter().enumerate().take(n) {
+   |
+
+warning: `code_only_p00108` (bin "code_only_p00108" test) generated 4 warnings
+warning: `code_only_p00108` (bin "code_only_p00108") generated 4 warnings (4 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s

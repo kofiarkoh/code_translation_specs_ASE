@@ -1,0 +1,57 @@
+    Checking code_only_p03278 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03278)
+warning: variable does not need to be mutable
+   --> src/main.rs:128:9
+    |
+128 |     let mut add_edge = |u: usize, v: usize, lst: &mut [i32], to: &mut [usize], pre: &mut [i32], tot: &mut usize| {
+    |         ----^^^^^^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` on by default
+
+warning: this function has too many arguments (9/7)
+  --> src/main.rs:28:1
+   |
+28 | / fn dfs(
+29 | |     u: usize,
+30 | |     fa: isize,
+31 | |     lst: &[i32],
+...  |
+37 | |     pw: &[i64],
+38 | | ) {
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+   = note: `-W clippy::too-many-arguments` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::too_many_arguments)]`
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:73:13
+   |
+73 | /             for k in 0..=new_sz {
+74 | |                 dp[u][k] = tmp[k];
+75 | |             }
+   | |_____________^ help: try replacing the loop by: `dp[u][..(new_sz + 1)].copy_from_slice(&tmp[..(new_sz + 1)]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:166:5
+    |
+166 |     print!("{out}\n");
+    |     ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+166 -     print!("{out}\n");
+166 +     println!("{out}");
+    |
+
+warning: `code_only_p03278` (bin "code_only_p03278") generated 4 warnings (3 duplicates) (run `cargo clippy --fix --bin "code_only_p03278"` to apply 1 suggestion)
+warning: `code_only_p03278` (bin "code_only_p03278" test) generated 4 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p03278" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s

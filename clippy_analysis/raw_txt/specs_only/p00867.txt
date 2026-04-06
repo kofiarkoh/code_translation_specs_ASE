@@ -1,0 +1,41 @@
+    Checking specs_only_p00867 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p00867)
+warning: this `if` statement can be collapsed
+   --> src/main.rs:176:25
+    |
+176 | /                         if is_shared(s.a, &mult) && is_shared(s.b, &mult) {
+177 | |                             if on_segment_interior(pt, s) {
+178 | |                                 any_interior = true;
+179 | |                                 break 'outer_d;
+180 | |                             }
+181 | |                         }
+    | |_________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+    = note: `-W clippy::collapsible-if` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+176 ~                         if is_shared(s.a, &mult) && is_shared(s.b, &mult) && on_segment_interior(pt, s) {
+177 +                             any_interior = true;
+178 +                             break 'outer_d;
+179 +                         }
+    |
+
+warning: the loop variable `d` is used to index `digit_counts`
+   --> src/main.rs:247:18
+    |
+247 |         for d in 0..10 {
+    |                  ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+    |
+247 -         for d in 0..10 {
+247 +         for (d, <item>) in digit_counts.iter().enumerate() {
+    |
+
+warning: `specs_only_p00867` (bin "specs_only_p00867" test) generated 2 warnings (run `cargo clippy --fix --bin "specs_only_p00867" --tests` to apply 1 suggestion)
+warning: `specs_only_p00867` (bin "specs_only_p00867") generated 2 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.43s

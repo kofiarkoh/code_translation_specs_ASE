@@ -1,0 +1,69 @@
+    Checking code_only_p03495 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03495)
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:13:5
+   |
+13 | /     for i in 0..n1 {
+14 | |         l[i] = a[left + i];
+15 | |     }
+   | |_____^ help: try replacing the loop by: `l[..n1].copy_from_slice(&a[left..(n1 + left)]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:16:5
+   |
+16 | /     for j in 0..n2 {
+17 | |         r[j] = a[mid + j];
+18 | |     }
+   | |_____^ help: try replacing the loop by: `r[..n2].copy_from_slice(&a[mid..(n2 + mid)]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+
+warning: the loop variable `k` is only used to index `a`
+  --> src/main.rs:26:14
+   |
+26 |     for k in left..right {
+   |              ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+26 -     for k in left..right {
+26 +     for <item> in a.iter_mut().take(right).skip(left) {
+   |
+
+warning: the loop variable `i` is only used to index `c`
+  --> src/main.rs:80:18
+   |
+80 |         for i in 1..=(n - k) {
+   |                  ^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+80 -         for i in 1..=(n - k) {
+80 +         for <item> in c.iter().take((n - k) + 1).skip(1) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:88:5
+   |
+88 |     print!("{}\n", ans);
+   |     ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+88 -     print!("{}\n", ans);
+88 +     println!("{}", ans);
+   |
+
+warning: `code_only_p03495` (bin "code_only_p03495") generated 5 warnings (4 duplicates)
+warning: `code_only_p03495` (bin "code_only_p03495" test) generated 5 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p03495" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s

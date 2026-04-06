@@ -1,0 +1,94 @@
+    Checking specs_only_p02956 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p02956)
+warning: unused import: `std::cmp::Ordering`
+ --> src/main.rs:1:5
+  |
+1 | use std::cmp::Ordering;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: the loop variable `t` is only used to index `d`
+   --> src/main.rs:134:18
+    |
+134 |         for t in idx..j {
+    |                  ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+134 -         for t in idx..j {
+134 +         for <item> in d.iter().take(j).skip(idx) {
+    |
+
+warning: the loop variable `t` is only used to index `d`
+   --> src/main.rs:149:18
+    |
+149 |         for t in idx..j {
+    |                  ^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+149 -         for t in idx..j {
+149 +         for <item> in d.iter().take(j).skip(idx) {
+    |
+
+warning: the loop variable `t` is used to index `d`
+   --> src/main.rs:170:18
+    |
+170 |         for t in group_start..=group_end {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+170 -         for t in group_start..=group_end {
+170 +         for (t, <item>) in d.iter().enumerate().take(group_end + 1).skip(group_start) {
+    |
+
+warning: the loop variable `t` is only used to index `d`
+   --> src/main.rs:187:18
+    |
+187 |         for t in group_start..=group_end {
+    |                  ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+187 -         for t in group_start..=group_end {
+187 +         for <item> in d.iter().take(group_end + 1).skip(group_start) {
+    |
+
+warning: this looks like you are swapping `p.key` and `p.id` manually
+   --> src/main.rs:197:9
+    |
+197 | /         let tmp = p.key;
+198 | |         p.key = p.id;
+199 | |         p.id = tmp;
+    | |___________________^ help: try: `std::mem::swap(&mut p.key, &mut p.id);`
+    |
+    = note: or maybe you should use `std::mem::replace`?
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+    = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:234:5
+    |
+234 |     print!("{ans}\n");
+    |     ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+234 -     print!("{ans}\n");
+234 +     println!("{ans}");
+    |
+
+warning: `specs_only_p02956` (bin "specs_only_p02956") generated 7 warnings (1 duplicate) (run `cargo clippy --fix --bin "specs_only_p02956"` to apply 3 suggestions)
+warning: `specs_only_p02956` (bin "specs_only_p02956" test) generated 7 warnings (6 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.36s

@@ -1,0 +1,57 @@
+    Checking code_only_p03406 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03406)
+warning: the loop variable `h` is only used to index `aa`
+  --> src/main.rs:57:14
+   |
+57 |     for h in 0..m {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+57 -     for h in 0..m {
+57 +     for <item> in aa.iter_mut().take(m) {
+   |
+
+warning: casting to the same type is unnecessary (`i64` -> `i64`)
+  --> src/main.rs:59:17
+   |
+59 |         aa[h] = ((1i64 << n) - v) as i64;
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `((1i64 << n) - v)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+   = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: the loop variable `b` is used to index `dp`
+  --> src/main.rs:82:14
+   |
+82 |     for b in 0..(1usize << n) {
+   |              ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+82 -     for b in 0..(1usize << n) {
+82 +     for (b, <item>) in dp.iter().enumerate().take((1usize << n)) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:112:5
+    |
+112 |     print!("{}\n", ans);
+    |     ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+112 -     print!("{}\n", ans);
+112 +     println!("{}", ans);
+    |
+
+warning: `code_only_p03406` (bin "code_only_p03406") generated 4 warnings (3 duplicates)
+warning: `code_only_p03406` (bin "code_only_p03406" test) generated 4 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p03406" --tests` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

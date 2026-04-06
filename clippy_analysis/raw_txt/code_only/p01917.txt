@@ -1,0 +1,93 @@
+    Checking code_only_p01917 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p01917)
+warning: variable does not need to be mutable
+  --> src/main.rs:30:9
+   |
+30 |     let mut f = |p: &Vec<i32>, t: &mut Vec<i32>, x: &Vec<i32>| {
+   |         ----^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: the loop variable `i` is only used to index `x`
+  --> src/main.rs:17:14
+   |
+17 |     for i in 0..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+17 -     for i in 0..n {
+17 +     for <item> in x.iter_mut().take(n) {
+   |
+
+warning: the loop variable `i` is only used to index `s`
+  --> src/main.rs:46:18
+   |
+46 |         for i in 0..n {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+46 -         for i in 0..n {
+46 +         for <item> in s.iter_mut().take(n) {
+   |
+
+warning: the loop variable `kk` is used to index `a`
+  --> src/main.rs:50:19
+   |
+50 |         for kk in 0..3usize {
+   |                   ^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+50 -         for kk in 0..3usize {
+50 +         for (kk, <item>) in a.iter().enumerate().take(3usize) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:86:9
+   |
+86 |         print!("Saiko\n");
+   |         ^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+86 -         print!("Saiko\n");
+86 +         println!("Saiko");
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:88:9
+   |
+88 |         print!("{}\n", ans);
+   |         ^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+   |
+88 -         print!("{}\n", ans);
+88 +         println!("{}", ans);
+   |
+
+warning: useless use of `vec!`
+  --> src/main.rs:21:17
+   |
+21 |     let mut a = vec![vec![0i32; n], vec![0i32; n], vec![0i32; n]];
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: you can use an array directly: `[vec![0i32; n], vec![0i32; n], vec![0i32; n]]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+   = note: `-W clippy::useless-vec` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::useless_vec)]`
+
+warning: `code_only_p01917` (bin "code_only_p01917") generated 7 warnings (2 duplicates) (run `cargo clippy --fix --bin "code_only_p01917"` to apply 3 suggestions)
+warning: `code_only_p01917` (bin "code_only_p01917" test) generated 7 warnings (5 duplicates) (run `cargo clippy --fix --bin "code_only_p01917" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

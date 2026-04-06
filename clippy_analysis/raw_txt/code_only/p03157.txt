@@ -1,0 +1,114 @@
+    Checking code_only_p03157 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03157)
+warning: this `if` statement can be collapsed
+  --> src/main.rs:28:17
+   |
+28 | /                 if 0 <= ny && ny < H && 0 <= nx && nx < W {
+29 | |                     if cur != S[ny as usize][nx as usize] {
+30 | |                         if GROUP[ny as usize][nx as usize] != mikisinn {
+31 | |                             stack.push((ny, nx));
+...  |
+34 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+   = note: `-W clippy::collapsible-if` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+   |
+28 ~                 if 0 <= ny && ny < H && 0 <= nx && nx < W && cur != S[ny as usize][nx as usize] {
+29 +                     if GROUP[ny as usize][nx as usize] != mikisinn {
+30 +                         stack.push((ny, nx));
+31 +                     }
+32 +                 }
+   |
+
+warning: this `if` statement can be collapsed
+  --> src/main.rs:29:21
+   |
+29 | /                     if cur != S[ny as usize][nx as usize] {
+30 | |                         if GROUP[ny as usize][nx as usize] != mikisinn {
+31 | |                             stack.push((ny, nx));
+32 | |                         }
+33 | |                     }
+   | |_____________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+help: collapse nested if block
+   |
+29 ~                     if cur != S[ny as usize][nx as usize] && GROUP[ny as usize][nx as usize] != mikisinn {
+30 +                         stack.push((ny, nx));
+31 +                     }
+   |
+
+warning: the loop variable `i` is only used to index `S`
+  --> src/main.rs:60:14
+   |
+60 |     for i in 0..(h as usize) {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+60 -     for i in 0..(h as usize) {
+60 +     for <item> in S.iter_mut().take((h as usize)) {
+   |
+
+warning: the loop variable `j` is used to index `row`
+  --> src/main.rs:66:18
+   |
+66 |         for j in 0..(w as usize) {
+   |                  ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+66 -         for j in 0..(w as usize) {
+66 +         for (j, <item>) in row.iter().enumerate().take((w as usize)) {
+   |
+
+warning: the loop variable `i` is used to index `GROUP`
+  --> src/main.rs:74:14
+   |
+74 |     for i in 0..(h as usize) {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+74 -     for i in 0..(h as usize) {
+74 +     for (i, <item>) in GROUP.iter().enumerate().take((h as usize)) {
+   |
+
+warning: the loop variable `i` is only used to index `COUNT`
+  --> src/main.rs:95:14
+   |
+95 |     for i in 1..=(asumisu as usize) {
+   |              ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+95 -     for i in 1..=(asumisu as usize) {
+95 +     for <item> in COUNT.iter().take(asumisu as usize + 1).skip(1) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:103:5
+    |
+103 |     print!("{}\n", mizuhasu);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+103 -     print!("{}\n", mizuhasu);
+103 +     println!("{}", mizuhasu);
+    |
+
+warning: `code_only_p03157` (bin "code_only_p03157") generated 7 warnings (3 duplicates) (run `cargo clippy --fix --bin "code_only_p03157"` to apply 1 suggestion)
+warning: `code_only_p03157` (bin "code_only_p03157" test) generated 7 warnings (4 duplicates) (run `cargo clippy --fix --bin "code_only_p03157" --tests` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s

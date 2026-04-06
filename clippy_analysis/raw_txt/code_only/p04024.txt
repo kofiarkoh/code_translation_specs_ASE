@@ -1,0 +1,136 @@
+    Checking code_only_p04024 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p04024)
+warning: the loop variable `i` is only used to index `s`
+  --> src/main.rs:50:14
+   |
+50 |     for i in 0..(h as usize) {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+50 -     for i in 0..(h as usize) {
+50 +     for <item> in s.iter_mut().take((h as usize)) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:54:9
+   |
+54 | /         for j in 0..bytes.len().min(max_hw) {
+55 | |             s[i][j] = bytes[j];
+56 | |         }
+   | |_________^ help: try replacing the loop by: `s[i][..bytes.len().min(max_hw)].copy_from_slice(&bytes[..bytes.len().min(max_hw)]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:61:9
+   |
+61 |         print!("1\n");
+   |         ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+61 -         print!("1\n");
+61 +         println!("1");
+   |
+
+warning: the loop variable `i` is only used to index `s`
+  --> src/main.rs:68:14
+   |
+68 |     for i in 0..(h as usize) {
+   |              ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+68 -     for i in 0..(h as usize) {
+68 +     for <item> in s.iter().take((h as usize)) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:80:9
+   |
+80 |         print!("1\n");
+   |         ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+   |
+80 -         print!("1\n");
+80 +         println!("1");
+   |
+
+warning: this looks like you are swapping `h2` and `w2` manually
+   --> src/main.rs:99:9
+    |
+99  | /         h2 ^= w2;
+100 | |         w2 ^= h2;
+101 | |         h2 ^= w2;
+    | |_________________^ help: try: `std::mem::swap(&mut h2, &mut w2);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+    = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+
+warning: the loop variable `i` is only used to index `s`
+   --> src/main.rs:109:14
+    |
+109 |     for i in 0..(h2 as usize) {
+    |              ^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+109 -     for i in 0..(h2 as usize) {
+109 +     for <item> in s.iter().take((h2 as usize)) {
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:135:9
+    |
+135 |         print!("{}\n", power(x, k - 1));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+    |
+135 -         print!("{}\n", power(x, k - 1));
+135 +         println!("{}", power(x, k - 1));
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:137:9
+    |
+137 |         print!("{}\n", power(c, k - 1));
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+    |
+137 -         print!("{}\n", power(c, k - 1));
+137 +         println!("{}", power(c, k - 1));
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:152:9
+    |
+152 |         print!("{}\n", ans);
+    |         ^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+    |
+152 -         print!("{}\n", ans);
+152 +         println!("{}", ans);
+    |
+
+warning: `code_only_p04024` (bin "code_only_p04024" test) generated 10 warnings (8 duplicates)
+warning: `code_only_p04024` (bin "code_only_p04024") generated 10 warnings (2 duplicates) (run `cargo clippy --fix --bin "code_only_p04024"` to apply 6 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

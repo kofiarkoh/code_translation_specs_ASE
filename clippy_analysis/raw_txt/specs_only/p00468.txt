@@ -1,0 +1,61 @@
+    Checking specs_only_p00468 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p00468)
+warning: this loop could be written as a `while let` loop
+  --> src/main.rs:10:5
+   |
+10 | /     loop {
+11 | |         let n: usize = match it.next() {
+12 | |             Some(v) => v.parse().unwrap(),
+13 | |             None => break,
+...  |
+66 | |         out.push_str(&format!("{count}\n"));
+67 | |     }
+   | |_____^ help: try: `while let Some(v) = it.next() { .. }`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+   = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: the loop variable `x` is used to index `within_two`
+  --> src/main.rs:39:18
+   |
+39 |         for x in 2..=n {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+39 -         for x in 2..=n {
+39 +         for (x, <item>) in within_two.iter_mut().enumerate().take(n + 1).skip(2) {
+   |
+
+warning: the loop variable `x` is used to index `within_two`
+  --> src/main.rs:48:26
+   |
+48 |                 for x in 2..=n {
+   |                          ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+48 -                 for x in 2..=n {
+48 +                 for (x, <item>) in within_two.iter_mut().enumerate().take(n + 1).skip(2) {
+   |
+
+warning: the loop variable `x` is only used to index `within_two`
+  --> src/main.rs:60:18
+   |
+60 |         for x in 2..=n {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+60 -         for x in 2..=n {
+60 +         for <item> in within_two.iter().take(n + 1).skip(2) {
+   |
+
+warning: `specs_only_p00468` (bin "specs_only_p00468" test) generated 4 warnings (3 duplicates)
+warning: `specs_only_p00468` (bin "specs_only_p00468") generated 4 warnings (1 duplicate)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s

@@ -1,0 +1,49 @@
+    Checking specs_only_p01275 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p01275)
+warning: casting to the same type is unnecessary (`u8` -> `u8`)
+ --> src/main.rs:8:19
+  |
+8 |         .map(|&b| (b - b'0') as u8)
+  |                   ^^^^^^^^^^^^^^^^ help: try: `(b - b'0')`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+  = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+  = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: the loop variable `j` is only used to index `next`
+  --> src/main.rs:72:22
+   |
+72 |             for j in p..=i {
+   |                      ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+72 -             for j in p..=i {
+72 +             for <item> in next.iter_mut().take(i + 1).skip(p) {
+   |
+
+warning: usage of `contains_key` followed by `insert` on a `HashMap`
+  --> src/main.rs:78:13
+   |
+78 | /             if !dist.contains_key(&key) {
+79 | |                 dist.insert(key, cur_d + 1);
+80 | |                 q.push_back(next);
+81 | |             }
+   | |_____________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#map_entry
+   = note: `-W clippy::map-entry` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::map_entry)]`
+help: try
+   |
+78 ~             if let std::collections::hash_map::Entry::Vacant(e) = dist.entry(key) {
+79 +                 e.insert(cur_d + 1);
+80 +                 q.push_back(next);
+81 +             }
+   |
+
+warning: `specs_only_p01275` (bin "specs_only_p01275") generated 3 warnings (2 duplicates) (run `cargo clippy --fix --bin "specs_only_p01275"` to apply 1 suggestion)
+warning: `specs_only_p01275` (bin "specs_only_p01275" test) generated 3 warnings (1 duplicate) (run `cargo clippy --fix --bin "specs_only_p01275" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

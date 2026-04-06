@@ -1,0 +1,58 @@
+    Checking specs_only_p01288 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p01288)
+warning: manual check for common ascii range
+  --> src/main.rs:31:17
+   |
+31 |             if !(b'0'..=b'9').contains(&c) {
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `c.is_ascii_digit()`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_is_ascii_check
+   = note: `-W clippy::manual-is-ascii-check` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_is_ascii_check)]`
+
+warning: the loop variable `i` is used to index `dsu`
+  --> src/main.rs:69:18
+   |
+69 |         for i in 1..=n {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+69 -         for i in 1..=n {
+69 +         for (i, <item>) in dsu.iter_mut().enumerate().take(n + 1).skip(1) {
+   |
+
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:132:5
+    |
+132 | /     loop {
+133 | |         let n = match sc.next_usize() {
+134 | |             Some(v) => v,
+135 | |             None => break,
+...   |
+169 | |         out.push_str(&format!("{sum}\n"));
+170 | |     }
+    | |_____^ help: try: `while let Some(v) = sc.next_usize() { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: the loop variable `k` is only used to index `parent`
+   --> src/main.rs:147:18
+    |
+147 |         for k in 2..=n {
+    |                  ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+147 -         for k in 2..=n {
+147 +         for <item> in parent.iter_mut().take(n + 1).skip(2) {
+    |
+
+warning: `specs_only_p01288` (bin "specs_only_p01288") generated 4 warnings (3 duplicates) (run `cargo clippy --fix --bin "specs_only_p01288"` to apply 1 suggestion)
+warning: `specs_only_p01288` (bin "specs_only_p01288" test) generated 4 warnings (1 duplicate)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

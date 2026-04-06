@@ -1,0 +1,170 @@
+    Checking code_only_p03055 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03055)
+warning: value assigned to `l` is never read
+  --> src/main.rs:19:13
+   |
+19 |     let mut l: usize = 0;
+   |             ^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` on by default
+
+warning: variable does not need to be mutable
+  --> src/main.rs:57:9
+   |
+57 |     let mut push = |ne: usize,
+   |         ----^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: variable does not need to be mutable
+  --> src/main.rs:75:9
+   |
+75 |     let mut pop = |a: &Vec<i32>,
+   |         ----^^^
+   |         |
+   |         help: remove this `mut`
+
+warning: this looks like you are swapping elements of `h` manually
+  --> src/main.rs:52:9
+   |
+52 | /         let f = h[x];
+53 | |         h[x] = h[y];
+54 | |         h[y] = f;
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+   = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+help: try
+   |
+52 ~         let x = x;
+53 +         let y = y;
+54 +         h.swap(x, y);
+   |
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+  --> src/main.rs:61:29
+   |
+61 |                     comp_h: &mut dyn FnMut(usize, usize, &Vec<i32>, &Vec<usize>) -> i32,
+   |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#type_complexity
+   = note: `-W clippy::type-complexity` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::type_complexity)]`
+
+warning: very complex type used. Consider factoring parts into `type` definitions
+  --> src/main.rs:78:28
+   |
+78 |                    comp_h: &mut dyn FnMut(usize, usize, &Vec<i32>, &Vec<usize>) -> i32,
+   |                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#type_complexity
+
+warning: the loop variable `idx` is only used to index `c`
+   --> src/main.rs:124:16
+    |
+124 |     for idx in 0..m {
+    |                ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+124 -     for idx in 0..m {
+124 +     for <item> in c.iter_mut().take(m) {
+    |
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+   --> src/main.rs:142:17
+    |
+142 |         let v = q[l] as i32;
+    |                 ^^^^^^^^^^^ help: try: `q[l]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+    = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+   --> src/main.rs:145:30
+    |
+145 |         let mut max_i: i32 = (2 * n - 2) as i32;
+    |                              ^^^^^^^^^^^^^^^^^^ help: try: `(2 * n - 2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: the loop variable `v` is only used to index `depth`
+   --> src/main.rs:179:14
+    |
+179 |     for v in 0..n_usize {
+    |              ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+179 -     for v in 0..n_usize {
+179 +     for <item> in depth.iter_mut().take(n_usize) {
+    |
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+   --> src/main.rs:188:17
+    |
+188 |         let v = q[l] as i32;
+    |                 ^^^^^^^^^^^ help: try: `q[l]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+   --> src/main.rs:191:30
+    |
+191 |         let mut max_i: i32 = (2 * n - 2) as i32;
+    |                              ^^^^^^^^^^^^^^^^^^ help: try: `(2 * n - 2)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+
+warning: the loop variable `v` is only used to index `depth`
+   --> src/main.rs:217:14
+    |
+217 |     for v in 0..n_usize {
+    |              ^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+217 -     for v in 0..n_usize {
+217 +     for <item> in depth.iter().take(n_usize) {
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:224:9
+    |
+224 |         print!("First\n");
+    |         ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+224 -         print!("First\n");
+224 +         println!("First");
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:226:9
+    |
+226 |         print!("Second\n");
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+help: use `println!` instead
+    |
+226 -         print!("Second\n");
+226 +         println!("Second");
+    |
+
+warning: `code_only_p03055` (bin "code_only_p03055") generated 15 warnings (6 duplicates) (run `cargo clippy --fix --bin "code_only_p03055"` to apply 6 suggestions)
+warning: `code_only_p03055` (bin "code_only_p03055" test) generated 15 warnings (9 duplicates) (run `cargo clippy --fix --bin "code_only_p03055" --tests` to apply 3 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s

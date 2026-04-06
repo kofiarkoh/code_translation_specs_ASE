@@ -1,0 +1,52 @@
+    Checking specs_only_p02884 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p02884)
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+ --> src/main.rs:4:36
+  |
+4 | fn compute_expected(n: usize, adj: &Vec<Vec<usize>>, removed: Option<(usize, usize)>) -> Vec<f64> {
+  |                                    ^^^^^^^^^^^^^^^^ help: change this to: `&[Vec<usize>]`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+  = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+  = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: the loop variable `u` is used to index `adj`
+  --> src/main.rs:58:14
+   |
+58 |     for u in 1..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+58 -     for u in 1..n {
+58 +     for (u, <item>) in adj.iter().enumerate().take(n).skip(1) {
+   |
+
+warning: you seem to be trying to use `match` for an equality check. Consider using `if`
+  --> src/main.rs:64:17
+   |
+64 | /                 match ev.partial_cmp(&best_ev).unwrap_or(Ordering::Equal) {
+65 | |                     Ordering::Greater => {
+66 | |                         best_ev = ev;
+67 | |                         best_v = v;
+68 | |                     }
+69 | |                     _ => {}
+70 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#single_match
+   = note: `-W clippy::single-match` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::single_match)]`
+help: try
+   |
+64 ~                 if ev.partial_cmp(&best_ev).unwrap_or(Ordering::Equal) == Ordering::Greater {
+65 +                     best_ev = ev;
+66 +                     best_v = v;
+67 +                 }
+   |
+
+warning: `specs_only_p02884` (bin "specs_only_p02884" test) generated 3 warnings (run `cargo clippy --fix --bin "specs_only_p02884" --tests` to apply 1 suggestion)
+warning: `specs_only_p02884` (bin "specs_only_p02884") generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s

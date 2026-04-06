@@ -1,0 +1,52 @@
+    Checking code_and_spec_p00692 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00692)
+warning: variable does not need to be mutable
+  --> src/main.rs:58:9
+   |
+58 |     let mut next_non_ws = |data: &[u8], idx: &mut usize| -> Option<u8> {
+   |         ----^^^^^^^^^^^
+   |         |
+   |         help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: the loop variable `i` is used to index `cards`
+ --> src/main.rs:5:14
+  |
+5 |     for i in 0..20usize {
+  |              ^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+  = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+  = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+  |
+5 -     for i in 0..20usize {
+5 +     for (i, <item>) in cards.iter().enumerate().take(20usize) {
+  |
+
+warning: the loop variable `j` is only used to index `buf`
+  --> src/main.rs:88:18
+   |
+88 |         for j in 0..20 {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+88 -         for j in 0..20 {
+88 +         for <item> in &mut buf {
+   |
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+  --> src/main.rs:96:30
+   |
+96 |         let remaining = 20 - (max_depth as i32) * 2;
+   |                              ^^^^^^^^^^^^^^^^^^ help: try: `max_depth`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+   = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: `code_and_spec_p00692` (bin "code_and_spec_p00692") generated 4 warnings (4 duplicates)
+warning: `code_and_spec_p00692` (bin "code_and_spec_p00692" test) generated 4 warnings (run `cargo clippy --fix --bin "code_and_spec_p00692" --tests` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.28s

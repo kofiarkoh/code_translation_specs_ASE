@@ -1,0 +1,62 @@
+    Checking code_and_spec_p00519 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00519)
+warning: the loop variable `i` is only used to index `taxi`
+  --> src/main.rs:35:14
+   |
+35 |     for i in 0..n {
+   |              ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+35 -     for i in 0..n {
+35 +     for <item> in taxi.iter_mut().take(n) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:92:13
+   |
+92 |             print!("{cost}\n");
+   |             ^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+92 -             print!("{cost}\n");
+92 +             println!("{cost}");
+   |
+
+warning: this `map_or` can be simplified
+   --> src/main.rs:100:20
+    |
+100 |                 if best[to][next_rem].map_or(true, |c| cost < c) {
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
+    = note: `-W clippy::unnecessary-map-or` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::unnecessary_map_or)]`
+help: use is_none_or instead
+    |
+100 -                 if best[to][next_rem].map_or(true, |c| cost < c) {
+100 +                 if best[to][next_rem].is_none_or(|c| cost < c) {
+    |
+
+warning: this `map_or` can be simplified
+   --> src/main.rs:112:16
+    |
+112 |             if best[town][next_rem].map_or(true, |c| next_cost < c) {
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_map_or
+help: use is_none_or instead
+    |
+112 -             if best[town][next_rem].map_or(true, |c| next_cost < c) {
+112 +             if best[town][next_rem].is_none_or(|c| next_cost < c) {
+    |
+
+warning: `code_and_spec_p00519` (bin "code_and_spec_p00519") generated 4 warnings (4 duplicates)
+warning: `code_and_spec_p00519` (bin "code_and_spec_p00519" test) generated 4 warnings (run `cargo clippy --fix --bin "code_and_spec_p00519" --tests` to apply 3 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

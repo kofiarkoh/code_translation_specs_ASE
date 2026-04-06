@@ -1,0 +1,56 @@
+    Checking code_only_p03311 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p03311)
+warning: value assigned to `level` is never read
+  --> src/main.rs:73:13
+   |
+73 |             level = level.wrapping_add(height);
+   |             ^^^^^
+   |
+   = help: maybe it is overwritten before being read?
+   = note: `#[warn(unused_assignments)]` on by default
+
+warning: the loop variable `i` is used to index `a`
+  --> src/main.rs:20:14
+   |
+20 |     for i in 0..nn {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+20 -     for i in 0..nn {
+20 +     for (i, <item>) in a.iter_mut().enumerate().take(nn) {
+   |
+
+warning: the loop variable `i` is only used to index `a`
+  --> src/main.rs:33:18
+   |
+33 |         for i in 1..nn {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+33 -         for i in 1..nn {
+33 +         for <item> in a.iter().take(nn).skip(1) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+  --> src/main.rs:87:5
+   |
+87 |     print!("{}\n", minv);
+   |     ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+   = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+   |
+87 -     print!("{}\n", minv);
+87 +     println!("{}", minv);
+   |
+
+warning: `code_only_p03311` (bin "code_only_p03311") generated 4 warnings (4 duplicates)
+warning: `code_only_p03311` (bin "code_only_p03311" test) generated 4 warnings (run `cargo clippy --fix --bin "code_only_p03311" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.34s

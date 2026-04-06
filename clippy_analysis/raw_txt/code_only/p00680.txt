@@ -1,0 +1,107 @@
+    Checking code_only_p00680 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00680)
+warning: unused import: `std::cmp::Ordering`
+ --> src/main.rs:1:5
+  |
+1 | use std::cmp::Ordering;
+  |     ^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: value assigned to `qsize` is never read
+   --> src/main.rs:111:13
+    |
+111 |     let mut qsize: usize = 0;
+    |             ^^^^^
+    |
+    = help: maybe it is overwritten before being read?
+    = note: `#[warn(unused_assignments)]` on by default
+
+warning: constant `MAX` is never used
+ --> src/main.rs:7:7
+  |
+7 | const MAX: usize = 105;
+  |       ^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:47:16
+   |
+47 |             if c < b'0' || c > b'9' {
+   |                ^^^^^^^^^^^^^^^^^^^^ help: use: `!(b'0'..=b'9').contains(&c)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+   = note: `-W clippy::manual-range-contains` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_range_contains)]`
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+  --> src/main.rs:96:16
+   |
+96 | fn add_edge(g: &mut Vec<Vec<Edge>>, from: usize, to: usize, cap: i32, cost: f64) {
+   |                ^^^^^^^^^^^^^^^^^^^ help: change this to: `&mut [Vec<Edge>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+   = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+   --> src/main.rs:103:21
+    |
+103 | fn min_cost_flow(g: &mut Vec<Vec<Edge>>, s: usize, t: usize, mut f: i32) -> f64 {
+    |                     ^^^^^^^^^^^^^^^^^^^ help: change this to: `&mut [Vec<Edge>]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: manually filling a slice
+   --> src/main.rs:116:9
+    |
+116 | /         for mc in &mut min_cost {
+117 | |             *mc = INF;
+118 | |         }
+    | |_________^ help: try: `min_cost.fill(INF);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_slice_fill
+    = note: `-W clippy::manual-slice-fill` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::manual_slice_fill)]`
+
+warning: casting to the same type is unnecessary (`i32` -> `i32`)
+   --> src/main.rs:243:17
+    |
+243 |         let f = sc.next_i32() as i32;
+    |                 ^^^^^^^^^^^^^^^^^^^^ help: try: `sc.next_i32()`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_cast
+    = note: `-W clippy::unnecessary-cast` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::unnecessary_cast)]`
+
+warning: the loop variable `j` is only used to index `d`
+   --> src/main.rs:264:22
+    |
+264 |             for j in 0..m {
+    |                      ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+264 -             for j in 0..m {
+264 +             for <item> in d.iter_mut().take(m) {
+    |
+
+warning: the loop variable `j` is only used to index `d`
+   --> src/main.rs:267:22
+    |
+267 |             for j in 0..m {
+    |                      ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+267 -             for j in 0..m {
+267 +             for <item> in d.iter().take(m) {
+    |
+
+warning: `code_only_p00680` (bin "code_only_p00680") generated 10 warnings (6 duplicates) (run `cargo clippy --fix --bin "code_only_p00680"` to apply 2 suggestions)
+warning: `code_only_p00680` (bin "code_only_p00680" test) generated 10 warnings (4 duplicates) (run `cargo clippy --fix --bin "code_only_p00680" --tests` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.34s

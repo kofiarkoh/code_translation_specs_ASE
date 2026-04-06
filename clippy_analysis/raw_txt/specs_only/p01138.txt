@@ -1,0 +1,35 @@
+    Checking specs_only_p01138 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p01138)
+warning: this loop could be written as a `while let` loop
+  --> src/main.rs:19:5
+   |
+19 | /     loop {
+20 | |         let n_tok = match it.next() {
+21 | |             Some(t) => t,
+22 | |             None => break, // No more datasets.
+...  |
+54 | |         out.push_str(&format!("{maxv}\n"));
+55 | |     }
+   | |_____^ help: try: `while let Some(t) = it.next() { .. }`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+   = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: the loop variable `t` is only used to index `counts`
+  --> src/main.rs:42:22
+   |
+42 |             for t in start..end {
+   |                      ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+42 -             for t in start..end {
+42 +             for <item> in counts.iter_mut().take(end).skip(start) {
+   |
+
+warning: `specs_only_p01138` (bin "specs_only_p01138") generated 2 warnings (2 duplicates)
+warning: `specs_only_p01138` (bin "specs_only_p01138" test) generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

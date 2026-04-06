@@ -1,0 +1,117 @@
+    Checking code_and_spec_p00658 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00658)
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:227:16
+    |
+227 |           } else {
+    |  ________________^
+228 | |             if self.map[self.py][self.px - 1] == b'.'
+229 | |                 && self.map[self.py][self.px + 1] != b'.'
+230 | |                 && self.map[self.py][self.px + 1] != b'C'
+...   |
+238 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+    = note: `-W clippy::collapsible-else-if` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_else_if)]`
+help: collapse nested if block
+    |
+227 ~         } else if self.map[self.py][self.px - 1] == b'.'
+228 +             && self.map[self.py][self.px + 1] != b'.'
+229 +             && self.map[self.py][self.px + 1] != b'C'
+230 +         {
+231 +             self.map[self.py][self.px] = self.map[self.py][self.px + 1];
+232 +             self.map[self.py][self.px + 1] = b'.';
+233 +             self.px -= 1;
+234 +         } else {
+235 +             return;
+236 +         }
+    |
+
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:258:16
+    |
+258 |           } else {
+    |  ________________^
+259 | |             if self.px > 0
+260 | |                 && self.map[self.py - 1][self.px] == b'.'
+261 | |                 && self.map[self.py - 1][self.px - 1] == b'.'
+...   |
+269 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+help: collapse nested if block
+    |
+258 ~         } else if self.px > 0
+259 +             && self.map[self.py - 1][self.px] == b'.'
+260 +             && self.map[self.py - 1][self.px - 1] == b'.'
+261 +             && self.map[self.py][self.px - 1] != b'.'
+262 +         {
+263 +             self.px -= 1;
+264 +             self.py -= 1;
+265 +         } else {
+266 +             return;
+267 +         }
+    |
+
+warning: this `else { if .. }` block can be collapsed
+   --> src/main.rs:286:16
+    |
+286 |           } else {
+    |  ________________^
+287 | |             if self.px > 0
+288 | |                 && self.map[self.py][self.px - 1] == b'.'
+289 | |                 && self.map[self.py + 1][self.px - 1] == b'.'
+...   |
+296 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+help: collapse nested if block
+    |
+286 ~         } else if self.px > 0
+287 +             && self.map[self.py][self.px - 1] == b'.'
+288 +             && self.map[self.py + 1][self.px - 1] == b'.'
+289 +         {
+290 +             self.px -= 1;
+291 +             self.py += 1;
+292 +         } else {
+293 +             return;
+294 +         }
+    |
+
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:383:5
+    |
+383 | /     loop {
+384 | |         let h = match it.next() {
+385 | |             Some(v) => v.parse::<usize>().unwrap(),
+386 | |             None => break,
+...   |
+450 | |         outputs.push(line.to_string());
+451 | |     }
+    | |_____^ help: try: `while let Some(v) = it.next() { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:455:9
+    |
+455 |         print!("\n");
+    |         ^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+455 -         print!("\n");
+455 +         println!();
+    |
+
+warning: `code_and_spec_p00658` (bin "code_and_spec_p00658") generated 5 warnings (run `cargo clippy --fix --bin "code_and_spec_p00658"` to apply 4 suggestions)
+warning: `code_and_spec_p00658` (bin "code_and_spec_p00658" test) generated 5 warnings (5 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s

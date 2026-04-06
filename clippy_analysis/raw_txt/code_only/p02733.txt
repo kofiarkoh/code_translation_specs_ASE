@@ -1,0 +1,72 @@
+    Checking code_only_p02733 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p02733)
+warning: the loop variable `i` is only used to index `s`
+  --> src/main.rs:15:14
+   |
+15 |     for i in 1..=h {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+15 -     for i in 1..=h {
+15 +     for <item> in s.iter_mut().take(h + 1).skip(1) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:17:9
+   |
+17 | /         for j in 1..=w {
+18 | |             s[i][j] = row[j - 1];
+19 | |         }
+   | |_________^ help: try replacing the loop by: `s[i][1..(w + 1)].copy_from_slice(&row[..((w - 1) + 1)]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: the loop variable `r` is only used to index `pref`
+  --> src/main.rs:66:26
+   |
+66 |                 for r in t[si]..=b[si] {
+   |                          ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+66 -                 for r in t[si]..=b[si] {
+66 +                 for <item> in pref.iter().take(b[si] + 1).skip(t[si]) {
+   |
+
+warning: the loop variable `r` is only used to index `pref`
+  --> src/main.rs:80:30
+   |
+80 |                     for r in t[si]..=b[si] {
+   |                              ^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+80 -                     for r in t[si]..=b[si] {
+80 +                     for <item> in pref.iter().take(b[si] + 1).skip(t[si]) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:101:5
+    |
+101 |     print!("{ans}\n");
+    |     ^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+101 -     print!("{ans}\n");
+101 +     println!("{ans}");
+    |
+
+warning: `code_only_p02733` (bin "code_only_p02733" test) generated 5 warnings (2 duplicates) (run `cargo clippy --fix --bin "code_only_p02733" --tests` to apply 1 suggestion)
+warning: `code_only_p02733` (bin "code_only_p02733") generated 5 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.29s

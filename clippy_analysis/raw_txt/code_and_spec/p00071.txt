@@ -1,0 +1,62 @@
+    Checking code_and_spec_p00071 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00071)
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:13:34
+   |
+13 |             if x < 1 || x > 8 || y < 1 || y > 8 {
+   |                                  ^^^^^^^^^^^^^^ help: use: `!(1..=8).contains(&y)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+   = note: `-W clippy::manual-range-contains` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::manual_range_contains)]`
+
+warning: manual `!RangeInclusive::contains` implementation
+  --> src/main.rs:13:16
+   |
+13 |             if x < 1 || x > 8 || y < 1 || y > 8 {
+   |                ^^^^^^^^^^^^^^ help: use: `!(1..=8).contains(&x)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_range_contains
+
+warning: the loop variable `i` is only used to index `field`
+  --> src/main.rs:41:18
+   |
+41 |         for i in 0..=8 {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+41 -         for i in 0..=8 {
+41 +         for <item> in field.iter_mut().take(8 + 1) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:48:13
+   |
+48 | /             for k in 0..max_copy {
+49 | |                 field[i][1 + k] = bytes[k];
+50 | |             }
+   | |_____________^ help: try replacing the loop by: `field[i][1..(max_copy + 1)].copy_from_slice(&bytes[..max_copy]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: the loop variable `i` is only used to index `field`
+  --> src/main.rs:61:18
+   |
+61 |         for i in 1..=8 {
+   |                  ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+61 -         for i in 1..=8 {
+61 +         for <item> in field.iter().take(8 + 1).skip(1) {
+   |
+
+warning: `code_and_spec_p00071` (bin "code_and_spec_p00071") generated 5 warnings (run `cargo clippy --fix --bin "code_and_spec_p00071"` to apply 2 suggestions)
+warning: `code_and_spec_p00071` (bin "code_and_spec_p00071" test) generated 5 warnings (5 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s

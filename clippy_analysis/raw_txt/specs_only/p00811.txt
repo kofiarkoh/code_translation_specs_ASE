@@ -1,0 +1,58 @@
+    Checking specs_only_p00811 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p00811)
+warning: this `if` statement can be collapsed
+  --> src/main.rs:89:17
+   |
+89 | /                 if a * q <= p * b {
+90 | |                     if prod > best_prod {
+91 | |                         best_prod = prod;
+92 | |                         best_p = p_i32;
+...  |
+96 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_if
+   = note: `-W clippy::collapsible-if` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+   |
+89 ~                 if a * q <= p * b && prod > best_prod {
+90 +                     best_prod = prod;
+91 +                     best_p = p_i32;
+92 +                     best_q = q_i32;
+93 +                 }
+   |
+
+warning: the loop variable `i` is used to index `is_prime`
+  --> src/main.rs:24:14
+   |
+24 |     for i in 2..limit {
+   |              ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator and enumerate()
+   |
+24 -     for i in 2..limit {
+24 +     for (i, <item>) in is_prime.iter().enumerate().take(limit).skip(2) {
+   |
+
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:42:5
+    |
+42  | /     loop {
+43  | |         let m: i64 = match it.next() {
+44  | |             Some(s) => match s.parse() {
+45  | |                 Ok(v) => v,
+...   |
+100 | |         out.push_str(&format!("{} {}\n", best_p, best_q));
+101 | |     }
+    | |_____^ help: try: `while let Some(s) = it.next() { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: `specs_only_p00811` (bin "specs_only_p00811") generated 3 warnings (run `cargo clippy --fix --bin "specs_only_p00811"` to apply 1 suggestion)
+warning: `specs_only_p00811` (bin "specs_only_p00811" test) generated 3 warnings (3 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s

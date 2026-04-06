@@ -1,0 +1,114 @@
+    Checking code_and_spec_p02542 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p02542)
+warning: unnecessary `>= y + 1` or `x - 1 >=`
+   --> src/main.rs:221:20
+    |
+221 |                 if r + 1 <= n && s[r + 1][c] == '.' {
+    |                    ^^^^^^^^^^ help: change it to: `r < n`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#int_plus_one
+    = note: `-W clippy::int-plus-one` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::int_plus_one)]`
+
+warning: unnecessary `>= y + 1` or `x - 1 >=`
+   --> src/main.rs:230:20
+    |
+230 |                 if c + 1 <= m && s[r][c + 1] == '.' {
+    |                    ^^^^^^^^^^ help: change it to: `c < m`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#int_plus_one
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:20:10
+   |
+20 |     adj: &Vec<Vec<usize>>, // stores edge indices
+   |          ^^^^^^^^^^^^^^^^ help: change this to: `&[Vec<usize>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+   = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+  --> src/main.rs:21:8
+   |
+21 |     e: &mut Vec<Edge>,
+   |        ^^^^^^^^^^^^^^ help: change this to: `&mut [Edge]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:22:8
+   |
+22 |     b: &Vec<i32>,
+   |        ^^^^^^^^^ help: change this to: `&[i32]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: the loop variable `i` is only used to index `e`
+  --> src/main.rs:25:14
+   |
+25 |     for i in 0..m_edges {
+   |              ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+25 -     for i in 0..m_edges {
+25 +     for <item> in e.iter().take(m_edges) {
+   |
+
+warning: the loop variable `k` is only used to index `e`
+  --> src/main.rs:54:30
+   |
+54 |                     for k in 0..m_edges {
+   |                              ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+54 -                     for k in 0..m_edges {
+54 +                     for <item> in e.iter().take(m_edges) {
+   |
+
+warning: the loop variable `i` is only used to index `s`
+   --> src/main.rs:175:14
+    |
+175 |     for i in 1..=n {
+    |              ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+175 -     for i in 1..=n {
+175 +     for <item> in s.iter_mut().take(n + 1).skip(1) {
+    |
+
+warning: it looks like you're manually copying between slices
+   --> src/main.rs:178:9
+    |
+178 | /         for j in 1..=m {
+179 | |             s[i][j] = chars[j - 1];
+180 | |         }
+    | |_________^ help: try replacing the loop by: `s[i][1..(m + 1)].copy_from_slice(&chars[..((m - 1) + 1)]);`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+    = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+    = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: the loop variable `k` is only used to index `dist`
+   --> src/main.rs:206:22
+    |
+206 |             for k in 1..=n * m {
+    |                      ^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+206 -             for k in 1..=n * m {
+206 +             for <item> in dist.iter_mut().take(n * m + 1).skip(1) {
+    |
+
+warning: `code_and_spec_p02542` (bin "code_and_spec_p02542") generated 10 warnings (4 duplicates) (run `cargo clippy --fix --bin "code_and_spec_p02542"` to apply 1 suggestion)
+warning: `code_and_spec_p02542` (bin "code_and_spec_p02542" test) generated 10 warnings (6 duplicates) (run `cargo clippy --fix --bin "code_and_spec_p02542" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.33s

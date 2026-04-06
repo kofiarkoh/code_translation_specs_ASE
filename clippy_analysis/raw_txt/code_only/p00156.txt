@@ -1,0 +1,50 @@
+    Checking code_only_p00156 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00156)
+warning: this loop could be written as a `while let` loop
+   --> src/main.rs:68:5
+    |
+68  | /     loop {
+69  | |         let w = match read_i32(bytes, &mut p) {
+70  | |             Some(v) => v,
+71  | |             None => break,
+...   |
+163 | |         print!("{minv}\n");
+164 | |     }
+    | |_____^ help: try: `while let Some(v) = read_i32(bytes, &mut p) { .. }`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#while_let_loop
+    = note: `-W clippy::while-let-loop` implied by `-W clippy::complexity`
+    = help: to override `-W clippy::complexity` add `#[allow(clippy::while_let_loop)]`
+
+warning: the loop variable `i` is only used to index `c`
+   --> src/main.rs:152:18
+    |
+152 |         for i in 0..(h as usize) {
+    |                  ^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+152 -         for i in 0..(h as usize) {
+152 +         for <item> in c.iter().take((h as usize)) {
+    |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:163:9
+    |
+163 |         print!("{minv}\n");
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+163 -         print!("{minv}\n");
+163 +         println!("{minv}");
+    |
+
+warning: `code_only_p00156` (bin "code_only_p00156") generated 3 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p00156"` to apply 1 suggestion)
+warning: `code_only_p00156` (bin "code_only_p00156" test) generated 3 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s

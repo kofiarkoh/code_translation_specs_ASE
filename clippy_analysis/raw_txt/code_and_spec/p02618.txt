@@ -1,0 +1,125 @@
+    Checking code_and_spec_p02618 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p02618)
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+ --> src/main.rs:6:36
+  |
+6 | fn max_type_for_day(day: usize, s: &Vec<Vec<i32>>) -> usize {
+  |                                    ^^^^^^^^^^^^^^ help: change this to: `&[Vec<i32>]`
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+  = note: `-W clippy::ptr-arg` implied by `-W clippy::style`
+  = help: to override `-W clippy::style` add `#[allow(clippy::ptr_arg)]`
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:20:28
+   |
+20 | fn score_calc(d: usize, s: &Vec<Vec<i32>>, sched: &Vec<usize>, c: &Vec<i32>, last: &mut Vec<usize>) -> i32 {
+   |                            ^^^^^^^^^^^^^^ help: change this to: `&[Vec<i32>]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:20:51
+   |
+20 | fn score_calc(d: usize, s: &Vec<Vec<i32>>, sched: &Vec<usize>, c: &Vec<i32>, last: &mut Vec<usize>) -> i32 {
+   |                                                   ^^^^^^^^^^^ help: change this to: `&[usize]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+  --> src/main.rs:20:67
+   |
+20 | fn score_calc(d: usize, s: &Vec<Vec<i32>>, sched: &Vec<usize>, c: &Vec<i32>, last: &mut Vec<usize>) -> i32 {
+   |                                                                   ^^^^^^^^^ help: change this to: `&[i32]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: writing `&mut Vec` instead of `&mut [_]` involves a new object where a slice will do
+  --> src/main.rs:20:84
+   |
+20 | fn score_calc(d: usize, s: &Vec<Vec<i32>>, sched: &Vec<usize>, c: &Vec<i32>, last: &mut Vec<usize>) -> i32 {
+   |                                                                                    ^^^^^^^^^^^^^^^ help: change this to: `&mut [usize]`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+
+warning: this looks like you are swapping elements of `sched` manually
+  --> src/main.rs:48:5
+   |
+48 | /     let tmp = sched[a];
+49 | |     sched[a] = sched[b];
+50 | |     sched[b] = tmp;
+   | |___________________^ help: try: `sched.swap(a, b);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_swap
+   = note: `-W clippy::manual-swap` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::manual_swap)]`
+
+warning: the loop variable `j` is only used to index `last`
+  --> src/main.rs:52:14
+   |
+52 |     for j in 1..=TYPE {
+   |              ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+52 -     for j in 1..=TYPE {
+52 +     for <item> in last.iter_mut().take(TYPE + 1).skip(1) {
+   |
+
+warning: the loop variable `i` is only used to index `c`
+  --> src/main.rs:96:14
+   |
+96 |     for i in 1..=TYPE {
+   |              ^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+   |
+96 -     for i in 1..=TYPE {
+96 +     for <item> in c.iter_mut().take(TYPE + 1).skip(1) {
+   |
+
+warning: the loop variable `day` is only used to index `s`
+   --> src/main.rs:101:16
+    |
+101 |     for day in 1..=d {
+    |                ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+101 -     for day in 1..=d {
+101 +     for <item> in s.iter_mut().take(d + 1).skip(1) {
+    |
+
+warning: the loop variable `day` is used to index `sched`
+   --> src/main.rs:109:16
+    |
+109 |     for day in 1..=d {
+    |                ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+    |
+109 -     for day in 1..=d {
+109 +     for (day, <item>) in sched.iter_mut().enumerate().take(d + 1).skip(1) {
+    |
+
+warning: the loop variable `day` is only used to index `sched`
+   --> src/main.rs:133:16
+    |
+133 |     for day in 1..=d {
+    |                ^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator
+    |
+133 -     for day in 1..=d {
+133 +     for <item> in sched.iter().take(d + 1).skip(1) {
+    |
+
+warning: `code_and_spec_p02618` (bin "code_and_spec_p02618") generated 11 warnings (3 duplicates) (run `cargo clippy --fix --bin "code_and_spec_p02618"` to apply 1 suggestion)
+warning: `code_and_spec_p02618` (bin "code_and_spec_p02618" test) generated 11 warnings (8 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.34s

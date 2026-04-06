@@ -1,0 +1,38 @@
+    Checking code_and_spec_p01128 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p01128)
+warning: this `else { if .. }` block can be collapsed
+  --> src/main.rs:88:24
+   |
+88 |                   } else {
+   |  ________________________^
+89 | |                     if ins.l == t {
+90 | |                         toggles += 1;
+91 | |                         t ^= 1;
+92 | |                     }
+93 | |                 }
+   | |_________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#collapsible_else_if
+   = note: `-W clippy::collapsible-else-if` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::collapsible_else_if)]`
+help: collapse nested if block
+   |
+88 ~                 } else if ins.l == t {
+89 +                     toggles += 1;
+90 +                     t ^= 1;
+91 +                 }
+   |
+
+warning: call to `reserve` immediately after creation
+  --> src/main.rs:32:9
+   |
+32 | /         let mut st: Vec<Ins> = Vec::new();
+33 | |         st.reserve(n.min(105)); // spec says capacity <= 105; no explicit error handling.
+   | |_______________________________^ help: consider using `Vec::with_capacity(/* Space hint */)`: `let mut st: Vec<Ins> = Vec::with_capacity(n.min(105));`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#reserve_after_initialization
+   = note: `-W clippy::reserve-after-initialization` implied by `-W clippy::complexity`
+   = help: to override `-W clippy::complexity` add `#[allow(clippy::reserve_after_initialization)]`
+
+warning: `code_and_spec_p01128` (bin "code_and_spec_p01128") generated 2 warnings (run `cargo clippy --fix --bin "code_and_spec_p01128"` to apply 1 suggestion)
+warning: `code_and_spec_p01128` (bin "code_and_spec_p01128" test) generated 2 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.32s

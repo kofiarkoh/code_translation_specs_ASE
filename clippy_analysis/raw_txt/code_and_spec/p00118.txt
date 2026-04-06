@@ -1,0 +1,31 @@
+    Checking code_and_spec_p00118 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_and_spec/p00118)
+warning: the loop variable `i` is only used to index `grid`
+  --> src/main.rs:25:18
+   |
+25 |         for i in 0..h {
+   |                  ^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+25 -         for i in 0..h {
+25 +         for <item> in grid.iter_mut().take(h) {
+   |
+
+warning: it looks like you're manually copying between slices
+  --> src/main.rs:28:13
+   |
+28 | /             for j in 0..w {
+29 | |                 grid[i][j] = bytes[j];
+30 | |             }
+   | |_____________^ help: try replacing the loop by: `grid[i][..w].copy_from_slice(&bytes[..w]);`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_memcpy
+   = note: `-W clippy::manual-memcpy` implied by `-W clippy::perf`
+   = help: to override `-W clippy::perf` add `#[allow(clippy::manual_memcpy)]`
+
+warning: `code_and_spec_p00118` (bin "code_and_spec_p00118") generated 2 warnings
+warning: `code_and_spec_p00118` (bin "code_and_spec_p00118" test) generated 2 warnings (2 duplicates)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s

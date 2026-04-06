@@ -1,0 +1,39 @@
+    Checking specs_only_p00190 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/specs_only/p00190)
+warning: usage of `contains_key` followed by `insert` on a `HashMap`
+   --> src/main.rs:100:13
+    |
+100 | /             if !dist.contains_key(&nxt) {
+101 | |                 dist.insert(nxt, d + 1);
+102 | |                 q.push_back(nxt);
+103 | |             }
+    | |_____________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#map_entry
+    = note: `-W clippy::map-entry` implied by `-W clippy::perf`
+    = help: to override `-W clippy::perf` add `#[allow(clippy::map_entry)]`
+help: try
+    |
+100 ~             if let std::collections::hash_map::Entry::Vacant(e) = dist.entry(nxt) {
+101 +                 e.insert(d + 1);
+102 +                 q.push_back(nxt);
+103 +             }
+    |
+
+warning: the loop variable `i` is only used to index `tiles_i32`
+   --> src/main.rs:173:18
+    |
+173 |         for i in 1..N {
+    |                  ^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+    = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+    |
+173 -         for i in 1..N {
+173 +         for <item> in tiles_i32.iter_mut().take(N).skip(1) {
+    |
+
+warning: `specs_only_p00190` (bin "specs_only_p00190") generated 2 warnings (2 duplicates)
+warning: `specs_only_p00190` (bin "specs_only_p00190" test) generated 2 warnings (run `cargo clippy --fix --bin "specs_only_p00190" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.35s

@@ -1,0 +1,60 @@
+    Checking code_only_p00453 v0.1.0 (/mnt/c/Users/sebir/Documents/Research/ASE_2026_Correct_Repo/code_translation_specs_ASE/clippy_analysis/temp_projects/code_only/p00453)
+warning: the loop variable `i` is only used to index `c`
+  --> src/main.rs:32:18
+   |
+32 |         for i in 0..80usize {
+   |                  ^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `-W clippy::needless-range-loop` implied by `-W clippy::style`
+   = help: to override `-W clippy::style` add `#[allow(clippy::needless_range_loop)]`
+help: consider using an iterator
+   |
+32 -         for i in 0..80usize {
+32 +         for <item> in c.iter_mut().take(80usize) {
+   |
+
+warning: the loop variable `i` is used to index `ic`
+  --> src/main.rs:44:18
+   |
+44 |         for i in 0..(n as usize) {
+   |                  ^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+44 -         for i in 0..(n as usize) {
+44 +         for (i, <item>) in ic.iter_mut().enumerate().take((n as usize)) {
+   |
+
+warning: the loop variable `i` is used to index `c`
+  --> src/main.rs:96:18
+   |
+96 |         for i in 0..=(m as usize) {
+   |                  ^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+help: consider using an iterator and enumerate()
+   |
+96 -         for i in 0..=(m as usize) {
+96 +         for (i, <item>) in c.iter().enumerate().take(m as usize + 1) {
+   |
+
+warning: using `print!()` with a format string that ends in a single newline
+   --> src/main.rs:112:9
+    |
+112 |         print!("{minv}\n");
+    |         ^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#print_with_newline
+    = note: `-W clippy::print-with-newline` implied by `-W clippy::style`
+    = help: to override `-W clippy::style` add `#[allow(clippy::print_with_newline)]`
+help: use `println!` instead
+    |
+112 -         print!("{minv}\n");
+112 +         println!("{minv}");
+    |
+
+warning: `code_only_p00453` (bin "code_only_p00453") generated 4 warnings (3 duplicates)
+warning: `code_only_p00453` (bin "code_only_p00453" test) generated 4 warnings (1 duplicate) (run `cargo clippy --fix --bin "code_only_p00453" --tests` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s
