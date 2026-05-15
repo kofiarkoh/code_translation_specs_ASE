@@ -1,0 +1,163 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+/*
+  AOJ 2157
+  Title:
+  @kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+int n;
+int min_;
+
+find_not_zero(char *diff,int start)
+{
+  int i;
+  for(i=start;i<n;i++)
+    if(diff[i])
+      return(i);
+  return(-1);
+}
+
+is_zero(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    if(diff[i])
+      return(0);
+  return(-1);
+}
+
+
+void dump(char *diff)
+{
+  int i;
+
+  for(i=0;i<n;i++)
+    printf("%d|",diff[i]);
+  printf("\n");
+}
+
+void rotate_count(char *diff,int acc)
+{
+  int i,cnt=0,pos,offs;
+  char diff2[10];
+
+  //dump(diff);
+  pos=0;
+  pos=find_not_zero(diff,pos);
+
+  if(pos==-1)
+    {
+      if(min_>acc)
+	min_=acc;
+      return;
+    }
+  offs=diff[pos];
+  memcpy(diff2,diff,10);
+  for(i=pos;i<n;i++)
+    {
+      diff2[i]=diff2[i]+10-offs;
+      diff2[i] %= 10;
+      rotate_count(diff2,acc+1);
+    }
+}
+
+void calc_diff(char *init,char *unlock,char *diff,int n)
+{
+  int i;
+  char d;
+
+  for(i=0;i<n;i++)
+    {
+      d = unlock[i]-init[i];
+      if(d<0)
+	d+=10;
+      diff[i]=d;
+    }
+}
+main()
+{
+  int i;
+
+  char d,count,st,nn;
+  char init[10],unlock[10],diff[10];
+
+  while(scanf("%d",&n) && n)
+    {    
+      scanf("%s %s",init,unlock);
+      if(0==memcmp(init,unlock,n))
+            printf("0\n");
+      else
+	{
+	  min_=99;
+	  calc_diff(init,unlock,diff,n);
+	  rotate_count(diff,0);
+	  printf("%d\n",min_);
+	}
+    }
+  return(0);
+}
+```

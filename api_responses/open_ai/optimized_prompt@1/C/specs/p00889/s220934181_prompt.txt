@@ -1,0 +1,134 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+// AOJ 1310: Find the Multiples
+// 2017.10.3 bal4u@uu
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define HASHSIZ 300017
+typedef struct { int b; int v; } HASH;
+HASH hash[HASHSIZ+2], *hashend = hash + HASHSIZ;
+
+int lookup(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) return p->v;
+		if (++p == hashend) p = hash;
+	}
+	return 0;
+}
+
+void insert(int b)
+{
+	HASH *p = hash + b % HASHSIZ;
+	while (p->b) {
+		if (p->b == b) { p->v++; return; }
+		if (++p == hashend) p = hash;
+	}
+	p->b = b, p->v = 1;
+}
+
+int a[100002];
+int b[100002];
+int tr[10][6];
+
+int main()
+{
+	int n, s, w, q, g, i, k, ans;
+
+	tr[0][2] = tr[2][2] = tr[4][2] = tr[6][2] = tr[8][2] = tr[0][5] = tr[5][5] = 1;
+
+    while (scanf("%d%d%d%d", &n, &s, &w, &q) && n > 0) {
+		g = s;
+		for (i = 0; i < n; i++) {
+			a[i] = (g/7) % 10;
+			if (g & 1) g = (g >> 1) ^ w;
+			else g >>= 1;
+		}
+
+		ans = 0;
+		if (q == 2 || q == 5) {
+			for (k = 0, i = 0; i < n; i++) {
+				if (a[i]) k++;
+				if (tr[a[i]][q]) ans += k;
+			}
+		} else {
+			memset(hash, 0, sizeof(hash));
+			for (k = 1, b[n] = 0, i = n-1; i >= 0; i--){
+				b[i] = (k*a[i] + b[i+1]) % q;
+				k = ((k<<3)+(k<<1)) % q;
+			}
+			for (i = 0; i < n; i++) {
+				if (a[i]) insert(b[i]+1);
+				ans += lookup(b[i+1]+1);
+			}
+		}
+		printf("%d\n", ans);
+	}
+	return 0;
+}
+```

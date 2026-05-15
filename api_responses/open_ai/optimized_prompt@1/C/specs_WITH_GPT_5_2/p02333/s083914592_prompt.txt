@@ -1,0 +1,92 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+#define ll long long
+#define rep(i,l,r)for(ll i=(l);i<(r);i++)
+ll pom(ll a,ll n,int m){ll x=1;for(a%=m;n;n/=2)n&1?x=x*a%m:0,a=a*a%m;return x;}
+#define MOD 1000000007
+#define invp(a,p)pom(a,p-2,p)
+
+//階乗,二項係数
+//*
+ll fact[100010];
+ll invfact[100010];
+void makefact(int n,ll m){
+	fact[0]=1;
+	rep(i,0,n)fact[i+1]=fact[i]*(i+1)%m;
+	invfact[n]=invp(fact[n],m);
+	for(int i=n;i>0;i--)invfact[i-1]=invfact[i]*i%m;
+}
+ll choose(int n,int r,int m){return n<0||r<0||n-r<0?0:fact[n]*invfact[r]%m*invfact[n-r]%m;}
+//*/
+
+int main(){
+	makefact(2000,MOD);
+	int n,m;
+	scanf("%d%d",&n,&m);
+	ll s=0;
+	rep(i,0,m+1)s=(s+choose(m,i,MOD)*pom(i,n,MOD)*((m-i)%2==0?1:-1))%MOD;
+	printf("%lld\n",(s+MOD)%MOD);
+}
+```

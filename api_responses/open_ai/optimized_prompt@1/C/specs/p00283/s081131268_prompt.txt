@@ -1,0 +1,109 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+
+#define INF 1000
+
+int D,N;
+int a[100];
+int e[100];
+int r[100];
+
+int memo[101][101];
+
+int search(int tkrk,int kkt) {
+	int ret=INF;
+	int i;
+	if(tkrk<=0)return 0;
+	if(memo[tkrk][kkt]>0)return memo[tkrk][kkt]-1;
+	memo[tkrk][kkt]=INF+1;
+	for(i=0;i<N;i++) {
+		if(kkt>=r[i]) {
+			int next_kkt=kkt+e[i];
+			int candidate;
+			if(next_kkt>100)next_kkt=100;
+			candidate=search(tkrk-a[i],next_kkt)+1;
+			if(candidate<ret)ret=candidate;
+		}
+	}
+	memo[tkrk][kkt]=ret+1;
+	return ret;
+}
+
+int main(void) {
+	while(scanf("%d%d",&D,&N)==2 && (D!=0 || N!=0)) {
+		int i,j;
+		int ret;
+		for(i=0;i<N;i++) {
+			if(scanf("%d%d%d",&a[i],&e[i],&r[i])!=3)return 1;
+		}
+		for(i=0;i<=100;i++) {
+			for(j=0;j<=100;j++)memo[i][j]=0;
+		}
+		ret=search(D,0);
+		if(ret==INF)puts("NA"); else printf("%d\n",ret);
+	}
+	return 0;
+}
+```

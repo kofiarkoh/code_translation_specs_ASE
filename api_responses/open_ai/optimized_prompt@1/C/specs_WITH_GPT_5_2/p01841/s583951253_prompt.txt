@@ -1,0 +1,205 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+/*
+A2740
+title:Rooted Tree for Misawa-san
+@kankichi573
+*/
+#include <stdio.h>
+#include <string.h>
+char input_tree[2][100000];
+char ans[100000];
+char *ap;
+char zeros[1]="\0";
+
+typedef struct  {
+  char *sptr;
+  int  len;
+} mystr_;
+
+void display(mystr_ *str)
+{
+  int i;
+  for(i=0;i<str->len;i++)
+    printf("%c",str->sptr[i]);
+#ifdef DEBUG
+  printf("{%d}",str->len);
+#endif
+  printf("\n");
+}
+
+void analyze_tree(mystr_ *in,mystr_ *left,mystr_ *right,int *val)
+{
+  char *p;
+  int lv,i;
+
+  left->sptr = p = in->sptr;
+
+  for(i=0,lv=0;i<in->len;i++)
+    {
+      if(p[i]=='[')
+	{
+	if(lv==0)
+	  {
+	    left->len=i;
+	    *val = atoi(p+i+1);
+	  }
+	
+	
+	  lv++;
+	}
+      else if(p[i]==']')
+	{
+	  if(lv==1)
+	    {
+	      right->sptr=&p[i+1];
+	      right->len =in->len-i-1;
+	    }
+	  lv--;
+	}
+      else if(p[i]=='(')
+	lv++;
+      else if(p[i]==')')
+	lv--;
+    }
+}
+
+int is_empty_tree(mystr_ *in)
+{
+  if(in->len==2)
+    return(1);
+  else
+    return(0);
+}
+
+void remove_paren(mystr_ *in)
+{
+  in->len  -= 2;
+  in->sptr ++;
+}
+
+
+void add_tree(mystr_ *in1,mystr_ *in2,mystr_ *out)
+{
+  mystr_ stree[2][2],sstree[2];
+  int v[2],val,le,i;
+
+  analyze_tree(in1,&stree[0][0],&stree[0][1],&v[0]);
+  analyze_tree(in2,&stree[1][0],&stree[1][1],&v[1]);
+  val = v[0]+v[1];
+
+  if(is_empty_tree(&stree[0][0]) || is_empty_tree(&stree[1][0]))
+    {
+      sstree[0].sptr=zeros;
+      sstree[0].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][0]);
+      remove_paren(&stree[1][0]);
+      add_tree(&stree[0][0],&stree[1][0],&sstree[0]);
+    }
+  if(is_empty_tree(&stree[0][1]) || is_empty_tree(&stree[1][1]))
+    {
+      sstree[1].sptr=zeros;
+      sstree[1].len =0;
+    }
+  else
+    {
+      remove_paren(&stree[0][1]);
+      remove_paren(&stree[1][1]);
+      add_tree(&stree[0][1],&stree[1][1],&sstree[1]);
+    }
+
+  out->sptr=ap;
+
+  sprintf(ap,"(%.*s)[%d](%.*s)",sstree[0].len,sstree[0].sptr,val,
+	  sstree[1].len,sstree[1].sptr);
+
+  while(*ap)
+    ap++;
+  out->len=ap - out->sptr;
+
+}
+
+int main()
+{
+  char *l,*r;
+  int llen,rlen,val;
+  mystr_ tree[3],ltree,rtree;
+  
+  scanf("%s",&(input_tree[0][0]));
+  tree[0].sptr=&(input_tree[0][0]);
+  tree[0].len =strlen(&(input_tree[0][0]));
+  scanf("%s",&(input_tree[1][0]));
+  tree[1].sptr=&(input_tree[1][0]);
+  tree[1].len =strlen(&(input_tree[1][0]));
+  ap=&ans[0];
+
+  add_tree(&tree[0],&tree[1],&tree[2]);
+  display(&tree[2]);
+
+  return(0);
+}
+```

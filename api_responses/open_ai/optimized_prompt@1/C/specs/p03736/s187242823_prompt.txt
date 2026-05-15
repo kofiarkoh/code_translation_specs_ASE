@@ -1,0 +1,120 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define N	200000
+#define INF	0x3f3f3f3f3f3f3f3fLL
+
+long long min(long long a, long long b) { return a < b ? a : b; }
+
+void update(long long *ft, int i, int n, long long x) {
+	while (i < n) {
+		ft[i] = min(ft[i], x);
+		i |= i + 1;
+	}
+}
+
+long long query(long long *ft, int i) {
+	long long x = INF;
+
+	while (i >= 0) {
+		x = min(x, ft[i]);
+		i &= i + 1, i--;
+	}
+	return x;
+}
+
+int main() {
+	static long long dp[N], ft1[N], ft2[N];
+	int n, q, i, j;
+	long long d, ans;
+
+	scanf("%d%d%d%d", &n, &q, &i, &j), i--, j--;
+	memset(ft1, 0x3f, n * sizeof *ft1);
+	memset(ft2, 0x3f, n * sizeof *ft2);
+	update(ft1, j, n, -j);
+	update(ft2, n - 1 - j, n, j);
+	d = 0;
+	while (q--) {
+		int i_;
+		long long x;
+
+		scanf("%d", &i_), i_--;
+		d += abs(i - i_);
+		x = min(query(ft1, i_) + i_, query(ft2, n - 1 - i_) - i_) - abs(i - i_);
+		dp[i] = min(dp[i], x);
+		update(ft1, i, n, x - i);
+		update(ft2, n - 1 - i, n, x + i);
+		i = i_;
+	}
+	ans = INF;
+	for (i = 0; i < n; i++)
+		ans = min(ans, dp[i]);
+	ans += d;
+	printf("%lld\n", ans);
+	return 0;
+}
+```

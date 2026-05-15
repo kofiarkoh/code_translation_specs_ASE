@@ -1,0 +1,153 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+// AOJ ALDS1_14_C Pattern Search
+// 2018.5.13 bal4u
+
+#include <stdio.h>
+#include <string.h>
+
+#if 1
+#define gc() getchar_unlocked()
+#else
+#define gc() getchar()
+#endif
+
+int in()
+{
+	int n = 0, c = gc();
+	do n = 10*n + (c & 0xf), c = gc(); while (c >= '0');
+	return n;
+}
+
+#define MOD 1000000007LL
+#define C1  401
+#define C2  397
+
+#define MAX_L 1005
+char text[MAX_L][MAX_L]; int H, W;
+char pat[MAX_L][MAX_L]; int R, C;
+int  a[MAX_L][MAX_L], b[MAX_L][MAX_L];
+int  t[MAX_L][MAX_L];
+
+void genHash(int res[MAX_L][MAX_L], char s[MAX_L][MAX_L], int h, int w)
+{
+	int r, c;
+	long long x, y, k;
+
+	memset(t, 0, sizeof(t));
+	memset(res, 0, sizeof(res));
+
+	x = 1, y = 1;
+	for (c = 0; c < C; c++) x = (x*C1) % MOD;
+	for (r = 0; r < R; r++) y = (y*C2) % MOD;
+
+	for (r = 0; r < h; r++) {
+		k = 0;
+		for (c = 0; c < C; c++) k = (k*C1 + s[r][c]) % MOD;
+		for (c = 0; c <= w-C; c++) {
+			t[r][c] = (int)k;
+			if (c + C < w) k = (k*C1-s[r][c]*x+s[r][c+C]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+
+	for (c = 0; c < w; c++) {
+		k = 0;
+		for (r = 0; r < R; r++) k = (k*C2+t[r][c]) % MOD;
+		for (r = 0; r <= h-R; r++) {
+			res[r][c] = (int)k;
+			if (r+R < h) k = (k*C2-t[r][c]*y+t[r+R][c]) % MOD;
+			if (k < 0) k += MOD;
+		}
+	}
+}
+
+int main()
+{
+	int r, c;
+	char ch, *p;
+
+	H = in(), W = in();
+	for (r = 0; r < H; r++) {
+		p = text[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	R = in(), C = in();
+	for (r = 0; r < R; r++) {
+		p = pat[r];
+		while ((ch = gc()) > ' ') *p++ = ch;
+		*p = 0;
+	}
+
+	genHash(a, text, H, W);
+	genHash(b, pat, R, C);
+
+	for (r = 0; r <= H-R; r++) for (c = 0; c <= W-C; c++) {
+		if (a[r][c] == b[0][0]) printf("%d %d\n", r, c);
+	}
+	return 0;
+}
+```

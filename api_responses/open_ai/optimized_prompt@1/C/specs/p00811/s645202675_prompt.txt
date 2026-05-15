@@ -1,0 +1,110 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+
+char isprime[100000];
+int pr[100000];
+int primenum;
+
+void mpl(void) {
+	int i,j;
+	for(i=0;i<100000;i++)isprime[i]=1;
+	isprime[0]=isprime[1]=0;
+	primenum=0;
+	for(i=2;i<100000;i++) {
+		if(isprime[i]) {
+			pr[primenum++]=i;
+			for(j=i+i;j<100000;j+=i)isprime[j]=0;
+		}
+	}
+}
+
+int main(void) {
+	int m,a,b;
+	mpl();
+	while(scanf("%d%d%d",&m,&a,&b)==3 && (m|a|b)!=0) {
+		int i;
+		int p=0,q=0;
+		for(i=0;i<primenum;i++) {
+			int l=i,r=primenum-1;
+			while(l<=r) {
+				int j=(l+r)/2;
+				if((long long)pr[i]*pr[j]<=m &&
+				(long long)a*pr[j]<=(long long)pr[i]*b) {
+					l=j+1;
+				} else {
+					r=j-1;
+				}
+			}
+			if(l>i && (long long)pr[i]*pr[l-1]<=m &&
+			(long long)a*pr[l-1]<=(long long)pr[i]*b && pr[i]*pr[l-1]>p*q) {
+				p=pr[i];
+				q=pr[l-1];
+			}
+		}
+		printf("%d %d\n",p,q);
+	}
+	return 0;
+}
+```

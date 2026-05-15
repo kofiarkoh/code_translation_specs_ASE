@@ -1,0 +1,119 @@
+You are an expert senior software engineer.
+
+Given the following source code, generate a precise and structured code specification.
+
+The goal is to describe WHAT the code does (behavioral contract), not HOW it is implemented.
+
+Return the specification using the following structured sections:
+
+1. Functional Description
+   - High-level description of the purpose
+   - What problem it solves
+   - Core behavior
+
+2. Inputs
+   - Parameters
+   - Data types
+   - Valid ranges or constraints
+   - Assumptions about inputs
+
+3. Outputs
+   - Return values
+   - Side effects
+   - Output format/schema (if applicable)
+
+4. Preconditions
+   - Conditions that must hold before execution
+   - Explicit logical constraints
+
+5. Postconditions
+   - Conditions guaranteed after execution
+   - State changes
+   - Return guarantees
+
+6. Invariants
+   - Conditions that must always remain true
+   - Class-level invariants (if object-oriented)
+
+7. Error Handling / Exceptional Behavior
+   - What happens on invalid input?
+   - Exceptions thrown?
+   - Edge-case behavior
+
+8. State Transitions (if applicable)
+   - Valid object states
+   - State changes caused by execution
+
+9. Non-functional Constraints (if inferable)
+   - Time complexity
+   - Space complexity
+   - Performance assumptions
+
+Content Requirements:
+- Do NOT rewrite the code.
+- Do NOT summarize implementation details.
+- Focus strictly on behavioral specification.
+- If behavior is ambiguous, state assumptions explicitly.
+- If certain aspects cannot be inferred, state "Not inferable from code."
+- Do not make any extreme assumptions.
+- Your output should not be too wordy and must focus on core aspects
+
+Now generate the specification for the code below:
+
+```C
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdint.h> // uint64_t
+
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) ((a) > (b) ? (b) : (a))
+#define BUF_SIZE 20
+#define DIVISOR 1000000007
+
+// size: specify sizeof(str)
+int get_str(char *str, int size) {
+    if(!fgets(str, size, stdin)) return -1;
+    return 0;
+}
+
+int get_int(void) {
+  int num;
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return 0;
+  sscanf(line, "%d", &num);
+#else
+#error
+#endif
+  return num;
+}
+
+int get_int2(int *a1, int *a2) {
+#ifdef BUF_SIZE
+  char line[BUF_SIZE];
+  if(!fgets(line, BUF_SIZE, stdin)) return -1;
+  sscanf(line, "%d %d", a1, a2);
+#else
+#error
+#endif
+  return 0;
+}
+
+int main(void) {
+    int n, k;
+    get_int2(&n, &k);
+
+    int pat, i;
+    for(pat = 0; pat < (1<<n); pat++) {
+        if(__builtin_popcount(pat)!=k) continue;
+        printf("%d:", pat);
+        for(i = 0; i < n; i++) {
+            if(!(pat & (1<<i))) continue;
+            printf(" %d", i);
+        }
+        putchar('\n');
+    }
+    return 0;
+}
+```
